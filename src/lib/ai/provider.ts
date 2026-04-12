@@ -1,0 +1,369 @@
+/**
+ * AI Provider — abstracción unificada para OpenAI y Ollama (local)
+ *
+ * Soporta:
+ *  - Detección automática del provider via env vars
+ *  - Override per-call via options.provider (arquitectura híbrida)
+ *  - Override per-feature via env vars dedicadas (FEATURE_PROVIDER_*)
+ *
+ * Ejemplo de uso híbrido:
+ *   await callAI(messages, { provider: 'openai' })  // Forzar OpenAI para esta llamada
+ *   await callAI(messages, { feature: 'contracts' }) // Usa CONTRACTS_AI_PROVIDER si existe
+ */
+
+export interface AIMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
+export type AIProvider = 'openai' | 'ollama' | 'deepseek' | 'groq' | 'simulated'
+
+/** Features que pueden usar diferentes providers via env vars */
+export type AIFeature =
+  | 'chat'             // Asistente IA del dashboard
+  | 'worker-chat'      // Chatbot del trabajador en /mi-portal
+  | 'contract-review'  // Revisión de contratos
+  | 'contract-gen'     // Generación de contratos con IA
+  | 'action-plan'      // Plan de acción tras diagnóstico
+  | 'pliego-analysis'  // Análisis de pliego de reclamos
+  | 'rag-embed'        // Embeddings para RAG
+
+export interface AICallOptions {
+  temperature?: number
+  maxTokens?: number
+  jsonMode?: boolean // Pide respuesta JSON. No todos los modelos lo soportan.
+  provider?: AIProvider // Override directo del provider
+  feature?: AIFeature // Override basado en variable de entorno por feature
+}
+
+// ── Rotación de API keys (Groq multi-cuenta) ──────────────────────────────
+// Permite usar múltiples cuentas gratuitas de Groq para evitar rate limits.
+// .env: GROQ_API_KEY=gsk_key1,gsk_key2,gsk_key3  (separadas por coma)
+// El sistema rota automáticamente cuando una key recibe 429.
+
+const groqKeyState = {
+  keys: [] as string[],
+  currentIndex: 0,
+  blockedUntil: new Map<number, number>(), // keyIndex → timestamp
+}
+
+function initGroqKeys() {
+  if (groqKeyState.keys.length > 0) return
+  const raw = process.env.GROQ_API_KEY || ''
+  groqKeyState.keys = raw.split(',').map(k => k.trim()).filter(k => k.length > 0)
+}
+
+function getGroqKey(): string {
+  initGroqKeys()
+  if (groqKeyState.keys.length === 0) return ''
+  if (groqKeyState.keys.length === 1) return groqKeyState.keys[0]
+
+  const now = Date.now()
+  // Buscar la siguiente key que no esté bloqueada
+  for (let i = 0; i < groqKeyState.keys.length; i++) {
+    const idx = (groqKeyState.currentIndex + i) % groqKeyState.keys.length
+    const blockedUntil = groqKeyState.blockedUntil.get(idx) || 0
+    if (now >= blockedUntil) {
+      groqKeyState.currentIndex = idx
+      return groqKeyState.keys[idx]
+    }
+  }
+  // Todas bloqueadas — usar la que se desbloquea antes
+  let earliest = Infinity
+  let earliestIdx = 0
+  for (const [idx, until] of groqKeyState.blockedUntil.entries()) {
+    if (until < earliest) { earliest = until; earliestIdx = idx }
+  }
+  groqKeyState.currentIndex = earliestIdx
+  return groqKeyState.keys[earliestIdx]
+}
+
+function markGroqKeyBlocked(retryAfterSec: number) {
+  const blockMs = Math.max(retryAfterSec * 1000, 60_000) // mínimo 1 min
+  groqKeyState.blockedUntil.set(groqKeyState.currentIndex, Date.now() + blockMs)
+  // Rotar a la siguiente key
+  groqKeyState.currentIndex = (groqKeyState.currentIndex + 1) % groqKeyState.keys.length
+}
+
+function getGroqKeyCount(): number {
+  initGroqKeys()
+  return groqKeyState.keys.length
+}
+
+// ── Detección de proveedor ──────────────────────────────────────────────────
+
+/**
+ * Detecta el provider a usar:
+ * 1. Si options.provider está definido → ese
+ * 2. Si options.feature está definido y la env var del feature existe → esa
+ * 3. AI_PROVIDER global
+ * 4. Auto-detect por keys disponibles
+ */
+export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeature }): AIProvider {
+  // 1. Override directo
+  if (opts?.provider) return opts.provider
+
+  // 2. Override por feature (ej: CONTRACT_REVIEW_AI_PROVIDER=openai)
+  if (opts?.feature) {
+    const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_AI_PROVIDER`
+    const featureProvider = (process.env[envKey] || '').toLowerCase().trim()
+    if (featureProvider === 'ollama') return 'ollama'
+    if (featureProvider === 'openai') return 'openai'
+    if (featureProvider === 'deepseek') return 'deepseek'
+    if (featureProvider === 'groq') return 'groq'
+  }
+
+  // 3. AI_PROVIDER global
+  const explicit = (process.env.AI_PROVIDER || '').toLowerCase().trim()
+  if (explicit === 'ollama') return 'ollama'
+  if (explicit === 'openai') return 'openai'
+  if (explicit === 'deepseek') return 'deepseek'
+  if (explicit === 'groq') return 'groq'
+
+  // 4. Auto-detect: clave de DeepSeek (más barato para SaaS)
+  if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
+
+  // 5. Auto-detect: clave de Groq (ultra-rápido, tier gratuito)
+  if (process.env.GROQ_API_KEY) return 'groq'
+
+  // 6. Auto-detect: clave de OpenAI real (no placeholder)
+  const openaiKey = process.env.OPENAI_API_KEY || ''
+  if (openaiKey && openaiKey !== 'sk-xxxxx' && openaiKey.startsWith('sk-')) {
+    return 'openai'
+  }
+
+  // 7. Auto-detect: Ollama configurado
+  if (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL) return 'ollama'
+
+  // 8. Default: Ollama (fallará al fetch si no está corriendo)
+  return 'ollama'
+}
+
+export function getModelName(opts?: { provider?: AIProvider; feature?: AIFeature }): string {
+  const provider = detectProvider(opts)
+
+  if (provider === 'openai') {
+    // Permite modelo dedicado por feature (ej: CONTRACT_REVIEW_OPENAI_MODEL=gpt-4o)
+    if (opts?.feature) {
+      const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_OPENAI_MODEL`
+      if (process.env[envKey]) return process.env[envKey]!
+    }
+    return process.env.OPENAI_MODEL || 'gpt-4o'
+  }
+
+  if (provider === 'deepseek') {
+    if (opts?.feature) {
+      const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_DEEPSEEK_MODEL`
+      if (process.env[envKey]) return process.env[envKey]!
+    }
+    return process.env.DEEPSEEK_MODEL || 'deepseek-chat'
+  }
+
+  if (provider === 'groq') {
+    if (opts?.feature) {
+      const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_GROQ_MODEL`
+      if (process.env[envKey]) return process.env[envKey]!
+    }
+    return process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+  }
+
+  if (provider === 'ollama') {
+    if (opts?.feature) {
+      const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_OLLAMA_MODEL`
+      if (process.env[envKey]) return process.env[envKey]!
+    }
+    return process.env.OLLAMA_MODEL || 'qwen2.5:latest'
+  }
+
+  return 'simulated'
+}
+
+// ── Llamada principal ────────────────────────────────────────────────────────
+
+/**
+ * Llama al LLM configurado y devuelve el texto de la respuesta.
+ * Lanza un Error si la llamada falla — el caller decide si hacer fallback.
+ */
+export async function callAI(
+  messages: AIMessage[],
+  options: AICallOptions = {}
+): Promise<string> {
+  const { temperature = 0.4, maxTokens = 2000, jsonMode = false, provider: providerOpt, feature } = options
+  const provider = detectProvider({ provider: providerOpt, feature })
+
+  if (provider === 'simulated') {
+    throw new Error('No AI provider configured (use AI_PROVIDER=ollama or set OPENAI_API_KEY)')
+  }
+
+  // ── Construir URL y headers según proveedor ─────────────────────────────
+  let url: string
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+  if (provider === 'openai') {
+    url = 'https://api.openai.com/v1/chat/completions'
+    headers['Authorization'] = `Bearer ${process.env.OPENAI_API_KEY}`
+  } else if (provider === 'deepseek') {
+    url = 'https://api.deepseek.com/v1/chat/completions'
+    headers['Authorization'] = `Bearer ${process.env.DEEPSEEK_API_KEY}`
+  } else if (provider === 'groq') {
+    url = 'https://api.groq.com/openai/v1/chat/completions'
+    const groqKey = getGroqKey()
+    headers['Authorization'] = `Bearer ${groqKey}`
+    if (getGroqKeyCount() > 1) {
+      console.log(`[AI] Groq key ${groqKeyState.currentIndex + 1}/${getGroqKeyCount()}`)
+    }
+  } else {
+    const base = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '')
+    url = `${base}/v1/chat/completions`
+    headers['Authorization'] = 'Bearer ollama'
+  }
+
+  // ── Construir body ────────────────────────────────────────────────────────
+  const model = getModelName({ provider: providerOpt, feature })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const body: Record<string, any> = {
+    model,
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+    stream: false,
+  }
+
+  // JSON mode: OpenAI/DeepSeek/Groq usan response_format, Ollama usa format
+  if (jsonMode) {
+    if (provider === 'openai' || provider === 'deepseek' || provider === 'groq') {
+      body.response_format = { type: 'json_object' }
+    } else {
+      // Ollama
+      body.format = 'json'
+      // Qwen3 tiene modo "thinking" activado por defecto.
+      // Con thinking activo: content="" y la respuesta va en message.thinking → rompe el parser.
+      // Desactivarlo de 3 formas para compatibilidad con distintas versiones de Ollama:
+      body.think = false           // Ollama >= 0.6 (top-level)
+      body.options = { think: false } // Ollama native options
+      // Inyectar /no_think en el último mensaje del usuario como fallback universal
+      const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user')
+      if (lastUserIdx !== -1) {
+        const realIdx = messages.length - 1 - lastUserIdx
+        body.messages = messages.map((m, i) =>
+          i === realIdx ? { ...m, content: m.content + ' /no_think' } : m
+        )
+      }
+    }
+  }
+
+  // ── Fetch con retry automático para rate limits (429) ─────────────────────
+  // Cloud providers (Groq, DeepSeek) tienen rate limits que se alcanzan
+  // al procesar muchos contratos. Retry con backoff exponencial.
+  const MAX_RETRIES = 2
+  const timeoutMs = provider === 'ollama' ? 120_000 : 60_000
+  const bodyStr = JSON.stringify(body)
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: bodyStr,
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer))
+
+    // Rate limit (429) → rotar key si hay varias, o esperar con tope
+    if (response.status === 429 && attempt < MAX_RETRIES) {
+      const retryAfter = response.headers.get('retry-after')
+      const parsed = retryAfter ? Number(retryAfter) : NaN
+
+      // Si hay múltiples keys de Groq, marcar la actual como bloqueada y rotar
+      if (provider === 'groq' && getGroqKeyCount() > 1) {
+        markGroqKeyBlocked(isNaN(parsed) ? 60 : parsed)
+        const newKey = getGroqKey()
+        headers['Authorization'] = `Bearer ${newKey}`
+        console.log(`[AI] Key ${groqKeyState.currentIndex + 1}/${getGroqKeyCount()} rate-limited → rotando`)
+        // Esperar solo 2s antes de reintentar con la nueva key
+        await new Promise(resolve => setTimeout(resolve, 2_000))
+        continue
+      }
+
+      // Una sola key — fallar rápido si pide esperar mucho
+      if (!isNaN(parsed) && parsed > 30) {
+        throw new Error(`Límite de uso de ${provider} alcanzado. Espera ${Math.ceil(parsed / 60)} min y reintenta.`)
+      }
+
+      let waitMs = isNaN(parsed) ? 10_000 : Math.max(parsed * 1000, 5_000)
+      waitMs = Math.min(waitMs, 30_000)
+
+      console.log(`[AI] Rate limit 429 (intento ${attempt + 1}/${MAX_RETRIES}). Esperando ${Math.round(waitMs / 1000)}s...`)
+      await new Promise(resolve => setTimeout(resolve, waitMs))
+      continue
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '')
+      throw new Error(`${provider} API error ${response.status}: ${errText.slice(0, 200)}`)
+    }
+
+    const data = await response.json()
+    const content: string | undefined = data?.choices?.[0]?.message?.content
+
+    if (!content) {
+      throw new Error(`${provider} devolvió respuesta vacía`)
+    }
+
+    return content
+  }
+
+  throw new Error(`Límite de velocidad de ${provider}. Espera unos segundos y reintenta.`)
+}
+
+/**
+ * Helper: extrae JSON de una respuesta del LLM.
+ * Maneja:
+ *  - Qwen3 <think>...</think> blocks (reasoning trace antes del JSON)
+ *  - Fences markdown (```json ... ```)
+ *  - JSON puro sin wrapper
+ *  - JSON embebido en texto libre
+ */
+export function extractJson<T = unknown>(content: string): T {
+  // 1. Eliminar bloques <think>...</think> de Qwen3 (incluyendo si vienen con <|think|>)
+  const cleaned = content
+    .replace(/<\|think\|>[\s\S]*?<\|\/think\|>/g, '')
+    .replace(/<think>[\s\S]*?<\/think>/g, '')
+    .trim()
+
+  // 2. Intentar parsear directo
+  try {
+    return JSON.parse(cleaned) as T
+  } catch {
+    // 3. Buscar dentro de fences markdown
+    const fenceMatch = cleaned.match(/```json\s*([\s\S]*?)\s*```/) ||
+                       cleaned.match(/```\s*([\s\S]*?)\s*```/)
+    if (fenceMatch) {
+      return JSON.parse(fenceMatch[1]) as T
+    }
+
+    // 4. Extraer el primer objeto JSON balanceado { ... }
+    const start = cleaned.indexOf('{')
+    const arrStart = cleaned.indexOf('[')
+    const useArr = arrStart !== -1 && (start === -1 || arrStart < start)
+    const openChar = useArr ? '[' : '{'
+    const closeChar = useArr ? ']' : '}'
+    const idx = cleaned.indexOf(openChar)
+    if (idx !== -1) {
+      let depth = 0
+      for (let i = idx; i < cleaned.length; i++) {
+        if (cleaned[i] === openChar) depth++
+        else if (cleaned[i] === closeChar) {
+          depth--
+          if (depth === 0) {
+            return JSON.parse(cleaned.slice(idx, i + 1)) as T
+          }
+        }
+      }
+    }
+
+    throw new Error('No se pudo extraer JSON de la respuesta del LLM')
+  }
+}

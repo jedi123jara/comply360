@@ -1,0 +1,10 @@
+==============================================================
+  USUARIOS DEL SISTEMA
+==============================================================
+
+--- Registro #1 ---
+  Email                       : admin@importglobalperu.pe
+  Nombre                      : Cecilia Luna Espinoza
+  Rol                         : OWNER
+  ClerkID                     : user_demo_06
+  Creado                      : 2026-04-06

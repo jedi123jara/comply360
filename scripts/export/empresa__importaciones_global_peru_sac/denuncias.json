@@ -1,0 +1,24 @@
+[
+  {
+    "id": "cmnnqzxks00ndq8wlzf1d90qm",
+    "org_id": "demo_org_06",
+    "code": "DEN-06-2025-006",
+    "type": "ACOSO_LABORAL",
+    "is_anonymous": true,
+    "reporter_name": null,
+    "reporter_email": null,
+    "reporter_phone": null,
+    "accused_name": null,
+    "accused_position": null,
+    "description": "Denuncia de acoso laboral recibida por el área de RRHH",
+    "evidence_urls": null,
+    "status": "RECEIVED",
+    "assigned_to": null,
+    "resolution": null,
+    "protection_measures": null,
+    "received_at": "2026-04-06T22:14:32.380Z",
+    "resolved_at": null,
+    "created_at": "2026-04-06T22:14:32.380Z",
+    "updated_at": "2026-04-06T22:14:32.380Z"
+  }
+]

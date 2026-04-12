@@ -1,0 +1,10 @@
+==============================================================
+  CANAL DE DENUNCIAS
+==============================================================
+
+--- Registro #1 ---
+  Código                      : DEN-10-2025-010
+  Tipo                        : ACOSO_LABORAL
+  Anónimo                     : No
+  Estado                      : RECEIVED
+  Descripción                 : Denuncia de acoso laboral recibida por el área de RRHH

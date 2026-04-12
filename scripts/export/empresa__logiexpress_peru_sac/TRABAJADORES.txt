@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 11000001
+  Cargo                       : Repartidor
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 11000002
+  Cargo                       : Repartidora
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 11000003
+  Cargo                       : Atención al Cliente
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 11000004
+  Cargo                       : Técnico de Motos
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 11000005
+  Cargo                       : Coordinador de Rutas
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 11000006
+  Cargo                       : Asistente Administrativo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 11000007
+  Cargo                       : Supervisora de Operaciones
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 11000008
+  Cargo                       : Analista de Datos
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 11000009
+  Cargo                       : Conductor
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 11000010
+  Cargo                       : Operador de Centro de Distribución
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 11000011
+  Cargo                       : Técnico en Mantenimiento
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 11000012
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 11000013
+  Cargo                       : Jefe de Operaciones
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 11000014
+  Cargo                       : Asistente de Servicio al Cliente
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 11000015
+  Cargo                       : Programador de Rutas
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 11000016
+  Cargo                       : Repartidor
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 11000017
+  Cargo                       : Repartidora
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 11000018
+  Cargo                       : Atención al Cliente
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 11000019
+  Cargo                       : Técnico de Motos
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 11000020
+  Cargo                       : Coordinador de Rutas
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 11000021
+  Cargo                       : Asistente Administrativo
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 11000022
+  Cargo                       : Supervisora de Operaciones
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 11000023
+  Cargo                       : Analista de Datos
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 11000024
+  Cargo                       : Conductor
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 11000025
+  Cargo                       : Operador de Centro de Distribución
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 11000026
+  Cargo                       : Técnico en Mantenimiento
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 11000027
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 11000028
+  Cargo                       : Jefe de Operaciones
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 11000029
+  Cargo                       : Asistente de Servicio al Cliente
+  Departamento                : Operaciones
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 11000030
+  Cargo                       : Programador de Rutas
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 11000031
+  Cargo                       : Repartidor
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 11000032
+  Cargo                       : Repartidora
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 11000033
+  Cargo                       : Atención al Cliente
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 11000034
+  Cargo                       : Técnico de Motos
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 11000035
+  Cargo                       : Coordinador de Rutas
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 11000036
+  Cargo                       : Asistente Administrativo
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 11000037
+  Cargo                       : Supervisora de Operaciones
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 11000038
+  Cargo                       : Analista de Datos
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 11000039
+  Cargo                       : Conductor
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 11000040
+  Cargo                       : Operador de Centro de Distribución
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 11000041
+  Cargo                       : Técnico en Mantenimiento
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 11000042
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 11000043
+  Cargo                       : Jefe de Operaciones
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 11000044
+  Cargo                       : Asistente de Servicio al Cliente
+  Departamento                : Gerencia
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 11000045
+  Cargo                       : Programador de Rutas
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 11000046
+  Cargo                       : Repartidor
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 11000047
+  Cargo                       : Repartidora
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 11000048
+  Cargo                       : Atención al Cliente
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 11000049
+  Cargo                       : Técnico de Motos
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 11000050
+  Cargo                       : Coordinador de Rutas
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 11000051
+  Cargo                       : Asistente Administrativo
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 11000052
+  Cargo                       : Supervisora de Operaciones
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 11000053
+  Cargo                       : Analista de Datos
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 11000054
+  Cargo                       : Conductor
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 11000055
+  Cargo                       : Operador de Centro de Distribución
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 11000056
+  Cargo                       : Técnico en Mantenimiento
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 11000057
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 11000058
+  Cargo                       : Jefe de Operaciones
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 11000059
+  Cargo                       : Asistente de Servicio al Cliente
+  Departamento                : Mantenimiento
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 11000060
+  Cargo                       : Programador de Rutas
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 11000061
+  Cargo                       : Repartidor
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 11000062
+  Cargo                       : Repartidora
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 11000063
+  Cargo                       : Atención al Cliente
+  Departamento                : Mantenimiento
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 11000064
+  Cargo                       : Técnico de Motos
+  Departamento                : Gerencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 11000065
+  Cargo                       : Coordinador de Rutas
+  Departamento                : Operaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 11000066
+  Cargo                       : Asistente Administrativo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

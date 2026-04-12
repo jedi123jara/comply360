@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10400001
+  Cargo                       : Cocinero
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10400002
+  Cargo                       : Ayudante de Cocina
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10400003
+  Cargo                       : Mesero
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10400004
+  Cargo                       : Cajera
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10400005
+  Cargo                       : Lavaplatos
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10400006
+  Cargo                       : Bartender
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10400007
+  Cargo                       : Jefa de Sala
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10400008
+  Cargo                       : Chef Ejecutivo
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10400009
+  Cargo                       : Pastelero
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10400010
+  Cargo                       : Asistente de Cocina
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10400011
+  Cargo                       : Hostess
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10400012
+  Cargo                       : Barista
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10400013
+  Cargo                       : Almacenero
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10400014
+  Cargo                       : Asistente Administrativo
+  Departamento                : Sala
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10400015
+  Cargo                       : Delivery
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10400016
+  Cargo                       : Supervisora de Turno
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10400017
+  Cargo                       : Técnico de Mantenimiento
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10400018
+  Cargo                       : Nutricionista
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10400019
+  Cargo                       : Jefe de Compras
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10400020
+  Cargo                       : Auxiliar de Limpieza
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10400021
+  Cargo                       : Cocinero
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10400022
+  Cargo                       : Ayudante de Cocina
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10400023
+  Cargo                       : Mesero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10400024
+  Cargo                       : Cajera
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10400025
+  Cargo                       : Lavaplatos
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10400026
+  Cargo                       : Bartender
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10400027
+  Cargo                       : Jefa de Sala
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10400028
+  Cargo                       : Chef Ejecutivo
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10400029
+  Cargo                       : Pastelero
+  Departamento                : Almacén
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10400030
+  Cargo                       : Asistente de Cocina
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10400031
+  Cargo                       : Hostess
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10400032
+  Cargo                       : Barista
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10400033
+  Cargo                       : Almacenero
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10400034
+  Cargo                       : Asistente Administrativo
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10400035
+  Cargo                       : Delivery
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10400036
+  Cargo                       : Supervisora de Turno
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10400037
+  Cargo                       : Técnico de Mantenimiento
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10400038
+  Cargo                       : Nutricionista
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10400039
+  Cargo                       : Jefe de Compras
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10400040
+  Cargo                       : Auxiliar de Limpieza
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10400041
+  Cargo                       : Cocinero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10400042
+  Cargo                       : Ayudante de Cocina
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10400043
+  Cargo                       : Mesero
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10400044
+  Cargo                       : Cajera
+  Departamento                : Sala
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10400045
+  Cargo                       : Lavaplatos
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10400046
+  Cargo                       : Bartender
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10400047
+  Cargo                       : Jefa de Sala
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10400048
+  Cargo                       : Chef Ejecutivo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10400049
+  Cargo                       : Pastelero
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10400050
+  Cargo                       : Asistente de Cocina
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10400051
+  Cargo                       : Hostess
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10400052
+  Cargo                       : Barista
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10400053
+  Cargo                       : Almacenero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10400054
+  Cargo                       : Asistente Administrativo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10400055
+  Cargo                       : Delivery
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10400056
+  Cargo                       : Supervisora de Turno
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10400057
+  Cargo                       : Técnico de Mantenimiento
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10400058
+  Cargo                       : Nutricionista
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10400059
+  Cargo                       : Jefe de Compras
+  Departamento                : Almacén
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10400060
+  Cargo                       : Auxiliar de Limpieza
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10400061
+  Cargo                       : Cocinero
+  Departamento                : Cocina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10400062
+  Cargo                       : Ayudante de Cocina
+  Departamento                : Sala
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10400063
+  Cargo                       : Mesero
+  Departamento                : Caja
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10400064
+  Cargo                       : Cajera
+  Departamento                : Bar
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10400065
+  Cargo                       : Lavaplatos
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10400066
+  Cargo                       : Bartender
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

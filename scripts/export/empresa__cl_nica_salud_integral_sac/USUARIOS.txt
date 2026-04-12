@@ -1,0 +1,10 @@
+==============================================================
+  USUARIOS DEL SISTEMA
+==============================================================
+
+--- Registro #1 ---
+  Email                       : admin@clinicasaludintegral.pe
+  Nombre                      : Patricia Torres García
+  Rol                         : OWNER
+  ClerkID                     : user_demo_08
+  Creado                      : 2026-04-06

@@ -1,0 +1,16 @@
+{
+  "empresa": "Agroindustrias del Sur SAC",
+  "ruc": "20607890123",
+  "plan": "EMPRESA",
+  "exportadoEn": "2026-04-07T17:25:32.635Z",
+  "totales": {
+    "usuarios": 1,
+    "trabajadores": 66,
+    "contratos": 20,
+    "diagnosticos": 3,
+    "sst": 3,
+    "denuncias": 1,
+    "documentos": 0,
+    "calculos": 4
+  }
+}

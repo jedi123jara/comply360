@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10500001
+  Cargo                       : Desarrollador Frontend
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10500002
+  Cargo                       : Desarrollador Backend
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10500003
+  Cargo                       : Ingeniero DevOps
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10500004
+  Cargo                       : QA Engineer
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10500005
+  Cargo                       : Product Manager
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10500006
+  Cargo                       : Diseñador UX
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10500007
+  Cargo                       : Analista de Datos
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10500008
+  Cargo                       : Scrum Master
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10500009
+  Cargo                       : Arquitecto de Software
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10500010
+  Cargo                       : Desarrollador Full Stack
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10500011
+  Cargo                       : Data Scientist
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10500012
+  Cargo                       : Cloud Engineer
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10500013
+  Cargo                       : Soporte Técnico
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10500014
+  Cargo                       : Analista de Sistemas
+  Departamento                : Producto
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10500015
+  Cargo                       : CTO
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10500016
+  Cargo                       : CEO
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10500017
+  Cargo                       : CFO
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10500018
+  Cargo                       : Community Manager
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10500019
+  Cargo                       : Especialista en Ciberseguridad
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10500020
+  Cargo                       : Desarrollador Mobile
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10500021
+  Cargo                       : Desarrollador Frontend
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10500022
+  Cargo                       : Desarrollador Backend
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10500023
+  Cargo                       : Ingeniero DevOps
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10500024
+  Cargo                       : QA Engineer
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10500025
+  Cargo                       : Product Manager
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10500026
+  Cargo                       : Diseñador UX
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10500027
+  Cargo                       : Analista de Datos
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10500028
+  Cargo                       : Scrum Master
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10500029
+  Cargo                       : Arquitecto de Software
+  Departamento                : Diseño
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10500030
+  Cargo                       : Desarrollador Full Stack
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10500031
+  Cargo                       : Data Scientist
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10500032
+  Cargo                       : Cloud Engineer
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10500033
+  Cargo                       : Soporte Técnico
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10500034
+  Cargo                       : Analista de Sistemas
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10500035
+  Cargo                       : CTO
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10500036
+  Cargo                       : CEO
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10500037
+  Cargo                       : CFO
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10500038
+  Cargo                       : Community Manager
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10500039
+  Cargo                       : Especialista en Ciberseguridad
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10500040
+  Cargo                       : Desarrollador Mobile
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10500041
+  Cargo                       : Desarrollador Frontend
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10500042
+  Cargo                       : Desarrollador Backend
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10500043
+  Cargo                       : Ingeniero DevOps
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10500044
+  Cargo                       : QA Engineer
+  Departamento                : Producto
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10500045
+  Cargo                       : Product Manager
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10500046
+  Cargo                       : Diseñador UX
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10500047
+  Cargo                       : Analista de Datos
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10500048
+  Cargo                       : Scrum Master
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10500049
+  Cargo                       : Arquitecto de Software
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10500050
+  Cargo                       : Desarrollador Full Stack
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10500051
+  Cargo                       : Data Scientist
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10500052
+  Cargo                       : Cloud Engineer
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10500053
+  Cargo                       : Soporte Técnico
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10500054
+  Cargo                       : Analista de Sistemas
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10500055
+  Cargo                       : CTO
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10500056
+  Cargo                       : CEO
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10500057
+  Cargo                       : CFO
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10500058
+  Cargo                       : Community Manager
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10500059
+  Cargo                       : Especialista en Ciberseguridad
+  Departamento                : Diseño
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10500060
+  Cargo                       : Desarrollador Mobile
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10500061
+  Cargo                       : Desarrollador Frontend
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10500062
+  Cargo                       : Desarrollador Backend
+  Departamento                : Producto
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10500063
+  Cargo                       : Ingeniero DevOps
+  Departamento                : Datos
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10500064
+  Cargo                       : QA Engineer
+  Departamento                : DevOps
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10500065
+  Cargo                       : Product Manager
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10500066
+  Cargo                       : Diseñador UX
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

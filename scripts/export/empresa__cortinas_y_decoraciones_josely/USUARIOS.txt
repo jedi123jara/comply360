@@ -1,0 +1,10 @@
+==============================================================
+  USUARIOS DEL SISTEMA
+==============================================================
+
+--- Registro #1 ---
+  Email                       : a.jaracarranza@gmail.com
+  Nombre                      : Usuario Demo
+  Rol                         : MEMBER
+  ClerkID                     : clerk-demo
+  Creado                      : 2026-04-05

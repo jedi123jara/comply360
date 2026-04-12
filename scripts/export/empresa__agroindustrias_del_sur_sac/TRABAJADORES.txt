@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10700001
+  Cargo                       : Operario de Cosecha
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10700002
+  Cargo                       : Operaria de Empaque
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10700003
+  Cargo                       : Tractorista
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10700004
+  Cargo                       : Supervisor de Campo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10700005
+  Cargo                       : Técnico Agrónomo
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10700006
+  Cargo                       : Operaria de Riego
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10700007
+  Cargo                       : Jefe de Planta
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10700008
+  Cargo                       : Operario Temporada
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10700009
+  Cargo                       : Ingeniero Agrónomo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10700010
+  Cargo                       : Operaria de Selección
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10700011
+  Cargo                       : Chofer de Distribución
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10700012
+  Cargo                       : Mecánico Agrícola
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10700013
+  Cargo                       : Técnico de Riego
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10700014
+  Cargo                       : Operario de Fumigación
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10700015
+  Cargo                       : Analista de Laboratorio
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10700016
+  Cargo                       : Asistente Administrativo
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10700017
+  Cargo                       : Contadora
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10700018
+  Cargo                       : Almacenero
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10700019
+  Cargo                       : Jefe de Campo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10700020
+  Cargo                       : Técnico en Sanidad Vegetal
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10700021
+  Cargo                       : Operario de Cosecha
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10700022
+  Cargo                       : Operaria de Empaque
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10700023
+  Cargo                       : Tractorista
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10700024
+  Cargo                       : Supervisor de Campo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10700025
+  Cargo                       : Técnico Agrónomo
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10700026
+  Cargo                       : Operaria de Riego
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10700027
+  Cargo                       : Jefe de Planta
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10700028
+  Cargo                       : Operario Temporada
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10700029
+  Cargo                       : Ingeniero Agrónomo
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10700030
+  Cargo                       : Operaria de Selección
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10700031
+  Cargo                       : Chofer de Distribución
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10700032
+  Cargo                       : Mecánico Agrícola
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10700033
+  Cargo                       : Técnico de Riego
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10700034
+  Cargo                       : Operario de Fumigación
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10700035
+  Cargo                       : Analista de Laboratorio
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10700036
+  Cargo                       : Asistente Administrativo
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10700037
+  Cargo                       : Contadora
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10700038
+  Cargo                       : Almacenero
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10700039
+  Cargo                       : Jefe de Campo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10700040
+  Cargo                       : Técnico en Sanidad Vegetal
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10700041
+  Cargo                       : Operario de Cosecha
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10700042
+  Cargo                       : Operaria de Empaque
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10700043
+  Cargo                       : Tractorista
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10700044
+  Cargo                       : Supervisor de Campo
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10700045
+  Cargo                       : Técnico Agrónomo
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10700046
+  Cargo                       : Operaria de Riego
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10700047
+  Cargo                       : Jefe de Planta
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10700048
+  Cargo                       : Operario Temporada
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10700049
+  Cargo                       : Ingeniero Agrónomo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10700050
+  Cargo                       : Operaria de Selección
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10700051
+  Cargo                       : Chofer de Distribución
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10700052
+  Cargo                       : Mecánico Agrícola
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10700053
+  Cargo                       : Técnico de Riego
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10700054
+  Cargo                       : Operario de Fumigación
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10700055
+  Cargo                       : Analista de Laboratorio
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10700056
+  Cargo                       : Asistente Administrativo
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10700057
+  Cargo                       : Contadora
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10700058
+  Cargo                       : Almacenero
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10700059
+  Cargo                       : Jefe de Campo
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10700060
+  Cargo                       : Técnico en Sanidad Vegetal
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10700061
+  Cargo                       : Operario de Cosecha
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10700062
+  Cargo                       : Operaria de Empaque
+  Departamento                : Planta
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10700063
+  Cargo                       : Tractorista
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10700064
+  Cargo                       : Supervisor de Campo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10700065
+  Cargo                       : Técnico Agrónomo
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10700066
+  Cargo                       : Operaria de Riego
+  Departamento                : Campo
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

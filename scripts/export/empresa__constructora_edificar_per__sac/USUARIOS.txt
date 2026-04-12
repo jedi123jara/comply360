@@ -1,0 +1,10 @@
+==============================================================
+  USUARIOS DEL SISTEMA
+==============================================================
+
+--- Registro #1 ---
+  Email                       : admin@edificarperu.pe
+  Nombre                      : Carmen Huanca Flores
+  Rol                         : OWNER
+  ClerkID                     : user_demo_02
+  Creado                      : 2026-04-06

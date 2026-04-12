@@ -1,0 +1,12 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 48488732
+  Email                       : josypastor94@gmail.com
+  Teléfono                    : 917200412
+  Cargo                       : gerente
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

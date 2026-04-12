@@ -1,0 +1,58 @@
+[
+  {
+    "id": "cmnnqzp8f00f8q8wlx63f5wlr",
+    "org_id": "demo_org_04",
+    "type": "FULL",
+    "score_global": 55,
+    "score_by_area": {
+      "cts": 52,
+      "sst": 50,
+      "terceros": 60,
+      "contratos": 55,
+      "planillas": 60,
+      "vacaciones": 65,
+      "hostigamiento": 70,
+      "gratificaciones": 58
+    },
+    "total_multa_riesgo": "15420",
+    "questions_json": [],
+    "gap_analysis": {
+      "recomendaciones": [
+        "Regularizar registros de asistencia",
+        "Actualizar contratos vencidos",
+        "Implementar capacitaciones SST"
+      ]
+    },
+    "action_plan": null,
+    "completed_at": "2026-03-27T22:14:21.566Z",
+    "created_at": "2026-04-06T22:14:21.567Z"
+  },
+  {
+    "id": "cmnnqzpcw00f9q8wllh4tcfol",
+    "org_id": "demo_org_04",
+    "type": "EXPRESS",
+    "score_global": 68,
+    "score_by_area": {
+      "cts": 64,
+      "sst": 59,
+      "terceros": 66,
+      "contratos": 66,
+      "planillas": 67,
+      "vacaciones": 70,
+      "hostigamiento": 74,
+      "gratificaciones": 66
+    },
+    "total_multa_riesgo": "23130",
+    "questions_json": [],
+    "gap_analysis": {
+      "recomendaciones": [
+        "Regularizar registros de asistencia",
+        "Actualizar contratos vencidos",
+        "Implementar capacitaciones SST"
+      ]
+    },
+    "action_plan": null,
+    "completed_at": "2026-03-12T22:14:21.566Z",
+    "created_at": "2026-04-06T22:14:21.728Z"
+  }
+]

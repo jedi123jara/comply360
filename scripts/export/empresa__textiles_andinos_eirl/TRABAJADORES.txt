@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10300001
+  Cargo                       : Operaria de Costura
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10300002
+  Cargo                       : Operario de Tejeduria
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10300003
+  Cargo                       : Controlador de Calidad
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10300004
+  Cargo                       : Diseñadora
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10300005
+  Cargo                       : Supervisora de Planta
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10300006
+  Cargo                       : Técnico de Mantenimiento
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10300007
+  Cargo                       : Auxiliar Administrativo
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10300008
+  Cargo                       : Jefa de Producción
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10300009
+  Cargo                       : Operaria de Corte
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10300010
+  Cargo                       : Operaria de Acabados
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10300011
+  Cargo                       : Almacenero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10300012
+  Cargo                       : Mecánico Textil
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10300013
+  Cargo                       : Asistente de Diseño
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10300014
+  Cargo                       : Analista de Calidad
+  Departamento                : Calidad
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10300015
+  Cargo                       : Jefe de Almacén
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10300016
+  Cargo                       : Técnico Colorista
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10300017
+  Cargo                       : Operaria de Bordado
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10300018
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10300019
+  Cargo                       : Coordinadora de Exportaciones
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10300020
+  Cargo                       : Asistente Contable
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10300021
+  Cargo                       : Operaria de Costura
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10300022
+  Cargo                       : Operario de Tejeduria
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10300023
+  Cargo                       : Controlador de Calidad
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10300024
+  Cargo                       : Diseñadora
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10300025
+  Cargo                       : Supervisora de Planta
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10300026
+  Cargo                       : Técnico de Mantenimiento
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10300027
+  Cargo                       : Auxiliar Administrativo
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10300028
+  Cargo                       : Jefa de Producción
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10300029
+  Cargo                       : Operaria de Corte
+  Departamento                : Almacén
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10300030
+  Cargo                       : Operaria de Acabados
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10300031
+  Cargo                       : Almacenero
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10300032
+  Cargo                       : Mecánico Textil
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10300033
+  Cargo                       : Asistente de Diseño
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10300034
+  Cargo                       : Analista de Calidad
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10300035
+  Cargo                       : Jefe de Almacén
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10300036
+  Cargo                       : Técnico Colorista
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10300037
+  Cargo                       : Operaria de Bordado
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10300038
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10300039
+  Cargo                       : Coordinadora de Exportaciones
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10300040
+  Cargo                       : Asistente Contable
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10300041
+  Cargo                       : Operaria de Costura
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10300042
+  Cargo                       : Operario de Tejeduria
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10300043
+  Cargo                       : Controlador de Calidad
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10300044
+  Cargo                       : Diseñadora
+  Departamento                : Calidad
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10300045
+  Cargo                       : Supervisora de Planta
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10300046
+  Cargo                       : Técnico de Mantenimiento
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10300047
+  Cargo                       : Auxiliar Administrativo
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10300048
+  Cargo                       : Jefa de Producción
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10300049
+  Cargo                       : Operaria de Corte
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10300050
+  Cargo                       : Operaria de Acabados
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10300051
+  Cargo                       : Almacenero
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10300052
+  Cargo                       : Mecánico Textil
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10300053
+  Cargo                       : Asistente de Diseño
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10300054
+  Cargo                       : Analista de Calidad
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10300055
+  Cargo                       : Jefe de Almacén
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10300056
+  Cargo                       : Técnico Colorista
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10300057
+  Cargo                       : Operaria de Bordado
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10300058
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10300059
+  Cargo                       : Coordinadora de Exportaciones
+  Departamento                : Almacén
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10300060
+  Cargo                       : Asistente Contable
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10300061
+  Cargo                       : Operaria de Costura
+  Departamento                : Producción
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10300062
+  Cargo                       : Operario de Tejeduria
+  Departamento                : Calidad
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10300063
+  Cargo                       : Controlador de Calidad
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10300064
+  Cargo                       : Diseñadora
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10300065
+  Cargo                       : Supervisora de Planta
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10300066
+  Cargo                       : Técnico de Mantenimiento
+  Departamento                : Exportaciones
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

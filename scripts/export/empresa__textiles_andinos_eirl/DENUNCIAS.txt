@@ -1,0 +1,10 @@
+==============================================================
+  CANAL DE DENUNCIAS
+==============================================================
+
+--- Registro #1 ---
+  Código                      : DEN-03-2025-003
+  Tipo                        : OTRO
+  Anónimo                     : No
+  Estado                      : RESOLVED
+  Descripción                 : Denuncia de otro recibida por el área de RRHH

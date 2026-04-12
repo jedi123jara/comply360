@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_04",
+    "clerkId": "user_demo_04",
+    "orgId": "demo_org_04",
+    "email": "admin@latradicion.pe",
+    "firstName": "Jorge",
+    "lastName": "Salas Medina",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:20.152Z",
+    "updatedAt": "2026-04-06T22:14:20.152Z"
+  }
+]

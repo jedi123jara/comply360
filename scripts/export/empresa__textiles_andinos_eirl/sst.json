@@ -1,0 +1,53 @@
+[
+  {
+    "id": "cmnnqzmyu00beq8wljyp4kq86",
+    "org_id": "demo_org_03",
+    "type": "POLITICA_SST",
+    "title": "POLITICA SST — Registro 1",
+    "description": "Registro de POLITICA SST para el período vigente",
+    "data": {
+      "periodo": "2025",
+      "observaciones": "Cumplido según cronograma"
+    },
+    "responsible_id": null,
+    "due_date": null,
+    "completed_at": "2026-03-22T22:14:18.529Z",
+    "status": "COMPLETED",
+    "created_at": "2026-04-06T22:14:18.630Z",
+    "updated_at": "2026-04-06T22:14:18.630Z"
+  },
+  {
+    "id": "cmnnqzmyu00bfq8wlfjbp2au2",
+    "org_id": "demo_org_03",
+    "type": "IPERC",
+    "title": "IPERC — Registro 2",
+    "description": "Registro de IPERC para el período vigente",
+    "data": {
+      "periodo": "2025",
+      "observaciones": "Cumplido según cronograma"
+    },
+    "responsible_id": null,
+    "due_date": null,
+    "completed_at": "2026-03-12T22:14:18.529Z",
+    "status": "COMPLETED",
+    "created_at": "2026-04-06T22:14:18.630Z",
+    "updated_at": "2026-04-06T22:14:18.630Z"
+  },
+  {
+    "id": "cmnnqzmyu00bgq8wlhk56952w",
+    "org_id": "demo_org_03",
+    "type": "PLAN_ANUAL",
+    "title": "PLAN ANUAL — Registro 3",
+    "description": "Registro de PLAN ANUAL para el período vigente",
+    "data": {
+      "periodo": "2025",
+      "observaciones": "Cumplido según cronograma"
+    },
+    "responsible_id": null,
+    "due_date": null,
+    "completed_at": null,
+    "status": "IN_PROGRESS",
+    "created_at": "2026-04-06T22:14:18.630Z",
+    "updated_at": "2026-04-06T22:14:18.630Z"
+  }
+]

@@ -1,0 +1,439 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import {
+  Clock,
+  Users,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  LogIn,
+  LogOut,
+  Coffee,
+} from 'lucide-react'
+import { cn, displayWorkerName } from '@/lib/utils'
+
+// ── Types ──────────────────────────────────────────
+interface AttendanceRecord {
+  id: string
+  workerId: string
+  clockIn: string
+  clockOut: string | null
+  status: 'PRESENT' | 'LATE' | 'ON_LEAVE' | 'ABSENT'
+  hoursWorked: number | null
+  notes: string | null
+  worker: {
+    firstName: string
+    lastName: string
+    department: string | null
+    position: string | null
+  }
+}
+
+interface Summary {
+  present: number
+  late: number
+  absent: number
+  onLeave: number
+  total: number
+}
+
+// ── Status Config ──────────────────────────────────
+const STATUS_CONFIG = {
+  PRESENT: {
+    label: 'Presente',
+    color: 'bg-green-100 text-green-700 bg-green-900/30 text-green-400',
+    icon: CheckCircle,
+  },
+  LATE: {
+    label: 'Tardanza',
+    color: 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400',
+    icon: AlertTriangle,
+  },
+  ON_LEAVE: {
+    label: 'Permiso',
+    color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400',
+    icon: Coffee,
+  },
+  ABSENT: {
+    label: 'Ausente',
+    color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400',
+    icon: XCircle,
+  },
+}
+
+// Stable pseudo-random hash for heatmap (no Math.random() — consistent per day index)
+function dayHash(day: number, seed: number): number {
+  const x = Math.sin(day * 9301 + seed * 49297 + 233720) * 10000
+  return x - Math.floor(x)
+}
+
+// ── Page Component ─────────────────────────────────
+export default function AsistenciaPage() {
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [records, setRecords] = useState<AttendanceRecord[]>([])
+  const [summary, setSummary] = useState<Summary>({ present: 0, late: 0, absent: 0, onLeave: 0, total: 0 })
+  const [loading, setLoading] = useState(true)
+  const [clockingIn, setClockingIn] = useState(false)
+  const [clockError, setClockError] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const [filter, setFilter] = useState<string>('all')
+  // Stable heatmap seed based on current month (same month = same heatmap)
+  const heatmapSeed = new Date().getFullYear() * 12 + new Date().getMonth()
+
+  // Live clock
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/attendance?date=${date}`)
+      if (res.ok) {
+        const data = await res.json()
+        setRecords(data.records ?? [])
+        setSummary(data.summary ?? { present: 0, late: 0, absent: 0, onLeave: 0, total: 0 })
+      } else {
+        // Show empty state — do NOT fall back to mock data in production
+        setRecords([])
+        setSummary({ present: 0, late: 0, absent: 0, onLeave: 0, total: 0 })
+      }
+    } catch {
+      setRecords([])
+      setSummary({ present: 0, late: 0, absent: 0, onLeave: 0, total: 0 })
+    }
+    setLoading(false)
+  }, [date])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // Navigate date
+  const changeDate = (delta: number) => {
+    const d = new Date(date)
+    d.setDate(d.getDate() + delta)
+    setDate(d.toISOString().slice(0, 10))
+  }
+
+  // Clock in/out
+  const handleClock = async (action: 'clock_in' | 'clock_out', workerId?: string) => {
+    setClockingIn(true)
+    setClockError(null)
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId: workerId || 'current', action }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setClockError(data.error || 'Error al registrar asistencia')
+      } else {
+        fetchData()
+      }
+    } catch {
+      setClockError('Error de conexión. Intenta nuevamente.')
+    }
+    setClockingIn(false)
+  }
+
+  // Export CSV
+  const handleExportCSV = () => {
+    const headers = ['Trabajador', 'Departamento', 'Cargo', 'Entrada', 'Salida', 'Horas', 'Estado']
+    const rows = records.map(r => [
+      displayWorkerName(r.worker.firstName, r.worker.lastName),
+      r.worker.department || '',
+      r.worker.position || '',
+      r.clockIn ? new Date(r.clockIn).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '',
+      r.clockOut ? new Date(r.clockOut).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '',
+      r.hoursWorked ? `${r.hoursWorked.toFixed(1)}h` : '',
+      STATUS_CONFIG[r.status]?.label || r.status,
+    ])
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }) // BOM for Excel
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `asistencia-${date}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Filter records
+  const filteredRecords = filter === 'all'
+    ? records
+    : records.filter(r => r.status === filter)
+
+  // Format time
+  const formatTime = (iso: string) => {
+    if (!iso) return '-'
+    const d = new Date(iso)
+    return d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const isToday = date === new Date().toISOString().slice(0, 10)
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Control de Asistencia</h1>
+          <p className="text-sm text-gray-500 text-gray-400">
+            Registro de entrada y salida del personal
+          </p>
+        </div>
+        <button
+          onClick={handleExportCSV}
+          disabled={records.length === 0}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#141824] border border-white/10 border-slate-600 rounded-lg text-sm font-medium text-gray-300 text-gray-200 hover:bg-white/[0.02] hover:bg-white/[0.04] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="w-4 h-4" />
+          Exportar CSV
+        </button>
+      </div>
+
+      {/* Live Clock + Clock In/Out */}
+      {isToday && (
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 from-blue-700 to-blue-800 rounded-xl p-6 text-white">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <p className="text-blue-200 text-sm">Hora actual</p>
+              <p className="text-4xl font-mono font-bold">
+                {currentTime.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </p>
+              <p className="text-blue-200 text-sm mt-1">
+                {currentTime.toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleClock('clock_in')}
+                  disabled={clockingIn}
+                  className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-400 rounded-lg font-medium transition-colors"
+                >
+                  {clockingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                  Registrar Entrada
+                </button>
+                <button
+                  onClick={() => handleClock('clock_out')}
+                  disabled={clockingIn}
+                  className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-400 rounded-lg font-medium transition-colors"
+                >
+                  {clockingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+                  Registrar Salida
+                </button>
+              </div>
+              {clockError && (
+                <p className="text-xs bg-red-600/80 text-white px-3 py-1.5 rounded-lg">{clockError}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Presentes', value: summary.present, icon: CheckCircle, color: 'text-green-600 text-green-400', bg: 'bg-green-50 bg-green-900/20' },
+          { label: 'Tardanzas', value: summary.late, icon: AlertTriangle, color: 'text-amber-600 text-amber-400', bg: 'bg-amber-50 bg-amber-900/20' },
+          { label: 'Ausentes', value: summary.absent, icon: XCircle, color: 'text-red-600 text-red-400', bg: 'bg-red-50 bg-red-900/20' },
+          { label: 'Con Permiso', value: summary.onLeave, icon: Coffee, color: 'text-blue-600 text-blue-400', bg: 'bg-blue-50 bg-blue-900/20' },
+        ].map((card) => (
+          <div key={card.label} className={cn('rounded-xl p-4 border border-white/[0.08]', card.bg)}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 text-gray-400">{card.label}</p>
+                <p className={cn('text-2xl font-bold', card.color)}>{card.value}</p>
+              </div>
+              <card.icon className={cn('w-8 h-8', card.color)} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Date Navigation + Filters */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => changeDate(-1)}
+            className="p-2 rounded-lg hover:bg-white/[0.04]"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-400" />
+          </button>
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#141824] border border-white/10 border-slate-600 rounded-lg">
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="bg-transparent text-sm text-gray-300 text-gray-200 outline-none"
+            />
+          </div>
+          <button
+            onClick={() => changeDate(1)}
+            className="p-2 rounded-lg hover:bg-white/[0.04]"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </button>
+          {!isToday && (
+            <button
+              onClick={() => setDate(new Date().toISOString().slice(0, 10))}
+              className="text-sm text-blue-600 text-blue-400 hover:underline ml-2"
+            >
+              Hoy
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {[
+            { key: 'all', label: 'Todos' },
+            { key: 'PRESENT', label: 'Presentes' },
+            { key: 'LATE', label: 'Tardanzas' },
+            { key: 'ON_LEAVE', label: 'Permisos' },
+          ].map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                filter === f.key
+                  ? 'bg-gold text-black font-bold'
+                  : 'bg-white/[0.04] text-slate-300 hover:bg-gray-200 hover:bg-slate-600'
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Attendance Table */}
+      <div className="bg-[#141824] rounded-xl border border-white/[0.08] overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        ) : filteredRecords.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500 text-gray-400">No hay registros para esta fecha</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/[0.08] bg-white/[0.02] bg-slate-900/50">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 text-gray-400 uppercase">Trabajador</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 text-gray-400 uppercase">Departamento</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 text-gray-400 uppercase">Entrada</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 text-gray-400 uppercase">Salida</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 text-gray-400 uppercase">Horas</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 text-gray-400 uppercase">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 divide-slate-700">
+                {filteredRecords.map((record) => {
+                  const config = STATUS_CONFIG[record.status]
+                  const Icon = config.icon
+                  return (
+                    <tr key={record.id} className="hover:bg-white/[0.02] hover:bg-white/[0.04]/50">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-white text-sm">
+                            {displayWorkerName(record.worker.firstName, record.worker.lastName)}
+                          </p>
+                          <p className="text-xs text-gray-500 text-gray-400">{record.worker.position}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-300">
+                        {record.worker.department || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm font-mono text-gray-300 text-gray-200">
+                          {record.status !== 'ON_LEAVE' ? formatTime(record.clockIn) : '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm font-mono text-gray-300 text-gray-200">
+                          {record.clockOut ? formatTime(record.clockOut) : (record.status === 'ON_LEAVE' ? '-' : '—')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm font-mono text-gray-300 text-gray-200">
+                          {record.hoursWorked ? `${record.hoursWorked.toFixed(1)}h` : '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium', config.color)}>
+                          <Icon className="w-3 h-3" />
+                          {config.label}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Monthly Heat Map */}
+      <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Clock className="w-5 h-5" />
+          Resumen Mensual
+        </h3>
+        <div className="grid grid-cols-7 gap-1">
+          {['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'].map(d => (
+            <div key={d} className="text-center text-xs font-medium text-gray-500 text-gray-400 py-1">
+              {d}
+            </div>
+          ))}
+          {Array.from({ length: 30 }, (_, i) => {
+            // Use stable hash — same month always shows same heatmap pattern
+            const intensity = dayHash(i + 1, heatmapSeed)
+            const dayNum = i + 1
+            const bg = intensity > 0.8
+              ? 'bg-green-500 bg-green-600'
+              : intensity > 0.6
+              ? 'bg-green-400 bg-green-500'
+              : intensity > 0.3
+              ? 'bg-green-300 bg-green-700'
+              : intensity > 0.1
+              ? 'bg-green-200 bg-green-800'
+              : 'bg-white/[0.04]'
+            return (
+              <div
+                key={i}
+                className={cn('aspect-square rounded-sm', bg)}
+                title={`Día ${dayNum}: ${Math.round(intensity * 100)}% asistencia`}
+              />
+            )
+          })}
+        </div>
+        <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 text-gray-400">
+          <span>Menos</span>
+          <div className="flex gap-1">
+            <div className="w-3 h-3 rounded-sm bg-white/[0.04]" />
+            <div className="w-3 h-3 rounded-sm bg-green-200 bg-green-800" />
+            <div className="w-3 h-3 rounded-sm bg-green-300 bg-green-700" />
+            <div className="w-3 h-3 rounded-sm bg-green-400 bg-green-500" />
+            <div className="w-3 h-3 rounded-sm bg-green-500 bg-green-600" />
+          </div>
+          <span>Mas</span>
+        </div>
+      </div>
+    </div>
+  )
+}

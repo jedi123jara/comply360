@@ -1,0 +1,16 @@
+{
+  "empresa": "Clínica Salud Integral SAC",
+  "ruc": "20608901234",
+  "plan": "EMPRESA",
+  "exportadoEn": "2026-04-07T17:25:34.551Z",
+  "totales": {
+    "usuarios": 1,
+    "trabajadores": 66,
+    "contratos": 20,
+    "diagnosticos": 3,
+    "sst": 3,
+    "denuncias": 1,
+    "documentos": 0,
+    "calculos": 4
+  }
+}

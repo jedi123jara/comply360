@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_05",
+    "clerkId": "user_demo_05",
+    "orgId": "demo_org_05",
+    "email": "admin@techperu.pe",
+    "firstName": "Andrés",
+    "lastName": "Vega Castillo",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:24.486Z",
+    "updatedAt": "2026-04-06T22:14:24.486Z"
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "empresa": "TechPeru Soluciones SAC",
+  "ruc": "20605678901",
+  "plan": "PRO",
+  "exportadoEn": "2026-04-07T17:25:28.677Z",
+  "totales": {
+    "usuarios": 1,
+    "trabajadores": 66,
+    "contratos": 20,
+    "diagnosticos": 3,
+    "sst": 3,
+    "denuncias": 1,
+    "documentos": 0,
+    "calculos": 4
+  }
+}

@@ -1,0 +1,777 @@
+[
+  {
+    "id": "cmnnuh91r0000e4wlg4i6trw2",
+    "org_id": "org-demo",
+    "type": "SIMULATION",
+    "score_global": 0,
+    "score_by_area": {
+      "sst": 0,
+      "contratos": 0
+    },
+    "total_multa_riesgo": "238370",
+    "questions_json": [
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Contratos de Trabajo. Esto constituye una infraccion grave segun D.Leg. 728, Art. 4.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.Leg. 728, Art. 4",
+        "solicitudId": "S-01",
+        "documentoLabel": "Contratos de Trabajo"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Constancia T-REGISTRO. Esto constituye una infraccion muy grave segun D.S. 018-2007-TR, Art. 4-A.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "D.S. 018-2007-TR, Art. 4-A",
+        "solicitudId": "S-02",
+        "documentoLabel": "Constancia T-REGISTRO"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Copia de DNI. Esto constituye una infraccion leve segun D.S. 001-98-TR.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR",
+        "solicitudId": "S-03",
+        "documentoLabel": "Copia de DNI"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Boletas de Pago. Esto constituye una infraccion leve segun D.S. 001-98-TR, Art. 18-19.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR, Art. 18-19",
+        "solicitudId": "S-04",
+        "documentoLabel": "Boletas de Pago"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Constancia de CTS. Esto constituye una infraccion grave segun D.S. 001-97-TR, Art. 21-22.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.S. 001-97-TR, Art. 21-22",
+        "solicitudId": "S-05",
+        "documentoLabel": "Constancia de CTS"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Comprobante Gratificacion. Esto constituye una infraccion grave segun Ley 27735, Art. 2-3.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 27735, Art. 2-3",
+        "solicitudId": "S-06",
+        "documentoLabel": "Comprobante Gratificacion"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Afiliacion AFP/ONP. Esto constituye una infraccion muy grave segun D.S. 054-97-EF.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "D.S. 054-97-EF",
+        "solicitudId": "S-07",
+        "documentoLabel": "Afiliacion AFP/ONP"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro EsSalud. Esto constituye una infraccion muy grave segun Ley 26790, Art. 6.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 26790, Art. 6",
+        "solicitudId": "S-08",
+        "documentoLabel": "Registro EsSalud"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Asistencia. Esto constituye una infraccion grave segun D.S. 004-2006-TR, Art. 1.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.S. 004-2006-TR, Art. 1",
+        "solicitudId": "S-09",
+        "documentoLabel": "Registro de Asistencia"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Horario de Trabajo exhibido. Esto constituye una infraccion leve segun D.S. 004-2006-TR, Art. 5.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 004-2006-TR, Art. 5",
+        "solicitudId": "S-10",
+        "documentoLabel": "Horario de Trabajo exhibido"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Vacaciones. Esto constituye una infraccion grave segun D.Leg. 713, Art. 10-14.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.Leg. 713, Art. 10-14",
+        "solicitudId": "S-11",
+        "documentoLabel": "Registro de Vacaciones"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Politica de SST. Esto constituye una infraccion grave segun Ley 29783, Art. 22.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 22",
+        "solicitudId": "S-12",
+        "documentoLabel": "Politica de SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Matriz IPERC. Esto constituye una infraccion muy grave segun Ley 29783, Art. 57; R.M. 050-2013-TR.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 29783, Art. 57; R.M. 050-2013-TR",
+        "solicitudId": "S-13",
+        "documentoLabel": "Matriz IPERC"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Plan Anual SST. Esto constituye una infraccion grave segun Ley 29783, Art. 38.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 38",
+        "solicitudId": "S-14",
+        "documentoLabel": "Plan Anual SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Acta Comite/Supervisor SST. Esto constituye una infraccion grave segun Ley 29783, Art. 29-30.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 29-30",
+        "solicitudId": "S-15",
+        "documentoLabel": "Acta Comite/Supervisor SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registros de Capacitacion SST. Esto constituye una infraccion grave segun Ley 29783, Art. 35.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 35",
+        "solicitudId": "S-16",
+        "documentoLabel": "Registros de Capacitacion SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Examenes Medicos Ocupacionales. Esto constituye una infraccion muy grave segun Ley 29783, Art. 49-d.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 29783, Art. 49-d",
+        "solicitudId": "S-17",
+        "documentoLabel": "Examenes Medicos Ocupacionales"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Entrega de EPP. Esto constituye una infraccion grave segun Ley 29783, Art. 60.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 60",
+        "solicitudId": "S-18",
+        "documentoLabel": "Registro de Entrega de EPP"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Induccion SST. Esto constituye una infraccion grave segun Ley 29783, Art. 49-g.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 49-g",
+        "solicitudId": "S-19",
+        "documentoLabel": "Registro de Induccion SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Mapa de Riesgos. Esto constituye una infraccion leve segun D.S. 005-2012-TR, Art. 35-e.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 005-2012-TR, Art. 35-e",
+        "solicitudId": "S-20",
+        "documentoLabel": "Mapa de Riesgos"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Accidentes. Esto constituye una infraccion grave segun Ley 29783, Art. 28; R.M. 050-2013-TR.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 28; R.M. 050-2013-TR",
+        "solicitudId": "S-21",
+        "documentoLabel": "Registro de Accidentes"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Politica contra Hostigamiento Sexual. Esto constituye una infraccion muy grave segun Ley 27942; D.S. 014-2019-MIMP.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 27942; D.S. 014-2019-MIMP",
+        "solicitudId": "S-22",
+        "documentoLabel": "Politica contra Hostigamiento Sexual"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Cuadro de Categorias (Igualdad Salarial). Esto constituye una infraccion grave segun Ley 30709, Art. 2; D.S. 002-2018-TR.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 30709, Art. 2; D.S. 002-2018-TR",
+        "solicitudId": "S-23",
+        "documentoLabel": "Cuadro de Categorias (Igualdad Salarial)"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Poliza Seguro Vida Ley. Esto constituye una infraccion grave segun D.Leg. 688, Art. 1.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.Leg. 688, Art. 1",
+        "solicitudId": "S-24",
+        "documentoLabel": "Poliza Seguro Vida Ley"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Poliza SCTR. Esto constituye una infraccion muy grave segun Ley 26790, Art. 19.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 26790, Art. 19",
+        "solicitudId": "S-25",
+        "documentoLabel": "Poliza SCTR"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Declaraciones Juradas. Esto constituye una infraccion leve segun D.S. 001-98-TR.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR",
+        "solicitudId": "S-26",
+        "documentoLabel": "Declaraciones Juradas"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Sintesis Legislacion Laboral. Esto constituye una infraccion leve segun D.S. 001-98-TR, Art. 48.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR, Art. 48",
+        "solicitudId": "S-27",
+        "documentoLabel": "Sintesis Legislacion Laboral"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Reglamento Interno de Trabajo. Esto constituye una infraccion grave segun D.S. 039-91-TR, Art. 2.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.S. 039-91-TR, Art. 2",
+        "solicitudId": "S-28",
+        "documentoLabel": "Reglamento Interno de Trabajo"
+      }
+    ],
+    "gap_analysis": [
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Contratos de Trabajo. Esto constituye una infraccion grave segun D.Leg. 728, Art. 4.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.Leg. 728, Art. 4",
+        "solicitudId": "S-01",
+        "documentoLabel": "Contratos de Trabajo"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Constancia T-REGISTRO. Esto constituye una infraccion muy grave segun D.S. 018-2007-TR, Art. 4-A.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "D.S. 018-2007-TR, Art. 4-A",
+        "solicitudId": "S-02",
+        "documentoLabel": "Constancia T-REGISTRO"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Copia de DNI. Esto constituye una infraccion leve segun D.S. 001-98-TR.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR",
+        "solicitudId": "S-03",
+        "documentoLabel": "Copia de DNI"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Boletas de Pago. Esto constituye una infraccion leve segun D.S. 001-98-TR, Art. 18-19.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR, Art. 18-19",
+        "solicitudId": "S-04",
+        "documentoLabel": "Boletas de Pago"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Constancia de CTS. Esto constituye una infraccion grave segun D.S. 001-97-TR, Art. 21-22.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.S. 001-97-TR, Art. 21-22",
+        "solicitudId": "S-05",
+        "documentoLabel": "Constancia de CTS"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Comprobante Gratificacion. Esto constituye una infraccion grave segun Ley 27735, Art. 2-3.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 27735, Art. 2-3",
+        "solicitudId": "S-06",
+        "documentoLabel": "Comprobante Gratificacion"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Afiliacion AFP/ONP. Esto constituye una infraccion muy grave segun D.S. 054-97-EF.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "D.S. 054-97-EF",
+        "solicitudId": "S-07",
+        "documentoLabel": "Afiliacion AFP/ONP"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro EsSalud. Esto constituye una infraccion muy grave segun Ley 26790, Art. 6.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 26790, Art. 6",
+        "solicitudId": "S-08",
+        "documentoLabel": "Registro EsSalud"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Asistencia. Esto constituye una infraccion grave segun D.S. 004-2006-TR, Art. 1.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.S. 004-2006-TR, Art. 1",
+        "solicitudId": "S-09",
+        "documentoLabel": "Registro de Asistencia"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Horario de Trabajo exhibido. Esto constituye una infraccion leve segun D.S. 004-2006-TR, Art. 5.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 004-2006-TR, Art. 5",
+        "solicitudId": "S-10",
+        "documentoLabel": "Horario de Trabajo exhibido"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Vacaciones. Esto constituye una infraccion grave segun D.Leg. 713, Art. 10-14.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.Leg. 713, Art. 10-14",
+        "solicitudId": "S-11",
+        "documentoLabel": "Registro de Vacaciones"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Politica de SST. Esto constituye una infraccion grave segun Ley 29783, Art. 22.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 22",
+        "solicitudId": "S-12",
+        "documentoLabel": "Politica de SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Matriz IPERC. Esto constituye una infraccion muy grave segun Ley 29783, Art. 57; R.M. 050-2013-TR.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 29783, Art. 57; R.M. 050-2013-TR",
+        "solicitudId": "S-13",
+        "documentoLabel": "Matriz IPERC"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Plan Anual SST. Esto constituye una infraccion grave segun Ley 29783, Art. 38.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 38",
+        "solicitudId": "S-14",
+        "documentoLabel": "Plan Anual SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Acta Comite/Supervisor SST. Esto constituye una infraccion grave segun Ley 29783, Art. 29-30.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 29-30",
+        "solicitudId": "S-15",
+        "documentoLabel": "Acta Comite/Supervisor SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registros de Capacitacion SST. Esto constituye una infraccion grave segun Ley 29783, Art. 35.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 35",
+        "solicitudId": "S-16",
+        "documentoLabel": "Registros de Capacitacion SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Examenes Medicos Ocupacionales. Esto constituye una infraccion muy grave segun Ley 29783, Art. 49-d.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 29783, Art. 49-d",
+        "solicitudId": "S-17",
+        "documentoLabel": "Examenes Medicos Ocupacionales"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Entrega de EPP. Esto constituye una infraccion grave segun Ley 29783, Art. 60.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 60",
+        "solicitudId": "S-18",
+        "documentoLabel": "Registro de Entrega de EPP"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Induccion SST. Esto constituye una infraccion grave segun Ley 29783, Art. 49-g.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 49-g",
+        "solicitudId": "S-19",
+        "documentoLabel": "Registro de Induccion SST"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Mapa de Riesgos. Esto constituye una infraccion leve segun D.S. 005-2012-TR, Art. 35-e.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 005-2012-TR, Art. 35-e",
+        "solicitudId": "S-20",
+        "documentoLabel": "Mapa de Riesgos"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Registro de Accidentes. Esto constituye una infraccion grave segun Ley 29783, Art. 28; R.M. 050-2013-TR.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 29783, Art. 28; R.M. 050-2013-TR",
+        "solicitudId": "S-21",
+        "documentoLabel": "Registro de Accidentes"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Politica contra Hostigamiento Sexual. Esto constituye una infraccion muy grave segun Ley 27942; D.S. 014-2019-MIMP.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 27942; D.S. 014-2019-MIMP",
+        "solicitudId": "S-22",
+        "documentoLabel": "Politica contra Hostigamiento Sexual"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Cuadro de Categorias (Igualdad Salarial). Esto constituye una infraccion grave segun Ley 30709, Art. 2; D.S. 002-2018-TR.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "Ley 30709, Art. 2; D.S. 002-2018-TR",
+        "solicitudId": "S-23",
+        "documentoLabel": "Cuadro de Categorias (Igualdad Salarial)"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Poliza Seguro Vida Ley. Esto constituye una infraccion grave segun D.Leg. 688, Art. 1.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.Leg. 688, Art. 1",
+        "solicitudId": "S-24",
+        "documentoLabel": "Poliza Seguro Vida Ley"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Poliza SCTR. Esto constituye una infraccion muy grave segun Ley 26790, Art. 19.",
+        "gravedad": "MUY_GRAVE",
+        "multaPEN": 14465,
+        "multaUIT": 2.63,
+        "baseLegal": "Ley 26790, Art. 19",
+        "solicitudId": "S-25",
+        "documentoLabel": "Poliza SCTR"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Declaraciones Juradas. Esto constituye una infraccion leve segun D.S. 001-98-TR.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR",
+        "solicitudId": "S-26",
+        "documentoLabel": "Declaraciones Juradas"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Sintesis Legislacion Laboral. Esto constituye una infraccion leve segun D.S. 001-98-TR, Art. 48.",
+        "gravedad": "LEVE",
+        "multaPEN": 1265,
+        "multaUIT": 0.23,
+        "baseLegal": "D.S. 001-98-TR, Art. 48",
+        "solicitudId": "S-27",
+        "documentoLabel": "Sintesis Legislacion Laboral"
+      },
+      {
+        "estado": "NO_CUMPLE",
+        "mensaje": "No se encontro Reglamento Interno de Trabajo. Esto constituye una infraccion grave segun D.S. 039-91-TR, Art. 2.",
+        "gravedad": "GRAVE",
+        "multaPEN": 8635,
+        "multaUIT": 1.57,
+        "baseLegal": "D.S. 039-91-TR, Art. 2",
+        "solicitudId": "S-28",
+        "documentoLabel": "Reglamento Interno de Trabajo"
+      }
+    ],
+    "action_plan": [
+      {
+        "gravedad": "GRAVE",
+        "priority": 1,
+        "baseLegal": "D.Leg. 728, Art. 4",
+        "multaEvitable": 8635,
+        "documentoLabel": "Contratos de Trabajo"
+      },
+      {
+        "gravedad": "MUY_GRAVE",
+        "priority": 2,
+        "baseLegal": "D.S. 018-2007-TR, Art. 4-A",
+        "multaEvitable": 14465,
+        "documentoLabel": "Constancia T-REGISTRO"
+      },
+      {
+        "gravedad": "LEVE",
+        "priority": 3,
+        "baseLegal": "D.S. 001-98-TR",
+        "multaEvitable": 1265,
+        "documentoLabel": "Copia de DNI"
+      },
+      {
+        "gravedad": "LEVE",
+        "priority": 4,
+        "baseLegal": "D.S. 001-98-TR, Art. 18-19",
+        "multaEvitable": 1265,
+        "documentoLabel": "Boletas de Pago"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 5,
+        "baseLegal": "D.S. 001-97-TR, Art. 21-22",
+        "multaEvitable": 8635,
+        "documentoLabel": "Constancia de CTS"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 6,
+        "baseLegal": "Ley 27735, Art. 2-3",
+        "multaEvitable": 8635,
+        "documentoLabel": "Comprobante Gratificacion"
+      },
+      {
+        "gravedad": "MUY_GRAVE",
+        "priority": 7,
+        "baseLegal": "D.S. 054-97-EF",
+        "multaEvitable": 14465,
+        "documentoLabel": "Afiliacion AFP/ONP"
+      },
+      {
+        "gravedad": "MUY_GRAVE",
+        "priority": 8,
+        "baseLegal": "Ley 26790, Art. 6",
+        "multaEvitable": 14465,
+        "documentoLabel": "Registro EsSalud"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 9,
+        "baseLegal": "D.S. 004-2006-TR, Art. 1",
+        "multaEvitable": 8635,
+        "documentoLabel": "Registro de Asistencia"
+      },
+      {
+        "gravedad": "LEVE",
+        "priority": 10,
+        "baseLegal": "D.S. 004-2006-TR, Art. 5",
+        "multaEvitable": 1265,
+        "documentoLabel": "Horario de Trabajo exhibido"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 11,
+        "baseLegal": "D.Leg. 713, Art. 10-14",
+        "multaEvitable": 8635,
+        "documentoLabel": "Registro de Vacaciones"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 12,
+        "baseLegal": "Ley 29783, Art. 22",
+        "multaEvitable": 8635,
+        "documentoLabel": "Politica de SST"
+      },
+      {
+        "gravedad": "MUY_GRAVE",
+        "priority": 13,
+        "baseLegal": "Ley 29783, Art. 57; R.M. 050-2013-TR",
+        "multaEvitable": 14465,
+        "documentoLabel": "Matriz IPERC"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 14,
+        "baseLegal": "Ley 29783, Art. 38",
+        "multaEvitable": 8635,
+        "documentoLabel": "Plan Anual SST"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 15,
+        "baseLegal": "Ley 29783, Art. 29-30",
+        "multaEvitable": 8635,
+        "documentoLabel": "Acta Comite/Supervisor SST"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 16,
+        "baseLegal": "Ley 29783, Art. 35",
+        "multaEvitable": 8635,
+        "documentoLabel": "Registros de Capacitacion SST"
+      },
+      {
+        "gravedad": "MUY_GRAVE",
+        "priority": 17,
+        "baseLegal": "Ley 29783, Art. 49-d",
+        "multaEvitable": 14465,
+        "documentoLabel": "Examenes Medicos Ocupacionales"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 18,
+        "baseLegal": "Ley 29783, Art. 60",
+        "multaEvitable": 8635,
+        "documentoLabel": "Registro de Entrega de EPP"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 19,
+        "baseLegal": "Ley 29783, Art. 49-g",
+        "multaEvitable": 8635,
+        "documentoLabel": "Registro de Induccion SST"
+      },
+      {
+        "gravedad": "LEVE",
+        "priority": 20,
+        "baseLegal": "D.S. 005-2012-TR, Art. 35-e",
+        "multaEvitable": 1265,
+        "documentoLabel": "Mapa de Riesgos"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 21,
+        "baseLegal": "Ley 29783, Art. 28; R.M. 050-2013-TR",
+        "multaEvitable": 8635,
+        "documentoLabel": "Registro de Accidentes"
+      },
+      {
+        "gravedad": "MUY_GRAVE",
+        "priority": 22,
+        "baseLegal": "Ley 27942; D.S. 014-2019-MIMP",
+        "multaEvitable": 14465,
+        "documentoLabel": "Politica contra Hostigamiento Sexual"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 23,
+        "baseLegal": "Ley 30709, Art. 2; D.S. 002-2018-TR",
+        "multaEvitable": 8635,
+        "documentoLabel": "Cuadro de Categorias (Igualdad Salarial)"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 24,
+        "baseLegal": "D.Leg. 688, Art. 1",
+        "multaEvitable": 8635,
+        "documentoLabel": "Poliza Seguro Vida Ley"
+      },
+      {
+        "gravedad": "MUY_GRAVE",
+        "priority": 25,
+        "baseLegal": "Ley 26790, Art. 19",
+        "multaEvitable": 14465,
+        "documentoLabel": "Poliza SCTR"
+      },
+      {
+        "gravedad": "LEVE",
+        "priority": 26,
+        "baseLegal": "D.S. 001-98-TR",
+        "multaEvitable": 1265,
+        "documentoLabel": "Declaraciones Juradas"
+      },
+      {
+        "gravedad": "LEVE",
+        "priority": 27,
+        "baseLegal": "D.S. 001-98-TR, Art. 48",
+        "multaEvitable": 1265,
+        "documentoLabel": "Sintesis Legislacion Laboral"
+      },
+      {
+        "gravedad": "GRAVE",
+        "priority": 28,
+        "baseLegal": "D.S. 039-91-TR, Art. 2",
+        "multaEvitable": 8635,
+        "documentoLabel": "Reglamento Interno de Trabajo"
+      }
+    ],
+    "completed_at": "2026-04-06T23:51:59.200Z",
+    "created_at": "2026-04-06T23:51:59.247Z"
+  }
+]

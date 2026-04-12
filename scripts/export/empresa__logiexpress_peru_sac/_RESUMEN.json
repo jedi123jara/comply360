@@ -1,0 +1,16 @@
+{
+  "empresa": "LogiExpress Peru SAC",
+  "ruc": "20610123456",
+  "plan": "FREE",
+  "exportadoEn": "2026-04-07T17:25:38.166Z",
+  "totales": {
+    "usuarios": 1,
+    "trabajadores": 66,
+    "contratos": 20,
+    "diagnosticos": 2,
+    "sst": 3,
+    "denuncias": 1,
+    "documentos": 0,
+    "calculos": 4
+  }
+}

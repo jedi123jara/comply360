@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10600001
+  Cargo                       : Agente de Aduanas
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10600002
+  Cargo                       : Coordinador Logístico
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10600003
+  Cargo                       : Analista de Comercio Exterior
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10600004
+  Cargo                       : Almacenero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10600005
+  Cargo                       : Asistente Administrativo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10600006
+  Cargo                       : Jefe de Compras
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10600007
+  Cargo                       : Analista Financiero
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10600008
+  Cargo                       : Supervisora de Almacén
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10600009
+  Cargo                       : Asistente de Despacho
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10600010
+  Cargo                       : Controlador de Inventario
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10600011
+  Cargo                       : Técnico Aduanero
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10600012
+  Cargo                       : Ejecutivo de Ventas
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10600013
+  Cargo                       : Asistente de Ventas
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10600014
+  Cargo                       : Contadora
+  Departamento                : Logística
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10600015
+  Cargo                       : Jefe de Operaciones
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10600016
+  Cargo                       : Analista de Costos
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10600017
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10600018
+  Cargo                       : Especialista en Importaciones
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10600019
+  Cargo                       : Coordinadora de Exportaciones
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10600020
+  Cargo                       : Asistente Contable
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10600021
+  Cargo                       : Agente de Aduanas
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10600022
+  Cargo                       : Coordinador Logístico
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10600023
+  Cargo                       : Analista de Comercio Exterior
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10600024
+  Cargo                       : Almacenero
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10600025
+  Cargo                       : Asistente Administrativo
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10600026
+  Cargo                       : Jefe de Compras
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10600027
+  Cargo                       : Analista Financiero
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10600028
+  Cargo                       : Supervisora de Almacén
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10600029
+  Cargo                       : Asistente de Despacho
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10600030
+  Cargo                       : Controlador de Inventario
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10600031
+  Cargo                       : Técnico Aduanero
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10600032
+  Cargo                       : Ejecutivo de Ventas
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10600033
+  Cargo                       : Asistente de Ventas
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10600034
+  Cargo                       : Contadora
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10600035
+  Cargo                       : Jefe de Operaciones
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10600036
+  Cargo                       : Analista de Costos
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10600037
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10600038
+  Cargo                       : Especialista en Importaciones
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10600039
+  Cargo                       : Coordinadora de Exportaciones
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10600040
+  Cargo                       : Asistente Contable
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10600041
+  Cargo                       : Agente de Aduanas
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10600042
+  Cargo                       : Coordinador Logístico
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10600043
+  Cargo                       : Analista de Comercio Exterior
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10600044
+  Cargo                       : Almacenero
+  Departamento                : Logística
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10600045
+  Cargo                       : Asistente Administrativo
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10600046
+  Cargo                       : Jefe de Compras
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10600047
+  Cargo                       : Analista Financiero
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10600048
+  Cargo                       : Supervisora de Almacén
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10600049
+  Cargo                       : Asistente de Despacho
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10600050
+  Cargo                       : Controlador de Inventario
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10600051
+  Cargo                       : Técnico Aduanero
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10600052
+  Cargo                       : Ejecutivo de Ventas
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10600053
+  Cargo                       : Asistente de Ventas
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10600054
+  Cargo                       : Contadora
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10600055
+  Cargo                       : Jefe de Operaciones
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10600056
+  Cargo                       : Analista de Costos
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10600057
+  Cargo                       : Auxiliar de Almacén
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10600058
+  Cargo                       : Especialista en Importaciones
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10600059
+  Cargo                       : Coordinadora de Exportaciones
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10600060
+  Cargo                       : Asistente Contable
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10600061
+  Cargo                       : Agente de Aduanas
+  Departamento                : Aduanas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10600062
+  Cargo                       : Coordinador Logístico
+  Departamento                : Logística
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10600063
+  Cargo                       : Analista de Comercio Exterior
+  Departamento                : Ventas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10600064
+  Cargo                       : Almacenero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10600065
+  Cargo                       : Asistente Administrativo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10600066
+  Cargo                       : Jefe de Compras
+  Departamento                : Finanzas
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

@@ -1,0 +1,103 @@
+==============================================================
+  CONTRATOS
+==============================================================
+
+--- Registro #1 ---
+  Título                      : LABORAL INDEFINIDO — Contrato 1
+  Tipo                        : LABORAL_INDEFINIDO
+  Estado                      : SIGNED
+
+--- Registro #2 ---
+  Título                      : LABORAL PLAZO FIJO — Contrato 2
+  Tipo                        : LABORAL_PLAZO_FIJO
+  Estado                      : SIGNED
+
+--- Registro #3 ---
+  Título                      : LABORAL TIEMPO PARCIAL — Contrato 3
+  Tipo                        : LABORAL_TIEMPO_PARCIAL
+  Estado                      : SIGNED
+
+--- Registro #4 ---
+  Título                      : POLITICA SST — Contrato 4
+  Tipo                        : POLITICA_SST
+  Estado                      : DRAFT
+
+--- Registro #5 ---
+  Título                      : POLITICA HOSTIGAMIENTO — Contrato 5
+  Tipo                        : POLITICA_HOSTIGAMIENTO
+  Estado                      : APPROVED
+
+--- Registro #6 ---
+  Título                      : REGLAMENTO INTERNO — Contrato 6
+  Tipo                        : REGLAMENTO_INTERNO
+  Estado                      : SIGNED
+
+--- Registro #7 ---
+  Título                      : CONFIDENCIALIDAD — Contrato 7
+  Tipo                        : CONFIDENCIALIDAD
+  Estado                      : SIGNED
+
+--- Registro #8 ---
+  Título                      : NO COMPETENCIA — Contrato 8
+  Tipo                        : NO_COMPETENCIA
+  Estado                      : SIGNED
+
+--- Registro #9 ---
+  Título                      : ADDENDUM — Contrato 9
+  Tipo                        : ADDENDUM
+  Estado                      : DRAFT
+
+--- Registro #10 ---
+  Título                      : LOCACION SERVICIOS — Contrato 10
+  Tipo                        : LOCACION_SERVICIOS
+  Estado                      : APPROVED
+
+--- Registro #11 ---
+  Título                      : CONVENIO PRACTICAS — Contrato 11
+  Tipo                        : CONVENIO_PRACTICAS
+  Estado                      : SIGNED
+
+--- Registro #12 ---
+  Título                      : LABORAL INDEFINIDO — Contrato 12
+  Tipo                        : LABORAL_INDEFINIDO
+  Estado                      : SIGNED
+
+--- Registro #13 ---
+  Título                      : LABORAL PLAZO FIJO — Contrato 13
+  Tipo                        : LABORAL_PLAZO_FIJO
+  Estado                      : SIGNED
+
+--- Registro #14 ---
+  Título                      : LABORAL TIEMPO PARCIAL — Contrato 14
+  Tipo                        : LABORAL_TIEMPO_PARCIAL
+  Estado                      : DRAFT
+
+--- Registro #15 ---
+  Título                      : POLITICA SST — Contrato 15
+  Tipo                        : POLITICA_SST
+  Estado                      : APPROVED
+
+--- Registro #16 ---
+  Título                      : POLITICA HOSTIGAMIENTO — Contrato 16
+  Tipo                        : POLITICA_HOSTIGAMIENTO
+  Estado                      : SIGNED
+
+--- Registro #17 ---
+  Título                      : REGLAMENTO INTERNO — Contrato 17
+  Tipo                        : REGLAMENTO_INTERNO
+  Estado                      : SIGNED
+
+--- Registro #18 ---
+  Título                      : CONFIDENCIALIDAD — Contrato 18
+  Tipo                        : CONFIDENCIALIDAD
+  Estado                      : SIGNED
+
+--- Registro #19 ---
+  Título                      : NO COMPETENCIA — Contrato 19
+  Tipo                        : NO_COMPETENCIA
+  Estado                      : DRAFT
+
+--- Registro #20 ---
+  Título                      : ADDENDUM — Contrato 20
+  Tipo                        : ADDENDUM
+  Estado                      : APPROVED

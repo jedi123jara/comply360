@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_09",
+    "clerkId": "user_demo_09",
+    "orgId": "demo_org_09",
+    "email": "admin@academiadigitalperu.pe",
+    "firstName": "Gabriela",
+    "lastName": "Santos Cruz",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:39.780Z",
+    "updatedAt": "2026-04-06T22:14:39.780Z"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_02",
+    "clerkId": "user_demo_02",
+    "orgId": "demo_org_02",
+    "email": "admin@edificarperu.pe",
+    "firstName": "Carmen",
+    "lastName": "Huanca Flores",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:13.893Z",
+    "updatedAt": "2026-04-06T22:14:13.893Z"
+  }
+]

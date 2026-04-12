@@ -1,0 +1,1439 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================
+// AUTHENTICATION & ORGANIZATIONS
+// =============================================
+
+model Organization {
+  id                  String    @id @default(cuid())
+  name                String
+  ruc                 String?   @unique
+  razonSocial         String?   @map("razon_social")
+  nombreComercial     String?   @map("nombre_comercial")
+  sector              String?
+  sizeRange           String?   @map("size_range") // 1-10, 11-50, 51-200, 200+
+  logoUrl             String?   @map("logo_url")
+  plan                Plan      @default(STARTER)
+  planExpiresAt       DateTime? @map("plan_expires_at")
+  onboardingCompleted Boolean   @default(false) @map("onboarding_completed")
+  regimenPrincipal    String?   @map("regimen_principal") // GENERAL, MYPE_MICRO, etc.
+  regimenTributario   String?   @map("regimen_tributario") // RER, RMT, RG, RUS
+  alertEmail          String?   @map("alert_email")
+  phone               String?
+  address             String?   // direccion fiscal
+  city                String?   // departamento
+  province            String?
+  district            String?
+  // Representante Legal
+  repNombre           String?   @map("rep_nombre")
+  repDni              String?   @map("rep_dni")
+  repCargo            String?   @map("rep_cargo")
+  // Contador responsable
+  contNombre          String?   @map("cont_nombre")
+  contCpc             String?   @map("cont_cpc")
+  contEmail           String?   @map("cont_email")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  users            User[]
+  workers          Worker[]
+  contracts        Contract[]
+  calculations     Calculation[]
+  orgAlerts        OrgAlert[]
+  auditLogs        AuditLog[]
+  subscription     Subscription?
+  diagnostics      ComplianceDiagnostic[]
+  complaints       Complaint[]
+  invitations      Invitation[]
+  payslips         Payslip[]
+  workerRequests   WorkerRequest[]
+  documents        OrgDocument[]
+  serviceProviders ServiceProvider[]
+  rhInvoices       RhInvoice[]
+  inspecciones     InspeccionEnVivo[]
+  ownedClients     ConsultorClient[] @relation("ConsultorOwner")
+  managedBy        ConsultorClient[] @relation("ConsultorManaged")
+  integrationCredentials IntegrationCredential[]
+
+  @@map("organizations")
+}
+
+// Credenciales de integración encriptadas (SUNAT SOL, etc.)
+model IntegrationCredential {
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  provider        String    // "sunat_sol", "sunat_api", etc.
+  label           String?   // "SUNAT RUC 20505897867"
+  encryptedConfig String    @map("encrypted_config") @db.Text // JSON encriptado con AES-256-GCM
+  isActive        Boolean   @default(true) @map("is_active")
+  lastTestedAt    DateTime? @map("last_tested_at")
+  lastSyncAt      DateTime? @map("last_sync_at")
+  lastSyncResult  Json?     @map("last_sync_result") // { success, discrepancies, timestamp }
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  organization    Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, provider])
+  @@map("integration_credentials")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  EMPRESA
+  PRO
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique @map("clerk_id")
+  orgId     String?  @map("org_id")
+  email     String   @unique
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  role      UserRole @default(MEMBER)
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization   Organization?   @relation(fields: [orgId], references: [id])
+  worker         Worker? // Si el User tiene rol WORKER, su perfil de trabajador
+  contracts      Contract[]      @relation("CreatedBy")
+  calculations   Calculation[]
+  auditLogs      AuditLog[]
+  workerRequests WorkerRequest[] @relation("RequestReviewer")
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN // Dueños de la plataforma — acceso global a todas las organizaciones
+  OWNER // Dueño de la organización (empresa cliente)
+  ADMIN // Administrador con permisos amplios dentro de la org
+  MEMBER // Miembro con acceso operativo
+  VIEWER // Solo lectura
+  WORKER // Trabajador con acceso a su portal personal (sin acceso al dashboard de gestión)
+}
+
+model Invitation {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  email     String
+  role      UserRole @default(MEMBER)
+  token     String   @unique
+  status    String   @default("PENDING")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, email])
+  @@map("invitations")
+}
+
+// =============================================
+// WORKERS (FASE 1 — Modulo central)
+// =============================================
+
+model Worker {
+  id                 String         @id @default(cuid())
+  orgId              String         @map("org_id")
+  userId             String?        @unique @map("user_id") // Opcional — vincula con User cuando el trabajador activa su portal
+  // Datos personales
+  dni                String
+  firstName          String         @map("first_name")
+  lastName           String         @map("last_name")
+  email              String?
+  phone              String?
+  birthDate          DateTime?      @map("birth_date")
+  gender             String?
+  nationality        String?        @default("peruana")
+  address            String?
+  // Datos laborales
+  position           String?
+  department         String?
+  regimenLaboral     RegimenLaboral @default(GENERAL) @map("regimen_laboral")
+  tipoContrato       TipoContrato   @default(INDEFINIDO) @map("tipo_contrato")
+  fechaIngreso       DateTime       @map("fecha_ingreso")
+  fechaCese          DateTime?      @map("fecha_cese")
+  motivoCese         String?        @map("motivo_cese")
+  sueldoBruto        Decimal        @map("sueldo_bruto") @db.Decimal(10, 2)
+  asignacionFamiliar Boolean        @default(false) @map("asignacion_familiar")
+  jornadaSemanal     Int            @default(48) @map("jornada_semanal")
+  tiempoCompleto     Boolean        @default(true) @map("tiempo_completo")
+  // Previsional
+  tipoAporte         TipoAporte     @default(AFP) @map("tipo_aporte")
+  afpNombre          String?        @map("afp_nombre")
+  cuspp              String?
+  essaludVida        Boolean        @default(false) @map("essalud_vida")
+  sctr               Boolean        @default(false)
+  // Estado
+  status             WorkerStatus   @default(ACTIVE)
+  legajoScore        Int?           @map("legajo_score")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  organization    Organization     @relation(fields: [orgId], references: [id])
+  user            User?            @relation(fields: [userId], references: [id])
+  documents       WorkerDocument[]
+  workerContracts WorkerContract[]
+  vacations       VacationRecord[]
+  alerts          WorkerAlert[]
+  attendance      Attendance[]
+  payslips        Payslip[]
+  requests        WorkerRequest[]
+  ceseRecord      CeseRecord?
+
+  @@unique([orgId, dni])
+  @@index([orgId, status])
+  @@index([orgId, regimenLaboral])
+  @@map("workers")
+}
+
+enum RegimenLaboral {
+  GENERAL
+  MYPE_MICRO
+  MYPE_PEQUENA
+  AGRARIO
+  CONSTRUCCION_CIVIL
+  MINERO
+  PESQUERO
+  TEXTIL_EXPORTACION
+  DOMESTICO
+  CAS
+  MODALIDAD_FORMATIVA
+  TELETRABAJO
+}
+
+enum TipoContrato {
+  INDEFINIDO
+  PLAZO_FIJO
+  TIEMPO_PARCIAL
+  INICIO_ACTIVIDAD
+  NECESIDAD_MERCADO
+  RECONVERSION
+  SUPLENCIA
+  EMERGENCIA
+  OBRA_DETERMINADA
+  INTERMITENTE
+  EXPORTACION
+}
+
+enum TipoAporte {
+  AFP
+  ONP
+  SIN_APORTE
+}
+
+enum WorkerStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  TERMINATED
+}
+
+model WorkerDocument {
+  id           String      @id @default(cuid())
+  workerId     String      @map("worker_id")
+  category     DocCategory
+  documentType String      @map("document_type")
+  title        String
+  fileUrl      String?     @map("file_url")
+  fileSize     Int?        @map("file_size")
+  mimeType     String?     @map("mime_type")
+  isRequired   Boolean     @default(false) @map("is_required")
+  expiresAt    DateTime?   @map("expires_at")
+  verifiedAt   DateTime?   @map("verified_at")
+  verifiedBy   String?     @map("verified_by")
+  status       DocStatus   @default(PENDING)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  worker Worker @relation(fields: [workerId], references: [id])
+
+  @@index([workerId, category])
+  @@index([expiresAt])
+  @@map("worker_documents")
+}
+
+enum DocCategory {
+  INGRESO
+  VIGENTE
+  SST
+  PREVISIONAL
+  CESE
+}
+
+enum DocStatus {
+  PENDING
+  UPLOADED
+  VERIFIED
+  EXPIRED
+  MISSING
+}
+
+model VacationRecord {
+  id               String    @id @default(cuid())
+  workerId         String    @map("worker_id")
+  periodoInicio    DateTime  @map("periodo_inicio")
+  periodoFin       DateTime  @map("periodo_fin")
+  diasCorresponden Int       @default(30) @map("dias_corresponden")
+  diasGozados      Int       @default(0) @map("dias_gozados")
+  diasPendientes   Int       @default(30) @map("dias_pendientes")
+  fechaGoce        DateTime? @map("fecha_goce")
+  esDoble          Boolean   @default(false) @map("es_doble")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  worker Worker @relation(fields: [workerId], references: [id])
+
+  @@index([workerId])
+  @@map("vacation_records")
+}
+
+model WorkerContract {
+  id         String   @id @default(cuid())
+  workerId   String   @map("worker_id")
+  contractId String   @map("contract_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  worker   Worker   @relation(fields: [workerId], references: [id])
+  contract Contract @relation(fields: [contractId], references: [id])
+
+  @@unique([workerId, contractId])
+  @@map("worker_contracts")
+}
+
+model WorkerAlert {
+  id            String          @id @default(cuid())
+  workerId      String          @map("worker_id")
+  orgId         String          @map("org_id")
+  type          WorkerAlertType
+  severity      AlertSeverity
+  title         String
+  description   String?
+  dueDate       DateTime?       @map("due_date")
+  multaEstimada Decimal?        @map("multa_estimada") @db.Decimal(10, 2)
+  resolvedAt    DateTime?       @map("resolved_at")
+  resolvedBy    String?         @map("resolved_by")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  worker Worker @relation(fields: [workerId], references: [id])
+
+  @@index([orgId, severity])
+  @@index([dueDate])
+  @@map("worker_alerts")
+}
+
+enum WorkerAlertType {
+  CONTRATO_POR_VENCER
+  CONTRATO_VENCIDO
+  CTS_PENDIENTE
+  GRATIFICACION_PENDIENTE
+  VACACIONES_ACUMULADAS
+  VACACIONES_DOBLE_PERIODO
+  DOCUMENTO_FALTANTE
+  DOCUMENTO_VENCIDO
+  EXAMEN_MEDICO_VENCIDO
+  CAPACITACION_PENDIENTE
+  AFP_EN_MORA
+  REGISTRO_INCOMPLETO
+}
+
+enum AlertSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// =============================================
+// CONTRACTS
+// =============================================
+
+model ContractTemplate {
+  id            String       @id @default(cuid())
+  type          ContractType
+  name          String
+  description   String?
+  version       Int          @default(1)
+  fieldsSchema  Json         @map("fields_schema") // JSON Schema for dynamic form
+  contentBlocks Json         @map("content_blocks") // Template blocks with variables
+  legalBasis    String?      @map("legal_basis") // "D.Leg 728, Art. 4"
+  isActive      Boolean      @default(true) @map("is_active")
+  validFrom     DateTime     @default(now()) @map("valid_from")
+  validTo       DateTime?    @map("valid_to")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  contracts Contract[]
+
+  @@map("contract_templates")
+}
+
+enum ContractType {
+  LABORAL_INDEFINIDO
+  LABORAL_PLAZO_FIJO
+  LABORAL_TIEMPO_PARCIAL
+  LOCACION_SERVICIOS
+  CONFIDENCIALIDAD
+  NO_COMPETENCIA
+  POLITICA_HOSTIGAMIENTO
+  POLITICA_SST
+  REGLAMENTO_INTERNO
+  ADDENDUM
+  CONVENIO_PRACTICAS
+  CUSTOM
+}
+
+model Contract {
+  id           String         @id @default(cuid())
+  orgId        String         @map("org_id")
+  createdById  String         @map("created_by_id")
+  templateId   String?        @map("template_id")
+  type         ContractType
+  status       ContractStatus @default(DRAFT)
+  title        String
+  formData     Json?          @map("form_data") // User inputs
+  contentJson  Json?          @map("content_json") // Generated contract structure
+  contentHtml  String?        @map("content_html") // Rendered HTML
+  docxUrl      String?        @map("docx_url")
+  pdfUrl       String?        @map("pdf_url")
+  expiresAt    DateTime?      @map("expires_at")
+  signedAt     DateTime?      @map("signed_at")
+  aiRiskScore  Int?           @map("ai_risk_score") // 0-100
+  aiRisksJson  Json?          @map("ai_risks_json") // Array of detected risks
+  aiReviewedAt DateTime?      @map("ai_reviewed_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  organization    Organization      @relation(fields: [orgId], references: [id])
+  createdBy       User              @relation("CreatedBy", fields: [createdById], references: [id])
+  template        ContractTemplate? @relation(fields: [templateId], references: [id])
+  workerContracts WorkerContract[]
+
+  @@index([orgId, status])
+  @@index([orgId, type])
+  @@index([expiresAt])
+  @@map("contracts")
+}
+
+enum ContractStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SIGNED
+  EXPIRED
+  ARCHIVED
+}
+
+// =============================================
+// LEGAL ENGINE: NORMS & RULES
+// =============================================
+
+model LegalNorm {
+  id          String       @id @default(cuid())
+  code        String       @unique // "DL-728", "LEY-29783"
+  title       String
+  bodyText    String?      @map("body_text")
+  category    NormCategory
+  publishedAt DateTime?    @map("published_at")
+  effectiveAt DateTime?    @map("effective_at")
+  repealedAt  DateTime?    @map("repealed_at")
+  sourceUrl   String?      @map("source_url")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  rules  LegalRule[]
+  alerts NormAlert[]
+
+  @@index([category])
+  @@map("legal_norms")
+}
+
+enum NormCategory {
+  LABORAL
+  SUNAFIL
+  SEGURIDAD_SALUD
+  TRIBUTARIO
+  PROCESAL
+  GENERAL
+}
+
+model LegalRule {
+  id            String     @id @default(cuid())
+  normId        String     @map("norm_id")
+  ruleKey       String     @unique @map("rule_key") // "indemnizacion_despido_arbitrario"
+  description   String?
+  conditionJson Json?      @map("condition_json") // When this rule applies
+  formula       String? // "sueldo * 1.5 * anos"
+  parameters    Json? // { "tope_anos": 12, "factor": 1.5 }
+  outputType    RuleOutput @default(NUMBER) @map("output_type")
+  validFrom     DateTime   @default(now()) @map("valid_from")
+  validTo       DateTime?  @map("valid_to")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  norm LegalNorm @relation(fields: [normId], references: [id])
+
+  @@index([ruleKey])
+  @@map("legal_rules")
+}
+
+enum RuleOutput {
+  NUMBER
+  BOOLEAN
+  PERCENTAGE
+  TEXT
+  CLAUSE
+}
+
+// =============================================
+// CALCULATIONS
+// =============================================
+
+model Calculation {
+  id          String          @id @default(cuid())
+  orgId       String?         @map("org_id")
+  userId      String?         @map("user_id")
+  type        CalculationType
+  inputsJson  Json            @map("inputs_json")
+  resultJson  Json            @map("result_json") // Full breakdown
+  totalAmount Decimal?        @map("total_amount") @db.Decimal(12, 2)
+  pdfUrl      String?         @map("pdf_url")
+  isPublic    Boolean         @default(false) @map("is_public") // Free calc (no auth)
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  organization Organization? @relation(fields: [orgId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+
+  @@index([orgId, type])
+  @@index([createdAt])
+  @@map("calculations")
+}
+
+enum CalculationType {
+  LIQUIDACION
+  CTS
+  GRATIFICACION
+  INDEMNIZACION
+  HORAS_EXTRAS
+  VACACIONES
+  MULTA_SUNAFIL
+  INTERESES_LEGALES
+  APORTES_PREVISIONALES
+  UTILIDADES
+}
+
+// =============================================
+// ALERTS
+// =============================================
+
+model NormAlert {
+  id                    String         @id @default(cuid())
+  normId                String         @map("norm_id")
+  title                 String
+  summary               String
+  impactLevel           ImpactLevel    @map("impact_level")
+  affectedContractTypes ContractType[] @map("affected_contract_types")
+  publishedAt           DateTime       @default(now()) @map("published_at")
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  norm      LegalNorm  @relation(fields: [normId], references: [id])
+  orgAlerts OrgAlert[]
+
+  @@map("norm_alerts")
+}
+
+enum ImpactLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model OrgAlert {
+  id          String      @id @default(cuid())
+  orgId       String      @map("org_id")
+  normAlertId String      @map("norm_alert_id")
+  status      AlertStatus @default(UNREAD)
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  normAlert    NormAlert    @relation(fields: [normAlertId], references: [id])
+
+  @@unique([orgId, normAlertId])
+  @@map("org_alerts")
+}
+
+enum AlertStatus {
+  UNREAD
+  READ
+  DISMISSED
+}
+
+// =============================================
+// SUBSCRIPTIONS & PAYMENTS
+// =============================================
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  orgId                  String             @unique @map("org_id")
+  plan                   Plan
+  status                 SubscriptionStatus @default(ACTIVE)
+  paymentProvider        String?            @map("payment_provider") // "culqi" | "stripe"
+  externalSubscriptionId String?            @map("external_subscription_id")
+  currentPeriodStart     DateTime           @map("current_period_start")
+  currentPeriodEnd       DateTime           @map("current_period_end")
+  cancelledAt            DateTime?          @map("cancelled_at")
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}
+
+// =============================================
+// COMPLIANCE DIAGNOSTICS (FASE 2)
+// =============================================
+
+model ComplianceDiagnostic {
+  id               String         @id @default(cuid())
+  orgId            String         @map("org_id")
+  type             DiagnosticType
+  scoreGlobal      Int            @map("score_global") // 0-100
+  scoreByArea      Json           @map("score_by_area") // { "contratos": 85, "sst": 60, ... }
+  totalMultaRiesgo Decimal        @map("total_multa_riesgo") @db.Decimal(12, 2)
+  questionsJson    Json           @map("questions_json") // preguntas y respuestas
+  gapAnalysis      Json?          @map("gap_analysis") // brechas priorizadas
+  actionPlan       Json?          @map("action_plan") // plan de accion generado
+  completedAt      DateTime?      @map("completed_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@map("compliance_diagnostics")
+}
+
+enum DiagnosticType {
+  FULL // 120 preguntas — diagnostico completo
+  EXPRESS // 20 preguntas — rapido mensual
+  SIMULATION // Simulacro SUNAFIL interactivo
+}
+
+model ComplianceScore {
+  id                String   @id @default(cuid())
+  orgId             String   @map("org_id")
+  scoreGlobal       Int      @map("score_global")
+  scoreContratos    Int?     @map("score_contratos")
+  scoreSst          Int?     @map("score_sst")
+  scoreDocumentos   Int?     @map("score_documentos")
+  scoreVencimientos Int?     @map("score_vencimientos")
+  scorePlanilla     Int?     @map("score_planilla")
+  multaEvitada      Decimal? @map("multa_evitada") @db.Decimal(12, 2)
+  calculatedAt      DateTime @default(now()) @map("calculated_at")
+
+  @@index([orgId, calculatedAt])
+  @@map("compliance_scores")
+}
+
+// =============================================
+// SST — SEGURIDAD Y SALUD EN EL TRABAJO (FASE 3)
+// =============================================
+
+model SstRecord {
+  id            String        @id @default(cuid())
+  orgId         String        @map("org_id")
+  type          SstRecordType
+  title         String
+  description   String?
+  data          Json? // contenido variable segun tipo
+  responsibleId String?       @map("responsible_id")
+  dueDate       DateTime?     @map("due_date")
+  completedAt   DateTime?     @map("completed_at")
+  status        SstStatus     @default(PENDING)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([orgId, type])
+  @@index([orgId, status])
+  @@map("sst_records")
+}
+
+enum SstRecordType {
+  POLITICA_SST
+  IPERC
+  PLAN_ANUAL
+  CAPACITACION
+  ACCIDENTE
+  INCIDENTE
+  EXAMEN_MEDICO
+  ENTREGA_EPP
+  ACTA_COMITE
+  MAPA_RIESGOS
+  SIMULACRO_EVACUACION
+  MONITOREO_AGENTES
+}
+
+enum SstStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+// =============================================
+// CANAL DE DENUNCIAS (FASE 3)
+// =============================================
+
+model Complaint {
+  id                 String          @id @default(cuid())
+  orgId              String          @map("org_id")
+  code               String          @unique // DENUNCIA-2026-001
+  type               ComplaintType
+  isAnonymous        Boolean         @default(true) @map("is_anonymous")
+  reporterName       String?         @map("reporter_name")
+  reporterEmail      String?         @map("reporter_email")
+  reporterPhone      String?         @map("reporter_phone")
+  accusedName        String?         @map("accused_name")
+  accusedPosition    String?         @map("accused_position")
+  description        String
+  evidenceUrls       String[]        @map("evidence_urls")
+  status             ComplaintStatus @default(RECEIVED)
+  assignedTo         String?         @map("assigned_to")
+  resolution         String?
+  protectionMeasures Json?           @map("protection_measures")
+  receivedAt         DateTime        @default(now()) @map("received_at")
+  resolvedAt         DateTime?       @map("resolved_at")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [orgId], references: [id])
+  timeline     ComplaintTimeline[]
+
+  @@index([orgId, status])
+  @@map("complaints")
+}
+
+enum ComplaintType {
+  HOSTIGAMIENTO_SEXUAL
+  DISCRIMINACION
+  ACOSO_LABORAL
+  OTRO
+}
+
+enum ComplaintStatus {
+  RECEIVED
+  UNDER_REVIEW
+  INVESTIGATING
+  PROTECTION_APPLIED
+  RESOLVED
+  DISMISSED
+}
+
+model ComplaintTimeline {
+  id          String   @id @default(cuid())
+  complaintId String   @map("complaint_id")
+  action      String
+  description String?
+  performedBy String?  @map("performed_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  complaint Complaint @relation(fields: [complaintId], references: [id])
+
+  @@map("complaint_timeline")
+}
+
+// =============================================
+// E-LEARNING (FASE 4)
+// =============================================
+
+model Course {
+  id            String           @id @default(cuid())
+  slug          String           @unique
+  title         String
+  description   String?
+  category      CourseCategory
+  thumbnailUrl  String?          @map("thumbnail_url")
+  durationMin   Int              @default(30) @map("duration_min")
+  isObligatory  Boolean          @default(false) @map("is_obligatory")
+  targetRegimen RegimenLaboral[] @map("target_regimen") // regimenes a los que aplica
+  targetRoles   String[]         @map("target_roles") // cargos objetivo
+  passingScore  Int              @default(70) @map("passing_score") // % minimo para aprobar
+  isActive      Boolean          @default(true) @map("is_active")
+  sortOrder     Int              @default(0) @map("sort_order")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  lessons       Lesson[]
+  enrollments   Enrollment[]
+  examQuestions ExamQuestion[]
+
+  @@index([category])
+  @@map("courses")
+}
+
+enum CourseCategory {
+  SST // Seguridad y Salud en el Trabajo
+  HOSTIGAMIENTO // Prevencion hostigamiento sexual
+  DERECHOS_LABORALES // Derechos del trabajador
+  CONTRATOS // Gestion de contratos por regimen
+  PLANILLA // Planilla electronica y T-REGISTRO
+  INSPECCIONES // Preparacion para inspecciones SUNAFIL
+  IGUALDAD // Igualdad salarial y no discriminacion
+  GENERAL // Temas generales compliance
+}
+
+model Lesson {
+  id          String            @id @default(cuid())
+  courseId    String            @map("course_id")
+  title       String
+  description String?
+  contentType LessonContentType @map("content_type")
+  contentUrl  String?           @map("content_url") // URL video o recurso externo
+  contentHtml String?           @map("content_html") // Contenido lectura interactiva
+  durationMin Int               @default(10) @map("duration_min")
+  sortOrder   Int               @default(0) @map("sort_order")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  course   Course           @relation(fields: [courseId], references: [id])
+  progress LessonProgress[]
+
+  @@index([courseId])
+  @@map("lessons")
+}
+
+enum LessonContentType {
+  VIDEO
+  READING
+  INTERACTIVE
+  DOCUMENT
+}
+
+model Enrollment {
+  id            String           @id @default(cuid())
+  courseId      String           @map("course_id")
+  workerId      String?          @map("worker_id")
+  orgId         String           @map("org_id")
+  workerName    String?          @map("worker_name") // cache para display
+  status        EnrollmentStatus @default(NOT_STARTED)
+  progress      Int              @default(0) // 0-100
+  examScore     Int?             @map("exam_score")
+  examAttempts  Int              @default(0) @map("exam_attempts")
+  startedAt     DateTime?        @map("started_at")
+  completedAt   DateTime?        @map("completed_at")
+  certificateId String?          @map("certificate_id")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  course         Course           @relation(fields: [courseId], references: [id])
+  certificate    Certificate?     @relation(fields: [certificateId], references: [id])
+  lessonProgress LessonProgress[]
+
+  @@unique([courseId, workerId, orgId])
+  @@index([orgId, status])
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  EXAM_PENDING
+  PASSED
+  FAILED
+}
+
+model LessonProgress {
+  id           String    @id @default(cuid())
+  enrollmentId String    @map("enrollment_id")
+  lessonId     String    @map("lesson_id")
+  completed    Boolean   @default(false)
+  timeSpentSec Int       @default(0) @map("time_spent_sec")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  lesson     Lesson     @relation(fields: [lessonId], references: [id])
+
+  @@unique([enrollmentId, lessonId])
+  @@map("lesson_progress")
+}
+
+model ExamQuestion {
+  id           String   @id @default(cuid())
+  courseId     String   @map("course_id")
+  question     String
+  options      Json // ["opcion A", "opcion B", "opcion C", "opcion D"]
+  correctIndex Int      @map("correct_index") // 0-3
+  explanation  String?
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@index([courseId])
+  @@map("exam_questions")
+}
+
+model Certificate {
+  id             String         @id @default(cuid())
+  code           String         @unique // CERT-2026-XXXXX
+  orgId          String         @map("org_id")
+  workerId       String?        @map("worker_id")
+  workerName     String         @map("worker_name")
+  workerDni      String?        @map("worker_dni")
+  courseTitle    String         @map("course_title")
+  courseCategory CourseCategory @map("course_category")
+  score          Int
+  issuedAt       DateTime       @default(now()) @map("issued_at")
+  expiresAt      DateTime?      @map("expires_at") // SST certs expire annually
+  qrData         String?        @map("qr_data") // URL de verificacion
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  enrollments Enrollment[]
+
+  @@index([orgId])
+  @@index([code])
+  @@map("certificates")
+}
+
+// =============================================
+// CRAWLER NORMATIVO (FASE 4)
+// =============================================
+
+model NormUpdate {
+  id               String           @id @default(cuid())
+  source           NormSource
+  externalId       String?          @unique @map("external_id") // ID unico del scraper
+  normCode         String           @map("norm_code") // "LEY-32353", "D.S.-014-2025-TR"
+  title            String
+  summary          String?
+  fullText         String?          @map("full_text")
+  category         NormCategory
+  publishedAt      DateTime?        @map("published_at")
+  effectiveAt      DateTime?        @map("effective_at")
+  sourceUrl        String?          @map("source_url")
+  impactAnalysis   String?          @map("impact_analysis") // analisis IA del impacto
+  impactLevel      ImpactLevel?     @map("impact_level")
+  affectedModules  String[]         @map("affected_modules") // ["contratos", "sst", "beneficios"]
+  affectedRegimens RegimenLaboral[] @map("affected_regimens")
+  actionRequired   String?          @map("action_required") // que debe hacer la empresa
+  actionDeadline   DateTime?        @map("action_deadline")
+  isProcessed      Boolean          @default(false) @map("is_processed")
+  // Flujo de aprobacion: el equipo dev revisa antes de publicar
+  status           NormStatus       @default(PENDING_REVIEW)
+  reviewNotes      String?          @map("review_notes")
+  reviewedAt       DateTime?        @map("reviewed_at")
+  reviewedBy       String?          @map("reviewed_by") // email del revisor
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([category, publishedAt])
+  @@index([isProcessed])
+  @@index([status])
+  @@map("norm_updates")
+}
+
+enum NormSource {
+  EL_PERUANO
+  SUNAFIL
+  MTPE
+  SUNAT
+  MANUAL
+}
+
+enum NormStatus {
+  PENDING_REVIEW // detectada por el crawler, pendiente de revision del equipo dev
+  APPROVED       // aprobada y visible para los clientes
+  REJECTED       // descartada (duplicado, irrelevante, error del scraper)
+}
+
+// =============================================
+// PROCESO DE CESE Y LIQUIDACION (D.Leg. 728)
+// =============================================
+
+model CeseRecord {
+  id                    String      @id @default(cuid())
+  orgId                 String      @map("org_id")
+  workerId              String      @unique @map("worker_id")
+
+  // Tipo y causa
+  tipoCese              TipoCese    @map("tipo_cese")
+  causaDetalle          String?     @map("causa_detalle") @db.Text
+
+  // Fechas del proceso
+  fechaInicioProceso    DateTime    @map("fecha_inicio_proceso")
+  fechaCese             DateTime    @map("fecha_cese")
+  fechaCartaPreaviso    DateTime?   @map("fecha_carta_preaviso")
+  fechaLimiteDescargos  DateTime?   @map("fecha_limite_descargos")
+  fechaCartaDespido     DateTime?   @map("fecha_carta_despido")
+  fechaPagoLiquidacion  DateTime?   @map("fecha_pago_liquidacion")
+
+  // Montos de liquidación
+  sueldoBruto           Decimal     @map("sueldo_bruto") @db.Decimal(10, 2)
+  ctsMonto              Decimal     @default(0) @map("cts_monto") @db.Decimal(10, 2)
+  vacacionesMonto       Decimal     @default(0) @map("vacaciones_monto") @db.Decimal(10, 2)
+  gratificacionMonto    Decimal     @default(0) @map("gratificacion_monto") @db.Decimal(10, 2)
+  indemnizacionMonto    Decimal     @default(0) @map("indemnizacion_monto") @db.Decimal(10, 2)
+  totalLiquidacion      Decimal     @default(0) @map("total_liquidacion") @db.Decimal(10, 2)
+  detalleJson           Json?       @map("detalle_json")
+
+  // Estado del proceso
+  etapa                 EtapaCese   @default(INICIADO)
+  observaciones         String?     @db.Text
+
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  worker Worker @relation(fields: [workerId], references: [id])
+
+  @@index([orgId])
+  @@map("cese_records")
+}
+
+enum TipoCese {
+  RENUNCIA_VOLUNTARIA       // Trabajador renuncia — Art. 18 D.S. 003-97-TR
+  DESPIDO_CAUSA_JUSTA       // Falta grave — Art. 22-25 D.Leg. 728
+  DESPIDO_ARBITRARIO        // Sin causa justa — indemnización obligatoria
+  MUTUO_DISENSO             // Acuerdo ambas partes — Art. 19 D.S. 003-97-TR
+  TERMINO_CONTRATO          // Fin de contrato a plazo fijo
+  NO_RENOVACION             // No renovación de contrato temporal
+  FALLECIMIENTO             // Art. 16.a D.S. 003-97-TR
+  JUBILACION                // Art. 16.f D.S. 003-97-TR
+  PERIODO_PRUEBA            // Dentro del período de prueba — Art. 10
+}
+
+enum EtapaCese {
+  INICIADO
+  CARTA_PREAVISO
+  PERIODO_DESCARGOS
+  CARTA_DESPIDO
+  LIQUIDACION_CALCULADA
+  LIQUIDACION_PAGADA
+  COMPLETADO
+  ANULADO
+}
+
+// =============================================
+// TERCERIZACION E INTERMEDIACION (FASE 6)
+// =============================================
+
+model Tercero {
+  id                    String    @id @default(cuid())
+  orgId                 String    @map("org_id")
+  razonSocial           String    @map("razon_social")
+  ruc                   String
+  actividadPrincipal    String?   @map("actividad_principal")
+  tipoServicio          String?   @map("tipo_servicio") // "TERCERIZACION" | "INTERMEDIACION"
+  contratoUrl           String?   @map("contrato_url")
+  fechaInicio           DateTime  @map("fecha_inicio")
+  fechaFin              DateTime? @map("fecha_fin")
+  trabajadoresAsignados Int       @default(0) @map("trabajadores_asignados")
+  isActividadPrincipal  Boolean   @default(false) @map("is_actividad_principal") // RED FLAG
+  isActive              Boolean   @default(true) @map("is_active")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([orgId])
+  @@map("terceros")
+}
+
+// =============================================
+// RELACIONES COLECTIVAS / SINDICAL (FASE 6)
+// =============================================
+
+model SindicalRecord {
+  id          String             @id @default(cuid())
+  orgId       String             @map("org_id")
+  type        SindicalRecordType
+  title       String
+  description String?
+  data        Json?
+  startDate   DateTime?          @map("start_date")
+  endDate     DateTime?          @map("end_date")
+  status      String             @default("ACTIVE")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([orgId, type])
+  @@map("sindical_records")
+}
+
+enum SindicalRecordType {
+  SINDICATO // registro de sindicato
+  CONVENIO_COLECTIVO // convenio colectivo vigente
+  NEGOCIACION // negociacion en curso
+  PLIEGO_RECLAMOS // pliego de reclamos
+  FUERO_SINDICAL // dirigentes con fuero
+  HUELGA // registro de huelga
+}
+
+// =============================================
+// AUDIT LOG
+// =============================================
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  orgId        String   @map("org_id")
+  userId       String?  @map("user_id")
+  action       String // "contract.created", "calculation.generated"
+  entityType   String?  @map("entity_type")
+  entityId     String?  @map("entity_id")
+  metadataJson Json?    @map("metadata_json")
+  ipAddress    String?  @map("ip_address")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+// =============================================
+// ATTENDANCE
+// =============================================
+
+model Attendance {
+  id          String           @id @default(cuid())
+  orgId       String           @map("org_id")
+  workerId    String           @map("worker_id")
+  clockIn     DateTime         @map("clock_in")
+  clockOut    DateTime?        @map("clock_out")
+  hoursWorked Decimal?         @map("hours_worked") @db.Decimal(5, 2)
+  status      AttendanceStatus @default(PRESENT)
+  notes       String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  worker Worker @relation(fields: [workerId], references: [id])
+
+  @@index([orgId, clockIn])
+  @@index([workerId, clockIn])
+  @@map("attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  ON_LEAVE
+}
+
+// =============================================
+// PORTAL DEL TRABAJADOR
+// Modelos para que cada empleado tenga acceso
+// a su propia informacion (boletas, solicitudes,
+// documentos personales).
+// =============================================
+
+model Payslip {
+  id                 String        @id @default(cuid())
+  orgId              String        @map("org_id")
+  workerId           String        @map("worker_id")
+  periodo            String // "2026-04" formato YYYY-MM
+  fechaEmision       DateTime      @map("fecha_emision")
+  sueldoBruto        Decimal       @map("sueldo_bruto") @db.Decimal(10, 2)
+  asignacionFamiliar Decimal?      @map("asignacion_familiar") @db.Decimal(10, 2)
+  horasExtras        Decimal?      @map("horas_extras") @db.Decimal(10, 2)
+  bonificaciones     Decimal?      @db.Decimal(10, 2)
+  totalIngresos      Decimal       @map("total_ingresos") @db.Decimal(10, 2)
+  // Descuentos
+  aporteAfpOnp       Decimal?      @map("aporte_afp_onp") @db.Decimal(10, 2)
+  rentaQuintaCat     Decimal?      @map("renta_quinta_cat") @db.Decimal(10, 2)
+  otrosDescuentos    Decimal?      @map("otros_descuentos") @db.Decimal(10, 2)
+  totalDescuentos    Decimal       @map("total_descuentos") @db.Decimal(10, 2)
+  // Neto
+  netoPagar          Decimal       @map("neto_pagar") @db.Decimal(10, 2)
+  // Aportes empleador (solo informativo)
+  essalud            Decimal?      @db.Decimal(10, 2)
+  // Archivo
+  pdfUrl             String?       @map("pdf_url")
+  detalleJson        Json?         @map("detalle_json") // breakdown completo
+  // Status
+  status             PayslipStatus @default(EMITIDA)
+  acceptedAt         DateTime?     @map("accepted_at") // cuando el trabajador la confirma
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  worker       Worker       @relation(fields: [workerId], references: [id])
+
+  @@unique([workerId, periodo])
+  @@index([orgId, periodo])
+  @@index([workerId, periodo])
+  @@map("payslips")
+}
+
+enum PayslipStatus {
+  EMITIDA
+  ENVIADA
+  ACEPTADA
+  OBSERVADA
+  ANULADA
+}
+
+model WorkerRequest {
+  id            String              @id @default(cuid())
+  orgId         String              @map("org_id")
+  workerId      String              @map("worker_id")
+  type          WorkerRequestType
+  status        WorkerRequestStatus @default(PENDIENTE)
+  // Datos generales
+  title         String
+  description   String?
+  // Datos especificos segun tipo
+  startDate     DateTime?           @map("start_date")
+  endDate       DateTime?           @map("end_date")
+  daysRequested Int?                @map("days_requested")
+  amount        Decimal?            @db.Decimal(10, 2)
+  attachmentUrl String?             @map("attachment_url")
+  // Revision
+  reviewedById  String?             @map("reviewed_by_id")
+  reviewedAt    DateTime?           @map("reviewed_at")
+  reviewNotes   String?             @map("review_notes")
+  // Audit
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  worker       Worker       @relation(fields: [workerId], references: [id])
+  reviewer     User?        @relation("RequestReviewer", fields: [reviewedById], references: [id])
+
+  @@index([orgId, status])
+  @@index([workerId, createdAt])
+  @@map("worker_requests")
+}
+
+enum WorkerRequestType {
+  VACACIONES
+  PERMISO
+  LICENCIA_MEDICA
+  LICENCIA_MATERNIDAD
+  LICENCIA_PATERNIDAD
+  ADELANTO_SUELDO
+  CTS_RETIRO_PARCIAL
+  CONSTANCIA_TRABAJO
+  CERTIFICADO_5TA
+  ACTUALIZAR_DATOS
+  OTRO
+}
+
+enum WorkerRequestStatus {
+  PENDIENTE
+  EN_REVISION
+  APROBADA
+  RECHAZADA
+  CANCELADA
+}
+
+// =============================================
+// DOCUMENTOS DE LA ORGANIZACION
+// Documentos compartidos a nivel empresa que el
+// trabajador puede consultar (RIT, politicas, MOF).
+// =============================================
+
+model OrgDocument {
+  id                   String     @id @default(cuid())
+  orgId                String     @map("org_id")
+  type                 OrgDocType
+  title                String
+  description          String?
+  fileUrl              String?    @map("file_url")
+  fileSize             Int?       @map("file_size")
+  mimeType             String?    @map("mime_type")
+  version              Int        @default(1)
+  isPublishedToWorkers Boolean    @default(false) @map("is_published_to_workers")
+  publishedAt          DateTime?  @map("published_at")
+  validUntil           DateTime?  @map("valid_until")
+  uploadedById         String?    @map("uploaded_by_id")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, type])
+  @@index([orgId, isPublishedToWorkers])
+  @@map("org_documents")
+}
+
+enum OrgDocType {
+  RIT // Reglamento Interno de Trabajo
+  REGLAMENTO_SST // Reglamento de Seguridad y Salud
+  POLITICA_HOSTIGAMIENTO // Politica prevencion hostigamiento sexual
+  POLITICA_IGUALDAD // Politica igualdad salarial
+  CODIGO_ETICA // Codigo de etica
+  MOF // Manual de Organizacion y Funciones
+  ROF // Reglamento de Organizacion y Funciones
+  PLAN_SST // Plan anual de seguridad
+  PROTOCOLO_DENUNCIAS // Protocolo canal de denuncias
+  CONVENIO_COLECTIVO // Convenio colectivo vigente
+  COMUNICADO // Comunicado general
+  OTRO
+}
+
+// =============================================
+// SERVICE PROVIDERS (4ta categoria / Recibos por Honorarios)
+// =============================================
+// Prestadores de servicios independientes que emiten RH.
+// Regidos por el Codigo Civil (Art. 1764 — Locacion de Servicios), NO por el D.Leg. 728.
+// NO tienen CTS, gratificaciones, vacaciones ni asignacion familiar.
+// Retencion 8% IR 4ta categoria si > 1/7 UIT mensual y sin constancia de suspension.
+// Riesgo principal: DESNATURALIZACION (reclasificacion a 5ta por SUNAFIL si hay subordinacion).
+
+model ServiceProvider {
+  id             String  @id @default(cuid())
+  orgId          String  @map("org_id")
+  // Identificacion
+  documentType   String  @default("DNI") @map("document_type") // DNI, CE, RUC, PASAPORTE
+  documentNumber String  @map("document_number")
+  ruc            String? // RUC del prestador (obligatorio para emitir RH electronico)
+  firstName      String  @map("first_name")
+  lastName       String  @map("last_name")
+  email          String?
+  phone          String?
+  address        String?
+  profession     String? // Profesion/especialidad (ej: Contador, Ingeniero, Diseñador)
+  // Servicio contratado
+  servicioDescripcion String    @map("servicio_descripcion") // Descripcion breve del servicio
+  area                String? // Area de la empresa donde presta servicio
+  startDate           DateTime  @map("start_date") // Inicio del servicio
+  endDate             DateTime? @map("end_date") // Fin previsto (si hay)
+  monthlyAmount       Decimal   @map("monthly_amount") @db.Decimal(10, 2) // Monto mensual acordado
+  currency            String    @default("PEN")
+  paymentFrequency    String    @default("MONTHLY") @map("payment_frequency") // MONTHLY, BIWEEKLY, PROJECT, HOURLY
+  // Retencion de 4ta categoria
+  hasSuspensionRetencion Boolean   @default(false) @map("has_suspension_retencion") // Constancia vigente de SUNAT
+  suspensionExpiryDate   DateTime? @map("suspension_expiry_date") // Vence cada 31 de diciembre
+  // Analisis de riesgo de desnaturalizacion (indicadores laborales)
+  hasFixedSchedule      Boolean @default(false) @map("has_fixed_schedule") // Horario fijo impuesto
+  hasExclusivity        Boolean @default(false) @map("has_exclusivity") // Exclusividad con la empresa
+  worksOnPremises       Boolean @default(false) @map("works_on_premises") // Trabaja dentro de las instalaciones
+  usesCompanyTools      Boolean @default(false) @map("uses_company_tools") // Usa equipos/herramientas de la empresa
+  reportsToSupervisor   Boolean @default(false) @map("reports_to_supervisor") // Tiene jefe directo
+  receivesOrders        Boolean @default(false) @map("receives_orders") // Recibe ordenes directas
+  desnaturalizacionRisk Int     @default(0) @map("desnaturalizacion_risk") // 0-100 calculado desde los flags
+  // Documentacion
+  contractFileUrl String? @map("contract_file_url") // PDF del contrato de locacion de servicios
+  // Estado
+  status    ServiceProviderStatus @default(ACTIVE)
+  notes     String?
+  createdAt DateTime              @default(now()) @map("created_at")
+  updatedAt DateTime              @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  rhInvoices   RhInvoice[]
+
+  @@unique([orgId, documentNumber])
+  @@index([orgId, status])
+  @@map("service_providers")
+}
+
+enum ServiceProviderStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+  AT_RISK // Riesgo alto de desnaturalizacion
+}
+
+model RhInvoice {
+  id            String    @id @default(cuid())
+  orgId         String    @map("org_id")
+  providerId    String    @map("provider_id")
+  invoiceNumber String    @map("invoice_number") // E001-123 o similar
+  issueDate     DateTime  @map("issue_date")
+  periodo       String // YYYY-MM — mes de servicio prestado
+  grossAmount   Decimal   @map("gross_amount") @db.Decimal(10, 2)
+  retention     Decimal   @default(0) @db.Decimal(10, 2) // 8% IR si aplica
+  netAmount     Decimal   @map("net_amount") @db.Decimal(10, 2)
+  hasRetention  Boolean   @default(false) @map("has_retention")
+  status        String    @default("PENDING") // PENDING, PAID, CANCELLED
+  paidAt        DateTime? @map("paid_at")
+  fileUrl       String?   @map("file_url") // PDF del recibo electronico
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [orgId], references: [id])
+  provider     ServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, periodo])
+  @@index([providerId, issueDate])
+  @@map("rh_invoices")
+}
+
+// =============================================
+// INSPECCION EN VIVO — "MODO CRISIS" SUNAFIL
+// =============================================
+
+// =============================================
+// PORTAL CONTADOR — Multi-org management
+// A "consultor" (accountant / labor advisor) manages multiple client orgs
+// =============================================
+
+model ConsultorClient {
+  id              String   @id @default(cuid())
+  /// Clerk userId of the consultor (not linked as FK to avoid Clerk coupling)
+  consultorUserId String   @map("consultor_user_id")
+  /// The consultor's own org (the accounting firm or consultancy)
+  consultorOrgId  String   @map("consultor_org_id")
+  /// The client org being managed
+  clientOrgId     String   @map("client_org_id")
+  /// Cached display name — denormalized for fast list rendering
+  clientOrgName   String?  @map("client_org_name")
+  clientRuc       String?  @map("client_ruc")
+  isActive        Boolean  @default(true) @map("is_active")
+  notes           String?
+  addedAt         DateTime @default(now()) @map("added_at")
+
+  consultorOrg Organization @relation("ConsultorOwner", fields: [consultorOrgId], references: [id])
+  clientOrg    Organization @relation("ConsultorManaged", fields: [clientOrgId], references: [id])
+
+  @@unique([consultorUserId, clientOrgId])
+  @@index([consultorUserId, isActive])
+  @@index([consultorOrgId])
+  @@map("consultor_clients")
+}
+
+model InspeccionEnVivo {
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  tipo            String    // PREVENTIVA, POR_DENUNCIA, PROGRAMA_SECTORIAL
+  status          String    @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED
+  inspectorName   String?   @map("inspector_name")
+  inspectorDNI    String?   @map("inspector_dni")
+  ordenInspeccion String?   @map("orden_inspeccion")
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  hallazgosJson   Json?     @map("hallazgos_json") // Array of HallazgoInspeccion
+  resultadoJson   Json?     @map("resultado_json") // ResultadoSimulacro
+  evidenciasJson  Json?     @map("evidencias_json") // { solicitudId: [url1, url2] }
+  multaEstimada   Decimal?  @map("multa_estimada") @db.Decimal(12, 2)
+  scoreInspeccion Int?      @map("score_inspeccion") // 0-100
+  notes           String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+  @@map("inspecciones_en_vivo")
+}
+

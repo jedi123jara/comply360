@@ -1,0 +1,14 @@
+[
+  {
+    "id": "user-demo",
+    "clerkId": "clerk-demo",
+    "orgId": "org-demo",
+    "email": "a.jaracarranza@gmail.com",
+    "firstName": "Usuario",
+    "lastName": "Demo",
+    "role": "MEMBER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-05T06:05:08.923Z",
+    "updatedAt": "2026-04-05T06:05:08.923Z"
+  }
+]

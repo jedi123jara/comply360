@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10200001
+  Cargo                       : Operario
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10200002
+  Cargo                       : Oficial
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10200003
+  Cargo                       : Peón
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10200004
+  Cargo                       : Ingeniero Residente
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10200005
+  Cargo                       : Maestro de Obra
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10200006
+  Cargo                       : Capataz
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10200007
+  Cargo                       : Topógrafo
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10200008
+  Cargo                       : Almacenero
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10200009
+  Cargo                       : Soldador
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10200010
+  Cargo                       : Carpintero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10200011
+  Cargo                       : Fierrero
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10200012
+  Cargo                       : Encofrador
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10200013
+  Cargo                       : Operador de Maquinaria
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10200014
+  Cargo                       : Técnico Eléctrico
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10200015
+  Cargo                       : Inspector SST
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10200016
+  Cargo                       : Arquitecto
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10200017
+  Cargo                       : Dibujante CAD
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10200018
+  Cargo                       : Asistente de Ingeniería
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10200019
+  Cargo                       : Auxiliar Administrativo
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10200020
+  Cargo                       : Jefe de Almacén
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10200021
+  Cargo                       : Operario
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10200022
+  Cargo                       : Oficial
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10200023
+  Cargo                       : Peón
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10200024
+  Cargo                       : Ingeniero Residente
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10200025
+  Cargo                       : Maestro de Obra
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10200026
+  Cargo                       : Capataz
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10200027
+  Cargo                       : Topógrafo
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10200028
+  Cargo                       : Almacenero
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10200029
+  Cargo                       : Soldador
+  Departamento                : SST
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10200030
+  Cargo                       : Carpintero
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10200031
+  Cargo                       : Fierrero
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10200032
+  Cargo                       : Encofrador
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10200033
+  Cargo                       : Operador de Maquinaria
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10200034
+  Cargo                       : Técnico Eléctrico
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10200035
+  Cargo                       : Inspector SST
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10200036
+  Cargo                       : Arquitecto
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10200037
+  Cargo                       : Dibujante CAD
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10200038
+  Cargo                       : Asistente de Ingeniería
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10200039
+  Cargo                       : Auxiliar Administrativo
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10200040
+  Cargo                       : Jefe de Almacén
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10200041
+  Cargo                       : Operario
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10200042
+  Cargo                       : Oficial
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10200043
+  Cargo                       : Peón
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10200044
+  Cargo                       : Ingeniero Residente
+  Departamento                : Administración
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10200045
+  Cargo                       : Maestro de Obra
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10200046
+  Cargo                       : Capataz
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10200047
+  Cargo                       : Topógrafo
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10200048
+  Cargo                       : Almacenero
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10200049
+  Cargo                       : Soldador
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10200050
+  Cargo                       : Carpintero
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10200051
+  Cargo                       : Fierrero
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10200052
+  Cargo                       : Encofrador
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10200053
+  Cargo                       : Operador de Maquinaria
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10200054
+  Cargo                       : Técnico Eléctrico
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10200055
+  Cargo                       : Inspector SST
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10200056
+  Cargo                       : Arquitecto
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10200057
+  Cargo                       : Dibujante CAD
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10200058
+  Cargo                       : Asistente de Ingeniería
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10200059
+  Cargo                       : Auxiliar Administrativo
+  Departamento                : SST
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10200060
+  Cargo                       : Jefe de Almacén
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10200061
+  Cargo                       : Operario
+  Departamento                : Obras
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10200062
+  Cargo                       : Oficial
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10200063
+  Cargo                       : Peón
+  Departamento                : Ingeniería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10200064
+  Cargo                       : Ingeniero Residente
+  Departamento                : Almacén
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10200065
+  Cargo                       : Maestro de Obra
+  Departamento                : SST
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10200066
+  Cargo                       : Capataz
+  Departamento                : Topografía
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

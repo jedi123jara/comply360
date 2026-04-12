@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_08",
+    "clerkId": "user_demo_08",
+    "orgId": "demo_org_08",
+    "email": "admin@clinicasaludintegral.pe",
+    "firstName": "Patricia",
+    "lastName": "Torres García",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:36.289Z",
+    "updatedAt": "2026-04-06T22:14:36.289Z"
+  }
+]

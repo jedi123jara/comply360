@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_07",
+    "clerkId": "user_demo_07",
+    "orgId": "demo_org_07",
+    "email": "admin@agroindustriassur.pe",
+    "firstName": "Manuel",
+    "lastName": "Quispe Turpo",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:33.087Z",
+    "updatedAt": "2026-04-06T22:14:33.087Z"
+  }
+]

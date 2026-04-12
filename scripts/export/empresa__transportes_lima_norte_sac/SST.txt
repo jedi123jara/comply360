@@ -1,0 +1,18 @@
+==============================================================
+  REGISTROS SST
+==============================================================
+
+--- Registro #1 ---
+  Tipo                        : POLITICA_SST
+  Título                      : POLITICA SST — Registro 1
+  Estado                      : COMPLETED
+
+--- Registro #2 ---
+  Tipo                        : IPERC
+  Título                      : IPERC — Registro 2
+  Estado                      : COMPLETED
+
+--- Registro #3 ---
+  Tipo                        : PLAN_ANUAL
+  Título                      : PLAN ANUAL — Registro 3
+  Estado                      : IN_PROGRESS

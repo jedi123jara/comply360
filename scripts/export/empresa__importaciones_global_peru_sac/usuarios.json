@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_06",
+    "clerkId": "user_demo_06",
+    "orgId": "demo_org_06",
+    "email": "admin@importglobalperu.pe",
+    "firstName": "Cecilia",
+    "lastName": "Luna Espinoza",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:29.605Z",
+    "updatedAt": "2026-04-06T22:14:29.605Z"
+  }
+]

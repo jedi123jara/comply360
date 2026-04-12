@@ -1,0 +1,78 @@
+[
+  {
+    "id": "cmnnqztxm00jdq8wlc2zcas3o",
+    "org_id": "demo_org_05",
+    "user_id": "demo_u_05",
+    "type": "LIQUIDACION",
+    "inputs_json": {
+      "sueldo": 4000,
+      "periodo": "2025-I",
+      "workerId": "cmnnqzrst00fpq8wlllg6xjdj"
+    },
+    "result_json": {
+      "monto": 2000,
+      "detalle": "Cálculo LIQUIDACION generado automáticamente"
+    },
+    "total_amount": "2000",
+    "pdf_url": null,
+    "is_public": false,
+    "created_at": "2026-04-06T22:14:27.658Z"
+  },
+  {
+    "id": "cmnnqztxm00jaq8wl6j3p0b20",
+    "org_id": "demo_org_05",
+    "user_id": "demo_u_05",
+    "type": "CTS",
+    "inputs_json": {
+      "sueldo": 2500,
+      "periodo": "2025-I",
+      "workerId": "cmnnqzrst00fmq8wlu6ufok1x"
+    },
+    "result_json": {
+      "monto": 1250,
+      "detalle": "Cálculo CTS generado automáticamente"
+    },
+    "total_amount": "1250",
+    "pdf_url": null,
+    "is_public": false,
+    "created_at": "2026-04-06T22:14:27.658Z"
+  },
+  {
+    "id": "cmnnqztxm00jbq8wly9if6eqo",
+    "org_id": "demo_org_05",
+    "user_id": "demo_u_05",
+    "type": "GRATIFICACION",
+    "inputs_json": {
+      "sueldo": 3000,
+      "periodo": "2025-I",
+      "workerId": "cmnnqzrst00fnq8wlnuxo1isf"
+    },
+    "result_json": {
+      "monto": 1500,
+      "detalle": "Cálculo GRATIFICACION generado automáticamente"
+    },
+    "total_amount": "1500",
+    "pdf_url": null,
+    "is_public": false,
+    "created_at": "2026-04-06T22:14:27.658Z"
+  },
+  {
+    "id": "cmnnqztxm00jcq8wl2ws1bk7s",
+    "org_id": "demo_org_05",
+    "user_id": "demo_u_05",
+    "type": "VACACIONES",
+    "inputs_json": {
+      "sueldo": 3500,
+      "periodo": "2025-I",
+      "workerId": "cmnnqzrst00foq8wlx7zcwjh8"
+    },
+    "result_json": {
+      "monto": 1750,
+      "detalle": "Cálculo VACACIONES generado automáticamente"
+    },
+    "total_amount": "1750",
+    "pdf_url": null,
+    "is_public": false,
+    "created_at": "2026-04-06T22:14:27.658Z"
+  }
+]

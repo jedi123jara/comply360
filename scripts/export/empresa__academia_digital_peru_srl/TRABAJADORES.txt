@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10900001
+  Cargo                       : Docente TI
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10900002
+  Cargo                       : Docente Marketing
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10900003
+  Cargo                       : Docente Diseño
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10900004
+  Cargo                       : Coordinadora Académica
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10900005
+  Cargo                       : Soporte TI
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10900006
+  Cargo                       : Asistente Admin
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10900007
+  Cargo                       : Practicante Docente
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10900008
+  Cargo                       : Diseñadora Gráfica
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10900009
+  Cargo                       : Docente Programación
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10900010
+  Cargo                       : Docente Gestión
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10900011
+  Cargo                       : Tutor Virtual
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10900012
+  Cargo                       : Desarrollador E-learning
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10900013
+  Cargo                       : Analista Pedagógico
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10900014
+  Cargo                       : Coordinador de Plataforma
+  Departamento                : Diseño
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10900015
+  Cargo                       : Docente Inglés
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10900016
+  Cargo                       : Asistente de Diseño
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10900017
+  Cargo                       : Community Manager
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10900018
+  Cargo                       : Docente Emprendimiento
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10900019
+  Cargo                       : Asistente Técnico
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10900020
+  Cargo                       : Coordinadora de Certificaciones
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10900021
+  Cargo                       : Docente TI
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10900022
+  Cargo                       : Docente Marketing
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10900023
+  Cargo                       : Docente Diseño
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10900024
+  Cargo                       : Coordinadora Académica
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10900025
+  Cargo                       : Soporte TI
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10900026
+  Cargo                       : Asistente Admin
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10900027
+  Cargo                       : Practicante Docente
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10900028
+  Cargo                       : Diseñadora Gráfica
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10900029
+  Cargo                       : Docente Programación
+  Departamento                : Diseño
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10900030
+  Cargo                       : Docente Gestión
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10900031
+  Cargo                       : Tutor Virtual
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10900032
+  Cargo                       : Desarrollador E-learning
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10900033
+  Cargo                       : Analista Pedagógico
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10900034
+  Cargo                       : Coordinador de Plataforma
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10900035
+  Cargo                       : Docente Inglés
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10900036
+  Cargo                       : Asistente de Diseño
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10900037
+  Cargo                       : Community Manager
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10900038
+  Cargo                       : Docente Emprendimiento
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10900039
+  Cargo                       : Asistente Técnico
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10900040
+  Cargo                       : Coordinadora de Certificaciones
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10900041
+  Cargo                       : Docente TI
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10900042
+  Cargo                       : Docente Marketing
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10900043
+  Cargo                       : Docente Diseño
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10900044
+  Cargo                       : Coordinadora Académica
+  Departamento                : Diseño
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10900045
+  Cargo                       : Soporte TI
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10900046
+  Cargo                       : Asistente Admin
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10900047
+  Cargo                       : Practicante Docente
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10900048
+  Cargo                       : Diseñadora Gráfica
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10900049
+  Cargo                       : Docente Programación
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10900050
+  Cargo                       : Docente Gestión
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10900051
+  Cargo                       : Tutor Virtual
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10900052
+  Cargo                       : Desarrollador E-learning
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10900053
+  Cargo                       : Analista Pedagógico
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10900054
+  Cargo                       : Coordinador de Plataforma
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10900055
+  Cargo                       : Docente Inglés
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10900056
+  Cargo                       : Asistente de Diseño
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10900057
+  Cargo                       : Community Manager
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10900058
+  Cargo                       : Docente Emprendimiento
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10900059
+  Cargo                       : Asistente Técnico
+  Departamento                : Diseño
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10900060
+  Cargo                       : Coordinadora de Certificaciones
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10900061
+  Cargo                       : Docente TI
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10900062
+  Cargo                       : Docente Marketing
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10900063
+  Cargo                       : Docente Diseño
+  Departamento                : TI
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10900064
+  Cargo                       : Coordinadora Académica
+  Departamento                : Diseño
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10900065
+  Cargo                       : Soporte TI
+  Departamento                : Coordinación
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10900066
+  Cargo                       : Asistente Admin
+  Departamento                : Docencia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

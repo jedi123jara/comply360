@@ -1,0 +1,531 @@
+==============================================================
+  LISTA DE TRABAJADORES
+==============================================================
+
+--- Registro #1 ---
+  DNI                         : 10800001
+  Cargo                       : Médico Especialista
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #2 ---
+  DNI                         : 10800002
+  Cargo                       : Médica General
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #3 ---
+  DNI                         : 10800003
+  Cargo                       : Enfermera
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #4 ---
+  DNI                         : 10800004
+  Cargo                       : Técnico en Enfermería
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #5 ---
+  DNI                         : 10800005
+  Cargo                       : Técnica Laboratorio
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #6 ---
+  DNI                         : 10800006
+  Cargo                       : Técnico Radiólogo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #7 ---
+  DNI                         : 10800007
+  Cargo                       : Recepcionista
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #8 ---
+  DNI                         : 10800008
+  Cargo                       : Jefe Administrativo
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #9 ---
+  DNI                         : 10800009
+  Cargo                       : Nutricionista
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #10 ---
+  DNI                         : 10800010
+  Cargo                       : Personal de Limpieza
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #11 ---
+  DNI                         : 10800011
+  Cargo                       : Psicólogo
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #12 ---
+  DNI                         : 10800012
+  Cargo                       : Farmacéutico
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #13 ---
+  DNI                         : 10800013
+  Cargo                       : Técnico en Farmacia
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #14 ---
+  DNI                         : 10800014
+  Cargo                       : Asistente Médico
+  Departamento                : Enfermería
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #15 ---
+  DNI                         : 10800015
+  Cargo                       : Jefe de Enfermería
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #16 ---
+  DNI                         : 10800016
+  Cargo                       : Auxiliar de Enfermería
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #17 ---
+  DNI                         : 10800017
+  Cargo                       : Médico de Turno
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #18 ---
+  DNI                         : 10800018
+  Cargo                       : Coordinadora de Citas
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #19 ---
+  DNI                         : 10800019
+  Cargo                       : Técnico en Imagen
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #20 ---
+  DNI                         : 10800020
+  Cargo                       : Asistente Administrativo
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #21 ---
+  DNI                         : 10800021
+  Cargo                       : Médico Especialista
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #22 ---
+  DNI                         : 10800022
+  Cargo                       : Médica General
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #23 ---
+  DNI                         : 10800023
+  Cargo                       : Enfermera
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #24 ---
+  DNI                         : 10800024
+  Cargo                       : Técnico en Enfermería
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #25 ---
+  DNI                         : 10800025
+  Cargo                       : Técnica Laboratorio
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #26 ---
+  DNI                         : 10800026
+  Cargo                       : Técnico Radiólogo
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #27 ---
+  DNI                         : 10800027
+  Cargo                       : Recepcionista
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #28 ---
+  DNI                         : 10800028
+  Cargo                       : Jefe Administrativo
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #29 ---
+  DNI                         : 10800029
+  Cargo                       : Nutricionista
+  Departamento                : Farmacia
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #30 ---
+  DNI                         : 10800030
+  Cargo                       : Personal de Limpieza
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #31 ---
+  DNI                         : 10800031
+  Cargo                       : Psicólogo
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #32 ---
+  DNI                         : 10800032
+  Cargo                       : Farmacéutico
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #33 ---
+  DNI                         : 10800033
+  Cargo                       : Técnico en Farmacia
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #34 ---
+  DNI                         : 10800034
+  Cargo                       : Asistente Médico
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #35 ---
+  DNI                         : 10800035
+  Cargo                       : Jefe de Enfermería
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #36 ---
+  DNI                         : 10800036
+  Cargo                       : Auxiliar de Enfermería
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #37 ---
+  DNI                         : 10800037
+  Cargo                       : Médico de Turno
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #38 ---
+  DNI                         : 10800038
+  Cargo                       : Coordinadora de Citas
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #39 ---
+  DNI                         : 10800039
+  Cargo                       : Técnico en Imagen
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #40 ---
+  DNI                         : 10800040
+  Cargo                       : Asistente Administrativo
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #41 ---
+  DNI                         : 10800041
+  Cargo                       : Médico Especialista
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #42 ---
+  DNI                         : 10800042
+  Cargo                       : Médica General
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #43 ---
+  DNI                         : 10800043
+  Cargo                       : Enfermera
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #44 ---
+  DNI                         : 10800044
+  Cargo                       : Técnico en Enfermería
+  Departamento                : Enfermería
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #45 ---
+  DNI                         : 10800045
+  Cargo                       : Técnica Laboratorio
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #46 ---
+  DNI                         : 10800046
+  Cargo                       : Técnico Radiólogo
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #47 ---
+  DNI                         : 10800047
+  Cargo                       : Recepcionista
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #48 ---
+  DNI                         : 10800048
+  Cargo                       : Jefe Administrativo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #49 ---
+  DNI                         : 10800049
+  Cargo                       : Nutricionista
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #50 ---
+  DNI                         : 10800050
+  Cargo                       : Personal de Limpieza
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #51 ---
+  DNI                         : 10800051
+  Cargo                       : Psicólogo
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #52 ---
+  DNI                         : 10800052
+  Cargo                       : Farmacéutico
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #53 ---
+  DNI                         : 10800053
+  Cargo                       : Técnico en Farmacia
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #54 ---
+  DNI                         : 10800054
+  Cargo                       : Asistente Médico
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #55 ---
+  DNI                         : 10800055
+  Cargo                       : Jefe de Enfermería
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #56 ---
+  DNI                         : 10800056
+  Cargo                       : Auxiliar de Enfermería
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #57 ---
+  DNI                         : 10800057
+  Cargo                       : Médico de Turno
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #58 ---
+  DNI                         : 10800058
+  Cargo                       : Coordinadora de Citas
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #59 ---
+  DNI                         : 10800059
+  Cargo                       : Técnico en Imagen
+  Departamento                : Farmacia
+  Estado                      : ON_LEAVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #60 ---
+  DNI                         : 10800060
+  Cargo                       : Asistente Administrativo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #61 ---
+  DNI                         : 10800061
+  Cargo                       : Médico Especialista
+  Departamento                : Medicina
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #62 ---
+  DNI                         : 10800062
+  Cargo                       : Médica General
+  Departamento                : Enfermería
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #63 ---
+  DNI                         : 10800063
+  Cargo                       : Enfermera
+  Departamento                : Laboratorio
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #64 ---
+  DNI                         : 10800064
+  Cargo                       : Técnico en Enfermería
+  Departamento                : Diagnóstico
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #65 ---
+  DNI                         : 10800065
+  Cargo                       : Técnica Laboratorio
+  Departamento                : Farmacia
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0
+
+--- Registro #66 ---
+  DNI                         : 10800066
+  Cargo                       : Técnico Radiólogo
+  Departamento                : Administración
+  Estado                      : ACTIVE
+  Documentos                  : 0
+  Alertas activas             : 0

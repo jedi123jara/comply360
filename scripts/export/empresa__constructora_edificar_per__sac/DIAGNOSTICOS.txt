@@ -1,0 +1,15 @@
+==============================================================
+  DIAGNÓSTICOS COMPLIANCE
+==============================================================
+
+--- Registro #1 ---
+  Tipo                        : FULL
+  Score Áreas                 : {}
+
+--- Registro #2 ---
+  Tipo                        : EXPRESS
+  Score Áreas                 : {}
+
+--- Registro #3 ---
+  Tipo                        : SIMULATION
+  Score Áreas                 : {}

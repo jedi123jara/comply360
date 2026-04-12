@@ -1,0 +1,113 @@
+==============================================================
+  DATOS DE EMPRESAS
+==============================================================
+
+--- Registro #1 ---
+  ID                          : org-demo
+  Nombre                      : CORTINAS Y DECORACIONES JOSELYN
+  RUC                         : 20613153544
+  Sector                      : TEXTIL
+  Email Alertas               : a.jaracarranza@gmail.com
+  Plan                        : STARTER
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-05
+
+--- Registro #2 ---
+  ID                          : demo_org_01
+  Nombre                      : Transportes Lima Norte SAC
+  RUC                         : 20601234567
+  Sector                      : Transporte y Logística
+  Email Alertas               : rrhh@translimanorte.pe
+  Plan                        : EMPRESA
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #3 ---
+  ID                          : demo_org_02
+  Nombre                      : Constructora Edificar Perú SAC
+  RUC                         : 20602345678
+  Sector                      : Construcción
+  Email Alertas               : rrhh@edificarperu.pe
+  Plan                        : EMPRESA
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #4 ---
+  ID                          : demo_org_03
+  Nombre                      : Textiles Andinos EIRL
+  RUC                         : 20603456789
+  Sector                      : Manufactura Textil
+  Email Alertas               : rrhh@textilesandinos.pe
+  Plan                        : STARTER
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #5 ---
+  ID                          : demo_org_04
+  Nombre                      : Restaurante La Tradición SRL
+  RUC                         : 20604567890
+  Sector                      : Restaurantes y Gastronomía
+  Email Alertas               : admin@latradicion.pe
+  Plan                        : STARTER
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #6 ---
+  ID                          : demo_org_05
+  Nombre                      : TechPeru Soluciones SAC
+  RUC                         : 20605678901
+  Sector                      : Tecnología y Software
+  Email Alertas               : people@techperu.pe
+  Plan                        : PRO
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #7 ---
+  ID                          : demo_org_06
+  Nombre                      : Importaciones Global Peru SAC
+  RUC                         : 20606789012
+  Sector                      : Comercio Exterior
+  Email Alertas               : rrhh@importglobalperu.pe
+  Plan                        : EMPRESA
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #8 ---
+  ID                          : demo_org_07
+  Nombre                      : Agroindustrias del Sur SAC
+  RUC                         : 20607890123
+  Sector                      : Agroindustria
+  Email Alertas               : rrhh@agroindustriassur.pe
+  Plan                        : EMPRESA
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #9 ---
+  ID                          : demo_org_08
+  Nombre                      : Clínica Salud Integral SAC
+  RUC                         : 20608901234
+  Sector                      : Salud y Clínicas
+  Email Alertas               : rrhh@clinicasaludintegral.pe
+  Plan                        : EMPRESA
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #10 ---
+  ID                          : demo_org_09
+  Nombre                      : Academia Digital Peru SRL
+  RUC                         : 20609012345
+  Sector                      : Educación y Capacitación
+  Email Alertas               : admin@academiadigitalperu.pe
+  Plan                        : STARTER
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06
+
+--- Registro #11 ---
+  ID                          : demo_org_10
+  Nombre                      : LogiExpress Peru SAC
+  RUC                         : 20610123456
+  Sector                      : Logística y Delivery
+  Email Alertas               : ops@logiexpressperu.pe
+  Plan                        : FREE
+  Onboarding OK               : Sí
+  Creado                      : 2026-04-06

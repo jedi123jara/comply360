@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_10",
+    "clerkId": "user_demo_10",
+    "orgId": "demo_org_10",
+    "email": "admin@logiexpressperu.pe",
+    "firstName": "Ricardo",
+    "lastName": "Flores Romero",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:42.810Z",
+    "updatedAt": "2026-04-06T22:14:42.810Z"
+  }
+]

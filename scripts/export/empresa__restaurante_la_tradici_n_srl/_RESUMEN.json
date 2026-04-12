@@ -1,0 +1,16 @@
+{
+  "empresa": "Restaurante La Tradición SRL",
+  "ruc": "20604567890",
+  "plan": "STARTER",
+  "exportadoEn": "2026-04-07T17:25:26.857Z",
+  "totales": {
+    "usuarios": 1,
+    "trabajadores": 66,
+    "contratos": 20,
+    "diagnosticos": 2,
+    "sst": 3,
+    "denuncias": 1,
+    "documentos": 0,
+    "calculos": 4
+  }
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "demo_u_01",
+    "clerkId": "user_demo_01",
+    "orgId": "demo_org_01",
+    "email": "admin@translimanorte.pe",
+    "firstName": "Roberto",
+    "lastName": "Palomino Quispe",
+    "role": "OWNER",
+    "avatarUrl": null,
+    "createdAt": "2026-04-06T22:14:10.613Z",
+    "updatedAt": "2026-04-06T22:14:10.613Z"
+  }
+]
