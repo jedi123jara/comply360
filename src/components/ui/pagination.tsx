@@ -88,7 +88,7 @@ export function Pagination({
   if (totalPages <= 1 && !rangeText) return null
 
   const navButtonClass =
-    'inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 border-white/10 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40 disabled:cursor-not-allowed bg-[#141824] bg-[#141824] text-gray-300 hover:bg-white/[0.02] hover:bg-white/[0.04]'
+    'inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 border-white/10 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40 disabled:cursor-not-allowed bg-[#141824] bg-[#141824] text-gray-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]'
 
   return (
     <div
@@ -169,7 +169,7 @@ export function Pagination({
                     'inline-flex items-center justify-center h-9 w-9 rounded-xl text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
                     page === currentPage
                       ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                      : 'border border-white/10 border-white/10 text-gray-300 hover:bg-white/[0.02] hover:bg-white/[0.04] bg-[#141824] bg-[#141824]'
+                      : 'border border-white/10 border-white/10 text-gray-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] bg-[#141824] bg-[#141824]'
                   )}
                 >
                   {page}

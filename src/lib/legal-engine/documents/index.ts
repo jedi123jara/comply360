@@ -58,7 +58,6 @@ export function evaluateCondition(
     // Build a safe evaluation context from the data object keys
     const keys = Object.keys(data)
     const values = keys.map(k => data[k])
-    // eslint-disable-next-line no-new-func
     const fn = new Function(...keys, `"use strict"; return (${condition});`)
     return Boolean(fn(...values))
   } catch {

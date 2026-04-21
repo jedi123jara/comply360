@@ -1,15 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  Radar,
-  Loader2,
-  AlertTriangle,
-  TrendingDown,
-  TrendingUp,
-  Download,
-  RefreshCw,
-} from 'lucide-react'
+import { Radar, Loader2, AlertTriangle, TrendingDown, TrendingUp, RefreshCw } from 'lucide-react'
 import type { RiskMonitorOutput, RiskFinding } from '@/lib/agents/risk-monitor'
 import type { AgentResult } from '@/lib/agents/types'
 
@@ -17,7 +9,7 @@ const SEV_COLORS: Record<string, string> = {
   CRITICO: 'border-red-500/40 bg-red-500/10 text-red-300',
   ALTO: 'border-orange-500/40 bg-orange-500/10 text-orange-300',
   MEDIO: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300',
-  BAJO: 'border-blue-500/40 bg-blue-500/10 text-blue-300',
+  BAJO: 'border-blue-500/40 bg-blue-500/10 text-emerald-600',
 }
 
 export default function RadarPage() {
@@ -72,7 +64,7 @@ export default function RadarPage() {
           <button
             onClick={runScan}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1e3a6e] hover:bg-[#162d57] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50 transition-colors shrink-0"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50 transition-colors shrink-0"
           >
             {loading ? (
               <><Loader2 className="h-4 w-4 animate-spin" /> Escaneando...</>
@@ -90,9 +82,9 @@ export default function RadarPage() {
       )}
 
       {!result && !loading && (
-        <div className="rounded-2xl border border-[#1e3a6e]/30 bg-[#1e3a6e]/[0.06] p-10 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[#1e3a6e]/20 mb-5">
-            <Radar className="h-10 w-10 text-blue-400" />
+        <div className="rounded-2xl border border-[#1e3a6e]/30 bg-emerald-700/[0.06] p-10 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-100 mb-5">
+            <Radar className="h-10 w-10 text-emerald-600" />
           </div>
           <h2 className="text-lg font-bold text-white mb-2">Analiza tu exposicion a multas SUNAFIL</h2>
           <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
@@ -102,7 +94,7 @@ export default function RadarPage() {
           <button
             onClick={runScan}
             disabled={loading}
-            className="inline-flex items-center gap-2.5 rounded-xl bg-[#1e3a6e] hover:bg-[#162d57] px-8 py-3.5 text-base font-bold text-white transition-colors shadow-lg shadow-blue-900/30"
+            className="inline-flex items-center gap-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-700 px-8 py-3.5 text-base font-bold text-white transition-colors shadow-lg shadow-blue-900/30"
           >
             <RefreshCw className="h-5 w-5" />
             Ejecutar Barrido Completo
@@ -114,8 +106,8 @@ export default function RadarPage() {
       )}
 
       {loading && !result && (
-        <div className="rounded-2xl border border-slate-700 bg-slate-900/40 p-12 text-center">
-          <Loader2 className="mx-auto h-12 w-12 text-blue-400 animate-spin mb-4" />
+        <div className="rounded-2xl border border-slate-700 bg-white/40 p-12 text-center">
+          <Loader2 className="mx-auto h-12 w-12 text-emerald-600 animate-spin mb-4" />
           <p className="text-sm font-semibold text-white">Escaneando trabajadores y contratos...</p>
           <p className="text-xs text-slate-500 mt-1">Esto puede tomar unos segundos</p>
         </div>
@@ -125,7 +117,7 @@ export default function RadarPage() {
         <>
           {/* Score gauge */}
           <div className="grid gap-4 lg:grid-cols-3">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 lg:col-span-1">
+            <div className="rounded-2xl border border-slate-800 bg-white p-6 lg:col-span-1">
               <p className="text-xs uppercase text-slate-500">Score de riesgo</p>
               <div className="mt-2 flex items-end gap-2">
                 <p
@@ -155,7 +147,7 @@ export default function RadarPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 lg:col-span-2">
+            <div className="rounded-2xl border border-slate-800 bg-white p-6 lg:col-span-2">
               <p className="text-xs uppercase text-slate-500">Exposición potencial</p>
               <p className="mt-2 text-4xl font-bold text-gold-400">
                 S/ {data.exposicionTotalSoles.toLocaleString('es-PE')}
@@ -173,7 +165,7 @@ export default function RadarPage() {
           </div>
 
           {/* Hallazgos */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+          <div className="rounded-2xl border border-slate-800 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">
                 Hallazgos detectados ({data.findings.length})

@@ -316,7 +316,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-white/[0.04] hover:text-gray-600 hover:bg-white/[0.04]"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-[color:var(--neutral-100)] hover:text-gray-600 hover:bg-[color:var(--neutral-100)]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -337,7 +337,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
               </span>
             ))}
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 bg-white/[0.04]">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 bg-[color:var(--neutral-100)]">
             <div
               className="h-full rounded-full bg-blue-600 transition-all duration-500"
               style={{ width: `${progress}%` }}
@@ -406,7 +406,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
               </div>
 
               {/* Template download */}
-              <div className="flex items-center justify-between rounded-lg bg-white/[0.02] px-4 py-3 bg-white/[0.04]/50">
+              <div className="flex items-center justify-between rounded-lg bg-[color:var(--neutral-50)] px-4 py-3 bg-[color:var(--neutral-100)]/50">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <FileSpreadsheet className="h-4 w-4" />
                   Descarga la plantilla CSV con las columnas requeridas
@@ -414,7 +414,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={downloadTemplate}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#141824] px-3 py-1.5 text-sm font-medium text-gray-300 shadow-sm ring-1 ring-gray-200 hover:bg-white/[0.02]"
+                  className="flex items-center gap-1.5 rounded-lg bg-[#141824] px-3 py-1.5 text-sm font-medium text-gray-300 shadow-sm ring-1 ring-gray-200 hover:bg-[color:var(--neutral-50)]"
                 >
                   <Download className="h-4 w-4" />
                   Descargar plantilla
@@ -456,7 +456,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
               <div className="overflow-hidden rounded-lg border border-white/[0.08] border-white/10">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-white/[0.02] bg-white/[0.04]">
+                    <tr className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]">
                       <th className="px-4 py-2.5 text-left font-medium text-gray-300">
                         Columna en CSV
                       </th>
@@ -473,7 +473,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
                       const mappedField = mapping[header] || ''
                       const isMapped = mappedField !== ''
                       return (
-                        <tr key={header} className="hover:bg-white/[0.02] hover:bg-white/[0.04]/50">
+                        <tr key={header} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50">
                           <td className="px-4 py-2.5 font-mono text-white">
                             {header}
                           </td>
@@ -481,7 +481,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
                             <select
                               value={mappedField}
                               onChange={(e) => handleMappingChange(header, e.target.value)}
-                              className="w-full rounded-md border border-white/10 bg-[#141824] px-2 py-1 text-sm text-gray-300 border-white/10 bg-white/[0.04]"
+                              className="w-full rounded-md border border-white/10 bg-[#141824] px-2 py-1 text-sm text-gray-300 border-white/10 bg-[color:var(--neutral-100)]"
                             >
                               <option value="">-- Sin mapear --</option>
                               {ALL_FIELDS.map((f) => (
@@ -512,7 +512,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
             <div className="space-y-4">
               {/* Summary cards */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="rounded-lg bg-white/[0.02] p-4 bg-white/[0.04]/50">
+                <div className="rounded-lg bg-[color:var(--neutral-50)] p-4 bg-[color:var(--neutral-100)]/50">
                   <p className="text-sm text-gray-500">Total de filas</p>
                   <p className="mt-1 text-2xl font-bold text-white">
                     {preview.totalRows}
@@ -685,7 +685,7 @@ export default function ImportWizard({ onClose }: { onClose: () => void }) {
                   type="button"
                   onClick={() => setStep((s) => (s - 1) as WizardStep)}
                   disabled={loading}
-                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-white/[0.04] hover:bg-white/[0.04]"
+                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)]"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Anterior

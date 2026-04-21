@@ -3,11 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Siren, ArrowLeft, Download, Loader2, Play,
-  CheckCircle2, XCircle, MinusCircle, HelpCircle,
-  Shield, Clock, FileText,
-} from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Play, CheckCircle2, XCircle, MinusCircle, HelpCircle, Shield, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { SolicitudInspector, HallazgoInspeccion, ResultadoSimulacro } from '@/lib/compliance/simulacro-engine'
 
@@ -33,7 +29,7 @@ const ESTADO_CONFIG = {
   CUMPLE:    { icon: CheckCircle2, label: 'Cumple', color: 'text-emerald-600 bg-emerald-50' },
   PARCIAL:   { icon: MinusCircle, label: 'Parcial', color: 'text-amber-600 bg-amber-50' },
   NO_CUMPLE: { icon: XCircle, label: 'Incumple', color: 'text-red-600 bg-red-50' },
-  NO_APLICA: { icon: HelpCircle, label: 'N/A', color: 'text-gray-400 bg-white/[0.02]' },
+  NO_APLICA: { icon: HelpCircle, label: 'N/A', color: 'text-gray-400 bg-[color:var(--neutral-50)]' },
 } as const
 
 export default function InspeccionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -83,7 +79,7 @@ export default function InspeccionDetailPage({ params }: { params: Promise<{ id:
   if (!data) {
     return (
       <div className="text-center py-12">
-        <Shield className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+        <Shield className="h-10 w-10 text-[color:var(--text-secondary)] mx-auto mb-3" />
         <p className="text-sm text-gray-500">Sesion no encontrada</p>
         <Link href="/dashboard/inspeccion-en-vivo" className="mt-3 inline-flex items-center gap-1 text-sm text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" /> Volver
@@ -110,7 +106,7 @@ export default function InspeccionDetailPage({ params }: { params: Promise<{ id:
           <h1 className="text-2xl font-bold text-white">
             Inspeccion {data.tipo}
           </h1>
-          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 text-gray-400">
+          <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
               {new Date(data.startedAt).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -158,39 +154,39 @@ export default function InspeccionDetailPage({ params }: { params: Promise<{ id:
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="rounded-xl bg-[#141824] border border-white/[0.08] p-4 text-center">
+        <div className="rounded-xl bg-white border border-white/[0.08] p-4 text-center">
           <p className="text-2xl font-bold text-emerald-600">{cumple}</p>
           <p className="text-xs text-gray-500">Cumple</p>
         </div>
-        <div className="rounded-xl bg-[#141824] border border-white/[0.08] p-4 text-center">
+        <div className="rounded-xl bg-white border border-white/[0.08] p-4 text-center">
           <p className="text-2xl font-bold text-amber-600">{parcial}</p>
           <p className="text-xs text-gray-500">Parcial</p>
         </div>
-        <div className="rounded-xl bg-[#141824] border border-white/[0.08] p-4 text-center">
+        <div className="rounded-xl bg-white border border-white/[0.08] p-4 text-center">
           <p className="text-2xl font-bold text-red-600">{noCumple}</p>
           <p className="text-xs text-gray-500">Incumple</p>
         </div>
-        <div className="rounded-xl bg-[#141824] border border-white/[0.08] p-4 text-center">
+        <div className="rounded-xl bg-white border border-white/[0.08] p-4 text-center">
           <p className="text-2xl font-bold text-white">{hallazgos.length}</p>
           <p className="text-xs text-gray-500">Total</p>
         </div>
       </div>
 
       {/* Hallazgos table */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-white/[0.08] bg-white shadow-sm overflow-hidden">
         <div className="border-b border-white/[0.08] px-6 py-4">
           <h2 className="text-base font-semibold text-white">Hallazgos</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-white/[0.02] bg-white/[0.04]/50">
+            <thead className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 text-gray-400">#</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 text-gray-400">Documento</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 text-gray-400">Base Legal</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 text-gray-400">Estado</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 text-gray-400">Gravedad</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 text-gray-400">Multa</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">#</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">Documento</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">Base Legal</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-400">Estado</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-400">Gravedad</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-400">Multa</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
@@ -198,10 +194,10 @@ export default function InspeccionDetailPage({ params }: { params: Promise<{ id:
                 const cfg = ESTADO_CONFIG[h.estado as keyof typeof ESTADO_CONFIG] ?? ESTADO_CONFIG.NO_APLICA
                 const Icon = cfg.icon
                 return (
-                  <tr key={h.solicitudId} className="hover:bg-white/[0.02]/50 hover:bg-white/[0.04]/30">
+                  <tr key={h.solicitudId} className="hover:bg-[color:var(--neutral-50)]/50 hover:bg-[color:var(--neutral-100)]/30">
                     <td className="px-4 py-2.5 text-gray-500">{i + 1}</td>
                     <td className="px-4 py-2.5 font-medium text-white">{h.documentoLabel}</td>
-                    <td className="px-4 py-2.5 text-gray-500 text-gray-400 text-xs">{h.baseLegal}</td>
+                    <td className="px-4 py-2.5 text-gray-400 text-xs">{h.baseLegal}</td>
                     <td className="px-4 py-2.5 text-center">
                       <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', cfg.color)}>
                         <Icon className="h-3 w-3" /> {cfg.label}

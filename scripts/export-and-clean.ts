@@ -11,14 +11,85 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../src/generated/prisma/client'
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath } from 'url'
 import * as dotenv from 'dotenv'
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') })
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
 const adapter = new PrismaPg(pool)
-const prisma = new PrismaClient({ adapter } as any)
+// Prisma's adapter-based constructor typing is not yet fully public in the generated client
+const prisma = new PrismaClient({ adapter } as unknown as ConstructorParameters<typeof PrismaClient>[0])
+
+// ─── Row shapes used for raw-SQL exports ─────────────────────────────────────
+type ExtraOrgFields = {
+  sector?: string | null
+  tamano?: string | null
+  regimenLaboral?: string | null
+  numTrabajadores?: number | null
+  direccion?: string | null
+  telefono?: string | null
+  alertEmail?: string | null
+  subscription?: { status?: string | null } | null
+}
+
+type WorkerRow = {
+  id: string
+  dni?: string | null
+  firstName: string
+  lastName: string
+  email?: string | null
+  phone?: string | null
+  position?: string | null
+  department?: string | null
+  regimenLaboral?: string | null
+  tipoContrato?: string | null
+  fechaIngreso?: Date | null
+  fechaCese?: Date | null
+  sueldoBruto?: string | number | null
+  status: string
+}
+
+type WorkerDocRow = { workerId: string }
+type WorkerAlertRow = { workerId: string; resolvedAt?: Date | null }
+
+type ContractRow = {
+  title: string
+  type: string
+  status: string
+  expiresAt?: Date | null
+  signedAt?: Date | null
+  aiRiskScore?: number | null
+  createdAt: Date
+}
+
+type DiagnosticRow = {
+  type: string
+  scoreGlobal: number
+  totalMultaRiesgo?: string | number | null
+  completedAt?: Date | null
+  scoreByArea?: unknown
+}
+
+type SstRow = {
+  type: string
+  title: string
+  status: string
+  dueDate?: Date | null
+  completedAt?: Date | null
+}
+
+type ComplaintRow = {
+  code: string
+  type: string
+  isAnonymous: boolean
+  status: string
+  description?: string | null
+  createdAt: Date
+}
+
+type DocRow = Record<string, unknown>
+type CalcRow = Record<string, unknown>
+type SindicalRow = Record<string, unknown>
 
 const DELETE_MODE = process.argv.includes('--delete')
 const EXPORT_DIR  = path.join(process.cwd(), 'scripts', 'export')
@@ -73,22 +144,25 @@ async function main() {
   }
 
   saveJson(path.join(EXPORT_DIR, 'organizaciones.json'), orgs)
-  saveTxt(path.join(EXPORT_DIR, 'EMPRESAS.txt'), 'DATOS DE EMPRESAS', orgs.map(o => ({
-    ID:              o.id,
-    Nombre:          o.name,
-    RUC:             o.ruc ?? '',
-    Sector:          (o as any).sector ?? '',
-    Tamaño:          (o as any).tamano ?? '',
-    Régimen:         (o as any).regimenLaboral ?? '',
-    'Nº Trabajadores': (o as any).numTrabajadores ?? '',
-    Dirección:       (o as any).direccion ?? '',
-    Teléfono:        (o as any).telefono ?? '',
-    'Email Alertas': (o as any).alertEmail ?? '',
-    Plan:            o.plan,
-    'Onboarding OK': o.onboardingCompleted ? 'Sí' : 'No',
-    Creado:          o.createdAt?.toISOString().slice(0, 10),
-    'Plan/Status':   (o as any).subscription?.status ?? '',
-  })))
+  saveTxt(path.join(EXPORT_DIR, 'EMPRESAS.txt'), 'DATOS DE EMPRESAS', orgs.map(rawOrg => {
+    const o = rawOrg as typeof rawOrg & ExtraOrgFields
+    return {
+      ID:              o.id,
+      Nombre:          o.name,
+      RUC:             o.ruc ?? '',
+      Sector:          o.sector ?? '',
+      Tamaño:          o.tamano ?? '',
+      Régimen:         o.regimenLaboral ?? '',
+      'Nº Trabajadores': o.numTrabajadores ?? '',
+      Dirección:       o.direccion ?? '',
+      Teléfono:        o.telefono ?? '',
+      'Email Alertas': o.alertEmail ?? '',
+      Plan:            o.plan,
+      'Onboarding OK': o.onboardingCompleted ? 'Sí' : 'No',
+      Creado:          o.createdAt?.toISOString().slice(0, 10),
+      'Plan/Status':   o.subscription?.status ?? '',
+    }
+  }))
   ok(`organizaciones.json + EMPRESAS.txt (${orgs.length} empresa(s))`)
 
   // ── Por cada empresa ─────────────────────────────────────────────────────────
@@ -115,9 +189,9 @@ async function main() {
     }
 
     // Trabajadores — raw SQL para evitar mismatch de columnas
-    const workers: any[]     = await prisma.$queryRaw`SELECT * FROM workers WHERE org_id = ${org.id}`
-    const workerDocs: any[]  = await prisma.$queryRaw<any[]>`SELECT wd.* FROM worker_documents wd JOIN workers w ON w.id = wd.worker_id WHERE w.org_id = ${org.id}`.catch(() => [] as any[])
-    const workerAlerts: any[] = await prisma.$queryRaw<any[]>`SELECT * FROM worker_alerts WHERE org_id = ${org.id}`.catch(() => [] as any[])
+    const workers: WorkerRow[]     = await prisma.$queryRaw<WorkerRow[]>`SELECT * FROM workers WHERE org_id = ${org.id}`
+    const workerDocs: WorkerDocRow[]  = await prisma.$queryRaw<WorkerDocRow[]>`SELECT wd.* FROM worker_documents wd JOIN workers w ON w.id = wd.worker_id WHERE w.org_id = ${org.id}`.catch(() => [] as WorkerDocRow[])
+    const workerAlerts: WorkerAlertRow[] = await prisma.$queryRaw<WorkerAlertRow[]>`SELECT * FROM worker_alerts WHERE org_id = ${org.id}`.catch(() => [] as WorkerAlertRow[])
     if (workers.length) {
       saveJson(path.join(orgDir, 'trabajadores.json'), workers)
       saveTxt(path.join(orgDir, 'TRABAJADORES.txt'), 'LISTA DE TRABAJADORES', workers.map(w => ({
@@ -134,14 +208,14 @@ async function main() {
         'Fecha Cese':     w.fechaCese?.toISOString().slice(0, 10) ?? '',
         'Sueldo Bruto':   w.sueldoBruto ? `S/ ${w.sueldoBruto}` : '',
         Estado:           w.status,
-        Documentos:       workerDocs.filter((d: any) => d.workerId === w.id).length,
-        'Alertas activas': workerAlerts.filter((a: any) => a.workerId === w.id && !a.resolvedAt).length,
+        Documentos:       workerDocs.filter((d) => d.workerId === w.id).length,
+        'Alertas activas': workerAlerts.filter((a) => a.workerId === w.id && !a.resolvedAt).length,
       })))
       ok(`  TRABAJADORES.txt (${workers.length})`)
     }
 
     // Contratos — raw SQL
-    const contracts: any[] = await prisma.$queryRaw<any[]>`SELECT * FROM contracts WHERE org_id = ${org.id}`.catch(() => [] as any[])
+    const contracts: ContractRow[] = await prisma.$queryRaw<ContractRow[]>`SELECT * FROM contracts WHERE org_id = ${org.id}`.catch(() => [] as ContractRow[])
     if (contracts.length) {
       saveJson(path.join(orgDir, 'contratos.json'), contracts)
       saveTxt(path.join(orgDir, 'CONTRATOS.txt'), 'CONTRATOS', contracts.map(c => ({
@@ -157,7 +231,7 @@ async function main() {
     }
 
     // Diagnósticos — raw SQL
-    const diagnostics: any[] = await prisma.$queryRaw<any[]>`SELECT * FROM compliance_diagnostics WHERE org_id = ${org.id}`.catch(() => [] as any[])
+    const diagnostics: DiagnosticRow[] = await prisma.$queryRaw<DiagnosticRow[]>`SELECT * FROM compliance_diagnostics WHERE org_id = ${org.id}`.catch(() => [] as DiagnosticRow[])
     if (diagnostics.length) {
       saveJson(path.join(orgDir, 'diagnosticos.json'), diagnostics)
       saveTxt(path.join(orgDir, 'DIAGNOSTICOS.txt'), 'DIAGNÓSTICOS COMPLIANCE', diagnostics.map(d => ({
@@ -171,7 +245,7 @@ async function main() {
     }
 
     // SST
-    const sst: any[] = await prisma.$queryRaw<any[]>`SELECT * FROM sst_records WHERE org_id = ${org.id}`.catch(() => [] as any[])
+    const sst: SstRow[] = await prisma.$queryRaw<SstRow[]>`SELECT * FROM sst_records WHERE org_id = ${org.id}`.catch(() => [] as SstRow[])
     if (sst.length) {
       saveJson(path.join(orgDir, 'sst.json'), sst)
       saveTxt(path.join(orgDir, 'SST.txt'), 'REGISTROS SST', sst.map(s => ({
@@ -185,7 +259,7 @@ async function main() {
     }
 
     // Denuncias
-    const complaints: any[] = await prisma.$queryRaw<any[]>`SELECT * FROM complaints WHERE org_id = ${org.id}`.catch(() => [] as any[])
+    const complaints: ComplaintRow[] = await prisma.$queryRaw<ComplaintRow[]>`SELECT * FROM complaints WHERE org_id = ${org.id}`.catch(() => [] as ComplaintRow[])
     if (complaints.length) {
       saveJson(path.join(orgDir, 'denuncias.json'), complaints)
       saveTxt(path.join(orgDir, 'DENUNCIAS.txt'), 'CANAL DE DENUNCIAS', complaints.map(c => ({
@@ -200,9 +274,9 @@ async function main() {
     }
 
     // Documentos, cálculos, relaciones colectivas
-    const docs: any[]     = await prisma.$queryRaw<any[]>`SELECT * FROM org_documents WHERE org_id = ${org.id}`.catch(() => [] as any[])
-    const calcs: any[]    = await prisma.$queryRaw<any[]>`SELECT * FROM calculations WHERE org_id = ${org.id}`.catch(() => [] as any[])
-    const sindical: any[] = await prisma.$queryRaw<any[]>`SELECT * FROM sindical_records WHERE org_id = ${org.id}`.catch(() => [] as any[])
+    const docs: DocRow[]     = await prisma.$queryRaw<DocRow[]>`SELECT * FROM org_documents WHERE org_id = ${org.id}`.catch(() => [] as DocRow[])
+    const calcs: CalcRow[]    = await prisma.$queryRaw<CalcRow[]>`SELECT * FROM calculations WHERE org_id = ${org.id}`.catch(() => [] as CalcRow[])
+    const sindical: SindicalRow[] = await prisma.$queryRaw<SindicalRow[]>`SELECT * FROM sindical_records WHERE org_id = ${org.id}`.catch(() => [] as SindicalRow[])
 
     if (docs.length)    { saveJson(path.join(orgDir, 'documentos.json'), docs); ok(`  documentos.json (${docs.length})`) }
     if (calcs.length)   { saveJson(path.join(orgDir, 'calculos.json'), calcs);   ok(`  calculos.json (${calcs.length})`) }
@@ -270,8 +344,9 @@ async function main() {
       try {
         const res = await fn()
         if (res.count > 0) ok(`${name}: ${res.count} registros eliminados`)
-      } catch (e: any) {
-        warn(`${name}: ${String(e.message).slice(0, 80)}`)
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        warn(`${name}: ${msg.slice(0, 80)}`)
       }
     }
 

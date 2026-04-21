@@ -116,7 +116,7 @@ export function CTSCalculadora() {
                   value={input.sueldoBruto || ''}
                   onChange={e => updateField('sueldoBruto', Number(e.target.value))}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
             </div>
@@ -130,7 +130,7 @@ export function CTSCalculadora() {
                 type="date"
                 value={input.fechaIngreso}
                 onChange={e => updateField('fechaIngreso', e.target.value)}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
 
@@ -142,7 +142,7 @@ export function CTSCalculadora() {
               <select
                 value={input.fechaCorte}
                 onChange={e => updateField('fechaCorte', e.target.value)}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               >
                 <option value="2026-05-15">Mayo 2026</option>
                 <option value="2026-11-15">Noviembre 2026</option>
@@ -180,7 +180,7 @@ export function CTSCalculadora() {
                   value={input.ultimaGratificacion || ''}
                   onChange={e => updateField('ultimaGratificacion', Number(e.target.value))}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
               <p className="mt-1 text-xs text-gray-400">
@@ -195,7 +195,7 @@ export function CTSCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -359,7 +359,7 @@ export function CTSCalculadora() {
                 <Calculator className="w-4 h-4 text-primary" />
                 Formula Aplicada
               </h3>
-              <code className="block bg-white/[0.02] bg-white/[0.04] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed whitespace-pre-wrap">
+              <code className="block bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed whitespace-pre-wrap">
                 {result.formula}
               </code>
             </div>
@@ -370,7 +370,7 @@ export function CTSCalculadora() {
                 <Scale className="w-4 h-4 text-primary" />
                 Base Legal
               </h3>
-              <div className="flex items-start gap-3 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                 <Clock className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-gray-300">{result.baseLegal}</p>
               </div>

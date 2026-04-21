@@ -95,7 +95,7 @@ export function HorasExtrasCalculadora() {
                   value={input.sueldoBruto || ''}
                   onChange={e => updateField('sueldoBruto', Number(e.target.value))}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
             </div>
@@ -111,7 +111,7 @@ export function HorasExtrasCalculadora() {
                 onChange={e => updateField('horasSemanales', Number(e.target.value))}
                 placeholder="Ej: 10"
                 min={0}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Horas totales trabajadas por semana (las extras se calculan sobre las 48h de jornada máxima)
@@ -130,7 +130,7 @@ export function HorasExtrasCalculadora() {
                 placeholder="1"
                 min={1}
                 max={12}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Periodo de cálculo (1 a 12 meses)
@@ -173,7 +173,7 @@ export function HorasExtrasCalculadora() {
                   onChange={e => updateField('horasDomingo', Number(e.target.value))}
                   placeholder="Ej: 8"
                   min={0}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   Horas trabajadas en domingos o feriados por semana (sobretasa 100%)
@@ -188,7 +188,7 @@ export function HorasExtrasCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -325,7 +325,7 @@ export function HorasExtrasCalculadora() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-white/[0.02] bg-white/[0.04] text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <tr className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       <th className="text-left px-6 py-3">Concepto</th>
                       <th className="text-right px-6 py-3">Cantidad</th>
                       <th className="text-right px-6 py-3">Valor</th>
@@ -334,7 +334,7 @@ export function HorasExtrasCalculadora() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {/* Horas al 25% */}
-                    <tr className="hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                    <tr className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-1 h-10 rounded-full bg-orange-400 flex-shrink-0" />
@@ -356,7 +356,7 @@ export function HorasExtrasCalculadora() {
                     </tr>
 
                     {/* Horas al 35% */}
-                    <tr className="hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                    <tr className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-1 h-10 rounded-full bg-orange-600 flex-shrink-0" />
@@ -379,7 +379,7 @@ export function HorasExtrasCalculadora() {
 
                     {/* Horas domingos (solo si aplica) */}
                     {result.breakdown.horasDomingo.cantidad > 0 && (
-                      <tr className="hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                      <tr className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-1 h-10 rounded-full bg-red-500 flex-shrink-0" />
@@ -402,7 +402,7 @@ export function HorasExtrasCalculadora() {
                     )}
 
                     {/* Total row */}
-                    <tr className="bg-white/[0.02] bg-white/[0.04] font-bold">
+                    <tr className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] font-bold">
                       <td className="px-6 py-4 text-sm text-white" colSpan={2}>
                         Total ({result.totalHoras} horas)
                       </td>
@@ -428,7 +428,7 @@ export function HorasExtrasCalculadora() {
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Fórmula aplicada
                 </span>
-                <div className="mt-1.5 bg-white/[0.02] bg-white/[0.04] rounded-lg p-3 border border-white/[0.08] border-white/10">
+                <div className="mt-1.5 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg p-3 border border-white/[0.08] border-white/10">
                   <code className="text-xs text-gray-200 font-mono leading-relaxed break-words">
                     {result.formula}
                   </code>
@@ -440,7 +440,7 @@ export function HorasExtrasCalculadora() {
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Base legal
                 </span>
-                <div className="mt-1.5 flex items-start gap-2 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                <div className="mt-1.5 flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                   <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                     Norma
                   </span>

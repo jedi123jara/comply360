@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { reviewContract } from '@/lib/ai/contract-review'
 import { detectProvider, getModelName } from '@/lib/ai/provider'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 
 // =============================================
-// POST /api/ai-review - Review a contract with AI
+// POST /api/ai-review - Review a contract with AI (PRO only — feature `review_ia`)
 // =============================================
-export const POST = withAuth(async (request, ctx) => {
+export const POST = withPlanGate('review_ia', async (request) => {
   try {
     const body = await request.json()
     const { contractHtml, contractType, templateId } = body

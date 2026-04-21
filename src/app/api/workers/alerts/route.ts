@@ -6,10 +6,33 @@ import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // GET /api/workers/alerts - List worker alerts for the org
+// ?stats=1           → aggregate counts only (fast, no pagination)
+// ?includeResolved   → include resolved alerts in list
 // =============================================
 export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
+
+  // ── Aggregate stats mode ─────────────────────────────────────────────────
+  if (searchParams.get('stats') === '1') {
+    const [total, critical, high, multaAgg] = await Promise.all([
+      prisma.workerAlert.count({ where: { orgId, resolvedAt: null } }),
+      prisma.workerAlert.count({ where: { orgId, resolvedAt: null, severity: 'CRITICAL' } }),
+      prisma.workerAlert.count({ where: { orgId, resolvedAt: null, severity: 'HIGH' } }),
+      prisma.workerAlert.aggregate({
+        where: { orgId, resolvedAt: null, multaEstimada: { not: null } },
+        _sum: { multaEstimada: true },
+      }),
+    ])
+    return NextResponse.json({
+      total,
+      critical,
+      high,
+      medium: await prisma.workerAlert.count({ where: { orgId, resolvedAt: null, severity: 'MEDIUM' } }),
+      multaTotalEstimada: multaAgg._sum.multaEstimada ? Number(multaAgg._sum.multaEstimada) : 0,
+    })
+  }
+
   const includeResolved = searchParams.get('includeResolved') === 'true'
 
   const alerts = await prisma.workerAlert.findMany({
@@ -21,9 +44,10 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       worker: { select: { id: true, firstName: true, lastName: true } },
     },
     orderBy: [
+      { severity: 'asc' }, // CRITICAL first (alphabetical sort works: C < H < L < M)
       { createdAt: 'desc' },
     ],
-    take: 200,
+    take: 500,
   })
 
   return NextResponse.json({
@@ -40,11 +64,6 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       resolvedAt: a.resolvedAt?.toISOString() ?? null,
       createdAt: a.createdAt.toISOString(),
     })),
-    stats: {
-      total: alerts.length,
-      critical: alerts.filter(a => a.severity === 'CRITICAL').length,
-      high: alerts.filter(a => a.severity === 'HIGH').length,
-    },
   })
 })
 

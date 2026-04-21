@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { analizarDocumento, TIPOS_DOCUMENTO_LABELS, type TipoDocumento } from '@/lib/compliance/contract-analyzer'
+import { reviewContract, type ContractReviewResult } from '@/lib/ai/contract-review'
 
 const TIPOS_VALIDOS: TipoDocumento[] = [
   'CONTRATO_INDEFINIDO',
@@ -18,12 +20,19 @@ const TIPOS_VALIDOS: TipoDocumento[] = [
  * Analiza el texto de un contrato o documento y detecta cláusulas ilegales,
  * omisiones obligatorias y riesgos según jurisprudencia SUNAFIL.
  *
- * Body: { texto: string, tipo: TipoDocumento }
+ * Body: { texto: string, tipo: TipoDocumento, deep?: boolean }
+ *
+ * Requiere plan EMPRESA+ (feature `ia_contratos`). Si `deep=true` requiere
+ * PRO (`review_ia`) ya que hace AI review adicional.
  */
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest) => {
   try {
     const body = await req.json()
-    const { texto, tipo } = body
+    const { texto, tipo, deep } = body as {
+      texto?: string
+      tipo?: string
+      deep?: boolean
+    }
 
     if (!texto || typeof texto !== 'string') {
       return NextResponse.json({ error: 'El campo "texto" es requerido' }, { status: 400 })
@@ -40,12 +49,25 @@ export const POST = withAuth(async (req: NextRequest) => {
       return NextResponse.json({ error: 'El texto excede el tamaño máximo permitido (200,000 caracteres)' }, { status: 400 })
     }
 
-    const resultado = analizarDocumento(texto, tipo as TipoDocumento)
+    const deepMode = deep !== false // default true, explicit false to disable
+
+    // Rule-based (rápido) + AI (paralelo si deep). Si la IA falla → sigue null.
+    const [analisis, aiReview] = await Promise.all([
+      Promise.resolve(analizarDocumento(texto, tipo as TipoDocumento)),
+      deepMode
+        ? reviewContract({ contractHtml: texto, contractType: tipo }).catch((err) => {
+            console.warn('[analyze-contract] AI review falló:', err)
+            return null as ContractReviewResult | null
+          })
+        : Promise.resolve(null as ContractReviewResult | null),
+    ])
 
     return NextResponse.json({
       ok: true,
       tipoLabel: TIPOS_DOCUMENTO_LABELS[tipo as TipoDocumento],
-      ...resultado,
+      aiReview,
+      aiAttempted: deepMode,
+      ...analisis,
     })
   } catch (error) {
     console.error('[ANALYZE CONTRACT] Error:', error)

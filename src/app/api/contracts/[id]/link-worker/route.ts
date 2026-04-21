@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
+import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
 
 // ==============================================
 // POST /api/contracts/[id]/link-worker
@@ -94,40 +95,6 @@ export const POST = withAuthParams<{ id: string }>(
   }
 )
 
-// Same logic as workers/[id]/documents/route.ts — kept in sync
-async function recalculateLegajoScore(workerId: string) {
-  const REQUIRED_DOC_TYPES = [
-    'contrato_trabajo',
-    'cv',
-    'dni_copia',
-    'declaracion_jurada',
-    'boleta_pago',
-    't_registro',
-    'vacaciones_goce',
-    'capacitacion_registro',
-    'examen_medico_ingreso',
-    'examen_medico_periodico',
-    'induccion_sst',
-    'entrega_epp',
-    'iperc_puesto',
-    'capacitacion_sst',
-    'reglamento_interno',
-    'afp_onp_afiliacion',
-    'essalud_registro',
-    'cts_deposito',
-  ]
-
-  const uploadedDocs = await prisma.workerDocument.findMany({
-    where: { workerId, status: { in: ['UPLOADED', 'VERIFIED'] } },
-    select: { documentType: true },
-  })
-
-  const uploadedTypes = new Set(uploadedDocs.map(d => d.documentType))
-  const matchedCount = REQUIRED_DOC_TYPES.filter(t => uploadedTypes.has(t)).length
-  const score = Math.round((matchedCount / REQUIRED_DOC_TYPES.length) * 100)
-
-  await prisma.worker.update({ where: { id: workerId }, data: { legajoScore: score } })
-}
 
 // GET — list workers already linked to this contract
 export const GET = withAuthParams<{ id: string }>(

@@ -137,7 +137,7 @@ export function VacacionesCalculadora() {
                   value={input.sueldoBruto || ''}
                   onChange={e => updateField('sueldoBruto', Number(e.target.value))}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
             </div>
@@ -152,7 +152,7 @@ export function VacacionesCalculadora() {
                   type="date"
                   value={input.fechaIngreso}
                   onChange={e => updateField('fechaIngreso', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
               <div>
@@ -163,7 +163,7 @@ export function VacacionesCalculadora() {
                   type="date"
                   value={input.fechaCese}
                   onChange={e => updateField('fechaCese', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
             </div>
@@ -179,7 +179,7 @@ export function VacacionesCalculadora() {
                 onChange={e => updateField('diasGozados', Number(e.target.value))}
                 placeholder="0"
                 min={0}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
               />
             </div>
 
@@ -209,7 +209,7 @@ export function VacacionesCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -343,7 +343,7 @@ export function VacacionesCalculadora() {
                         </div>
                         {/* Percentage bar */}
                         <div className="mt-2 flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                          <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full transition-all duration-700"
                               style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -398,14 +398,14 @@ export function VacacionesCalculadora() {
                 <div>
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Formula aplicada:</span>
                   <div className="mt-1.5">
-                    <code className="block bg-white/[0.02] bg-white/[0.04] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed">
+                    <code className="block bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed">
                       {result.formula}
                     </code>
                   </div>
                 </div>
                 <div>
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Base legal:</span>
-                  <div className="mt-1.5 flex items-start gap-2 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                  <div className="mt-1.5 flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                       D.Leg. 713
                     </span>

@@ -135,7 +135,7 @@ export function MultaSunafilCalculadora() {
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
                       input.tipoInfraccion === tipo.value
                         ? `border-current ${tipo.textColor} ${tipo.bgLight} ring-2 ring-current/20`
-                        : 'border-white/[0.08] border-white/10 text-gray-500 hover:border-white/10 hover:bg-white/[0.02] hover:bg-white/[0.04] hover:bg-white/[0.04]'
+                        : 'border-white/[0.08] border-white/10 text-gray-500 hover:border-white/10 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)]'
                     }`}
                   >
                     <div className={`w-3 h-3 rounded-full ${tipo.color}`} />
@@ -158,7 +158,7 @@ export function MultaSunafilCalculadora() {
                   onChange={e => updateField('numeroTrabajadores', Number(e.target.value))}
                   placeholder="0"
                   min={1}
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
             </div>
@@ -265,7 +265,7 @@ export function MultaSunafilCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -281,7 +281,7 @@ export function MultaSunafilCalculadora() {
             <div className="bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl p-8 text-white shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-amber-200" />
+                  <ShieldAlert className="w-5 h-5 text-amber-700" />
                   <span className="text-sm font-medium text-amber-100 uppercase tracking-wider">
                     Multa Estimada SUNAFIL
                   </span>
@@ -303,7 +303,7 @@ export function MultaSunafilCalculadora() {
               </div>
               {(result.multaConDescuento !== null || result.mypeDescuento !== null) && (
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-amber-200 text-sm line-through">
+                  <span className="text-amber-700 text-sm line-through">
                     S/ {result.multaEstimada.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                   </span>
                   {result.mypeDescuento !== null && (
@@ -340,7 +340,7 @@ export function MultaSunafilCalculadora() {
                     />
                   )}
                 </div>
-                <div className="flex justify-between mt-1.5 text-xs text-amber-200">
+                <div className="flex justify-between mt-1.5 text-xs text-amber-700">
                   <span>Min: S/ {result.multaMinima.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
                   <span>Max: S/ {result.multaMaxima.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
                 </div>
@@ -460,7 +460,7 @@ export function MultaSunafilCalculadora() {
                           </div>
                         </div>
                         <div className="mt-2 flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                          <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-700"
                               style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -554,14 +554,14 @@ export function MultaSunafilCalculadora() {
                 <div>
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Formula aplicada:</span>
                   <div className="mt-1.5">
-                    <code className="block bg-white/[0.02] bg-white/[0.04] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed">
+                    <code className="block bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed">
                       {result.formula}
                     </code>
                   </div>
                 </div>
                 <div>
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Base legal:</span>
-                  <div className="mt-1.5 flex items-start gap-2 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                  <div className="mt-1.5 flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                       D.S. 019-2006-TR
                     </span>

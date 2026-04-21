@@ -64,14 +64,14 @@ const STATUS_CONFIG = {
     icon: HelpCircle,
     label: 'N/A',
     short: 'N/A',
-    color: 'text-gray-400 bg-white/[0.02] border-white/[0.08] bg-white/[0.04] border-white/10',
+    color: 'text-gray-400 bg-[color:var(--neutral-50)] border-white/[0.08] bg-[color:var(--neutral-100)] border-white/10',
     ring: 'ring-gray-400',
   },
   PENDING: {
     icon: HelpCircle,
     label: 'Pendiente',
     short: '...',
-    color: 'text-gray-300 bg-white/[0.02] border-white/[0.08] bg-[#141824] border-white/[0.08]',
+    color: 'text-gray-300 bg-[color:var(--neutral-50)] border-white/[0.08] bg-[#141824] border-white/[0.08]',
     ring: 'ring-gray-300',
   },
 } as const
@@ -114,7 +114,7 @@ export function LiveChecklist({
               item.status === 'PARCIAL' && 'bg-amber-50/50 border-amber-200',
               item.status === 'NO_CUMPLE' && 'bg-red-50/50 border-red-200',
               item.status === 'PENDING' && 'bg-[#141824] border-white/[0.08] bg-[#141824] border-white/[0.08]',
-              item.status === 'NO_APLICA' && 'bg-white/[0.02] border-white/[0.08] bg-[#141824]/50 border-white/[0.08] opacity-60',
+              item.status === 'NO_APLICA' && 'bg-[color:var(--neutral-50)] border-white/[0.08] bg-[#141824]/50 border-white/[0.08] opacity-60',
             )}
           >
             {/* Main row */}
@@ -123,7 +123,7 @@ export function LiveChecklist({
               onClick={() => setExpandedId(isExpanded ? null : item.id)}
             >
               {/* Step number */}
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 bg-white/[0.04] text-xs font-bold text-slate-600">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 bg-[color:var(--neutral-100)] text-xs font-bold text-slate-600">
                 {item.paso}
               </span>
 
@@ -190,7 +190,7 @@ export function LiveChecklist({
                           'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
                           item.status === s
                             ? cn(cfg.color, 'ring-2', cfg.ring)
-                            : 'border-white/[0.08] border-white/10 text-gray-500 hover:bg-white/[0.02] hover:bg-white/[0.04]',
+                            : 'border-white/[0.08] border-white/10 text-gray-500 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]',
                           disabled && 'opacity-50 cursor-not-allowed',
                         )}
                       >
@@ -204,7 +204,7 @@ export function LiveChecklist({
                 {/* Upload evidence */}
                 <div className="flex items-center gap-2">
                   <label className={cn(
-                    'flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs text-gray-500 cursor-pointer hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors',
+                    'flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs text-gray-500 cursor-pointer hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors',
                     disabled && 'opacity-50 cursor-not-allowed',
                   )}>
                     {isUploading ? (
@@ -244,7 +244,7 @@ export function LiveChecklist({
                     placeholder="Notas adicionales..."
                     disabled={disabled}
                     rows={2}
-                    className="w-full rounded-lg border border-white/[0.08] border-white/10 bg-[#141824] bg-white/[0.04] px-3 py-2 text-xs text-gray-300 placeholder-gray-400 resize-none focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    className="w-full rounded-lg border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] px-3 py-2 text-xs text-gray-300 placeholder-gray-400 resize-none focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                   />
                 )}
               </div>

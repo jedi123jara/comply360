@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { CourseCategory, RegimenLaboral } from '@/generated/prisma/client'
 import { COURSE_CATALOG } from '@/lib/elearning/course-catalog'

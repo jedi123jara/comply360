@@ -19,13 +19,9 @@ import {
   ChevronRight,
   Zap,
   TrendingUp,
-  Clock,
   Mail,
   Phone,
   MapPin,
-  BookOpen,
-  AlertCircle,
-  Download,
   MessageSquare,
   BarChart3,
   CheckCircle2,
@@ -34,9 +30,14 @@ import {
 } from 'lucide-react'
 import { PLANS } from '@/lib/constants'
 import { useUser } from '@clerk/nextjs'
+import { track } from '@/lib/analytics'
 
 // ─── Intersection Observer for scroll-reveal ─────────────────────────────────
-function useReveal(threshold = 0.12) {
+// Nota: devolvemos tuple `[ref, visible]` en lugar de objeto `{ref, visible}`
+// porque React 19 eslint-plugin-react-hooks confunde lecturas `.visible`
+// con lecturas de refs cuando el objeto también expone `.ref` ("Cannot access
+// refs during render"). La tuple elimina la ambigüedad.
+function useReveal(threshold = 0.12): readonly [React.RefObject<HTMLDivElement | null>, boolean] {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   useEffect(() => {
@@ -49,7 +50,7 @@ function useReveal(threshold = 0.12) {
     obs.observe(el)
     return () => obs.disconnect()
   }, [threshold])
-  return { ref, visible }
+  return [ref, visible] as const
 }
 
 // ─── CountUp animation ────────────────────────────────────────────────────────
@@ -143,9 +144,34 @@ const FEATURE_TABS = [
 export default function LandingPage() {
   const { isSignedIn } = useUser()
   const router = useRouter()
-  const ctaHref = isSignedIn ? '/dashboard' : '/sign-up'
+  const [roleHome, setRoleHome] = useState<'/dashboard' | '/mi-portal'>('/dashboard')
+
+  // Detectar si el usuario es WORKER → su "home" es /mi-portal, no /dashboard.
+  // Esto importa sobre todo para la PWA: si un trabajador instala Comply360
+  // y toca el ícono desde home screen, start_url="/" debe llevarlo a su portal.
+  useEffect(() => {
+    if (!isSignedIn) return
+    let cancelled = false
+    fetch('/api/me', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { role?: string } | null) => {
+        if (cancelled || !data) return
+        if (data.role === 'WORKER') {
+          setRoleHome('/mi-portal')
+          // Auto-redirect: workers no deberían ver el landing comercial
+          router.replace('/mi-portal')
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [isSignedIn, router])
+
+  const ctaHref = isSignedIn ? roleHome : '/sign-up'
   const handleCtaClick = (e: React.MouseEvent) => {
-    if (isSignedIn) { e.preventDefault(); router.push('/dashboard') }
+    track('landing_cta_clicked', { cta: 'hero_primary', signed_in: isSignedIn ?? false })
+    if (isSignedIn) { e.preventDefault(); router.push(roleHome) }
   }
 
   const [scrolled, setScrolled] = useState(false)
@@ -164,19 +190,20 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  // Reveal refs
-  const metricsReveal = useReveal()
-  const featuresReveal = useReveal()
-  const stepsReveal = useReveal()
-  const testimonialsReveal = useReveal()
-  const pricingReveal = useReveal()
-  const ctaReveal = useReveal()
+  // Reveal refs — tuples `[ref, visible]` para evitar falsos positivos de
+  // react-hooks/refs al leer .visible de un objeto que también tiene .ref.
+  const [metricsRef, metricsVisible] = useReveal()
+  const [featuresRef, featuresVisible] = useReveal()
+  const [stepsRef, stepsVisible] = useReveal()
+  const [testimonialsRef, testimonialsVisible] = useReveal()
+  const [pricingRef, pricingVisible] = useReveal()
+  const [ctaRef, ctaVisible] = useReveal()
 
   // CountUps
-  const empresasCount = useCountUp(500, 2000, metricsReveal.visible)
-  const calcCount = useCountUp(50000, 2000, metricsReveal.visible)
-  const horasCount = useCountUp(20, 2000, metricsReveal.visible)
-  const precisionCount = useCountUp(99.9, 2000, metricsReveal.visible)
+  const empresasCount = useCountUp(500, 2000, metricsVisible)
+  const calcCount = useCountUp(50000, 2000, metricsVisible)
+  const horasCount = useCountUp(20, 2000, metricsVisible)
+  const precisionCount = useCountUp(99.9, 2000, metricsVisible)
 
   const tab = FEATURE_TABS[activeTab]
 
@@ -185,13 +212,23 @@ export default function LandingPage() {
 
       {/* ── Announcement bar ──────────────────────────────────────────── */}
       {annBannerVisible && (
-        <div className="bg-primary text-white py-2.5 px-4 flex items-center justify-center gap-3 text-sm relative">
-          <Sparkles className="h-4 w-4 text-gold flex-shrink-0" />
+        <div
+          className="text-white py-2.5 px-4 flex items-center justify-center gap-3 text-sm relative"
+          style={{
+            background: 'linear-gradient(90deg, #047857 0%, #10b981 50%, #047857 100%)',
+          }}
+        >
+          <Sparkles className="h-4 w-4 text-amber-300 flex-shrink-0" />
           <span>
-            <strong className="font-semibold">Nuevo:</strong> Generación de contratos con IA — 19 cláusulas obligatorias según normativa peruana.{' '}
-            <button onClick={() => scrollTo('funciones')} className="underline underline-offset-2 font-medium text-gold-light hover:text-gold transition-colors">
-              Ver más →
-            </button>
+            <strong className="font-semibold">SUNAFIL aumentó 30% las fiscalizaciones en 2026.</strong>{' '}
+            Calculá tu riesgo de multa en 10 minutos.{' '}
+            <Link
+              href="/diagnostico-gratis"
+              onClick={() => track('landing_cta_clicked', { cta: 'announcement_bar' })}
+              className="underline underline-offset-2 font-medium text-emerald-50 hover:text-white transition-colors"
+            >
+              Diagnóstico gratis →
+            </Link>
           </span>
           <button
             onClick={() => setAnnBannerVisible(false)}
@@ -210,13 +247,32 @@ export default function LandingPage() {
         }`}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          {/* Logo */}
+          {/* Logo — COMPLY360 Variant A "Sello notarial" */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20 transition-transform group-hover:scale-105">
-              <Scale className="h-5 w-5" />
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition-transform group-hover:scale-105"
+              style={{
+                background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
+                boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
+              }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
             </div>
             <span className="text-xl font-bold tracking-tight text-gray-900">
-              LEGALIA<span className="text-primary">PRO</span>
+              Comply<span className="text-emerald-700">360</span>
             </span>
           </Link>
 
@@ -242,10 +298,10 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-2">
             {isSignedIn ? (
               <Link
-                href="/dashboard"
+                href={roleHome}
                 className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Mi Dashboard
+                {roleHome === '/mi-portal' ? 'Mi Portal' : 'Mi Dashboard'}
               </Link>
             ) : (
               <Link
@@ -258,9 +314,9 @@ export default function LandingPage() {
             <Link
               href={ctaHref}
               onClick={handleCtaClick}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-xl bg-primary text-white shadow-md shadow-primary/20 hover:bg-primary-light transition-all"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition-all"
             >
-              {isSignedIn ? 'Ir al Dashboard' : 'Prueba gratis'}
+              {isSignedIn ? (roleHome === '/mi-portal' ? 'Ir a Mi Portal' : 'Ir al Dashboard') : 'Prueba gratis'}
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -280,11 +336,11 @@ export default function LandingPage() {
               </button>
             ))}
             <div className="pt-2 border-t border-gray-100 flex flex-col gap-2">
-              <Link href={isSignedIn ? '/dashboard' : '/sign-in'} className="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 text-center">
-                {isSignedIn ? 'Mi Dashboard' : 'Iniciar sesión'}
+              <Link href={isSignedIn ? roleHome : '/sign-in'} className="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 text-center">
+                {isSignedIn ? (roleHome === '/mi-portal' ? 'Mi Portal' : 'Mi Dashboard') : 'Iniciar sesión'}
               </Link>
-              <Link href={ctaHref} onClick={handleCtaClick} className="px-4 py-3 text-sm font-semibold bg-primary text-white rounded-xl text-center">
-                {isSignedIn ? 'Ir al Dashboard' : 'Prueba gratis'}
+              <Link href={ctaHref} onClick={handleCtaClick} className="px-4 py-3 text-sm font-semibold bg-emerald-600 text-white rounded-xl text-center">
+                {isSignedIn ? (roleHome === '/mi-portal' ? 'Ir a Mi Portal' : 'Ir al Dashboard') : 'Prueba gratis'}
               </Link>
             </div>
           </div>
@@ -292,60 +348,107 @@ export default function LandingPage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-white pt-16 pb-8 lg:pt-24 lg:pb-0">
+      <section
+        className="relative overflow-hidden pt-16 pb-8 lg:pt-24 lg:pb-0"
+        style={{
+          background:
+            'linear-gradient(rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.97) 100%), linear-gradient(135deg, #ecfdf5 0%, #f8fafc 55%, #fefce8 100%)',
+        }}
+      >
         {/* Subtle grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:64px_64px] opacity-30" />
-        {/* Color blobs */}
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute top-60 -left-20 w-[400px] h-[400px] rounded-full bg-gold/5 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+            maskImage: 'radial-gradient(90% 70% at 50% 30%, #000 0%, transparent 80%)',
+            WebkitMaskImage: 'radial-gradient(90% 70% at 50% 30%, #000 0%, transparent 80%)',
+          }}
+        />
+        {/* Emerald halo pulsante */}
+        <div
+          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, rgba(16,185,129,0.22), transparent 70%)',
+            animation: 'c360-breathe 6s ease-in-out infinite',
+          }}
+        />
+        <div className="absolute top-60 -left-20 w-[400px] h-[400px] rounded-full bg-amber-100/50 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           {/* Text column */}
           <div className="flex-1 text-center lg:text-left max-w-xl mx-auto lg:mx-0">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-7">
-              <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-medium text-primary">Plataforma #1 de Cumplimiento Laboral en Perú</span>
+            {/* Badge — eyebrow editorial con número fuerte */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 mb-7">
+              <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-800">
+                Multa SUNAFIL máxima: S/ 289,000
+              </span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight text-gray-900 mb-6">
-              Gestiona tu{' '}
-              <span className="relative">
-                <span className="bg-gradient-to-r from-primary via-primary-light to-blue-500 bg-clip-text text-transparent">
-                  planilla laboral
-                </span>
-                <svg className="absolute -bottom-1 left-0 w-full" height="6" viewBox="0 0 200 6" fill="none">
-                  <path d="M0 5 Q50 0 100 5 Q150 10 200 5" stroke="#d4a853" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                </svg>
-              </span>{' '}
-              sin errores ni riesgos legales.
-            </h1>
+            <h1
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontWeight: 400,
+                fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.025em',
+                color: 'var(--text-emerald-700)',
+                marginBottom: 24,
+              }}
+              dangerouslySetInnerHTML={{
+                __html:
+                  'Evita <em style="color: var(--emerald-700); font-style: italic">multas SUNAFIL</em> sin contratar un abogado.',
+              }}
+            />
 
-            <p className="text-lg text-gray-500 leading-relaxed mb-8">
-              La plataforma que automatiza contratos, calcula beneficios sociales
-              con precisión y te mantiene al día con la normativa peruana. Pensada
-              para RRHH, abogados y gerentes que necesitan cumplir sin complicaciones.
+            <p className="text-lg text-gray-600 leading-relaxed mb-8">
+              El <strong>piloto automático</strong> para tus obligaciones laborales:
+              135 preguntas SUNAFIL · 12 regímenes · firma biométrica del trabajador ·
+              alertas 30 días antes de cualquier vencimiento. Lo que un estudio de
+              abogados cobra S/5,000/mes, por <strong>S/129</strong>.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start mb-10">
+            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start mb-6">
+              <Link
+                href="/diagnostico-gratis"
+                onClick={() => track('landing_cta_clicked', { cta: 'hero_diagnostic' })}
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 text-white font-semibold text-base transition-all hover:bg-emerald-700 w-full sm:w-auto justify-center"
+                style={{
+                  boxShadow: '0 10px 30px -8px rgba(4,120,87,0.45), inset 0 1px 0 rgba(255,255,255,0.12)',
+                }}
+              >
+                <Shield className="h-5 w-5" />
+                Calcular mi riesgo de multa (gratis)
+              </Link>
               <Link
                 href={ctaHref}
                 onClick={handleCtaClick}
-                className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-primary text-white font-semibold text-base shadow-xl shadow-primary/25 hover:bg-primary-light hover:shadow-primary/40 transition-all"
+                className="group inline-flex items-center gap-2 px-6 py-4 rounded-xl border border-emerald-200 bg-white text-emerald-700 font-semibold text-sm hover:border-emerald-500 hover:bg-emerald-50 transition-all"
               >
-                {isSignedIn ? 'Ir al Dashboard' : 'Comenzar gratis'}
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                {isSignedIn ? 'Ir al Dashboard' : 'Probar 14 días gratis'}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-              <button
-                onClick={() => scrollTo('como-funciona')}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-gray-200 text-gray-700 font-semibold text-base hover:bg-gray-50 hover:border-gray-300 transition-all"
-              >
-                Ver cómo funciona
-              </button>
             </div>
 
+            {/* Trust indicators con mini-métricas */}
+            <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 justify-center lg:justify-start text-xs text-gray-500 mb-3">
+              <li className="inline-flex items-center gap-1.5">
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                10 minutos · sin tarjeta
+              </li>
+              <li className="inline-flex items-center gap-1.5">
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                Conforme Ley 29733
+              </li>
+              <li className="inline-flex items-center gap-1.5">
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                Cancela cuando quieras
+              </li>
+            </ul>
             <p className="text-xs text-gray-400">
-              Sin tarjeta de crédito · 14 días gratis · Cancela cuando quieras
+              Base legal: D.S. 019-2006-TR + UIT 2026 (S/5,500). Multa máxima 52.53 UIT por infracción muy grave.
             </p>
           </div>
 
@@ -396,7 +499,7 @@ export default function LandingPage() {
                       {[40, 65, 55, 80, 70, 90, 75, 95, 85, 100, 88, 92].map((h, i) => (
                         <div
                           key={i}
-                          className="flex-1 rounded-sm bg-gradient-to-t from-gold to-gold-light opacity-70"
+                          className="flex-1 rounded-sm bg-gradient-to-t from-emerald-600 to-emerald-300 opacity-70"
                           style={{ height: `${h}%` }}
                         />
                       ))}
@@ -463,8 +566,8 @@ export default function LandingPage() {
       {/* ── Metrics ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div
-          ref={metricsReveal.ref}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${metricsReveal.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          ref={metricsRef}
+          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${metricsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {[
@@ -474,13 +577,13 @@ export default function LandingPage() {
               { value: precisionCount, suffix: '%', label: 'Precisión', desc: 'en cálculos laborales' },
             ].map(({ value, suffix, label, desc }, i) => (
               <div key={label} className={`text-center transition-all duration-700 delay-${i * 100}`}>
-                <div className="text-4xl lg:text-5xl font-extrabold text-primary tracking-tight mb-1">
+                <div className="text-4xl lg:text-5xl font-extrabold text-emerald-700 tracking-tight mb-1">
                   {value >= 1000
                     ? `${Math.round(value / 1000).toLocaleString('es-PE')}k`
                     : value >= 100
                     ? Math.round(value).toLocaleString('es-PE')
                     : value.toFixed(value % 1 !== 0 ? 1 : 0)}
-                  <span className="text-gold">{suffix}</span>
+                  <span className="text-amber-500">{suffix}</span>
                 </div>
                 <div className="text-base font-semibold text-gray-800 mb-0.5">{label}</div>
                 <div className="text-sm text-gray-400">{desc}</div>
@@ -493,17 +596,17 @@ export default function LandingPage() {
       {/* ── Features (tabbed) ─────────────────────────────────────────── */}
       <section id="funciones" className="py-24 bg-gray-50/60">
         <div
-          ref={featuresReveal.ref}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${featuresReveal.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          ref={featuresRef}
+          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${featuresVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           {/* Header */}
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="inline-block px-3 py-1 rounded-full bg-primary/8 text-primary text-sm font-semibold border border-primary/12 mb-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
               Módulos de la plataforma
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
               Todo lo que tu equipo necesita,{' '}
-              <span className="text-primary">en un solo lugar</span>
+              <span className="text-emerald-700">en un solo lugar</span>
             </h2>
             <p className="text-lg text-gray-500 leading-relaxed">
               Cada módulo está diseñado por abogados laboralistas peruanos
@@ -593,16 +696,16 @@ export default function LandingPage() {
       {/* ── Cómo funciona ────────────────────────────────────────────── */}
       <section id="como-funciona" className="py-24 bg-white">
         <div
-          ref={stepsReveal.ref}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${stepsReveal.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          ref={stepsRef}
+          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${stepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-amber-700 text-sm font-semibold border border-gold/20 mb-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
               Cómo funciona
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
               Empieza a cumplir en{' '}
-              <span className="text-gold-dark">3 pasos simples</span>
+              <span className="text-emerald-800">3 pasos simples</span>
             </h2>
             <p className="text-lg text-gray-500">
               Sin configuraciones complejas. En menos de 10 minutos tu organización
@@ -612,7 +715,7 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-8 relative">
             {/* Connector lines */}
-            <div className="hidden md:block absolute top-12 left-1/3 right-1/3 h-px bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20" />
+            <div className="hidden md:block absolute top-12 left-1/3 right-1/3 h-px bg-gradient-to-r from-emerald-600/20 via-emerald-600/40 to-emerald-600/20" />
 
             {[
               {
@@ -629,17 +732,17 @@ export default function LandingPage() {
                 icon: Users,
                 title: 'Agrega tus trabajadores',
                 desc: 'Importa desde Excel o registra manualmente. Puedes también subir un PDF con múltiples contratos y la IA extrae los datos automáticamente.',
-                color: 'bg-primary',
-                light: 'bg-primary/5',
-                textColor: 'text-primary',
+                color: 'bg-emerald-600',
+                light: 'bg-emerald-50',
+                textColor: 'text-emerald-700',
               },
               {
                 step: '03',
                 icon: Shield,
                 title: 'Gestiona y cumple',
                 desc: 'Genera contratos, calcula beneficios, recibe alertas de vencimientos y mantén el legajo digital siempre completo y listo para SUNAFIL.',
-                color: 'bg-gold',
-                light: 'bg-gold/10',
+                color: 'bg-amber-500',
+                light: 'bg-amber-50',
                 textColor: 'text-amber-700',
               },
             ].map(({ step, icon: Icon, title, desc, color, light, textColor }, i) => (
@@ -665,7 +768,7 @@ export default function LandingPage() {
             <Link
               href={ctaHref}
               onClick={handleCtaClick}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-primary text-white font-semibold text-base shadow-xl shadow-primary/20 hover:bg-primary-light transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 text-white font-semibold text-base shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all"
             >
               Empezar ahora
               <ArrowRight className="h-5 w-5" />
@@ -678,12 +781,12 @@ export default function LandingPage() {
       <section className="py-24 bg-gray-50/60">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-primary/8 text-primary text-sm font-semibold border border-primary/12 mb-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
               Por qué elegirnos
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight">
               Diseñado para la realidad{' '}
-              <span className="text-primary">peruana</span>
+              <span className="text-emerald-700">peruana</span>
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -733,7 +836,7 @@ export default function LandingPage() {
             ].map(({ icon: Icon, title, desc, color, bg }) => (
               <div
                 key={title}
-                className="group p-7 rounded-2xl bg-white border border-gray-100 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5"
+                className="group p-7 rounded-2xl bg-white border border-gray-100 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-300 hover:-translate-y-0.5"
               >
                 <div className={`inline-flex p-3 rounded-xl ${bg} mb-4`}>
                   <Icon className={`h-6 w-6 ${color}`} />
@@ -749,16 +852,16 @@ export default function LandingPage() {
       {/* ── Testimonials ─────────────────────────────────────────────── */}
       <section className="py-24 bg-white">
         <div
-          ref={testimonialsReveal.ref}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${testimonialsReveal.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          ref={testimonialsRef}
+          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${testimonialsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-amber-700 text-sm font-semibold border border-gold/20 mb-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
               Testimonios
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight">
               Lo que dicen quienes{' '}
-              <span className="text-gold-dark">ya lo usan</span>
+              <span className="text-emerald-800">ya lo usan</span>
             </h2>
           </div>
 
@@ -800,7 +903,7 @@ export default function LandingPage() {
                 {/* Stars */}
                 <div className="flex gap-1 mb-5">
                   {Array.from({ length: rating }).map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-gold text-gold" />
+                    <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-500" />
                   ))}
                 </div>
                 <blockquote className="flex-1 text-gray-700 leading-relaxed text-sm mb-6">
@@ -824,16 +927,16 @@ export default function LandingPage() {
       {/* ── Pricing ──────────────────────────────────────────────────── */}
       <section id="precios" className="py-24 bg-gray-50/60">
         <div
-          ref={pricingReveal.ref}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${pricingReveal.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          ref={pricingRef}
+          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${pricingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-primary/8 text-primary text-sm font-semibold border border-primary/12 mb-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
               Precios
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
               Planes para cada{' '}
-              <span className="text-primary">tamaño de empresa</span>
+              <span className="text-emerald-700">tamaño de empresa</span>
             </h2>
             <p className="text-lg text-gray-500">
               Sin letras pequeñas. Todo incluido desde el primer día.
@@ -841,19 +944,19 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
-            {(Object.values(PLANS) as Array<{ key: string; name: string; price: number; features: readonly string[] }>).map((plan, i) => {
+            {(Object.values(PLANS) as Array<{ key: string; name: string; price: number; features: readonly string[] }>).map((plan) => {
               const isPopular = plan.key === 'EMPRESA'
               return (
                 <div
                   key={plan.key}
                   className={`relative flex flex-col rounded-2xl p-8 transition-all duration-300 ${
                     isPopular
-                      ? 'bg-primary text-white shadow-2xl shadow-primary/25 scale-[1.02] z-10'
+                      ? 'bg-emerald-600 text-white shadow-2xl shadow-emerald-600/25 scale-[1.02] z-10'
                       : 'bg-white border border-gray-200 hover:shadow-xl hover:shadow-gray-900/5'
                   }`}
                 >
                   {isPopular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gold text-white text-xs font-bold uppercase tracking-wide shadow-md">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold uppercase tracking-wide shadow-md">
                       Más popular
                     </div>
                   )}
@@ -871,7 +974,7 @@ export default function LandingPage() {
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feat) => (
                       <li key={feat} className="flex items-start gap-2.5">
-                        <Check className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isPopular ? 'text-gold-light' : 'text-primary'}`} />
+                        <Check className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isPopular ? 'text-amber-200' : 'text-emerald-700'}`} />
                         <span className={`text-sm ${isPopular ? 'text-white/80' : 'text-gray-600'}`}>{feat}</span>
                       </li>
                     ))}
@@ -882,8 +985,8 @@ export default function LandingPage() {
                     onClick={handleCtaClick}
                     className={`block w-full text-center py-3.5 rounded-xl font-semibold text-sm transition-all ${
                       isPopular
-                        ? 'bg-white text-primary hover:bg-gray-50 shadow-lg'
-                        : 'bg-primary text-white hover:bg-primary-light shadow-md shadow-primary/20'
+                        ? 'bg-white text-emerald-700 hover:bg-gray-50 shadow-lg'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-600/20'
                     }`}
                   >
                     {isSignedIn ? 'Ir al Dashboard' : 'Comenzar gratis'}
@@ -902,23 +1005,23 @@ export default function LandingPage() {
       {/* ── CTA final ────────────────────────────────────────────────── */}
       <section className="py-24 bg-white">
         <div
-          ref={ctaReveal.ref}
-          className={`mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${ctaReveal.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          ref={ctaRef}
+          className={`mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${ctaVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-dark via-primary to-primary-light p-12 sm:p-16 text-center shadow-2xl shadow-primary/25">
+          <div className="relative overflow-hidden rounded-3xl p-12 sm:p-16 text-center shadow-2xl shadow-emerald-600/25" style={{ background: 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)' }}>
             {/* Decorative */}
-            <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-gold/10 blur-3xl" />
+            <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-amber-300/20 blur-3xl" />
             <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-white/5 blur-2xl" />
 
             <div className="relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 mb-6">
-                <Sparkles className="h-4 w-4 text-gold" />
+                <Sparkles className="h-4 w-4 text-amber-500" />
                 <span className="text-sm font-medium text-white/90">14 días gratis, sin riesgo</span>
               </div>
 
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
                 Empieza a cumplir la normativa{' '}
-                <span className="text-gold-light">desde hoy</span>
+                <span className="text-amber-200">desde hoy</span>
               </h2>
               <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
                 Únete a cientos de empresas y estudios jurídicos peruanos
@@ -931,7 +1034,7 @@ export default function LandingPage() {
                   const form = e.currentTarget
                   const emailInput = form.elements.namedItem('email') as HTMLInputElement
                   const email = emailInput?.value?.trim()
-                  if (isSignedIn) router.push('/dashboard')
+                  if (isSignedIn) router.push(roleHome)
                   else if (email) router.push(`/sign-up?email=${encodeURIComponent(email)}`)
                   else router.push('/sign-up')
                 }}
@@ -946,7 +1049,7 @@ export default function LandingPage() {
                 />
                 <button
                   type="submit"
-                  className="px-6 py-3.5 rounded-xl bg-gold text-white font-semibold shadow-lg shadow-gold/30 hover:bg-gold-light hover:shadow-gold/50 transition-all whitespace-nowrap"
+                  className="px-6 py-3.5 rounded-xl bg-amber-500 text-white font-semibold shadow-lg shadow-amber-500/30 hover:bg-amber-400 hover:shadow-amber-500/50 transition-all whitespace-nowrap"
                 >
                   {isSignedIn ? 'Ir al Dashboard' : 'Comenzar gratis'}
                 </button>
@@ -963,14 +1066,33 @@ export default function LandingPage() {
       <footer id="contacto" className="bg-gray-950 text-gray-400 pt-16 pb-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-            {/* Brand */}
+            {/* Brand — footer */}
             <div className="lg:col-span-2">
               <Link href="/" className="inline-flex items-center gap-2.5 mb-5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">
-                  <Scale className="h-5 w-5" />
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
+                  style={{
+                    background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
+                    boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#fff"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
                 </div>
                 <span className="text-lg font-bold text-white">
-                  LEGALIA<span className="text-gold">PRO</span>
+                  Comply<span className="text-emerald-400">360</span>
                 </span>
               </Link>
               <p className="text-sm leading-relaxed max-w-xs mb-6 text-gray-500">
@@ -993,23 +1115,40 @@ export default function LandingPage() {
             {[
               {
                 heading: 'Producto',
-                links: ['Generador de Contratos', 'Calculadoras Laborales', 'Alertas Normativas', 'Legajo Digital', 'Asesor IA'],
+                links: [
+                  { label: 'Generador de Contratos', href: '#' },
+                  { label: 'Calculadoras Laborales', href: '#' },
+                  { label: 'Alertas Normativas', href: '#' },
+                  { label: 'Legajo Digital', href: '#' },
+                  { label: 'Asesor IA', href: '#' },
+                ],
               },
               {
                 heading: 'Empresa',
-                links: ['Nosotros', 'Blog', 'Carreras', 'Soporte', 'Contacto'],
+                links: [
+                  { label: 'Nosotros', href: '#' },
+                  { label: 'Blog', href: '#' },
+                  { label: 'Carreras', href: '#' },
+                  { label: 'Soporte', href: '#' },
+                  { label: 'Contacto', href: '#contacto' },
+                ],
               },
               {
                 heading: 'Legal',
-                links: ['Términos de Servicio', 'Privacidad', 'Cookies', 'Protección de Datos'],
+                links: [
+                  { label: 'Términos de Servicio', href: '/terminos' },
+                  { label: 'Privacidad', href: '/privacidad' },
+                  { label: 'Cookies', href: '#' },
+                  { label: 'Protección de Datos', href: '/privacidad' },
+                ],
               },
             ].map(({ heading, links }) => (
               <div key={heading}>
                 <h4 className="text-xs font-semibold text-white uppercase tracking-widest mb-4">{heading}</h4>
                 <ul className="space-y-2.5 text-sm">
                   {links.map((item) => (
-                    <li key={item}>
-                      <a href="#" className="hover:text-white transition-colors">{item}</a>
+                    <li key={item.label}>
+                      <Link href={item.href} className="hover:text-white transition-colors">{item.label}</Link>
                     </li>
                   ))}
                 </ul>

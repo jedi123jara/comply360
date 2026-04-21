@@ -44,11 +44,11 @@ const CATEGORY_LABELS: Record<ConversationCategory, string> = {
 }
 
 const CATEGORY_COLORS: Record<ConversationCategory, string> = {
-  contratos: 'bg-blue-100 text-blue-700 bg-blue-900/40 text-blue-300',
-  calculos: 'bg-amber-100 text-amber-700 bg-amber-900/40 text-amber-300',
-  compliance: 'bg-red-100 text-red-700 bg-red-900/40 text-red-300',
-  sst: 'bg-green-100 text-green-700 bg-green-900/40 text-green-300',
-  general: 'bg-white/[0.04] text-gray-600 bg-gray-700 text-gray-300',
+  contratos: 'bg-blue-900/40 text-emerald-600',
+  calculos: 'bg-amber-900/40 text-amber-700',
+  compliance: 'bg-red-900/40 text-red-300',
+  sst: 'bg-green-900/40 text-green-300',
+  general: 'bg-gray-700 text-[color:var(--text-secondary)]',
 }
 
 const STORAGE_KEY = 'comply360_ai_conversations'
@@ -87,8 +87,8 @@ const FILTER_TABS: { key: FilterCategory; label: string }[] = [
 ]
 
 const QUICK_PROMPTS = [
-  { icon: Calculator, text: '¿Cómo calculo la CTS?', color: 'bg-amber-100 text-amber-700 bg-amber-900/40 text-amber-300' },
-  { icon: FileText, text: 'Tipos de contratos laborales', color: 'bg-blue-100 text-blue-700 bg-blue-900/40 text-blue-300' },
+  { icon: Calculator, text: '¿Cómo calculo la CTS?', color: 'bg-amber-100 text-amber-700 bg-amber-900/40 text-amber-700' },
+  { icon: FileText, text: 'Tipos de contratos laborales', color: 'bg-blue-100 text-blue-700 bg-blue-900/40 text-emerald-600' },
   { icon: ShieldCheck, text: 'Multas SUNAFIL más comunes', color: 'bg-red-100 text-red-700 bg-red-900/40 text-red-300' },
   { icon: Users, text: 'Derechos en régimen MYPE', color: 'bg-green-100 text-green-700 bg-green-900/40 text-green-300' },
   { icon: Clock, text: '¿Cuándo pagar gratificaciones?', color: 'bg-purple-100 text-purple-700 bg-purple-900/40 text-purple-300' },
@@ -132,21 +132,21 @@ function RenderMarkdown({ content }: { content: string }) {
         if (line.startsWith('## '))
           return <h3 key={i} className="mt-3 mb-1 text-sm font-bold text-white text-gray-100">{line.slice(3)}</h3>
         if (line.startsWith('### '))
-          return <h4 key={i} className="mt-2 mb-1 text-sm font-semibold text-gray-200">{line.slice(4)}</h4>
+          return <h4 key={i} className="mt-2 mb-1 text-sm font-semibold text-[color:var(--text-secondary)]">{line.slice(4)}</h4>
         if (line.startsWith('- ') || line.startsWith('• '))
           return (
-            <div key={i} className="flex items-start gap-1.5 text-sm text-gray-300">
+            <div key={i} className="flex items-start gap-1.5 text-sm text-[color:var(--text-secondary)]">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
               <span>{parseBold(line.slice(2))}</span>
             </div>
           )
         if (/^\d+\./.test(line))
-          return <p key={i} className="text-sm text-gray-300 pl-1">{parseBold(line)}</p>
+          return <p key={i} className="text-sm text-[color:var(--text-secondary)] pl-1">{parseBold(line)}</p>
         if (line.startsWith('|'))
-          return <p key={i} className="text-xs font-mono text-gray-400 bg-white/[0.02] bg-[#141824] px-2 py-0.5 rounded">{line}</p>
+          return <p key={i} className="text-xs font-mono text-gray-400 bg-[color:var(--neutral-50)] bg-white px-2 py-0.5 rounded">{line}</p>
         if (line.trim() === '')
           return <div key={i} className="h-1.5" />
-        return <p key={i} className="text-sm text-gray-300 leading-relaxed">{parseBold(line)}</p>
+        return <p key={i} className="text-sm text-[color:var(--text-secondary)] leading-relaxed">{parseBold(line)}</p>
       })}
     </div>
   )
@@ -365,7 +365,7 @@ export default function AsistenteIAPage() {
   /* ---------------------------------------------------------------- */
   return (
     /* Full-bleed container: break out of the default p-6 padding by negative margin */
-    <div className="-m-6 flex h-[calc(100vh-4rem)] overflow-hidden bg-white/[0.02] bg-slate-900">
+    <div className="-m-6 flex h-[calc(100vh-4rem)] overflow-hidden bg-[color:var(--neutral-50)] bg-white">
 
       {/* ============================================================ */}
       {/*  LEFT SIDEBAR                                                 */}
@@ -379,7 +379,7 @@ export default function AsistenteIAPage() {
       )}
 
       <aside className={cn(
-        'flex w-72 shrink-0 flex-col border-r border-white/[0.08] bg-[#141824] border-white/[0.08] bg-[#141824]',
+        'flex w-72 shrink-0 flex-col border-r border-white/[0.08] bg-white border-white/[0.08] bg-white',
         'fixed inset-y-0 left-0 z-30 transition-transform duration-200 lg:static lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         // account for the dashboard's own sidebar (lg:pl-64 on outer wrapper)
@@ -395,7 +395,7 @@ export default function AsistenteIAPage() {
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="rounded p-1 text-gray-400 hover:bg-white/[0.04] lg:hidden"
+            className="rounded p-1 text-gray-400 hover:bg-[color:var(--neutral-100)] lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>
@@ -424,7 +424,7 @@ export default function AsistenteIAPage() {
                   'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap',
                   filter === tab.key
                     ? 'bg-amber-500 text-white'
-                    : 'text-gray-500 hover:bg-white/[0.04] text-gray-400 hover:bg-white/[0.04]'
+                    : 'text-gray-500 hover:bg-[color:var(--neutral-100)] text-gray-400 hover:bg-[color:var(--neutral-100)]'
                 )}
               >
                 {tab.label}
@@ -445,12 +445,12 @@ export default function AsistenteIAPage() {
                 className={cn(
                   'group flex w-full flex-col gap-0.5 px-3 py-2.5 text-left transition-colors',
                   activeConvId === conv.id
-                    ? 'bg-amber-50 bg-amber-900/20'
-                    : 'hover:bg-white/[0.02] hover:bg-white/[0.04]/50'
+                    ? 'bg-amber-900/20'
+                    : 'hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50'
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-xs font-medium text-gray-200">
+                  <span className="truncate text-xs font-medium text-[color:var(--text-secondary)]">
                     {conv.title}
                   </span>
                   <span className={cn(
@@ -477,12 +477,12 @@ export default function AsistenteIAPage() {
               'flex w-full items-center gap-2 rounded-lg border p-2.5 text-left text-xs transition-colors',
               includeContext
                 ? 'border-amber-200 bg-amber-50 border-amber-800 bg-amber-900/20'
-                : 'border-white/[0.08] bg-[#141824] border-slate-600 bg-white/[0.04]/50'
+                : 'border-white/[0.08] bg-white border-[color:var(--border-default)] bg-[color:var(--neutral-100)]/50'
             )}
           >
             <Building2 className={cn('h-4 w-4 shrink-0', includeContext ? 'text-amber-600' : 'text-gray-400')} />
             <div className="flex-1 min-w-0">
-              <p className={cn('font-medium', includeContext ? 'text-amber-700 text-amber-400' : 'text-gray-500 text-gray-400')}>
+              <p className={cn('font-medium', includeContext ? 'text-amber-400' : 'text-gray-400')}>
                 Contexto empresa
               </p>
               <p className="truncate text-[10px] text-gray-400">
@@ -505,12 +505,12 @@ export default function AsistenteIAPage() {
       <div className="flex min-w-0 flex-1 flex-col">
 
         {/* Chat topbar */}
-        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#141824] px-4 py-2.5 border-white/[0.08] bg-[#141824]">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-white px-4 py-2.5 border-white/[0.08] bg-white">
           <div className="flex items-center gap-3">
             {/* Mobile sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-white/[0.04] lg:hidden"
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-[color:var(--neutral-100)] lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -524,10 +524,10 @@ export default function AsistenteIAPage() {
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                <p className="text-xs text-gray-500 text-gray-400">
+                <p className="text-xs text-gray-400">
                   Especializado en legislación laboral peruana
                   {model && (
-                    <span className="ml-1.5 rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] bg-white/[0.04] text-gray-300">
+                    <span className="ml-1.5 rounded bg-[color:var(--neutral-100)] px-1.5 py-0.5 text-[10px] bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]">
                       {model}
                     </span>
                   )}
@@ -540,7 +540,7 @@ export default function AsistenteIAPage() {
             {messages.length > 0 && (
               <button
                 onClick={exportConversation}
-                className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-gray-600 transition-colors hover:bg-white/[0.02] border-slate-600 text-gray-300 hover:bg-white/[0.04]"
+                className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-gray-600 transition-colors hover:bg-[color:var(--neutral-50)] border-[color:var(--border-default)] text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-100)]"
                 title="Descargar conversación"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -556,21 +556,21 @@ export default function AsistenteIAPage() {
             /* ---- Welcome / Empty state ---- */
             <div className="flex h-full flex-col items-center justify-center px-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 from-amber-900/40 to-orange-900/40">
-                <Scale className="h-8 w-8 text-amber-600 text-amber-400" />
+                <Scale className="h-8 w-8 text-amber-400" />
               </div>
 
               <h2 className="mt-4 text-xl font-bold text-white text-gray-100">
                 Asistente Legal COMPLY360
               </h2>
-              <p className="mt-1 text-sm text-gray-500 text-gray-400">
+              <p className="mt-1 text-sm text-gray-400">
                 Especializado en legislación laboral peruana
               </p>
 
               <div className="mt-5 w-full max-w-lg rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 border-amber-800/50 bg-amber-900/20">
-                <p className="mb-2 text-sm font-medium text-amber-800 text-amber-300">
+                <p className="mb-2 text-sm font-medium text-amber-700">
                   Soy tu consultor legal 24/7. Puedo ayudarte con:
                 </p>
-                <ul className="space-y-1.5 text-sm text-amber-700 text-amber-400">
+                <ul className="space-y-1.5 text-sm text-amber-400">
                   {[
                     'Cálculos laborales (CTS, gratificaciones, liquidaciones)',
                     'Interpretación de normas laborales',
@@ -594,7 +594,7 @@ export default function AsistenteIAPage() {
                     <button
                       key={i}
                       onClick={() => sendMessage(prompt.text)}
-                      className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#141824] px-3 py-2.5 text-left text-sm text-gray-300 transition-all hover:border-amber-300 hover:shadow-sm border-slate-600 bg-[#141824] text-gray-300 hover:border-amber-700"
+                      className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white px-3 py-2.5 text-left text-sm text-[color:var(--text-secondary)] transition-all hover:border-amber-300 hover:shadow-sm border-[color:var(--border-default)] bg-white text-[color:var(--text-secondary)] hover:border-amber-700"
                     >
                       <Icon className={cn('h-4 w-4 shrink-0 rounded-md p-0.5', prompt.color)} />
                       <span className="line-clamp-2 text-xs">{prompt.text}</span>
@@ -606,8 +606,8 @@ export default function AsistenteIAPage() {
               {/* Context indicator */}
               {includeContext && (
                 <div className="mt-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 border-blue-800/50 bg-blue-900/20">
-                  <Building2 className="h-4 w-4 shrink-0 text-blue-600 text-blue-400" />
-                  <p className="text-xs text-blue-700 text-blue-300">
+                  <Building2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <p className="text-xs text-emerald-600">
                     <strong>Contexto activo:</strong> Tu empresa tiene 45 trabajadores, régimen GENERAL · Lima
                   </p>
                 </div>
@@ -620,13 +620,13 @@ export default function AsistenteIAPage() {
               {includeContext && (
                 <div className="flex items-center justify-center">
                   <div className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 border-blue-800/50 bg-blue-900/20">
-                    <Building2 className="h-3 w-3 text-blue-600 text-blue-400" />
-                    <p className="text-[10px] text-blue-600 text-blue-400">
+                    <Building2 className="h-3 w-3 text-emerald-600" />
+                    <p className="text-[10px] text-emerald-600">
                       Contexto: Tu empresa tiene 45 trabajadores, régimen GENERAL
                     </p>
                     <button
                       onClick={() => setIncludeContext(false)}
-                      className="ml-1 text-blue-400 hover:text-blue-600 hover:text-blue-300"
+                      className="ml-1 text-emerald-600 hover:text-emerald-600"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -650,7 +650,7 @@ export default function AsistenteIAPage() {
                     'group max-w-[80%] rounded-2xl px-4 py-3',
                     msg.role === 'user'
                       ? 'rounded-tr-sm bg-amber-500 text-white shadow-sm'
-                      : 'rounded-tl-sm border border-white/[0.08] bg-[#141824] shadow-sm border-slate-600 bg-[#141824]'
+                      : 'rounded-tl-sm border border-white/[0.08] bg-white shadow-sm border-[color:var(--border-default)] bg-white'
                   )}>
                     {msg.role === 'user' ? (
                       <p className="text-sm leading-relaxed">{msg.content}</p>
@@ -664,7 +664,7 @@ export default function AsistenteIAPage() {
                             {msg.citations.map((cite, ci) => (
                               <span
                                 key={ci}
-                                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 border-blue-800/50 bg-blue-900/30 text-blue-400"
+                                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 border-blue-800/50 bg-blue-900/30 text-emerald-600"
                               >
                                 <BookOpen className="h-2.5 w-2.5" />
                                 {cite}
@@ -680,7 +680,7 @@ export default function AsistenteIAPage() {
                           </span>
                           <button
                             onClick={() => copyMessage(msg.id, msg.content)}
-                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] text-gray-400 opacity-0 transition-all hover:bg-white/[0.04] hover:text-gray-600 group-hover:opacity-100 hover:bg-white/[0.04] hover:text-gray-300"
+                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] text-gray-400 opacity-0 transition-all hover:bg-[color:var(--neutral-100)] hover:text-gray-600 group-hover:opacity-100 hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-secondary)]"
                           >
                             {copiedId === msg.id
                               ? <><Check className="h-3 w-3 text-green-500" /> Copiado</>
@@ -707,8 +707,8 @@ export default function AsistenteIAPage() {
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
                     <Bot className="h-4 w-4 text-white" />
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm border border-white/[0.08] bg-[#141824] px-4 py-3 shadow-sm border-slate-600 bg-[#141824]">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 text-gray-400">
+                  <div className="rounded-2xl rounded-tl-sm border border-white/[0.08] bg-white px-4 py-3 shadow-sm border-[color:var(--border-default)] bg-white">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
                       <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
                       <span>Analizando legislación peruana...</span>
                     </div>
@@ -732,7 +732,7 @@ export default function AsistenteIAPage() {
         {/* ============================================================ */}
         {/*  INPUT AREA                                                   */}
         {/* ============================================================ */}
-        <div className="shrink-0 border-t border-white/[0.08] bg-[#141824] px-4 pb-4 pt-3 border-white/[0.08] bg-[#141824]">
+        <div className="shrink-0 border-t border-white/[0.08] bg-white px-4 pb-4 pt-3 border-white/[0.08] bg-white">
           <div className="mx-auto max-w-3xl">
             {/* Context indicator inline */}
             {!includeContext && messages.length > 0 && (
@@ -748,7 +748,7 @@ export default function AsistenteIAPage() {
               </div>
             )}
 
-            <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-[#141824] px-3 py-2.5 shadow-sm transition-colors focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400 border-slate-600 bg-white/[0.04]">
+            <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-white px-3 py-2.5 shadow-sm transition-colors focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400 border-[color:var(--border-default)] bg-[color:var(--neutral-100)]">
               <MessageSquare className="mb-0.5 h-4 w-4 shrink-0 text-gray-400" />
               <textarea
                 ref={inputRef}
@@ -758,7 +758,7 @@ export default function AsistenteIAPage() {
                 placeholder="Escribe tu consulta laboral… (Enter para enviar, Shift+Enter nueva línea)"
                 rows={1}
                 maxLength={2000}
-                className="flex-1 resize-none bg-transparent text-sm text-white outline-none placeholder:text-gray-400 text-gray-100 placeholder:text-gray-500"
+                className="flex-1 resize-none bg-transparent text-sm text-white outline-none placeholder:text-gray-100 placeholder:text-gray-500"
                 style={{ maxHeight: '120px' }}
               />
               <div className="flex shrink-0 flex-col items-end gap-1">

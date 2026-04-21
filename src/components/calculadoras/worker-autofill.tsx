@@ -219,7 +219,7 @@ export function WorkerAutoFill({
 
           {/* Buscador */}
           <div className="p-2 border-b border-white/[0.06] border-white/[0.08]">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] bg-white/[0.04] border border-white/[0.08] border-white/10 focus-within:ring-2 focus-within:ring-primary/30">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] border border-white/[0.08] border-white/10 focus-within:ring-2 focus-within:ring-primary/30">
               <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
               <input
                 ref={inputRef}
@@ -287,7 +287,7 @@ export function WorkerAutoFill({
                     'w-full flex items-center gap-3 px-4 py-3 transition-colors text-left group',
                     selected
                       ? 'bg-primary/8'
-                      : 'hover:bg-white/[0.02] hover:bg-white/[0.04]',
+                      : 'hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]',
                   )}
                 >
                   {/* Checkbox (modo múltiple) */}
@@ -322,7 +322,7 @@ export function WorkerAutoFill({
 
                   {/* Badges */}
                   <div className="flex-shrink-0 text-right space-y-0.5">
-                    <span className="block text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-gray-500">
+                    <span className="block text-[10px] px-1.5 py-0.5 rounded-full bg-[color:var(--neutral-100)] text-gray-500">
                       {w.regimenLaboral.replace(/_/g, ' ')}
                     </span>
                     {w.asignacionFamiliar && (

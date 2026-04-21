@@ -44,9 +44,9 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
   })
   const PLAN_MEMBER_LIMITS: Record<string, number> = {
     FREE: 1,
-    STARTER: 5,
-    EMPRESA: 25,
-    PRO: 999,
+    STARTER: 1,
+    EMPRESA: 5,
+    PRO: 999999,
   }
   const limit = PLAN_MEMBER_LIMITS[org?.plan ?? 'FREE'] ?? 1
   if (memberCount >= limit) {

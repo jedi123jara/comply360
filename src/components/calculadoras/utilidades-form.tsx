@@ -137,7 +137,7 @@ export function UtilidadesCalculadora() {
                   placeholder="0.00"
                   min={0}
                   step={10000}
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">Segun la Declaracion Jurada Anual del IR</p>
@@ -151,7 +151,7 @@ export function UtilidadesCalculadora() {
               <select
                 value={sector}
                 onChange={e => setSector(e.target.value)}
-                className="w-full px-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium bg-[#141824] bg-white/[0.04]"
+                className="w-full px-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium bg-[#141824] bg-[color:var(--neutral-100)]"
               >
                 {SECTORES.map(s => (
                   <option key={s.value} value={s.value}>
@@ -195,7 +195,7 @@ export function UtilidadesCalculadora() {
 
           <div className="space-y-4">
             {trabajadores.map((t, i) => (
-              <div key={i} className="p-4 bg-white/[0.02] bg-white/[0.04] rounded-xl border border-white/[0.06] border-white/10 space-y-3">
+              <div key={i} className="p-4 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-xl border border-white/[0.06] border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                     Trabajador {i + 1}
@@ -217,7 +217,7 @@ export function UtilidadesCalculadora() {
                     value={t.nombre}
                     onChange={e => updateWorker(i, 'nombre', e.target.value)}
                     placeholder="Nombre del trabajador"
-                    className="w-full px-3 py-2 border border-white/10 border-white/10 bg-white/[0.04] rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    className="w-full px-3 py-2 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -232,7 +232,7 @@ export function UtilidadesCalculadora() {
                       placeholder="360"
                       min={1}
                       max={360}
-                      className="w-full px-3 py-2 border border-white/10 border-white/10 bg-white/[0.04] rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-semibold"
+                      className="w-full px-3 py-2 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-semibold"
                     />
                   </div>
                   <div>
@@ -246,7 +246,7 @@ export function UtilidadesCalculadora() {
                       placeholder="0.00"
                       min={0}
                       step={1000}
-                      className="w-full px-3 py-2 border border-white/10 border-white/10 bg-white/[0.04] rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-semibold"
+                      className="w-full px-3 py-2 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-semibold"
                     />
                   </div>
                 </div>
@@ -260,7 +260,7 @@ export function UtilidadesCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -394,7 +394,7 @@ export function UtilidadesCalculadora() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-white/[0.02] bg-white/[0.04]">
+                    <tr className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]">
                       <th className="text-left px-4 py-3 font-bold text-gray-300">Trabajador</th>
                       <th className="text-right px-4 py-3 font-bold text-gray-300">Por Dias</th>
                       <th className="text-right px-4 py-3 font-bold text-gray-300">Por Rem.</th>
@@ -404,7 +404,7 @@ export function UtilidadesCalculadora() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {result.detallePorTrabajador.map((t, i) => (
-                      <tr key={i} className="hover:bg-white/[0.02] hover:bg-white/[0.04]">
+                      <tr key={i} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]">
                         <td className="px-4 py-3 font-semibold text-white">{t.nombre}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-gray-600">
                           S/ {t.porDias.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
@@ -509,14 +509,14 @@ export function UtilidadesCalculadora() {
                 <div>
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Formula aplicada:</span>
                   <div className="mt-1.5">
-                    <code className="block bg-white/[0.02] bg-white/[0.04] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed">
+                    <code className="block bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed">
                       Utilidades = Renta Neta x Tasa Sector. 50% se distribuye por dias trabajados (proporcional), 50% por remuneracion anual (proporcional). Tope individual: 18 remuneraciones mensuales.
                     </code>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Base legal:</span>
-                  <div className="flex items-start gap-2 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                  <div className="flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                       D.Leg. 892
                     </span>

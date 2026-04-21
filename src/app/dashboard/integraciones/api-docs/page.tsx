@@ -408,8 +408,8 @@ const groups: EndpointGroup[] = [
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 const methodColors: Record<string, string> = {
-  GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  POST: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  GET: 'bg-emerald-100 text-emerald-600 border-emerald-200',
+  POST: 'bg-blue-500/20 text-emerald-600 border-blue-500/30',
   PUT: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   DELETE: 'bg-red-500/20 text-red-400 border-red-500/30',
 }
@@ -434,20 +434,20 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
   }
 
   return (
-    <div className="relative rounded-lg border border-zinc-200 border-zinc-700 bg-zinc-50 bg-zinc-900 overflow-hidden">
+    <div className="relative rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden">
       {label && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 border-zinc-700 bg-zinc-100 bg-zinc-800/60">
-          <span className="text-xs font-medium text-zinc-500 text-zinc-400">{label}</span>
+        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800/60">
+          <span className="text-xs font-medium text-zinc-400">{label}</span>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors"
           >
             {copied ? <Check size={13} /> : <Copy size={13} />}
             {copied ? 'Copiado' : 'Copiar'}
           </button>
         </div>
       )}
-      <pre className="p-4 overflow-x-auto text-sm leading-relaxed text-zinc-700 text-zinc-300">
+      <pre className="p-4 overflow-x-auto text-sm leading-relaxed text-zinc-300">
         <code>{code}</code>
       </pre>
     </div>
@@ -463,12 +463,12 @@ function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
   return (
     <div
       id={`${endpoint.method}-${endpoint.path}`.replace(/[/:]/g, '-')}
-      className="border border-zinc-200 border-zinc-700/60 rounded-xl overflow-hidden bg-[#141824] bg-zinc-800/40 transition-shadow hover:shadow-md hover:shadow-zinc-900/40"
+      className="border border-zinc-700/60 rounded-xl overflow-hidden bg-white bg-zinc-800/40 transition-shadow hover:shadow-md hover:shadow-zinc-900/40"
     >
       {/* Header */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-zinc-50 hover:bg-zinc-700/30 transition-colors"
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-zinc-700/30 transition-colors"
       >
         <span className={cn('shrink-0 px-2.5 py-1 rounded text-xs font-bold border tracking-wide', methodColorsLight[endpoint.method], 'hidden')}>
           {endpoint.method}
@@ -476,8 +476,8 @@ function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
         <span className={cn('shrink-0 px-2.5 py-1 rounded text-xs font-bold border tracking-wide hidden inline-block', methodColors[endpoint.method])}>
           {endpoint.method}
         </span>
-        <code className="text-sm font-mono text-zinc-800 text-zinc-200">{endpoint.path}</code>
-        <span className="ml-2 text-sm text-zinc-500 text-zinc-400 hidden sm:inline">{endpoint.description.split('.')[0]}</span>
+        <code className="text-sm font-mono text-zinc-200">{endpoint.path}</code>
+        <span className="ml-2 text-sm text-zinc-400 hidden sm:inline">{endpoint.description.split('.')[0]}</span>
         <span className="ml-auto shrink-0 text-zinc-400">
           {open ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
         </span>
@@ -485,22 +485,22 @@ function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
 
       {/* Body */}
       {open && (
-        <div className="border-t border-zinc-200 border-zinc-700/60 px-5 py-5 space-y-5 bg-zinc-50/50 bg-zinc-800/20">
+        <div className="border-t border-zinc-700/60 px-5 py-5 space-y-5 bg-zinc-800/20">
           {/* Description */}
-          <p className="text-sm text-zinc-600 text-zinc-400 leading-relaxed">{endpoint.description}</p>
+          <p className="text-sm text-zinc-400 leading-relaxed">{endpoint.description}</p>
 
           {/* Auth */}
           <div className="flex items-center gap-2 text-sm">
             <Lock size={14} className="text-amber-500" />
-            <span className="text-zinc-500 text-zinc-400">Autenticacion:</span>
-            <code className="text-xs bg-zinc-200 bg-zinc-700 px-2 py-0.5 rounded text-zinc-700 text-zinc-300">Bearer Token</code>
+            <span className="text-zinc-400">Autenticacion:</span>
+            <code className="text-xs bg-zinc-700 px-2 py-0.5 rounded text-zinc-300">Bearer Token</code>
             <span className="text-xs text-red-400 font-medium">(requerido)</span>
           </div>
 
           {/* Request */}
           {endpoint.requestBody && (
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-zinc-700 text-zinc-300 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
                 <Terminal size={14} /> Request Body
               </h4>
               <CodeBlock code={endpoint.requestBody} label="application/json" />
@@ -509,7 +509,7 @@ function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
 
           {/* Response */}
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-zinc-700 text-zinc-300 flex items-center gap-2">
+            <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
               <Code size={14} /> Response
             </h4>
             <CodeBlock code={endpoint.responseBody} label="200 OK - application/json" />
@@ -517,7 +517,7 @@ function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
 
           {/* Status Codes */}
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-zinc-700 text-zinc-300">Codigos de Estado</h4>
+            <h4 className="text-sm font-semibold text-zinc-300">Codigos de Estado</h4>
             <div className="flex flex-wrap gap-2">
               {endpoint.statusCodes.map((sc) => (
                 <span
@@ -525,7 +525,7 @@ function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
                   className={cn(
                     'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border',
                     sc.code < 300
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 bg-emerald-50 text-emerald-600 border-emerald-500/20'
                       : sc.code < 500
                         ? 'bg-amber-50 text-amber-700 border-amber-200 bg-amber-500/10 text-amber-400 border-amber-500/20'
                         : 'bg-red-50 text-red-700 border-red-200 bg-red-500/10 text-red-400 border-red-500/20',
@@ -575,16 +575,16 @@ export default function ApiDocsPage() {
   const totalEndpoints = groups.reduce((s, g) => s + g.endpoints.length, 0)
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#141824] bg-zinc-900">
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white bg-zinc-900">
       {/* ---- Sidebar ---- */}
-      <aside className="hidden lg:flex flex-col w-72 border-r border-zinc-200 border-zinc-800 bg-zinc-50 bg-zinc-900/80 overflow-y-auto">
+      <aside className="hidden lg:flex flex-col w-72 border-r border-zinc-800 bg-zinc-900/80 overflow-y-auto">
         {/* Logo area */}
-        <div className="px-5 pt-6 pb-4 border-b border-zinc-200 border-zinc-800">
+        <div className="px-5 pt-6 pb-4 border-b border-zinc-800">
           <div className="flex items-center gap-2.5 mb-1">
-            <Book size={20} className="text-blue-600 text-blue-400" />
-            <span className="font-bold text-lg text-zinc-800 text-zinc-100">API Reference</span>
+            <Book size={20} className="text-emerald-600" />
+            <span className="font-bold text-lg text-zinc-100">API Reference</span>
           </div>
-          <p className="text-xs text-zinc-500 text-zinc-500 mt-1">COMPLY 360 &mdash; v1.0</p>
+          <p className="text-xs text-zinc-500 mt-1">COMPLY 360 &mdash; v1.0</p>
         </div>
 
         {/* Nav groups */}
@@ -596,24 +596,24 @@ export default function ApiDocsPage() {
                   toggleGroup(g.slug)
                   document.getElementById(`group-${g.slug}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-zinc-700 text-zinc-300 hover:bg-zinc-200/60 hover:bg-zinc-700/40 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-zinc-300 hover:bg-zinc-700/40 transition-colors"
               >
                 {expandedGroups[g.slug] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 {g.name}
                 <span className="ml-auto text-xs text-zinc-400">{g.endpoints.length}</span>
               </button>
               {expandedGroups[g.slug] && (
-                <div className="ml-4 pl-3 border-l border-zinc-200 border-zinc-700 space-y-0.5 mt-1 mb-2">
+                <div className="ml-4 pl-3 border-l border-zinc-700 space-y-0.5 mt-1 mb-2">
                   {g.endpoints.map((ep) => (
                     <a
                       key={`${ep.method}-${ep.path}`}
                       href={`#${ep.method}-${ep.path}`.replace(/[/:]/g, '-')}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-zinc-200/60 hover:bg-zinc-700/40 transition-colors"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-zinc-700/40 transition-colors"
                     >
                       <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-bold border', methodColors[ep.method])}>
                         {ep.method}
                       </span>
-                      <span className="font-mono text-zinc-600 text-zinc-400 truncate">{ep.path}</span>
+                      <span className="font-mono text-zinc-400 truncate">{ep.path}</span>
                     </a>
                   ))}
                 </div>
@@ -623,7 +623,7 @@ export default function ApiDocsPage() {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-zinc-200 border-zinc-800 text-xs text-zinc-400">
+        <div className="px-5 py-4 border-t border-zinc-800 text-xs text-zinc-400">
           {totalEndpoints} endpoints documentados
         </div>
       </aside>
@@ -634,37 +634,37 @@ export default function ApiDocsPage() {
           {/* Back link */}
           <Link
             href="/dashboard/integraciones"
-            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 hover:text-zinc-300 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
           >
             <ArrowLeft size={14} /> Volver a Integraciones
           </Link>
 
           {/* Title */}
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900 text-zinc-100 tracking-tight">
+            <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">
               COMPLY 360 API
             </h1>
-            <p className="mt-2 text-zinc-500 text-zinc-400 text-base leading-relaxed max-w-2xl">
+            <p className="mt-2 text-zinc-400 text-base leading-relaxed max-w-2xl">
               Documentacion de referencia para integrar sistemas externos con la plataforma COMPLY 360.
               Gestiona trabajadores, contratos, calculos laborales, diagnosticos de cumplimiento y mas.
             </p>
           </div>
 
           {/* Base URL */}
-          <div className="rounded-xl border border-zinc-200 border-zinc-700 bg-zinc-50 bg-zinc-800/40 p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-zinc-800 text-zinc-200 flex items-center gap-2">
+          <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
               <Terminal size={16} /> Base URL
             </h2>
             <CodeBlock code={BASE_URL} label="URL base para todas las peticiones" />
           </div>
 
           {/* Auth section */}
-          <div className="rounded-xl border border-blue-200 border-blue-500/20 bg-blue-50/50 bg-blue-500/5 p-5 space-y-4">
-            <h2 className="text-base font-semibold text-zinc-800 text-zinc-200 flex items-center gap-2">
+          <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-5 space-y-4">
+            <h2 className="text-base font-semibold text-zinc-200 flex items-center gap-2">
               <Key size={18} className="text-blue-500" /> Autenticacion
             </h2>
-            <p className="text-sm text-zinc-600 text-zinc-400 leading-relaxed">
-              Todas las peticiones requieren un token de autenticacion en el header <code className="bg-zinc-200 bg-zinc-700 px-1.5 py-0.5 rounded text-xs">Authorization</code>.
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              Todas las peticiones requieren un token de autenticacion en el header <code className="bg-zinc-700 px-1.5 py-0.5 rounded text-xs">Authorization</code>.
               Puedes generar tu API Key desde <strong>Configuracion &rarr; API Keys</strong> en el panel de COMPLY 360.
             </p>
             <CodeBlock
@@ -673,27 +673,27 @@ export default function ApiDocsPage() {
   -H "Content-Type: application/json"`}
               label="Ejemplo de autenticacion"
             />
-            <div className="flex items-start gap-2 text-xs text-amber-600 text-amber-400 bg-amber-50 bg-amber-500/10 border border-amber-200 border-amber-500/20 rounded-lg p-3">
+            <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
               <Lock size={14} className="shrink-0 mt-0.5" />
               <span>Nunca compartas tu API Key publicamente. Si sospechas que ha sido comprometida, revocala inmediatamente desde el panel y genera una nueva.</span>
             </div>
           </div>
 
           {/* Rate limiting */}
-          <div className="rounded-xl border border-zinc-200 border-zinc-700 bg-zinc-50 bg-zinc-800/40 p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-zinc-800 text-zinc-200">Limites de Uso</h2>
+          <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-200">Limites de Uso</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-              <div className="bg-[#141824] bg-zinc-800 rounded-lg p-3 border border-zinc-200 border-zinc-700">
-                <p className="text-zinc-500 text-zinc-400 text-xs">Plan Basico</p>
-                <p className="font-semibold text-zinc-800 text-zinc-200 mt-1">1,000 req/hora</p>
+              <div className="bg-white bg-zinc-800 rounded-lg p-3 border border-zinc-700">
+                <p className="text-zinc-400 text-xs">Plan Basico</p>
+                <p className="font-semibold text-zinc-200 mt-1">1,000 req/hora</p>
               </div>
-              <div className="bg-[#141824] bg-zinc-800 rounded-lg p-3 border border-zinc-200 border-zinc-700">
-                <p className="text-zinc-500 text-zinc-400 text-xs">Plan Pro</p>
-                <p className="font-semibold text-zinc-800 text-zinc-200 mt-1">10,000 req/hora</p>
+              <div className="bg-white bg-zinc-800 rounded-lg p-3 border border-zinc-700">
+                <p className="text-zinc-400 text-xs">Plan Pro</p>
+                <p className="font-semibold text-zinc-200 mt-1">10,000 req/hora</p>
               </div>
-              <div className="bg-[#141824] bg-zinc-800 rounded-lg p-3 border border-zinc-200 border-zinc-700">
-                <p className="text-zinc-500 text-zinc-400 text-xs">Enterprise</p>
-                <p className="font-semibold text-zinc-800 text-zinc-200 mt-1">Ilimitado</p>
+              <div className="bg-white bg-zinc-800 rounded-lg p-3 border border-zinc-700">
+                <p className="text-zinc-400 text-xs">Enterprise</p>
+                <p className="font-semibold text-zinc-200 mt-1">Ilimitado</p>
               </div>
             </div>
           </div>
@@ -706,7 +706,7 @@ export default function ApiDocsPage() {
               placeholder="Buscar endpoints... (ej: workers, POST, contrato)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-zinc-200 border-zinc-700 bg-[#141824] bg-zinc-800 text-sm text-zinc-800 text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-gold/30/40 focus:border-gold/50 transition-all"
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-zinc-700 bg-white bg-zinc-800 text-sm text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-gold/30/40 focus:border-gold/50 transition-all"
             />
           </div>
 
@@ -722,8 +722,8 @@ export default function ApiDocsPage() {
                 ) : (
                   <ChevronRight size={20} className="text-zinc-400 group-hover:text-zinc-600 group-hover:text-zinc-300" />
                 )}
-                <h2 className="text-xl font-bold text-zinc-800 text-zinc-100">{group.name}</h2>
-                <span className="text-xs font-medium text-zinc-400 bg-zinc-100 bg-zinc-800 px-2 py-0.5 rounded-full">
+                <h2 className="text-xl font-bold text-zinc-100">{group.name}</h2>
+                <span className="text-xs font-medium text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full">
                   {group.endpoints.length}
                 </span>
               </button>
@@ -741,15 +741,15 @@ export default function ApiDocsPage() {
           {/* Empty state */}
           {filtered.length === 0 && (
             <div className="text-center py-16">
-              <Search size={40} className="mx-auto text-zinc-300 text-zinc-600 mb-4" />
-              <p className="text-zinc-500 text-zinc-400 text-sm">
+              <Search size={40} className="mx-auto text-zinc-600 mb-4" />
+              <p className="text-zinc-400 text-sm">
                 No se encontraron endpoints que coincidan con &ldquo;{search}&rdquo;
               </p>
             </div>
           )}
 
           {/* Footer */}
-          <div className="border-t border-zinc-200 border-zinc-800 pt-8 pb-4 text-center text-xs text-zinc-400 space-y-1">
+          <div className="border-t border-zinc-800 pt-8 pb-4 text-center text-xs text-zinc-400 space-y-1">
             <p>COMPLY 360 API v1.0 &mdash; Documentacion generada automaticamente</p>
             <p>Para soporte tecnico, contacta a <a href="mailto:soporte@comply360.pe" className="text-blue-500 hover:underline">soporte@comply360.pe</a></p>
           </div>

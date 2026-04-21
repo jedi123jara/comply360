@@ -197,3 +197,329 @@ export function complaintNotification(complaintCode: string, complaintType: stri
     <p style="margin:0;color:#64748b;font-size:12px;">Esta notificacion se envia automaticamente al correo de alertas registrado por su organizacion.</p>
   `)
 }
+
+// ==============================================
+// Worker onboarding cascade email
+// Dispatched when a worker's contract transitions to SIGNED
+// ==============================================
+export interface WorkerOnboardingPayload {
+  workerName: string
+  orgName: string
+  /** Cantidad de OrgDocuments publicados para el trabajador (RIT, políticas, etc). */
+  documentsCount: number
+  /** Cantidad de solicitudes pendientes (docs que debe subir). */
+  pendingActions: number
+}
+
+export function workerOnboardingEmail(payload: WorkerOnboardingPayload): string {
+  const { workerName, orgName, documentsCount, pendingActions } = payload
+  const portalUrl = 'https://app.comply360.pe/mi-portal'
+  return layout(`
+    <h2 style="margin:0 0 12px;color:${BRAND_BLUE};font-size:22px;">Bienvenido a bordo en ${orgName}</h2>
+    <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6;">
+      Hola <strong>${workerName}</strong>, tu contrato ha sido firmado y tu portal en Comply360 ya esta activo.
+      Desde ahi vas a poder ver tus boletas, solicitar vacaciones, y mantener tu documentacion al dia.
+    </p>
+
+    <div style="background-color:${BRAND_LIGHT};border-radius:8px;padding:20px;margin:20px 0;">
+      <h3 style="margin:0 0 12px;color:${BRAND_BLUE};font-size:16px;">Para empezar, tenes:</h3>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding:8px 0;color:#334155;font-size:14px;">
+            <strong style="color:${BRAND_BLUE};">${documentsCount}</strong> documento(s) de la empresa para leer
+            <span style="color:#64748b;font-size:12px;display:block;margin-top:2px;">
+              RIT, politicas de SST, codigo de etica y otros que te compartio tu empleador.
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#334155;font-size:14px;border-top:1px solid #e2e8f0;">
+            <strong style="color:${BRAND_BLUE};">${pendingActions}</strong> accion(es) pendiente(s)
+            <span style="color:#64748b;font-size:12px;display:block;margin-top:2px;">
+              Documentos que la empresa necesita de ti (DNI, CV, examen medico, etc.).
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    ${ctaButton('Ir a mi portal', portalUrl)}
+
+    <p style="margin:16px 0 0;color:#64748b;font-size:13px;line-height:1.6;">
+      Tu portal tambien funciona como app movil — podes instalarlo en tu celular desde el menu del navegador.
+      Firma de documentos con huella, consulta de boletas y mas.
+    </p>
+  `)
+}
+
+// ==============================================
+// Morning briefing (admin) — 7am PET cron
+// Retention tool: darle al admin una razón para abrir COMPLY360 cada mañana
+// ==============================================
+export interface MorningBriefingPayload {
+  orgName: string
+  signedYesterday: number
+  docsUploadedYesterday: number
+  criticalAlertsOpen: number
+  upcomingDeadlines: number
+  multaEvitadaMes: number
+}
+
+export function morningBriefingEmail(payload: MorningBriefingPayload): string {
+  const {
+    orgName,
+    signedYesterday,
+    docsUploadedYesterday,
+    criticalAlertsOpen,
+    upcomingDeadlines,
+    multaEvitadaMes,
+  } = payload
+  const dashboardUrl = 'https://app.comply360.pe/dashboard'
+  const alertsUrl = 'https://app.comply360.pe/dashboard/alertas'
+
+  const hoy = new Date().toLocaleDateString('es-PE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+
+  const multaFmt = new Intl.NumberFormat('es-PE', {
+    style: 'currency',
+    currency: 'PEN',
+    maximumFractionDigits: 0,
+  }).format(multaEvitadaMes)
+
+  return layout(`
+    <h2 style="margin:0 0 8px;color:${BRAND_BLUE};font-size:22px;">Buenos dias, ${orgName}</h2>
+    <p style="margin:0 0 18px;color:#64748b;font-size:13px;">${hoy}</p>
+
+    ${multaEvitadaMes > 0 ? `
+    <div style="background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1px solid #10b981;border-radius:10px;padding:16px;margin-bottom:20px;">
+      <p style="margin:0;color:#065f46;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Multa evitada este mes</p>
+      <p style="margin:4px 0 0;color:#047857;font-size:28px;font-weight:700;">${multaFmt}</p>
+    </div>
+    ` : ''}
+
+    <h3 style="margin:0 0 10px;color:${BRAND_BLUE};font-size:15px;">Lo que paso ayer</h3>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#334155;font-size:14px;">
+          ${signedYesterday > 0 ? `<strong style="color:${BRAND_BLUE};">${signedYesterday}</strong> contrato(s) firmado(s) por trabajadores` : 'Sin firmas nuevas'}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#334155;font-size:14px;">
+          ${docsUploadedYesterday > 0 ? `<strong style="color:${BRAND_BLUE};">${docsUploadedYesterday}</strong> documento(s) subido(s) al legajo` : 'Sin nuevos documentos'}
+        </td>
+      </tr>
+    </table>
+
+    ${criticalAlertsOpen > 0 || upcomingDeadlines > 0 ? `
+    <h3 style="margin:0 0 10px;color:#b45309;font-size:15px;">Para hoy</h3>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      ${criticalAlertsOpen > 0 ? `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#334155;font-size:14px;">
+          <strong style="color:#b91c1c;">${criticalAlertsOpen}</strong> alerta(s) critica(s)/alta(s) abierta(s)
+        </td>
+      </tr>
+      ` : ''}
+      ${upcomingDeadlines > 0 ? `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#334155;font-size:14px;">
+          <strong style="color:#b45309;">${upcomingDeadlines}</strong> contrato(s) vencen en 7 dias
+        </td>
+      </tr>
+      ` : ''}
+    </table>
+    ` : ''}
+
+    ${ctaButton(criticalAlertsOpen > 0 ? 'Resolver alertas' : 'Ir al dashboard', criticalAlertsOpen > 0 ? alertsUrl : dashboardUrl)}
+
+    <p style="margin:18px 0 0;color:#94a3b8;font-size:11px;line-height:1.5;">
+      Recibís este briefing porque tenés un plan activo en COMPLY360. Para desactivar los mails diarios,
+      ajustá tus preferencias en configuracion/notificaciones.
+    </p>
+  `)
+}
+
+// ==============================================
+// Founder Daily Digest — email privado al dueño de la plataforma
+// NO usa el layout() standard — tiene estética propia "god mode"
+// ==============================================
+export interface FounderDigestData {
+  date: string // "Mar 15 abr 2026"
+  mrr: number
+  mrrDeltaVsPrev30d: number
+  mrrDeltaPct: number | null
+  activeSubscriptions: number
+  trialingCount: number
+  newOrgs7d: number
+  activationRate7d: number | null
+  dau: number
+  mau: number
+  stickinessPct: number | null
+  trialsExpiring7d: number
+  churnRiskOrgs: number
+  cancelledLast30d: number
+  aiVerifyAutoVerified30d: number
+  copilotQueries30d: number
+  topEvents7d: Array<{ action: string; count: number }>
+  narrative: string[]
+  adminUrl: string
+}
+
+function fmtS(n: number): string {
+  return `S/ ${n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`
+}
+function fmtDelta(n: number): string {
+  const sign = n > 0 ? '+' : ''
+  return `${sign}${n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`
+}
+function fmtPct(n: number | null): string {
+  return n === null ? '—' : `${n > 0 ? '+' : ''}${n}%`
+}
+
+function kpiRow(label: string, value: string, sub?: string, color?: string): string {
+  return `<tr>
+    <td style="padding:10px 14px;border-bottom:1px solid #27272a;color:#a1a1aa;font-size:13px;">${label}</td>
+    <td style="padding:10px 14px;border-bottom:1px solid #27272a;color:${color ?? '#fafafa'};font-size:15px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;">${value}</td>
+    <td style="padding:10px 14px;border-bottom:1px solid #27272a;color:#71717a;font-size:11px;text-align:right;">${sub ?? ''}</td>
+  </tr>`
+}
+
+export function founderDigestEmail(data: FounderDigestData): string {
+  const mrrDeltaColor = data.mrrDeltaVsPrev30d >= 0 ? '#10b981' : '#ef4444'
+  const churnColor = data.churnRiskOrgs > 0 ? '#f59e0b' : '#10b981'
+  const trialsColor = data.trialsExpiring7d > 0 ? '#f59e0b' : '#a1a1aa'
+
+  const narrativeBlock = data.narrative
+    .map((n) => `<li style="margin:0 0 6px;color:#d4d4d8;font-size:13px;line-height:1.5;">${n}</li>`)
+    .join('')
+
+  const topEventsRows = data.topEvents7d
+    .slice(0, 5)
+    .map(
+      (e) => `<tr>
+        <td style="padding:6px 0;color:#d4d4d8;font-size:12px;font-family:'SF Mono',Menlo,Consolas,monospace;">${e.action}</td>
+        <td style="padding:6px 0;color:#fafafa;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${e.count}</td>
+      </tr>`
+    )
+    .join('')
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#09090b;">
+    <tr><td align="center" style="padding:24px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#0a0a0f;border:1px solid #27272a;border-radius:12px;overflow:hidden;">
+
+        <!-- Header -->
+        <tr>
+          <td style="padding:24px 28px 16px;border-bottom:1px solid #27272a;">
+            <p style="margin:0 0 4px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Founder Digest · Comply360</p>
+            <h1 style="margin:0;color:#fafafa;font-size:22px;font-weight:600;letter-spacing:-0.3px;">${data.date}</h1>
+          </td>
+        </tr>
+
+        <!-- Narrativa -->
+        <tr>
+          <td style="padding:20px 28px;background-color:#0f0f13;">
+            <ul style="margin:0;padding-left:18px;list-style:disc;">
+              ${narrativeBlock}
+            </ul>
+          </td>
+        </tr>
+
+        <!-- Business KPIs -->
+        <tr>
+          <td style="padding:24px 28px 8px;">
+            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">💰 Business</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              ${kpiRow('MRR', fmtS(data.mrr), `${fmtDelta(data.mrrDeltaVsPrev30d)} vs 30d · ${fmtPct(data.mrrDeltaPct)}`, mrrDeltaColor)}
+              ${kpiRow('ARR proyectado', fmtS(data.mrr * 12))}
+              ${kpiRow('Suscripciones activas', `${data.activeSubscriptions}`, `${data.trialingCount} en trial`)}
+              ${kpiRow('Canceladas 30d', `${data.cancelledLast30d}`, data.cancelledLast30d > 0 ? 'revisar' : 'zero churn', data.cancelledLast30d > 0 ? '#ef4444' : '#10b981')}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Growth -->
+        <tr>
+          <td style="padding:16px 28px 8px;">
+            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">📈 Growth</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              ${kpiRow('Nuevas empresas 7d', `${data.newOrgs7d}`)}
+              ${kpiRow('Activation rate', fmtPct(data.activationRate7d), 'cohorte 7-14d')}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Engagement -->
+        <tr>
+          <td style="padding:16px 28px 8px;">
+            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">🔥 Engagement</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              ${kpiRow('DAU / MAU', `${data.dau} / ${data.mau}`, `Stickiness ${fmtPct(data.stickinessPct)}`)}
+              ${kpiRow('IA auto-verify 30d', `${data.aiVerifyAutoVerified30d}`, 'docs sin intervención')}
+              ${kpiRow('Copilot queries 30d', `${data.copilotQueries30d}`)}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Health -->
+        <tr>
+          <td style="padding:16px 28px 8px;">
+            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">⚠️ Health</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              ${kpiRow('Trials expirando 7d', `${data.trialsExpiring7d}`, data.trialsExpiring7d > 0 ? 'outreach' : 'OK', trialsColor)}
+              ${kpiRow('Churn risk (sin login 14d)', `${data.churnRiskOrgs}`, data.churnRiskOrgs > 0 ? 'intervenir' : 'OK', churnColor)}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Top events -->
+        ${
+          topEventsRows
+            ? `<tr>
+          <td style="padding:16px 28px 8px;">
+            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">📊 Top eventos 7d</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              ${topEventsRows}
+            </table>
+          </td>
+        </tr>`
+            : ''
+        }
+
+        <!-- CTA -->
+        <tr>
+          <td align="center" style="padding:24px 28px 28px;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background-color:#10b981;border-radius:8px;">
+                  <a href="${data.adminUrl}" target="_blank" style="display:inline-block;padding:11px 24px;color:#09090b;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
+                    Abrir Founder Console →
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:14px 28px 18px;background-color:#0a0a0f;border-top:1px solid #27272a;">
+            <p style="margin:0;color:#52525b;font-size:10px;text-align:center;line-height:1.5;">
+              Este digest es privado — solo se envía al founder de Comply360. · Generado ${new Date().toISOString()}
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}

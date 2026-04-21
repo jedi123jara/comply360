@@ -16,6 +16,39 @@ const nextConfig: NextConfig = {
         destination: '/mi-portal/:path*',
         permanent: true,
       },
+      // ── Revolución UX Fase B/C: consolidación de 7 hubs ───────────────
+      // Los 3 chatbots IA unificados en /ia-laboral
+      {
+        source: '/dashboard/asistente-ia',
+        destination: '/dashboard/ia-laboral',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/asistente-ia/:path*',
+        destination: '/dashboard/ia-laboral',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/agentes',
+        destination: '/dashboard/ia-laboral?mode=agents',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/analizar-contrato',
+        destination: '/dashboard/ia-laboral?mode=review',
+        permanent: true,
+      },
+      // Documentos y expedientes fusionados
+      {
+        source: '/dashboard/expedientes',
+        destination: '/dashboard/documentos',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/expedientes/:path*',
+        destination: '/dashboard/documentos/:path*',
+        permanent: true,
+      },
     ]
   },
   async headers() {

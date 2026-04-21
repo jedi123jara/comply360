@@ -22,59 +22,75 @@ export interface CulqiPlan {
   highlighted?: boolean
 }
 
-export const CULQI_PLANS: Record<Exclude<Plan, 'FREE'>, CulqiPlan> = {
+/**
+ * CULQI_PLANS — fuente de verdad de pricing transaccional.
+ *
+ * Sincronizado con `src/lib/constants.ts` PLANS. Actualizar juntos.
+ *
+ * ENTERPRISE NO está acá: es contact-sales con pricing customizado + contrato anual.
+ * Si querés facturar un Enterprise estándar, copiar PRO y subir precio a 129900 centimos.
+ */
+// ENTERPRISE excluido porque es contact-sales (no Culqi-charged). Ver /dashboard/planes que redirige a WhatsApp
+export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan> = {
   STARTER: {
     key: 'STARTER',
     name: 'Starter',
-    priceInCentimos: 9900,
-    priceDisplay: 99,
+    priceInCentimos: 12900,
+    priceDisplay: 129,
     currency: 'PEN',
     interval: 'month',
-    description: 'Ideal para emprendedores y pequenas empresas',
+    description: 'Gestor de planilla + calculadoras. Para MYPEs que arrancan su compliance.',
     features: [
-      'Hasta 10 contratos/mes',
-      'Calculadoras laborales basicas',
-      'Alertas normativas',
-      '1 usuario',
+      'Hasta 20 trabajadores',
+      'Gestor de planilla + legajo digital',
+      '13 calculadoras peruanas',
+      'Alertas de vencimientos',
+      'Calendario de compliance',
+      '2 usuarios admin',
       'Soporte por email',
     ],
   },
   EMPRESA: {
     key: 'EMPRESA',
     name: 'Empresa',
-    priceInCentimos: 24900,
-    priceDisplay: 249,
+    priceInCentimos: 29900,
+    priceDisplay: 299,
     currency: 'PEN',
     interval: 'month',
-    description: 'Para empresas en crecimiento con equipos de RRHH',
+    description: 'Compliance SUNAFIL completo para pequeñas empresas.',
     highlighted: true,
     features: [
-      'Hasta 50 contratos/mes',
-      'Calculadoras laborales avanzadas',
-      'Alertas con impacto personalizado',
-      'Hasta 5 usuarios',
-      'Exportar a PDF y DOCX',
-      'Diagnostico de cumplimiento',
+      'Hasta 100 trabajadores',
+      'Todo del plan Starter',
+      'Diagnóstico SUNAFIL 135 preguntas',
+      'Simulacro de inspección básico',
+      'Biblioteca de plantillas con merge fields',
+      'Reportes ejecutivos PDF',
+      '5 usuarios admin',
       'Soporte prioritario',
     ],
   },
   PRO: {
     key: 'PRO',
     name: 'Pro',
-    priceInCentimos: 49900,
-    priceDisplay: 499,
+    priceInCentimos: 64900,
+    priceDisplay: 649,
     currency: 'PEN',
     interval: 'month',
-    description: 'Para corporaciones y estudios de abogados',
+    description: 'IA + portal biométrico para medianas empresas.',
     features: [
-      'Contratos ilimitados',
-      'IA: revision de riesgos contractuales',
-      'Alertas con analisis de impacto',
-      'Usuarios ilimitados',
-      'API access',
-      'Simulacro SUNAFIL completo',
-      'Soporte dedicado 24/7',
-      'Integraciones avanzadas',
+      'Hasta 300 trabajadores',
+      'Todo del plan Empresa',
+      'Asistente IA (copilot)',
+      'Auto-verificación de documentos con IA Vision',
+      'Revisión IA de contratos',
+      'Simulacro SUNAFIL completo + Acta PDF',
+      'Portal del trabajador con firma biométrica',
+      'Cascada de onboarding automatizada',
+      'Canal de denuncias',
+      'SST integral',
+      '15 usuarios admin',
+      'Soporte dedicado',
     ],
   },
 }
@@ -466,9 +482,9 @@ export async function getChargeStatus(
 // =============================================
 
 /**
- * Validate that a plan key is a valid paid plan
+ * Validate that a plan key is Culqi-charged (excluye FREE + ENTERPRISE contact-sales)
  */
-export function isValidPaidPlan(planKey: string): planKey is Exclude<Plan, 'FREE'> {
+export function isValidPaidPlan(planKey: string): planKey is Exclude<Plan, 'FREE' | 'ENTERPRISE'> {
   return planKey in CULQI_PLANS
 }
 

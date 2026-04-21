@@ -59,7 +59,6 @@ export const GET = withAuth(async (_req, ctx: AuthContext) => {
       totalRequiredDocs,
       latestScore,
       enrollmentsCompleted,
-      sstAccidents,
     ] = await Promise.all([
       prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } }),
       prisma.complianceDiagnostic.count({ where: { orgId, type: { in: ['FULL', 'EXPRESS'] } } }),
@@ -69,7 +68,6 @@ export const GET = withAuth(async (_req, ctx: AuthContext) => {
       prisma.workerDocument.count({ where: { worker: { orgId }, isRequired: true } }),
       prisma.complianceScore.findFirst({ where: { orgId }, orderBy: { calculatedAt: 'desc' } }),
       prisma.enrollment.count({ where: { status: 'PASSED' } }).catch(() => 0),
-      prisma.sstRecord.count({ where: { orgId, type: 'ACCIDENTE' } }).catch(() => 0),
     ])
 
     const complianceScore = latestScore?.scoreGlobal ?? 0

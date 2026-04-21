@@ -1,5 +1,5 @@
 import type { AnswerValue, AreaKey, ComplianceQuestion } from './questions/types'
-import { AREAS, getAreaWeight } from './questions/types'
+import { AREAS } from './questions/types'
 
 const UIT = 5500 // 2026
 
@@ -55,6 +55,22 @@ export interface ActionItem {
 }
 
 /**
+ * Calculate gap priority considering:
+ * 1. Severity multiplier (MUY_GRAVE=3, GRAVE=2, LEVE=1)
+ * 2. Question weight (1-5)
+ * 3. Multa amount normalized (higher multa = higher priority)
+ * 4. Detectability bonus (SUNAFIL detects some infractions automatically)
+ */
+function calculateGapPriority(q: ComplianceQuestion, multaPEN: number): number {
+  const gravityFactor = q.infraccionGravedad === 'MUY_GRAVE' ? 3 : q.infraccionGravedad === 'GRAVE' ? 2 : 1
+  const weightScore = q.peso * gravityFactor  // 1-15
+  const multaScore = Math.min(multaPEN / 10000, 10) // normalize to 0-10
+  // Higher priority for areas SUNAFIL checks first (contracts, T-REGISTRO, RMV)
+  const detectionBonus = ['contratos_registro', 'remuneraciones_beneficios', 'sst'].includes(q.area) ? 2 : 0
+  return Math.round((weightScore + multaScore + detectionBonus) * 100) / 100
+}
+
+/**
  * Score a completed diagnostic based on answers
  */
 export function scoreDiagnostic(
@@ -63,7 +79,8 @@ export function scoreDiagnostic(
   totalWorkers: number
 ): DiagnosticResult {
   const answerMap = new Map(answers.map(a => [a.questionId, a]))
-  const workerFactor = Math.max(1, Math.min(totalWorkers, 10)) // Scale fines by workers (capped at 10 for estimation)
+  // D.S. 019-2006-TR Art. 48 — escala correcta de multas por tamaño empresarial
+  const workerFactor = totalWorkers <= 10 ? 1 : totalWorkers <= 50 ? 5 : totalWorkers <= 100 ? 10 : totalWorkers <= 500 ? 20 : 30
 
   // Group questions by area
   const byArea = new Map<AreaKey, ComplianceQuestion[]>()
@@ -114,7 +131,7 @@ export function scoreDiagnostic(
           questionId: q.id, text: q.text, baseLegal: q.baseLegal,
           gravedad: q.infraccionGravedad, multaUIT: q.multaUIT,
           multaPEN: Math.round(multa), answer: 'PARCIAL',
-          priority: q.peso * (q.infraccionGravedad === 'MUY_GRAVE' ? 3 : q.infraccionGravedad === 'GRAVE' ? 2 : 1),
+          priority: calculateGapPriority(q, multa),
         })
       } else {
         // NO or unanswered
@@ -125,7 +142,7 @@ export function scoreDiagnostic(
           questionId: q.id, text: q.text, baseLegal: q.baseLegal,
           gravedad: q.infraccionGravedad, multaUIT: q.multaUIT,
           multaPEN: Math.round(multa), answer: answer ?? 'NO',
-          priority: q.peso * (q.infraccionGravedad === 'MUY_GRAVE' ? 3 : q.infraccionGravedad === 'GRAVE' ? 2 : 1),
+          priority: calculateGapPriority(q, multa),
         })
       }
     }

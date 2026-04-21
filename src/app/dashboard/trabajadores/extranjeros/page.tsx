@@ -105,7 +105,7 @@ export default function ExtranjerosPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/trabajadores"
-          className="rounded-lg p-2 hover:bg-white/[0.04] transition-colors"
+          className="rounded-lg p-2 hover:bg-[color:var(--neutral-100)] transition-colors"
         >
           <ArrowLeft className="h-5 w-5 text-gray-500" />
         </Link>
@@ -195,9 +195,9 @@ export default function ExtranjerosPage() {
       </div>
 
       {/* Progress Bar */}
-      <div className="rounded-lg border border-white/[0.08] bg-[#141824] p-6">
+      <div className="rounded-lg border border-white/[0.08] bg-white p-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-300">
+          <span className="text-sm font-medium text-[color:var(--text-secondary)]">
             Proporcion de trabajadores extranjeros
           </span>
           <span className="text-sm font-bold text-white">{data.percentage}% / {data.limitPercentage}%</span>
@@ -257,7 +257,7 @@ export default function ExtranjerosPage() {
       )}
 
       {/* Foreign Workers Table */}
-      <div className="rounded-lg border border-white/[0.08] bg-[#141824]">
+      <div className="rounded-lg border border-white/[0.08] bg-white">
         <div className="border-b border-white/[0.08] px-6 py-4">
           <h2 className="text-lg font-semibold text-white">
             Trabajadores Extranjeros ({data.foreignCount})
@@ -266,7 +266,7 @@ export default function ExtranjerosPage() {
 
         {data.foreignWorkers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <Globe className="h-12 w-12 mb-3 text-gray-300" />
+            <Globe className="h-12 w-12 mb-3 text-[color:var(--text-secondary)]" />
             <p className="text-lg font-medium">No hay trabajadores extranjeros registrados</p>
             <p className="text-sm">Todos los trabajadores activos tienen nacionalidad peruana</p>
           </div>
@@ -274,7 +274,7 @@ export default function ExtranjerosPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+                <tr className="border-b border-white/[0.06] bg-[color:var(--neutral-50)]">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Nombre
                   </th>
@@ -298,7 +298,7 @@ export default function ExtranjerosPage() {
                   const PermitIcon = permitCfg.icon
 
                   return (
-                    <tr key={worker.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={worker.id} className="hover:bg-[color:var(--neutral-50)] transition-colors">
                       <td className="px-6 py-4">
                         <Link
                           href={`/dashboard/trabajadores/${worker.id}`}
@@ -314,13 +314,13 @@ export default function ExtranjerosPage() {
                           {worker.nationality}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-300">
+                      <td className="px-6 py-4 text-sm text-[color:var(--text-secondary)]">
                         {worker.position || '-'}
                         {worker.department && (
                           <p className="text-xs text-gray-400">{worker.department}</p>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-300">
+                      <td className="px-6 py-4 text-sm text-[color:var(--text-secondary)]">
                         {new Date(worker.fechaIngreso).toLocaleDateString('es-PE')}
                       </td>
                       <td className="px-6 py-4">
@@ -379,7 +379,7 @@ function StatCard({
   bg: string
 }) {
   return (
-    <div className="rounded-lg border border-white/[0.08] bg-[#141824] p-4">
+    <div className="rounded-lg border border-white/[0.08] bg-white p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-500">{label}</p>
         <div className={`rounded-lg p-2 ${bg}`}>{icon}</div>

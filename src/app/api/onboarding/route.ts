@@ -124,12 +124,42 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
     let org = await prisma.organization.findUnique({ where: { id: orgId } })
 
+    // Si se provee RUC, verificar que no esté tomado por OTRA org.
+    // Si lo está, responder 409 con mensaje claro (antes daba 500 Prisma).
+    if (ruc) {
+      const rucOwner = await prisma.organization.findUnique({
+        where: { ruc: String(ruc).trim() },
+        select: { id: true },
+      })
+      if (rucOwner && rucOwner.id !== orgId) {
+        return NextResponse.json(
+          {
+            error:
+              'El RUC ingresado ya está registrado en otra cuenta. Si es tu empresa, contacta soporte para transferir el acceso.',
+          },
+          { status: 409 }
+        )
+      }
+    }
+
     if (org) {
       org = await prisma.organization.update({ where: { id: orgId }, data })
     } else {
+      // New orgs get 14-day PRO trial
+      const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
       org = await prisma.organization.create({
-        data: { id: orgId, ...data, plan: 'STARTER' },
+        data: { id: orgId, ...data, plan: 'PRO', planExpiresAt: trialEnd },
       })
+      // Create trial subscription record
+      await prisma.subscription.create({
+        data: {
+          orgId,
+          plan: 'PRO',
+          status: 'TRIALING',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: trialEnd,
+        },
+      }).catch(() => { /* ignore if already exists */ })
     }
 
     return NextResponse.json({ data: org }, { status: 201 })

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { SstRecordType, SstStatus } from '@/generated/prisma/client'
@@ -30,15 +30,23 @@ export const GET = withAuth(async (req, ctx) => {
       }),
     ])
 
-    // Stats
-    const totalRecords = await prisma.sstRecord.count({ where: { orgId } })
-    const completed = await prisma.sstRecord.count({ where: { orgId, status: 'COMPLETED' } })
-    const overdue = await prisma.sstRecord.count({ where: { orgId, status: 'OVERDUE' } })
-    const pending = await prisma.sstRecord.count({ where: { orgId, status: 'PENDING' } })
+    // Stats — derive from a single groupBy (avoid N extra count queries)
+    const statusCounts = await prisma.sstRecord.groupBy({
+      by: ['status'],
+      where: { orgId },
+      _count: true,
+    })
+    const sm = statusCounts.reduce((acc, c) => { acc[c.status] = c._count; return acc }, {} as Record<string, number>)
 
     return NextResponse.json({
       records,
-      stats: { totalRecords, completed, overdue, pending },
+      stats: {
+        totalRecords: statusCounts.reduce((s, c) => s + c._count, 0),
+        completed: sm['COMPLETED'] ?? 0,
+        overdue: sm['OVERDUE'] ?? 0,
+        pending: sm['PENDING'] ?? 0,
+        inProgress: sm['IN_PROGRESS'] ?? 0,
+      },
       countsByType: counts.reduce((acc, c) => { acc[c.type] = c._count; return acc }, {} as Record<string, number>),
     })
   } catch (error) {

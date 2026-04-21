@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   I18nContext,
   DEFAULT_LOCALE,
@@ -11,38 +11,67 @@ import {
 const STORAGE_KEY = 'comply360_locale'
 
 // ---------------------------------------------------------------------------
+// External store — localStorage sync via useSyncExternalStore (React 19 idiom)
+// ---------------------------------------------------------------------------
+// Esta es la forma "correcta" en React 19 de sincronizar estado con un sistema
+// externo (localStorage). Reemplaza el antipatrón `useEffect → setState` que
+// el ESLint plugin react-hooks/set-state-in-effect señala.
+
+function subscribe(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') return () => {}
+  window.addEventListener('storage', onStoreChange)
+  // Listen to our custom dispatchEvent also
+  window.addEventListener('comply360-locale-change', onStoreChange)
+  return () => {
+    window.removeEventListener('storage', onStoreChange)
+    window.removeEventListener('comply360-locale-change', onStoreChange)
+  }
+}
+
+function getSnapshot(): Locale {
+  if (typeof window === 'undefined') return DEFAULT_LOCALE
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY) as Locale | null
+    if (stored && stored in LOCALE_LABELS) return stored
+  } catch {
+    // localStorage unavailable (privacy mode, etc.)
+  }
+  return DEFAULT_LOCALE
+}
+
+function getServerSnapshot(): Locale {
+  return DEFAULT_LOCALE
+}
+
+function persistLocale(next: Locale): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, next)
+  } catch {
+    // ignore
+  }
+  // Dispatch custom event so other `useSyncExternalStore` subscribers re-read
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('comply360-locale-change'))
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE)
-  const initialized = useRef(false)
+  const locale = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  // Hydrate from localStorage on mount
+  // Sync document.documentElement.lang cuando cambia el locale — en useEffect,
+  // no inline (para no tocar el DOM durante render).
   useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY) as Locale | null
-      if (stored && stored in LOCALE_LABELS) {
-        setLocaleState(stored)
-      }
-    } catch {
-      // localStorage unavailable (SSR / privacy mode)
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale
     }
-  }, [])
+  }, [locale])
 
   const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, next)
-    } catch {
-      // ignore
-    }
-    // Update html lang attribute
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = next
-    }
+    persistLocale(next)
   }, [])
 
   return (
@@ -57,22 +86,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 // ---------------------------------------------------------------------------
 
 export function LanguageSelector({ className }: { className?: string }) {
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE)
+  // Consume el mismo external store que el provider — garantiza consistencia
+  const locale = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-
-  // Sync with context — we read from context indirectly via a mini-provider approach
-  // but for simplicity, read localStorage directly
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY) as Locale | null
-      if (stored && stored in LOCALE_LABELS) {
-        setLocaleState(stored)
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -86,19 +103,10 @@ export function LanguageSelector({ className }: { className?: string }) {
   }, [])
 
   const handleSelect = (next: Locale) => {
-    setLocaleState(next)
+    persistLocale(next)
     setOpen(false)
-    try {
-      localStorage.setItem(STORAGE_KEY, next)
-    } catch {
-      // ignore
-    }
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = next
-    }
-    // Dispatch storage event so the provider can react
-    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: next }))
-    // Reload to apply across the app
+    // Full reload para aplicar el locale a todos los server components que
+    // leen encabezados. TODO: migrar a Server Actions + revalidatePath.
     window.location.reload()
   }
 
@@ -109,7 +117,7 @@ export function LanguageSelector({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#141824] px-3 py-2 text-sm font-medium text-gray-300 shadow-sm transition hover:bg-white/[0.02] focus:outline-none focus:ring-2 focus:ring-blue-500 border-white/[0.08] bg-[#141824] hover:bg-white/[0.04]"
+        className="flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-sm font-medium text-[color:var(--text-secondary)] shadow-sm transition hover:bg-[color:var(--neutral-50)] focus:outline-none focus:ring-2 focus:ring-emerald-500"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Select language"
@@ -131,7 +139,7 @@ export function LanguageSelector({ className }: { className?: string }) {
         <ul
           role="listbox"
           aria-label="Available languages"
-          className="absolute right-0 z-50 mt-1 w-44 overflow-hidden rounded-lg border border-white/[0.08] bg-[#141824] shadow-lg border-white/[0.08] bg-[#141824]"
+          className="absolute right-0 z-50 mt-1 w-44 overflow-hidden rounded-lg border border-[color:var(--border-default)] bg-white shadow-lg"
         >
           {(Object.entries(LOCALE_LABELS) as [Locale, { flag: string; label: string }][]).map(
             ([key, { flag, label }]) => (
@@ -140,10 +148,10 @@ export function LanguageSelector({ className }: { className?: string }) {
                 role="option"
                 aria-selected={key === locale}
                 onClick={() => handleSelect(key)}
-                className={`flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm transition hover:bg-white/[0.04] hover:bg-white/[0.04] ${
+                className={`flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm transition hover:bg-[color:var(--neutral-50)] ${
                   key === locale
-                    ? 'bg-blue-50 font-semibold text-blue-700'
-                    : 'text-gray-700'
+                    ? 'bg-emerald-50 font-semibold text-emerald-700'
+                    : 'text-[color:var(--text-primary)]'
                 }`}
               >
                 <span aria-hidden="true">{flag}</span>

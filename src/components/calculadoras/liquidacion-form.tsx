@@ -9,6 +9,7 @@ import {
   Calculator,
   AlertTriangle,
   Download,
+  FileText,
   MessageCircle,
   Info,
   ChevronDown,
@@ -34,6 +35,7 @@ const MOTIVOS_CESE = [
 export function LiquidacionCalculadora() {
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [selectedWorker, setSelectedWorker] = useState<WorkerData | null>(null)
   const [input, setInput] = useState<LiquidacionInput>({
     sueldoBruto: 0,
@@ -99,6 +101,62 @@ export function LiquidacionCalculadora() {
     }
   }
 
+  /**
+   * Descarga PDF oficial (server-side con jsPDF) — sigue el formato del pack
+   * "Compensaciones Laborales 30°" adaptado por régimen laboral. Incluye
+   * secciones numeradas, fórmulas, base legal por concepto y bloque de firmas.
+   *
+   * A diferencia del botón "Descargar PDF" legacy (popup del navegador),
+   * éste produce un PDF A4 formal con header COMPLY360 directo al disco.
+   */
+  const downloadOfficialPdf = async () => {
+    if (!result) return
+    setDownloadingPdf(true)
+    try {
+      const res = await fetch('/api/liquidacion/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input,
+          worker: selectedWorker
+            ? {
+                fullName: `${selectedWorker.firstName} ${selectedWorker.lastName}`.trim(),
+                dni: selectedWorker.dni,
+                position: selectedWorker.position ?? undefined,
+                regimen: selectedWorker.regimenLaboral,
+              }
+            : undefined,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}) as Record<string, unknown>)
+        throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      const dateSlug = new Date().toISOString().slice(0, 10)
+      const nameSlug = (selectedWorker
+        ? `${selectedWorker.firstName}_${selectedWorker.lastName}`.replace(/[^a-zA-Z0-9]+/g, '_')
+        : 'Trabajador').slice(0, 30)
+      link.download = `COMPLY360_Liquidacion_${nameSlug}_${dateSlug}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      toast({ title: 'PDF generado', description: 'Se descargó la liquidación oficial', type: 'success' })
+    } catch (err) {
+      toast({
+        title: 'Error al generar PDF',
+        description: err instanceof Error ? err.message : 'Intenta de nuevo',
+        type: 'error',
+      })
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
       {/* FORM — Left side */}
@@ -130,7 +188,7 @@ export function LiquidacionCalculadora() {
                   value={input.sueldoBruto || ''}
                   onChange={e => updateField('sueldoBruto', Number(e.target.value))}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
             </div>
@@ -145,7 +203,7 @@ export function LiquidacionCalculadora() {
                   type="date"
                   value={input.fechaIngreso}
                   onChange={e => updateField('fechaIngreso', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
               <div>
@@ -156,7 +214,7 @@ export function LiquidacionCalculadora() {
                   type="date"
                   value={input.fechaCese}
                   onChange={e => updateField('fechaCese', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
             </div>
@@ -169,7 +227,7 @@ export function LiquidacionCalculadora() {
               <select
                 value={input.motivoCese}
                 onChange={e => updateField('motivoCese', e.target.value as LiquidacionInput['motivoCese'])}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               >
                 {MOTIVOS_CESE.map(m => (
                   <option key={m.value} value={m.value}>
@@ -236,7 +294,7 @@ export function LiquidacionCalculadora() {
                   value={input.vacacionesNoGozadas || ''}
                   onChange={e => updateField('vacacionesNoGozadas', Number(e.target.value))}
                   placeholder="0"
-                  className="w-full px-3 py-2.5 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-3 py-2.5 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
 
@@ -249,7 +307,7 @@ export function LiquidacionCalculadora() {
                   value={input.horasExtrasPendientes || ''}
                   onChange={e => updateField('horasExtrasPendientes', Number(e.target.value))}
                   placeholder="0"
-                  className="w-full px-3 py-2.5 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-3 py-2.5 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
 
@@ -264,7 +322,7 @@ export function LiquidacionCalculadora() {
                     value={input.comisionesPromedio || ''}
                     onChange={e => updateField('comisionesPromedio', Number(e.target.value))}
                     placeholder="0.00"
-                    className="w-full pl-10 pr-4 py-2.5 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full pl-10 pr-4 py-2.5 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
               </div>
@@ -302,7 +360,7 @@ export function LiquidacionCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -381,6 +439,20 @@ export function LiquidacionCalculadora() {
                 </button>
                 <button
                   type="button"
+                  onClick={downloadOfficialPdf}
+                  disabled={downloadingPdf || !result}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="PDF oficial con secciones numeradas, fórmulas, base legal por concepto y bloque de firmas. Sigue el formato MTPE."
+                >
+                  {downloadingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4" />
+                  )}
+                  {downloadingPdf ? 'Generando…' : 'PDF Oficial'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => openWhatsApp({
                     type: 'liquidacion',
                     total: result.totalBruto,
@@ -430,7 +502,7 @@ export function LiquidacionCalculadora() {
                       <button
                         type="button"
                         onClick={() => setExpandedItem(isExpanded ? null : key)}
-                        className="w-full px-6 py-4 flex items-center gap-4 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
+                        className="w-full px-6 py-4 flex items-center gap-4 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors text-left"
                       >
                         {/* Progress bar mini */}
                         <div className="w-1 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
@@ -451,7 +523,7 @@ export function LiquidacionCalculadora() {
                           </div>
                           {/* Percentage bar */}
                           <div className="mt-2 flex items-center gap-3">
-                            <div className="flex-1 h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                            <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-700"
                                 style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -472,7 +544,7 @@ export function LiquidacionCalculadora() {
 
                       {/* Expanded detail */}
                       {isExpanded && (
-                        <div className="px-6 pb-4 bg-white/[0.02] bg-white/[0.04]/50 border-t border-white/[0.06] border-white/[0.08]">
+                        <div className="px-6 pb-4 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50 border-t border-white/[0.06] border-white/[0.08]">
                           <div className="ml-5 space-y-3 pt-3">
                             <div className="flex items-center gap-2 text-xs">
                               <span className="font-semibold text-gray-500 uppercase tracking-wider">Fórmula:</span>
@@ -507,7 +579,7 @@ export function LiquidacionCalculadora() {
                 {result.legalBasis.map((ref, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-2 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg"
+                    className="flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg"
                   >
                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                       {ref.norm}

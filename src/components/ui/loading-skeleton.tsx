@@ -14,7 +14,7 @@ function Shimmer({ className, ...props }: ShimmerProps) {
   return (
     <div
       className={cn(
-        'animate-pulse rounded-lg bg-gray-200 bg-white/[0.04]',
+        'animate-pulse rounded-lg bg-gray-200 bg-[color:var(--neutral-100)]',
         className
       )}
       {...props}
@@ -73,7 +73,7 @@ export function SkeletonTable({ rows = 5, columns = 4, className }: SkeletonTabl
       )}
     >
       {/* Header */}
-      <div className="flex gap-4 border-b border-white/[0.08] bg-white/[0.02] px-5 py-3 border-white/[0.08] bg-[#141824]/80">
+      <div className="flex gap-4 border-b border-white/[0.08] bg-[color:var(--neutral-50)] px-5 py-3 border-white/[0.08] bg-[#141824]/80">
         {Array.from({ length: columns }).map((_, i) => (
           <Shimmer key={`th-${i}`} className="h-3.5 flex-1" />
         ))}

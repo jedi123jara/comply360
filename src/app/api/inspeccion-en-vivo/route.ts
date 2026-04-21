@@ -9,13 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
-import {
-  getSolicitudesInspeccion,
-  evaluarSolicitud,
-  generarResultadoSimulacro,
-  type InspeccionTipo,
-  type HallazgoInspeccion,
-} from '@/lib/compliance/simulacro-engine'
+import { getSolicitudesInspeccion, evaluarSolicitud, type InspeccionTipo, type HallazgoInspeccion } from '@/lib/compliance/simulacro-engine'
 
 // ─── GET — List inspection sessions ─────────────────────────────────────────
 

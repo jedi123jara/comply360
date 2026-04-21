@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Siren, Shield, ShieldAlert, ShieldCheck, AlertTriangle,
-  Play, Pause, CheckCircle2, Download, ArrowLeft, Loader2,
-  Clock, Users, FileText, TrendingDown, History,
-} from 'lucide-react'
+import { Siren, Shield, ShieldAlert, ShieldCheck, AlertTriangle, Pause, CheckCircle2, Download, ArrowLeft, Loader2, FileText, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LiveChecklist, type ChecklistItem, type ChecklistItemStatus } from '@/components/ui/live-checklist'
 import type { SolicitudInspector, HallazgoInspeccion, ResultadoSimulacro } from '@/lib/compliance/simulacro-engine'
@@ -253,23 +249,23 @@ export default function InspeccionEnVivoPage() {
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 bg-red-900/30">
-              <Siren className="h-5 w-5 text-red-600 text-red-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-900/30">
+              <Siren className="h-5 w-5 text-red-400" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Modo Inspeccion en Vivo</h1>
-              <p className="text-sm text-gray-500 text-gray-400">SUNAFIL esta aqui. Activa el modo crisis.</p>
+              <p className="text-sm text-gray-400">SUNAFIL esta aqui. Activa el modo crisis.</p>
             </div>
           </div>
         </div>
 
         {/* Alert banner */}
-        <div className="rounded-xl bg-red-50 bg-red-900/20 border border-red-200 border-red-800 p-5">
+        <div className="rounded-xl bg-red-900/20 border border-red-800 p-5">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 text-red-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm font-semibold text-red-800 text-red-300">Cuando usar este modo</h3>
-              <p className="text-xs text-red-700 text-red-400 mt-1">
+              <h3 className="text-sm font-semibold text-red-300">Cuando usar este modo</h3>
+              <p className="text-xs text-red-400 mt-1">
                 Activa este modo cuando un inspector de SUNAFIL se presente en tu empresa. Te guiaremos documento por documento
                 verificando en tiempo real tu legajo digital. Podras subir fotos y evidencias al instante.
               </p>
@@ -278,16 +274,16 @@ export default function InspeccionEnVivoPage() {
         </div>
 
         {/* Setup form */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm">
+        <div className="rounded-xl border border-white/[0.08] bg-white shadow-sm">
           <div className="border-b border-white/[0.08] px-6 py-4">
             <h2 className="text-base font-semibold text-white">Datos de la Inspeccion</h2>
-            <p className="text-xs text-gray-500 text-gray-400">Completa los datos del inspector y la orden</p>
+            <p className="text-xs text-gray-400">Completa los datos del inspector y la orden</p>
           </div>
 
           <div className="p-6 space-y-5">
             {/* Tipo de inspeccion */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-2">Tipo de inspeccion</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Tipo de inspeccion</label>
               <div className="grid grid-cols-3 gap-3">
                 {([
                   { value: 'PREVENTIVA' as const, label: 'Preventiva', desc: 'Sin denuncia previa — revision general', icon: Shield },
@@ -301,13 +297,13 @@ export default function InspeccionEnVivoPage() {
                     className={cn(
                       'rounded-xl border-2 p-4 text-left transition-all',
                       tipo === opt.value
-                        ? 'border-red-500 bg-red-50 bg-red-900/20'
-                        : 'border-white/[0.08] border-slate-600 hover:border-white/10',
+                        ? 'border-red-500 bg-red-900/20'
+                        : 'border-white/[0.08] border-[color:var(--border-default)] hover:border-white/10',
                     )}
                   >
                     <opt.icon className={cn('h-5 w-5 mb-2', tipo === opt.value ? 'text-red-600' : 'text-gray-400')} />
                     <p className="text-sm font-medium text-white">{opt.label}</p>
-                    <p className="text-xs text-gray-500 text-gray-400 mt-1">{opt.desc}</p>
+                    <p className="text-xs text-gray-400 mt-1">{opt.desc}</p>
                   </button>
                 ))}
               </div>
@@ -322,7 +318,7 @@ export default function InspeccionEnVivoPage() {
                   value={inspectorName}
                   onChange={e => setInspectorName(e.target.value)}
                   placeholder="Nombre completo"
-                  className="w-full rounded-lg border border-white/[0.08] border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full rounded-lg border border-white/[0.08] border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
               <div>
@@ -333,7 +329,7 @@ export default function InspeccionEnVivoPage() {
                   onChange={e => setInspectorDNI(e.target.value)}
                   placeholder="12345678"
                   maxLength={8}
-                  className="w-full rounded-lg border border-white/[0.08] border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full rounded-lg border border-white/[0.08] border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
               <div>
@@ -343,7 +339,7 @@ export default function InspeccionEnVivoPage() {
                   value={ordenInspeccion}
                   onChange={e => setOrdenInspeccion(e.target.value)}
                   placeholder="OI-2026-XXXXX"
-                  className="w-full rounded-lg border border-white/[0.08] border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full rounded-lg border border-white/[0.08] border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
             </div>
@@ -362,7 +358,7 @@ export default function InspeccionEnVivoPage() {
         </div>
 
         {/* Past sessions */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm">
+        <div className="rounded-xl border border-white/[0.08] bg-white shadow-sm">
           <div className="border-b border-white/[0.08] px-6 py-4 flex items-center gap-2">
             <History className="h-4 w-4 text-gray-400" />
             <h2 className="text-base font-semibold text-white">Historial de Inspecciones</h2>
@@ -374,8 +370,8 @@ export default function InspeccionEnVivoPage() {
             </div>
           ) : pastSessions.length === 0 ? (
             <div className="px-6 py-8 text-center">
-              <Shield className="h-8 w-8 text-gray-300 text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 text-gray-400">No hay inspecciones registradas</p>
+              <Shield className="h-8 w-8 text-[color:var(--text-secondary)] mx-auto mb-2" />
+              <p className="text-sm text-gray-400">No hay inspecciones registradas</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-700">
@@ -386,7 +382,7 @@ export default function InspeccionEnVivoPage() {
                     key={s.id}
                     type="button"
                     onClick={() => router.push(`/dashboard/inspeccion-en-vivo/${s.id}`)}
-                    className="w-full flex items-center gap-4 px-6 py-3.5 text-left hover:bg-white/[0.02] hover:bg-white/[0.04]/50 transition-colors"
+                    className="w-full flex items-center gap-4 px-6 py-3.5 text-left hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50 transition-colors"
                   >
                     <div className={cn(
                       'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold',
@@ -401,13 +397,13 @@ export default function InspeccionEnVivoPage() {
                       <p className="text-sm font-medium text-white">
                         {s.tipo} {s.inspectorName ? `— ${s.inspectorName}` : ''}
                       </p>
-                      <p className="text-xs text-gray-500 text-gray-400">
+                      <p className="text-xs text-gray-400">
                         {new Date(s.startedAt).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
                         {s.status === 'ACTIVE' && <span className="ml-2 text-red-500 font-semibold">EN CURSO</span>}
                       </p>
                     </div>
                     {s.multaEstimada !== null && (
-                      <span className="text-xs font-bold text-red-600 text-red-400 tabular-nums">
+                      <span className="text-xs font-bold text-red-400 tabular-nums">
                         S/ {Number(s.multaEstimada).toLocaleString('es-PE')}
                       </span>
                     )}
@@ -429,7 +425,7 @@ export default function InspeccionEnVivoPage() {
     return (
       <div className="space-y-4">
         {/* Top bar — sticky with running stats */}
-        <div className="sticky top-0 z-30 bg-[#141824] border-b border-white/[0.08] -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 shadow-sm">
+        <div className="sticky top-0 z-30 bg-white border-b border-white/[0.08] -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Siren className="h-5 w-5 text-red-500 animate-pulse" />
@@ -437,7 +433,7 @@ export default function InspeccionEnVivoPage() {
                 <p className="text-sm font-bold text-white">
                   Inspeccion en curso — {session?.tipo}
                 </p>
-                <p className="text-xs text-gray-500 text-gray-400">
+                <p className="text-xs text-gray-400">
                   {completedCount}/{checklistItems.length} revisados
                 </p>
               </div>
@@ -446,8 +442,8 @@ export default function InspeccionEnVivoPage() {
             <div className="flex items-center gap-4">
               {/* Running multa */}
               <div className="text-right hidden sm:block">
-                <p className="text-xs text-gray-500 text-gray-400">Multa estimada</p>
-                <p className="text-lg font-bold text-red-600 text-red-400 tabular-nums">
+                <p className="text-xs text-gray-400">Multa estimada</p>
+                <p className="text-lg font-bold text-red-400 tabular-nums">
                   S/ {totalMulta.toLocaleString('es-PE')}
                 </p>
               </div>
@@ -456,7 +452,7 @@ export default function InspeccionEnVivoPage() {
               <button
                 type="button"
                 onClick={handlePause}
-                className="flex items-center gap-1 rounded-lg border border-white/[0.08] border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+                className="flex items-center gap-1 rounded-lg border border-white/[0.08] border-[color:var(--border-default)] px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]"
               >
                 <Pause className="h-3.5 w-3.5" /> Pausar
               </button>
@@ -474,7 +470,7 @@ export default function InspeccionEnVivoPage() {
           </div>
 
           {/* Progress bar */}
-          <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.04]">
+          <div className="mt-2 h-1.5 w-full rounded-full bg-[color:var(--neutral-100)]">
             <div
               className="h-1.5 rounded-full bg-amber-500 transition-all duration-500"
               style={{ width: `${(completedCount / checklistItems.length) * 100}%` }}
@@ -482,7 +478,7 @@ export default function InspeccionEnVivoPage() {
           </div>
 
           {/* Mini stats */}
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 text-gray-400">
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
             <span className="text-emerald-600 font-medium">{cumpleCount} cumple</span>
             <span className="text-amber-600 font-medium">{parcialCount} parcial</span>
             <span className="text-red-600 font-medium">{noCount} incumple</span>
@@ -517,7 +513,7 @@ export default function InspeccionEnVivoPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Resultado de la Inspeccion</h1>
-            <p className="text-sm text-gray-500 text-gray-400">{session?.tipo} — Finalizada</p>
+            <p className="text-sm text-gray-400">{session?.tipo} — Finalizada</p>
           </div>
           <button
             type="button"
@@ -543,7 +539,7 @@ export default function InspeccionEnVivoPage() {
           </p>
           <p className={cn(
             'text-lg font-semibold mt-2',
-            score >= 80 ? 'text-emerald-700 text-emerald-400' : score >= 60 ? 'text-amber-700 text-amber-400' : 'text-red-700 text-red-400',
+            score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-400' : 'text-red-400',
           )}>
             {score >= 80 ? 'Nivel aceptable de compliance' : score >= 60 ? 'Nivel en riesgo — mejoras necesarias' : 'Nivel critico — accion inmediata'}
           </p>
@@ -552,10 +548,10 @@ export default function InspeccionEnVivoPage() {
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Cumple', value: resultado.cumple, color: 'text-emerald-600 bg-emerald-50 bg-emerald-900/20' },
-            { label: 'Parcial', value: resultado.parcial, color: 'text-amber-600 bg-amber-50 bg-amber-900/20' },
-            { label: 'Incumple', value: resultado.noCumple, color: 'text-red-600 bg-red-50 bg-red-900/20' },
-            { label: 'Multa Total', value: `S/ ${multa.toLocaleString()}`, color: 'text-red-700 bg-red-100 bg-red-900/30' },
+            { label: 'Cumple', value: resultado.cumple, color: 'text-emerald-600 bg-emerald-900/20' },
+            { label: 'Parcial', value: resultado.parcial, color: 'text-amber-600 bg-amber-900/20' },
+            { label: 'Incumple', value: resultado.noCumple, color: 'text-red-600 bg-red-900/20' },
+            { label: 'Multa Total', value: `S/ ${multa.toLocaleString()}`, color: 'text-red-700 bg-red-900/30' },
           ].map(({ label, value, color }) => (
             <div key={label} className={cn('rounded-xl p-4 text-center', color)}>
               <p className="text-2xl font-bold">{value}</p>
@@ -565,28 +561,28 @@ export default function InspeccionEnVivoPage() {
         </div>
 
         {/* Subsanation discounts */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm">
+        <div className="rounded-xl border border-white/[0.08] bg-white shadow-sm">
           <div className="border-b border-white/[0.08] px-6 py-4">
             <h2 className="text-base font-semibold text-white">Descuento por Subsanacion</h2>
           </div>
           <div className="grid grid-cols-3 divide-x divide-slate-700 text-center">
             <div className="p-4">
               <p className="text-lg font-bold text-red-600">S/ {multa.toLocaleString()}</p>
-              <p className="text-xs text-gray-500 text-gray-400 mt-1">Sin subsanar (0%)</p>
+              <p className="text-xs text-gray-400 mt-1">Sin subsanar (0%)</p>
             </div>
             <div className="p-4">
               <p className="text-lg font-bold text-amber-600">S/ {sub70.toLocaleString()}</p>
-              <p className="text-xs text-gray-500 text-gray-400 mt-1">Durante inspeccion (-70%)</p>
+              <p className="text-xs text-gray-400 mt-1">Durante inspeccion (-70%)</p>
             </div>
-            <div className="p-4 bg-emerald-50 bg-emerald-900/10">
+            <div className="p-4 bg-emerald-900/10">
               <p className="text-lg font-bold text-emerald-600">S/ {sub90.toLocaleString()}</p>
-              <p className="text-xs text-emerald-700 text-emerald-400 mt-1 font-medium">Antes de inspeccion (-90%)</p>
+              <p className="text-xs text-emerald-600 mt-1 font-medium">Antes de inspeccion (-90%)</p>
             </div>
           </div>
         </div>
 
         {/* Infracciones breakdown */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm p-6">
+        <div className="rounded-xl border border-white/[0.08] bg-white shadow-sm p-6">
           <h3 className="text-sm font-semibold text-white mb-3">Infracciones por Gravedad</h3>
           <div className="flex items-center gap-6">
             <span className="text-xs"><span className="inline-block w-3 h-3 rounded bg-amber-400 mr-1" /> Leves: {resultado.infraccionesLeves}</span>
@@ -600,14 +596,14 @@ export default function InspeccionEnVivoPage() {
           <button
             type="button"
             onClick={() => router.push('/dashboard/diagnostico')}
-            className="flex items-center gap-2 rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+            className="flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] px-4 py-2 text-sm font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]"
           >
             <FileText className="h-4 w-4" /> Diagnostico Completo
           </button>
           <button
             type="button"
             onClick={() => { setPhase('setup'); setSession(null); setResultado(null) }}
-            className="flex items-center gap-2 rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+            className="flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] px-4 py-2 text-sm font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al inicio
           </button>

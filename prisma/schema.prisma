@@ -50,6 +50,7 @@ model Organization {
   auditLogs        AuditLog[]
   subscription     Subscription?
   diagnostics      ComplianceDiagnostic[]
+  complianceTasks  ComplianceTask[]
   complaints       Complaint[]
   invitations      Invitation[]
   payslips         Payslip[]
@@ -90,6 +91,7 @@ enum Plan {
   STARTER
   EMPRESA
   PRO
+  ENTERPRISE
 }
 
 model User {
@@ -101,6 +103,12 @@ model User {
   lastName  String?  @map("last_name")
   role      UserRole @default(MEMBER)
   avatarUrl String?  @map("avatar_url")
+  // Web Push subscription (Fase D). JSON con { endpoint, keys.p256dh, keys.auth }.
+  pushSubscription Json? @map("push_subscription")
+  // Gamificación — Fase D Sprint 5
+  streakCurrent    Int       @default(0) @map("streak_current")
+  streakLongest    Int       @default(0) @map("streak_longest")
+  streakLastAt     DateTime? @map("streak_last_at")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -110,8 +118,38 @@ model User {
   calculations   Calculation[]
   auditLogs      AuditLog[]
   workerRequests WorkerRequest[] @relation("RequestReviewer")
+  gamificationEvents GamificationEvent[]
 
   @@map("users")
+}
+
+// Gamificación — eventos que suman puntos y desbloquean logros
+model GamificationEvent {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  orgId     String?  @map("org_id")
+  type      GamificationEventType
+  points    Int      @default(0)
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([orgId, type])
+  @@map("gamification_events")
+}
+
+enum GamificationEventType {
+  WORKER_CREATED
+  DOCUMENT_UPLOADED
+  ALERT_RESOLVED
+  DIAGNOSTIC_COMPLETED
+  SIMULACRO_COMPLETED
+  CONTRACT_SIGNED
+  DAILY_STREAK
+  BADGE_UNLOCKED
+  SCORE_MILESTONE
 }
 
 enum UserRole {
@@ -181,7 +219,7 @@ model Worker {
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  organization    Organization     @relation(fields: [orgId], references: [id])
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user            User?            @relation(fields: [userId], references: [id])
   documents       WorkerDocument[]
   workerContracts WorkerContract[]
@@ -257,7 +295,7 @@ model WorkerDocument {
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
-  worker Worker @relation(fields: [workerId], references: [id])
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
   @@index([workerId, category])
   @@index([expiresAt])
@@ -292,7 +330,7 @@ model VacationRecord {
   esDoble          Boolean   @default(false) @map("es_doble")
   createdAt        DateTime  @default(now()) @map("created_at")
 
-  worker Worker @relation(fields: [workerId], references: [id])
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
   @@index([workerId])
   @@map("vacation_records")
@@ -304,10 +342,12 @@ model WorkerContract {
   contractId String   @map("contract_id")
   assignedAt DateTime @default(now()) @map("assigned_at")
 
-  worker   Worker   @relation(fields: [workerId], references: [id])
+  worker   Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
   contract Contract @relation(fields: [contractId], references: [id])
 
   @@unique([workerId, contractId])
+  @@index([workerId])
+  @@index([contractId])
   @@map("worker_contracts")
 }
 
@@ -325,9 +365,10 @@ model WorkerAlert {
   resolvedBy    String?         @map("resolved_by")
   createdAt     DateTime        @default(now()) @map("created_at")
 
-  worker Worker @relation(fields: [workerId], references: [id])
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
   @@index([orgId, severity])
+  @@index([orgId, resolvedAt]) // hot path: filtro resolvedAt IS NULL (12 archivos)
   @@index([dueDate])
   @@map("worker_alerts")
 }
@@ -421,6 +462,7 @@ model Contract {
 
   @@index([orgId, status])
   @@index([orgId, type])
+  @@index([orgId, expiresAt]) // calendar queries por fecha en ventana
   @@index([expiresAt])
   @@map("contracts")
 }
@@ -549,6 +591,7 @@ model NormAlert {
   norm      LegalNorm  @relation(fields: [normId], references: [id])
   orgAlerts OrgAlert[]
 
+  @@index([impactLevel, publishedAt])
   @@map("norm_alerts")
 }
 
@@ -625,10 +668,63 @@ model ComplianceDiagnostic {
   completedAt      DateTime?      @map("completed_at")
   createdAt        DateTime       @default(now()) @map("created_at")
 
-  organization Organization @relation(fields: [orgId], references: [id])
+  organization Organization     @relation(fields: [orgId], references: [id])
+  tasks        ComplianceTask[]
 
   @@index([orgId, createdAt])
+  @@index([orgId, type]) // queries filtran por FULL|EXPRESS|SIMULATION
   @@map("compliance_diagnostics")
+}
+
+// Tareas accionables derivadas de brechas detectadas en un diagnostico o simulacro.
+// Cada task representa una brecha priorizada que alguien debe resolver — con
+// responsable opcional, plazo, gravedad y evidencia de subsanacion.
+//
+// F2.1 del plan maestro: "Boton 'Generar Plan de Accion' que crea tareas en el sistema".
+model ComplianceTask {
+  id            String                @id @default(cuid())
+  orgId         String                @map("org_id")
+  diagnosticId  String?               @map("diagnostic_id") // null si creada manualmente
+  // Origen dentro del diagnostico (questionId del scorer o solicitudId del simulacro)
+  sourceId      String?               @map("source_id")
+  area          String                // area_key: "sst", "contratos_registro", etc.
+  priority      Int                   @default(0) // 1 = mas urgente
+  title         String                // accion corta: "Implementar IPERC firmado"
+  description   String?               @db.Text // accion completa + contexto
+  baseLegal     String?               @map("base_legal") // "Ley 29783, Art. 57"
+  gravedad      InfracGravedad        @default(LEVE)
+  multaEvitable Decimal?              @map("multa_evitable") @db.Decimal(12, 2)
+  plazoSugerido String?               @map("plazo_sugerido") // "Inmediato (7 dias)"
+  dueDate       DateTime?             @map("due_date")
+  assignedTo    String?               @map("assigned_to") // userId del responsable
+  status        ComplianceTaskStatus  @default(PENDING)
+  evidenceUrl   String?               @map("evidence_url")
+  notes         String?               @db.Text
+  completedAt   DateTime?             @map("completed_at")
+  completedBy   String?               @map("completed_by") // userId
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  organization Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  diagnostic   ComplianceDiagnostic? @relation(fields: [diagnosticId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, status])
+  @@index([orgId, dueDate])
+  @@index([diagnosticId])
+  @@map("compliance_tasks")
+}
+
+enum ComplianceTaskStatus {
+  PENDING      // Creada, sin asignar
+  IN_PROGRESS  // En proceso de subsanacion
+  COMPLETED    // Resuelta con evidencia
+  DISMISSED    // Descartada (ej. NA para este caso)
+}
+
+enum InfracGravedad {
+  LEVE
+  GRAVE
+  MUY_GRAVE
 }
 
 enum DiagnosticType {
@@ -1103,6 +1199,7 @@ model AuditLog {
   user         User?        @relation(fields: [userId], references: [id])
 
   @@index([orgId, createdAt])
+  @@index([orgId, action]) // lookups de document.ai_verified, consent.accepted.*, etc.
   @@index([entityType, entityId])
   @@map("audit_logs")
 }
@@ -1177,6 +1274,7 @@ model Payslip {
 
   @@unique([workerId, periodo])
   @@index([orgId, periodo])
+  @@index([orgId, status]) // portal worker + cron filtros
   @@index([workerId, periodo])
   @@map("payslips")
 }
@@ -1435,5 +1533,58 @@ model InspeccionEnVivo {
   @@index([orgId, status])
   @@index([orgId, createdAt])
   @@map("inspecciones_en_vivo")
+}
+
+// =============================================
+// LEADS — Captura de prospectos (diagnóstico gratis, landing, etc.)
+// =============================================
+
+model Lead {
+  id             String     @id @default(cuid())
+  email          String
+  companyName    String?    @map("company_name")
+  companySize    String?    @map("company_size") // 1-10, 11-50, 51-200, 200+
+  sector         String?
+  phone          String?
+  source         LeadSource @default(DIAGNOSTICO_GRATIS)
+  // Diagnóstico express results (if applicable)
+  scoreGlobal    Int?       @map("score_global")
+  multaEstimada  Decimal?   @map("multa_estimada") @db.Decimal(12, 2)
+  scoreByArea    Json?      @map("score_by_area")
+  // Tracking
+  convertedAt    DateTime?  @map("converted_at") // cuando se registra como usuario
+  convertedOrgId String?    @map("converted_org_id")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([source, createdAt])
+  @@map("leads")
+}
+
+enum LeadSource {
+  DIAGNOSTICO_GRATIS
+  LANDING_PAGE
+  REFERRAL
+  WEBINAR
+  MANUAL
+}
+
+// =============================================
+// SUNAT QUERY CACHE
+// =============================================
+
+model SunatQueryCache {
+  id         String   @id @default(cuid())
+  orgId      String?  @map("org_id")
+  ruc        String
+  queryType  String   @map("query_type") // "deuda", "representantes", "trabajadores", "establecimientos"
+  resultJson Json     @map("result_json")
+  queriedAt  DateTime @default(now()) @map("queried_at")
+  expiresAt  DateTime @map("expires_at")
+
+  @@index([ruc, queryType])
+  @@index([expiresAt])
+  @@map("sunat_query_cache")
 }
 

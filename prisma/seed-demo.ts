@@ -171,7 +171,8 @@ async function cleanup() {
 }
 
 // ── Helpers para contratos, SST, cálculos, diagnósticos, alertas, denuncias ──
-function makeContracts(orgId: string, userId: string, workerCount: number) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function makeContracts(orgId: string, userId: string, _workerCount: number) {
   const types: ContractType[] = [
     'LABORAL_INDEFINIDO','LABORAL_PLAZO_FIJO','LABORAL_TIEMPO_PARCIAL',
     'POLITICA_SST','POLITICA_HOSTIGAMIENTO','REGLAMENTO_INTERNO',

@@ -1286,6 +1286,792 @@ SANCIONES: Las empresas que declaren falsamente su tamaño para obtener los bene
     tags: ['mype', 'ley 32353', 'nueva ley mype', 'microempresa', 'pequeña empresa', 'mediana empresa', 'remype', 'sunat'],
     vigente: true,
   },
+
+  // ══════════════════════════════════════════════════════════════
+  // INFRACCIONES LABORALES — D.S. 019-2006-TR
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'infracciones-leves-detalle',
+    norma: 'D.S. 019-2006-TR',
+    articulo: 'Art. 23',
+    titulo: 'Infracciones Leves en Materia de Relaciones Laborales',
+    texto: `Son infracciones leves las siguientes conductas del empleador (Art. 23 D.S. 019-2006-TR):
+1. No comunicar y registrar ante la Autoridad competente, en los plazos y con los requisitos previstos, la documentación o información exigida por las normas de trabajo.
+2. No entregar al trabajador, en los plazos y con los requisitos previstos, copia del contrato de trabajo, boletas de pago de remuneraciones, hojas de liquidación de CTS u otros documentos que deben serle entregados según la normativa.
+3. No exhibir en lugar visible del centro de trabajo el horario de trabajo, o no dar a conocer por otro medio adecuado a los trabajadores el horario de trabajo vigente.
+4. No contar con el registro de control de asistencia, o impedir o sustituir al trabajador en el registro de su tiempo de trabajo.
+5. No cumplir las obligaciones relativas a boletas de pago o registro de trabajadores.
+6. Cualesquiera otros incumplimientos que afecten obligaciones meramente formales o documentarias.
+
+MULTAS (escala vigente 2026): de 0.045 UIT (S/ 247.50) hasta 4.95 UIT (S/ 27,225) dependiendo del número de trabajadores afectados (1 a más de 1000). Las infracciones leves prescriben a los 4 años. El empleador puede subsanar dentro del plazo de la inspección para obtener una reducción de hasta el 90% de la multa.`,
+    tags: ['infraccion leve', 'multa leve', 'sunafil', 'boleta', 'registro asistencia', 'horario', 'documentos', 'ds 019-2006-tr'],
+    vigente: true,
+  },
+  {
+    id: 'infracciones-graves-detalle',
+    norma: 'D.S. 019-2006-TR',
+    articulo: 'Art. 24',
+    titulo: 'Infracciones Graves en Materia de Relaciones Laborales',
+    texto: `Son infracciones graves las siguientes conductas del empleador (Art. 24 D.S. 019-2006-TR):
+1. No registrar trabajadores en las planillas de pago o en el registro de trabajadores y prestadores de servicios dentro del plazo establecido.
+2. El incumplimiento de las disposiciones sobre jornada de trabajo, trabajo en sobretiempo, trabajo nocturno, descanso semanal y feriados no laborables.
+3. El incumplimiento de las disposiciones relacionadas con el pago de remuneraciones, así como CTS, gratificaciones, vacaciones y otros beneficios sociales.
+4. No depositar íntegra y oportunamente la CTS.
+5. No celebrar por escrito y en los plazos previstos los contratos de trabajo sujetos a modalidad, o no presentarlos a la Autoridad dentro del término de 15 días.
+6. La transgresión de las normas sobre la contratación de trabajadores extranjeros.
+7. El incumplimiento de las disposiciones sobre participación en las utilidades de la empresa.
+8. No contratar póliza de seguro de vida ley para trabajadores con 4 años o más de servicios.
+9. No cumplir con el pago de la bonificación extraordinaria (9% sobre gratificaciones por exoneración de aportes).
+
+MULTAS: de 0.11 UIT (S/ 605) hasta 26.12 UIT (S/ 143,660) según el número de trabajadores afectados. Las infracciones graves prescriben a los 4 años.`,
+    tags: ['infraccion grave', 'multa grave', 'sunafil', 'planilla', 'cts', 'gratificacion', 'jornada', 'ds 019-2006-tr'],
+    vigente: true,
+  },
+  {
+    id: 'infracciones-muy-graves-detalle',
+    norma: 'D.S. 019-2006-TR',
+    articulo: 'Art. 25',
+    titulo: 'Infracciones Muy Graves en Materia de Relaciones Laborales',
+    texto: `Son infracciones muy graves las siguientes conductas del empleador (Art. 25 D.S. 019-2006-TR):
+1. No pagar la remuneración mínima correspondiente al trabajador.
+2. La inscripción fraudulenta en el Registro Nacional de Micro y Pequeña Empresa (REMYPE).
+3. El incumplimiento de las disposiciones referidas a la protección de la trabajadora gestante, el despido de la mujer trabajadora durante el embarazo o dentro de los 90 días posteriores al parto.
+4. La discriminación del trabajador, directa o indirecta, en materia de empleo u ocupación, por motivo de origen, raza, sexo, idioma, religión, opinión, condición económica o de cualquier otra índole.
+5. El trabajo forzoso, sea o no retribuido, y la trata de personas con fines de explotación laboral.
+6. Los actos contra la libertad sindical, el fuero sindical o la negociación colectiva.
+7. Los actos de hostigamiento sexual y el incumplimiento de las obligaciones de prevención y sanción del hostigamiento sexual.
+8. El incumplimiento de las disposiciones sobre la cuota de empleo de personas con discapacidad (3% en empresas con 50+ trabajadores).
+9. No cumplir con la prohibición de discriminación remunerativa entre varones y mujeres (Ley 30709).
+
+MULTAS: de 0.23 UIT (S/ 1,265) hasta 52.53 UIT (S/ 288,915) según el número de trabajadores afectados. Las infracciones muy graves pueden acarrear además el cierre temporal del establecimiento.`,
+    tags: ['infraccion muy grave', 'multa muy grave', 'sunafil', 'discriminacion', 'hostigamiento', 'trabajo forzoso', 'sindical', 'ds 019-2006-tr'],
+    vigente: true,
+  },
+  {
+    id: 'subsanacion-atenuantes',
+    norma: 'D.S. 019-2006-TR / Ley 28806',
+    articulo: 'Arts. 40-49',
+    titulo: 'Subsanación de Infracciones y Atenuantes de Multas SUNAFIL',
+    texto: `El sistema de inspección del trabajo peruano prevé mecanismos de reducción de multas por subsanación (Arts. 40-49 Ley 28806 y D.S. 019-2006-TR):
+
+SUBSANACIÓN VOLUNTARIA (antes de la inspección):
+- Si el empleador corrige las infracciones antes de que se inicie el procedimiento inspector, obtiene una reducción del 90% de la multa que se habría impuesto.
+- Es el incentivo más poderoso para mantener compliance proactivo.
+
+SUBSANACIÓN DURANTE LA INSPECCIÓN:
+- Plazo de subsanación otorgado por el inspector: el empleador puede subsanar dentro del plazo del requerimiento (generalmente 10 días hábiles).
+- Reducción de hasta el 70% de la multa por subsanar durante la medida de requerimiento.
+
+ATENUANTES GENERALES:
+- Acreditación de buena fe y ausencia de intencionalidad.
+- Cumplimiento inmediato de las obligaciones una vez requerido.
+- Antecedentes favorables (no tener sanciones previas en los últimos 4 años).
+- Compromiso formal documentado de implementar un plan de cumplimiento.
+
+CÁLCULO FINAL DE LA MULTA:
+La multa base se determina según la gravedad (leve/grave/muy grave) y el número de trabajadores afectados. Luego se aplican agravantes (+25% por reincidencia, +50% por obstrucción) o atenuantes (reducción por subsanación). La multa no puede ser inferior al mínimo legal correspondiente a la gravedad de la infracción.`,
+    tags: ['subsanacion', 'atenuante', 'reduccion multa', 'sunafil', '90 porciento', '70 porciento', 'requerimiento', 'inspeccion', 'ley 28806'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // JORNADA, SOBRETIEMPO Y TRABAJO NOCTURNO — D.S. 007-2002-TR
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'jornada-maxima-detalle',
+    norma: 'D.S. 007-2002-TR',
+    articulo: 'Arts. 1-9',
+    titulo: 'Jornada Máxima de Trabajo y Horario',
+    texto: `La jornada ordinaria de trabajo se regula por el D.S. 007-2002-TR (TUO del D.Leg. 854):
+
+JORNADA MÁXIMA:
+- 8 horas diarias o 48 horas semanales como máximo (Art. 1).
+- Se puede establecer jornadas alternativas, acumulativas o atípicas, siempre que el promedio de horas trabajadas en el período correspondiente no supere el máximo legal.
+- En jornadas atípicas (minería, pesca), el promedio de horas en el ciclo completo no debe exceder de 8 horas diarias o 48 semanales.
+
+JORNADA REDUCIDA:
+- El empleador puede establecer jornadas menores a 8 horas. Si la jornada es menor a 4 horas diarias, el trabajador es considerado a tiempo parcial y pierde derechos como CTS, vacaciones completas y protección contra despido arbitrario.
+
+HORARIO DE TRABAJO:
+- Es facultad del empleador fijar el horario de trabajo (hora de entrada y salida).
+- El horario debe exhibirse en lugar visible o comunicarse por medio adecuado.
+- La modificación del horario no puede exceder de una hora; si excede, requiere acuerdo con el trabajador o autorización de la AAT.
+
+REFRIGERIO:
+- No menor a 45 minutos. No forma parte de la jornada ni del horario de trabajo, salvo convenio colectivo.
+
+EXCLUSIONES DE LA JORNADA MÁXIMA:
+- Personal de dirección.
+- Personal no sujeto a fiscalización inmediata.
+- Trabajadores que prestan servicios intermitentes de espera, vigilancia o custodia.`,
+    tags: ['jornada', 'horario', 'horas', '48 horas', '8 horas', 'tiempo parcial', 'refrigerio', 'atipica', 'direccion', 'ds 007-2002-tr'],
+    vigente: true,
+  },
+  {
+    id: 'sobretiempo-detalle',
+    norma: 'D.S. 007-2002-TR',
+    articulo: 'Arts. 10-12',
+    titulo: 'Trabajo en Sobretiempo (Horas Extras)',
+    texto: `El trabajo en sobretiempo es voluntario tanto para el empleador como para el trabajador (Art. 10 D.S. 007-2002-TR):
+
+CARÁCTER VOLUNTARIO:
+- Nadie puede ser obligado a trabajar horas extras, salvo casos justificados de fuerza mayor que pongan en peligro inminente a las personas, bienes o la continuidad de la actividad productiva.
+- El trabajo en sobretiempo supone la prestación efectiva de servicios en beneficio del empleador.
+
+TASAS DE PAGO:
+- Las dos (2) primeras horas extras se pagan con una sobretasa mínima del 25% sobre el valor hora ordinaria.
+- A partir de la tercera hora, la sobretasa mínima es del 35%.
+- El convenio colectivo o el contrato pueden establecer sobretasas mayores.
+
+COMPENSACIÓN CON DESCANSO:
+- Por convenio entre el empleador y el trabajador, las horas extras pueden compensarse con períodos equivalentes de descanso, dentro del mes calendario siguiente.
+
+ACREDITACIÓN:
+- El empleador está obligado a registrar el trabajo prestado en sobretiempo mediante cualquier medio válido (reloj de control, cuaderno, sistema electrónico).
+- Si el trabajador acredita haber laborado en sobretiempo y el empleador no demuestra haberle pagado, se presume que el sobretiempo no fue remunerado.
+- La falta de registro de horas extras constituye infracción grave.
+
+LÍMITE: No existe un tope legal de horas extras; sin embargo, el exceso puede configurar un atentado contra la seguridad y salud del trabajador.`,
+    tags: ['sobretiempo', 'horas extras', 'overtime', '25 porciento', '35 porciento', 'sobretasa', 'compensacion', 'descanso compensatorio', 'ds 007-2002-tr'],
+    vigente: true,
+  },
+  {
+    id: 'trabajo-nocturno-detalle',
+    norma: 'D.S. 007-2002-TR',
+    articulo: 'Art. 8',
+    titulo: 'Trabajo en Horario Nocturno',
+    texto: `El trabajo nocturno se regula por el Art. 8 del D.S. 007-2002-TR:
+
+DEFINICIÓN:
+- Se considera jornada nocturna el tiempo trabajado entre las 10:00 p.m. y las 6:00 a.m.
+
+REMUNERACIÓN MÍNIMA:
+- Los trabajadores que laboran en horario nocturno no pueden percibir una remuneración mensual inferior a la Remuneración Mínima Vital vigente más una sobretasa del 35%.
+- Con la RMV actual de S/ 1,130, la remuneración mínima nocturna es de S/ 1,525.50.
+- Esta sobretasa del 35% se aplica sobre la RMV, no sobre la remuneración habitual del trabajador (a menos que esta sea igual a la RMV).
+
+TRASLADO AL HORARIO NOCTURNO:
+- Si el empleador traslada al trabajador del turno diurno al nocturno, debe notificarle con anticipación.
+- El traslado no puede ser discriminatorio ni represivo.
+
+PROTECCIÓN ESPECIAL:
+- La trabajadora gestante tiene derecho a solicitar no realizar trabajo nocturno durante el embarazo y la lactancia.
+- Los adolescentes (menores de 18 años) tienen prohibido laborar en horario nocturno.
+- En el sector minero y de hidrocarburos, existen reglas especiales para la rotación de turnos nocturnos.`,
+    tags: ['trabajo nocturno', 'nocturno', 'turno noche', '35 porciento', 'sobretasa nocturna', 'rmv nocturna', 'gestante', 'ds 007-2002-tr'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // LICENCIAS, DESCANSOS Y FERIADOS
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'licencias-remuneradas',
+    norma: 'Múltiples normas',
+    titulo: 'Licencias Remuneradas del Trabajador en el Perú',
+    texto: `El ordenamiento laboral peruano reconoce las siguientes licencias con goce de remuneraciones:
+
+1. LICENCIA POR PATERNIDAD (Ley 29409 mod. Ley 30807): 10 días calendario consecutivos por nacimiento de hijo, desde la fecha del parto o desde que la madre o el hijo son dados de alta. 20 días en partos prematuros o múltiples. 30 días si el recién nacido tiene enfermedad congénita terminal o discapacidad severa.
+
+2. LICENCIA POR FALLECIMIENTO DE FAMILIAR (D.Leg. 713): 5 días hábiles por fallecimiento de cónyuge, padres, hijos o hermanos. Puede ser extendida por convenio colectivo.
+
+3. LICENCIA POR ENFERMEDAD GRAVE O TERMINAL DE FAMILIAR DIRECTO (Ley 30012): Hasta 7 días calendario, ampliables hasta 30 días a cuenta de vacaciones.
+
+4. LICENCIA SINDICAL (D.S. 010-2003-TR Art. 32): Hasta 30 días calendario por año para dirigentes sindicales. Ampliable por convenio colectivo.
+
+5. LICENCIA POR ADOPCIÓN (Ley 27409): 30 días naturales contados desde el día siguiente de la resolución de adopción.
+
+6. LICENCIA PARA ATENCIÓN DE FAMILIARES CON ALZHEIMER (Ley 30795): Hasta 48 horas por año para acompañar a familiar con Alzheimer a citas médicas.
+
+7. LICENCIA POR ASISTENCIA MÉDICA Y TERAPIA DE REHABILITACIÓN DE PERSONAS CON DISCAPACIDAD (Ley 29973 Art. 36): Hasta 56 horas por año para citas médicas y terapias.
+
+8. LICENCIA PARA DONANTES (Ley 27282): 1 día por donación de sangre.
+
+9. LICENCIA POR REPRESENTACIÓN DEPORTIVA NACIONAL (Ley 28036): Durante la participación en competencias oficiales nacionales e internacionales.`,
+    tags: ['licencia', 'permiso', 'paternidad', 'fallecimiento', 'adopcion', 'sindical', 'discapacidad', 'donante', 'licencia remunerada'],
+    vigente: true,
+  },
+  {
+    id: 'descansos-obligatorios',
+    norma: 'D.Leg. 713 / D.S. 012-92-TR',
+    titulo: 'Descansos Remunerados Obligatorios',
+    texto: `El Decreto Legislativo 713 regula los descansos remunerados de los trabajadores:
+
+DESCANSO SEMANAL OBLIGATORIO:
+- El trabajador tiene derecho como mínimo a 24 horas consecutivas de descanso en cada semana, el que se otorgará preferentemente en día domingo.
+- Si el trabajador labora en su día de descanso sin sustituirlo por otro día en la misma semana, tiene derecho al pago del día con la sobretasa del 100% (remuneración doble).
+- Los trabajadores que laboran habitualmente en domingo tienen derecho a un día sustitutorio de descanso.
+
+DESCANSO EN DÍAS FERIADOS:
+- Los trabajadores tienen derecho a descanso remunerado en los días feriados señalados por ley.
+- Si el trabajador labora en día feriado sin descanso sustitutorio, tiene derecho a una sobretasa del 100% adicional (triple remuneración: remuneración ordinaria + sobretasa 100% + el feriado).
+
+VACACIONES ANUALES:
+- Después de un año completo de servicios, el trabajador tiene derecho a 30 días calendario de descanso vacacional (régimen general).
+- Requisito: haber cumplido el récord mínimo de asistencia (en jornada de 6 días: 260 días efectivos; en jornada de 5 días: 210 días efectivos).
+- La remuneración vacacional es equivalente a la remuneración habitual del trabajador.
+- Las vacaciones deben gozarse dentro del año siguiente al cumplimiento del récord. Si se acumula más de un período, el trabajador tiene derecho a la indemnización vacacional equivalente a una remuneración adicional (triple vacacional).`,
+    tags: ['descanso', 'semanal', 'domingo', 'feriado', 'vacaciones', 'triple vacacional', 'sobretasa', 'dleg 713'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // PROTECCIÓN DE DATOS PERSONALES
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'datos-personales-empleador',
+    norma: 'Ley 29733 / D.S. 003-2013-JUS',
+    titulo: 'Protección de Datos Personales en el Ámbito Laboral',
+    texto: `La Ley 29733, Ley de Protección de Datos Personales, establece obligaciones para el empleador como titular del banco de datos de sus trabajadores:
+
+OBLIGACIONES DEL EMPLEADOR:
+1. Obtener el consentimiento informado del trabajador para el tratamiento de sus datos personales. El consentimiento debe ser previo, expreso, inequívoco e informado.
+2. Inscribir el banco de datos personales ante la Autoridad Nacional de Protección de Datos Personales (ANPDP), adscrita al Ministerio de Justicia.
+3. Informar al trabajador sobre la finalidad del tratamiento de sus datos, quiénes serán los destinatarios y la existencia del banco de datos.
+4. Garantizar la seguridad de los datos personales, implementando medidas técnicas, organizativas y legales para evitar su pérdida, alteración, destrucción o acceso no autorizado.
+5. Atender los derechos ARCO (Acceso, Rectificación, Cancelación y Oposición) del trabajador en un plazo de 20 días hábiles.
+
+DATOS SENSIBLES:
+- Los datos sobre afiliación sindical, salud (exámenes médicos), antecedentes penales y datos biométricos son considerados datos sensibles y requieren consentimiento expreso por escrito.
+- El empleador no puede exigir pruebas de embarazo, VIH/SIDA ni test de polígrafo como condición de empleo.
+
+SANCIONES por incumplimiento: Multas de hasta 100 UIT (S/ 550,000) impuestas por la ANPDP. Las infracciones se clasifican en leves (hasta 5 UIT), graves (hasta 50 UIT) y muy graves (hasta 100 UIT).`,
+    tags: ['datos personales', 'privacidad', 'consentimiento', 'banco datos', 'arco', 'anpdp', 'ley 29733', 'datos sensibles', 'biometrico'],
+    vigente: true,
+  },
+  {
+    id: 'clausula-datos-contratos',
+    norma: 'Ley 29733 / D.S. 003-2013-JUS',
+    titulo: 'Cláusula de Protección de Datos en Contratos de Trabajo',
+    texto: `Todo contrato de trabajo debe incluir una cláusula de tratamiento de datos personales conforme a la Ley 29733:
+
+CONTENIDO MÍNIMO DE LA CLÁUSULA:
+1. Identificación del titular del banco de datos (empleador, con RUC y domicilio).
+2. Finalidad del tratamiento: gestión de la relación laboral, pago de remuneraciones y beneficios, cumplimiento de obligaciones legales (T-REGISTRO, PLAME, EsSalud, AFP/ONP), control de asistencia.
+3. Destinatarios de los datos: SUNAT, EsSalud, AFP/ONP, SUNAFIL, entidades financieras (para pago de haberes), aseguradoras (SCTR, seguro vida ley).
+4. Transferencia internacional de datos: si la empresa pertenece a un grupo multinacional, debe informar si los datos serán transferidos a servidores en el extranjero.
+5. Plazo de conservación: los datos se conservan durante la vigencia de la relación laboral y hasta 5 años después del cese (plazo de prescripción laboral), salvo obligaciones tributarias que exijan mayor plazo.
+6. Derechos ARCO: se debe informar al trabajador que puede ejercer sus derechos de Acceso, Rectificación, Cancelación y Oposición.
+7. Carácter obligatorio u optativo de suministrar los datos: los datos necesarios para la relación laboral son obligatorios; los adicionales (foto, redes sociales) son optativos.
+
+RECOMENDACIÓN: Incluir esta cláusula como anexo al contrato de trabajo o como documento independiente firmado al momento de la contratación.`,
+    tags: ['clausula datos', 'contrato', 'consentimiento', 'tratamiento datos', 'ley 29733', 'rrhh', 'privacidad laboral'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // DISCAPACIDAD — CUOTA DE EMPLEO
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'discapacidad-cuota-detalle',
+    norma: 'Ley 29973 / D.S. 002-2014-MIMP',
+    articulo: 'Art. 49',
+    titulo: 'Cuota de Empleo para Personas con Discapacidad',
+    texto: `La Ley 29973, Ley General de la Persona con Discapacidad, establece la cuota de empleo obligatoria:
+
+CUOTA OBLIGATORIA:
+- Empresas privadas con 50 o más trabajadores: deben emplear personas con discapacidad en una proporción no inferior al 3% de su planilla total.
+- Entidades públicas: no inferior al 5%.
+- El cálculo se realiza sobre la totalidad de la planilla al 31 de diciembre de cada año.
+
+ACREDITACIÓN DE LA DISCAPACIDAD:
+- La discapacidad se acredita con el certificado de discapacidad emitido por establecimientos de salud autorizados o con la inscripción en el Registro Nacional de la Persona con Discapacidad (CONADIS).
+
+AJUSTES RAZONABLES:
+- El empleador debe realizar ajustes razonables en el lugar de trabajo para facilitar la accesibilidad y el desempeño de los trabajadores con discapacidad.
+- Los ajustes razonables incluyen: adaptación de herramientas, modificación del mobiliario, redistribución de funciones, horarios flexibles, teletrabajo.
+
+BONIFICACIÓN EN PROCESOS DE SELECCIÓN:
+- En concursos públicos, las personas con discapacidad reciben una bonificación del 15% sobre el puntaje final.
+
+INCENTIVOS TRIBUTARIOS:
+- Las empresas que empleen personas con discapacidad pueden deducir adicionalmente el 50% de las remuneraciones pagadas a dichos trabajadores como gasto para el Impuesto a la Renta.
+- Deducción adicional del 50% de los gastos por ajustes razonables.
+
+SANCIÓN POR INCUMPLIMIENTO:
+- Infracción muy grave tipificada en el D.S. 019-2006-TR Art. 25.
+- Multa de hasta 52.53 UIT (S/ 288,915).
+- SUNAFIL fiscaliza activamente el cumplimiento de la cuota de empleo.`,
+    tags: ['discapacidad', 'cuota empleo', '3 porciento', '5 porciento', 'conadis', 'ajustes razonables', 'ley 29973', 'incentivo tributario'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // PARTICIPACIÓN EN UTILIDADES — D.Leg. 892
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'utilidades-detalle',
+    norma: 'D.Leg. 892 / D.S. 009-98-TR',
+    titulo: 'Participación de los Trabajadores en las Utilidades de la Empresa',
+    texto: `El Decreto Legislativo 892 regula la participación de los trabajadores en las utilidades:
+
+EMPRESAS OBLIGADAS:
+- Empresas privadas que generen rentas de tercera categoría, con más de 20 trabajadores.
+- Se excluyen: cooperativas, empresas autogestionarias, sociedades civiles, microempresas inscritas en el REMYPE.
+
+PORCENTAJE SEGÚN ACTIVIDAD:
+- Empresas pesqueras: 10%
+- Empresas de telecomunicaciones: 10%
+- Empresas industriales: 10%
+- Empresas mineras: 8%
+- Empresas de comercio y restaurantes: 8%
+- Empresas de otras actividades: 5%
+
+DISTRIBUCIÓN:
+- 50% se distribuye en proporción a los días efectivamente trabajados.
+- 50% se distribuye en proporción a las remuneraciones percibidas.
+- Tope individual: 18 remuneraciones mensuales del trabajador.
+- El exceso del tope se destina al FONDOEMPLEO.
+
+PLAZO DE PAGO:
+- Dentro de los 30 días naturales siguientes al vencimiento del plazo para la presentación de la Declaración Jurada Anual del Impuesto a la Renta (generalmente marzo-abril).
+
+TRABAJADORES CON DERECHO:
+- Todos los que hayan cumplido la jornada máxima legal o contractual durante el ejercicio.
+- Trabajadores a tiempo parcial participan en proporción.
+- Trabajadores cesados antes del reparto mantienen el derecho y cobran en el mismo plazo.
+
+INCUMPLIMIENTO: Constituye infracción grave (D.S. 019-2006-TR Art. 24.7). Además, genera intereses legales laborales desde el día siguiente al vencimiento del plazo.`,
+    tags: ['utilidades', 'participacion utilidades', 'reparto', 'dleg 892', 'fondoempleo', '10 porciento', '8 porciento', '5 porciento', 'renta tercera'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // EXTINCIÓN DEL CONTRATO DE TRABAJO
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'causas-justas-despido',
+    norma: 'D.S. 003-97-TR',
+    articulo: 'Arts. 23-28',
+    titulo: 'Causas Justas de Despido Relacionadas con la Conducta y Capacidad del Trabajador',
+    texto: `El D.S. 003-97-TR (TUO de la Ley de Productividad y Competitividad Laboral) establece las causas justas de despido:
+
+CAUSAS RELACIONADAS CON LA CONDUCTA (Art. 24):
+a) La comisión de falta grave:
+   - Incumplimiento de las obligaciones de trabajo que supone el quebrantamiento de la buena fe laboral.
+   - Disminución deliberada y reiterada en el rendimiento de las labores.
+   - Apropiación consumada o frustrada de bienes o servicios del empleador.
+   - Uso o entrega a terceros de información reservada del empleador.
+   - Concurrencia reiterada en estado de embriaguez o bajo influencia de drogas.
+   - Actos de violencia, grave indisciplina, injuria o faltamiento de palabra contra el empleador o compañeros.
+   - Daño intencional a edificios, instalaciones, maquinarias, instrumentos o materias primas.
+   - Abandono de trabajo por más de 3 días consecutivos o más de 5 días en un período de 30 días o más de 15 días en un período de 180 días.
+b) La condena penal por delito doloso.
+c) La inhabilitación del trabajador por más de 3 meses.
+
+CAUSAS RELACIONADAS CON LA CAPACIDAD (Art. 23):
+a) Detrimento de la facultad física o mental o ineptitud sobrevenida, determinante para el desempeño de sus tareas.
+b) Rendimiento deficiente en relación con la capacidad del trabajador y con el rendimiento promedio en labores y bajo condiciones similares.
+c) Negativa injustificada del trabajador a someterse a examen médico previamente convenido o establecido por ley.
+
+PROCEDIMIENTO OBLIGATORIO (Art. 31-32):
+- Carta de preaviso con descripción precisa de la causa, otorgando plazo no menor de 6 días naturales para descargos (30 días para rendimiento deficiente).
+- Carta de despido indicando la causa y la fecha de cese.
+- El despido sin seguir este procedimiento es considerado arbitrario.`,
+    tags: ['despido', 'falta grave', 'causa justa', 'conducta', 'capacidad', 'preaviso', 'descargos', 'ds 003-97-tr', 'abandono'],
+    vigente: true,
+  },
+  {
+    id: 'despido-nulo-detalle',
+    norma: 'D.S. 003-97-TR',
+    articulo: 'Art. 29',
+    titulo: 'Despido Nulo — Causales y Efectos',
+    texto: `El artículo 29 del D.S. 003-97-TR establece los supuestos de despido nulo, que constituyen la máxima protección contra el despido:
+
+CAUSALES DE NULIDAD DEL DESPIDO:
+1. La afiliación a un sindicato o la participación en actividades sindicales.
+2. Ser candidato a representante de los trabajadores o actuar o haber actuado en esa calidad.
+3. Presentar una queja o participar en un proceso contra el empleador ante las autoridades competentes (represalia).
+4. La discriminación por razón de sexo, raza, religión, opinión, idioma, discapacidad o de cualquier otra índole.
+5. El embarazo, si el despido se produce en cualquier momento del período de gestación o dentro de los 90 días posteriores al parto (se presume que el despido tiene por motivo el embarazo si el empleador no acredita causa justa).
+
+EFECTOS DEL DESPIDO NULO (si se declara fundada la demanda):
+- Reposición del trabajador en su puesto de trabajo, en las mismas condiciones.
+- Pago de remuneraciones devengadas (desde la fecha del despido hasta la reposición efectiva).
+- Pago de beneficios sociales dejados de percibir (CTS, gratificaciones, vacaciones).
+- El trabajador puede optar, alternativamente, por la indemnización por despido arbitrario (1.5 remuneraciones por año, tope 12).
+
+CARGA DE LA PRUEBA:
+- En el despido nulo, la carga de la prueba se invierte: el empleador debe acreditar que el despido obedeció a causa justa y no al motivo prohibido.
+- En el caso de trabajadora gestante, la mera acreditación del estado de embarazo al momento del despido genera la presunción de nulidad.
+
+PLAZO PARA DEMANDAR: 30 días hábiles desde el despido (caducidad).`,
+    tags: ['despido nulo', 'nulidad', 'reposicion', 'embarazo', 'sindical', 'discriminacion', 'represalia', 'art 29', 'ds 003-97-tr'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // SEGURO DE VIDA LEY — D.Leg. 688
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'seguro-vida-ley-detalle',
+    norma: 'D.Leg. 688',
+    titulo: 'Seguro de Vida Ley para Trabajadores',
+    texto: `El Decreto Legislativo 688 establece la obligación del empleador de contratar un seguro de vida para sus trabajadores:
+
+OBLIGACIÓN:
+- El empleador está obligado a contratar el seguro de vida a partir de los 4 años de servicios del trabajador.
+- Sin embargo, el empleador puede contratarlo facultativamente a partir de los 3 meses de servicios.
+- En trabajos de alto riesgo, la obligación nace desde el primer día.
+
+COBERTURA:
+- Muerte natural del trabajador: 16 remuneraciones mensuales.
+- Muerte accidental del trabajador: 32 remuneraciones mensuales.
+- Invalidez total y permanente por accidente: 32 remuneraciones mensuales.
+- La remuneración base de cálculo es el promedio de lo percibido en el último trimestre previo al siniestro, con un mínimo de la RMV vigente.
+
+BENEFICIARIOS:
+- Cónyuge o conviviente e hijos del trabajador.
+- A falta de estos, los padres y hermanos menores de 18 años.
+
+PRIMA:
+- Es de cargo exclusivo del empleador.
+- Se calcula como un porcentaje de la remuneración mensual: 0.53% para empleados, 0.71% para obreros, 1.46% para trabajadores de alto riesgo.
+- El incumplimiento de la contratación del seguro no exime al empleador; en caso de siniestro, el empleador queda directamente obligado al pago de los beneficios.
+
+SANCIONES:
+- No contratar el seguro de vida ley constituye infracción grave (D.S. 019-2006-TR Art. 24.8).
+- En caso de fallecimiento sin seguro, el empleador responde con su patrimonio por el monto total del beneficio.`,
+    tags: ['seguro vida ley', 'seguro vida', 'dleg 688', 'muerte', 'accidente', 'invalidez', 'prima', 'beneficiarios', 'alto riesgo'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // CONCEPTOS REMUNERATIVOS Y RETENCIONES
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'conceptos-remunerativos',
+    norma: 'D.S. 003-97-TR',
+    articulo: 'Arts. 6-7',
+    titulo: 'Conceptos Remunerativos y No Remunerativos',
+    texto: `Los artículos 6 y 7 del D.S. 003-97-TR definen los conceptos remunerativos y no remunerativos:
+
+REMUNERACIÓN (Art. 6):
+Constituye remuneración todo pago en dinero o en especie que sea de libre disposición del trabajador, siempre que sea otorgado como contraprestación por sus servicios. Incluye:
+- Sueldo o salario básico.
+- Asignación familiar (10% RMV = S/ 113).
+- Gratificaciones (julio y diciembre).
+- Comisiones por ventas.
+- Horas extras.
+- Bonificaciones regulares y permanentes.
+- Alimentación principal (desayuno, almuerzo o cena proporcionados por el empleador en forma directa).
+
+CONCEPTOS NO REMUNERATIVOS (Art. 7):
+No constituyen remuneración computable para efectos de cálculo de beneficios sociales:
+- Gratificaciones extraordinarias u otros pagos ocasionales por liberalidad del empleador.
+- Participación en las utilidades de la empresa.
+- Condiciones de trabajo: bienes o dinero para el cabal desempeño de las funciones (movilidad, viáticos, herramientas).
+- Canasta de Navidad o similares.
+- Valor del transporte supeditado a la asistencia al centro de trabajo.
+- Asignación o bonificación por educación (una vez al año, monto razonable, debidamente sustentada).
+- Prestaciones alimentarias vía suministro indirecto (Ley 28051).
+- La CTS y sus intereses.
+
+IMPORTANCIA DE LA DISTINCIÓN:
+La calificación como remunerativo determina si el concepto se incluye en la base de cálculo de CTS, gratificaciones, vacaciones, indemnización por despido y aportes a EsSalud, AFP/ONP.`,
+    tags: ['remuneracion', 'remunerativo', 'no remunerativo', 'sueldo', 'salario', 'condicion trabajo', 'base calculo', 'ds 003-97-tr', 'beneficios sociales'],
+    vigente: true,
+  },
+  {
+    id: 'retenciones-obligatorias',
+    norma: 'Múltiples normas',
+    titulo: 'Retenciones Obligatorias sobre la Remuneración del Trabajador',
+    texto: `El empleador está obligado a realizar las siguientes retenciones sobre la remuneración del trabajador y declararlas oportunamente:
+
+1. SISTEMA PREVISIONAL (AFP u ONP):
+- ONP (Sistema Nacional de Pensiones): 13% de la remuneración asegurable.
+- AFP (Sistema Privado de Pensiones): aporte obligatorio (10%) + prima de seguro + comisión (variable según AFP, entre 12.5% y 14.5% total aproximado).
+- El trabajador elige libremente entre ONP y AFP. Una vez afiliado a una AFP, el retorno a la ONP es excepcional.
+
+2. IMPUESTO A LA RENTA DE QUINTA CATEGORÍA:
+- Se aplica a trabajadores cuya remuneración anual proyectada supere las 7 UIT (S/ 38,500 en 2026).
+- Tasas progresivas: 8% hasta 5 UIT, 14% por el exceso de 5 UIT hasta 20 UIT, 17% por el exceso de 20 UIT hasta 35 UIT, 20% por el exceso de 35 UIT hasta 45 UIT, 30% por el exceso de 45 UIT.
+- El empleador calcula y retiene mensualmente (procedimiento de retención del Art. 40 del Reglamento del TUO de la LIR).
+
+3. APORTES DEL EMPLEADOR (no son retenciones, sino contribuciones):
+- EsSalud: 9% de la remuneración (a cargo del empleador).
+- SCTR (Seguro Complementario de Trabajo de Riesgo): obligatorio para actividades de alto riesgo. Cubre salud y pensión.
+- SENATI: 0.75% (empresas industriales con más de 20 trabajadores).
+
+4. DESCUENTOS JUDICIALES:
+- Pensiones alimenticias ordenadas judicialmente: hasta el 60% de los ingresos del trabajador.
+- El empleador es responsable solidario si no efectúa la retención judicial.
+
+PLAZOS: Las contribuciones a AFP se pagan dentro de los primeros 5 días hábiles del mes siguiente. ONP y EsSalud según cronograma SUNAT.`,
+    tags: ['retencion', 'afp', 'onp', 'quinta categoria', 'impuesto renta', 'essalud', 'sctr', 'descuento judicial', 'planilla', 'aportes'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // PLAZOS Y PRESCRIPCIÓN
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'plazos-registro-declaracion',
+    norma: 'Múltiples normas',
+    titulo: 'Plazos de Registro y Declaración Laboral',
+    texto: `Principales plazos que el empleador debe cumplir en materia laboral y de seguridad social:
+
+T-REGISTRO (Registro de Información Laboral):
+- Alta del trabajador: dentro del día anterior al inicio de la prestación de servicios (habilitado hasta las 24:00 horas del día previo).
+- Baja del trabajador: primer día hábil siguiente al cese.
+- Modificación de datos: dentro de los 5 días hábiles de ocurrido el cambio.
+
+PLAME (Planilla Mensual de Pagos):
+- Declaración y pago mensual según cronograma SUNAT (basado en el último dígito del RUC, generalmente entre los días 10 y 20 del mes siguiente).
+- Incluye: remuneraciones, retenciones de 5ta categoría, aportes a EsSalud, ONP, SCTR.
+
+CONTRATOS A PLAZO FIJO:
+- Registro ante el MTPE (a través de la plataforma virtual): dentro de los 15 días naturales de su celebración.
+- No registrar el contrato no lo invalida, pero constituye infracción leve.
+
+CTS:
+- Depósito semestral: antes del 15 de mayo (noviembre-abril) y antes del 15 de noviembre (mayo-octubre).
+- Entrega de liquidación al trabajador: dentro de los 5 días hábiles del depósito.
+
+GRATIFICACIONES:
+- Pago: primera quincena de julio y primera quincena de diciembre.
+
+AFP:
+- Pago de aportes: dentro de los primeros 5 días hábiles del mes siguiente al devengue.
+- Declaración sin pago genera intereses moratorios y cobranza coactiva.
+
+UTILIDADES:
+- Distribución: dentro de los 30 días naturales siguientes al vencimiento del plazo para la DJ Anual de Renta.
+
+BOLETAS DE PAGO:
+- Entrega al trabajador: dentro de los 3 días hábiles siguientes a la fecha de pago.`,
+    tags: ['plazo', 't-registro', 'plame', 'cts deposito', 'gratificacion pago', 'afp', 'boleta pago', 'declaracion', 'cronograma'],
+    vigente: true,
+  },
+  {
+    id: 'prescripcion-beneficios',
+    norma: 'Ley 27321 / D.S. 003-97-TR',
+    titulo: 'Prescripción de Derechos y Beneficios Laborales',
+    texto: `La prescripción laboral determina el plazo máximo para reclamar derechos laborales:
+
+PRESCRIPCIÓN DE ACCIONES LABORALES (Ley 27321):
+- Las acciones por derechos derivados de la relación laboral prescriben a los 4 años, contados desde el día siguiente en que se extingue el vínculo laboral.
+- Durante la vigencia de la relación laboral, no corre la prescripción para los derechos laborales.
+
+PLAZOS ESPECIALES:
+- Despido nulo: 30 días hábiles desde el despido (caducidad, no prescripción).
+- Despido arbitrario (indemnización): 30 días hábiles desde el despido (caducidad).
+- Hostilidad (actos de hostilidad del empleador): 30 días hábiles desde el acto de hostilidad.
+- Estos plazos de caducidad son improrrogables y fatales.
+
+BENEFICIOS LABORALES ESPECÍFICOS:
+- CTS: 4 años desde la extinción del vínculo laboral.
+- Gratificaciones: 4 años desde la extinción.
+- Vacaciones (indemnización por no goce): 4 años desde la extinción.
+- Utilidades: 4 años desde que debieron ser pagadas.
+- Horas extras: 4 años desde la extinción.
+
+INTERRUPCIÓN Y SUSPENSIÓN:
+- La prescripción se interrumpe con la interposición de la demanda laboral.
+- También se interrumpe con el reconocimiento expreso de la deuda por el empleador.
+- La prescripción suspendida se reanuda una vez cesada la causa de suspensión.
+
+NOTA PRÁCTICA: Los 4 años se cuentan desde el cese. Si un trabajador cesó el 01/01/2023, puede reclamar hasta el 01/01/2027. Todos los beneficios adeudados durante la relación laboral están dentro del reclamo.`,
+    tags: ['prescripcion', 'caducidad', 'plazo', '4 años', '30 dias', 'demanda', 'reclamacion', 'extincion', 'ley 27321'],
+    vigente: true,
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // FERIADOS 2026
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'feriados-2026',
+    norma: 'D.Leg. 713 / Leyes especiales',
+    titulo: 'Feriados No Laborables con Goce de Remuneración — Año 2026',
+    texto: `Los feriados nacionales obligatorios con descanso remunerado para el año 2026 son (D.Leg. 713 Art. 6):
+
+1. 01 de enero — Año Nuevo (jueves)
+2. 02 de abril — Jueves Santo (jueves)
+3. 03 de abril — Viernes Santo (viernes)
+4. 01 de mayo — Día del Trabajo (viernes)
+5. 07 de junio — Batalla de Arica (domingo)
+6. 29 de junio — San Pedro y San Pablo (lunes)
+7. 23 de julio — Día de la Fuerza Aérea del Perú (jueves)
+8. 28 de julio — Fiestas Patrias (martes)
+9. 29 de julio — Fiestas Patrias (miércoles)
+10. 06 de agosto — Batalla de Junín (jueves)
+11. 30 de agosto — Santa Rosa de Lima (domingo)
+12. 08 de octubre — Combate de Angamos (jueves)
+13. 01 de noviembre — Día de Todos los Santos (domingo)
+14. 08 de diciembre — Inmaculada Concepción (martes)
+15. 09 de diciembre — Batalla de Ayacucho (miércoles)
+16. 25 de diciembre — Navidad (viernes)
+
+REGLAS PARA EL PAGO:
+- Si el trabajador labora en día feriado sin descanso sustitutorio, percibe triple remuneración: (1) remuneración por el feriado + (2) remuneración por el trabajo realizado + (3) sobretasa del 100%.
+- Los feriados que caen en domingo no generan pago adicional salvo que el trabajador labore ese día.
+- Los días no laborables del sector público no son aplicables al sector privado, salvo que el empleador lo disponga por convenio o decisión unilateral. Estos días son compensables.`,
+    tags: ['feriado', 'feriados 2026', 'dia libre', 'descanso', 'triple pago', 'fiestas patrias', 'navidad', 'año nuevo', 'dleg 713'],
+    vigente: true,
+    fechaVigencia: '2026-01-01',
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // JURISPRUDENCIA RELEVANTE
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'juris-desnaturalizacion-locacion',
+    norma: 'Jurisprudencia — Casación Laboral',
+    titulo: 'Desnaturalización de Contratos de Locación de Servicios',
+    texto: `La jurisprudencia laboral peruana ha consolidado criterios sobre la desnaturalización de contratos de locación de servicios (contratos civiles) en relaciones laborales encubiertas:
+
+PRINCIPIO DE PRIMACÍA DE LA REALIDAD:
+El Tribunal Constitucional (Exp. 1944-2002-AA/TC) y la Corte Suprema han establecido que cuando existe discordancia entre lo que ocurre en la práctica y lo que señalan los documentos, prevalece la realidad. Si un prestador de servicios cumple horario, recibe instrucciones, usa herramientas del comitente y percibe una contraprestación periódica, existe relación laboral independientemente del contrato suscrito.
+
+ELEMENTOS DE LA LABORALIDAD:
+1. Prestación personal: el servicio es realizado por la misma persona, no puede ser delegado.
+2. Subordinación: el prestador cumple órdenes, horarios, reporta avances, usa uniforme o credencial.
+3. Remuneración: pago periódico y fijo, no vinculado a resultados específicos de un proyecto.
+
+CONSECUENCIAS DE LA DESNATURALIZACIÓN:
+- Se reconoce relación laboral a plazo indeterminado desde el inicio de la prestación.
+- El trabajador tiene derecho a todos los beneficios laborales: CTS, gratificaciones, vacaciones, seguro, utilidades.
+- El empleador debe regularizar el registro en T-REGISTRO y PLAME.
+- Multa SUNAFIL por no registrar al trabajador en planilla (infracción grave).
+
+CASACIONES RELEVANTES:
+- Casación Laboral N.o 7358-2013-CUSCO: subordinación acreditada por correos electrónicos con instrucciones.
+- Casación Laboral N.o 11169-2014-JUNÍN: prestación continua por más de 1 año genera presunción de laboralidad.
+- Casación Laboral N.o 4936-2014-CALLAO: el uso de RHE (recibo por honorarios electrónico) no desvirtúa la existencia de relación laboral.`,
+    tags: ['desnaturalizacion', 'locacion servicios', 'primacia realidad', 'subordinacion', 'recibo honorarios', 'laboralidad', 'contrato civil', 'jurisprudencia'],
+    vigente: true,
+  },
+  {
+    id: 'juris-cts-deposito',
+    norma: 'Jurisprudencia — D.S. 001-97-TR',
+    titulo: 'Jurisprudencia sobre CTS — Depósito Oportuno y Sanciones',
+    texto: `La jurisprudencia ha precisado aspectos relevantes del depósito de la CTS:
+
+OBLIGACIÓN DE DEPÓSITO SEMESTRAL:
+- La CTS debe depositarse dentro de los primeros 15 días de mayo y noviembre de cada año (Art. 21 D.S. 001-97-TR).
+- La base de cálculo es la remuneración computable del trabajador al 30 de abril y 31 de octubre, respectivamente.
+- El depósito se realiza en la entidad financiera elegida por el trabajador.
+
+INTERESES POR DEPÓSITO TARDÍO:
+- Casación Laboral N.o 1780-2012-JUNÍN: el empleador que no deposita la CTS oportunamente debe pagar intereses legales laborales (tasa fijada por el BCR) que se capitalizan al depósito.
+- Los intereses se computan desde el día siguiente al vencimiento del plazo (16 de mayo o 16 de noviembre).
+
+CAMBIO DE ENTIDAD DEPOSITARIA:
+- El trabajador puede cambiar libremente la entidad depositaria comunicando al empleador. El empleador tiene 8 días hábiles para efectuar el traslado.
+
+CTS COMO INTANGIBLE:
+- La CTS es intangible e inembargable, salvo por alimentos y hasta el 50%.
+- Disponibilidad: el trabajador puede disponer hasta del 100% del exceso de 4 remuneraciones brutas depositadas.
+
+LIQUIDACIÓN DE CTS AL CESE:
+- Al cese del trabajador, el empleador debe entregar una constancia de cese dentro de las 48 horas para que el trabajador pueda retirar el 100% de su CTS.
+- Si el empleador no cumple con entregar la carta de cese, la entidad financiera libera los fondos transcurridos 15 días calendario con la sola presentación de la carta notarial del trabajador.
+
+INCUMPLIMIENTO:
+- No depositar la CTS es infracción grave tipificada en el Art. 24.4 del D.S. 019-2006-TR.
+- El empleador además responde por los rendimientos que la CTS hubiera generado en la entidad financiera.`,
+    tags: ['cts', 'deposito cts', 'intangible', 'intereses', 'carta cese', 'liquidacion', 'ds 001-97-tr', 'jurisprudencia', 'entidad financiera'],
+    vigente: true,
+  },
+  {
+    id: 'juris-hostigamiento-obligaciones',
+    norma: 'Ley 27942 / D.S. 014-2019-MIMP',
+    titulo: 'Obligaciones del Empleador frente al Hostigamiento Sexual',
+    texto: `La Ley 27942 (modificada por la Ley 30709) y el D.S. 014-2019-MIMP establecen obligaciones específicas del empleador:
+
+OBLIGACIONES PREVENTIVAS:
+1. Contar con una Política de Prevención y Sanción del Hostigamiento Sexual aprobada y comunicada a todos los trabajadores.
+2. Capacitar anualmente a los trabajadores sobre hostigamiento sexual (concepto, manifestaciones, canales de denuncia, protección de víctimas).
+3. Exhibir en lugar visible los canales de denuncia.
+4. Conformar un Comité de Intervención frente al Hostigamiento Sexual (empresas con 20 o más trabajadores) o designar un delegado (menos de 20 trabajadores).
+5. Implementar medidas de difusión y prevención adaptadas a la actividad de la empresa.
+
+OBLIGACIONES ANTE UNA DENUNCIA:
+1. Recibir la queja por cualquier medio (escrito, verbal, digital).
+2. Dictar medidas de protección dentro de las 72 horas (traslado del presunto hostigador, rotación de horarios, suspensión temporal, impedimento de acercamiento).
+3. Iniciar investigación interna en un plazo de 3 días hábiles.
+4. La investigación no debe exceder de 15 días calendario.
+5. Emitir resolución en 5 días hábiles tras la investigación.
+6. Comunicar el resultado al denunciante y aplicar sanción si corresponde (amonestación, suspensión o despido por falta grave).
+
+SANCIONES POR INCUMPLIMIENTO:
+- Infracción muy grave (D.S. 019-2006-TR Art. 25.7).
+- Multa de hasta 52.53 UIT (S/ 288,915).
+- Responsabilidad civil solidaria del empleador por los daños causados al trabajador hostigado si no actuó con debida diligencia.
+
+JURISPRUDENCIA:
+- Casación Laboral N.o 3804-2014-JUNÍN: el incumplimiento de las obligaciones preventivas agrava la responsabilidad del empleador.
+- Resolución de SUNAFIL: la falta de política escrita de hostigamiento sexual es sancionable incluso sin denuncia previa.`,
+    tags: ['hostigamiento sexual', 'acoso', 'ley 27942', 'comite intervencion', 'politica hostigamiento', 'medidas proteccion', 'denuncia', 'ds 014-2019-mimp'],
+    vigente: true,
+  },
+  {
+    id: 'juris-examenes-medicos',
+    norma: 'Ley 29783 / D.S. 005-2012-TR',
+    titulo: 'Exámenes Médicos Ocupacionales — Obligaciones y Jurisprudencia',
+    texto: `La Ley 29783 de Seguridad y Salud en el Trabajo establece la obligación de realizar exámenes médicos ocupacionales:
+
+TIPOS DE EXÁMENES MÉDICOS:
+1. Examen médico pre-ocupacional (antes del inicio de labores): obligatorio para actividades de alto riesgo, recomendado para todas las actividades.
+2. Examen médico periódico (durante la relación laboral):
+   - Actividades de alto riesgo: cada 2 años como mínimo.
+   - Otras actividades: cada 2 años, con posibilidad de ser solicitado por el trabajador.
+3. Examen médico de retiro (al cese): obligatorio para actividades de alto riesgo, se realiza dentro de los últimos 30 días de la relación laboral.
+
+OBLIGACIONES DEL EMPLEADOR:
+- Asumir el costo íntegro de los exámenes médicos (Art. 49.d Ley 29783).
+- Garantizar la confidencialidad de los resultados médicos (datos sensibles según Ley 29733).
+- Los exámenes deben ser realizados por un médico ocupacional con título de especialista.
+- Entregar los resultados individuales al trabajador.
+- Mantener el registro de exámenes médicos por 20 años (Art. 28 D.S. 005-2012-TR).
+- Comunicar a los trabajadores los resultados generales (estadísticos, no individuales).
+
+ACTIVIDADES DE ALTO RIESGO (Anexo 5 D.S. 009-97-SA):
+Incluyen: minería, construcción civil, pesca, manufactura de explosivos, petróleo y gas, metalurgia, electricidad con alta tensión, entre otras.
+
+CONSECUENCIAS POR INCUMPLIMIENTO:
+- Infracción grave en materia de SST (D.S. 019-2006-TR Art. 27).
+- Si un trabajador sufre enfermedad profesional sin examen médico previo, se presume que la enfermedad es de origen ocupacional (inversión de la carga de la prueba).
+
+JURISPRUDENCIA:
+- Casación N.o 18190-2016-LIMA: la falta de examen médico de retiro no impide al trabajador reclamar indemnización por enfermedad profesional.
+- Resolución SUNAFIL: la falta de exámenes médicos periódicos se sanciona por cada trabajador afectado.`,
+    tags: ['examen medico', 'medico ocupacional', 'alto riesgo', 'pre ocupacional', 'retiro', 'periodico', 'ley 29783', 'sst', 'enfermedad profesional'],
+    vigente: true,
+  },
+  {
+    id: 'juris-despido-incausado',
+    norma: 'Jurisprudencia — Tribunal Constitucional',
+    titulo: 'Despido Incausado — Doctrina del Tribunal Constitucional',
+    texto: `El Tribunal Constitucional del Perú ha desarrollado la doctrina del despido incausado como una categoría de protección constitucional contra el despido:
+
+DEFINICIÓN:
+El despido incausado se produce cuando se despide al trabajador, ya sea de manera verbal o escrita, sin expresarle causa alguna derivada de su conducta o su labor que justifique la decisión (STC Exp. 976-2001-AA/TC, caso Eusebio Llanos Huasco).
+
+DIFERENCIA CON OTRAS CATEGORÍAS:
+- Despido arbitrario (Art. 34 D.S. 003-97-TR): no se acredita causa justa, da derecho a indemnización (1.5 remuneraciones por año, tope 12).
+- Despido incausado (creación jurisprudencial del TC): no se invoca causa alguna, da derecho a reposición.
+- Despido nulo (Art. 29 D.S. 003-97-TR): motivo prohibido (sindical, embarazo, discriminación), da derecho a reposición + devengados.
+- Despido fraudulento (creación jurisprudencial del TC): se invoca causa falsa o inexistente, da derecho a reposición.
+
+REQUISITOS PARA LA REPOSICIÓN POR DESPIDO INCAUSADO:
+1. El trabajador debe haber superado el período de prueba.
+2. El despido debe haberse producido sin carta de preaviso ni carta de despido con expresión de causa.
+3. La vía procedimental es el proceso de amparo constitucional (vía urgente y residual).
+
+PRECEDENTES VINCULANTES:
+- STC Exp. 976-2001-AA/TC (Llanos Huasco): establece las tres categorías de despido inconstitucional.
+- STC Exp. 206-2005-PA/TC (Baylón Flores): establece reglas de competencia entre la vía constitucional y la vía ordinaria laboral.
+- II Pleno Jurisdiccional Supremo Laboral (2014): el juez laboral puede ordenar la reposición por despido incausado y fraudulento en la vía ordinaria (proceso abreviado laboral).
+
+CONSECUENCIAS:
+- Reposición en el puesto de trabajo.
+- Pago de remuneraciones devengadas (criterio mayoritario desde el Pleno Nacional Laboral 2019).
+- Pago de beneficios sociales correspondientes al período no laborado.
+- El empleador puede ser sancionado adicionalmente por SUNAFIL si se verifica un patrón de despidos sin causa.`,
+    tags: ['despido incausado', 'reposicion', 'tribunal constitucional', 'amparo', 'llanos huasco', 'baylon flores', 'despido fraudulento', 'despido arbitrario', 'jurisprudencia'],
+    vigente: true,
+  },
 ]
 
 // ─── Helper: obtener todos los tags únicos del corpus ──────────────────────────

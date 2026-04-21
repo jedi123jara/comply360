@@ -259,7 +259,7 @@ export function AIActionPlanCard({ diagnosticId }: { diagnosticId: string }) {
                 {totalCompleted}/{totalTareas} tareas · Score estimado: <strong className="text-green-600">{scoreEstimado}/100</strong>
               </span>
             </div>
-            <div className="h-2 rounded-full bg-gray-200 bg-white/[0.04] overflow-hidden">
+            <div className="h-2 rounded-full bg-gray-200 bg-[color:var(--neutral-100)] overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-500"
                 style={{ width: `${progresoPct}%` }}
@@ -359,7 +359,7 @@ export function AIActionPlanCard({ diagnosticId }: { diagnosticId: string }) {
 
                     {/* Expanded section */}
                     {expanded && (
-                      <div className="mt-3 rounded-lg bg-white/[0.02] bg-white/[0.04]/50 border border-white/[0.08] border-white/10 p-3">
+                      <div className="mt-3 rounded-lg bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50 border border-white/[0.08] border-white/10 p-3">
                         <div className="flex items-start gap-2">
                           <Scale className="h-4 w-4 shrink-0 text-purple-500 mt-0.5" />
                           <div className="flex-1">

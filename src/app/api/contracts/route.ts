@@ -2,26 +2,96 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
+import { syncComplianceScore } from '@/lib/compliance/sync-score'
+import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
 
 // =============================================
 // GET /api/contracts - List contracts from DB
+// Query params:
+//   search, status, type        — filters
+//   page, limit                 — pagination
+//   stats=1                     — return org-wide aggregate stats
+//   expiringSoonDays=N          — filter contracts expiring in next N days
 // =============================================
 export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   try {
     const { searchParams } = new URL(req.url)
+    const orgId = ctx.orgId
+
+    // ── Aggregate stats mode ──────────────────────────────────────
+    if (searchParams.get('stats') === '1') {
+      const now = new Date()
+      const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+      const [statusGroups, typeGroups, expiringCount, withoutReviewCount] = await Promise.all([
+        prisma.contract.groupBy({
+          by: ['status'],
+          where: { orgId },
+          _count: { id: true },
+        }),
+        prisma.contract.groupBy({
+          by: ['type'],
+          where: { orgId, status: { not: 'ARCHIVED' } },
+          _count: { id: true },
+        }),
+        prisma.contract.count({
+          where: {
+            orgId,
+            status: { in: ['SIGNED', 'APPROVED', 'IN_REVIEW'] },
+            expiresAt: { gte: now, lte: in30Days },
+          },
+        }),
+        prisma.contract.count({
+          where: { orgId, status: { not: 'ARCHIVED' }, aiRiskScore: null },
+        }),
+      ])
+
+      const byStatus = Object.fromEntries(statusGroups.map(g => [g.status, g._count.id]))
+      const byType = Object.fromEntries(typeGroups.map(g => [g.type, g._count.id]))
+
+      return NextResponse.json({
+        byStatus: {
+          DRAFT: byStatus['DRAFT'] ?? 0,
+          IN_REVIEW: byStatus['IN_REVIEW'] ?? 0,
+          APPROVED: byStatus['APPROVED'] ?? 0,
+          SIGNED: byStatus['SIGNED'] ?? 0,
+          EXPIRED: byStatus['EXPIRED'] ?? 0,
+          ARCHIVED: byStatus['ARCHIVED'] ?? 0,
+        },
+        byType,
+        expiringIn30Days: expiringCount,
+        withoutAiReview: withoutReviewCount,
+        totalActive: (byStatus['DRAFT'] ?? 0) + (byStatus['IN_REVIEW'] ?? 0) +
+          (byStatus['APPROVED'] ?? 0) + (byStatus['SIGNED'] ?? 0),
+      })
+    }
+
+    // ── List mode ─────────────────────────────────────────────────
     const status = searchParams.get('status')
     const type = searchParams.get('type')
     const search = searchParams.get('search')
+    const workerId = searchParams.get('workerId')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
+    const expiringSoonDays = searchParams.get('expiringSoonDays')
 
-    const orgId = ctx.orgId
-
+    const now = new Date()
     const where = {
       orgId,
       ...(status ? { status: status as 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'SIGNED' | 'EXPIRED' | 'ARCHIVED' } : {}),
       ...(type ? { type: type as 'LABORAL_INDEFINIDO' } : {}),
       ...(search ? { title: { contains: search, mode: 'insensitive' as const } } : {}),
+      ...(workerId
+        ? { workerContracts: { some: { workerId } } }
+        : {}),
+      ...(expiringSoonDays
+        ? {
+            expiresAt: {
+              gte: now,
+              lte: new Date(now.getTime() + parseInt(expiringSoonDays) * 24 * 60 * 60 * 1000),
+            },
+          }
+        : {}),
     }
 
     const [contracts, total] = await Promise.all([
@@ -42,13 +112,30 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
           createdBy: {
             select: { firstName: true, lastName: true },
           },
+          // Include first linked worker for display
+          workerContracts: {
+            take: 1,
+            select: {
+              worker: {
+                select: { id: true, firstName: true, lastName: true, dni: true, position: true },
+              },
+            },
+          },
         },
       }),
       prisma.contract.count({ where }),
     ])
 
     return NextResponse.json({
-      data: contracts,
+      data: contracts.map(c => ({
+        ...c,
+        expiresAt: c.expiresAt?.toISOString() ?? null,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString(),
+        // Flatten first linked worker for easy consumption
+        worker: c.workerContracts[0]?.worker ?? null,
+        workerContracts: undefined,
+      })),
       pagination: {
         page,
         limit,
@@ -112,39 +199,6 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
     const orgId = ctx.orgId
     let userId = ctx.userId
-
-    // Fallback robusto: si el userId es el placeholder de desarrollo ('demo-user')
-    // o simplemente no existe en la DB, buscamos (o creamos) el usuario real de la org.
-    const isDemoUser = userId === 'demo-user' || userId === 'demo'
-    if (isDemoUser) {
-      let realUser = await prisma.user.findFirst({
-        where: { orgId },
-        select: { id: true },
-        orderBy: { createdAt: 'asc' },
-      })
-      if (!realUser && process.env.NODE_ENV === 'development') {
-        // Auto-seed demo org + user if they somehow still don't exist
-        await prisma.organization.upsert({
-          where: { id: 'org-demo' },
-          create: { id: 'org-demo', name: 'Empresa Demo S.A.C.', plan: 'PRO', alertEmail: 'demo@comply360.pe', onboardingCompleted: true },
-          update: {},
-        })
-        realUser = await prisma.user.upsert({
-          where: { clerkId: ctx.clerkId || 'demo-clerk-id' },
-          create: { clerkId: ctx.clerkId || 'demo-clerk-id', orgId: 'org-demo', email: ctx.email || 'demo@comply360.pe', firstName: 'Demo', lastName: 'User', role: 'OWNER' },
-          update: { orgId: 'org-demo' },
-          select: { id: true },
-        })
-      }
-      if (realUser) {
-        userId = realUser.id
-      } else {
-        return NextResponse.json(
-          { error: 'No se encontró un usuario válido en la organización. Completa el onboarding primero.' },
-          { status: 422 }
-        )
-      }
-    }
 
     // Verificar que el userId efectivamente existe en la tabla users (evita FK violation)
     const userExists = await prisma.user.findUnique({
@@ -279,29 +333,33 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
             })
           }
 
-          // Recalculate legajoScore
-          const REQUIRED_DOC_TYPES = [
-            'contrato_trabajo', 'cv', 'dni_copia', 'declaracion_jurada',
-            'boleta_pago', 't_registro', 'vacaciones_goce', 'capacitacion_registro',
-            'examen_medico_ingreso', 'examen_medico_periodico', 'induccion_sst',
-            'entrega_epp', 'iperc_puesto', 'capacitacion_sst', 'reglamento_interno',
-            'afp_onp_afiliacion', 'essalud_registro', 'cts_deposito',
-          ]
-          const uploadedDocs = await prisma.workerDocument.findMany({
-            where: { workerId: worker.id, status: { in: ['UPLOADED', 'VERIFIED'] } },
-            select: { documentType: true },
-          })
-          const uploaded = new Set(uploadedDocs.map(d => d.documentType))
-          const score = Math.round(
-            (REQUIRED_DOC_TYPES.filter(t => uploaded.has(t)).length / REQUIRED_DOC_TYPES.length) * 100
-          )
-          await prisma.worker.update({ where: { id: worker.id }, data: { legajoScore: score } })
+          // Recalculate legajoScore using shared utility
+          await recalculateLegajoScore(worker.id)
 
         } catch (workerErr) {
           // Non-fatal — contract was already saved, just log
           console.warn('[POST /api/contracts] Auto-worker creation failed (non-fatal):', workerErr)
         }
       }
+    }
+
+    // Fire-and-forget compliance score recalculation
+    syncComplianceScore(orgId).catch(() => {})
+
+    // Auto-trigger AI review for labor contracts with content
+    const AI_LABOR_TYPES = ['LABORAL_INDEFINIDO', 'LABORAL_PLAZO_FIJO', 'LABORAL_TIEMPO_PARCIAL']
+    if (AI_LABOR_TYPES.includes(normalizedType) && contentHtml) {
+      import('@/lib/ai/contract-review').then(async ({ reviewContract }) => {
+        try {
+          const review = await reviewContract({ contractHtml: contentHtml, contractType: normalizedType })
+          await prisma.contract.update({
+            where: { id: contract.id },
+            data: { aiRiskScore: review.overallScore },
+          })
+        } catch (err) {
+          console.warn('[AI Review] Auto-trigger failed:', err)
+        }
+      }).catch(() => {})
     }
 
     return NextResponse.json({ data: contract }, { status: 201 })

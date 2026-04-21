@@ -180,7 +180,7 @@ extractBtn.addEventListener('click', async () => {
       } else {
         statusEl.innerHTML += '<br><small style="opacity:0.7">Nota: No se pudo enviar a COMPLY360. Los datos se muestran arriba.</small>';
       }
-    } catch (fetchErr) {
+    } catch {
       // Server not reachable — still show data
       statusEl.className = 'status warning';
       statusEl.innerHTML = 'Datos extraidos. No se pudo conectar a COMPLY360 (' + serverUrl + '). Verifica que el servidor este corriendo.';
@@ -324,9 +324,9 @@ function extractSunatData() {
             });
           }
         }
-      } catch (e) { /* cross-origin iframe */ }
+      } catch { /* cross-origin iframe */ }
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
 
   // Deduplicate
   const seen = new Set();

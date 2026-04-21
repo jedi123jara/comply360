@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { runAgent } from '@/lib/agents/runtime'
 import { getAgent } from '@/lib/agents/registry'
 import type { AgentInput, AgentInputType } from '@/lib/agents/types'
@@ -8,7 +8,8 @@ export const runtime = 'nodejs'
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024 // 15 MB
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+// Los 11 agentes IA son feature PRO (`asistente_ia`). Gateo al ingreso.
+export const POST = withPlanGate('asistente_ia', async (req: NextRequest, ctx) => {
   // Extract slug from URL: /api/agents/[slug]/run
   const segments = req.nextUrl.pathname.split('/')
   const slug = segments[segments.indexOf('agents') + 1]

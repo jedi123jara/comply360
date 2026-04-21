@@ -36,7 +36,7 @@ export function ProgressBar({
           )}
         </div>
       )}
-      <div className={cn('w-full bg-white/[0.04] rounded-full overflow-hidden', size === 'sm' ? 'h-1.5' : 'h-2.5')}>
+      <div className={cn('w-full bg-[color:var(--neutral-100)] rounded-full overflow-hidden', size === 'sm' ? 'h-1.5' : 'h-2.5')}>
         <div
           className={cn('h-full rounded-full transition-all duration-500 ease-out', colors[color])}
           style={{ width: `${clampedValue}%` }}

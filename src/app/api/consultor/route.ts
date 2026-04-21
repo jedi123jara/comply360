@@ -17,7 +17,6 @@ import type { AuthContext } from '@/lib/auth'
 export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
   try {
     const consultorOrgId = ctx.orgId
-    const consultorUserId = ctx.userId
 
     // Get all active client relationships for this consultor
     const clients = await prisma.consultorClient.findMany({

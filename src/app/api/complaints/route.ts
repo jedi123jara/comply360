@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 // =============================================
 // PUT /api/complaints — Update complaint status / add timeline (auth required)
 // =============================================
-export const PUT = withAuth(async (req, ctx) => {
+export const PUT = withAuth(async (req) => {
   try {
     const body = await req.json()
     const { id, status, assignedTo, resolution, protectionMeasures, timelineAction, timelineDescription, performedBy } = body

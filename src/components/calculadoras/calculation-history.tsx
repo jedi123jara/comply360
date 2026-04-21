@@ -54,7 +54,7 @@ export function CalculationHistory({ type }: CalculationHistoryProps) {
         {history.map(entry => (
           <div
             key={entry.id}
-            className="flex items-center justify-between py-2 px-3 bg-white/[0.02] bg-white/[0.04] rounded-xl"
+            className="flex items-center justify-between py-2 px-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-xl"
           >
             <div className="flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />

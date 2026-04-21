@@ -341,6 +341,263 @@ export function calcularMultaSunafilSoles(
   return Math.round(uit * PERU_LABOR.UIT * 100) / 100
 }
 
+/**
+ * Costos laborales oficiales por régimen (2026).
+ *
+ * Fuente: "08 Tabla de costos laborales.docx" del pack Compensaciones 30°
+ * + normativa vigente (D.Leg. 728, D.Leg. 650, Ley 27735, Ley 32353, Ley 31110).
+ *
+ * Cobertura: 7 regímenes laborales peruanos.
+ */
+
+export type RegimenCosto =
+  | 'GENERAL'
+  | 'MYPE_PEQUENA'
+  | 'MYPE_MICRO'
+  | 'AGRARIO'
+  | 'LOCACION_SERVICIOS'
+  | 'CAS'
+  | 'FORMATIVA'
+
+export interface CostosRegimen {
+  /** Nombre legible del régimen. */
+  label: string
+  /** Base legal principal. */
+  baseLegal: string
+  /** RMV diurna aplicable. */
+  rmvDiurna: number
+  /** RMV nocturna (+35%) si aplica. */
+  rmvNocturna: number | null
+  /** Asignación familiar (10% RMV) si aplica. */
+  asignacionFamiliar: number | null
+  /** Bonificación Especial por Trabajo Agrario (BETA) si aplica. */
+  beta: number | null
+  /** CTS como porcentaje anual (sobre sueldo × año). Null = no aplica. */
+  ctsPercent: number | null
+  /** Gratificaciones anuales como porcentaje (16.66% = 2 × 1 sueldo / 12 meses). */
+  gratificacionPercent: number | null
+  /** EsSalud patronal. */
+  essaludPercent: number | null
+  /** SIS mensual si aplica (microempresa). */
+  sisMensual: number | null
+  /** Vacaciones anuales como porcentaje (30 días = 8.33%). */
+  vacacionesPercent: number
+  /** Senati cuando aplica (industrias manufactureras). */
+  senatiPercent: number | null
+  /** Sobretasa de horas extras (1ras 2h / siguientes). */
+  horasExtras: { primeras2h: number | null; siguientes: number | null } | null
+  /** Sobretasa por trabajo en día de descanso o feriado. */
+  sobretasaFeriado: number | null
+  /** Utilidades anuales como rango (min, max) de porcentaje. */
+  utilidades: { min: number; max: number } | null
+  /** Indemnización por despido arbitrario. */
+  indemnizacionDespido: {
+    factorPorAno: number | null
+    topeMeses: number
+    /** Porcentaje-año (cuando aplica cálculo continuo). */
+    percentAnual: number | null
+  } | null
+  /** Seguro de vida ley (rango 0.25%-2% según actividad). */
+  seguroVida: { min: number; max: number } | null
+  /** SCTR (cuando actividad riesgosa). */
+  sctr: {
+    essaludMin: number
+    essaludMax: number
+    onpMin: number
+  } | null
+  /** Aporte adicional SPP por riesgo. */
+  aporteSppRiesgo: { min: number; max: number } | null
+}
+
+export const COSTOS_LABORALES: Record<RegimenCosto, CostosRegimen> = {
+  GENERAL: {
+    label: 'Régimen General (D.Leg. 728)',
+    baseLegal: 'D.Leg. 728, TUO D.S. 003-97-TR',
+    rmvDiurna: 1130,
+    rmvNocturna: 1525.5,
+    asignacionFamiliar: 113,
+    beta: null,
+    ctsPercent: 9.72,
+    gratificacionPercent: 16.66,
+    essaludPercent: 9.0,
+    sisMensual: null,
+    vacacionesPercent: 8.33,
+    senatiPercent: 0.75,
+    horasExtras: { primeras2h: 25, siguientes: 35 },
+    sobretasaFeriado: 100,
+    utilidades: { min: 5, max: 10 },
+    indemnizacionDespido: { factorPorAno: 1.5, topeMeses: 12, percentAnual: 12.5 },
+    seguroVida: { min: 0.25, max: 2.0 },
+    sctr: { essaludMin: 0.63, essaludMax: 1.84, onpMin: 54 },
+    aporteSppRiesgo: { min: 1.0, max: 2.0 },
+  },
+  MYPE_PEQUENA: {
+    label: 'MYPE Pequeña Empresa (Ley 32353)',
+    baseLegal: 'Ley 32353 (ex-28015), D.S. 013-2013-PRODUCE',
+    rmvDiurna: 1130,
+    rmvNocturna: 1525.5,
+    asignacionFamiliar: null,
+    beta: null,
+    ctsPercent: 4.86, // 50% del general
+    gratificacionPercent: 8.33, // 50% del general
+    essaludPercent: 9.0,
+    sisMensual: null,
+    vacacionesPercent: 4.17, // 15 días
+    senatiPercent: 0.75,
+    horasExtras: { primeras2h: 25, siguientes: 35 },
+    sobretasaFeriado: 100,
+    utilidades: { min: 5, max: 10 },
+    indemnizacionDespido: { factorPorAno: 0.67, topeMeses: 4, percentAnual: 5.58 }, // 20 rem diarias/año
+    seguroVida: { min: 0.25, max: 2.0 },
+    sctr: { essaludMin: 0.63, essaludMax: 1.84, onpMin: 54 },
+    aporteSppRiesgo: { min: 1.0, max: 2.0 },
+  },
+  MYPE_MICRO: {
+    label: 'MYPE Microempresa (Ley 32353)',
+    baseLegal: 'Ley 32353, D.S. 007-2008-TR',
+    rmvDiurna: 1130,
+    rmvNocturna: 1130, // no diferencia nocturna (caso especial — verificar por actividad)
+    asignacionFamiliar: null,
+    beta: null,
+    ctsPercent: null, // no aplica
+    gratificacionPercent: null, // no aplica
+    essaludPercent: null,
+    sisMensual: 15, // SIS a cargo del empleador
+    vacacionesPercent: 4.17, // 15 días
+    senatiPercent: 0.75,
+    horasExtras: { primeras2h: 25, siguientes: 35 },
+    sobretasaFeriado: 100,
+    utilidades: null,
+    indemnizacionDespido: { factorPorAno: 0.33, topeMeses: 3, percentAnual: 2.75 }, // 10 rem diarias/año
+    seguroVida: { min: 0.25, max: 2.0 },
+    sctr: null, // facultativo
+    aporteSppRiesgo: { min: 1.0, max: 2.0 },
+  },
+  AGRARIO: {
+    label: 'Régimen Agrario (Ley 31110)',
+    baseLegal: 'Ley 31110, D.S. 005-2021-MIDAGRI',
+    rmvDiurna: 1130,
+    rmvNocturna: 1525.5,
+    asignacionFamiliar: 113,
+    beta: 339, // Bonificación Especial por Trabajo Agrario (no remunerativa)
+    ctsPercent: 9.72, // incluida en remuneración diaria
+    gratificacionPercent: 16.66, // incluida en remuneración diaria
+    essaludPercent: 6.0, // escalonado: 6% → 9% a 2029
+    sisMensual: null,
+    vacacionesPercent: 8.33,
+    senatiPercent: null,
+    horasExtras: { primeras2h: 25, siguientes: 35 },
+    sobretasaFeriado: 100,
+    utilidades: { min: 5, max: 10 },
+    indemnizacionDespido: { factorPorAno: 1.5, topeMeses: 12, percentAnual: 12.5 },
+    seguroVida: { min: 0.25, max: 2.0 },
+    sctr: { essaludMin: 0.63, essaludMax: 1.84, onpMin: 54 },
+    aporteSppRiesgo: null,
+  },
+  LOCACION_SERVICIOS: {
+    label: 'Locación de servicios (civil)',
+    baseLegal: 'Código Civil art. 1764-1770',
+    rmvDiurna: 1130,
+    rmvNocturna: null,
+    asignacionFamiliar: null,
+    beta: null,
+    ctsPercent: null,
+    gratificacionPercent: null,
+    essaludPercent: null,
+    sisMensual: null,
+    vacacionesPercent: 0,
+    senatiPercent: null,
+    horasExtras: null,
+    sobretasaFeriado: null,
+    utilidades: null,
+    indemnizacionDespido: null, // se rige por el contrato
+    seguroVida: null,
+    sctr: null,
+    aporteSppRiesgo: null,
+  },
+  CAS: {
+    label: 'CAS — Contrato Administrativo de Servicios',
+    baseLegal: 'D.Leg. 1057, D.S. 065-2011-PCM',
+    rmvDiurna: 1130,
+    rmvNocturna: null,
+    asignacionFamiliar: null,
+    beta: null,
+    ctsPercent: null,
+    gratificacionPercent: 8.33, // Aguinaldo S/300 (~mensualizado 25 aprox)
+    essaludPercent: 9.0,
+    sisMensual: null,
+    vacacionesPercent: 8.33,
+    senatiPercent: null,
+    horasExtras: null, // se compensan
+    sobretasaFeriado: null,
+    utilidades: null,
+    indemnizacionDespido: { factorPorAno: 1.0, topeMeses: 3, percentAnual: 8.33 }, // 1-3 rem
+    seguroVida: null,
+    sctr: { essaludMin: 0.63, essaludMax: 1.84, onpMin: 54 },
+    aporteSppRiesgo: null,
+  },
+  FORMATIVA: {
+    label: 'Modalidad Formativa Laboral (Ley 28518)',
+    baseLegal: 'Ley 28518, D.S. 007-2005-TR',
+    rmvDiurna: 1130,
+    rmvNocturna: null,
+    asignacionFamiliar: null,
+    beta: null,
+    ctsPercent: null,
+    gratificacionPercent: 8.33, // media subvención 2 veces/año
+    essaludPercent: null, // EsSalud Potestativo
+    sisMensual: null,
+    vacacionesPercent: 4.17, // 15 días
+    senatiPercent: null,
+    horasExtras: null, // no pueden
+    sobretasaFeriado: null,
+    utilidades: null,
+    indemnizacionDespido: null,
+    seguroVida: null,
+    sctr: null,
+    aporteSppRiesgo: null,
+  },
+}
+
+/**
+ * Costo total anual estimado para un sueldo bruto dado, por régimen.
+ * Suma: sueldo × 12 + CTS + gratificación + vacaciones + EsSalud + Senati.
+ * No incluye costos variables (SCTR, seguro vida, utilidades) por requerir
+ * actividad específica.
+ */
+export function costoEmpleadorAnual(
+  sueldoBruto: number,
+  regimen: RegimenCosto,
+  opts?: { conAsignacionFamiliar?: boolean; conSenati?: boolean }
+): { breakdown: Record<string, number>; total: number } {
+  const r = COSTOS_LABORALES[regimen]
+  const asigFam = opts?.conAsignacionFamiliar && r.asignacionFamiliar ? r.asignacionFamiliar : 0
+  const mensualTotal = sueldoBruto + asigFam
+  const sueldoAnual = mensualTotal * 12
+
+  const cts = r.ctsPercent ? (sueldoAnual * r.ctsPercent) / 100 : 0
+  const grat = r.gratificacionPercent ? (sueldoAnual * r.gratificacionPercent) / 100 : 0
+  const vac = (sueldoAnual * r.vacacionesPercent) / 100
+  const essalud = r.essaludPercent ? (sueldoAnual * r.essaludPercent) / 100 : 0
+  const sis = r.sisMensual ? r.sisMensual * 12 : 0
+  const senati = opts?.conSenati && r.senatiPercent ? (sueldoAnual * r.senatiPercent) / 100 : 0
+  const beta = r.beta ? r.beta * 12 : 0
+
+  const breakdown = {
+    sueldoAnual,
+    asignacionFamiliarAnual: asigFam * 12,
+    cts: Math.round(cts * 100) / 100,
+    gratificacion: Math.round(grat * 100) / 100,
+    vacaciones: Math.round(vac * 100) / 100,
+    essalud: Math.round(essalud * 100) / 100,
+    sis,
+    senati: Math.round(senati * 100) / 100,
+    beta,
+  }
+  const total = Object.values(breakdown).reduce((a, b) => a + b, 0)
+  return { breakdown, total: Math.round(total * 100) / 100 }
+}
+
 export function calcularRemuneracionComputable(
   sueldoBruto: number,
   asignacionFamiliar: boolean,

@@ -67,7 +67,7 @@ export default function SunafilAgentPage() {
       </div>
 
       {/* Upload card */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+      <div className="rounded-2xl border border-slate-800 bg-white p-6">
         <label className="mb-2 block text-sm font-medium text-slate-300">Tipo de empresa</label>
         <select
           value={tipoEmpresa}
@@ -128,7 +128,7 @@ export default function SunafilAgentPage() {
       {result && data && (
         <div className="space-y-6">
           {/* Summary */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+          <div className="rounded-2xl border border-slate-800 bg-white p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-white">Resumen del análisis</h2>
@@ -166,7 +166,7 @@ export default function SunafilAgentPage() {
 
           {/* Cargos */}
           {data.cargos.length > 0 && (
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+            <div className="rounded-2xl border border-slate-800 bg-white p-6">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
                 <FileText className="h-5 w-5 text-gold-500" /> Cargos identificados ({data.cargos.length})
               </h2>
@@ -210,7 +210,7 @@ export default function SunafilAgentPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+                    <div className="mt-3 rounded-lg border border-slate-800 bg-white/50 p-3">
                       <p className="text-[11px] font-semibold uppercase text-slate-500">
                         Defensa sugerida
                       </p>
@@ -234,7 +234,7 @@ export default function SunafilAgentPage() {
 
           {/* Acciones */}
           {result.recommendedActions.length > 0 && (
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+            <div className="rounded-2xl border border-slate-800 bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold text-white">Próximos pasos</h2>
               <div className="space-y-2">
                 {result.recommendedActions.map((a: AgentAction) => (

@@ -173,6 +173,19 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     enabledByDefault: true,
     minTier: 'EMPRESA',
   },
+  {
+    slug: 'sunat-consulta-ruc',
+    name: 'SUNAT Consulta RUC Avanzada',
+    category: 'SUNAT',
+    description:
+      'Consulta avanzada al portal SUNAT: deuda coactiva, representantes legales, trabajadores y establecimientos.',
+    logoEmoji: '🏛️',
+    envVarsRequired: [],
+    capabilities: ['Deuda coactiva', 'Representantes legales', 'Cantidad trabajadores por periodo', 'Establecimientos y sucursales'],
+    website: 'https://e-consultaruc.sunat.gob.pe',
+    enabledByDefault: true,
+    minTier: 'EMPRESA',
+  },
 
   // ─────────── PREVISIONAL ───────────
   {

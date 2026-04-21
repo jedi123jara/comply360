@@ -3,6 +3,16 @@ import { z } from 'zod'
 import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 
+/**
+ * Remueve tags internos como `[doc:cv]` de la descripcion antes de mostrar al
+ * trabajador. El tag se usa internamente por la cascada de onboarding para
+ * deduplicar solicitudes; no debe verse en la UI.
+ */
+function stripInternalTags(desc: string | null): string | null {
+  if (!desc) return desc
+  return desc.replace(/\s*\[doc:[a-z_]+\]\s*$/i, '').trim() || null
+}
+
 const REQUEST_TYPES = [
   'VACACIONES',
   'PERMISO',
@@ -38,7 +48,7 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
       type: r.type,
       status: r.status,
       title: r.title,
-      description: r.description,
+      description: stripInternalTags(r.description),
       startDate: r.startDate?.toISOString() || null,
       endDate: r.endDate?.toISOString() || null,
       daysRequested: r.daysRequested,

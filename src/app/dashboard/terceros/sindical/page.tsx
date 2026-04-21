@@ -1,30 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import {
-  Users,
-  AlertTriangle,
-  CheckCircle,
-  Plus,
-  X,
-  Loader2,
-  FileText,
-  Scale,
-  Shield,
-  Gavel,
-  Info,
-  Calendar,
-  Clock,
-  Download,
-  Bell,
-  TrendingUp,
-  ChevronRight,
-  Copy,
-  Building2,
-  Handshake,
-  CircleDot,
-  ArrowRight,
-} from 'lucide-react'
+import { Users, AlertTriangle, CheckCircle, Plus, X, Loader2, FileText, Scale, Shield, Gavel, Info, Calendar, Clock, Download, Bell, TrendingUp, ChevronRight, Copy, Building2, Handshake, CircleDot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -69,7 +46,7 @@ type NegotiationStage = 'PLIEGO' | 'TRATO_DIRECTO' | 'CONCILIACION' | 'ARBITRAJE
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<SindicalRecordType, { label: string; icon: React.ElementType; color: string; darkColor: string; bg: string; darkBg: string }> = {
-  SINDICATO: { label: 'Sindicato', icon: Users, color: 'text-blue-700', darkColor: 'text-blue-400', bg: 'bg-blue-50', darkBg: 'bg-blue-900/20' },
+  SINDICATO: { label: 'Sindicato', icon: Users, color: 'text-blue-700', darkColor: 'text-emerald-600', bg: 'bg-blue-50', darkBg: 'bg-blue-900/20' },
   CONVENIO_COLECTIVO: { label: 'Convenio Colectivo', icon: FileText, color: 'text-green-700', darkColor: 'text-green-400', bg: 'bg-green-50', darkBg: 'bg-green-900/20' },
   NEGOCIACION: { label: 'Negociación Colectiva', icon: Scale, color: 'text-purple-700', darkColor: 'text-purple-400', bg: 'bg-purple-50', darkBg: 'bg-purple-900/20' },
   PLIEGO_RECLAMOS: { label: 'Pliego de Reclamos', icon: Gavel, color: 'text-orange-700', darkColor: 'text-orange-400', bg: 'bg-orange-50', darkBg: 'bg-orange-900/20' },
@@ -169,32 +146,32 @@ function KPICard({ icon: Icon, label, value, subtext, colorClass, bgClass }: {
         <span className="text-sm font-medium text-gray-400">{label}</span>
       </div>
       <p className={cn('text-2xl font-bold', colorClass)}>{value}</p>
-      {subtext && <p className="text-xs text-gray-500 text-gray-400 mt-0.5">{subtext}</p>}
+      {subtext && <p className="text-xs text-gray-400 mt-0.5">{subtext}</p>}
     </div>
   )
 }
 
 function NegotiationTimeline({ activeStage }: { activeStage: NegotiationStage | null }) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5">
+    <div className="rounded-xl border border-white/[0.08] bg-white p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold text-white flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-purple-600 text-purple-400" />
+            <TrendingUp className="h-5 w-5 text-purple-400" />
             Timeline de Negociación Colectiva
           </h3>
-          <p className="text-xs text-gray-500 text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-400 mt-0.5">
             Proceso conforme al D.S. 010-2003-TR (TUO LRCT)
           </p>
         </div>
       </div>
       <div className="relative">
         {/* Progress bar background */}
-        <div className="absolute top-5 left-5 right-5 h-1 bg-gray-200 bg-slate-600 rounded-full" />
+        <div className="absolute top-5 left-5 right-5 h-1 bg-[color:var(--neutral-200)] rounded-full" />
         {/* Active progress */}
         {activeStage && (
           <div
-            className="absolute top-5 left-5 h-1 bg-purple-500 bg-purple-400 rounded-full transition-all duration-500"
+            className="absolute top-5 left-5 h-1 bg-purple-400 rounded-full transition-all duration-500"
             style={{
               width: `${(NEGOTIATION_STAGES.findIndex(s => s.key === activeStage) + 1) / NEGOTIATION_STAGES.length * 100}%`,
               maxWidth: 'calc(100% - 40px)',
@@ -214,20 +191,20 @@ function NegotiationTimeline({ activeStage }: { activeStage: NegotiationStage | 
                   isActive
                     ? 'border-purple-500 bg-purple-500 border-purple-400 bg-purple-400 text-white shadow-lg shadow-purple-200 shadow-purple-900/30'
                     : isCompleted
-                      ? 'border-purple-400 bg-purple-100 border-purple-500 bg-purple-900/40 text-purple-600 text-purple-400'
-                      : 'border-white/10 bg-[#141824] border-slate-600 bg-white/[0.04] text-gray-400 text-slate-500'
+                      ? 'border-purple-400 bg-purple-100 border-purple-500 bg-purple-900/40 text-purple-400'
+                      : 'border-white/10 bg-white border-[color:var(--border-default)] bg-[color:var(--neutral-100)] text-slate-500'
                 )}>
                   {isCompleted ? <CheckCircle className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
                 </div>
                 <p className={cn(
                   'text-xs font-medium mt-2 leading-tight',
-                  isActive ? 'text-purple-700 text-purple-300' : 'text-gray-500 text-gray-400'
+                  isActive ? 'text-purple-300' : 'text-gray-400'
                 )}>
                   {stage.label}
                 </p>
                 <p className={cn(
                   'text-[10px] mt-0.5',
-                  isActive ? 'text-purple-500 text-purple-400 font-medium' : 'text-gray-400 text-slate-500'
+                  isActive ? 'text-purple-400 font-medium' : 'text-slate-500'
                 )}>
                   {stage.duration}
                 </p>
@@ -291,11 +268,11 @@ function AlertsPanel({ records }: { records: SindicalRecord[] }) {
   if (alerts.length === 0) return null
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5">
+    <div className="rounded-xl border border-white/[0.08] bg-white p-5">
       <h3 className="font-semibold text-white flex items-center gap-2 mb-4">
-        <Bell className="h-5 w-5 text-amber-500 text-amber-400" />
+        <Bell className="h-5 w-5 text-amber-400" />
         Alertas y Avisos
-        <span className="ml-auto text-xs font-normal bg-amber-100 bg-amber-900/30 text-amber-700 text-amber-400 px-2 py-0.5 rounded-full">
+        <span className="ml-auto text-xs font-normal bg-amber-900/30 text-amber-400 px-2 py-0.5 rounded-full">
           {alerts.length}
         </span>
       </h3>
@@ -303,14 +280,14 @@ function AlertsPanel({ records }: { records: SindicalRecord[] }) {
         {alerts.map(alert => {
           const Icon = alert.icon
           const colors = {
-            danger: 'border-red-200 border-red-800 bg-red-50 bg-red-900/20',
-            warning: 'border-amber-200 border-amber-800 bg-amber-50 bg-amber-900/20',
-            info: 'border-blue-200 border-blue-800 bg-blue-50 bg-blue-900/20',
+            danger: 'border-red-800 bg-red-900/20',
+            warning: 'border-amber-800 bg-amber-900/20',
+            info: 'border-blue-800 bg-blue-900/20',
           }
           const iconColors = {
-            danger: 'text-red-600 text-red-400',
-            warning: 'text-amber-600 text-amber-400',
-            info: 'text-blue-600 text-blue-400',
+            danger: 'text-red-400',
+            warning: 'text-amber-400',
+            info: 'text-emerald-600',
           }
           return (
             <div key={alert.id} className={cn('rounded-lg border p-3 flex items-start gap-3', colors[alert.type])}>
@@ -348,9 +325,9 @@ function TemplatesPanel() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5">
+    <div className="rounded-xl border border-white/[0.08] bg-white p-5">
       <h3 className="font-semibold text-white flex items-center gap-2 mb-4">
-        <FileText className="h-5 w-5 text-green-600 text-green-400" />
+        <FileText className="h-5 w-5 text-green-400" />
         Plantillas y Modelos
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -364,34 +341,34 @@ function TemplatesPanel() {
                 className={cn(
                   'flex items-start gap-3 rounded-lg border p-3 text-left transition-all hover:shadow-sm',
                   isOpen
-                    ? 'border-green-300 border-green-700 bg-green-50 bg-green-900/20'
-                    : 'border-white/[0.08] border-slate-600 hover:border-green-200 hover:border-green-800'
+                    ? 'border-green-700 bg-green-900/20'
+                    : 'border-white/[0.08] border-[color:var(--border-default)] hover:border-green-200 hover:border-green-800'
                 )}
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 bg-green-900/30 shrink-0">
-                  <Icon className="h-4 w-4 text-green-600 text-green-400" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-900/30 shrink-0">
+                  <Icon className="h-4 w-4 text-green-400" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white">{tpl.title}</p>
-                  <p className="text-xs text-gray-500 text-gray-400 mt-0.5 line-clamp-2">{tpl.description}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{tpl.description}</p>
                 </div>
               </button>
               {isOpen && (
-                <div className="mt-2 rounded-lg border border-white/[0.08] border-slate-600 bg-white/[0.02] bg-white/[0.04]/50 p-3">
-                  <pre className="text-xs text-gray-300 text-slate-300 whitespace-pre-wrap font-sans max-h-48 overflow-y-auto">
+                <div className="mt-2 rounded-lg border border-white/[0.08] border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50 p-3">
+                  <pre className="text-xs text-slate-300 whitespace-pre-wrap font-sans max-h-48 overflow-y-auto">
                     {tpl.content}
                   </pre>
                   <div className="flex gap-2 mt-3 justify-end">
                     <button
                       onClick={() => handleCopy(tpl.id, tpl.content)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-white/10 border-slate-600 text-gray-300 text-slate-300 hover:bg-white/[0.04] hover:bg-slate-600"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-white/10 border-[color:var(--border-default)] text-slate-300 hover:bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-200)]"
                     >
                       {copied === tpl.id ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                       {copied === tpl.id ? 'Copiado' : 'Copiar'}
                     </button>
                     <button
                       onClick={() => handleDownload(tpl.title, tpl.content)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 bg-green-700 hover:bg-green-600"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-600"
                     >
                       <Download className="h-3.5 w-3.5" />
                       Descargar
@@ -437,29 +414,29 @@ function DerechosSindicalesCard() {
   ]
 
   return (
-    <div className="rounded-xl border border-indigo-200 border-indigo-800 bg-indigo-50 bg-indigo-900/20 p-5">
+    <div className="rounded-xl border border-indigo-800 bg-indigo-900/20 p-5">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between"
       >
-        <h3 className="font-semibold text-indigo-800 text-indigo-300 flex items-center gap-2">
+        <h3 className="font-semibold text-indigo-300 flex items-center gap-2">
           <Scale className="h-5 w-5" />
           Derechos Sindicales — Marco Legal
         </h3>
-        <ChevronRight className={cn('h-5 w-5 text-indigo-500 text-indigo-400 transition-transform', expanded && 'rotate-90')} />
+        <ChevronRight className={cn('h-5 w-5 text-indigo-400 transition-transform', expanded && 'rotate-90')} />
       </button>
       {expanded && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
           {derechos.map(d => {
             const Icon = d.icon
             return (
-              <div key={d.title} className="flex items-start gap-3 rounded-lg bg-[#141824] border border-indigo-100 border-indigo-800 p-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 bg-indigo-900/40 shrink-0">
-                  <Icon className="h-4 w-4 text-indigo-600 text-indigo-400" />
+              <div key={d.title} className="flex items-start gap-3 rounded-lg bg-white border border-indigo-800 p-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-900/40 shrink-0">
+                  <Icon className="h-4 w-4 text-indigo-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-indigo-800 text-indigo-300">{d.title}</p>
-                  <p className="text-xs font-medium text-indigo-500 text-indigo-400">{d.base}</p>
+                  <p className="text-sm font-semibold text-indigo-300">{d.title}</p>
+                  <p className="text-xs font-medium text-indigo-400">{d.base}</p>
                   <p className="text-xs text-gray-400 mt-1">{d.description}</p>
                 </div>
               </div>
@@ -597,7 +574,7 @@ export default function SindicalPage() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 border-red-800 bg-red-50 bg-red-900/20 p-4 text-red-700 text-red-400">
+      <div className="rounded-lg border border-red-800 bg-red-900/20 p-4 text-red-400">
         <p className="font-medium">Error al cargar datos</p>
         <p className="text-sm mt-1">{error}</p>
       </div>
@@ -611,13 +588,13 @@ export default function SindicalPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 text-gray-400 mb-2">
+          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
             <span>Terceros</span>
             <span>/</span>
             <span className="text-primary font-medium">Relaciones Colectivas</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Relaciones Colectivas de Trabajo</h1>
-          <p className="text-gray-500 text-gray-400 mt-1">
+          <p className="text-gray-400 mt-1">
             Gestión de sindicatos, convenios colectivos, pliegos de reclamos y fuero sindical
             (D.S. 010-2003-TR — TUO LRCT)
           </p>
@@ -638,42 +615,42 @@ export default function SindicalPage() {
           label="Sindicatos Activos"
           value={kpiStats.sindicatosActivos}
           subtext={kpiStats.sindicatosActivos > 0 ? 'registrados' : 'sin sindicatos'}
-          colorClass="text-blue-600 text-blue-400"
-          bgClass="bg-blue-50 bg-blue-900/20"
+          colorClass="text-emerald-600"
+          bgClass="bg-blue-900/20"
         />
         <KPICard
           icon={FileText}
           label="Convenios Vigentes"
           value={kpiStats.conveniosVigentes}
           subtext={stats?.activeConvenio ? `Último: ${stats.activeConvenio.title}` : 'sin convenios'}
-          colorClass="text-green-600 text-green-400"
-          bgClass="bg-green-50 bg-green-900/20"
+          colorClass="text-green-400"
+          bgClass="bg-green-900/20"
         />
         <KPICard
           icon={Scale}
           label="Negociaciones en Curso"
           value={kpiStats.negociacionesEnCurso}
           subtext={kpiStats.negociacionesEnCurso > 0 ? 'en proceso' : 'sin negociaciones'}
-          colorClass="text-purple-600 text-purple-400"
-          bgClass="bg-purple-50 bg-purple-900/20"
+          colorClass="text-purple-400"
+          bgClass="bg-purple-900/20"
         />
         <KPICard
           icon={Clock}
           label="Próximos Vencimientos"
           value={kpiStats.proximosVencimientos}
           subtext="en los próximos 90 días"
-          colorClass={kpiStats.proximosVencimientos > 0 ? 'text-amber-600 text-amber-400' : 'text-gray-400 text-slate-500'}
-          bgClass={kpiStats.proximosVencimientos > 0 ? 'bg-amber-50 bg-amber-900/20' : 'bg-white/[0.02] bg-[#141824]'}
+          colorClass={kpiStats.proximosVencimientos > 0 ? 'text-amber-400' : 'text-slate-500'}
+          bgClass={kpiStats.proximosVencimientos > 0 ? 'bg-amber-900/20' : 'bg-[color:var(--neutral-50)] bg-white'}
         />
       </div>
 
       {/* Alert: Active Huelga */}
       {(stats?.activeHuelgas || 0) > 0 && (
-        <div className="rounded-lg border border-red-300 border-red-800 bg-red-50 bg-red-900/20 p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-red-600 text-red-400 shrink-0 mt-0.5" />
+        <div className="rounded-lg border border-red-800 bg-red-900/20 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-red-800 text-red-300">Huelga en curso</p>
-            <p className="text-sm text-red-700 text-red-400 mt-1">
+            <p className="font-semibold text-red-300">Huelga en curso</p>
+            <p className="text-sm text-red-400 mt-1">
               Hay {stats?.activeHuelgas} huelga(s) activa(s). Verifique el cumplimiento de los
               servicios mínimos y notifique a la Autoridad Administrativa de Trabajo.
             </p>
@@ -685,7 +662,7 @@ export default function SindicalPage() {
       <AlertsPanel records={data?.records || []} />
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white/[0.04] bg-[#141824] rounded-lg p-1">
+      <div className="flex gap-1 bg-[color:var(--neutral-100)] bg-white rounded-lg p-1">
         {[
           { key: 'registros' as const, label: 'Registros', icon: FileText },
           { key: 'timeline' as const, label: 'Timeline Negociación', icon: TrendingUp },
@@ -699,8 +676,8 @@ export default function SindicalPage() {
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all flex-1 justify-center',
                 activeTab === tab.key
-                  ? 'bg-[#141824] bg-white/[0.04] text-white shadow-sm'
-                  : 'text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-300'
+                  ? 'bg-white bg-[color:var(--neutral-100)] text-white shadow-sm'
+                  : 'text-gray-400 hover:text-slate-300'
               )}
             >
               <Icon className="h-4 w-4" />
@@ -721,7 +698,7 @@ export default function SindicalPage() {
                 'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                 filterType === 'ALL'
                   ? 'bg-primary text-white'
-                  : 'bg-white/[0.04] text-gray-300 text-slate-300 hover:bg-gray-200 hover:bg-slate-600'
+                  : 'bg-[color:var(--neutral-100)] text-slate-300 hover:bg-[color:var(--neutral-200)]'
               )}
             >
               Todos ({data?.stats.total || 0})
@@ -749,10 +726,10 @@ export default function SindicalPage() {
 
           {/* Records List */}
           {filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-white/10 border-slate-600 p-12 text-center bg-[#141824]">
-              <Scale className="mx-auto h-10 w-10 text-gray-300 text-slate-600 mb-3" />
-              <p className="text-gray-500 text-gray-400 font-medium">Sin registros sindicales</p>
-              <p className="text-sm text-gray-400 text-slate-500 mt-1">
+            <div className="rounded-xl border border-dashed border-white/10 border-[color:var(--border-default)] p-12 text-center bg-white">
+              <Scale className="mx-auto h-10 w-10 text-[color:var(--text-secondary)] mb-3" />
+              <p className="text-gray-400 font-medium">Sin registros sindicales</p>
+              <p className="text-sm text-slate-500 mt-1">
                 Registre sindicatos, convenios, pliegos de reclamos y fuero sindical para su empresa.
               </p>
               <button
@@ -779,11 +756,11 @@ export default function SindicalPage() {
                   <div
                     key={record.id}
                     className={cn(
-                      'rounded-xl border p-4 transition-shadow hover:shadow-sm bg-[#141824]',
+                      'rounded-xl border p-4 transition-shadow hover:shadow-sm bg-white',
                       expired
-                        ? 'border-red-200 border-red-800'
+                        ? 'border-red-800'
                         : expiring
-                          ? 'border-amber-200 border-amber-800'
+                          ? 'border-amber-800'
                           : 'border-white/[0.08]'
                     )}
                   >
@@ -800,7 +777,7 @@ export default function SindicalPage() {
                             'text-xs px-2 py-0.5 rounded-full font-medium',
                             record.status === 'ACTIVE'
                               ? 'bg-green-100 text-green-700 bg-green-900/30 text-green-400'
-                              : 'bg-white/[0.04] text-gray-600 bg-white/[0.04] text-gray-400'
+                              : 'bg-[color:var(--neutral-100)] text-gray-600 bg-[color:var(--neutral-100)] text-gray-400'
                           )}>
                             {record.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                           </span>
@@ -817,42 +794,42 @@ export default function SindicalPage() {
                         </div>
                         <p className="font-semibold text-white mt-1">{record.title}</p>
                         {record.description && (
-                          <p className="text-sm text-gray-500 text-gray-400 mt-0.5 line-clamp-2">{record.description}</p>
+                          <p className="text-sm text-gray-400 mt-0.5 line-clamp-2">{record.description}</p>
                         )}
 
                         {/* Enhanced sindicato info */}
                         {record.type === 'SINDICATO' && recordData && (
                           <div className="mt-2 flex flex-wrap gap-3 text-xs">
                             {!!recordData.tipoSindicato && (
-                              <span className="flex items-center gap-1 text-gray-500 text-gray-400">
+                              <span className="flex items-center gap-1 text-gray-400">
                                 <Building2 className="h-3 w-3" />
-                                Tipo: <span className="font-medium text-gray-300 text-slate-300 capitalize">{String(recordData.tipoSindicato)}</span>
+                                Tipo: <span className="font-medium text-slate-300 capitalize">{String(recordData.tipoSindicato)}</span>
                               </span>
                             )}
                             {sindPercent !== null && (
-                              <span className="flex items-center gap-1 text-gray-500 text-gray-400">
+                              <span className="flex items-center gap-1 text-gray-400">
                                 <Users className="h-3 w-3" />
-                                Sindicalización: <span className="font-medium text-gray-300 text-slate-300">{String(recordData.numAfiliados)}/{String(recordData.totalTrabajadores)} ({sindPercent}%)</span>
+                                Sindicalización: <span className="font-medium text-slate-300">{String(recordData.numAfiliados)}/{String(recordData.totalTrabajadores)} ({sindPercent}%)</span>
                               </span>
                             )}
                             {!!recordData.cuotaSindical && (
-                              <span className="flex items-center gap-1 text-gray-500 text-gray-400">
+                              <span className="flex items-center gap-1 text-gray-400">
                                 <CircleDot className="h-3 w-3" />
-                                Cuota: <span className="font-medium text-gray-300 text-slate-300">
+                                Cuota: <span className="font-medium text-slate-300">
                                   {recordData.tipoCuota === 'porcentaje' ? `${String(recordData.cuotaSindical)}%` : `S/ ${String(recordData.cuotaSindical)}`}
                                 </span>
                               </span>
                             )}
                             {!!recordData.dirigentes && (
-                              <span className="flex items-center gap-1 text-gray-500 text-gray-400">
+                              <span className="flex items-center gap-1 text-gray-400">
                                 <Shield className="h-3 w-3" />
-                                Dirigentes: <span className="font-medium text-gray-300 text-slate-300">{String(recordData.dirigentes)}</span>
+                                Dirigentes: <span className="font-medium text-slate-300">{String(recordData.dirigentes)}</span>
                               </span>
                             )}
                           </div>
                         )}
 
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 text-slate-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                           {record.startDate && (
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
@@ -860,7 +837,7 @@ export default function SindicalPage() {
                             </span>
                           )}
                           {record.endDate && (
-                            <span className={cn('flex items-center gap-1', expired ? 'text-red-500 text-red-400' : expiring ? 'text-amber-600 text-amber-400' : '')}>
+                            <span className={cn('flex items-center gap-1', expired ? 'text-red-400' : expiring ? 'text-amber-400' : '')}>
                               <Calendar className="h-3 w-3" />
                               Fin: {formatDate(record.endDate)}
                             </span>
@@ -880,7 +857,7 @@ export default function SindicalPage() {
       {activeTab === 'timeline' && (
         <div className="space-y-4">
           <NegotiationTimeline activeStage={activeNegotiationStage} />
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5">
+          <div className="rounded-xl border border-white/[0.08] bg-white p-5">
             <h3 className="font-semibold text-white mb-3">Etapas del Proceso de Negociación Colectiva</h3>
             <div className="space-y-3">
               {[
@@ -910,15 +887,15 @@ export default function SindicalPage() {
                 },
               ].map((item, idx) => (
                 <div key={idx} className="flex gap-3 items-start">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 bg-purple-900/30 text-purple-700 text-purple-400 text-xs font-bold">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-900/30 text-purple-400 text-xs font-bold">
                     {idx + 1}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-white">{item.stage}</p>
-                    <p className="text-xs text-gray-500 text-gray-400 mt-0.5">{item.desc}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
                     <div className="flex gap-4 mt-1">
-                      <span className="text-xs text-purple-600 text-purple-400 font-medium">{item.legal}</span>
-                      <span className="text-xs text-gray-400 text-slate-500">{item.days}</span>
+                      <span className="text-xs text-purple-400 font-medium">{item.legal}</span>
+                      <span className="text-xs text-slate-500">{item.days}</span>
                     </div>
                   </div>
                 </div>
@@ -937,14 +914,14 @@ export default function SindicalPage() {
       <DerechosSindicalesCard />
 
       {/* Base Legal */}
-      <div className="rounded-xl border border-blue-100 border-blue-800 bg-blue-50 bg-blue-900/20 p-4">
+      <div className="rounded-xl border border-blue-800 bg-blue-900/20 p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Info className="h-4 w-4 text-blue-600 text-blue-400" />
-          <span className="text-sm font-semibold text-blue-800 text-blue-300">Base Legal Aplicable</span>
+          <Info className="h-4 w-4 text-emerald-600" />
+          <span className="text-sm font-semibold text-emerald-600">Base Legal Aplicable</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {data?.baseLegal && Object.entries(data.baseLegal).map(([k, v]) => (
-            <p key={k} className="text-xs text-blue-700 text-blue-400">• {v}</p>
+            <p key={k} className="text-xs text-emerald-600">• {v}</p>
           ))}
         </div>
       </div>
@@ -952,13 +929,13 @@ export default function SindicalPage() {
       {/* Enhanced Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-[#141824] shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/[0.06] border-white/[0.08] p-6">
               <h2 className="text-lg font-bold text-white">Nuevo Registro Sindical</h2>
               <button
                 onClick={() => { setShowForm(false); setSubmitError(null) }}
                 aria-label="Cerrar modal"
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/[0.04]"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-[color:var(--neutral-100)]"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -966,17 +943,17 @@ export default function SindicalPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {/* Inline error — replaces native alert() */}
               {submitError && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-200 border-red-800 bg-red-50 bg-red-900/20 px-4 py-3">
+                <div className="flex items-start gap-2 rounded-lg border border-red-800 bg-red-900/20 px-4 py-3">
                   <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700 text-red-400">{submitError}</p>
+                  <p className="text-sm text-red-400">{submitError}</p>
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">Tipo</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Tipo</label>
                 <select
                   value={form.type}
                   onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as SindicalRecordType }))}
-                  className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
                   {TYPE_OPTIONS.map((t) => (
                     <option key={t} value={t}>{TYPE_CONFIG[t].label}</option>
@@ -984,26 +961,26 @@ export default function SindicalPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">Título *</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Título *</label>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   placeholder="Ej: Sindicato de Trabajadores ACME S.A."
-                  className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                   required
                 />
               </div>
 
               {/* Enhanced Sindicato Fields */}
               {form.type === 'SINDICATO' && (
-                <div className="space-y-3 rounded-lg border border-blue-200 border-blue-800 bg-blue-50 bg-blue-900/10 p-3">
-                  <p className="text-xs font-semibold text-blue-700 text-blue-400 uppercase tracking-wide">Datos del Sindicato</p>
+                <div className="space-y-3 rounded-lg border border-blue-800 bg-blue-900/10 p-3">
+                  <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Datos del Sindicato</p>
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 text-slate-300 mb-1">Tipo de Sindicato</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Tipo de Sindicato</label>
                     <select
                       value={form.tipoSindicato}
                       onChange={(e) => setForm(f => ({ ...f, tipoSindicato: e.target.value as 'empresa' | 'rama' | 'gremio' }))}
-                      className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                     >
                       <option value="empresa">De Empresa</option>
                       <option value="rama">De Rama de Actividad</option>
@@ -1012,44 +989,44 @@ export default function SindicalPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 text-slate-300 mb-1">N° Afiliados</label>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">N° Afiliados</label>
                       <input
                         type="number"
                         value={form.numAfiliados}
                         onChange={(e) => setForm(f => ({ ...f, numAfiliados: e.target.value }))}
                         placeholder="Ej: 50"
-                        className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 text-slate-300 mb-1">Total Trabajadores</label>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">Total Trabajadores</label>
                       <input
                         type="number"
                         value={form.totalTrabajadores}
                         onChange={(e) => setForm(f => ({ ...f, totalTrabajadores: e.target.value }))}
                         placeholder="Ej: 200"
-                        className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-300 text-slate-300 mb-1">Cuota Sindical</label>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">Cuota Sindical</label>
                       <input
                         type="number"
                         step="0.01"
                         value={form.cuotaSindical}
                         onChange={(e) => setForm(f => ({ ...f, cuotaSindical: e.target.value }))}
                         placeholder={form.tipoCuota === 'porcentaje' ? 'Ej: 2.5' : 'Ej: 50.00'}
-                        className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 text-slate-300 mb-1">Tipo</label>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">Tipo</label>
                       <select
                         value={form.tipoCuota}
                         onChange={(e) => setForm(f => ({ ...f, tipoCuota: e.target.value as 'porcentaje' | 'monto' }))}
-                        className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                       >
                         <option value="porcentaje">%</option>
                         <option value="monto">S/</option>
@@ -1057,53 +1034,53 @@ export default function SindicalPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 text-slate-300 mb-1">Dirigentes Sindicales (con fuero)</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Dirigentes Sindicales (con fuero)</label>
                     <input
                       value={form.dirigentes}
                       onChange={(e) => setForm(f => ({ ...f, dirigentes: e.target.value }))}
                       placeholder="Ej: Juan Pérez (Sec. General), María López (Sec. Defensa)"
-                      className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">Descripción</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Descripción</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   rows={3}
                   placeholder="Detalles adicionales..."
-                  className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">Fecha Inicio</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Fecha Inicio</label>
                   <input
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                    className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">Fecha Fin</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Fecha Fin</label>
                   <input
                     type="date"
                     value={form.endDate}
                     onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                    className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">Estado</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Estado</label>
                 <select
                   value={form.status}
                   onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                  className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full rounded-lg border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
                   <option value="ACTIVE">Activo</option>
                   <option value="INACTIVE">Inactivo</option>
@@ -1114,7 +1091,7 @@ export default function SindicalPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="rounded-lg border border-white/10 border-slate-600 px-4 py-2 text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+                  className="rounded-lg border border-white/10 border-[color:var(--border-default)] px-4 py-2 text-sm font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]"
                 >
                   Cancelar
                 </button>

@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
           },
         })
         saved++
-      } catch (err) {
+      } catch {
         // Unique constraint on externalId — race condition with previous run, safe to skip
         console.warn(`[norm-updates cron] Skipping duplicate externalId "${norm.externalId}"`)
       }

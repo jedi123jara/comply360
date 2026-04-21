@@ -6,7 +6,7 @@ import {
   Globe,
   Mail,
   Phone,
-  Image,
+  Image as ImageIcon,
   Eye,
   Save,
   Settings,
@@ -15,6 +15,7 @@ import {
   Sparkles,
   Crown,
 } from 'lucide-react'
+import NextImage from 'next/image'
 
 interface BrandingConfig {
   companyName: string
@@ -98,16 +99,16 @@ export default function MarcaBlancaPage() {
               PRO
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-500 text-gray-400">
+          <p className="mt-1 text-sm text-gray-400">
             Personaliza la plataforma con la identidad de tu consultora para tus clientes.
           </p>
         </div>
-        <Palette className="w-8 h-8 text-slate-300 text-slate-600" />
+        <Palette className="w-8 h-8 text-[color:var(--text-secondary)]" />
       </div>
 
       {/* Live Preview Card */}
-      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-[#141824] p-6 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700 text-slate-300 flex items-center gap-2">
+      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-white p-6 space-y-3">
+        <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
           <Eye className="w-4 h-4" />
           Vista previa en tiempo real
         </h2>
@@ -118,9 +119,9 @@ export default function MarcaBlancaPage() {
             style={{ backgroundColor: config.primaryColor }}
           >
             {config.logoUrl ? (
-              <img src={config.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg object-contain bg-[#141824]/20" />
+              <NextImage src={config.logoUrl} alt="Logo" width={40} height={40} className="w-10 h-10 rounded-lg object-contain bg-white/20" unoptimized />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-[#141824]/20 flex items-center justify-center text-[10px] font-bold">
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-[10px] font-bold">
                 LOGO
               </div>
             )}
@@ -134,7 +135,7 @@ export default function MarcaBlancaPage() {
             </div>
           </div>
           {/* Mini Content Area */}
-          <div className="flex-1 flex flex-col bg-slate-50 bg-slate-900">
+          <div className="flex-1 flex flex-col bg-white">
             <div
               className="h-10 flex items-center px-4 text-white text-xs font-medium justify-between shrink-0"
               style={{ backgroundColor: config.secondaryColor }}
@@ -144,9 +145,9 @@ export default function MarcaBlancaPage() {
             </div>
             <div className="flex-1 p-4 grid grid-cols-3 gap-2">
               {[1, 2, 3].map(i => (
-                <div key={i} className="rounded bg-[#141824] border border-slate-200 border-white/[0.08] p-2">
-                  <div className="h-2 rounded bg-slate-200 bg-slate-600 w-3/4 mb-1.5" />
-                  <div className="h-1.5 rounded bg-slate-100 bg-white/[0.04] w-full" />
+                <div key={i} className="rounded bg-white border border-slate-200 border-white/[0.08] p-2">
+                  <div className="h-2 rounded bg-[color:var(--neutral-200)] w-3/4 mb-1.5" />
+                  <div className="h-1.5 rounded bg-slate-100 bg-[color:var(--neutral-100)] w-full" />
                 </div>
               ))}
             </div>
@@ -155,37 +156,37 @@ export default function MarcaBlancaPage() {
       </div>
 
       {/* Branding Settings */}
-      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-[#141824] p-6 space-y-5">
-        <h2 className="text-sm font-semibold text-slate-700 text-slate-300 flex items-center gap-2">
+      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-white p-6 space-y-5">
+        <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
           <Settings className="w-4 h-4" />
           Identidad de Marca
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Company Name */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1">Nombre de la Empresa</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Nombre de la Empresa</label>
             <input
               type="text"
               value={config.companyName}
               onChange={e => update('companyName', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white focus:ring-2 focus:ring-gold/30 outline-none"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white focus:ring-2 focus:ring-gold/30 outline-none"
             />
           </div>
           {/* Tagline */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1">Tagline / Eslogan</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Tagline / Eslogan</label>
             <input
               type="text"
               value={config.tagline}
               onChange={e => update('tagline', e.target.value)}
               placeholder="Cumplimiento laboral inteligente"
-              className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
             />
           </div>
           {/* Logo URL */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1 flex items-center gap-1">
-              <Image className="w-3.5 h-3.5" /> Logo URL
+            <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center gap-1">
+              <ImageIcon className="w-3.5 h-3.5" /> Logo URL
             </label>
             <div className="flex gap-2">
               <input
@@ -193,29 +194,29 @@ export default function MarcaBlancaPage() {
                 value={config.logoUrl}
                 onChange={e => update('logoUrl', e.target.value)}
                 placeholder="https://..."
-                className="flex-1 rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+                className="flex-1 rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
               />
-              <button className="px-3 py-2 rounded-lg bg-slate-100 bg-white/[0.04] text-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-200 hover:bg-slate-600 transition-colors">
+              <button className="px-3 py-2 rounded-lg bg-slate-100 bg-[color:var(--neutral-100)] text-slate-300 text-sm font-medium hover:bg-[color:var(--neutral-200)] transition-colors">
                 Subir
               </button>
             </div>
           </div>
           {/* Favicon URL */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1 flex items-center gap-1">
-              <Image className="w-3.5 h-3.5" /> Favicon URL
+            <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center gap-1">
+              <ImageIcon className="w-3.5 h-3.5" /> Favicon URL
             </label>
             <input
               type="text"
               value={config.faviconUrl}
               onChange={e => update('faviconUrl', e.target.value)}
               placeholder="https://..."
-              className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
             />
           </div>
           {/* Primary Color */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1 flex items-center gap-1">
+            <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center gap-1">
               <Palette className="w-3.5 h-3.5" /> Color Primario
             </label>
             <div className="flex items-center gap-3">
@@ -223,19 +224,19 @@ export default function MarcaBlancaPage() {
                 type="color"
                 value={config.primaryColor}
                 onChange={e => update('primaryColor', e.target.value)}
-                className="w-10 h-10 rounded-lg border border-slate-300 border-slate-600 cursor-pointer bg-transparent"
+                className="w-10 h-10 rounded-lg border border-[color:var(--border-default)] cursor-pointer bg-transparent"
               />
               <input
                 type="text"
                 value={config.primaryColor}
                 onChange={e => update('primaryColor', e.target.value)}
-                className="flex-1 rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white font-mono focus:ring-2 focus:ring-gold/30 outline-none"
+                className="flex-1 rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white font-mono focus:ring-2 focus:ring-gold/30 outline-none"
               />
             </div>
           </div>
           {/* Secondary Color */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1 flex items-center gap-1">
+            <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center gap-1">
               <Palette className="w-3.5 h-3.5" /> Color Secundario / Acento
             </label>
             <div className="flex items-center gap-3">
@@ -243,19 +244,19 @@ export default function MarcaBlancaPage() {
                 type="color"
                 value={config.secondaryColor}
                 onChange={e => update('secondaryColor', e.target.value)}
-                className="w-10 h-10 rounded-lg border border-slate-300 border-slate-600 cursor-pointer bg-transparent"
+                className="w-10 h-10 rounded-lg border border-[color:var(--border-default)] cursor-pointer bg-transparent"
               />
               <input
                 type="text"
                 value={config.secondaryColor}
                 onChange={e => update('secondaryColor', e.target.value)}
-                className="flex-1 rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white font-mono focus:ring-2 focus:ring-gold/30 outline-none"
+                className="flex-1 rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white font-mono focus:ring-2 focus:ring-gold/30 outline-none"
               />
             </div>
           </div>
           {/* Custom Domain */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1 flex items-center gap-1">
+            <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center gap-1">
               <Globe className="w-3.5 h-3.5" /> Dominio Personalizado
             </label>
             <input
@@ -263,12 +264,12 @@ export default function MarcaBlancaPage() {
               value={config.customDomain}
               onChange={e => update('customDomain', e.target.value)}
               placeholder="compliance.miconsultora.com"
-              className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
             />
           </div>
           {/* Contact Email */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1 flex items-center gap-1">
+            <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center gap-1">
               <Mail className="w-3.5 h-3.5" /> Email de Contacto
             </label>
             <input
@@ -276,12 +277,12 @@ export default function MarcaBlancaPage() {
               value={config.contactEmail}
               onChange={e => update('contactEmail', e.target.value)}
               placeholder="soporte@miconsultora.com"
-              className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
             />
           </div>
           {/* Contact Phone */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1 flex items-center gap-1">
+            <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center gap-1">
               <Phone className="w-3.5 h-3.5" /> Telefono de Contacto
             </label>
             <input
@@ -289,27 +290,27 @@ export default function MarcaBlancaPage() {
               value={config.contactPhone}
               onChange={e => update('contactPhone', e.target.value)}
               placeholder="+51 999 999 999"
-              className="w-full md:w-1/2 rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+              className="w-full md:w-1/2 rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
             />
           </div>
         </div>
       </div>
 
       {/* Email Templates */}
-      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-[#141824] p-6 space-y-5">
+      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-white p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700 text-slate-300 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
             <Mail className="w-4 h-4" />
             Plantillas de Email
           </h2>
           <button
             onClick={() => update('useCustomEmails', !config.useCustomEmails)}
             className={`relative w-11 h-6 rounded-full transition-colors ${
-              config.useCustomEmails ? 'bg-blue-600' : 'bg-slate-300 bg-slate-600'
+              config.useCustomEmails ? 'bg-blue-600' : 'bg-[color:var(--neutral-200)]'
             }`}
           >
             <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-[#141824] rounded-full shadow transition-transform ${
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
                 config.useCustomEmails ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
@@ -318,33 +319,33 @@ export default function MarcaBlancaPage() {
         {config.useCustomEmails && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
             <div>
-              <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1">Encabezado del Email</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Encabezado del Email</label>
               <input
                 type="text"
                 value={config.emailHeaderText}
                 onChange={e => update('emailHeaderText', e.target.value)}
                 placeholder="Mi Consultora - Notificaciones"
-                className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+                className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1">Reply-To Email</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Reply-To Email</label>
               <input
                 type="email"
                 value={config.replyToEmail}
                 onChange={e => update('replyToEmail', e.target.value)}
                 placeholder="noreply@miconsultora.com"
-                className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
+                className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-600 text-gray-400 mb-1">Pie del Email</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Pie del Email</label>
               <textarea
                 value={config.emailFooterText}
                 onChange={e => update('emailFooterText', e.target.value)}
                 rows={2}
                 placeholder="Este email fue enviado por Mi Consultora SAC. Lima, Peru."
-                className="w-full rounded-lg border border-slate-300 border-slate-600 bg-[#141824] bg-slate-900 px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none resize-none"
+                className="w-full rounded-lg border border-[color:var(--border-default)] bg-white bg-white px-3 py-2 text-sm text-slate-900 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-gold/30 outline-none resize-none"
               />
             </div>
           </div>
@@ -352,8 +353,8 @@ export default function MarcaBlancaPage() {
       </div>
 
       {/* Features Toggle */}
-      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-[#141824] p-6 space-y-5">
-        <h2 className="text-sm font-semibold text-slate-700 text-slate-300 flex items-center gap-2">
+      <div className="rounded-xl border border-slate-200 border-white/[0.08] bg-white p-6 space-y-5">
+        <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
           <Sparkles className="w-4 h-4" />
           Modulos Visibles para tus Clientes
         </h2>
@@ -364,8 +365,8 @@ export default function MarcaBlancaPage() {
               onClick={() => toggleModule(mod)}
               className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
                 enabled
-                  ? 'border-blue-500 bg-blue-50 text-blue-700 border-blue-500 bg-blue-900/20 text-blue-400'
-                  : 'border-slate-200 bg-slate-50 text-slate-400 border-white/[0.08] bg-slate-900 text-slate-500'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700 border-blue-500 bg-blue-900/20 text-emerald-600'
+                  : 'border-slate-200 bg-slate-50 text-slate-400 border-white/[0.08] bg-white text-slate-500'
               }`}
             >
               {enabled ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
@@ -377,7 +378,7 @@ export default function MarcaBlancaPage() {
 
       {/* Save / Preview Buttons */}
       <div className="flex items-center justify-end gap-3">
-        <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 border-slate-600 text-sm font-medium text-slate-700 text-slate-300 hover:bg-slate-50 hover:bg-slate-800 transition-colors">
+        <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[color:var(--border-default)] text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
           <Eye className="w-4 h-4" />
           Vista Previa
         </button>

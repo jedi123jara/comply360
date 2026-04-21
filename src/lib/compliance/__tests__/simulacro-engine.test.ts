@@ -12,6 +12,18 @@ import type {
 
 const UIT = 5500 // must match the constant in simulacro-engine.ts
 
+/**
+ * Worker-factor scale as per D.S. 019-2006-TR Art. 48 (Cuadro de Escala de Multas).
+ * Must match `getFactorTrabajadores` in simulacro-engine.ts.
+ */
+function factor(totalWorkers: number): number {
+  if (totalWorkers <= 10) return 1
+  if (totalWorkers <= 50) return 5
+  if (totalWorkers <= 100) return 10
+  if (totalWorkers <= 500) return 20
+  return 30
+}
+
 // ---------------------------------------------------------------------------
 // getSolicitudesInspeccion
 // ---------------------------------------------------------------------------
@@ -90,7 +102,7 @@ describe('evaluarSolicitud', () => {
     categoria: 'CONTRATOS',
   }
 
-  it('should return CUMPLE when >= 80% of workers have VERIFIED documents', () => {
+  it('should return CUMPLE when 100% of workers have VERIFIED documents', () => {
     const docs = [
       { documentType: 'contrato_trabajo', status: 'VERIFIED', category: 'contratos' },
       { documentType: 'contrato_trabajo', status: 'VERIFIED', category: 'contratos' },
@@ -111,18 +123,16 @@ describe('evaluarSolicitud', () => {
     const totalWorkers = 5
     const result = evaluarSolicitud(solicitud, docs, totalWorkers)
     expect(result.estado).toBe('PARCIAL')
-    // PARCIAL multa = multaUIT * UIT * workerFactor * 0.3
-    const workerFactor = Math.max(1, Math.min(totalWorkers, 10))
-    expect(result.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * workerFactor * 0.3))
+    // PARCIAL multa = multaUIT * UIT * workerFactor * 0.3, factor per D.S. 019-2006-TR
+    expect(result.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * factor(totalWorkers) * 0.3))
   })
 
   it('should return NO_CUMPLE when no documents are uploaded at all', () => {
     const totalWorkers = 5
     const result = evaluarSolicitud(solicitud, [], totalWorkers)
     expect(result.estado).toBe('NO_CUMPLE')
-    // NO_CUMPLE multa = multaUIT * UIT * workerFactor
-    const workerFactor = Math.max(1, Math.min(totalWorkers, 10))
-    expect(result.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * workerFactor))
+    // NO_CUMPLE multa = multaUIT * UIT * workerFactor, factor per D.S. 019-2006-TR
+    expect(result.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * factor(totalWorkers)))
   })
 
   it('should return NO_APLICA when totalWorkers is 0', () => {
@@ -140,10 +150,16 @@ describe('evaluarSolicitud', () => {
     expect(result.estado).toBe('NO_CUMPLE')
   })
 
-  it('should cap workerFactor at 10', () => {
-    const result100 = evaluarSolicitud(solicitud, [], 100)
-    const result10 = evaluarSolicitud(solicitud, [], 10)
-    expect(result100.multaPEN).toBe(result10.multaPEN)
+  it('should scale multa by worker bracket (D.S. 019-2006-TR Art. 48)', () => {
+    // ≤10 trabajadores → factor 1; 11-50 → factor 5; 51-100 → factor 10
+    const r10 = evaluarSolicitud(solicitud, [], 10)
+    const r50 = evaluarSolicitud(solicitud, [], 50)
+    const r100 = evaluarSolicitud(solicitud, [], 100)
+    expect(r10.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * 1))
+    expect(r50.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * 5))
+    expect(r100.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * 10))
+    // 100 workers must result in higher multa than 10 workers
+    expect(r100.multaPEN).toBeGreaterThan(r10.multaPEN)
   })
 
   it('should include the correct metadata in the hallazgo', () => {
@@ -155,18 +171,28 @@ describe('evaluarSolicitud', () => {
     expect(result.multaUIT).toBe(1.57)
   })
 
-  it('CUMPLE threshold is 80% verified workers', () => {
-    // 4 verified out of 5 = 80% -> should be CUMPLE
+  it('CUMPLE requires 100% of workers verified (SUNAFIL no acepta parciales)', () => {
+    // 5 verified out of 5 = 100% -> CUMPLE
+    const docs5 = Array.from({ length: 5 }, () => ({
+      documentType: 'contrato_trabajo', status: 'VERIFIED', category: 'contratos',
+    }))
+    expect(evaluarSolicitud(solicitud, docs5, 5).estado).toBe('CUMPLE')
+
+    // 4 verified out of 5 = 80% -> PARCIAL (stricter than the legacy 80% threshold)
     const docs4 = Array.from({ length: 4 }, () => ({
       documentType: 'contrato_trabajo', status: 'VERIFIED', category: 'contratos',
     }))
-    expect(evaluarSolicitud(solicitud, docs4, 5).estado).toBe('CUMPLE')
+    expect(evaluarSolicitud(solicitud, docs4, 5).estado).toBe('PARCIAL')
+  })
 
-    // 3 verified out of 5 = 60% -> not CUMPLE; 3 uploaded -> PARCIAL
-    const docs3 = Array.from({ length: 3 }, () => ({
-      documentType: 'contrato_trabajo', status: 'VERIFIED', category: 'contratos',
+  it('should downgrade to PARCIAL when documents are EXPIRED', () => {
+    // Expired docs trigger PARCIAL regardless of verified count
+    const docsExpired = Array.from({ length: 5 }, () => ({
+      documentType: 'contrato_trabajo', status: 'EXPIRED', category: 'contratos',
     }))
-    expect(evaluarSolicitud(solicitud, docs3, 5).estado).toBe('PARCIAL')
+    const result = evaluarSolicitud(solicitud, docsExpired, 5)
+    expect(result.estado).toBe('PARCIAL')
+    expect(result.mensaje).toMatch(/vencido/i)
   })
 })
 

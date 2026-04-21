@@ -1,17 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import {
   getSolicitudesInspeccion,
   evaluarSolicitud,
   generarResultadoSimulacro,
 } from '@/lib/compliance/simulacro-engine'
 import type { InspeccionTipo } from '@/lib/compliance/simulacro-engine'
+import {
+  simulacroHallazgosToTaskInputs,
+  spawnTasksFromActionPlan,
+} from '@/lib/compliance/task-spawner'
 
 // =============================================
-// GET /api/simulacro — Get inspection solicitudes
+// GET /api/simulacro — Get inspection solicitudes (sin data sensible, solo la
+// lista de solicitudes tipo; no requiere plan gate)
 // =============================================
-export const GET = withAuth(async (req, ctx) => {
+export const GET = withAuth(async (req) => {
   const { searchParams } = new URL(req.url)
   const tipo = (searchParams.get('tipo') || 'PREVENTIVA') as InspeccionTipo
 
@@ -20,9 +26,9 @@ export const GET = withAuth(async (req, ctx) => {
 })
 
 // =============================================
-// POST /api/simulacro — Run full simulacro against org data
+// POST /api/simulacro — Run full simulacro (EMPRESA+, feature `simulacro_basico`)
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('simulacro_basico', async (req, ctx) => {
   try {
     const body = await req.json()
     const { tipo = 'PREVENTIVA' } = body as {
@@ -30,16 +36,25 @@ export const POST = withAuth(async (req, ctx) => {
     }
     const orgId = ctx.orgId
 
-    // Get all worker documents for the org
+    // Get all worker documents for the org (including expiresAt for vigency check)
     const workers = await prisma.worker.findMany({
       where: { orgId, status: { not: 'TERMINATED' } },
       include: {
-        documents: { select: { documentType: true, status: true, category: true } },
+        documents: { select: { documentType: true, status: true, category: true, expiresAt: true } },
       },
     })
 
     const totalWorkers = workers.length
-    const allDocs = workers.flatMap(w => w.documents)
+    const now = new Date()
+    // Mark expired documents so the simulacro engine detects them
+    const allDocs = workers.flatMap(w =>
+      w.documents.map(d => ({
+        ...d,
+        status: (d.expiresAt && new Date(d.expiresAt) < now && d.status !== 'MISSING')
+          ? 'EXPIRED' as const
+          : d.status,
+      }))
+    )
 
     // Get solicitudes for this inspection type
     const solicitudes = getSolicitudesInspeccion(tipo)
@@ -76,8 +91,28 @@ export const POST = withAuth(async (req, ctx) => {
       },
     })
 
+    // Spawn compliance tasks desde los hallazgos incumplidos.
+    let tasksCreated = 0
+    try {
+      const taskInputs = simulacroHallazgosToTaskInputs(
+        hallazgos.map((h) => ({
+          solicitudId: h.solicitudId,
+          estado: h.estado,
+          documentoLabel: h.documentoLabel,
+          baseLegal: h.baseLegal,
+          gravedad: h.gravedad,
+          multaPEN: h.multaPEN,
+          mensaje: h.mensaje,
+        })),
+      )
+      tasksCreated = await spawnTasksFromActionPlan(orgId, diagnostic.id, taskInputs)
+    } catch (e) {
+      console.error('[Simulacro] task spawn failed:', e)
+    }
+
     return NextResponse.json({
       diagnosticId: diagnostic.id,
+      tasksCreated,
       ...resultado,
     })
   } catch (error) {

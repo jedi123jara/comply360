@@ -3,17 +3,7 @@
 import { useState, useMemo } from 'react'
 import { calcularInteresesLegales } from '@/lib/legal-engine/calculators/intereses-legales'
 import type { InteresesLegalesInput, InteresesLegalesResult } from '@/lib/legal-engine/calculators/intereses-legales'
-import {
-  Calculator,
-  Download,
-  MessageCircle,
-  Scale,
-  Clock,
-  TrendingUp,
-  Percent,
-  Save,
-  Loader2,
-} from 'lucide-react'
+import { Calculator, Download, MessageCircle, Scale, TrendingUp, Percent, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 
 const TIPOS_INTERES = [
@@ -98,7 +88,7 @@ export function InteresesLegalesCalculadora() {
                   value={input.capital || ''}
                   onChange={e => updateField('capital', Number(e.target.value))}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
               <p className="mt-1 text-xs text-gray-400">
@@ -114,7 +104,7 @@ export function InteresesLegalesCalculadora() {
               <select
                 value={input.tipoInteres}
                 onChange={e => updateField('tipoInteres', e.target.value as InteresesLegalesInput['tipoInteres'])}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               >
                 {TIPOS_INTERES.map(t => (
                   <option key={t.value} value={t.value}>
@@ -139,7 +129,7 @@ export function InteresesLegalesCalculadora() {
                   type="date"
                   value={input.fechaInicio}
                   onChange={e => updateField('fechaInicio', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
                 <p className="mt-1 text-xs text-gray-400">
                   Desde el incumplimiento
@@ -153,7 +143,7 @@ export function InteresesLegalesCalculadora() {
                   type="date"
                   value={input.fechaFin}
                   onChange={e => updateField('fechaFin', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
                 <p className="mt-1 text-xs text-gray-400">
                   Hasta el pago efectivo
@@ -168,7 +158,7 @@ export function InteresesLegalesCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -184,7 +174,7 @@ export function InteresesLegalesCalculadora() {
             <div className="bg-gradient-to-br from-slate-700 to-slate-900 rounded-2xl p-8 text-white shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Percent className="w-5 h-5 text-emerald-300" />
+                  <Percent className="w-5 h-5 text-emerald-700" />
                   <span className="text-sm font-medium text-slate-200 uppercase tracking-wider">
                     Total con Intereses Legales
                   </span>
@@ -299,7 +289,7 @@ export function InteresesLegalesCalculadora() {
                 </div>
 
                 {/* Total */}
-                <div className="px-6 py-4 flex items-center justify-between bg-white/[0.02] bg-white/[0.04]">
+                <div className="px-6 py-4 flex items-center justify-between bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]">
                   <div className="flex items-center gap-3">
                     <div className="w-1 h-10 rounded-full bg-primary flex-shrink-0" />
                     <div>
@@ -322,7 +312,7 @@ export function InteresesLegalesCalculadora() {
                 <Calculator className="w-4 h-4 text-primary" />
                 Formula Aplicada
               </h3>
-              <code className="block bg-white/[0.02] bg-white/[0.04] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed whitespace-pre-wrap">
+              <code className="block bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed whitespace-pre-wrap">
                 {result.formula}
               </code>
             </div>
@@ -334,7 +324,7 @@ export function InteresesLegalesCalculadora() {
                 Base Legal Aplicada
               </h3>
               <div className="space-y-2">
-                <div className="flex items-start gap-3 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                <div className="flex items-start gap-3 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                   <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                     D. Ley 25920
                   </span>
@@ -345,7 +335,7 @@ export function InteresesLegalesCalculadora() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                <div className="flex items-start gap-3 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                   <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                     D. Ley 25920
                   </span>
@@ -356,7 +346,7 @@ export function InteresesLegalesCalculadora() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                <div className="flex items-start gap-3 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                   <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                     BCRP
                   </span>

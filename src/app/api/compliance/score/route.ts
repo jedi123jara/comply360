@@ -60,14 +60,30 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     `.catch(() => []), // Fall back to empty if not on PostgreSQL
   ])
 
+  const historyMapped = (history as Array<{ month: string; score_global: number; score_contratos: number; score_sst: number }>).map(h => ({
+    month: h.month,
+    scoreGlobal: h.score_global,
+    scoreContratos: h.score_contratos,
+    scoreSst: h.score_sst,
+  }))
+
+  // Delta = current score - average del mes anterior al ultimo mes con data
+  let delta: number | null = null
+  if (current && historyMapped.length >= 2) {
+    const prev = historyMapped[historyMapped.length - 2]?.scoreGlobal
+    if (typeof prev === 'number') {
+      delta = current.scoreGlobal - prev
+    }
+  }
+
   return NextResponse.json({
+    // Top-level fields consumidos por el Cockpit v2 (src/app/dashboard/page.tsx)
+    scoreGlobal: current?.scoreGlobal ?? null,
+    delta,
+    calculatedAt: current?.calculatedAt ?? null,
+    // Compat con consumidores existentes
     current: current ?? null,
-    history: (history as Array<{ month: string; score_global: number; score_contratos: number; score_sst: number }>).map(h => ({
-      month: h.month,
-      scoreGlobal: h.score_global,
-      scoreContratos: h.score_contratos,
-      scoreSst: h.score_sst,
-    })),
+    history: historyMapped,
   })
 })
 

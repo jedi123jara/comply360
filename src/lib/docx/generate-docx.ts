@@ -20,91 +20,14 @@ export interface DocxOptions {
 export function generateDocx(options: DocxOptions): void {
   const { title, content, author, company, filename } = options
 
-  // Convert HTML to OOXML paragraphs
-  const body = htmlToOoxml(content)
-
-  // Build the document.xml
-  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-  xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main"
-  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:mv="urn:schemas-microsoft-com:mac:vml"
-  xmlns:o="urn:schemas-microsoft-com:office:office"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
-  xmlns:v="urn:schemas-microsoft-com:vml"
-  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:w10="urn:schemas-microsoft-com:office:word"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
-  xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main"
-  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
-  xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
-  xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas"
-  xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram">
-  <w:body>
-    <w:p>
-      <w:pPr><w:jc w:val="center"/><w:pStyle w:val="Title"/></w:pPr>
-      <w:r><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:t>${escapeXml(title)}</w:t></w:r>
-    </w:p>
-    <w:p>
-      <w:pPr><w:jc w:val="center"/></w:pPr>
-      <w:r><w:rPr><w:sz w:val="20"/><w:color w:val="666666"/></w:rPr>
-        <w:t>Generado por COMPLY360 — ${new Date().toLocaleDateString('es-PE')}</w:t>
-      </w:r>
-    </w:p>
-    <w:p><w:r><w:t></w:t></w:r></w:p>
-    ${body}
-    <w:p><w:r><w:t></w:t></w:r></w:p>
-    <w:p>
-      <w:pPr><w:jc w:val="center"/></w:pPr>
-      <w:r><w:rPr><w:sz w:val="16"/><w:color w:val="999999"/></w:rPr>
-        <w:t>Documento generado por COMPLY360 — ${escapeXml(company)}</w:t>
-      </w:r>
-    </w:p>
-    <w:sectPr>
-      <w:pgSz w:w="12240" w:h="15840"/>
-      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
-    </w:sectPr>
-  </w:body>
-</w:document>`
-
-  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-</Types>`
-
-  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
-</Relationships>`
-
-  const wordRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-</Relationships>`
-
-  const coreXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
-  xmlns:dc="http://purl.org/dc/elements/1.1/"
-  xmlns:dcterms="http://purl.org/dc/terms/"
-  xmlns:dcmitype="http://purl.org/dc/dcmitype/"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>${escapeXml(title)}</dc:title>
-  <dc:creator>${escapeXml(author)}</dc:creator>
-  <cp:lastModifiedBy>${escapeXml(author)}</cp:lastModifiedBy>
-  <dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created>
-  <dcterms:modified xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:modified>
-</cp:coreProperties>`
-
-  // Use JSZip-like approach with Blob
-  // Since we can't use external libraries, we'll create a simple ZIP manually
-  // For now, use the browser's download approach with mhtml/xml format
-  // that Word can open
+  // NOTE: OOXML .docx generation is intentionally deferred. Producing a real
+  // .docx requires a ZIP packager; until we add one we emit a Word-compatible
+  // HTML file (.doc) that Microsoft Word will open natively.
+  //
+  // Keeping the body conversion call here preserves the contract for when the
+  // OOXML path is re-introduced. `body` is intentionally not consumed in the
+  // HTML branch.
+  void htmlToOoxml(content)
 
   // Alternative: Create a Word-compatible HTML file (.doc)
   const wordHtml = `

@@ -4,6 +4,7 @@
 // Normativa: D.Leg. 728, Ley 29783, Ley 27942, Ley 29733, Ley 30709
 // =============================================
 import { callAI } from './provider'
+import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
 
 export interface ContractReviewInput {
   contractHtml: string
@@ -79,7 +80,7 @@ MARCO NORMATIVO QUE APLICAS:
 - Ley 30709 + D.S. 002-2018-TR (No discriminación remunerativa)
 - Ley 32353 / D.Leg. 1086 (Régimen MYPE)
 - D.S. 019-2006-TR (Tabla de infracciones y sanciones SUNAFIL)
-- UIT 2026 = S/ 5,500 — RMV 2024 = S/ 1,130
+- UIT 2026 = S/ 5,500 — RMV 2026 = S/ 1,130
 
 CRITERIOS DE EVALUACIÓN:
 1. Identifica si están presentes las cláusulas OBLIGATORIAS por ley
@@ -221,17 +222,38 @@ export async function reviewContract(input: ContractReviewInput): Promise<Contra
   try {
     const prompt = buildPrompt(input)
 
-    const content = await callAI(
-      [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt },
-      ],
-      {
-        temperature: 0.2,
-        maxTokens: 5000,
-        jsonMode: true,
+    // ── RAG: recupera normativa relevante al tipo de contrato + temas detectados
+    // en el texto. Inyecta como system message antes del prompt para fundamentar
+    // la revisión en citas exactas del corpus v1 (handcrafted) + v2 (9 PDFs SUNAFIL).
+    let ragSystem: { role: 'system'; content: string } | null = null
+    try {
+      const tipoLabel = input.contractType.replace(/_/g, ' ').toLowerCase()
+      const textoSample = stripHtml(input.contractHtml).slice(0, 600).toLowerCase()
+      const ragQuery = `${tipoLabel} remuneracion jornada CTS gratificacion vacaciones SST hostigamiento. ${textoSample}`
+      const ragResults = await retrieveRelevantLawVector(ragQuery, { topK: 6, minScore: 0.05 })
+      const ragContext = formatVectorContext(ragResults)
+      if (ragContext) {
+        ragSystem = {
+          role: 'system',
+          content: `Normativa aplicable relevante (usa estas citas para fundamentar tus hallazgos):\n${ragContext}`,
+        }
       }
-    )
+    } catch (ragErr) {
+      console.warn('[ContractReview] RAG retrieval failed, sigo sin contexto:', ragErr)
+    }
+
+    const messages = [
+      { role: 'system' as const, content: SYSTEM_PROMPT },
+      ...(ragSystem ? [ragSystem] : []),
+      { role: 'user' as const, content: prompt },
+    ]
+
+    const content = await callAI(messages, {
+      temperature: 0.2,
+      maxTokens: 5000,
+      jsonMode: true,
+      feature: 'contract-review',
+    })
 
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ||
                       content.match(/```\s*([\s\S]*?)\s*```/)

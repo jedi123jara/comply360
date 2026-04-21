@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Inbox, AlertTriangle, Clock, Loader2, RefreshCw, Upload } from 'lucide-react'
+import { Inbox, AlertTriangle, Clock, Loader2, RefreshCw } from 'lucide-react'
 
 interface Notification {
   id: string
@@ -29,11 +29,11 @@ interface Summary {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  RECIBIDA: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+  RECIBIDA: 'bg-blue-500/15 text-emerald-600 border-blue-500/30',
   ANALIZADA: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
   DESCARGO_PENDIENTE: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
   DESCARGO_PRESENTADO: 'bg-green-500/15 text-green-300 border-green-500/30',
-  RESUELTA: 'bg-gray-500/15 text-gray-300 border-gray-500/30',
+  RESUELTA: 'bg-gray-500/15 text-[color:var(--text-secondary)] border-gray-500/30',
 }
 
 export default function CasillaPage() {
@@ -110,8 +110,8 @@ export default function CasillaPage() {
       )}
 
       {notifications.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-12 text-center">
-          <Inbox className="mx-auto h-14 w-14 text-slate-600" />
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-white/40 p-12 text-center">
+          <Inbox className="mx-auto h-14 w-14 text-[color:var(--text-secondary)]" />
           <p className="mt-4 text-sm text-slate-400">
             No hay notificaciones en la casilla. Cuando SUNAFIL te envíe un acta, aparecerá aquí
             automáticamente.
@@ -126,7 +126,7 @@ export default function CasillaPage() {
           {notifications.map(n => (
             <div
               key={n.id}
-              className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-gold-500/40"
+              className="rounded-xl border border-slate-800 bg-white p-5 transition hover:border-gold-500/40"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -202,7 +202,7 @@ function Stat({
   icon?: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+    <div className="rounded-2xl border border-slate-800 bg-white p-5">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs uppercase text-slate-500">{label}</p>
         {icon}

@@ -131,63 +131,76 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     select: { id: true, clerkId: true, orgId: true, email: true, role: true },
   })
 
-  // SECURITY: In production, reject unknown users immediately
+  // JIT provisioning: si el User no existe en nuestra DB pero Clerk lo autenticó,
+  // crear User+Organization en el primer hit. Funciona en dev Y prod — es la
+  // ruta oficial de "signup completado". No depende de webhooks Clerk
+  // (que pueden fallar silenciosamente). Un Clerk-auth válido garantiza
+  // identidad; el defaulted plan es STARTER en prod (el user puede upgrade
+  // después con Culqi).
   if (!user) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error(`[SECURITY] User not found for clerkId ${clerkId} in production — rejecting`)
-      return null
-    }
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        // Get real email from Clerk to create ISOLATED org per user
-        const clerkUser = await currentUser()
-        const email = clerkUser?.emailAddresses[0]?.emailAddress || 'dev@comply360.pe'
-        const firstName = clerkUser?.firstName || 'Dev'
-        const lastName = clerkUser?.lastName || 'User'
+    try {
+      const clerkUser = await currentUser()
+      const email = clerkUser?.emailAddresses[0]?.emailAddress
+        || (process.env.NODE_ENV === 'development' ? 'dev@comply360.pe' : null)
 
-        // MULTI-TENANCY FIX: Each user gets their OWN org based on email hash
-        // This prevents different accounts from seeing the same data
-        const orgId = `org-${email.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
-
-        // 1. Create org for THIS user (if not exists)
-        await prisma.organization.upsert({
-          where: { id: orgId },
-          create: {
-            id: orgId,
-            name: `Empresa de ${firstName} ${lastName}`,
-            plan: 'PRO',
-            alertEmail: email,
-            onboardingCompleted: false,
-          },
-          update: {},
-        })
-        // 2. Create user linked to THEIR org (not shared org-demo)
-        const seeded = await prisma.user.upsert({
-          where: { clerkId },
-          create: {
-            clerkId,
-            orgId,
-            email,
-            firstName,
-            lastName,
-            role: 'OWNER',
-          },
-          update: {}, // DON'T override orgId on existing users
-          select: { id: true, clerkId: true, orgId: true, email: true, role: true },
-        })
-        return {
-          userId: seeded.id,
-          clerkId: seeded.clerkId,
-          orgId: seeded.orgId ?? orgId,
-          email: seeded.email,
-          role: seeded.role,
-        }
-      } catch (seedErr) {
-        console.error('[auth] Failed to auto-seed dev user/org:', seedErr)
+      // En prod, si por alguna razón Clerk no devuelve email, rechazar.
+      // Sin email no podemos asociar al trabajador en el legajo, crear alertas, etc.
+      if (!email) {
+        console.error(`[SECURITY] JIT provisioning bloqueado: Clerk no devolvió email (clerkId=${clerkId})`)
         return null
       }
+
+      const firstName = clerkUser?.firstName
+        || (process.env.NODE_ENV === 'development' ? 'Dev' : '')
+      const lastName = clerkUser?.lastName
+        || (process.env.NODE_ENV === 'development' ? 'User' : '')
+
+      // Org id derivado de email para aislar tenants (cada usuario tiene su org)
+      const orgId = `org-${email.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
+
+      // Dev default: PRO para desbloquear features. Prod default: STARTER.
+      const defaultPlan = process.env.NODE_ENV === 'development' ? 'PRO' : 'STARTER'
+
+      // 1. Create org for THIS user (if not exists)
+      await prisma.organization.upsert({
+        where: { id: orgId },
+        create: {
+          id: orgId,
+          name: firstName || lastName ? `Empresa de ${firstName} ${lastName}`.trim() : 'Mi empresa',
+          plan: defaultPlan,
+          alertEmail: email,
+          onboardingCompleted: false,
+        },
+        update: {},
+      })
+      // 2. Create user linked to THEIR org
+      const seeded = await prisma.user.upsert({
+        where: { clerkId },
+        create: {
+          clerkId,
+          orgId,
+          email,
+          firstName,
+          lastName,
+          role: 'OWNER',
+        },
+        update: {}, // DON'T override orgId on existing users
+        select: { id: true, clerkId: true, orgId: true, email: true, role: true },
+      })
+
+      console.log(`[auth] JIT-provisioned User+Org for clerkId=${clerkId} email=${email} plan=${defaultPlan}`)
+
+      return {
+        userId: seeded.id,
+        clerkId: seeded.clerkId,
+        orgId: seeded.orgId ?? orgId,
+        email: seeded.email,
+        role: seeded.role,
+      }
+    } catch (seedErr) {
+      console.error('[auth] JIT provisioning failed:', seedErr)
+      return null
     }
-    return null
   }
 
   if (!user.orgId) {

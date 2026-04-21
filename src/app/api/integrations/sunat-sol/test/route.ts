@@ -35,7 +35,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
   let creds: SunatSolCredentials
   try {
     creds = decryptJson<SunatSolCredentials>(credential.encryptedConfig)
-  } catch (err) {
+  } catch {
     console.error(`[SECURITY] Failed to decrypt SUNAT credentials for org ${orgId}`)
     return NextResponse.json(
       { error: 'Error de seguridad al desencriptar credenciales. Guarde las credenciales nuevamente.' },

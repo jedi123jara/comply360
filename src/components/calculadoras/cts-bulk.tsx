@@ -4,18 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import type { CTSInput } from '@/lib/legal-engine'
 import * as XLSX from 'xlsx'
-import {
-  Users,
-  Download,
-  RefreshCw,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  FileSpreadsheet,
-} from 'lucide-react'
+import { Users, Download, RefreshCw, Loader2, CheckCircle, Search, ChevronDown, ChevronUp, FileSpreadsheet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ──────────────────────────────────────────────
@@ -202,7 +191,7 @@ export function BulkCTSCalculadora() {
             <select
               value={fechaCorte}
               onChange={e => setFechaCorte(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-white/[0.08] border-white/10 bg-[#141824] bg-white/[0.04] text-sm text-white"
+              className="w-full px-3 py-2.5 rounded-xl border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] text-sm text-white"
             >
               {CORTE_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -221,7 +210,7 @@ export function BulkCTSCalculadora() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Nombre, DNI o cargo..."
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-white/[0.08] border-white/10 bg-[#141824] bg-white/[0.04] text-sm text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] text-sm text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
           </div>
@@ -300,7 +289,7 @@ export function BulkCTSCalculadora() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50/70 bg-white/[0.04]/50 border-b border-white/[0.06] border-white/[0.08]">
+                <tr className="bg-gray-50/70 bg-[color:var(--neutral-100)]/50 border-b border-white/[0.06] border-white/[0.08]">
                   <th className="px-3 py-2.5 w-8"></th>
                   <th className="px-4 py-2.5 text-left">
                     <button onClick={() => toggleSort('nombre')} className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300">
@@ -340,7 +329,7 @@ export function BulkCTSCalculadora() {
                       key={w.id}
                       className={cn(
                         'transition-colors',
-                        isSelected && hasCTS ? 'bg-blue-50/30' : 'hover:bg-gray-50/50 hover:bg-white/[0.04]/30',
+                        isSelected && hasCTS ? 'bg-blue-50/30' : 'hover:bg-gray-50/50 hover:bg-[color:var(--neutral-100)]/30',
                         !hasCTS && 'opacity-50',
                       )}
                     >
@@ -351,7 +340,8 @@ export function BulkCTSCalculadora() {
                             checked={isSelected}
                             onChange={e => setSelected(prev => {
                               const next = new Set(prev)
-                              e.target.checked ? next.add(w.id) : next.delete(w.id)
+                              if (e.target.checked) next.add(w.id)
+                              else next.delete(w.id)
                               return next
                             })}
                             className="rounded"
@@ -372,7 +362,7 @@ export function BulkCTSCalculadora() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.04] bg-white/[0.04] text-gray-600 font-medium">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] text-gray-600 font-medium">
                           {w.regimenLaboral.replace('_', ' ')}
                         </span>
                       </td>
@@ -387,7 +377,7 @@ export function BulkCTSCalculadora() {
                             min={0}
                             defaultValue={0}
                             onChange={e => updateGratificacion(w.id, Number(e.target.value))}
-                            className="w-24 text-right px-2 py-1 rounded-lg border border-white/[0.08] border-white/10 bg-[#141824] bg-white/[0.04] text-xs text-white"
+                            className="w-24 text-right px-2 py-1 rounded-lg border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] text-xs text-white"
                             placeholder="0.00"
                           />
                         ) : <span className="text-gray-300">—</span>}

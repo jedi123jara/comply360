@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { ALL_QUESTIONS, EXPRESS_QUESTIONS, getFilteredQuestions } from '@/lib/compliance/questions'
 
 // =============================================
 // GET /api/diagnostics/auto-answer — Pre-fill diagnostic answers from real data
 // Query: ?type=FULL|EXPRESS
+// Requiere EMPRESA+ (feature `diagnostico`), igual que POST /api/diagnostics
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
   const type = searchParams.get('type') === 'EXPRESS' ? 'EXPRESS' : 'FULL'
@@ -176,7 +177,6 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   autoAnswers['DO-05'] = { answer: pctToAnswer(pctWithContrato), detail: `${pctWithContrato}% con contrato en legajo` }
 
   // HOSTIGAMIENTO SEXUAL (HS-xx)
-  const hasComplaintPolicy = complaints.length >= 0 // If the org has set up complaints channel
   autoAnswers['HS-01'] = {
     answer: hasSst('POLITICA_SST') ? 'PARCIAL' : 'NO', // Approximation — ideally check for specific hostigamiento policy
     detail: 'Verificar si existe politica especifica de prevencion del hostigamiento',

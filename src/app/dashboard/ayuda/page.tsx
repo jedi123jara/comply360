@@ -51,8 +51,8 @@ const CATEGORIES: Category[] = [
     emoji: '📋',
     count: 8,
     icon: Users,
-    color: 'text-blue-600 text-blue-400',
-    bg: 'bg-blue-50 bg-blue-900/30',
+    color: 'text-emerald-600',
+    bg: 'bg-blue-900/30',
     articles: [
       'Cómo registrar un trabajador',
       'Importar trabajadores desde Excel',
@@ -70,8 +70,8 @@ const CATEGORIES: Category[] = [
     emoji: '📄',
     count: 5,
     icon: FileText,
-    color: 'text-purple-600 text-purple-400',
-    bg: 'bg-purple-50 bg-purple-900/30',
+    color: 'text-purple-400',
+    bg: 'bg-purple-900/30',
     articles: [
       'Tipos de contratos laborales',
       'Cómo crear un contrato desde plantilla',
@@ -86,8 +86,8 @@ const CATEGORIES: Category[] = [
     emoji: '🧮',
     count: 6,
     icon: Calculator,
-    color: 'text-emerald-600 text-emerald-400',
-    bg: 'bg-emerald-50 bg-emerald-900/30',
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-900/30',
     articles: [
       'Cómo calcular la CTS',
       'Cálculo de gratificaciones',
@@ -103,8 +103,8 @@ const CATEGORIES: Category[] = [
     emoji: '✅',
     count: 4,
     icon: Shield,
-    color: 'text-amber-600 text-amber-400',
-    bg: 'bg-amber-50 bg-amber-900/30',
+    color: 'text-amber-400',
+    bg: 'bg-amber-900/30',
     articles: [
       'Qué es el diagnóstico de compliance',
       'Cómo prepararse para SUNAFIL',
@@ -118,8 +118,8 @@ const CATEGORIES: Category[] = [
     emoji: '⚙️',
     count: 3,
     icon: Settings,
-    color: 'text-gray-400',
-    bg: 'bg-white/[0.04] bg-gray-700',
+    color: 'text-[color:var(--text-tertiary)]',
+    bg: 'bg-[color:var(--neutral-100)] bg-gray-700',
     articles: [
       'Configurar tu empresa',
       'Gestión de usuarios y roles',
@@ -133,11 +133,11 @@ const ALL_ARTICLES: Article[] = CATEGORIES.flatMap(cat =>
 )
 
 const TAG_COLORS: Record<string, string> = {
-  'Gestión de Trabajadores': 'bg-blue-100 text-blue-700 bg-blue-900/40 text-blue-300',
+  'Gestión de Trabajadores': 'bg-blue-100 text-blue-700 bg-blue-900/40 text-emerald-600',
   Contratos:                 'bg-purple-100 text-purple-700 bg-purple-900/40 text-purple-300',
-  Calculadoras:              'bg-emerald-100 text-emerald-700 bg-emerald-900/40 text-emerald-300',
-  Compliance:                'bg-amber-100 text-amber-700 bg-amber-900/40 text-amber-300',
-  Configuración:             'bg-white/[0.04] text-gray-300 bg-gray-700 text-gray-300',
+  Calculadoras:              'bg-emerald-100 text-emerald-700 bg-emerald-900/40 text-emerald-700',
+  Compliance:                'bg-amber-100 text-amber-700 bg-amber-900/40 text-amber-700',
+  Configuración:             'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] bg-gray-700 text-[color:var(--text-secondary)]',
 }
 
 const VIDEOS = [
@@ -239,11 +239,11 @@ function QuickLinkCard({
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-start gap-2 rounded-xl border border-white/[0.08] bg-[#141824] p-5 text-left transition hover:border-indigo-300 hover:shadow-md border-gray-700 bg-gray-800 hover:border-indigo-600"
+      className="group flex flex-col items-start gap-2 rounded-xl border border-[color:var(--border-default)] bg-white p-5 text-left transition hover:border-indigo-300 hover:shadow-md border-gray-700 bg-gray-800 hover:border-indigo-600"
     >
       <span className="text-2xl">{emoji}</span>
       <span className="text-sm font-semibold text-white">{title}</span>
-      <span className="text-xs leading-relaxed text-gray-500 text-gray-400">{description}</span>
+      <span className="text-xs leading-relaxed text-[color:var(--text-tertiary)]">{description}</span>
       <ChevronRight className="mt-auto h-4 w-4 text-indigo-400 opacity-0 transition group-hover:opacity-100 text-indigo-300" />
     </button>
   )
@@ -261,18 +261,18 @@ function AccordionItem({
   onToggle: () => void
 }) {
   return (
-    <div className="border-b border-white/[0.06] last:border-0 border-gray-700">
+    <div className="border-b border-[color:var(--border-default)] last:border-0 border-gray-700">
       <button
         onClick={onToggle}
         className="flex w-full items-center justify-between gap-3 py-4 text-left text-sm font-medium text-white transition hover:text-indigo-600 text-white hover:text-indigo-400"
       >
         <span>{title}</span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform text-gray-500 ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 shrink-0 text-[color:var(--text-tertiary)] transition-transform text-[color:var(--text-tertiary)] ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
-        <div className="pb-4 text-sm leading-relaxed text-gray-400">
+        <div className="pb-4 text-sm leading-relaxed text-[color:var(--text-tertiary)]">
           {children}
         </div>
       )}
@@ -337,14 +337,16 @@ export default function AyudaPage() {
   const toggleFaq = (i: number) =>
     setOpenFaqs(prev => {
       const next = new Set(prev)
-      next.has(i) ? next.delete(i) : next.add(i)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
       return next
     })
 
   const toggleCategory = (id: string) =>
     setOpenCategories(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
 
@@ -358,7 +360,7 @@ export default function AyudaPage() {
       {/* ── Hero Search ──────────────────────────────────────────── */}
       <section className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-indigo-700 px-6 py-10 text-center border-indigo-800 from-indigo-900 to-indigo-950">
         <div className="mb-2 flex justify-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#141824]/20">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
             <HelpCircle className="h-7 w-7 text-white" />
           </div>
         </div>
@@ -371,18 +373,18 @@ export default function AyudaPage() {
 
         {/* Search bar */}
         <div className="relative mx-auto max-w-xl">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[color:var(--text-tertiary)]" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="¿En qué podemos ayudarte?"
-            className="w-full rounded-xl border-0 bg-[#141824] py-3.5 pl-12 pr-5 text-sm text-white shadow-lg placeholder-gray-400 outline-none transition focus:ring-2 focus:ring-indigo-300 bg-gray-800 text-white placeholder-gray-500 focus:ring-indigo-500"
+            className="w-full rounded-xl border-0 bg-white py-3.5 pl-12 pr-5 text-sm text-white shadow-lg placeholder-gray-400 outline-none transition focus:ring-2 focus:ring-indigo-300 bg-gray-800 text-white placeholder-gray-500 focus:ring-indigo-500"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 hover:text-gray-300"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)]"
               aria-label="Limpiar búsqueda"
             >
               ✕
@@ -396,19 +398,19 @@ export default function AyudaPage() {
         <section>
           {hasResults ? (
             <>
-              <p className="mb-3 text-sm text-gray-500 text-gray-400">
-                Resultados para <strong className="text-white">"{search}"</strong>
+              <p className="mb-3 text-sm text-[color:var(--text-tertiary)]">
+                Resultados para <strong className="text-white">&ldquo;{search}&rdquo;</strong>
               </p>
               {filteredArticles.length > 0 && (
-                <div className="divide-y divide-gray-100 rounded-xl border border-white/[0.08] bg-[#141824] divide-gray-700 border-gray-700 bg-gray-800">
+                <div className="divide-y divide-gray-100 rounded-xl border border-[color:var(--border-default)] bg-white divide-gray-700 border-gray-700 bg-gray-800">
                   {filteredArticles.map((art, i) => (
                     <button
                       key={i}
-                      className="group flex w-full items-center gap-3 px-5 py-3.5 text-left transition hover:bg-white/[0.02] hover:bg-gray-700/50"
+                      className="group flex w-full items-center gap-3 px-5 py-3.5 text-left transition hover:bg-[color:var(--neutral-50)] hover:bg-gray-700/50"
                     >
-                      <BookOpen className="h-4 w-4 shrink-0 text-gray-400 text-gray-500" />
-                      <span className="flex-1 text-sm text-gray-200">{art.title}</span>
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TAG_COLORS[art.tag] ?? 'bg-white/[0.04] text-gray-600 bg-gray-700 text-gray-300'}`}>
+                      <BookOpen className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)]" />
+                      <span className="flex-1 text-sm text-[color:var(--text-secondary)]">{art.title}</span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TAG_COLORS[art.tag] ?? 'bg-[color:var(--neutral-100)] text-gray-600 bg-gray-700 text-[color:var(--text-secondary)]'}`}>
                         {art.tag}
                       </span>
                     </button>
@@ -417,12 +419,12 @@ export default function AyudaPage() {
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-[#141824] py-14 border-gray-700 bg-gray-800">
-              <Search className="mb-3 h-10 w-10 text-gray-300 text-gray-600" />
-              <p className="text-sm font-medium text-gray-600 text-gray-300">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-[color:var(--border-default)] bg-white py-14 border-gray-700 bg-gray-800">
+              <Search className="mb-3 h-10 w-10 text-gray-600" />
+              <p className="text-sm font-medium text-[color:var(--text-secondary)]">
                 No se encontraron resultados para &quot;{search}&quot;
               </p>
-              <p className="mt-1 text-xs text-gray-400 text-gray-500">
+              <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">
                 Intenta con otras palabras o contacta a soporte
               </p>
             </div>
@@ -471,12 +473,12 @@ export default function AyudaPage() {
             return (
               <div
                 key={cat.id}
-                className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#141824] border-gray-700 bg-gray-800"
+                className="overflow-hidden rounded-xl border border-[color:var(--border-default)] bg-white border-gray-700 bg-gray-800"
               >
                 {/* Category header */}
                 <button
                   onClick={() => toggleCategory(cat.id)}
-                  className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-white/[0.02] hover:bg-gray-700/40"
+                  className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-[color:var(--neutral-50)] hover:bg-gray-700/40"
                 >
                   <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${cat.bg}`}>
                     <Icon className={`h-5 w-5 ${cat.color}`} />
@@ -485,28 +487,28 @@ export default function AyudaPage() {
                     <p className="text-sm font-medium text-white">
                       {cat.emoji} {cat.name}
                     </p>
-                    <p className="text-xs text-gray-500 text-gray-400">
+                    <p className="text-xs text-[color:var(--text-tertiary)]">
                       {cat.count} artículos
                     </p>
                   </div>
                   <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-gray-400 transition-transform text-gray-500 ${isOpen ? 'rotate-180' : ''}`}
+                    className={`h-4 w-4 shrink-0 text-[color:var(--text-tertiary)] transition-transform text-[color:var(--text-tertiary)] ${isOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
 
                 {/* Article list */}
                 {isOpen && (
-                  <div className="border-t border-white/[0.06] border-gray-700">
+                  <div className="border-t border-[color:var(--border-default)] border-gray-700">
                     {cat.articles.map((article, i) => (
                       <button
                         key={i}
-                        className="group flex w-full items-center gap-3 px-5 py-2.5 text-left transition hover:bg-white/[0.02] hover:bg-gray-700/50"
+                        className="group flex w-full items-center gap-3 px-5 py-2.5 text-left transition hover:bg-[color:var(--neutral-50)] hover:bg-gray-700/50"
                       >
-                        <BookOpen className="h-3.5 w-3.5 shrink-0 text-gray-400 text-gray-500" />
-                        <span className="flex-1 text-xs text-gray-300">
+                        <BookOpen className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-tertiary)]" />
+                        <span className="flex-1 text-xs text-[color:var(--text-secondary)]">
                           {article}
                         </span>
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300 transition group-hover:text-indigo-500 text-gray-600 group-hover:text-indigo-400" />
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-secondary)] transition group-hover:text-gray-600 group-hover:text-indigo-400" />
                       </button>
                     ))}
                   </div>
@@ -521,31 +523,31 @@ export default function AyudaPage() {
       {!q && (
         <section id="featured">
           <div className="mb-4 flex items-center gap-2">
-            <Gavel className="h-5 w-5 text-indigo-600 text-indigo-400" />
+            <Gavel className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-white">
               Artículo Destacado
             </h2>
           </div>
 
-          <div className="rounded-xl border border-indigo-200 bg-[#141824] border-indigo-800 bg-gray-800">
+          <div className="rounded-xl border border-indigo-200 bg-white border-indigo-800 bg-gray-800">
             {/* Header */}
             <button
               onClick={() => setOpenFeatured(prev => !prev)}
               className="flex w-full items-start gap-4 p-6 text-left"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 bg-indigo-900/40">
-                <Briefcase className="h-5 w-5 text-indigo-600 text-indigo-400" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-900/40">
+                <Briefcase className="h-5 w-5 text-indigo-400" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-white">
                   {FEATURED_ARTICLE.title}
                 </p>
-                <p className="mt-0.5 text-sm text-gray-500 text-gray-400">
+                <p className="mt-0.5 text-sm text-[color:var(--text-tertiary)]">
                   {FEATURED_ARTICLE.subtitle}
                 </p>
               </div>
               <ChevronDown
-                className={`mt-1 h-5 w-5 shrink-0 text-gray-400 transition-transform text-gray-500 ${openFeatured ? 'rotate-180' : ''}`}
+                className={`mt-1 h-5 w-5 shrink-0 text-[color:var(--text-tertiary)] transition-transform text-[color:var(--text-tertiary)] ${openFeatured ? 'rotate-180' : ''}`}
               />
             </button>
 
@@ -556,21 +558,21 @@ export default function AyudaPage() {
                   {FEATURED_ARTICLE.content.map((section, i) => (
                     <div
                       key={i}
-                      className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 border-gray-700 bg-gray-700/40"
+                      className="rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-4 border-gray-700 bg-gray-700/40"
                     >
                       <div className="mb-2 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-indigo-500 text-indigo-400" />
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-indigo-400" />
                         <span className="text-sm font-semibold text-white">
                           {section.label}
                         </span>
                       </div>
-                      <p className="text-xs leading-relaxed text-gray-400">
+                      <p className="text-xs leading-relaxed text-[color:var(--text-tertiary)]">
                         {section.body}
                       </p>
                     </div>
                   ))}
                 </div>
-                <p className="mt-4 text-xs text-gray-400 text-gray-500">
+                <p className="mt-4 text-xs text-[color:var(--text-tertiary)]">
                   Fuente: Ministerio de Trabajo y Promoción del Empleo (MTPE) — Actualizado 2026
                 </p>
               </div>
@@ -583,7 +585,7 @@ export default function AyudaPage() {
       {!q && (
         <section id="videos">
           <div className="mb-4 flex items-center gap-2">
-            <Video className="h-5 w-5 text-indigo-600 text-indigo-400" />
+            <Video className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-white">
               Video Tutoriales
             </h2>
@@ -592,7 +594,7 @@ export default function AyudaPage() {
             {VIDEOS.map((vid, i) => (
               <button
                 key={i}
-                className="group overflow-hidden rounded-xl border border-white/[0.08] bg-[#141824] text-left transition hover:border-white/10 hover:shadow-md border-gray-700 bg-gray-800 hover:border-gray-600"
+                className="group overflow-hidden rounded-xl border border-[color:var(--border-default)] bg-white text-left transition hover:border-white/10 hover:shadow-md border-gray-700 bg-gray-800 hover:border-gray-600"
               >
                 <div className="relative flex h-32 items-center justify-center bg-gradient-to-br from-indigo-50 to-indigo-100 from-indigo-950/40 to-gray-800">
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-600/90 shadow-lg transition group-hover:scale-110 bg-indigo-500/90">
@@ -605,7 +607,7 @@ export default function AyudaPage() {
                 </div>
                 <div className="p-3">
                   <p className="text-xs font-medium text-white">{vid.title}</p>
-                  <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${TAG_COLORS[vid.tag] ?? 'bg-white/[0.04] text-gray-600 bg-gray-700 text-gray-300'}`}>
+                  <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${TAG_COLORS[vid.tag] ?? 'bg-[color:var(--neutral-100)] text-gray-600 bg-gray-700 text-[color:var(--text-secondary)]'}`}>
                     {vid.tag}
                   </span>
                 </div>
@@ -618,7 +620,7 @@ export default function AyudaPage() {
       {/* ── FAQ Section ──────────────────────────────────────────── */}
       <section id="faq">
         <div className="mb-4 flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-indigo-600 text-indigo-400" />
+          <AlertCircle className="h-5 w-5 text-indigo-400" />
           <h2 className="text-base font-semibold text-white">
             Preguntas Frecuentes
           </h2>
@@ -629,7 +631,7 @@ export default function AyudaPage() {
           )}
         </div>
 
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] px-5 border-gray-700 bg-gray-800">
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white px-5 border-gray-700 bg-gray-800">
           {filteredFaqs.length > 0 ? (
             filteredFaqs.map((faq, i) => (
               <AccordionItem
@@ -642,7 +644,7 @@ export default function AyudaPage() {
               </AccordionItem>
             ))
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400 text-gray-500">
+            <p className="py-6 text-center text-sm text-[color:var(--text-tertiary)]">
               No hay preguntas que coincidan con tu búsqueda.
             </p>
           )}
@@ -651,15 +653,15 @@ export default function AyudaPage() {
 
       {/* ── Contact Support ──────────────────────────────────────── */}
       <section id="contacto">
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-6 border-gray-700 bg-gray-800">
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-6 border-gray-700 bg-gray-800">
           <div className="flex flex-col items-center text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 bg-indigo-900/40">
-              <MessageCircle className="h-6 w-6 text-indigo-600 text-indigo-400" />
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-900/40">
+              <MessageCircle className="h-6 w-6 text-indigo-400" />
             </div>
             <h2 className="text-lg font-semibold text-white">
               ¿No encontraste lo que buscas?
             </h2>
-            <p className="mt-1 text-sm text-gray-500 text-gray-400">
+            <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
               Nuestro equipo de soporte especializado en derecho laboral está listo para ayudarte
             </p>
 
@@ -668,14 +670,14 @@ export default function AyudaPage() {
                 href="https://wa.me/51999999999"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-700 bg-green-700 hover:bg-green-600"
+                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-600"
               >
                 <Phone className="h-4 w-4" />
                 WhatsApp
               </a>
               <a
                 href="mailto:soporte@comply360.pe"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#141824] px-5 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/[0.02] border-gray-600 bg-gray-700 text-gray-200 hover:bg-gray-600"
+                className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] transition hover:bg-[color:var(--neutral-50)] border-gray-600 bg-gray-700 text-[color:var(--text-secondary)] hover:bg-gray-600"
               >
                 <Mail className="h-4 w-4" />
                 soporte@comply360.pe
@@ -693,17 +695,17 @@ export default function AyudaPage() {
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="flex items-center justify-center gap-2 rounded-lg bg-white/[0.02] px-4 py-2.5 bg-gray-700/50">
-                <Clock className="h-4 w-4 text-gray-400 text-gray-500" />
-                <span className="text-xs text-gray-400">Lun – Vie, 9:00 – 18:00</span>
+              <div className="flex items-center justify-center gap-2 rounded-lg bg-[color:var(--neutral-50)] px-4 py-2.5 bg-gray-700/50">
+                <Clock className="h-4 w-4 text-[color:var(--text-tertiary)]" />
+                <span className="text-xs text-[color:var(--text-tertiary)]">Lun – Vie, 9:00 – 18:00</span>
               </div>
-              <div className="flex items-center justify-center gap-2 rounded-lg bg-white/[0.02] px-4 py-2.5 bg-gray-700/50">
-                <MessageCircle className="h-4 w-4 text-gray-400 text-gray-500" />
-                <span className="text-xs text-gray-400">Respuesta en &lt; 2 horas</span>
+              <div className="flex items-center justify-center gap-2 rounded-lg bg-[color:var(--neutral-50)] px-4 py-2.5 bg-gray-700/50">
+                <MessageCircle className="h-4 w-4 text-[color:var(--text-tertiary)]" />
+                <span className="text-xs text-[color:var(--text-tertiary)]">Respuesta en &lt; 2 horas</span>
               </div>
-              <div className="flex items-center justify-center gap-2 rounded-lg bg-white/[0.02] px-4 py-2.5 bg-gray-700/50">
-                <Shield className="h-4 w-4 text-gray-400 text-gray-500" />
-                <span className="text-xs text-gray-400">Especialistas laborales</span>
+              <div className="flex items-center justify-center gap-2 rounded-lg bg-[color:var(--neutral-50)] px-4 py-2.5 bg-gray-700/50">
+                <Shield className="h-4 w-4 text-[color:var(--text-tertiary)]" />
+                <span className="text-xs text-[color:var(--text-tertiary)]">Especialistas laborales</span>
               </div>
             </div>
           </div>

@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { generateChatResponse, detectProvider, getModelName } from '@/lib/ai/chat-engine'
 import type { ChatMessage, OrgContext } from '@/lib/ai/chat-engine'
 
 // =============================================
 // POST /api/ai-chat — Send message to AI assistant
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
   try {
     const body = await req.json()
     const { messages } = body as {

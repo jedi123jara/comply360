@@ -115,7 +115,7 @@ function getVariant(statusCode?: number): ErrorVariant {
       title: 'Sin conexión',
       defaultMessage: 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta de nuevo.',
       color: {
-        bg: 'bg-white/[0.02] bg-[#141824]/50',
+        bg: 'bg-[color:var(--neutral-50)] bg-[#141824]/50',
         border: 'border-white/[0.08] border-white/[0.08]',
         icon: 'text-gray-500',
         title: 'text-gray-900',

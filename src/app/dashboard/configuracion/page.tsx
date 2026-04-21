@@ -57,8 +57,6 @@ const CATEGORIES: SettingsCategory[] = [
     emoji: '🔔',
     icon: Bell,
     href: '/dashboard/configuracion/notificaciones',
-    disabled: true,
-    badge: 'Próximamente',
   },
   {
     key: 'integraciones',
@@ -67,8 +65,6 @@ const CATEGORIES: SettingsCategory[] = [
     emoji: '🔗',
     icon: Link2,
     href: '/dashboard/configuracion/integraciones',
-    disabled: true,
-    badge: 'Próximamente',
   },
   {
     key: 'facturacion',
@@ -77,8 +73,6 @@ const CATEGORIES: SettingsCategory[] = [
     emoji: '💳',
     icon: CreditCard,
     href: '/dashboard/configuracion/facturacion',
-    disabled: true,
-    badge: 'Próximamente',
   },
   {
     key: 'seguridad',
@@ -87,8 +81,6 @@ const CATEGORIES: SettingsCategory[] = [
     emoji: '🔒',
     icon: Lock,
     href: '/dashboard/configuracion/seguridad',
-    disabled: true,
-    badge: 'Próximamente',
   },
   {
     key: 'personalizacion',
@@ -130,7 +122,7 @@ export default function ConfiguracionPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Configuración</h1>
-        <p className="text-gray-500 text-gray-400 mt-1">
+        <p className="text-gray-400 mt-1">
           Administra todos los ajustes de tu organización y cuenta.
         </p>
       </div>
@@ -138,7 +130,6 @@ export default function ConfiguracionPage() {
       {/* Categories Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {CATEGORIES.map(category => {
-          const Icon = category.icon
           const isHovered = hoveredKey === category.key
           const isClickable = !category.disabled
 
@@ -153,8 +144,8 @@ export default function ConfiguracionPage() {
                 relative flex items-start gap-4 p-5 rounded-2xl border text-left
                 transition-all duration-150
                 ${isClickable
-                  ? 'bg-[#141824] border-white/[0.08] hover:border-primary/50 hover:border-primary/50 hover:shadow-md cursor-pointer'
-                  : 'bg-white/[0.02] bg-[#141824]/60 border-white/[0.08]/60 cursor-default opacity-75'
+                  ? 'bg-white border-white/[0.08] hover:border-primary/50 hover:shadow-md cursor-pointer'
+                  : 'bg-white/60 border-white/[0.08] cursor-default opacity-75'
                 }
               `}
             >
@@ -164,8 +155,8 @@ export default function ConfiguracionPage() {
                   flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl
                   transition-colors duration-150
                   ${isClickable && isHovered
-                    ? 'bg-primary/15 bg-primary/20'
-                    : 'bg-white/[0.04]'
+                    ? 'bg-primary/20'
+                    : 'bg-[color:var(--neutral-100)]'
                   }
                 `}
               >
@@ -183,8 +174,8 @@ export default function ConfiguracionPage() {
                       className={`
                         text-[10px] font-bold px-2 py-0.5 rounded-full
                         ${category.badge === 'Plan Pro'
-                          ? 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400 border border-amber-200 border-amber-800'
-                          : 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400 border border-blue-200 border-blue-800'
+                          ? 'bg-amber-900/30 text-amber-400 border border-amber-800'
+                          : 'bg-blue-900/30 text-emerald-600 border border-blue-800'
                         }
                       `}
                     >
@@ -192,7 +183,7 @@ export default function ConfiguracionPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 text-gray-400 mt-0.5 leading-relaxed">
+                <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
                   {category.description}
                 </p>
               </div>
@@ -204,7 +195,7 @@ export default function ConfiguracionPage() {
                     flex-shrink-0 w-4 h-4 mt-0.5 transition-all duration-150
                     ${isHovered
                       ? 'text-primary translate-x-0.5'
-                      : 'text-gray-300 text-slate-600'
+                      : 'text-[color:var(--text-secondary)]'
                     }
                   `}
                 />
@@ -215,7 +206,7 @@ export default function ConfiguracionPage() {
       </div>
 
       {/* Info note */}
-      <p className="text-xs text-gray-400 text-slate-500">
+      <p className="text-xs text-slate-500">
         Las secciones marcadas como &quot;Próximamente&quot; estarán disponibles en futuras actualizaciones.
         Contacta a soporte si necesitas acceso anticipado.
       </p>

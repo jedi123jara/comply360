@@ -42,6 +42,45 @@ export interface InfraccionSunafil {
   subsanacion: string
 }
 
+/**
+ * Escala de multas por tamaño empresarial según D.S. 019-2006-TR Art. 48
+ * Factor multiplicador sobre multa base UIT
+ */
+export function getMultaFactorPorTrabajadores(totalWorkers: number): number {
+  if (totalWorkers <= 10) return 1
+  if (totalWorkers <= 50) return 5
+  if (totalWorkers <= 100) return 10
+  if (totalWorkers <= 500) return 20
+  return 30
+}
+
+/**
+ * Calcula multa potencial con descuentos por subsanación.
+ * D.S. 019-2006-TR Art. 40 (Ley 28806)
+ */
+export function calcularMultaConDescuentos(
+  multaBaseUIT: number,
+  totalWorkers: number,
+  opts?: { subsanacionVoluntaria?: boolean; subsanacionDuranteInspeccion?: boolean; reincidencia?: boolean }
+): { multaBase: number; multaConDescuento: number; descuentoPct: number } {
+  const factor = getMultaFactorPorTrabajadores(totalWorkers)
+  let multaBase = multaBaseUIT * 5500 * factor
+  let descuentoPct = 0
+
+  if (opts?.reincidencia) {
+    multaBase *= 1.5 // +50% por reincidencia
+  }
+
+  if (opts?.subsanacionVoluntaria) {
+    descuentoPct = 90 // -90% si subsana antes de inspección
+  } else if (opts?.subsanacionDuranteInspeccion) {
+    descuentoPct = 70 // -70% si subsana durante inspección
+  }
+
+  const multaConDescuento = Math.round(multaBase * (1 - descuentoPct / 100))
+  return { multaBase: Math.round(multaBase), multaConDescuento, descuentoPct }
+}
+
 export const INFRACCIONES_SUNAFIL: InfraccionSunafil[] = [
   // ══════════════════════════════════════════════════════════
   // BLOQUE 1 — DOCUMENTOS Y REGISTROS OBLIGATORIOS
@@ -187,7 +226,7 @@ export const INFRACCIONES_SUNAFIL: InfraccionSunafil[] = [
   {
     codigo: 'DS019-24.4',
     categoria: 'REMUNERACIONES',
-    severidad: 'GRAVE',
+    severidad: 'MUY_GRAVE',
     titulo: 'Pago por debajo de la Remuneración Mínima Vital (RMV)',
     descripcion: 'Uno o más trabajadores a tiempo completo perciben una remuneración mensual inferior a S/ 1,130 (RMV 2026).',
     baseLegal: 'D.S. 019-2006-TR Art. 24.4 | D.U. 033-2022 (RMV S/1,130)',

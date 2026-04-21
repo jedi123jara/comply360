@@ -149,7 +149,7 @@ export async function scrapeSupanat(
 
     // ── Step 2: Extract company data ────────────────────────────────
     // Navigate to Consulta RUC
-    let companyData: Partial<SunatSolData> = {
+    const companyData: Partial<SunatSolData> = {
       ruc,
       razonSocial: '',
       nombreComercial: null,

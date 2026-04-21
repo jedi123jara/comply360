@@ -43,7 +43,7 @@ export default function ApiDocsPage() {
         />
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+      <div className="rounded-2xl border border-slate-800 bg-white p-6">
         <h2 className="mb-3 text-lg font-semibold text-white">Endpoints disponibles</h2>
         <div className="space-y-2 text-sm">
           <Endpoint method="GET" path="/api/v1/workers" desc="Lista trabajadores" />
@@ -87,7 +87,7 @@ function Card({
       href={href}
       target={external ? '_blank' : undefined}
       rel={external ? 'noreferrer' : undefined}
-      className="block rounded-2xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-gold-500/60 hover:bg-slate-900"
+      className="block rounded-2xl border border-slate-800 bg-white p-5 transition hover:border-gold-500/60 hover:bg-white"
     >
       <div className="mb-2">{icon}</div>
       <h3 className="text-sm font-semibold text-white">{title}</h3>
@@ -99,7 +99,7 @@ function Card({
 function Endpoint({ method, path, desc }: { method: string; path: string; desc: string }) {
   const color =
     method === 'GET'
-      ? 'bg-blue-500/15 text-blue-300'
+      ? 'bg-blue-500/15 text-emerald-600'
       : method === 'POST'
         ? 'bg-green-500/15 text-green-300'
         : 'bg-slate-500/15 text-slate-300'

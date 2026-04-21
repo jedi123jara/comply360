@@ -35,13 +35,6 @@ interface AlertPayload {
   dueDate?: string
 }
 
-interface DigestAlert {
-  title: string
-  description: string
-  dueDate?: string
-  severity: 'critical' | 'warning' | 'info'
-}
-
 // ── Brand constants ────────────────────────────
 
 const DEFAULT_FROM = 'COMPLY360 <notificaciones@comply360.pe>'
@@ -130,8 +123,7 @@ export async function sendDigestEmail(
     openAlerts: number
     score: number
     pendingActions: number
-  },
-  alerts: DigestAlert[]
+  }
 ): Promise<void> {
   // Build HTML combining the stats dashboard and alert list
   const html = weeklyDigest(stats)

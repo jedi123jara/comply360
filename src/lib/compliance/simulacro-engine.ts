@@ -50,6 +50,18 @@ export interface ResultadoSimulacro {
 const UIT = 5500
 
 /**
+ * Factor multiplicador de multa según cantidad de trabajadores afectados.
+ * D.S. 019-2006-TR, Art. 48 (Cuadro de Escala de Multas)
+ */
+function getFactorTrabajadores(totalWorkers: number): number {
+  if (totalWorkers <= 10) return 1
+  if (totalWorkers <= 50) return 5
+  if (totalWorkers <= 100) return 10
+  if (totalWorkers <= 500) return 20
+  return 30
+}
+
+/**
  * The 28 document requests a SUNAFIL inspector typically makes,
  * ordered by inspection protocol (R.M. 199-2016-TR)
  */
@@ -118,12 +130,14 @@ export function evaluarSolicitud(
   documentosOrg: { documentType: string; status: string; category: string }[],
   totalWorkers: number
 ): HallazgoInspeccion {
-  const workerFactor = Math.max(1, Math.min(totalWorkers, 10))
+  // D.S. 019-2006-TR Art. 48 — escala correcta de multas por tamaño empresarial
+  const workerFactor = getFactorTrabajadores(totalWorkers)
 
-  // Check if any worker has this document uploaded and verified
+  // Check documents: filter matching + check for expired docs
   const matching = documentosOrg.filter(d => d.documentType === solicitud.documentoRequerido)
   const uploaded = matching.filter(d => d.status === 'UPLOADED' || d.status === 'VERIFIED')
   const verified = matching.filter(d => d.status === 'VERIFIED')
+  const expired = matching.filter(d => d.status === 'EXPIRED')
 
   let estado: DocumentoEstado
   let mensaje: string
@@ -131,12 +145,18 @@ export function evaluarSolicitud(
   if (totalWorkers === 0) {
     estado = 'NO_APLICA'
     mensaje = 'No hay trabajadores registrados para evaluar.'
-  } else if (verified.length >= totalWorkers * 0.8) {
+  } else if (expired.length > 0) {
+    // Documentos vencidos = incumplimiento (SCTR, examen médico, etc.)
+    estado = 'PARCIAL'
+    mensaje = `${expired.length} documento(s) vencido(s) de ${solicitud.documentoLabel}. SUNAFIL lo detectara como infraccion. Renueve antes de la inspeccion.`
+  } else if (verified.length >= totalWorkers) {
+    // 100% de trabajadores verificados = CUMPLE
     estado = 'CUMPLE'
     mensaje = `Documento verificado. ${verified.length}/${totalWorkers} trabajadores con ${solicitud.documentoLabel} al dia.`
   } else if (uploaded.length > 0) {
     estado = 'PARCIAL'
-    mensaje = `Cumplimiento parcial. Solo ${uploaded.length}/${totalWorkers} trabajadores tienen ${solicitud.documentoLabel}. Debe completar los faltantes.`
+    const faltantes = totalWorkers - uploaded.length
+    mensaje = `Cumplimiento parcial. ${uploaded.length}/${totalWorkers} trabajadores tienen ${solicitud.documentoLabel}. Faltan ${faltantes} trabajador(es).`
   } else {
     estado = 'NO_CUMPLE'
     mensaje = `No se encontro ${solicitud.documentoLabel}. Esto constituye una infraccion ${solicitud.gravedad.replace('_', ' ').toLowerCase()} segun ${solicitud.baseLegal}.`

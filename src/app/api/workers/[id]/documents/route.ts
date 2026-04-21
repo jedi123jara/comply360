@@ -5,6 +5,8 @@ import { uploadFile } from '@/lib/storage/upload'
 import type { AuthContext } from '@/lib/auth'
 import type { DocCategory, DocStatus } from '@/generated/prisma/client'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
+import { syncComplianceScore } from '@/lib/compliance/sync-score'
+import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
 
 // =============================================
 // GET /api/workers/[id]/documents - List worker documents
@@ -32,14 +34,67 @@ export const GET = withAuthParams<{ id: string }>(
       orderBy: [{ category: 'asc' }, { createdAt: 'desc' }],
     })
 
+    // Cargar audit logs de verificación IA — último por documento
+    const docIds = documents.map((d) => d.id)
+    const aiLogs =
+      docIds.length > 0
+        ? await prisma.auditLog.findMany({
+            where: {
+              orgId,
+              entityType: 'WorkerDocument',
+              entityId: { in: docIds },
+              action: { in: ['document.ai_verified', 'document.ai_reviewed'] },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              entityId: true,
+              action: true,
+              metadataJson: true,
+              createdAt: true,
+            },
+          })
+        : []
+
+    // Indexar por entityId — tomamos solo el más reciente por doc
+    const latestByDoc = new Map<string, (typeof aiLogs)[number]>()
+    for (const log of aiLogs) {
+      if (!log.entityId) continue
+      if (!latestByDoc.has(log.entityId)) {
+        latestByDoc.set(log.entityId, log)
+      }
+    }
+
     return NextResponse.json({
-      data: documents.map(doc => ({
-        ...doc,
-        createdAt: doc.createdAt.toISOString(),
-        updatedAt: doc.updatedAt.toISOString(),
-        expiresAt: doc.expiresAt?.toISOString() ?? null,
-        verifiedAt: doc.verifiedAt?.toISOString() ?? null,
-      })),
+      data: documents.map((doc) => {
+        const log = latestByDoc.get(doc.id)
+        const meta = (log?.metadataJson ?? null) as {
+          decision?: string
+          confidence?: number
+          summary?: string
+          issues?: string[]
+          model?: string
+        } | null
+        const isAiVerified = doc.verifiedBy === 'ai-v1'
+
+        return {
+          ...doc,
+          createdAt: doc.createdAt.toISOString(),
+          updatedAt: doc.updatedAt.toISOString(),
+          expiresAt: doc.expiresAt?.toISOString() ?? null,
+          verifiedAt: doc.verifiedAt?.toISOString() ?? null,
+          aiVerification: log
+            ? {
+                decision: meta?.decision ?? null,
+                confidence: meta?.confidence ?? null,
+                summary: meta?.summary ?? null,
+                issues: meta?.issues ?? [],
+                model: meta?.model ?? null,
+                verifiedByAI: isAiVerified,
+                at: log.createdAt.toISOString(),
+              }
+            : null,
+        }
+      }),
     })
   }
 )
@@ -157,6 +212,12 @@ export const POST = withAuthParams<{ id: string }>(
       console.error('[workers/documents POST] generateWorkerAlerts failed', { workerId: id, alertErr })
     }
 
+    // Fire-and-forget compliance score recalculation
+    syncComplianceScore(orgId).catch(() => {})
+
+    // Fire-and-forget AI auto-verification (feature PRO+, solo si hay OpenAI key)
+    void triggerAutoVerifyAI(document.id, id, orgId, ctx.userId)
+
     return NextResponse.json(
       {
         data: {
@@ -233,46 +294,70 @@ export const PATCH = withAuthParams<{ id: string }>(
   }
 )
 
+// recalculateLegajoScore is imported from @/lib/compliance/legajo-config
+
 /**
- * Recalculate legajo score for a worker based on uploaded required documents.
+ * Dispara verificación IA en background tras un upload. Fire-and-forget.
+ * - Solo corre si el org tiene plan con feature 'review_ia'
+ * - Solo si hay OPENAI_API_KEY
+ * - Nunca bloquea ni lanza
  */
-async function recalculateLegajoScore(workerId: string) {
-  // Count total required document types (from the 28-doc legajo standard)
-  const REQUIRED_DOC_TYPES = [
-    'contrato_trabajo',
-    'cv',
-    'dni_copia',
-    'declaracion_jurada',
-    'boleta_pago',
-    't_registro',
-    'vacaciones_goce',
-    'capacitacion_registro',
-    'examen_medico_ingreso',
-    'examen_medico_periodico',
-    'induccion_sst',
-    'entrega_epp',
-    'iperc_puesto',
-    'capacitacion_sst',
-    'reglamento_interno',
-    'afp_onp_afiliacion',
-    'essalud_registro',
-    'cts_deposito',
-  ]
+async function triggerAutoVerifyAI(
+  documentId: string,
+  workerId: string,
+  orgId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    if (!process.env.OPENAI_API_KEY) return
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { plan: true, planExpiresAt: true },
+    })
+    if (!org) return
+    let effectivePlan = org.plan
+    if (org.planExpiresAt && new Date(org.planExpiresAt) < new Date()) {
+      effectivePlan = 'STARTER'
+    }
+    const { planHasFeature } = await import('@/lib/plan-gate')
+    if (!planHasFeature(effectivePlan, 'review_ia')) return
 
-  const uploadedDocs = await prisma.workerDocument.findMany({
-    where: {
-      workerId,
-      status: { in: ['UPLOADED', 'VERIFIED'] },
-    },
-    select: { documentType: true },
-  })
+    const [doc, worker] = await Promise.all([
+      prisma.workerDocument.findUnique({ where: { id: documentId } }),
+      prisma.worker.findUnique({
+        where: { id: workerId },
+        select: {
+          firstName: true,
+          lastName: true,
+          dni: true,
+          birthDate: true,
+          position: true,
+        },
+      }),
+    ])
+    if (!doc || !doc.fileUrl || !worker) return
 
-  const uploadedTypes = new Set(uploadedDocs.map(d => d.documentType))
-  const matchedCount = REQUIRED_DOC_TYPES.filter(t => uploadedTypes.has(t)).length
-  const score = Math.round((matchedCount / REQUIRED_DOC_TYPES.length) * 100)
+    const { verifyDocument } = await import('@/lib/ai/document-verifier')
+    const { persistVerification } = await import('@/lib/ai/document-verifier-persist')
 
-  await prisma.worker.update({
-    where: { id: workerId },
-    data: { legajoScore: score },
-  })
+    const result = await verifyDocument(
+      { fileUrl: doc.fileUrl, mimeType: doc.mimeType, documentType: doc.documentType },
+      worker,
+    )
+
+    await persistVerification(documentId, workerId, userId, orgId, result)
+
+    if (result.decision === 'auto-verified') {
+      await recalculateLegajoScore(workerId).catch(() => null)
+      syncComplianceScore(orgId).catch(() => {})
+    }
+
+    console.log('[workers.documents] auto-verify', {
+      documentId,
+      decision: result.decision,
+      confidence: result.confidence,
+    })
+  } catch (err) {
+    console.error('[workers.documents] auto-verify failed', err)
+  }
 }

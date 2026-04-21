@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth'
-import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // Types
@@ -46,26 +45,6 @@ interface DocStats {
 // Helpers
 // =============================================
 
-function getFileTypeFromMime(mimeType: string, fileName: string): FileType {
-  if (mimeType === 'application/pdf') return 'PDF'
-  if (
-    mimeType.includes('word') ||
-    mimeType.includes('document') ||
-    fileName.endsWith('.doc') ||
-    fileName.endsWith('.docx')
-  )
-    return 'DOC'
-  if (
-    mimeType.includes('spreadsheet') ||
-    mimeType.includes('excel') ||
-    fileName.endsWith('.xls') ||
-    fileName.endsWith('.xlsx')
-  )
-    return 'XLS'
-  if (mimeType.startsWith('image/')) return 'IMG'
-  return 'OTHER'
-}
-
 function computeDocStatus(expirationDate: string | null): {
   status: DocStatus
   daysUntilExpiry: number | null
@@ -91,7 +70,7 @@ function computeDocStatus(expirationDate: string | null): {
 // GET /api/documentos
 // =============================================
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withAuth(async () => {
   try {
     // In a full implementation, this would query documents from the database.
     // For now, return demo data to support the frontend while DB models are set up.
@@ -175,7 +154,7 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
 // DELETE /api/documentos?id=xxx
 // =============================================
 
-export const DELETE = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const DELETE = withAuth(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')

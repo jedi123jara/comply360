@@ -75,26 +75,58 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       statusMap[c.status] = c._count
     }
 
-    // Worker count and compliance score
-    const totalWorkers = await prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } })
+    // Worker count, compliance score, and payroll stats
+    const [totalWorkers, workerAgg, recentCriticalAlerts] = await Promise.all([
+      prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } }),
+      prisma.worker.aggregate({
+        where: { orgId, status: 'ACTIVE' },
+        _avg: { sueldoBruto: true, legajoScore: true },
+        _sum: { sueldoBruto: true },
+      }),
+      prisma.workerAlert.findMany({
+        where: { orgId, resolvedAt: null, severity: { in: ['CRITICAL', 'HIGH'] } },
+        orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }],
+        take: 5,
+        select: {
+          id: true,
+          type: true,
+          severity: true,
+          title: true,
+          dueDate: true,
+          multaEstimada: true,
+          createdAt: true,
+          worker: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+    ])
+
     let complianceScore = null
     try {
       complianceScore = await calculateComplianceScore(orgId)
     } catch { /* score is optional */ }
 
-    // Weekly calculation activity (last 7 days) — filtered by orgId
-    const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
-    const weeklyActivityPromises = Array.from({ length: 7 }, (_, i) => {
-      const dayStart = new Date()
-      dayStart.setDate(dayStart.getDate() - (6 - i))
-      dayStart.setHours(0, 0, 0, 0)
-      const dayEnd = new Date(dayStart)
-      dayEnd.setHours(23, 59, 59, 999)
-      return prisma.calculation.count({
-        where: { orgId, createdAt: { gte: dayStart, lte: dayEnd } },
-      }).then(count => ({ label: DAY_LABELS[dayStart.getDay()], value: count }))
+    // Weekly calculation activity (last 7 days) — single groupBy instead of 7 counts
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 6)
+    weekAgo.setHours(0, 0, 0, 0)
+
+    const rawActivity = await prisma.calculation.groupBy({
+      by: ['createdAt'],
+      where: { orgId, createdAt: { gte: weekAgo } },
+      _count: true,
     })
-    const weeklyActivity = await Promise.all(weeklyActivityPromises)
+
+    // Map to 7-day array
+    const weeklyActivity = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekAgo)
+      d.setDate(d.getDate() + i)
+      const dayStr = d.toLocaleDateString('es-PE', { weekday: 'short' })
+      const count = rawActivity.filter(r => {
+        const rd = new Date(r.createdAt)
+        return rd.getFullYear() === d.getFullYear() && rd.getMonth() === d.getMonth() && rd.getDate() === d.getDate()
+      }).reduce((sum, r) => sum + r._count, 0)
+      return { label: dayStr, value: count }
+    })
 
     // Expiring contracts (next 30 days) — filtered by orgId
     const thirtyDaysFromNow = new Date()
@@ -118,6 +150,265 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       },
     })
 
+    // ── COCKPIT v2 (Fase C) — datos para los componentes narrativos ──
+
+    // Top 5 workers en riesgo: legajoScore bajo o alertas criticas abiertas
+    const riskWorkersRaw = await prisma.worker.findMany({
+      where: {
+        orgId,
+        status: { not: 'TERMINATED' },
+      },
+      orderBy: [
+        { legajoScore: 'asc' },
+        { updatedAt: 'desc' },
+      ],
+      take: 20, // traemos 20 y rankeamos en memoria por combinacion de score + alerts
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        position: true,
+        regimenLaboral: true,
+        legajoScore: true,
+        alerts: {
+          where: { resolvedAt: null, severity: { in: ['CRITICAL', 'HIGH'] } },
+          select: { id: true },
+        },
+      },
+    })
+    const riskWorkers = riskWorkersRaw
+      .map((w) => ({
+        id: w.id,
+        fullName: `${w.firstName ?? ''} ${w.lastName ?? ''}`.trim() || 'Trabajador',
+        role: w.position ?? undefined,
+        regimen: w.regimenLaboral ?? undefined,
+        score: w.legajoScore ?? 0,
+        openAlerts: w.alerts.length,
+        riskRank: (100 - (w.legajoScore ?? 0)) + w.alerts.length * 8,
+      }))
+      .sort((a, b) => b.riskRank - a.riskRank)
+      .slice(0, 5)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      .map(({ riskRank: _r, ...rest }) => rest)
+
+    // Upcoming deadlines: fusion de alertas activas con contratos por vencer
+    const alertDeadlines = await prisma.workerAlert.findMany({
+      where: {
+        orgId,
+        resolvedAt: null,
+        dueDate: { not: null },
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 10,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        dueDate: true,
+        multaEstimada: true,
+      },
+    })
+    const nowMs = Date.now()
+    const DAY_MS = 1000 * 60 * 60 * 24
+    const toDays = (d: Date | null) =>
+      d ? Math.ceil((d.getTime() - nowMs) / DAY_MS) : 99
+
+    function mapType(raw: string): 'contract' | 'cts' | 'grat' | 'sst' | 'afp' | 'document' | 'other' {
+      const t = raw.toLowerCase()
+      if (t.includes('contrato')) return 'contract'
+      if (t.includes('cts')) return 'cts'
+      if (t.includes('grat')) return 'grat'
+      if (t.includes('sst') || t.includes('exam') || t.includes('epp')) return 'sst'
+      if (t.includes('afp')) return 'afp'
+      if (t.includes('doc')) return 'document'
+      return 'other'
+    }
+
+    const upcomingDeadlines = [
+      ...alertDeadlines.map((a) => ({
+        id: `alert-${a.id}`,
+        label: a.title,
+        dueIn: toDays(a.dueDate),
+        category: mapType(a.type),
+        amount: a.multaEstimada ? Number(a.multaEstimada) : undefined,
+        href: '/dashboard/alertas',
+      })),
+      ...expiringContracts.map((c) => ({
+        id: `contract-${c.id}`,
+        label: c.title,
+        dueIn: toDays(c.expiresAt),
+        category: 'contract' as const,
+        href: `/dashboard/contratos/${c.id}`,
+      })),
+    ]
+      .sort((a, b) => a.dueIn - b.dueIn)
+      .slice(0, 5)
+
+    // Activity heatmap: 12 semanas desde AuditLog (si existen) + calculations
+    const twelveWeeksAgo = new Date(Date.now() - 12 * 7 * DAY_MS)
+    twelveWeeksAgo.setHours(0, 0, 0, 0)
+    const [auditActivity, calcActivity] = await Promise.all([
+      prisma.auditLog.findMany({
+        where: { orgId, createdAt: { gte: twelveWeeksAgo } },
+        select: { createdAt: true },
+        take: 2000,
+      }).catch(() => []),
+      prisma.calculation.findMany({
+        where: { orgId, createdAt: { gte: twelveWeeksAgo } },
+        select: { createdAt: true },
+        take: 2000,
+      }),
+    ])
+
+    const byDay = new Map<string, number>()
+    for (const e of [...auditActivity, ...calcActivity]) {
+      const iso = e.createdAt.toISOString().slice(0, 10)
+      byDay.set(iso, (byDay.get(iso) ?? 0) + 1)
+    }
+    const activityHeatmap: Array<{ date: string; value: number; count: number }> = []
+    for (let i = 0; i < 12 * 7; i++) {
+      const d = new Date(twelveWeeksAgo)
+      d.setDate(twelveWeeksAgo.getDate() + i)
+      const iso = d.toISOString().slice(0, 10)
+      const count = byDay.get(iso) ?? 0
+      // Map raw count to 0-4 intensity
+      const intensity = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 10 ? 3 : 4
+      activityHeatmap.push({ date: iso, value: intensity, count })
+    }
+
+    // Top risk: peor area del breakdown
+    const breakdown = complianceScore?.breakdown ?? []
+    const worst = breakdown.length
+      ? [...breakdown].sort((a, b) => a.score - b.score)[0]
+      : null
+    const topRisk = worst
+      ? {
+          label: worst.label,
+          // Impact estimado = cuanto subiria el score si esta area llega a 90
+          impact: Math.max(0, Math.round((90 - worst.score) * ((worst.weight ?? 15) / 100))),
+        }
+      : null
+
+    // Sector radar: org vs promedio sector (si hay mas de 1 org en el mismo sector)
+    let sectorRadar: Array<{ area: string; org: number; sector: number }> = []
+    if (breakdown.length) {
+      const org = await prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { sector: true },
+      })
+      if (org?.sector) {
+        // Orgs del mismo sector (excluyendo la actual)
+        const peers = await prisma.organization.findMany({
+          where: { sector: org.sector, id: { not: orgId } },
+          select: { id: true },
+          take: 200,
+        })
+        const peerIds = peers.map((p) => p.id)
+        const sectorBench = peerIds.length > 0
+          ? await prisma.complianceScore.findMany({
+              where: { orgId: { in: peerIds } },
+              orderBy: { calculatedAt: 'desc' },
+              take: 50,
+              select: {
+                scoreContratos: true,
+                scoreSst: true,
+                scoreDocumentos: true,
+                scoreVencimientos: true,
+                scorePlanilla: true,
+                scoreGlobal: true,
+              },
+            })
+          : []
+        if (sectorBench.length > 0) {
+          const avg = (xs: number[]) =>
+            Math.round(xs.reduce((a, b) => a + b, 0) / xs.length)
+          const avgOf = (key: 'scoreContratos' | 'scoreSst' | 'scoreDocumentos' | 'scoreVencimientos' | 'scorePlanilla') =>
+            avg(sectorBench.map((r) => r[key] ?? 0).filter((v) => v > 0))
+
+          const byLabel = Object.fromEntries(breakdown.map((b) => [b.label, b.score]))
+          sectorRadar = [
+            { area: 'Contratos', org: byLabel['Contratos'] ?? 0, sector: avgOf('scoreContratos') },
+            { area: 'SST', org: byLabel['SST'] ?? 0, sector: avgOf('scoreSst') },
+            { area: 'Documentos', org: byLabel['Documentos'] ?? 0, sector: avgOf('scoreDocumentos') },
+            { area: 'Vencimientos', org: byLabel['Vencimientos'] ?? 0, sector: avgOf('scoreVencimientos') },
+            { area: 'Planilla', org: byLabel['Planilla'] ?? 0, sector: avgOf('scorePlanilla') },
+          ].filter((r) => r.sector > 0)
+        }
+      }
+    }
+
+    // ── Compliance tasks stats (Opción B del plan — retention loop) ──
+    // Un usuario ve aquí cuántas brechas tiene abiertas, cuánto ha evitado en
+    // multas al resolverlas, y cuántas están vencidas. Los counts impulsan el
+    // loop de regreso a la app.
+    //
+    // Wrap en try/catch defensive: en entornos con schema desactualizado
+    // (tabla compliance_tasks sin migrar) el dashboard seguía rompiendo todo.
+    // Preferimos degradar a zeros y que el widget muestre el empty state.
+    let taskCountsMap: Record<string, number> = {}
+    let tasksMultaEvitable = 0
+    let tasksMultaEvitada = 0
+    let overdueTaskCount = 0
+    let topOpenTasks: Array<{
+      id: string
+      title: string
+      area: string
+      gravedad: string
+      multaEvitable: import('@/generated/prisma/client').Prisma.Decimal | null
+      priority: number
+      status: string
+      dueDate: Date | null
+    }> = []
+    try {
+      const [taskCountsRaw, openTaskMultaAgg, completedTaskMultaAgg, overdueCount, topTasks] = await Promise.all([
+        prisma.complianceTask.groupBy({
+          by: ['status'],
+          where: { orgId },
+          _count: true,
+        }),
+        prisma.complianceTask.aggregate({
+          where: { orgId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+          _sum: { multaEvitable: true },
+        }),
+        prisma.complianceTask.aggregate({
+          where: { orgId, status: 'COMPLETED' },
+          _sum: { multaEvitable: true },
+        }),
+        prisma.complianceTask.count({
+          where: {
+            orgId,
+            status: { in: ['PENDING', 'IN_PROGRESS'] },
+            dueDate: { not: null, lt: new Date() },
+          },
+        }),
+        prisma.complianceTask.findMany({
+          where: { orgId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+          orderBy: [{ priority: 'asc' }, { dueDate: 'asc' }],
+          take: 3,
+          select: {
+            id: true,
+            title: true,
+            area: true,
+            gravedad: true,
+            multaEvitable: true,
+            priority: true,
+            status: true,
+            dueDate: true,
+          },
+        }),
+      ])
+      taskCountsMap = Object.fromEntries(taskCountsRaw.map((c) => [c.status, c._count]))
+      tasksMultaEvitable = Number(openTaskMultaAgg._sum.multaEvitable ?? 0)
+      tasksMultaEvitada = Number(completedTaskMultaAgg._sum.multaEvitable ?? 0)
+      overdueTaskCount = overdueCount
+      topOpenTasks = topTasks
+    } catch (err) {
+      // Log + continue: endpoint queda healthy aunque falte la tabla.
+      console.warn('[dashboard] complianceTask queries failed:', err instanceof Error ? err.message : err)
+    }
+    const tasksOpen = (taskCountsMap['PENDING'] ?? 0) + (taskCountsMap['IN_PROGRESS'] ?? 0)
+    const tasksCompleted = taskCountsMap['COMPLETED'] ?? 0
+
     return NextResponse.json({
       stats: {
         totalContracts,
@@ -132,6 +423,28 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         templatesAvailable: templateCount,
         complianceScore: complianceScore?.scoreGlobal ?? null,
         multaPotencial: complianceScore?.multaPotencial ?? null,
+        avgLegajoScore: workerAgg._avg.legajoScore ? Math.round(Number(workerAgg._avg.legajoScore)) : null,
+        totalPlanilla: workerAgg._sum.sueldoBruto ? Number(workerAgg._sum.sueldoBruto) : 0,
+      },
+      complianceTasks: {
+        open: tasksOpen,
+        pending: taskCountsMap['PENDING'] ?? 0,
+        inProgress: taskCountsMap['IN_PROGRESS'] ?? 0,
+        completed: tasksCompleted,
+        dismissed: taskCountsMap['DISMISSED'] ?? 0,
+        overdue: overdueTaskCount,
+        multaEvitable: tasksMultaEvitable,
+        multaEvitada: tasksMultaEvitada,
+        top: topOpenTasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          area: t.area,
+          gravedad: t.gravedad,
+          priority: t.priority,
+          multaEvitable: t.multaEvitable ? Number(t.multaEvitable) : null,
+          dueDate: t.dueDate?.toISOString() ?? null,
+          overdue: t.dueDate !== null && t.dueDate < new Date(),
+        })),
       },
       complianceBreakdown: complianceScore?.breakdown ?? [],
       contractSegments: [
@@ -147,12 +460,32 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         createdAt: c.createdAt.toISOString(),
       })),
       weeklyActivity,
-      recentContracts,
+      recentContracts: recentContracts.map(c => ({
+        ...c,
+        updatedAt: c.updatedAt.toISOString(),
+      })),
+      recentCriticalAlerts: recentCriticalAlerts.map(a => ({
+        id: a.id,
+        type: a.type,
+        severity: a.severity,
+        title: a.title,
+        dueDate: a.dueDate?.toISOString() ?? null,
+        multaEstimada: a.multaEstimada ? Number(a.multaEstimada) : null,
+        createdAt: a.createdAt.toISOString(),
+        workerId: a.worker.id,
+        workerName: `${a.worker.firstName} ${a.worker.lastName}`,
+      })),
       expiringContracts: expiringContracts.map(c => ({
         ...c,
         expiresAt: c.expiresAt?.toISOString(),
         daysLeft: c.expiresAt ? Math.ceil((c.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null,
       })),
+      // ── Cockpit v2 outputs ──
+      riskWorkers,
+      upcomingDeadlines,
+      activityHeatmap,
+      topRisk,
+      sectorRadar,
     })
   } catch (error) {
     console.error('Dashboard error:', error)

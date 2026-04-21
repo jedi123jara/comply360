@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getFeriadosForYear } from '@/lib/legal-engine/feriados-peru'
+import { PageHeader } from '@/components/comply360/editorial-title'
 
 // =============================================
 // Types
@@ -44,11 +45,11 @@ const CATEGORY_STYLES: Record<EventCategory, { bg: string; text: string; border:
     badge: 'bg-red-500/20 text-red-400 border-red-500/30',
   },
   cts: {
-    bg: 'bg-emerald-500/20',
-    text: 'text-emerald-400',
-    border: 'border-emerald-500/30',
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-600',
+    border: 'border-emerald-200',
     dot: 'bg-emerald-500',
-    badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    badge: 'bg-emerald-100 text-emerald-600 border-emerald-200',
   },
   gratificacion: {
     bg: 'bg-green-500/20',
@@ -59,10 +60,10 @@ const CATEGORY_STYLES: Record<EventCategory, { bg: string; text: string; border:
   },
   afp: {
     bg: 'bg-blue-500/20',
-    text: 'text-blue-400',
+    text: 'text-emerald-600',
     border: 'border-blue-500/30',
     dot: 'bg-blue-500',
-    badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    badge: 'bg-blue-500/20 text-emerald-600 border-blue-500/30',
   },
   tregistro: {
     bg: 'bg-purple-500/20',
@@ -245,6 +246,7 @@ export default function CalendarioPage() {
   const [loadingApi, setLoadingApi] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch pattern estándar; migrar a useApiQuery en refactor futuro.
     setLoadingApi(true)
     fetch(`/api/calendar?year=${currentYear}&month=${currentMonth}`)
       .then((r) => r.json())
@@ -347,7 +349,6 @@ export default function CalendarioPage() {
       .filter((e) => e.date >= todayStr)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(0, 5)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredEvents, todayStr])
 
   // Month events count
@@ -398,21 +399,15 @@ export default function CalendarioPage() {
     return d.getDay() === 0
   }
 
-  // ── Tooltip content for hovered date ────────────
-  const hoveredEvents = hoveredDate ? (eventsByDate.get(hoveredDate) || []) : []
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
-          <CalendarIcon className="w-7 h-7 text-amber-500" />
-          Calendario Laboral
-        </h1>
-        <p className="text-slate-400 mt-1">
-          Feriados nacionales, obligaciones laborales y fechas clave de RRHH.
-        </p>
-      </div>
+      {/* Header editorial (Emerald Light) */}
+      <PageHeader
+        eyebrow="Calendario laboral"
+        eyebrowIcon={<CalendarIcon className="w-3.5 h-3.5" />}
+        title="Tu <em>calendario fiscal y laboral</em> peruano completo."
+        subtitle="Feriados nacionales, vencimientos CTS/Gratificaciones, AFP, T-Registro, contratos y capacitaciones SST. Todas las fechas críticas en una vista."
+      />
 
       {/* Category filters */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -427,7 +422,7 @@ export default function CalendarioPage() {
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200',
                 isActive
                   ? CATEGORY_STYLES[cat].badge + ' border'
-                  : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:bg-slate-700/50'
+                  : 'bg-[color:var(--neutral-50)] text-[color:var(--text-tertiary)] border-[color:var(--border-default)] hover:bg-[color:var(--neutral-100)]'
               )}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -439,16 +434,16 @@ export default function CalendarioPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* ── Calendar Grid ─────────────────────── */}
-        <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-xl p-5">
+        <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-1.5">
               <button
                 onClick={prevMonth}
-                className="p-2 hover:bg-slate-700/60 rounded-xl transition-colors"
+                className="p-2 hover:bg-[color:var(--neutral-100)] rounded-xl transition-colors"
                 aria-label="Mes anterior"
               >
-                <ChevronLeft className="w-5 h-5 text-slate-400" />
+                <ChevronLeft className="w-5 h-5 text-[color:var(--text-tertiary)]" />
               </button>
               <button
                 onClick={goToToday}
@@ -458,17 +453,17 @@ export default function CalendarioPage() {
               </button>
               <button
                 onClick={nextMonth}
-                className="p-2 hover:bg-slate-700/60 rounded-xl transition-colors"
+                className="p-2 hover:bg-[color:var(--neutral-100)] rounded-xl transition-colors"
                 aria-label="Mes siguiente"
               >
-                <ChevronRight className="w-5 h-5 text-slate-400" />
+                <ChevronRight className="w-5 h-5 text-[color:var(--text-tertiary)]" />
               </button>
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-bold text-slate-100">
+              <h2 className="text-xl font-bold text-[color:var(--text-emerald-700)]">
                 {MONTHS_ES[currentMonth]} {currentYear}
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+              <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5 flex items-center gap-1.5">
                 {monthEventCount} evento{monthEventCount !== 1 ? 's' : ''} este mes
                 {loadingApi && (
                   <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Cargando eventos de la base de datos..." />
@@ -485,7 +480,7 @@ export default function CalendarioPage() {
                 key={d}
                 className={cn(
                   'text-center text-xs font-semibold py-2 rounded-lg',
-                  i >= 5 ? 'text-red-400/70' : 'text-slate-400'
+                  i >= 5 ? 'text-red-400/70' : 'text-[color:var(--text-tertiary)]'
                 )}
               >
                 {d}
@@ -516,20 +511,20 @@ export default function CalendarioPage() {
                     className={cn(
                       'relative w-full aspect-square flex flex-col items-center justify-start pt-2 rounded-xl text-sm transition-all duration-150',
                       // Base styles
-                      cell.inMonth ? 'text-slate-200' : 'text-slate-600',
+                      cell.inMonth ? 'text-[color:var(--text-emerald-700)]' : 'text-[color:var(--text-secondary)]',
                       // Weekend/Sunday
                       cell.inMonth && (sunday || dayOfWeek === 5) && 'text-red-400/70',
                       // Feriado background
                       cell.inMonth && hasFeriado && 'bg-red-500/10',
                       // CTS/Gratificacion background
-                      cell.inMonth && hasCTS && !hasFeriado && 'bg-emerald-500/10',
+                      cell.inMonth && hasCTS && !hasFeriado && 'bg-emerald-50',
                       // Today highlight
                       isToday && 'ring-2 ring-amber-500 ring-offset-1 ring-offset-slate-800',
                       // Selected
                       isSelected && 'bg-amber-500/20 ring-2 ring-amber-500',
                       // Hover
-                      !isSelected && cell.inMonth && 'hover:bg-slate-700/60',
-                      !cell.inMonth && 'hover:bg-slate-800/40',
+                      !isSelected && cell.inMonth && 'hover:bg-[color:var(--neutral-100)]',
+                      !cell.inMonth && 'hover:bg-[color:var(--neutral-50)]/40',
                     )}
                   >
                     <span
@@ -555,8 +550,8 @@ export default function CalendarioPage() {
 
                   {/* Tooltip on hover */}
                   {isHovered && dayEvents.length > 0 && cell.inMonth && (
-                    <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[200px] max-w-[260px] bg-slate-900 border border-slate-600 rounded-xl shadow-2xl p-3 pointer-events-none">
-                      <div className="text-xs font-semibold text-slate-300 mb-1.5">
+                    <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[200px] max-w-[260px] bg-white border border-[color:var(--border-default)] rounded-xl shadow-2xl p-3 pointer-events-none">
+                      <div className="text-xs font-semibold text-[color:var(--text-secondary)] mb-1.5">
                         {cell.day} {MONTHS_ES[currentMonth]}
                       </div>
                       <div className="space-y-1">
@@ -580,8 +575,8 @@ export default function CalendarioPage() {
 
           {/* Selected date detail */}
           {selectedDate && (
-            <div className="mt-5 border-t border-slate-700/50 pt-5">
-              <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+            <div className="mt-5 border-t border-[color:var(--border-default)] pt-5">
+              <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3 flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-amber-500" />
                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-PE', {
                   weekday: 'long',
@@ -591,7 +586,7 @@ export default function CalendarioPage() {
                 })}
               </h3>
               {selectedEvents.length === 0 ? (
-                <div className="flex flex-col items-center py-6 text-slate-500">
+                <div className="flex flex-col items-center py-6 text-[color:var(--text-tertiary)]">
                   <CalendarIcon className="w-8 h-8 mb-2 opacity-40" />
                   <p className="text-sm">Sin eventos para esta fecha</p>
                 </div>
@@ -618,9 +613,9 @@ export default function CalendarioPage() {
                               {CATEGORY_LABELS[e.category]}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 mt-1">{e.description}</p>
+                          <p className="text-xs text-[color:var(--text-tertiary)] mt-1">{e.description}</p>
                           {e.law && (
-                            <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                            <p className="text-[10px] text-[color:var(--text-tertiary)] mt-1 flex items-center gap-1">
                               <Shield className="w-3 h-3" />
                               {e.law}
                             </p>
@@ -638,13 +633,13 @@ export default function CalendarioPage() {
         {/* ── Sidebar ──────────────────────────── */}
         <div className="space-y-5">
           {/* Upcoming events */}
-          <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-xl p-5">
-            <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
+            <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-4 flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-500" />
               Próximos Eventos
             </h3>
             {upcomingEvents.length === 0 ? (
-              <div className="flex flex-col items-center py-6 text-slate-500">
+              <div className="flex flex-col items-center py-6 text-[color:var(--text-tertiary)]">
                 <CalendarIcon className="w-6 h-6 mb-2 opacity-40" />
                 <p className="text-xs">Sin eventos próximos</p>
               </div>
@@ -665,14 +660,14 @@ export default function CalendarioPage() {
                         setCurrentYear(d.getFullYear())
                         setSelectedDate(e.date)
                       }}
-                      className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-slate-700/40 hover:border-slate-600 hover:bg-slate-700/30 transition-all duration-200"
+                      className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-[color:var(--border-default)]/40 hover:border-[color:var(--border-default)] hover:bg-[color:var(--neutral-100)]/30 transition-all duration-200"
                     >
                       <div className={cn('p-1.5 rounded-lg', CATEGORY_STYLES[e.category].bg)}>
                         <Icon className={cn('w-4 h-4', CATEGORY_STYLES[e.category].text)} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-200 truncate">{e.title}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-sm font-medium text-[color:var(--text-emerald-700)] truncate">{e.title}</p>
+                        <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">
                           {eventDate.toLocaleDateString('es-PE', {
                             day: 'numeric',
                             month: 'short',
@@ -699,46 +694,46 @@ export default function CalendarioPage() {
           </div>
 
           {/* RRHH Key dates info card */}
-          <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-xl p-5">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-              <Info className="w-4 h-4 text-blue-400" />
+          <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
+            <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3 flex items-center gap-2">
+              <Info className="w-4 h-4 text-emerald-600" />
               Fechas Clave RRHH
             </h3>
             <div className="space-y-3 text-xs">
               <div className="flex items-start gap-2.5">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-slate-300">CTS</p>
-                  <p className="text-slate-500">15 May y 15 Nov</p>
+                  <p className="font-medium text-[color:var(--text-secondary)]">CTS</p>
+                  <p className="text-[color:var(--text-tertiary)]">15 May y 15 Nov</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-slate-300">Gratificaciones</p>
-                  <p className="text-slate-500">Primera quincena Jul y Dic</p>
+                  <p className="font-medium text-[color:var(--text-secondary)]">Gratificaciones</p>
+                  <p className="text-[color:var(--text-tertiary)]">Primera quincena Jul y Dic</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-slate-300">AFP/ONP</p>
-                  <p className="text-slate-500">Declaración mensual (día 13)</p>
+                  <p className="font-medium text-[color:var(--text-secondary)]">AFP/ONP</p>
+                  <p className="text-[color:var(--text-tertiary)]">Declaración mensual (día 13)</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-slate-300">T-Registro</p>
-                  <p className="text-slate-500">Dentro de 24h de cada cambio</p>
+                  <p className="font-medium text-[color:var(--text-secondary)]">T-Registro</p>
+                  <p className="text-[color:var(--text-tertiary)]">Dentro de 24h de cada cambio</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Legend */}
-          <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-xl p-5">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3">Leyenda</h3>
+          <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
+            <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3">Leyenda</h3>
             <div className="space-y-2.5">
               {(Object.keys(CATEGORY_LABELS) as EventCategory[]).map((cat) => {
                 const Icon = CATEGORY_ICONS[cat]
@@ -746,14 +741,14 @@ export default function CalendarioPage() {
                   <div key={cat} className="flex items-center gap-2.5">
                     <div className={cn('w-2.5 h-2.5 rounded-full', CATEGORY_STYLES[cat].dot)} />
                     <Icon className={cn('w-3.5 h-3.5', CATEGORY_STYLES[cat].text)} />
-                    <span className="text-xs text-slate-400">{CATEGORY_LABELS[cat]}</span>
+                    <span className="text-xs text-[color:var(--text-tertiary)]">{CATEGORY_LABELS[cat]}</span>
                   </div>
                 )
               })}
-              <div className="border-t border-slate-700/50 pt-2 mt-2">
+              <div className="border-t border-[color:var(--border-default)] pt-2 mt-2">
                 <div className="flex items-center gap-2.5">
                   <div className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-500 bg-transparent" />
-                  <span className="text-xs text-slate-400">Día actual</span>
+                  <span className="text-xs text-[color:var(--text-tertiary)]">Día actual</span>
                 </div>
               </div>
             </div>

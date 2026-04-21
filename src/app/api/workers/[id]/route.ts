@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuthParams, withRoleParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
+import { syncComplianceScore } from '@/lib/compliance/sync-score'
 
 // =============================================
 // GET /api/workers/[id] - Get worker detail
@@ -120,6 +121,9 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
   } catch (err) {
     console.error('[workers/PUT] generateWorkerAlerts failed', { workerId: worker.id, err })
   }
+
+  // Fire-and-forget compliance score recalculation
+  syncComplianceScore(orgId).catch(() => {})
 
   return NextResponse.json({ data: worker })
 })

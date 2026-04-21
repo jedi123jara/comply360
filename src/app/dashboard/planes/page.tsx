@@ -16,7 +16,9 @@ import {
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Modal } from '@/components/ui/modal'
+import { PageHeader } from '@/components/comply360/editorial-title'
+import { CulqiCheckoutModal } from '@/components/billing/culqi-checkout-modal'
+import { PLANS as PLANS_CANONICAL } from '@/lib/constants'
 
 // =============================================
 // Types
@@ -34,11 +36,6 @@ interface PlanDefinition {
   badge?: string
 }
 
-interface OrgPlanData {
-  plan: string
-  planExpiresAt: string | null
-}
-
 // =============================================
 // Config
 // =============================================
@@ -52,67 +49,51 @@ const IGV_RATE = 0.18
 // Plan definitions
 // =============================================
 
-const PLANS: PlanDefinition[] = [
-  {
-    key: 'STARTER',
-    name: 'Starter',
-    price: 99,
-    currency: 'S/',
-    description: 'Ideal para emprendedores y pequenas empresas',
+// Los precios + features vienen de `@/lib/constants.ts` PLANS (fuente canónica).
+// Acá solo mergemos UI metadata (icon, highlighted, badge, description corta).
+const PLAN_UI_META: Record<
+  'STARTER' | 'EMPRESA' | 'PRO' | 'ENTERPRISE',
+  { icon: React.ComponentType<{ className?: string }>; description: string; highlighted?: boolean; badge?: string }
+> = {
+  STARTER: {
     icon: Star,
-    features: [
-      'Hasta 10 contratos/mes',
-      'Calculadoras laborales basicas',
-      'Alertas normativas',
-      '1 usuario',
-      'Soporte por email',
-      'Generador de documentos basico',
-    ],
+    description: 'Gestor de planilla + calculadoras para MYPEs (hasta 20 trabajadores).',
   },
-  {
-    key: 'EMPRESA',
-    name: 'Empresa',
-    price: 249,
-    currency: 'S/',
-    description: 'Para empresas en crecimiento con equipos de RRHH',
+  EMPRESA: {
     icon: Building2,
     highlighted: true,
-    badge: 'Mas popular',
-    features: [
-      'Hasta 50 contratos/mes',
-      'Calculadoras laborales avanzadas',
-      'Alertas con impacto personalizado',
-      'Hasta 5 usuarios',
-      'Exportar a PDF y DOCX',
-      'Diagnostico de cumplimiento',
-      'Expedientes digitales',
-      'Calendario laboral',
-      'Soporte prioritario',
-    ],
+    badge: 'Más popular',
+    description: 'Compliance SUNAFIL completo para pequeñas empresas (hasta 100).',
   },
-  {
-    key: 'PRO',
-    name: 'Pro',
-    price: 499,
-    currency: 'S/',
-    description: 'Para corporaciones y estudios de abogados',
+  PRO: {
     icon: Rocket,
-    badge: 'Mas completo',
-    features: [
-      'Contratos ilimitados',
-      'IA: revision de riesgos contractuales',
-      'Alertas con analisis de impacto',
-      'Usuarios ilimitados',
-      'API access',
-      'Simulacro SUNAFIL completo',
-      'Canal de denuncias integrado',
-      'Capacitaciones e-learning',
-      'Asistente IA avanzado',
-      'Integraciones avanzadas',
-      'Soporte dedicado 24/7',
-    ],
+    badge: 'IA + Portal Worker',
+    description: 'IA + portal biométrico para medianas empresas (hasta 300).',
   },
-]
+  ENTERPRISE: {
+    icon: Crown,
+    badge: 'Contáctanos',
+    description: 'Trabajadores ilimitados + SLA + multi-cuenta contadores + API.',
+  },
+}
+
+const PLANS: PlanDefinition[] = (
+  ['STARTER', 'EMPRESA', 'PRO', 'ENTERPRISE'] as const
+).map((key) => {
+  const canonical = PLANS_CANONICAL[key]
+  const ui = PLAN_UI_META[key]
+  return {
+    key,
+    name: canonical.name,
+    price: canonical.price,
+    currency: 'S/',
+    description: ui.description,
+    icon: ui.icon,
+    features: [...canonical.features],
+    highlighted: ui.highlighted,
+    badge: ui.badge,
+  }
+})
 
 // =============================================
 // Feature comparison matrix
@@ -177,13 +158,22 @@ export default function PlanesPage() {
 
   function handleSelectPlan(plan: PlanDefinition) {
     if (plan.key === currentPlan) return
+    // ENTERPRISE es contact-sales: abrir WhatsApp directamente, no el modal Culqi
+    if (plan.key === 'ENTERPRISE') {
+      const msg = encodeURIComponent(
+        'Hola, quiero info del plan Enterprise de COMPLY360 (SLA + multi-cuenta + API).'
+      )
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank')
+      return
+    }
     setSelectedPlan(plan)
     setShowModal(true)
   }
 
   function getButtonText(planKey: string) {
     if (planKey === currentPlan) return 'Plan actual'
-    const planOrder = ['FREE', 'STARTER', 'EMPRESA', 'PRO']
+    if (planKey === 'ENTERPRISE') return 'Contactar ventas'
+    const planOrder = ['FREE', 'STARTER', 'EMPRESA', 'PRO', 'ENTERPRISE']
     const currentIdx = planOrder.indexOf(currentPlan)
     const targetIdx = planOrder.indexOf(planKey)
     if (targetIdx > currentIdx) return 'Mejorar plan'
@@ -205,30 +195,48 @@ export default function PlanesPage() {
 
   return (
     <div className="space-y-8">
-      {/* ---- Header ---- */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Planes y Precios</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Elige el plan que mejor se adapte a las necesidades de tu organizacion.
-          Todos los planes incluyen actualizaciones automaticas de normativa laboral peruana.
-        </p>
-      </div>
+      {/* ---- Header editorial ---- */}
+      <PageHeader
+        eyebrow="Planes y precios"
+        title="Elegí el plan que <em>protege tu planilla</em>."
+        subtitle="Todos los planes incluyen actualizaciones automáticas de normativa laboral peruana, calendario fiscal y motor de alertas. Pagos en soles procesados por Culqi."
+      />
 
       {/* ---- Current plan banner ---- */}
-      <Card className="border-primary/20 bg-primary/5">
-        <div className="flex items-center gap-4 px-6 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <Crown className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600">Tu plan actual</p>
-            <p className="text-lg font-bold text-white">
-              Plan {PLANS.find((p) => p.key === currentPlan)?.name || currentPlan}
-            </p>
-          </div>
-          <Badge variant="success">Activo</Badge>
+      <div
+        className="flex items-center gap-4 rounded-2xl px-6 py-4"
+        style={{
+          background: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
+          border: '0.5px solid var(--emerald-200, #a7f3d0)',
+        }}
+      >
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-xl flex-shrink-0"
+          style={{
+            background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
+            boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
+          }}
+        >
+          <Crown className="h-5 w-5 text-white" />
         </div>
-      </Card>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+            Tu plan actual
+          </p>
+          <p
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: 22,
+              color: 'var(--text-primary)',
+              lineHeight: 1,
+              marginTop: 2,
+            }}
+          >
+            Plan {PLANS.find((p) => p.key === currentPlan)?.name || currentPlan}
+          </p>
+        </div>
+        <Badge variant="success">Activo</Badge>
+      </div>
 
       {/* ---- Plan cards ---- */}
       <div className="grid gap-6 md:grid-cols-3">
@@ -266,7 +274,7 @@ export default function PlanesPage() {
                         ? 'bg-gold/10'
                         : isCurrentPlan
                           ? 'bg-primary/10'
-                          : 'bg-white/[0.04]'
+                          : 'bg-[color:var(--neutral-100)]'
                     }`}
                   >
                     <Icon
@@ -364,9 +372,9 @@ export default function PlanesPage() {
                 {FEATURE_COMPARISON.map((row, idx) => (
                   <tr
                     key={row.name}
-                    className={idx % 2 === 0 ? 'bg-white/[0.02]/50' : ''}
+                    className={idx % 2 === 0 ? 'bg-[color:var(--neutral-50)]/50' : ''}
                   >
-                    <td className="px-6 py-3 text-sm text-gray-300">{row.name}</td>
+                    <td className="px-6 py-3 text-sm text-[color:var(--text-secondary)]">{row.name}</td>
                     <td className="px-4 py-3 text-center">
                       <FeatureCell value={row.starter} />
                     </td>
@@ -436,97 +444,21 @@ export default function PlanesPage() {
         </div>
       </Card>
 
-      {/* ---- Payment Modal ---- */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={selectedPlan ? `Mejorar a Plan ${selectedPlan.name}` : 'Seleccionar plan'}
-        size="md"
-      >
-        {selectedPlan && (
-          <div className="space-y-6">
-            {/* Plan summary */}
-            <div className="rounded-xl bg-white/[0.02] p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Plan seleccionado</p>
-                  <p className="text-lg font-bold text-white">{selectedPlan.name}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-extrabold text-white">
-                    {selectedPlan.currency} {selectedPlan.price}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    /mes + IGV ({selectedPlan.currency} {(selectedPlan.price * IGV_RATE).toFixed(2)})
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Coming soon notice */}
-            <div className="rounded-xl border-2 border-dashed border-gold/30 bg-gold/5 p-6 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gold/10">
-                <CreditCard className="h-6 w-6 text-gold" />
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Proximamente disponible
-              </h3>
-              <p className="mt-2 text-sm text-gray-600">
-                La integracion de pagos en linea esta en fase final de pruebas.
-                Para activar tu plan ahora, contactanos directamente por WhatsApp
-                y te ayudaremos en menos de 5 minutos.
-              </p>
-
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
-                <Button
-                  variant="gold"
-                  onClick={() =>
-                    window.open(
-                      `https://wa.me/${WHATSAPP_NUMBER}?text=Hola%2C%20quiero%20activar%20el%20Plan%20${selectedPlan.name}%20de%20COMPLY360`,
-                      '_blank'
-                    )
-                  }
-                  icon={<MessageCircle className="h-4 w-4" />}
-                >
-                  Activar via WhatsApp
-                </Button>
-                <Button variant="secondary" onClick={() => setShowModal(false)}>
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-
-            {/* What's included */}
-            <div>
-              <p className="mb-2 text-sm font-semibold text-gray-300">
-                Incluye:
-              </p>
-              <ul className="space-y-1.5">
-                {selectedPlan.features.slice(0, 5).map((feature) => (
-                  <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
-                    <Check className="h-3.5 w-3.5 text-green-500" />
-                    {feature}
-                  </li>
-                ))}
-                {selectedPlan.features.length > 5 && (
-                  <li className="text-xs text-gray-400">
-                    + {selectedPlan.features.length - 5} funcionalidades mas
-                  </li>
-                )}
-              </ul>
-            </div>
-
-            {/* Security note */}
-            <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3">
-              <Shield className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
-              <p className="text-xs text-blue-700">
-                Los pagos son procesados de forma segura por Culqi, certificado PCI-DSS
-                nivel 1. No almacenamos datos de tarjetas en nuestros servidores.
-              </p>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* ---- Checkout Modal (Culqi real) ---- */}
+      {selectedPlan && (selectedPlan.key === 'STARTER' || selectedPlan.key === 'EMPRESA' || selectedPlan.key === 'PRO') ? (
+        <CulqiCheckoutModal
+          open={showModal}
+          onClose={() => setShowModal(false)}
+          plan={{
+            key: selectedPlan.key as 'STARTER' | 'EMPRESA' | 'PRO',
+            name: selectedPlan.name,
+            priceSoles: selectedPlan.price,
+            priceInCentimos: selectedPlan.price * 100,
+            features: selectedPlan.features,
+          }}
+          whatsappNumber={WHATSAPP_NUMBER}
+        />
+      ) : null}
     </div>
   )
 }
@@ -540,11 +472,11 @@ function FeatureCell({ value, highlight }: { value: string | boolean; highlight?
     return value ? (
       <Check className={`mx-auto h-4 w-4 ${highlight ? 'text-gold' : 'text-green-500'}`} />
     ) : (
-      <X className="mx-auto h-4 w-4 text-gray-300" />
+      <X className="mx-auto h-4 w-4 text-[color:var(--text-secondary)]" />
     )
   }
   return (
-    <span className={`text-sm font-medium ${highlight ? 'text-gold' : 'text-gray-300'}`}>
+    <span className={`text-sm font-medium ${highlight ? 'text-gold' : 'text-[color:var(--text-secondary)]'}`}>
       {value}
     </span>
   )

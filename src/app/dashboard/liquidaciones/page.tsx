@@ -3,27 +3,7 @@
 import { useState, useCallback, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Search,
-  FileText,
-  Download,
-  Calculator,
-  ChevronDown,
-  ChevronUp,
-  AlertTriangle,
-  Info,
-  Loader2,
-  User,
-  Calendar,
-  Banknote,
-  ArrowRight,
-  RefreshCw,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Scale,
-  Save,
-} from 'lucide-react'
+import { Search, FileText, Download, Calculator, ChevronDown, ChevronUp, AlertTriangle, Info, Loader2, User, Calendar, Banknote, ArrowRight, RefreshCw, CheckCircle2, XCircle, Scale, Save } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -122,11 +102,6 @@ function fmt(n: number) {
   return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function fmtDate(d: string) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })
-}
-
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function BreakdownRow({
@@ -154,13 +129,13 @@ function BreakdownRow({
       >
         <div className="flex items-center gap-3">
           {open ? (
-            <ChevronUp className="h-4 w-4 shrink-0 text-gray-400" />
+            <ChevronUp className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)]" />
           ) : (
-            <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
+            <ChevronDown className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)]" />
           )}
           <span className="text-sm font-medium text-white">{item.label}</span>
           {isZero && (
-            <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
+            <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-[color:var(--text-tertiary)]">
               No aplica
             </span>
           )}
@@ -168,7 +143,7 @@ function BreakdownRow({
         <span
           className={cn(
             'text-sm font-bold tabular-nums',
-            isZero ? 'text-gray-500' : 'text-gold',
+            isZero ? 'text-[color:var(--text-tertiary)]' : 'text-amber-500',
           )}
         >
           {fmt(item.amount)}
@@ -178,18 +153,18 @@ function BreakdownRow({
       {open && (
         <div className="border-t border-white/10 px-4 pb-4 pt-3 space-y-2">
           <div className="rounded bg-blue-950/50 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-400 mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 mb-1">
               Fórmula aplicada
             </p>
             <p className="font-mono text-xs text-blue-200">{item.formula}</p>
           </div>
           <div className="rounded bg-white/5 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)] mb-1">
               Detalle
             </p>
-            <p className="text-xs text-gray-300">{item.details}</p>
+            <p className="text-xs text-[color:var(--text-secondary)]">{item.details}</p>
           </div>
-          <p className="text-[10px] text-gray-500">
+          <p className="text-[10px] text-[color:var(--text-tertiary)]">
             <span className="font-semibold">Base legal:</span> {item.baseLegal}
           </p>
         </div>
@@ -208,12 +183,12 @@ function WarningBanner({ warning }: { warning: LiquidacionResult['warnings'][0] 
     riesgo: {
       bg: 'bg-amber-900/40 border-amber-500/40',
       icon: <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />,
-      text: 'text-amber-300',
+      text: 'text-amber-700',
     },
     info: {
       bg: 'bg-blue-900/40 border-blue-500/40',
-      icon: <Info className="h-4 w-4 text-blue-400 shrink-0" />,
-      text: 'text-blue-300',
+      icon: <Info className="h-4 w-4 text-emerald-600 shrink-0" />,
+      text: 'text-emerald-600',
     },
   }
   const s = styles[warning.type]
@@ -416,10 +391,10 @@ function LiquidacionesInner() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-gold" />
+            <Calculator className="h-6 w-6 text-amber-500" />
             Liquidación de Beneficios Sociales
           </h1>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
             Calcula automáticamente la liquidación completa de un trabajador al cese.
           </p>
         </div>
@@ -442,7 +417,7 @@ function LiquidacionesInner() {
       {/* Worker search */}
       <div className="relative">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--text-tertiary)]" />
           <input
             type="text"
             placeholder="Buscar trabajador por nombre o DNI…"
@@ -451,7 +426,7 @@ function LiquidacionesInner() {
             className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/20"
           />
           {searching && (
-            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[color:var(--text-tertiary)]" />
           )}
         </div>
 
@@ -465,14 +440,14 @@ function LiquidacionesInner() {
                 onClick={() => loadWorkerLiquidacion(w.id)}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
                   {(w.firstName?.[0] ?? '?').toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-white">
                     {displayWorkerName(w.firstName, w.lastName)}
                   </p>
-                  <p className="truncate text-xs text-gray-400">
+                  <p className="truncate text-xs text-[color:var(--text-tertiary)]">
                     DNI: {w.dni}
                     {w.position && ` · ${w.position}`}
                   </p>
@@ -482,12 +457,12 @@ function LiquidacionesInner() {
                     'rounded px-1.5 py-0.5 text-[10px] font-semibold',
                     w.status === 'ACTIVE'
                       ? 'bg-green-900/40 text-green-400'
-                      : 'bg-gray-700 text-gray-400',
+                      : 'bg-gray-700 text-[color:var(--text-tertiary)]',
                   )}
                 >
                   {w.status === 'ACTIVE' ? 'Activo' : 'Cesado'}
                 </span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-gray-500" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)]" />
               </button>
             ))}
           </div>
@@ -497,8 +472,8 @@ function LiquidacionesInner() {
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-gold" />
-          <p className="ml-3 text-gray-400">Cargando datos del trabajador…</p>
+          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+          <p className="ml-3 text-[color:var(--text-tertiary)]">Cargando datos del trabajador…</p>
         </div>
       )}
 
@@ -516,21 +491,21 @@ function LiquidacionesInner() {
           <h3 className="text-lg font-semibold text-white mb-2">
             Selecciona un trabajador
           </h3>
-          <p className="max-w-sm text-sm text-gray-400">
+          <p className="max-w-sm text-sm text-[color:var(--text-tertiary)]">
             Busca al trabajador cuya liquidación deseas calcular. Los datos se
             completarán automáticamente desde su legajo.
           </p>
           <div className="mt-6 grid grid-cols-3 gap-4 text-center">
             {[
-              { icon: <Banknote className="h-5 w-5 text-gold" />, label: 'CTS Trunca' },
-              { icon: <Calendar className="h-5 w-5 text-blue-400" />, label: 'Gratificación' },
+              { icon: <Banknote className="h-5 w-5 text-amber-500" />, label: 'CTS Trunca' },
+              { icon: <Calendar className="h-5 w-5 text-emerald-600" />, label: 'Gratificación' },
               { icon: <FileText className="h-5 w-5 text-green-400" />, label: 'Vacaciones' },
             ].map(item => (
               <div key={item.label} className="flex flex-col items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
                   {item.icon}
                 </div>
-                <span className="text-xs text-gray-500">{item.label}</span>
+                <span className="text-xs text-[color:var(--text-tertiary)]">{item.label}</span>
               </div>
             ))}
           </div>
@@ -545,7 +520,7 @@ function LiquidacionesInner() {
             {/* Worker card */}
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
                   {(selectedWorker.firstName?.[0] ?? '?').toUpperCase()}
                   {(selectedWorker.lastName?.[0] ?? '?').toUpperCase()}
                 </div>
@@ -553,31 +528,31 @@ function LiquidacionesInner() {
                   <p className="font-semibold text-white">
                     {displayWorkerName(selectedWorker.firstName, selectedWorker.lastName)}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-[color:var(--text-tertiary)]">
                     DNI: {selectedWorker.dni}
                     {selectedWorker.position && ` · ${selectedWorker.position}`}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-1 text-xs text-gray-400">
+              <div className="space-y-1 text-xs text-[color:var(--text-tertiary)]">
                 <div className="flex justify-between">
                   <span>Régimen</span>
-                  <span className="text-gray-300 text-right max-w-[55%]">
+                  <span className="text-[color:var(--text-secondary)] text-right max-w-[55%]">
                     {REGIMEN_LABEL[selectedWorker.regimenLaboral] ?? selectedWorker.regimenLaboral}
                   </span>
                 </div>
                 {selectedWorker.department && (
                   <div className="flex justify-between">
                     <span>Área</span>
-                    <span className="text-gray-300">{selectedWorker.department}</span>
+                    <span className="text-[color:var(--text-secondary)]">{selectedWorker.department}</span>
                   </div>
                 )}
               </div>
 
               {regimenNota && (
                 <div className="mt-3 rounded-lg bg-amber-900/30 border border-amber-500/30 px-3 py-2">
-                  <p className="text-[11px] text-amber-300">{regimenNota}</p>
+                  <p className="text-[11px] text-amber-700">{regimenNota}</p>
                 </div>
               )}
             </div>
@@ -585,7 +560,7 @@ function LiquidacionesInner() {
             {/* Editable form */}
             <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <User className="h-4 w-4 text-gold" />
+                <User className="h-4 w-4 text-amber-500" />
                 Datos de la Liquidación
               </h3>
 
@@ -674,21 +649,21 @@ function LiquidacionesInner() {
                 </FormField>
 
                 <div className="flex gap-4 pt-1">
-                  <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-[color:var(--text-tertiary)] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={input.asignacionFamiliar}
                       onChange={e => updateInput({ asignacionFamiliar: e.target.checked })}
-                      className="rounded border-white/20 bg-white/10 text-gold"
+                      className="rounded border-white/20 bg-white/10 text-amber-500"
                     />
                     Asignación Familiar
                   </label>
-                  <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-[color:var(--text-tertiary)] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={input.gratificacionesPendientes}
                       onChange={e => updateInput({ gratificacionesPendientes: e.target.checked })}
-                      className="rounded border-white/20 bg-white/10 text-gold"
+                      className="rounded border-white/20 bg-white/10 text-amber-500"
                     />
                     Gratificaciones Adeudadas
                   </label>
@@ -698,7 +673,7 @@ function LiquidacionesInner() {
                   type="button"
                   onClick={recalculate}
                   disabled={recalculating}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary/80 py-2.5 text-sm font-semibold text-white hover:bg-primary transition-colors disabled:opacity-60"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600/80 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60"
                 >
                   {recalculating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -717,13 +692,13 @@ function LiquidacionesInner() {
             {result && (
               <>
                 <div className="rounded-xl border border-gold/30 bg-gold/5 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gold/70 mb-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-500/70 mb-1">
                     Total Liquidación
                   </p>
-                  <p className="text-4xl font-bold text-gold tabular-nums">
+                  <p className="text-4xl font-bold text-amber-500 tabular-nums">
                     {fmt(result.totalBruto)}
                   </p>
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">
                     Monto bruto · sin retención de renta en liquidaciones laborales
                   </p>
                 </div>
@@ -740,7 +715,7 @@ function LiquidacionesInner() {
                       key={item.label}
                       className="rounded-xl border border-white/10 bg-white/5 p-3 text-center"
                     >
-                      <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+                      <p className="text-[10px] uppercase tracking-wider text-[color:var(--text-tertiary)] mb-1">
                         {item.label}
                       </p>
                       <p className={cn(
@@ -756,9 +731,9 @@ function LiquidacionesInner() {
                 {/* Breakdown detail */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <h3 className="mb-3 text-sm font-semibold text-white flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gold" />
+                    <FileText className="h-4 w-4 text-amber-500" />
                     Detalle por Concepto
-                    <span className="ml-auto text-[10px] text-gray-500">
+                    <span className="ml-auto text-[10px] text-[color:var(--text-tertiary)]">
                       Haz clic en cada concepto para ver la fórmula
                     </span>
                   </h3>
@@ -771,7 +746,7 @@ function LiquidacionesInner() {
                   {/* Total footer */}
                   <div className="mt-4 flex items-center justify-between rounded-lg bg-white/10 px-4 py-3">
                     <span className="text-sm font-bold text-white">TOTAL LIQUIDACIÓN</span>
-                    <span className="text-lg font-bold text-gold tabular-nums">
+                    <span className="text-lg font-bold text-amber-500 tabular-nums">
                       {fmt(result.totalBruto)}
                     </span>
                   </div>
@@ -792,7 +767,7 @@ function LiquidacionesInner() {
 
                 {/* Legal basis */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">
                     Base Legal Aplicada
                   </h3>
                   <div className="space-y-2">
@@ -800,10 +775,10 @@ function LiquidacionesInner() {
                       <div key={ref.norm} className="flex items-start gap-2">
                         <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500 mt-0.5" />
                         <div>
-                          <span className="text-xs font-semibold text-blue-400">
+                          <span className="text-xs font-semibold text-emerald-600">
                             {ref.norm} {ref.article}
                           </span>
-                          <span className="text-xs text-gray-400"> — {ref.description}</span>
+                          <span className="text-xs text-[color:var(--text-tertiary)]"> — {ref.description}</span>
                         </div>
                       </div>
                     ))}
@@ -850,8 +825,8 @@ function LiquidacionesInner() {
 
                   {selectedWorker?.status === 'TERMINATED' && (
                     <div className="flex items-center gap-2 rounded-lg bg-gray-800 border border-white/10 px-3 py-2">
-                      <XCircle className="h-4 w-4 text-gray-500 shrink-0" />
-                      <p className="text-xs text-gray-400">Este trabajador ya fue cesado.</p>
+                      <XCircle className="h-4 w-4 text-[color:var(--text-tertiary)] shrink-0" />
+                      <p className="text-xs text-[color:var(--text-tertiary)]">Este trabajador ya fue cesado.</p>
                     </div>
                   )}
 
@@ -859,7 +834,7 @@ function LiquidacionesInner() {
                   <button
                     onClick={downloadPDF}
                     disabled={pdfLoading}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-gold/30 bg-gold/10 py-3 text-sm font-semibold text-gold hover:bg-gold/20 transition-colors disabled:opacity-60"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-gold/30 bg-amber-50 py-3 text-sm font-semibold text-amber-500 hover:bg-gold/20 transition-colors disabled:opacity-60"
                   >
                     {pdfLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -892,7 +867,7 @@ function FormField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500">
+      <label className="block text-[11px] font-medium uppercase tracking-wider text-[color:var(--text-tertiary)]">
         {label}
       </label>
       {children}

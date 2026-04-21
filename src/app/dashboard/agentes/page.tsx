@@ -42,7 +42,7 @@ export default function AgentesPage() {
             <Link
               key={agent.slug}
               href={href}
-              className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-gold-500/60 hover:bg-slate-900"
+              className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-white p-5 transition hover:border-gold-500/60 hover:bg-white"
             >
               <div className="mb-3 flex items-start justify-between">
                 <div className="rounded-lg bg-gold-500/10 p-2.5">
@@ -65,7 +65,7 @@ export default function AgentesPage() {
         })}
       </div>
 
-      <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-6 text-center">
+      <div className="rounded-xl border border-dashed border-slate-700 bg-white/30 p-6 text-center">
         <p className="text-sm text-slate-400">
           Próximamente: Generador de descargos, Auditor de boletas, Monitor de riesgo proactivo.
         </p>

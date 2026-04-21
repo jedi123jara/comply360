@@ -2,6 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
+      "path": "/api/cron/morning-briefing",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/drip-emails",
+      "schedule": "0 11 * * *"
+    },
+    {
       "path": "/api/cron/daily-alerts",
       "schedule": "0 13 * * *"
     },
@@ -11,7 +19,11 @@
     },
     {
       "path": "/api/cron/norm-updates",
-      "schedule": "0 12 * * *"
+      "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/cron/founder-digest",
+      "schedule": "0 13 * * *"
     }
   ]
 }

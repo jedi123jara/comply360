@@ -285,7 +285,7 @@ function ComparisonBar({
       </div>
 
       {/* Stacked bars */}
-      <div className="relative h-3 w-full overflow-hidden rounded-full bg-white/[0.04] bg-white/[0.04]/50">
+      <div className="relative h-3 w-full overflow-hidden rounded-full bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)]/50">
         {/* Sector average marker */}
         <div
           className="absolute top-0 h-full w-0.5 bg-gray-400 z-10"
@@ -318,10 +318,15 @@ export default function BenchmarkSectorial({
     [companyScore, benchmark.average, benchmark.top25],
   )
 
-  // Simulated trend (positive bias for scores above average)
+  // Simulated trend (positive bias for scores above average).
+  // Se usa un pseudo-random determinístico basado en companyScore para que
+  // el valor sea estable entre renders (React 19 prohíbe Math.random durante render).
+  // TODO: reemplazar por delta real cuando haya histórico de ComplianceScore.
   const trendDelta = useMemo(() => {
     const base = companyScore >= benchmark.average ? 3 : -2
-    return base + Math.round(Math.random() * 4 - 2)
+    // Deterministic "noise" derived from companyScore (rango -2..+2)
+    const noise = ((companyScore * 31 + 7) % 5) - 2
+    return base + noise
   }, [companyScore, benchmark.average])
 
   const isImproving = trendDelta > 0
@@ -337,10 +342,14 @@ export default function BenchmarkSectorial({
       })
     }
 
-    return Object.entries(sectorAreas).map(([key, sectorVal]) => ({
+    return Object.entries(sectorAreas).map(([key, sectorVal], idx) => ({
       key,
       label: AREA_LABELS[key] ?? key,
-      company: companyAreas[key] ?? Math.round(companyScore * (0.8 + Math.random() * 0.4)),
+      // Fallback determinístico cuando no hay areaScores: se deriva del companyScore
+      // + índice del área (±20% alrededor del score global).
+      company:
+        companyAreas[key] ??
+        Math.round(companyScore * (0.8 + (((idx * 37) % 10) / 25))),
       sector: sectorVal,
     }))
   }, [benchmark.areas, areaScores, companyScore])
@@ -403,7 +412,7 @@ export default function BenchmarkSectorial({
               <span>50</span>
               <span>100</span>
             </div>
-            <div className="relative h-5 w-full overflow-hidden rounded-full bg-white/[0.04] bg-white/[0.04]/50">
+            <div className="relative h-5 w-full overflow-hidden rounded-full bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)]/50">
               {/* Sector average line */}
               <div
                 className="absolute top-0 z-20 h-full w-0.5 bg-gray-500"

@@ -1,0 +1,1208 @@
+'use client'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  ShieldAlert, UserCheck, Play, CheckCircle2, XCircle, MinusCircle,
+  Loader2, AlertTriangle, FileText, Shield, BarChart3, Target,
+  ChevronDown, ChevronUp, Clock, Bell, ClipboardList, Zap,
+  TrendingUp, TrendingDown, Minus, RotateCcw, BookOpen,
+  Building2, Users, CreditCard, HeartPulse, CalendarDays,
+  CheckSquare, Square, Info, ArrowRight, X, Download,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
+
+type TipoInspeccion = 'PROGRAMADA' | 'INOPINADA' | 'SEGUIMIENTO'
+type ViewMode = 'home' | 'simulator' | 'checklist'
+
+interface ChecklistItem {
+  id: string
+  label: string
+  baseLegal?: string
+  note?: string
+}
+
+interface ChecklistSection {
+  id: string
+  title: string
+  icon: React.ElementType
+  color: string
+  items: ChecklistItem[]
+}
+
+interface SimulacroHistorial {
+  id: string
+  fecha: string
+  tipo: TipoInspeccion
+  score: number
+  multaEstimada: number
+  marcados: number
+  total: number
+}
+
+// Legacy simulator types (kept for API compatibility)
+type InspeccionTipo = 'PREVENTIVA' | 'POR_DENUNCIA' | 'PROGRAMA_SECTORIAL'
+type Phase = 'config' | 'inspeccion' | 'resultado'
+interface Solicitud {
+  id: string; paso: number; mensaje: string; documentoRequerido: string
+  documentoLabel: string; baseLegal: string; gravedad: string; multaUIT: number; categoria: string
+}
+interface Hallazgo {
+  solicitudId: string; estado: 'CUMPLE' | 'PARCIAL' | 'NO_CUMPLE' | 'NO_APLICA'
+  mensaje: string; documentoLabel: string; baseLegal: string; gravedad: string; multaUIT: number; multaPEN: number
+}
+interface Resultado {
+  diagnosticId: string; tipo: string; totalSolicitudes: number; cumple: number; parcial: number
+  noCumple: number; noAplica: number; hallazgos: Hallazgo[]; multaTotal: number
+  multaConSubsanacion: number; multaConSubsanacionDurante: number; scoreSimulacro: number
+  infraccionesLeves: number; infraccionesGraves: number; infraccionesMuyGraves: number
+}
+interface ChatMessage { role: 'inspector' | 'sistema'; text: string; hallazgo?: Hallazgo }
+
+// ─────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────
+
+const UIT = 5500
+
+const TIPOS_INSPECCION: Record<TipoInspeccion, {
+  label: string; desc: string; icon: React.ElementType
+  badge: string; color: string; notificacion: string
+}> = {
+  PROGRAMADA: {
+    label: 'Inspección Programada',
+    desc: 'Notificación previa 5 días (más común)',
+    icon: Clock,
+    badge: 'Más común',
+    color: 'blue',
+    notificacion: 'Recibirás notificación 5 días antes. Tiempo suficiente para preparar toda la documentación.',
+  },
+  INOPINADA: {
+    label: 'Inspección Inopinada',
+    desc: 'Sin previo aviso (por denuncia)',
+    icon: Zap,
+    badge: 'Alta urgencia',
+    color: 'red',
+    notificacion: 'Sin previo aviso. El inspector puede llegar en cualquier momento. Debes estar siempre preparado.',
+  },
+  SEGUIMIENTO: {
+    label: 'Inspección de Seguimiento',
+    desc: 'Verificación de corrección de infracciones',
+    icon: ClipboardList,
+    badge: 'Post-infracción',
+    color: 'amber',
+    notificacion: 'Verifica que hayas subsanado todas las infracciones detectadas en la inspección anterior.',
+  },
+}
+
+const PASOS_INSPECCION = [
+  {
+    paso: 1, titulo: 'Recepción del inspector',
+    desc: 'Presentar documentos de la empresa (RUC, vigencia de poder, licencia de funcionamiento)',
+    icon: Building2,
+  },
+  {
+    paso: 2, titulo: 'Verificación de trabajadores',
+    desc: 'Registro en T-REGISTRO, contratos de trabajo, DNI de trabajadores',
+    icon: Users,
+  },
+  {
+    paso: 3, titulo: 'Revisión de contratos',
+    desc: 'Tipos de contratos, vigencia, firmas, registro ante el MTPE',
+    icon: FileText,
+  },
+  {
+    paso: 4, titulo: 'Control de planillas',
+    desc: 'Sueldos ≥ RMV (S/ 1,130), descuentos, aportes AFP/ONP, EsSalud',
+    icon: CreditCard,
+  },
+  {
+    paso: 5, titulo: 'Verificación SST',
+    desc: 'IPERC, políticas, capacitaciones Ley 29783, exámenes médicos',
+    icon: HeartPulse,
+  },
+  {
+    paso: 6, titulo: 'Vacaciones y CTS',
+    desc: 'Registros de vacaciones, constancias de depósito CTS semestral',
+    icon: CalendarDays,
+  },
+  {
+    paso: 7, titulo: 'Acta de inspección',
+    desc: 'Infracciones detectadas, plazos de subsanación, multas estimadas',
+    icon: ClipboardList,
+  },
+]
+
+const CHECKLIST_SECTIONS: ChecklistSection[] = [
+  {
+    id: 'docs',
+    title: 'Documentos Obligatorios',
+    icon: FileText,
+    color: 'blue',
+    items: [
+      { id: 'planilla', label: 'Libro de planillas o planilla electrónica (PLAME)', baseLegal: 'D.S. 015-2010-TR' },
+      { id: 'rit', label: 'Reglamento Interno de Trabajo (obligatorio >100 trabajadores)', baseLegal: 'D.S. 039-91-TR, Art. 2', note: '>100 trabajadores' },
+      { id: 'contratos', label: 'Contratos de trabajo registrados ante el MTPE', baseLegal: 'D.Leg. 728, Art. 4' },
+      { id: 'boletas', label: 'Boletas de pago firmadas (últimos 3 meses)', baseLegal: 'D.S. 001-98-TR, Art. 18-19' },
+      { id: 'cts', label: 'Constancias de depósito CTS (último semestre)', baseLegal: 'D.S. 001-97-TR, Art. 21-22' },
+      { id: 'gratificaciones', label: 'Constancias de pago de gratificaciones (julio/diciembre)', baseLegal: 'Ley 27735, Art. 2-3' },
+      { id: 'asistencia', label: 'Registros de asistencia de los últimos 3 meses', baseLegal: 'D.S. 004-2006-TR, Art. 1' },
+    ],
+  },
+  {
+    id: 'sst',
+    title: 'Seguridad y Salud en el Trabajo (Ley 29783)',
+    icon: Shield,
+    color: 'green',
+    items: [
+      { id: 'politica_sst', label: 'Política de SST firmada y exhibida por gerencia', baseLegal: 'Ley 29783, Art. 22' },
+      { id: 'iperc', label: 'Matriz IPERC actualizada (Identificación de Peligros y Riesgos)', baseLegal: 'Ley 29783, Art. 57; R.M. 050-2013-TR' },
+      { id: 'plan_sst', label: 'Plan Anual de SST aprobado por Comité/Supervisor', baseLegal: 'Ley 29783, Art. 38' },
+      { id: 'capacitaciones_sst', label: 'Registro de capacitaciones SST (mínimo 4 al año con firmas)', baseLegal: 'Ley 29783, Art. 35' },
+      { id: 'accidentes', label: 'Registro de accidentes e incidentes peligrosos', baseLegal: 'Ley 29783, Art. 28; R.M. 050-2013-TR' },
+      { id: 'examenes_medicos', label: 'Exámenes médicos ocupacionales vigentes', baseLegal: 'Ley 29783, Art. 49-d' },
+      { id: 'epp', label: 'Registro de entrega de EPP firmado por trabajadores', baseLegal: 'Ley 29783, Art. 60' },
+      { id: 'mapa_riesgos', label: 'Mapa de Riesgos exhibido en lugar visible', baseLegal: 'D.S. 005-2012-TR, Art. 35-e' },
+    ],
+  },
+  {
+    id: 'planillas',
+    title: 'Planillas y Remuneraciones',
+    icon: CreditCard,
+    color: 'purple',
+    items: [
+      { id: 'rmv', label: 'Sueldos ≥ RMV vigente (S/ 1,130)', baseLegal: 'D.S. 015-2022-TR', note: 'Vigente desde mayo 2022' },
+      { id: 'afp_onp', label: 'AFP/ONP declarados y pagados al día', baseLegal: 'D.S. 054-97-EF' },
+      { id: 'essalud', label: 'EsSalud al día (9% remuneración bruta)', baseLegal: 'Ley 26790, Art. 6' },
+      { id: 'horas_extra', label: 'Horas extras autorizadas y pagadas con sobretasa', baseLegal: 'D.Leg. 854, Art. 10' },
+      { id: 'vacaciones_reg', label: 'Registro de vacaciones sin periodos acumulados >1 año', baseLegal: 'D.Leg. 713, Art. 10-14' },
+      { id: 'vida_ley', label: 'Póliza de seguro Vida Ley (trabajadores >4 años)', baseLegal: 'D.Leg. 688, Art. 1' },
+    ],
+  },
+]
+
+const API_TIPO_MAP: Record<TipoInspeccion, InspeccionTipo> = {
+  PROGRAMADA: 'PREVENTIVA',
+  INOPINADA: 'POR_DENUNCIA',
+  SEGUIMIENTO: 'PROGRAMA_SECTORIAL',
+}
+
+// ─────────────────────────────────────────────
+// Helper: score label & color
+// ─────────────────────────────────────────────
+function getScoreLabel(score: number): { label: string; color: string; bg: string } {
+  if (score >= 85) return { label: 'Listo para inspección', color: 'text-green-400', bg: 'bg-green-900/40' }
+  if (score >= 60) return { label: 'Necesita preparación', color: 'text-amber-400', bg: 'bg-amber-900/40' }
+  return { label: 'Alto riesgo de multa', color: 'text-red-400', bg: 'bg-red-900/40' }
+}
+
+function calcMultaEstimada(uncheckedItems: number): number {
+  // Rough estimation: average fine per unchecked item at 1 UIT, 1 worker factor
+  const avgUIT = 1.2
+  return Math.round(uncheckedItems * avgUIT * UIT)
+}
+
+// ─────────────────────────────────────────────
+// LocalStorage keys
+// ─────────────────────────────────────────────
+const LS_CHECKS = 'sunafil_checklist_v2'
+const LS_HISTORY = 'sunafil_historial_v2'
+
+// ─────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────
+export default function SimulacroPage() {
+  const router = useRouter()
+
+  // View mode
+  const [view, setView] = useState<ViewMode>('home')
+
+  // Selected inspection type
+  const [tipoSelected, setTipoSelected] = useState<TipoInspeccion>('PROGRAMADA')
+
+  // Active stepper step (visual only)
+  const [activeStep, setActiveStep] = useState<number | null>(null)
+
+  // Checklist state: map of item id -> checked boolean
+  const [checks, setChecks] = useState<Record<string, boolean>>({})
+
+  // Expanded accordion sections
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['docs']))
+
+  // Historial
+  const [historial, setHistorial] = useState<SimulacroHistorial[]>([])
+
+  // Org context
+  const [orgName, setOrgName] = useState<string>('')
+  const [orgRuc, setOrgRuc] = useState<string>('')
+  const [workerCount, setWorkerCount] = useState<number>(0)
+
+  // Simulator (legacy chat-based)
+  const [simPhase, setSimPhase] = useState<Phase>('config')
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [loading, setLoading] = useState(false)
+  const [simError, setSimError] = useState<string | null>(null)
+  const [running, setRunning] = useState(false)
+  const [resultado, setResultado] = useState<Resultado | null>(null)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [downloadingActa, setDownloadingActa] = useState(false)
+
+  const handleDescargarActa = async () => {
+    if (!resultado?.diagnosticId) return
+    setDownloadingActa(true)
+    try {
+      // Try server-side PDF first (real binary PDF download)
+      const pdfRes = await fetch('/api/simulacro/acta/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          diagnosticId: resultado.diagnosticId,
+          orgName: orgName || 'Mi Empresa',
+          ruc: orgRuc,
+        }),
+      })
+      if (pdfRes.ok && pdfRes.headers.get('Content-Type')?.includes('pdf')) {
+        const blob = await pdfRes.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `Acta_Simulacro_SUNAFIL_${resultado.scoreSimulacro}pts.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      } else {
+        // Fallback: HTML print method via the original acta endpoint
+        const res = await fetch('/api/simulacro/acta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            diagnosticId: resultado.diagnosticId,
+            orgName: 'Mi Empresa',
+            ruc: orgRuc,
+          }),
+        })
+        if (!res.ok) throw new Error('Error generando acta')
+        const { html } = await res.json() as { html: string }
+        const win = window.open('', '_blank')
+        if (win) {
+          win.document.write(html)
+          win.document.close()
+          setTimeout(() => { win.print() }, 600)
+        }
+      }
+    } catch (err) {
+      console.error('Acta download error:', err)
+    } finally {
+      setDownloadingActa(false)
+    }
+  }
+  const chatRef = useRef<HTMLDivElement>(null)
+
+  // ── Load from localStorage ──
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LS_CHECKS)
+      if (saved) setChecks(JSON.parse(saved))
+    } catch {}
+    try {
+      const savedH = localStorage.getItem(LS_HISTORY)
+      if (savedH) setHistorial(JSON.parse(savedH))
+    } catch {}
+  }, [])
+
+  // ── Fetch org name, RUC, and worker data to auto-populate checklist ──
+  useEffect(() => {
+    // Org profile
+    fetch('/api/org/profile')
+      .then(r => r.json())
+      .then(d => {
+        const org = d.data ?? d
+        if (org?.razonSocial || org?.name) setOrgName(org.razonSocial || org.name)
+        if (org?.ruc) setOrgRuc(org.ruc)
+      })
+      .catch(() => {})
+
+    // Worker count + document types for auto-check
+    Promise.all([
+      fetch('/api/workers?limit=1').then(r => r.json()),
+      fetch('/api/dashboard').then(r => r.json()).catch(() => null),
+    ]).then(([workersData, dashData]) => {
+      const total = workersData?.pagination?.total ?? 0
+      setWorkerCount(total)
+
+      // Auto-check items based on dashboard/compliance data
+      if (dashData?.data) {
+        const d = dashData.data
+        setChecks(prev => {
+          const auto: Record<string, boolean> = { ...prev }
+          // If workers exist and have contracts, mark contract items
+          if (total > 0 && (d.contractsActive ?? 0) > 0) auto['contratos'] = true
+          // If legajo score > 60%, mark basic doc items
+          if ((d.avgLegajoScore ?? 0) > 60) {
+            auto['planilla'] = true
+            auto['boletas'] = true
+            auto['asistencia'] = true
+          }
+          return auto
+        })
+      }
+    }).catch(() => {})
+  }, [])
+
+  // ── Persist checks ──
+  useEffect(() => {
+    try { localStorage.setItem(LS_CHECKS, JSON.stringify(checks)) } catch {}
+  }, [checks])
+
+  // ── Auto-scroll chat ──
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
+  }, [chatMessages])
+
+  // ─── Computed values ───────────────────────
+  const allItems = CHECKLIST_SECTIONS.flatMap(s => s.items)
+  const totalItems = allItems.length
+  const checkedCount = allItems.filter(i => checks[i.id]).length
+  const score = totalItems > 0 ? Math.round((checkedCount / totalItems) * 100) : 0
+  const multaEstimada = calcMultaEstimada(totalItems - checkedCount)
+  const scoreInfo = getScoreLabel(score)
+
+  // ─── Handlers ─────────────────────────────
+  const toggleCheck = useCallback((id: string) => {
+    setChecks(prev => ({ ...prev, [id]: !prev[id] }))
+  }, [])
+
+  const toggleSection = useCallback((id: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const saveSimulacroToHistory = useCallback(() => {
+    const entry: SimulacroHistorial = {
+      id: Date.now().toString(),
+      fecha: new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }),
+      tipo: tipoSelected,
+      score,
+      multaEstimada,
+      marcados: checkedCount,
+      total: totalItems,
+    }
+    const updated = [entry, ...historial].slice(0, 10)
+    setHistorial(updated)
+    try { localStorage.setItem(LS_HISTORY, JSON.stringify(updated)) } catch {}
+  }, [score, multaEstimada, checkedCount, totalItems, historial, tipoSelected])
+
+  // ─── Legacy simulator ─────────────────────
+  async function startSimulator() {
+    setLoading(true)
+    const apiTipo = API_TIPO_MAP[tipoSelected]
+    try {
+      const res = await fetch(`/api/simulacro?tipo=${apiTipo}`)
+      const data = await res.json()
+      setSolicitudes(data.solicitudes || [])
+      setChatMessages([{
+        role: 'inspector',
+        text: `Buenos días. Soy el Inspector de SUNAFIL asignado a esta visita ${tipoSelected === 'PROGRAMADA' ? 'programada' : tipoSelected === 'INOPINADA' ? 'inopinada' : 'de seguimiento'}. Vamos a proceder con la revisión de documentación laboral de su empresa.`,
+      }])
+      setSimPhase('inspeccion')
+      setView('simulator')
+    } catch {
+      setSimError('Error al iniciar el simulacro. Verifique su conexión e intente nuevamente.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function runFullSimulacro() {
+    setRunning(true)
+    const msgs: ChatMessage[] = [...chatMessages]
+    for (let i = 0; i < solicitudes.length; i++) {
+      const s = solicitudes[i]
+      msgs.push({ role: 'inspector', text: s.mensaje })
+      setChatMessages([...msgs])
+      await new Promise(r => setTimeout(r, 250))
+    }
+    const apiTipo = API_TIPO_MAP[tipoSelected]
+    try {
+      const res = await fetch('/api/simulacro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: apiTipo }),
+      })
+      const data = await res.json()
+      setResultado(data)
+      const finalMsgs = [...msgs]
+      for (const h of data.hallazgos as Hallazgo[]) {
+        finalMsgs.push({ role: 'sistema', text: h.mensaje, hallazgo: h })
+      }
+      finalMsgs.push({
+        role: 'inspector',
+        text: `Hemos concluido la revisión. Su score de simulacro es ${data.scoreSimulacro}/100. La multa potencial estimada asciende a S/ ${data.multaTotal.toLocaleString()}. ${data.scoreSimulacro >= 80 ? 'Su empresa muestra un buen nivel de cumplimiento.' : data.scoreSimulacro >= 60 ? 'Tiene deficiencias que deben corregirse.' : 'Su empresa presenta riesgos significativos. Le recomiendo subsanar las observaciones de manera inmediata.'}`,
+      })
+      setChatMessages(finalMsgs)
+      setSimPhase('resultado')
+    } catch {
+      msgs.push({ role: 'sistema', text: 'Error al procesar el simulacro. Intente nuevamente.' })
+      setChatMessages([...msgs])
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // HOME VIEW
+  // ─────────────────────────────────────────────
+  if (view === 'home') {
+    return (
+      <div className="space-y-8 pb-10">
+
+        {/* Error banner — replaces native alert() */}
+        {simError && (
+          <div className="flex items-center gap-3 rounded-xl border border-red-800 bg-red-900/20 px-4 py-3">
+            <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
+            <p className="text-sm text-red-300 flex-1">{simError}</p>
+            <button onClick={() => setSimError(null)} aria-label="Cerrar error" className="ml-auto p-1 rounded hover:bg-red-800/50">
+              <X className="h-4 w-4 text-red-400" />
+            </button>
+          </div>
+        )}
+
+        {/* ── Hero ── */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-700 via-red-600 to-orange-500 p-8 text-white shadow-xl">
+          <div className="absolute right-0 top-0 h-64 w-64 opacity-10">
+            <Shield className="h-full w-full" />
+          </div>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldAlert className="h-6 w-6" />
+              <span className="text-sm font-semibold uppercase tracking-wider opacity-90">SUNAFIL</span>
+            </div>
+            <h1 className="text-3xl font-extrabold leading-tight mb-2">
+              Simulacro de Inspección SUNAFIL
+            </h1>
+            <p className="text-red-100 max-w-xl text-base leading-relaxed">
+              Prepárate para una inspección real. Nuestro simulador replica exactamente el proceso de fiscalización SUNAFIL según el protocolo R.M. 199-2016-TR.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={() => setView('checklist')}
+                className="flex items-center gap-2 rounded-xl bg-[#141824] px-5 py-2.5 text-sm font-bold text-red-700 shadow hover:bg-red-50 transition-colors"
+              >
+                <CheckSquare className="h-4 w-4" /> Checklist Interactivo
+              </button>
+              <button
+                onClick={() => { setSimPhase('config'); setView('simulator') }}
+                className="flex items-center gap-2 rounded-xl bg-red-800/60 border border-red-400/40 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-800/80 transition-colors"
+              >
+                <Play className="h-4 w-4" /> Simulacro con Inspector Virtual
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Score rápido (if checks loaded) ── */}
+        {checkedCount > 0 && (
+          <div className={cn('flex items-center gap-4 rounded-xl border p-4', scoreInfo.bg)}>
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#141824]/80 bg-[#141824] shadow">
+              <span className={cn('text-xl font-extrabold', scoreInfo.color)}>{score}%</span>
+            </div>
+            <div className="flex-1">
+              <p className={cn('font-bold text-sm', scoreInfo.color)}>{scoreInfo.label}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {checkedCount}/{totalItems} ítems completados · Multa estimada: S/ {multaEstimada.toLocaleString()}
+              </p>
+            </div>
+            <button
+              onClick={() => setView('checklist')}
+              className="shrink-0 text-xs font-medium text-gray-400 hover:underline flex items-center gap-1"
+            >
+              Ver checklist <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
+        {/* ── Tipos de Inspección ── */}
+        <div>
+          <h2 className="text-lg font-bold text-white mb-1">Tipos de inspección</h2>
+          <p className="text-sm text-gray-400 mb-4">Selecciona el tipo de inspección para el simulacro</p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {(Object.entries(TIPOS_INSPECCION) as [TipoInspeccion, typeof TIPOS_INSPECCION.PROGRAMADA][]).map(([key, cfg]) => {
+              const Icon = cfg.icon
+              const selected = tipoSelected === key
+              const COLOR_CARD: Record<string, { border: string; bg: string; icon: string; badge: string }> = {
+                blue: { border: 'border-blue-500', bg: 'bg-blue-900/20', icon: 'text-blue-600', badge: 'bg-blue-100 text-blue-700 bg-blue-900/50 text-blue-300' },
+                red: { border: 'border-red-500', bg: 'bg-red-900/20', icon: 'text-red-600', badge: 'bg-red-100 text-red-700 bg-red-900/50 text-red-300' },
+                amber: { border: 'border-amber-500', bg: 'bg-amber-900/20', icon: 'text-amber-600', badge: 'bg-amber-100 text-amber-700 bg-amber-900/50 text-amber-300' },
+              }
+              const colorMap = COLOR_CARD[cfg.color] ?? COLOR_CARD['blue']
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => setTipoSelected(key)}
+                  className={cn(
+                    'flex flex-col rounded-xl border-2 p-5 text-left transition-all',
+                    selected
+                      ? `${colorMap.border} ${colorMap.bg} shadow-md`
+                      : 'border-white/[0.08] hover:border-white/10 hover:border-slate-600'
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <Icon className={cn('h-6 w-6', selected ? colorMap.icon : 'text-slate-500')} />
+                    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', selected ? colorMap.badge : 'bg-white/[0.04] text-gray-500 bg-white/[0.04] text-gray-400')}>
+                      {cfg.badge}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white">{cfg.label}</h3>
+                  <p className="mt-1 text-xs text-gray-400">{cfg.desc}</p>
+                  {selected && (
+                    <p className="mt-3 text-xs text-slate-300 bg-[#141824]/60 bg-[#141824]/60 rounded-lg p-2 border border-white/[0.08]">
+                      <Bell className="inline h-3 w-3 mr-1" />{cfg.notificacion}
+                    </p>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── Proceso de inspección (stepper) ── */}
+        <div>
+          <h2 className="text-lg font-bold text-white mb-1">Proceso de inspección SUNAFIL</h2>
+          <p className="text-sm text-gray-400 mb-4">7 pasos que sigue un inspector real durante la visita</p>
+          <div className="relative">
+            {PASOS_INSPECCION.map((paso, idx) => {
+              const Icon = paso.icon
+              const isActive = activeStep === idx
+              const isPast = activeStep !== null && idx < activeStep
+              return (
+                <button
+                  key={paso.paso}
+                  onClick={() => setActiveStep(isActive ? null : idx)}
+                  className="w-full text-left"
+                >
+                  <div className={cn(
+                    'flex gap-4 p-4 rounded-xl mb-2 transition-all border',
+                    isActive
+                      ? 'bg-red-900/20 border-red-800 shadow'
+                      : isPast
+                      ? 'bg-green-900/10 border-green-900'
+                      : 'bg-[#141824] border-white/[0.08] hover:bg-white/[0.02] hover:bg-slate-750'
+                  )}>
+                    {/* Step number */}
+                    <div className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold',
+                      isActive ? 'bg-red-600 text-white' : isPast ? 'bg-green-500 text-white' : 'bg-white/[0.04] text-gray-400'
+                    )}>
+                      {isPast ? <CheckCircle2 className="h-5 w-5" /> : paso.paso}
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-red-600' : 'text-slate-500')} />
+                        <p className={cn('font-semibold text-sm', isActive ? 'text-red-400' : 'text-white')}>
+                          Paso {paso.paso}: {paso.titulo}
+                        </p>
+                      </div>
+                      <p className="mt-0.5 text-xs text-gray-400">{paso.desc}</p>
+                    </div>
+                    {/* Arrow */}
+                    <div className="shrink-0 text-gray-400">
+                      {isActive ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          {activeStep !== null && (
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setActiveStep(prev => prev !== null && prev > 0 ? prev - 1 : null)}
+                disabled={activeStep === 0}
+                className="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 disabled:opacity-40 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+              >
+                ← Anterior
+              </button>
+              <button
+                onClick={() => setActiveStep(prev => prev !== null && prev < PASOS_INSPECCION.length - 1 ? prev + 1 : null)}
+                disabled={activeStep === PASOS_INSPECCION.length - 1}
+                className="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 disabled:opacity-40 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Historial ── */}
+        {historial.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold text-white mb-4">Historial de simulacros</h2>
+            <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-white/[0.02] bg-[#141824] text-left">
+                    <th className="px-4 py-3 font-semibold text-slate-300">Fecha</th>
+                    <th className="px-4 py-3 font-semibold text-slate-300">Tipo</th>
+                    <th className="px-4 py-3 font-semibold text-slate-300">Score</th>
+                    <th className="px-4 py-3 font-semibold text-slate-300">Ítems</th>
+                    <th className="px-4 py-3 font-semibold text-slate-300">Multa estimada</th>
+                    <th className="px-4 py-3 font-semibold text-slate-300">Tendencia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 divide-slate-700">
+                  {historial.map((h, idx) => {
+                    const prev = historial[idx + 1]
+                    const trend = prev ? (h.score > prev.score ? 'up' : h.score < prev.score ? 'down' : 'flat') : 'flat'
+                    const info = getScoreLabel(h.score)
+                    return (
+                      <tr key={h.id} className="bg-white/50 hover:bg-white/[0.02] hover:bg-slate-750 transition-colors">
+                        <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{h.fecha}</td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-medium text-gray-400">
+                            {TIPOS_INSPECCION[h.tipo]?.label ?? h.tipo}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold', info.bg, info.color)}>
+                            {h.score}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-400">
+                          {h.marcados}/{h.total}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-300">
+                          S/ {h.multaEstimada.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          {trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                          {trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
+                          {trend === 'flat' && <Minus className="h-4 w-4 text-gray-400" />}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── CTA ── */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-amber-800 bg-amber-900/20 p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-300 text-sm">¿Sabías que...?</p>
+                <p className="mt-1 text-xs text-amber-400">
+                  Las multas SUNAFIL van de 0.23 a 2.63 UIT por infracción. Con la UIT en S/ 5,500 y 10 trabajadores, una sola infracción muy grave puede costar hasta S/ 144,650.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-blue-800 bg-blue-900/20 p-5">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-blue-300 text-sm">Subsanación voluntaria</p>
+                <p className="mt-1 text-xs text-blue-400">
+                  Si subsanas ANTES de la inspección, el descuento es del 90%. Si lo haces DURANTE la inspección, el descuento es del 70%. ¡Actúa hoy!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────
+  // CHECKLIST VIEW
+  // ─────────────────────────────────────────────
+  if (view === 'checklist') {
+    const uncheckedItems = allItems.filter(i => !checks[i.id])
+    const recommendations = uncheckedItems.slice(0, 5)
+
+    return (
+      <div className="space-y-6 pb-10">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setView('home')}
+              className="flex items-center gap-1 text-sm text-gray-400 hover:text-slate-200"
+            >
+              ← Volver
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-white">Checklist de Preparación SUNAFIL</h1>
+              <p className="text-sm text-gray-400">Marca los documentos que ya tienes listos</p>
+            </div>
+          </div>
+          <button
+            onClick={saveSimulacroToHistory}
+            className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition-colors"
+          >
+            <BarChart3 className="h-4 w-4" /> Guardar resultado
+          </button>
+        </div>
+
+        {/* Score card */}
+        <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            {/* Circular score */}
+            <div className="flex flex-col items-center shrink-0">
+              <div className="relative h-24 w-24">
+                <svg className="h-24 w-24 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15.9155" fill="none" className="stroke-gray-100 stroke-slate-700" strokeWidth="3" />
+                  <circle
+                    cx="18" cy="18" r="15.9155" fill="none"
+                    strokeWidth="3"
+                    strokeDasharray={`${score} ${100 - score}`}
+                    strokeLinecap="round"
+                    className={score >= 85 ? 'stroke-green-500' : score >= 60 ? 'stroke-amber-500' : 'stroke-red-500'}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-extrabold text-white">{score}%</span>
+                </div>
+              </div>
+              <span className={cn('mt-2 text-xs font-bold', scoreInfo.color)}>{scoreInfo.label}</span>
+            </div>
+
+            {/* Stats */}
+            <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{checkedCount}</p>
+                <p className="text-xs text-gray-400">Listos</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-600">{totalItems - checkedCount}</p>
+                <p className="text-xs text-gray-400">Pendientes</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white">{totalItems}</p>
+                <p className="text-xs text-gray-400">Total ítems</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-red-600">S/ {multaEstimada.toLocaleString()}</p>
+                <p className="text-xs text-gray-400">Multa estimada</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mt-4">
+            <div className="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Preparación</span>
+              <span>{checkedCount}/{totalItems}</span>
+            </div>
+            <div className="h-3 w-full rounded-full bg-white/[0.04] overflow-hidden">
+              <div
+                className={cn('h-3 rounded-full transition-all duration-500', score >= 85 ? 'bg-green-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500')}
+                style={{ width: `${score}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Multa info */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg bg-green-900/20 p-2.5 text-green-400">
+              <span className="font-semibold">Si subsanas antes:</span> S/ {Math.round(multaEstimada * 0.1).toLocaleString()} (-90%)
+            </div>
+            <div className="rounded-lg bg-orange-900/20 p-2.5 text-orange-400">
+              <span className="font-semibold">Si subsanas durante:</span> S/ {Math.round(multaEstimada * 0.3).toLocaleString()} (-70%)
+            </div>
+          </div>
+        </div>
+
+        {/* Checklist sections (accordion) */}
+        <div className="space-y-3">
+          {CHECKLIST_SECTIONS.map(section => {
+            const Icon = section.icon
+            const isOpen = expandedSections.has(section.id)
+            const sectionChecked = section.items.filter(i => checks[i.id]).length
+            const sectionTotal = section.items.length
+            const sectionScore = Math.round((sectionChecked / sectionTotal) * 100)
+            const COLOR_SECTION: Record<string, { header: string; bar: string; badge: string }> = {
+              blue: { header: 'text-blue-400', bar: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700 bg-blue-900/50 text-blue-300' },
+              green: { header: 'text-green-400', bar: 'bg-green-500', badge: 'bg-green-100 text-green-700 bg-green-900/50 text-green-300' },
+              purple: { header: 'text-purple-400', bar: 'bg-purple-500', badge: 'bg-purple-100 text-purple-700 bg-purple-900/50 text-purple-300' },
+            }
+            const colorMap = COLOR_SECTION[section.color] ?? COLOR_SECTION['blue']
+
+            return (
+              <div key={section.id} className="rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm overflow-hidden">
+                {/* Accordion header */}
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/[0.02] hover:bg-slate-750 transition-colors"
+                >
+                  <Icon className={cn('h-5 w-5 shrink-0', colorMap.header)} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-white">{section.title}</span>
+                      <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', colorMap.badge)}>
+                        {sectionChecked}/{sectionTotal}
+                      </span>
+                    </div>
+                    {/* Mini progress bar */}
+                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-white/[0.04]">
+                      <div
+                        className={cn('h-1.5 rounded-full transition-all', colorMap.bar)}
+                        style={{ width: `${sectionScore}%` }}
+                      />
+                    </div>
+                  </div>
+                  {isOpen ? <ChevronUp className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />}
+                </button>
+
+                {/* Accordion body */}
+                {isOpen && (
+                  <div className="border-t border-white/[0.08] divide-y divide-gray-50 divide-slate-700/50">
+                    {section.items.map(item => (
+                      <label
+                        key={item.id}
+                        className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.02] hover:bg-slate-750 transition-colors"
+                      >
+                        <div className="mt-0.5 shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={!!checks[item.id]}
+                            onChange={() => toggleCheck(item.id)}
+                            className="sr-only"
+                          />
+                          {checks[item.id]
+                            ? <CheckSquare className="h-5 w-5 text-green-500" />
+                            : <Square className="h-5 w-5 text-slate-600" />
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-sm leading-snug', checks[item.id] ? 'line-through text-slate-500' : 'text-gray-200')}>
+                            {item.label}
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {item.baseLegal && (
+                              <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <BookOpen className="h-3 w-3" />{item.baseLegal}
+                              </span>
+                            )}
+                            {item.note && (
+                              <span className="text-[10px] bg-amber-900/30 text-amber-400 px-1.5 py-0.5 rounded-full font-medium">
+                                {item.note}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Recommendations for unchecked */}
+        {recommendations.length > 0 && (
+          <div className="rounded-xl border border-red-800 bg-red-900/20 p-5">
+            <h3 className="font-bold text-red-300 text-sm mb-3 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> Recomendaciones prioritarias
+            </h3>
+            <ul className="space-y-2">
+              {recommendations.map(item => (
+                <li key={item.id} className="flex items-start gap-2 text-xs text-red-400">
+                  <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>{item.label}{item.baseLegal && <span className="ml-1 opacity-60">({item.baseLegal})</span>}</span>
+                </li>
+              ))}
+              {uncheckedItems.length > 5 && (
+                <li className="text-xs text-red-400 font-medium">
+                  ...y {uncheckedItems.length - 5} ítems más pendientes.
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={saveSimulacroToHistory}
+            className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-colors shadow"
+          >
+            <BarChart3 className="h-4 w-4" /> Guardar en historial
+          </button>
+          {confirmReset ? (
+            <div className="flex items-center gap-2 rounded-xl border border-red-800 px-4 py-2.5 bg-red-900/20">
+              <span className="text-sm text-red-400">¿Reiniciar todos los checks?</span>
+              <button
+                onClick={() => { setChecks({}); setConfirmReset(false) }}
+                className="px-3 py-1 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Sí
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="px-3 py-1 text-xs font-semibold text-slate-300 border border-white/[0.08] border-slate-600 hover:bg-white/[0.04] rounded-lg transition-colors"
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmReset(true)}
+              className="flex items-center gap-2 rounded-xl border border-slate-600 px-5 py-2.5 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" /> Reiniciar checklist
+            </button>
+          )}
+          <button
+            onClick={() => { setSimPhase('config'); setView('simulator') }}
+            className="flex items-center gap-2 rounded-xl border border-slate-600 px-5 py-2.5 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+          >
+            <Play className="h-4 w-4" /> Inspector Virtual
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────
+  // SIMULATOR VIEW (chat-based inspector)
+  // ─────────────────────────────────────────────
+
+  if (simPhase === 'config') {
+    return (
+      <div className="space-y-6 pb-10">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setView('home')}
+            className="text-sm text-gray-400 hover:text-slate-200"
+          >
+            ← Volver
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-white">Inspector Virtual SUNAFIL</h1>
+            <p className="text-sm text-gray-400">Simula el diálogo real con un inspector durante la visita</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-amber-800 bg-amber-900/30 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="text-sm font-semibold text-amber-300">¿Cómo funciona?</p>
+              <p className="mt-1 text-sm text-amber-400">
+                El inspector virtual revisa automáticamente los documentos del legajo digital contra los 28 documentos que un inspector de SUNAFIL solicita durante una visita real (protocolo R.M. 199-2016-TR).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-base font-semibold text-white">Tipo de inspección a simular</h2>
+          <div className="grid gap-3 md:grid-cols-3">
+            {(Object.entries(TIPOS_INSPECCION) as [TipoInspeccion, typeof TIPOS_INSPECCION.PROGRAMADA][]).map(([key, cfg]) => {
+              const Icon = cfg.icon
+              const selected = tipoSelected === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setTipoSelected(key)}
+                  className={cn(
+                    'flex flex-col rounded-xl border-2 p-4 text-left transition-all',
+                    selected ? 'border-primary bg-primary/5 shadow-sm' : 'border-white/[0.08] hover:border-white/10'
+                  )}
+                >
+                  <Icon className={cn('h-5 w-5', selected ? 'text-primary' : 'text-slate-500')} />
+                  <h3 className="mt-2 text-sm font-semibold text-white">{cfg.label}</h3>
+                  <p className="mt-1 text-xs text-gray-400">{cfg.desc}</p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <button
+          onClick={startSimulator}
+          disabled={loading}
+          className="flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50 transition-colors shadow"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          Iniciar Inspector Virtual
+        </button>
+      </div>
+    )
+  }
+
+  // ── Chat phases (inspeccion / resultado) ──
+  return (
+    <div className="flex h-[calc(100vh-8rem)] flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#141824] px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-900/40">
+            <ShieldAlert className="h-5 w-5 text-red-600" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-white">Inspector SUNAFIL Virtual</h2>
+            <p className="text-xs text-gray-400">
+              {TIPOS_INSPECCION[tipoSelected].label} — {solicitudes.length} verificaciones
+            </p>
+          </div>
+        </div>
+        {simPhase === 'resultado' && resultado && (
+          <div className={cn(
+            'flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold',
+            resultado.scoreSimulacro >= 80 ? 'bg-green-100 text-green-700 bg-green-900/40 text-green-400' :
+            resultado.scoreSimulacro >= 60 ? 'bg-yellow-100 text-yellow-700 bg-amber-900/40 text-amber-400' :
+            'bg-red-100 text-red-700 bg-red-900/40 text-red-400'
+          )}>
+            Score: {resultado.scoreSimulacro}/100
+          </div>
+        )}
+      </div>
+
+      {/* Chat area */}
+      <div ref={chatRef} className="flex-1 overflow-y-auto bg-white/[0.02] bg-slate-900 p-4 space-y-3">
+        {chatMessages.map((msg, i) => (
+          <div key={i} className={cn('flex gap-3', msg.role === 'sistema' ? 'justify-start' : '')}>
+            {msg.role === 'inspector' && (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-900/40">
+                <UserCheck className="h-4 w-4 text-red-600" />
+              </div>
+            )}
+            <div className={cn(
+              'max-w-[80%] rounded-xl p-3 text-sm',
+              msg.role === 'inspector'
+                ? 'bg-[#141824] border border-white/[0.08] shadow-sm'
+                : 'bg-blue-900/30 border border-blue-800'
+            )}>
+              <p className="text-gray-200">{msg.text}</p>
+              {msg.hallazgo && (
+                <div className={cn(
+                  'mt-2 flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium',
+                  msg.hallazgo.estado === 'CUMPLE' ? 'bg-green-100 text-green-700 bg-green-900/40 text-green-400' :
+                  msg.hallazgo.estado === 'PARCIAL' ? 'bg-yellow-100 text-yellow-700 bg-amber-900/40 text-amber-400' :
+                  msg.hallazgo.estado === 'NO_APLICA' ? 'bg-white/[0.04] text-gray-500 bg-white/[0.04] text-gray-400' :
+                  'bg-red-100 text-red-700 bg-red-900/40 text-red-400'
+                )}>
+                  {msg.hallazgo.estado === 'CUMPLE' && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                  {msg.hallazgo.estado === 'PARCIAL' && <MinusCircle className="h-3.5 w-3.5 shrink-0" />}
+                  {msg.hallazgo.estado === 'NO_CUMPLE' && <XCircle className="h-3.5 w-3.5 shrink-0" />}
+                  {msg.hallazgo.documentoLabel} — {msg.hallazgo.estado.replace('_', ' ')}
+                  {msg.hallazgo.multaPEN > 0 && <span className="ml-1">(S/ {msg.hallazgo.multaPEN.toLocaleString()})</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        {running && (
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Inspector revisando documentos...
+          </div>
+        )}
+      </div>
+
+      {/* Actions bar */}
+      <div className="border-t border-white/[0.08] bg-[#141824] p-4">
+        {simPhase === 'inspeccion' && !running && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={runFullSimulacro}
+              className="flex items-center gap-2 rounded-xl bg-red-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-colors shadow"
+            >
+              <Play className="h-4 w-4" /> Ejecutar Inspección Completa
+            </button>
+            <button
+              onClick={() => { setSimPhase('config'); setChatMessages([]) }}
+              className="rounded-xl border border-slate-600 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        {simPhase === 'resultado' && resultado && (
+          <div className="space-y-4">
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-xl border border-green-800 bg-green-900/30 p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">{resultado.cumple}</p>
+                <p className="text-xs text-green-400">Cumple</p>
+              </div>
+              <div className="rounded-xl border border-yellow-800 bg-amber-900/30 p-3 text-center">
+                <p className="text-2xl font-bold text-yellow-600">{resultado.parcial}</p>
+                <p className="text-xs text-amber-400">Parcial</p>
+              </div>
+              <div className="rounded-xl border border-red-800 bg-red-900/30 p-3 text-center">
+                <p className="text-2xl font-bold text-red-600">{resultado.noCumple}</p>
+                <p className="text-xs text-red-400">No Cumple</p>
+              </div>
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] bg-white/[0.04] p-3 text-center">
+                <p className="text-xl font-bold text-white">S/ {resultado.multaTotal.toLocaleString()}</p>
+                <p className="text-xs text-gray-400">Multa Potencial</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+              <span>Subsana antes: <b className="text-green-600">S/ {resultado.multaConSubsanacion.toLocaleString()}</b> (-90%)</span>
+              <span>|</span>
+              <span>Subsana durante: <b className="text-orange-600">S/ {resultado.multaConSubsanacionDurante.toLocaleString()}</b> (-70%)</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {resultado.diagnosticId && (
+                <button
+                  onClick={() => router.push(`/dashboard/diagnostico/${resultado.diagnosticId}/resultado`)}
+                  className="flex items-center gap-1 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+                >
+                  <BarChart3 className="h-4 w-4" /> Ver Informe Completo
+                </button>
+              )}
+              {resultado.diagnosticId && (
+                <button
+                  onClick={handleDescargarActa}
+                  disabled={downloadingActa}
+                  className="flex items-center gap-1 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-60"
+                >
+                  {downloadingActa ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  Descargar Acta (PDF)
+                </button>
+              )}
+              <button
+                onClick={() => { setSimPhase('config'); setChatMessages([]); setResultado(null) }}
+                className="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+              >
+                Nuevo Simulacro
+              </button>
+              <button
+                onClick={() => { setView('checklist'); setSimPhase('config') }}
+                className="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+              >
+                Ir al Checklist
+              </button>
+              <button
+                onClick={() => router.push('/dashboard/trabajadores')}
+                className="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+              >
+                Ir a Trabajadores
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

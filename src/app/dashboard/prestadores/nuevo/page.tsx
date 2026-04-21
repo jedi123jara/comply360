@@ -176,7 +176,7 @@ export default function NuevoPrestadorPage() {
       <div>
         <Link
           href="/dashboard/prestadores"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 text-gray-400 hover:text-gray-300 hover:text-gray-200 mb-3"
+          className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-[color:var(--text-secondary)] mb-3"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver a prestadores
@@ -185,22 +185,22 @@ export default function NuevoPrestadorPage() {
           <Briefcase className="w-6 h-6 text-primary" />
           Nuevo prestador de servicios
         </h1>
-        <p className="text-sm text-gray-500 text-gray-400 mt-1">
+        <p className="text-sm text-gray-400 mt-1">
           Registra un independiente que emite recibos por honorarios (4ta categoría).
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Datos personales */}
-        <section className="bg-[#141824] rounded-xl border border-white/[0.08] p-6 space-y-4">
+        <section className="bg-white rounded-xl border border-white/[0.08] p-6 space-y-4">
           <h2 className="text-sm font-bold text-white text-gray-100 uppercase tracking-wide">Datos personales</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Tipo documento *</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Tipo documento *</label>
               <select
                 value={form.documentType}
                 onChange={e => set('documentType', e.target.value as FormData['documentType'])}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               >
                 <option value="DNI">DNI</option>
                 <option value="CE">Carnet Ext.</option>
@@ -209,143 +209,143 @@ export default function NuevoPrestadorPage() {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Número de documento *</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Número de documento *</label>
               <input
                 type="text"
                 value={form.documentNumber}
                 onChange={e => set('documentNumber', e.target.value.replace(/\D/g, '').slice(0, 11))}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
                 placeholder="12345678"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Nombres *</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Nombres *</label>
               <input
                 type="text"
                 value={form.firstName}
                 onChange={e => set('firstName', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Apellidos *</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Apellidos *</label>
               <input
                 type="text"
                 value={form.lastName}
                 onChange={e => set('lastName', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">RUC (si tiene)</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">RUC (si tiene)</label>
               <input
                 type="text"
                 value={form.ruc}
                 onChange={e => set('ruc', e.target.value.replace(/\D/g, '').slice(0, 11))}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
                 placeholder="10XXXXXXXXX"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Email</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={e => set('email', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Teléfono</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Teléfono</label>
               <input
                 type="text"
                 value={form.phone}
                 onChange={e => set('phone', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
             <div className="sm:col-span-3">
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Dirección</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Dirección</label>
               <input
                 type="text"
                 value={form.address}
                 onChange={e => set('address', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
           </div>
         </section>
 
         {/* Servicio */}
-        <section className="bg-[#141824] rounded-xl border border-white/[0.08] p-6 space-y-4">
+        <section className="bg-white rounded-xl border border-white/[0.08] p-6 space-y-4">
           <h2 className="text-sm font-bold text-white text-gray-100 uppercase tracking-wide">Servicio contratado</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Profesión</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Profesión</label>
               <input
                 type="text"
                 value={form.profession}
                 onChange={e => set('profession', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
                 placeholder="Contador, Diseñador, Ingeniero..."
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Área</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Área</label>
               <input
                 type="text"
                 value={form.area}
                 onChange={e => set('area', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
                 placeholder="Contabilidad, Marketing, TI..."
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Descripción del servicio *</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Descripción del servicio *</label>
               <textarea
                 value={form.servicioDescripcion}
                 onChange={e => set('servicioDescripcion', e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
                 placeholder="Describe brevemente el servicio prestado..."
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Fecha inicio *</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha inicio *</label>
               <input
                 type="date"
                 value={form.startDate}
                 onChange={e => set('startDate', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Fecha fin (opcional)</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha fin (opcional)</label>
               <input
                 type="date"
                 value={form.endDate}
                 onChange={e => set('endDate', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Monto mensual (S/) *</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Monto mensual (S/) *</label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={form.monthlyAmount}
                 onChange={e => set('monthlyAmount', e.target.value)}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
                 placeholder="2500.00"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Frecuencia pago</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Frecuencia pago</label>
               <select
                 value={form.paymentFrequency}
                 onChange={e => set('paymentFrequency', e.target.value as FormData['paymentFrequency'])}
-                className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               >
                 <option value="MONTHLY">Mensual</option>
                 <option value="BIWEEKLY">Quincenal</option>
@@ -379,7 +379,7 @@ export default function NuevoPrestadorPage() {
         </section>
 
         {/* Retencion / Suspension */}
-        <section className="bg-[#141824] rounded-xl border border-white/[0.08] p-6 space-y-4">
+        <section className="bg-white rounded-xl border border-white/[0.08] p-6 space-y-4">
           <h2 className="text-sm font-bold text-white text-gray-100 uppercase tracking-wide flex items-center gap-2">
             <ShieldCheck className="w-4 h-4" /> Constancia de suspensión SUNAT
           </h2>
@@ -392,32 +392,32 @@ export default function NuevoPrestadorPage() {
             />
             <div className="flex-1">
               <span className="text-sm font-semibold text-white text-gray-100">El prestador tiene constancia de suspensión vigente</span>
-              <p className="text-xs text-gray-500 text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5">
                 Con constancia vigente NO se aplica retención del 8%. La constancia vence el 31 de diciembre de cada año.
               </p>
             </div>
           </label>
           {form.hasSuspensionRetencion && (
             <div className="pl-7">
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Fecha de vencimiento constancia</label>
+              <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha de vencimiento constancia</label>
               <input
                 type="date"
                 value={form.suspensionExpiryDate}
                 onChange={e => set('suspensionExpiryDate', e.target.value)}
-                className="w-full max-w-xs px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+                className="w-full max-w-xs px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
               />
             </div>
           )}
         </section>
 
         {/* Riesgo de desnaturalizacion */}
-        <section className="bg-[#141824] rounded-xl border border-white/[0.08] p-6 space-y-4">
+        <section className="bg-white rounded-xl border border-white/[0.08] p-6 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-sm font-bold text-white text-gray-100 uppercase tracking-wide flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Evaluación de desnaturalización
               </h2>
-              <p className="text-xs text-gray-500 text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Marca los indicadores que aplican. Si hay subordinación real, SUNAFIL puede reclasificar a 5ta categoría (principio de primacía de la realidad).
               </p>
             </div>
@@ -432,7 +432,7 @@ export default function NuevoPrestadorPage() {
             {RISK_INDICATORS.map(ind => (
               <label
                 key={ind.key}
-                className="flex items-start gap-3 p-3 rounded-lg border border-white/[0.08] border-slate-600 hover:bg-white/[0.02] hover:bg-white/[0.04]/50 cursor-pointer transition-colors"
+                className="flex items-start gap-3 p-3 rounded-lg border border-white/[0.08] border-[color:var(--border-default)] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50 cursor-pointer transition-colors"
               >
                 <input
                   type="checkbox"
@@ -445,18 +445,18 @@ export default function NuevoPrestadorPage() {
                     <span className="text-sm font-semibold text-white text-gray-100">{ind.label}</span>
                     <span className="text-[10px] font-bold text-gray-400">+{ind.weight}%</span>
                   </div>
-                  <p className="text-xs text-gray-500 text-gray-400">{ind.description}</p>
+                  <p className="text-xs text-gray-400">{ind.description}</p>
                 </div>
               </label>
             ))}
           </div>
 
           {desnaturalizacionRisk >= 60 && (
-            <div className="rounded-lg bg-red-50 bg-red-900/20 border border-red-200 border-red-700 p-3">
-              <p className="text-xs font-bold text-red-700 text-red-400 flex items-center gap-1">
+            <div className="rounded-lg bg-red-900/20 border border-red-700 p-3">
+              <p className="text-xs font-bold text-red-400 flex items-center gap-1">
                 <AlertTriangle className="w-4 h-4" /> RIESGO ALTO DE RECLASIFICACIÓN
               </p>
-              <p className="text-xs text-red-600 text-red-400 mt-1">
+              <p className="text-xs text-red-400 mt-1">
                 Esta relación presenta múltiples elementos de subordinación. SUNAFIL podría reclasificar a trabajador de 5ta categoría,
                 exigiendo pagar CTS, gratificaciones, vacaciones y asignación familiar retroactivos, más multas. Considera contratarlo como trabajador de planilla.
               </p>
@@ -465,20 +465,20 @@ export default function NuevoPrestadorPage() {
         </section>
 
         {/* Notas */}
-        <section className="bg-[#141824] rounded-xl border border-white/[0.08] p-6">
-          <label className="block text-xs font-semibold text-gray-300 mb-1">Notas internas</label>
+        <section className="bg-white rounded-xl border border-white/[0.08] p-6">
+          <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Notas internas</label>
           <textarea
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 border border-white/[0.08] border-slate-600 rounded-lg text-sm bg-[#141824] bg-white/[0.04]"
+            className="w-full px-3 py-2 border border-white/[0.08] border-[color:var(--border-default)] rounded-lg text-sm bg-white bg-[color:var(--neutral-100)]"
             placeholder="Observaciones adicionales..."
           />
         </section>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 bg-red-900/20 border border-red-200 border-red-700 rounded-lg p-3 text-sm text-red-700 text-red-400">
+          <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 text-sm text-red-400">
             {error}
           </div>
         )}
@@ -487,7 +487,7 @@ export default function NuevoPrestadorPage() {
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/dashboard/prestadores"
-            className="px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-white/[0.04] rounded-lg"
+            className="px-4 py-2 text-sm font-semibold text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-100)] rounded-lg"
           >
             Cancelar
           </Link>

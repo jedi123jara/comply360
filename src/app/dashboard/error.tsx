@@ -17,7 +17,7 @@ export default function DashboardError({
 
   return (
     <div className="flex items-center justify-center py-20">
-      <div className="w-full max-w-md rounded-xl border bg-[#141824] p-8 text-center shadow-sm">
+      <div className="w-full max-w-md rounded-xl border bg-white p-8 text-center shadow-sm">
         <AlertTriangle className="mx-auto h-10 w-10 text-red-500" />
         <h2 className="mt-4 text-lg font-bold text-white">Error en el modulo</h2>
         <p className="mt-2 text-sm text-gray-500">
@@ -33,7 +33,7 @@ export default function DashboardError({
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-white/[0.02]"
+            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-[color:var(--neutral-50)]"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver

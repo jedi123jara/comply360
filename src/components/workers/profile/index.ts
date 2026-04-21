@@ -1,0 +1,7 @@
+export { WorkerProfile } from './worker-profile'
+export { WorkerProfileHeader } from './worker-profile-header'
+export type { WorkerSummary } from './worker-profile-header'
+export { TabInfo } from './tabs/tab-info'
+export { TabLegajo } from './tabs/tab-legajo'
+export type { LegajoDoc } from './tabs/tab-legajo'
+export { TabPlaceholder } from './tabs/tab-placeholder'

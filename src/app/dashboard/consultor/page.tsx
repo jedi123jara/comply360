@@ -1,11 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import {
-  Users, Building2, AlertTriangle, ShieldCheck, Plus, Trash2,
-  ChevronRight, BarChart3, FileDown, Loader2, X, Bell,
-  TrendingUp, TrendingDown, Search, RefreshCw, FileText,
-} from 'lucide-react'
+import { Users, Building2, AlertTriangle, ShieldCheck, Plus, Trash2, ChevronRight, BarChart3, FileDown, Loader2, X, Bell, Search, RefreshCw, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -43,10 +39,10 @@ type Tab = 'panel' | 'alertas' | 'exportaciones' | 'config'
 // ─── Score badge ─────────────────────────────────────────────────────────────
 
 function ScoreBadge({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-xs text-gray-400">Sin datos</span>
+  if (score === null) return <span className="text-xs text-[color:var(--text-tertiary)]">Sin datos</span>
   const color =
     score >= 80
-      ? 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-400'
+      ? 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600'
       : score >= 60
       ? 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400'
       : 'bg-red-100 text-red-700 bg-red-900/30 text-red-400'
@@ -88,17 +84,17 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#141824] bg-slate-900 p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-[color:var(--border-default)] bg-white bg-white p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-white">Agregar Cliente</h2>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-white/[0.04] hover:bg-slate-800">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-50)]">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">
               RUC de la empresa cliente
             </label>
             <input
@@ -107,11 +103,11 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
               onChange={(e) => setRuc(e.target.value)}
               placeholder="20123456789"
               maxLength={11}
-              className="w-full rounded-lg border border-white/[0.08] bg-[#141824] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">
               Notas internas (opcional)
             </label>
             <textarea
@@ -119,19 +115,19 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ej: Contrato mensual, contacto: gerencia@empresa.com"
               rows={2}
-              className="w-full rounded-lg border border-white/[0.08] bg-[#141824] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 bg-red-900/20 border border-red-200 border-red-800 px-3 py-2 text-sm text-red-700 text-red-400">
+            <div className="flex items-center gap-2 rounded-lg bg-red-900/20 border border-red-800 px-3 py-2 text-sm text-red-400">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
 
           <div className="flex gap-3 pt-1">
-            <button onClick={onClose} className="flex-1 rounded-lg border border-white/[0.08] px-4 py-2 text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-slate-800">
+            <button onClick={onClose} className="flex-1 rounded-lg border border-[color:var(--border-default)] px-4 py-2 text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-50)]">
               Cancelar
             </button>
             <button
@@ -236,7 +232,7 @@ export default function ConsultorPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Portal Contador</h1>
-          <p className="mt-1 text-sm text-gray-500 text-gray-400">
+          <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
             Gestiona el compliance laboral de todas tus empresas clientes desde un solo lugar.
           </p>
         </div>
@@ -270,15 +266,15 @@ export default function ConsultorPage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-2xl border border-white/[0.06] border-white/[0.08] bg-[#141824] p-4 shadow-sm"
+              className="rounded-2xl border border-[color:var(--border-default)] border-[color:var(--border-default)] bg-white p-4 shadow-sm"
             >
               <div className="flex items-center gap-3">
-                <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.02] bg-white/[0.04]', stat.color)}>
+                <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]', stat.color)}>
                   <stat.icon className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">{stat.value}</p>
-                  <p className="text-xs text-gray-500 text-gray-400">{stat.label}</p>
+                  <p className="text-xs text-[color:var(--text-tertiary)]">{stat.label}</p>
                 </div>
               </div>
             </div>
@@ -287,7 +283,7 @@ export default function ConsultorPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-white/[0.08] bg-white/[0.02] bg-white/50 p-1">
+      <div className="flex gap-1 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-white/50 p-1">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -295,8 +291,8 @@ export default function ConsultorPage() {
             className={cn(
               'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all',
               tab === t.id
-                ? 'bg-[#141824] bg-white/[0.04] text-white shadow-sm'
-                : 'text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-300'
+                ? 'bg-white bg-[color:var(--neutral-100)] text-white shadow-sm'
+                : 'text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)]'
             )}
           >
             <t.icon className="h-4 w-4" />
@@ -310,38 +306,38 @@ export default function ConsultorPage() {
         <div className="space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[color:var(--text-tertiary)]" />
             <input
               type="text"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               placeholder="Buscar por nombre o RUC..."
-              className="w-full rounded-xl border border-white/[0.08] bg-[#141824] pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-[color:var(--border-default)] bg-white pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-[color:var(--text-tertiary)]" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/[0.08] py-16 text-center">
-              <Building2 className="mx-auto h-10 w-10 text-gray-300 text-slate-600 mb-3" />
-              <p className="text-sm font-medium text-gray-500 text-gray-400">
+            <div className="rounded-2xl border border-dashed border-[color:var(--border-default)] py-16 text-center">
+              <Building2 className="mx-auto h-10 w-10 text-[color:var(--text-secondary)] mb-3" />
+              <p className="text-sm font-medium text-[color:var(--text-tertiary)]">
                 {clients.length === 0
                   ? 'Aún no tienes empresas clientes. Agrega la primera.'
                   : 'Ninguna empresa coincide con tu búsqueda.'}
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-white/[0.06] border-white/[0.08] bg-[#141824] shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-[color:var(--border-default)] border-[color:var(--border-default)] bg-white shadow-sm">
               <table className="min-w-full divide-y divide-gray-100 divide-slate-700">
-                <thead className="bg-white/[0.02] bg-white/[0.04]/50">
+                <thead className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50">
                   <tr>
                     {['Empresa', 'RUC', 'Trabajadores', 'Score', 'Alertas Críticas', 'Denuncias', 'Acciones'].map((h) => (
                       <th
                         key={h}
-                        className="px-4 py-3 text-left text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider"
+                        className="px-4 py-3 text-left text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider"
                       >
                         {h}
                       </th>
@@ -350,14 +346,14 @@ export default function ConsultorPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50 divide-slate-700/50">
                   {filtered.map((client) => (
-                    <tr key={client.clientOrgId} className="hover:bg-white/[0.02] hover:bg-white/[0.04]/30 transition-colors">
+                    <tr key={client.clientOrgId} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-medium text-white text-sm">{client.clientOrgName}</div>
                         {client.sector && (
-                          <div className="text-xs text-gray-400 text-slate-500">{client.sector}</div>
+                          <div className="text-xs text-[color:var(--text-tertiary)]">{client.sector}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-300">
+                      <td className="px-4 py-3 text-sm text-[color:var(--text-secondary)]">
                         {client.clientRuc || '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-white font-medium">
@@ -368,17 +364,17 @@ export default function ConsultorPage() {
                       </td>
                       <td className="px-4 py-3">
                         {client.stats.criticalAlerts > 0 ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 bg-red-900/30 px-2 py-0.5 text-xs font-semibold text-red-700 text-red-400">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-900/30 px-2 py-0.5 text-xs font-semibold text-red-400">
                             <AlertTriangle className="h-3 w-3" />
                             {client.stats.criticalAlerts}
                           </span>
                         ) : (
-                          <span className="text-xs text-emerald-600 text-emerald-400 font-medium">Sin alertas</span>
+                          <span className="text-xs text-emerald-600 font-medium">Sin alertas</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-300">
+                      <td className="px-4 py-3 text-sm text-[color:var(--text-secondary)]">
                         {client.stats.openComplaints > 0 ? (
-                          <span className="rounded-full bg-amber-100 bg-amber-900/30 px-2 py-0.5 text-xs font-semibold text-amber-700 text-amber-400">
+                          <span className="rounded-full bg-amber-900/30 px-2 py-0.5 text-xs font-semibold text-amber-400">
                             {client.stats.openComplaints} abiertas
                           </span>
                         ) : '—'}
@@ -387,7 +383,7 @@ export default function ConsultorPage() {
                         <div className="flex items-center gap-1">
                           <a
                             href={`/dashboard?orgView=${client.clientOrgId}`}
-                            className="rounded-lg p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 hover:bg-indigo-900/20"
+                            className="rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:text-indigo-600 hover:bg-indigo-900/20"
                             title="Ver dashboard de este cliente"
                           >
                             <ChevronRight className="h-4 w-4" />
@@ -395,7 +391,7 @@ export default function ConsultorPage() {
                           <button
                             onClick={() => removeClient(client.clientOrgId)}
                             disabled={removingId === client.clientOrgId}
-                            className="rounded-lg p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 hover:bg-red-900/20"
+                            className="rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:text-red-600 hover:bg-red-900/20"
                             title="Eliminar de cartera"
                           >
                             {removingId === client.clientOrgId ? (
@@ -422,16 +418,16 @@ export default function ConsultorPage() {
             <h2 className="text-base font-semibold text-white">
               Alertas Críticas Consolidadas
             </h2>
-            <button onClick={loadClients} className="flex items-center gap-1.5 text-sm text-indigo-600 text-indigo-400 hover:underline">
+            <button onClick={loadClients} className="flex items-center gap-1.5 text-sm text-indigo-400 hover:underline">
               <RefreshCw className="h-3.5 w-3.5" />
               Actualizar
             </button>
           </div>
 
           {allAlerts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/[0.08] py-16 text-center">
-              <ShieldCheck className="mx-auto h-10 w-10 text-emerald-400 mb-3" />
-              <p className="text-sm font-medium text-emerald-700 text-emerald-400">
+            <div className="rounded-2xl border border-dashed border-[color:var(--border-default)] py-16 text-center">
+              <ShieldCheck className="mx-auto h-10 w-10 text-emerald-600 mb-3" />
+              <p className="text-sm font-medium text-emerald-600">
                 Ninguna de tus empresas tiene alertas críticas activas.
               </p>
             </div>
@@ -442,7 +438,7 @@ export default function ConsultorPage() {
                 .map((client) => (
                   <div
                     key={client.clientOrgId}
-                    className="rounded-2xl border border-red-100 border-red-900/30 bg-red-50 bg-red-900/10 p-4 flex items-center justify-between"
+                    className="rounded-2xl border border-red-900/30 bg-red-900/10 p-4 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
                       <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
@@ -450,7 +446,7 @@ export default function ConsultorPage() {
                         <p className="text-sm font-semibold text-white">
                           {client.clientOrgName}
                         </p>
-                        <p className="text-xs text-gray-500 text-gray-400">
+                        <p className="text-xs text-[color:var(--text-tertiary)]">
                           {client.stats.criticalAlerts > 0 && `${client.stats.criticalAlerts} alertas críticas`}
                           {client.stats.criticalAlerts > 0 && client.stats.openComplaints > 0 && ' • '}
                           {client.stats.openComplaints > 0 && `${client.stats.openComplaints} denuncias abiertas`}
@@ -459,7 +455,7 @@ export default function ConsultorPage() {
                     </div>
                     <a
                       href={`/dashboard/alertas?orgView=${client.clientOrgId}`}
-                      className="text-xs font-medium text-indigo-600 text-indigo-400 hover:underline flex items-center gap-1"
+                      className="text-xs font-medium text-indigo-400 hover:underline flex items-center gap-1"
                     >
                       Ver alertas <ChevronRight className="h-3 w-3" />
                     </a>
@@ -476,14 +472,14 @@ export default function ConsultorPage() {
           <h2 className="text-base font-semibold text-white">Exportar PLAME y T-Registro</h2>
 
           {clients.length === 0 ? (
-            <p className="text-sm text-gray-500 text-gray-400">No hay empresas clientes registradas.</p>
+            <p className="text-sm text-[color:var(--text-tertiary)]">No hay empresas clientes registradas.</p>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-white/[0.06] border-white/[0.08] bg-[#141824] shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-[color:var(--border-default)] border-[color:var(--border-default)] bg-white shadow-sm">
               <table className="min-w-full divide-y divide-gray-100 divide-slate-700">
-                <thead className="bg-white/[0.02] bg-white/[0.04]/50">
+                <thead className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50">
                   <tr>
                     {['Empresa', 'RUC', 'Trabajadores', 'PLAME', 'T-Registro'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider">
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">
                         {h}
                       </th>
                     ))}
@@ -491,21 +487,21 @@ export default function ConsultorPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50 divide-slate-700/50">
                   {clients.map((client) => (
-                    <tr key={client.clientOrgId} className="hover:bg-white/[0.02] hover:bg-white/[0.04]/30">
+                    <tr key={client.clientOrgId} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/30">
                       <td className="px-4 py-3 text-sm font-medium text-white">
                         {client.clientOrgName}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 text-gray-400">
+                      <td className="px-4 py-3 text-sm text-[color:var(--text-tertiary)]">
                         {client.clientRuc || '—'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-300 text-slate-300">
+                      <td className="px-4 py-3 text-sm text-[color:var(--text-secondary)]">
                         {client.stats.workerCount}
                       </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => exportPLAME(client.clientOrgId, client.clientOrgName)}
                           disabled={exportingId === client.clientOrgId}
-                          className="flex items-center gap-1.5 rounded-lg bg-indigo-50 bg-indigo-900/20 hover:bg-indigo-100 hover:bg-indigo-900/40 px-3 py-1.5 text-xs font-semibold text-indigo-700 text-indigo-400 disabled:opacity-50"
+                          className="flex items-center gap-1.5 rounded-lg bg-indigo-900/20 hover:bg-indigo-900/40 px-3 py-1.5 text-xs font-semibold text-indigo-400 disabled:opacity-50"
                         >
                           {exportingId === client.clientOrgId ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -519,7 +515,7 @@ export default function ConsultorPage() {
                         <a
                           href={`/api/exports/tregistro?orgId=${client.clientOrgId}`}
                           download
-                          className="flex items-center gap-1.5 rounded-lg bg-emerald-50 bg-emerald-900/20 hover:bg-emerald-100 hover:bg-emerald-900/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 text-emerald-400"
+                          className="flex items-center gap-1.5 rounded-lg bg-emerald-900/20 hover:bg-emerald-900/40 px-3 py-1.5 text-xs font-semibold text-emerald-600"
                         >
                           <FileText className="h-3.5 w-3.5" />
                           T-Registro
@@ -537,9 +533,9 @@ export default function ConsultorPage() {
       {/* ── TAB: Configuración ── */}
       {tab === 'config' && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-white/[0.06] border-white/[0.08] bg-[#141824] p-6 shadow-sm">
+          <div className="rounded-2xl border border-[color:var(--border-default)] border-[color:var(--border-default)] bg-white p-6 shadow-sm">
             <h3 className="font-semibold text-white mb-1">Cartera de Clientes</h3>
-            <p className="text-sm text-gray-500 text-gray-400 mb-4">
+            <p className="text-sm text-[color:var(--text-tertiary)] mb-4">
               Agrega o elimina empresas de tu cartera. Solo tú puedes ver los datos de tus clientes.
             </p>
             <button
@@ -552,8 +548,8 @@ export default function ConsultorPage() {
           </div>
 
           {clients.length > 0 && (
-            <div className="rounded-2xl border border-white/[0.06] border-white/[0.08] bg-[#141824] shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06] border-white/[0.08]">
+            <div className="rounded-2xl border border-[color:var(--border-default)] border-[color:var(--border-default)] bg-white shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[color:var(--border-default)] border-[color:var(--border-default)]">
                 <h3 className="font-semibold text-white">Empresas en tu cartera</h3>
               </div>
               <ul className="divide-y divide-gray-50 divide-slate-700/50">
@@ -561,17 +557,17 @@ export default function ConsultorPage() {
                   <li key={client.clientOrgId} className="flex items-center justify-between px-6 py-4">
                     <div>
                       <p className="text-sm font-medium text-white">{client.clientOrgName}</p>
-                      <p className="text-xs text-gray-400 text-slate-500">
+                      <p className="text-xs text-[color:var(--text-tertiary)]">
                         RUC: {client.clientRuc || '—'} · Agregado: {new Date(client.addedAt).toLocaleDateString('es-PE')}
                       </p>
                       {client.notes && (
-                        <p className="text-xs text-gray-500 text-gray-400 mt-0.5 italic">{client.notes}</p>
+                        <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5 italic">{client.notes}</p>
                       )}
                     </div>
                     <button
                       onClick={() => removeClient(client.clientOrgId)}
                       disabled={removingId === client.clientOrgId}
-                      className="flex items-center gap-1.5 rounded-lg border border-red-200 border-red-800 px-3 py-1.5 text-xs font-medium text-red-600 text-red-400 hover:bg-red-50 hover:bg-red-900/20 disabled:opacity-50"
+                      className="flex items-center gap-1.5 rounded-lg border border-red-800 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-900/20 disabled:opacity-50"
                     >
                       {removingId === client.clientOrgId ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

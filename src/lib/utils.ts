@@ -1,15 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-/**
- * Merge class names with clsx.
- * Combines conditional classes into a single string.
- *
- * If you install `tailwind-merge`, you can enhance this to:
- *   import { twMerge } from "tailwind-merge";
- *   return twMerge(clsx(inputs));
- */
 export function cn(...inputs: ClassValue[]): string {
-  return clsx(inputs);
+  return twMerge(clsx(inputs));
 }
 
 /**

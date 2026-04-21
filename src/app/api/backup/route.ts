@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { generateOrgBackup, getBackupConfig } from '@/lib/backup'
 
@@ -16,7 +16,7 @@ export async function GET() {
   return NextResponse.json(getBackupConfig())
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const { orgId, orgRole } = await auth()
   if (!orgId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

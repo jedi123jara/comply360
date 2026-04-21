@@ -117,7 +117,7 @@ export function IndemnizacionCalculadora() {
                   value={input.sueldoBruto || ''}
                   onChange={e => updateField('sueldoBruto', Number(e.target.value))}
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
             </div>
@@ -132,7 +132,7 @@ export function IndemnizacionCalculadora() {
                   type="date"
                   value={input.fechaIngreso}
                   onChange={e => updateField('fechaIngreso', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
               <div>
@@ -143,7 +143,7 @@ export function IndemnizacionCalculadora() {
                   type="date"
                   value={input.fechaDespido}
                   onChange={e => updateField('fechaDespido', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
             </div>
@@ -156,7 +156,7 @@ export function IndemnizacionCalculadora() {
               <select
                 value={input.tipoContrato}
                 onChange={e => updateField('tipoContrato', e.target.value as IndemnizacionInput['tipoContrato'])}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               >
                 {TIPOS_CONTRATO.map(t => (
                   <option key={t.value} value={t.value}>
@@ -176,7 +176,7 @@ export function IndemnizacionCalculadora() {
                   type="date"
                   value={input.fechaFinContrato || ''}
                   onChange={e => updateField('fechaFinContrato', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   Fecha pactada de finalización del contrato a plazo fijo
@@ -191,7 +191,7 @@ export function IndemnizacionCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -374,7 +374,7 @@ export function IndemnizacionCalculadora() {
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Fórmula aplicada
                 </span>
-                <div className="mt-1.5 bg-white/[0.02] bg-white/[0.04] rounded-lg p-3 border border-white/[0.08] border-white/10">
+                <div className="mt-1.5 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg p-3 border border-white/[0.08] border-white/10">
                   <code className="text-xs text-gray-200 font-mono leading-relaxed break-words">
                     {result.formula}
                   </code>
@@ -386,7 +386,7 @@ export function IndemnizacionCalculadora() {
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Base legal
                 </span>
-                <div className="mt-1.5 flex items-start gap-2 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                <div className="mt-1.5 flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                   <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                     Norma
                   </span>

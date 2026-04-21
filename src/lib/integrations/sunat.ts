@@ -54,10 +54,6 @@ export interface SunatError {
 const SUNAT_API_BASE = 'https://api.apis.net.pe/v1'
 const REQUEST_TIMEOUT_MS = 10_000
 
-function isDevelopment(): boolean {
-  return process.env.NODE_ENV === 'development'
-}
-
 // ---------------------------------------------------------------------------
 // RUC validation (algorithmic - no API call needed)
 // ---------------------------------------------------------------------------
@@ -101,52 +97,6 @@ export function validarRUC(ruc: string): boolean {
  */
 export function validarDNI(dni: string): boolean {
   return /^\d{8}$/.test(dni)
-}
-
-// ---------------------------------------------------------------------------
-// Development mock data
-// ---------------------------------------------------------------------------
-
-const MOCK_RUC_DATA: Record<string, SunatResult> = {
-  '20100130204': {
-    ruc: '20100130204',
-    razonSocial: 'BANCO DE CREDITO DEL PERU S.A.',
-    estado: 'ACTIVO',
-    condicion: 'HABIDO',
-    direccion: 'CAL. CENTENARIO NRO. 156 URB. LAS LADERAS DE MELGAREJO - LA MOLINA - LIMA',
-    actividadEconomica: '6419 - OTROS TIPOS DE INTERMEDIACION MONETARIA',
-    tipoContribuyente: 'SOCIEDAD ANONIMA',
-    fechaInscripcion: '1993-03-17',
-    ubigeo: '150114',
-  },
-  '20505897867': {
-    ruc: '20505897867',
-    razonSocial: 'EMPRESA DE EJEMPLO SAC',
-    estado: 'ACTIVO',
-    condicion: 'HABIDO',
-    direccion: 'AV. JAVIER PRADO ESTE NRO. 4600 URB. FUNDO MONTERRICO - SANTIAGO DE SURCO - LIMA',
-    actividadEconomica: '6201 - ACTIVIDADES DE PROGRAMACION INFORMATICA',
-    tipoContribuyente: 'SOCIEDAD ANONIMA CERRADA',
-    fechaInscripcion: '2004-06-15',
-    ubigeo: '150140',
-  },
-}
-
-const MOCK_DNI_DATA: Record<string, DniResult> = {
-  '12345678': {
-    dni: '12345678',
-    nombres: 'JUAN CARLOS',
-    apellidoPaterno: 'PEREZ',
-    apellidoMaterno: 'GARCIA',
-    apellidos: 'PEREZ GARCIA',
-  },
-  '87654321': {
-    dni: '87654321',
-    nombres: 'MARIA ELENA',
-    apellidoPaterno: 'LOPEZ',
-    apellidoMaterno: 'TORRES',
-    apellidos: 'LOPEZ TORRES',
-  },
 }
 
 // ---------------------------------------------------------------------------

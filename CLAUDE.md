@@ -14,15 +14,18 @@
 3. [Estado Actual del Proyecto](#3-estado-actual-del-proyecto)
 4. [Arquitectura de Datos](#4-arquitectura-de-datos)
 5. [Fases de Desarrollo](#5-fases-de-desarrollo)
-6. [Fase 0 — Cimientos](#fase-0--cimientos-estabilizar-lo-existente)
-7. [Fase 1 — MVP Vendible](#fase-1--mvp-vendible)
-8. [Fase 2 — Diferenciacion](#fase-2--diferenciacion)
-9. [Fase 3 — Compliance Completo](#fase-3--compliance-completo)
-10. [Fase 4 — Ecosistema](#fase-4--ecosistema)
-11. [Mapa de Modulos vs Fases](#6-mapa-de-modulos-vs-fases)
-12. [Convenciones de Codigo](#7-convenciones-de-codigo)
-13. [Reglas de Negocio Criticas](#8-reglas-de-negocio-criticas)
-14. [Base Legal de Referencia](#9-base-legal-de-referencia)
+6. [Fase 0 — Cimientos](#fase-0--cimientos-estabilizar-lo-existente) ✅
+7. [Fase 1 — MVP Vendible](#fase-1--mvp-vendible) ✅
+8. [Fase 1.5 — Worker App + Firma biometrica](#fase-15--worker-app--firma-biometrica-nuevo-2026-04) ✅ NUEVO
+9. [Fase 2 — Diferenciacion](#fase-2--diferenciacion) ✅
+10. [Fase 2.5 — Pivot zero-liability: Biblioteca de plantillas](#fase-25--pivot-zero-liability-biblioteca-de-plantillas-nuevo-2026-04) ✅ NUEVO
+11. [Fase 3 — Compliance Completo](#fase-3--compliance-completo) 🟡
+12. [Fase 3.5 — IA Vision para legajo](#fase-35--ia-vision-para-legajo-nuevo-2026-04) ✅ NUEVO
+13. [Fase 4 — Ecosistema](#fase-4--ecosistema) 🟡
+14. [Mapa de Modulos vs Fases](#6-mapa-de-modulos-vs-fases)
+15. [Convenciones de Codigo](#7-convenciones-de-codigo)
+16. [Reglas de Negocio Criticas](#8-reglas-de-negocio-criticas)
+17. [Base Legal de Referencia](#9-base-legal-de-referencia)
 
 ---
 
@@ -61,54 +64,104 @@ COMPLY360 PERU es la primera plataforma SaaS de compliance laboral integral del 
 
 ## 3. ESTADO ACTUAL DEL PROYECTO
 
-> **Nota (2026-04)**: El codigo avanzo mas rapido que este documento. El arbol de `src/app/api/` y `src/app/dashboard/` contiene carpetas para practicamente todos los modulos del plan maestro (workers, alertas, denuncias, sst, diagnostico, simulacro, asistente-ia, etc.). Esta seccion lista solo lo **verificado como funcional**; los modulos no listados pueden existir en distintos grados de avance y requieren auditoria individual.
+> **Snapshot 2026-04-20**: Fases F0-F2 esencialmente completas. F3 ~60%. F4 ~30% arrancada.
+> Ademas se incorporaron **3 vetas no planificadas** (portal del trabajador PWA + firma biometrica,
+> biblioteca de plantillas zero-liability, auto-verify de docs con IA vision) que resuelven
+> fricciones reales y desbloquearon nuevo valor. Ver secciones **Fase 1.5**, **Fase 2.5** y **Fase 3.5**.
+>
+> Para la foto tecnica viva (archivos, modelos, flujos end-to-end), ver [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-### 3.1 Lo que FUNCIONA (verificado)
+### 3.1 Lo que FUNCIONA (verificado, 2026-04-20)
 
+**Core legal (F0 + F1.5 + F1.6)**
 | Componente | Ubicacion | Estado |
 |-----------|-----------|--------|
-| 8 Calculadoras laborales | `src/lib/legal-engine/calculators/` | COMPLETAS - CTS, Liquidacion, Gratificacion, Indemnizacion, Horas Extras, Vacaciones, Multa SUNAFIL, Intereses Legales (344 tests pasando) |
-| Constantes laborales Peru 2026 | `src/lib/legal-engine/peru-labor.ts` | COMPLETO - RMV 1130, UIT 5500, tasas actualizadas |
-| Types del legal engine | `src/lib/legal-engine/types.ts` | COMPLETO - Interfaces para todas las calculadoras |
-| 3 Templates de contrato | `src/lib/legal-engine/contracts/templates.ts` | COMPLETOS - Indefinido (con contentBlocks), Plazo Fijo (con contentBlocks), Locacion Servicios (con contentBlocks) |
-| Worker CRUD + bulk import | `src/app/api/workers/`, `[id]/`, `import/`, `save-from-batch/` | FUNCIONAL - POST/PUT/DELETE, importacion CSV con token, ingesta batch por PDF |
-| Legajo Digital (documentos) | `src/app/api/workers/[id]/documents/route.ts` | FUNCIONAL - Upload + recalculo de legajoScore (18 tipos obligatorios) |
-| Alert engine (worker + org) | `src/lib/alerts/alert-engine.ts` | FUNCIONAL - `generateWorkerAlerts()` con alertas de contratos, vacaciones, documentos, SCTR, calendario CTS/gratificacion |
-| Alert triggers en mutaciones | `src/app/api/workers/**/route.ts` | Conectado en POST, PUT, DELETE, import, save-from-batch y documents POST |
-| Cron daily-alerts | `src/app/api/cron/daily-alerts/route.ts` + `vercel.json` | FUNCIONAL - Cronograma `0 13 * * *`, envia email por contratos proximos a vencer, SST overdue, CTS proximo |
-| Cron weekly-digest | `src/app/api/cron/weekly-digest/` + `vercel.json` | Configurado (`0 13 * * 1`) |
-| Email con Resend | `src/lib/email/client.ts`, `src/lib/email/index.ts` | FUNCIONAL - Resend API, fallback a console.log sin API key, templates HTML con branding (alertEmail, digest, welcome, complaint, password reset, newsletter) |
-| UI de calculadoras (8 forms) | `src/components/calculadoras/` | COMPLETAS - Formularios con calculo en tiempo real |
-| Sidebar + Topbar | `src/app/dashboard/_components/` | COMPLETO |
-| Auth con Clerk | `src/middleware.ts` | FUNCIONAL - Rutas protegidas |
-| Landing page | `src/app/page.tsx` | COMPLETA |
-| Componentes UI base | `src/components/ui/` | badge, button, card, input, modal, select, tabs, toast, etc. |
-| Planes y pricing | `src/lib/constants.ts` | STARTER S/49, EMPRESA S/149, PRO S/399 |
+| 13 Calculadoras laborales | `src/lib/legal-engine/calculators/` | COMPLETAS (+518 tests) - CTS, Liquidacion, Gratificacion, Indemnizacion, Horas Extras, Vacaciones, Multa SUNAFIL, Intereses Legales, Boleta, Aportes previsionales, Renta 5ta, Costo empleador, Utilidades |
+| Constantes Peru 2026 | `src/lib/legal-engine/peru-labor.ts` | COMPLETO - RMV 1130, UIT 5500 |
+| 12 Regimenes laborales | `src/lib/legal-engine/` + enums Prisma | COMPLETO - GENERAL, MYPE_MICRO/PEQUENA, AGRARIO, CONSTRUCCION, MINERO, PESQUERO, TEXTIL, DOMESTICO, CAS, MODALIDAD_FORMATIVA, TELETRABAJO |
+| Templates de contrato | `src/lib/legal-engine/contracts/templates.ts` + **biblioteca org-templates** | COMPLETO - 3 base + plantillas propias por empresa con merge fields (ver Fase 2.5) |
+
+**Multi-tenancy + Auth (F0)**
+| Componente | Ubicacion | Estado |
+|-----------|-----------|--------|
+| Auth Clerk + roles | `src/lib/auth.ts`, `src/lib/api-auth.ts`, `src/proxy.ts` | FUNCIONAL - OWNER/ADMIN/MEMBER/VIEWER/WORKER/SUPER_ADMIN |
+| Plan gating | `src/lib/plan-gate.ts`, `plan-features.ts` | FUNCIONAL - 15 features, 4 planes, upgrade funnel Culqi |
+| Onboarding wizard | `/dashboard/onboarding` | FUNCIONAL (necesita audit visual) |
+
+**Workers + Legajo (F1)**
+| Componente | Ubicacion | Estado |
+|-----------|-----------|--------|
+| Worker CRUD + bulk import | `src/app/api/workers/` | COMPLETO - manual, Excel, CSV, ingesta batch PDF |
+| Legajo Digital | `src/app/api/workers/[id]/documents/` | COMPLETO - 18 docs obligatorios, recalc `legajoScore` |
+| Alert engine (12 tipos) | `src/lib/alerts/alert-engine.ts` | COMPLETO - triggers en todas las mutaciones |
+| Worker Hub (8 tabs) | `src/components/workers/profile/` | COMPLETO - info, legajo, contratos, remuneraciones, vacaciones, SST, beneficios en vivo, historial |
+
+**Compliance (F1 + F2)**
+| Componente | Ubicacion | Estado |
+|-----------|-----------|--------|
+| Score de compliance | `src/lib/compliance/score-calculator.ts` + `sync-score.ts` | COMPLETO - snapshots historicos |
+| Diagnostico SUNAFIL | `src/lib/compliance/diagnostic-scorer.ts` + 135 preguntas | COMPLETO - FULL (135) y EXPRESS (20) + gap analysis + plan de accion |
+| Simulacro SUNAFIL | `src/lib/compliance/simulacro-engine.ts` | COMPLETO - inspeccion virtual + Acta PDF |
+| Calendario compliance | `/dashboard/calendario` | COMPLETO - CTS, grati, PLAME, AFP, vencimientos worker |
+| Dashboard cockpit | `/dashboard/page.tsx` | COMPLETO - narrative, hero ring, heatmap, radar, top risks |
+
+**IA (F2)**
+| Componente | Ubicacion | Estado |
+|-----------|-----------|--------|
+| AI Provider multi-proveedor | `src/lib/ai/provider.ts` | FUNCIONAL - OpenAI/Ollama/Deepseek/Groq |
+| Copilot drawer + streaming | `src/components/copilot/` + `src/lib/ai/chat-engine.ts` | COMPLETO - SSE + context injection por ruta |
+| RAG sobre +40 normas | `src/lib/ai/rag/` + `legal-corpus.ts` | FUNCIONAL - retriever BM25 + vector-retriever (pgvector pendiente indexado) |
+| AI Review de contratos | `src/lib/ai/contract-review.ts` | FUNCIONAL |
+| 11 Agentes especializados | `src/lib/agents/` | COMPLETO |
+| Auto-verify documentos (IA vision) | `src/lib/ai/document-verifier.ts` | COMPLETO - ver Fase 3.5 |
+
+**SST + Denuncias (F3)**
+| Componente | Ubicacion | Estado |
+|-----------|-----------|--------|
+| Hub SST | `/dashboard/sst/` + `SstRecord` | COMPLETO - politicas, IPERC, accidentes, EMO, EPP, capacitaciones |
+| Generadores SST (9) | `src/lib/generators/` | COMPLETO - politica-sst, hostigamiento, cuadro-categorias, acta-comite, plan-anual, iperc, induccion, registro-accidentes, reglamento-interno, mapa-riesgos, capacitacion-sst, entrega-epp, declaracion-jurada, horario-cartel, sintesis-legislacion |
+| Canal denuncias (Ley 27942) | `/denuncias/[slug]` publica + `/dashboard/denuncias` | COMPLETO |
+
+**Portal del Trabajador (F1.5 — NUEVO)**
+| Componente | Ubicacion | Estado |
+|-----------|-----------|--------|
+| Portal mobile-first PWA | `/mi-portal/*` | COMPLETO - inicio, documentos, boletas, solicitudes, contratos, capacitaciones, RIT, notificaciones, denuncias |
+| Firma biometrica WebAuthn | `src/lib/webauthn.ts` + `/mi-portal/boletas/[id]` + `/mi-portal/contratos/[id]` | COMPLETO - Touch ID/huella/Hello + graceful fallback a SIMPLE |
+| Cascada de onboarding | `src/lib/onboarding/cascade.ts` | COMPLETO - trigger automatico al firmar contrato |
+
+**Billing + PWA + Notificaciones**
+| Componente | Ubicacion | Estado |
+|-----------|-----------|--------|
+| Culqi upgrade funnel end-to-end | `src/lib/payments/culqi.ts` + `CulqiCheckoutModal` | COMPLETO (sin test prod todavia) |
+| PWA instalable | `public/manifest.webmanifest` + `public/sw.js` + `register-sw.tsx` | COMPLETO |
+| Push notifications (VAPID) | `src/lib/notifications/web-push-server.ts` | COMPLETO |
+| Email Resend (6 templates) | `src/lib/email/` | COMPLETO - welcome, alert, digest, complaint, password reset, worker onboarding |
+| 5 crons operativos | `vercel.json` | FUNCIONAL - daily-alerts, weekly-digest, check-trials, risk-sweep, norm-updates |
 
 ### 3.2 Lo que es STUB/PLACEHOLDER (necesita implementacion real)
 
 | Componente | Problema | Prioridad |
 |-----------|---------|-----------|
-| API /api/ai-review | Endpoint placeholder, no implementado | ALTA |
-| Generacion PDF real | Funcion existe pero no genera PDF descargable | MEDIA |
-| Activity heatmap | `src/components/dashboard/activity-heatmap.tsx` placeholder | BAJA |
-| WhatsApp Business API | Provider stub en `src/lib/notifications/index.ts` | BAJA |
-
-> **Nota**: Persistencia Prisma, onboarding wizard, AI review de contratos (analyzer funcional), notificaciones email (Resend) y API de alertas ya estan implementados. Ver 3.1.
+| WhatsApp Business API | Provider stub en `src/lib/whatsapp.ts` | BAJA |
+| PDF vision en auto-verify | Solo JPG/PNG; PDFs devuelven `unsupported` — falta `pdfjs-dist` para renderizar primera pagina | MEDIA |
+| Challenge WebAuthn server-side | Challenge actual es client-side (suficiente para validez entre partes, pero ideal moverlo a `@simplewebauthn/server`) | MEDIA |
+| pgvector indexing automatico | `vector-retriever.ts` existe, falta pipeline de ingesta | MEDIA |
+| Cron `check-trials` | No probado contra org con trial expirado real | MEDIA |
+| End-to-end signup → pago | Nunca corrido completo con usuario real | ALTA |
 
 ### 3.3 Lo que NO EXISTE (por construir)
 
-| Modulo del Plan Maestro | Dependencias |
-|------------------------|-------------|
-| Diagnostico SUNAFIL (120 preguntas) | Workers, legajo, reglas compliance |
-| Simulacro SUNAFIL interactivo | Diagnostico, legajo, reglas |
-| IA Laboral con RAG (vector store + embeddings) | Vector DB, indexado de corpus legal |
-| E-Learning | Cursos, evaluaciones, certificados |
-| Crawler normativo (scraping El Peruano/SUNAFIL) | Job scheduler, parser normas |
-| Reportes avanzados (PDF con @react-pdf/renderer) | Todos los modulos generando data real |
-| Integraciones T-REGISTRO / PLAME / firma digital | APIs externas |
+| Modulo del Plan Maestro | Fase objetivo |
+|------------------------|---------------|
+| E-Learning (cursos + evaluaciones + certificados QR) | F4.1 |
+| Crawler normativo (scraping El Peruano/SUNAFIL) | F4.2 |
+| Integraciones T-REGISTRO / PLAME / RENIEC firma digital | F4.3 |
+| Reportes avanzados PDF con `@react-pdf/renderer` | F3.3 (parcial) |
+| Marketplace de abogados | F4.4 |
+| Flag anti-fraude proactivo en auto-verify | F3.5 extension |
+| Auto-detección de `expiresAt` por IA | F3.5 extension |
 
-> **Nota**: Worker CRUD + Legajo + Alertas + Calendario + Score de compliance + SST + Denuncias + 12 regimenes + notificaciones email estan en 3.1 como FUNCIONA.
+> **Nota**: para ver cambios especificos desde que este documento empezo, revisar el changelog en [ARCHITECTURE.md §14](./ARCHITECTURE.md#14-deuda-tecnica-conocida) y la seccion de "Mantenimiento" al final del mismo.
 
 ---
 
@@ -491,10 +544,13 @@ model ComplaintTimeline {
 Cada fase tiene un objetivo de negocio claro. NO saltar fases.
 
 ```
-FASE 0 ──> FASE 1 ──> FASE 2 ──> FASE 3 ──> FASE 4
-Cimientos   MVP        Diferenc.  Compliance  Ecosistema
-(1-2 sem)   (4-6 sem)  (4-6 sem)  (4-6 sem)   (continuo)
+FASE 0 ──> FASE 1 ──> FASE 1.5 ──> FASE 2 ──> FASE 2.5 ──> FASE 3 ──> FASE 3.5 ──> FASE 4
+Cimientos   MVP       Worker App   Diferenc.  Plantillas   Compliance  IA Vision   Ecosistema
+                       + Firma                 zero-liab.              legajo
+ ✅ DONE   ✅ DONE    ✅ DONE     ✅ DONE    ✅ DONE     🟡 60%     ✅ DONE     🟡 30%
 ```
+
+**Fases "punto cinco" (1.5, 2.5, 3.5)** fueron incorporadas en 2026-04 como resultado de iteracion con usuarios y no estaban en el plan original. Resuelven fricciones reales que no se veian en el plan teorico inicial. Cada una se describe en detalle abajo.
 
 ---
 
@@ -502,35 +558,35 @@ Cimientos   MVP        Diferenc.  Compliance  Ecosistema
 
 **Objetivo**: Que lo que ya existe funcione con datos reales, no mock.
 
-#### F0.1 — Conectar base de datos PostgreSQL
-- [ ] Configurar PostgreSQL local o Supabase
-- [ ] Verificar que DATABASE_URL en .env funciona
-- [ ] Ejecutar `npx prisma migrate dev` con el schema actual
-- [ ] Verificar que Prisma Client se genera correctamente en `src/generated/prisma`
+#### F0.1 — Conectar base de datos PostgreSQL ✅
+- [x] Configurar PostgreSQL local o Supabase
+- [x] Verificar que DATABASE_URL en .env funciona
+- [x] Ejecutar `npx prisma migrate dev` con el schema actual
+- [x] Verificar que Prisma Client se genera correctamente en `src/generated/prisma`
 
-#### F0.2 — Seed de datos iniciales
-- [ ] Crear `prisma/seed.ts` con:
+#### F0.2 — Seed de datos iniciales ✅
+- [x] Crear `prisma/seed.ts` con:
   - Normas legales base (D.Leg. 728, Ley 29783, Ley 27942, Ley 32353, etc.)
   - Reglas de compliance con sus formulas
   - Templates de contrato (los 3 existentes + nuevos)
   - Alertas normativas de ejemplo
-- [ ] Configurar seed en package.json
+- [x] Configurar seed en package.json
 
-#### F0.3 — Conectar paginas existentes a datos reales
-- [ ] Dashboard: reemplazar STATS, RECENT_ACTIVITY, etc. con queries Prisma
-- [ ] Contratos: CRUD real (crear, listar, editar, eliminar)
-- [ ] Calculadoras: guardar resultados en tabla Calculation
-- [ ] Alertas: leer de NormAlert/OrgAlert reales
-- [ ] Expedientes: evaluar si se mantiene o se integra en contratos
+#### F0.3 — Conectar paginas existentes a datos reales ✅
+- [x] Dashboard: reemplazar STATS, RECENT_ACTIVITY, etc. con queries Prisma
+- [x] Contratos: CRUD real (crear, listar, editar, eliminar)
+- [x] Calculadoras: guardar resultados en tabla Calculation
+- [x] Alertas: leer de NormAlert/OrgAlert reales
+- [x] Expedientes: mantenido como ruta independiente, integracion parcial con Contracts
 
-#### F0.4 — Onboarding funcional
-- [ ] Implementar `onboarding-wizard.tsx` real:
+#### F0.4 — Onboarding funcional ✅ (necesita audit visual)
+- [x] Implementar `onboarding-wizard.tsx` real:
   - Paso 1: Datos empresa (RUC, razon social, sector, tamanio)
   - Paso 2: Seleccion de regimen principal
   - Paso 3: Configuracion de alertas (email del responsable RRHH)
   - Paso 4: Resumen y creacion de Organization en DB
-- [ ] Al completar onboarding, marcar `organization.onboardingCompleted = true`
-- [ ] Redirigir a onboarding si no completado
+- [x] Al completar onboarding, marcar `organization.onboardingCompleted = true`
+- [x] Redirigir a onboarding si no completado
 
 **Criterio de completitud Fase 0**: Puedes crear una cuenta, completar onboarding, generar un contrato real que se guarde en DB, hacer un calculo que se guarde, y ver alertas reales.
 
@@ -540,106 +596,98 @@ Cimientos   MVP        Diferenc.  Compliance  Ecosistema
 
 **Objetivo**: Un producto por el que una empresa pague S/49-149/mes. Gestion de trabajadores + alertas inteligentes + contratos.
 
-#### F1.1 — Modelo Worker y CRUD de Trabajadores (Modulo 2)
+#### F1.1 — Modelo Worker y CRUD de Trabajadores (Modulo 2) ✅
 
 Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadores.
 
-- [ ] Agregar modelo Worker al schema Prisma (ver seccion 4.2)
-- [ ] Agregar modelos WorkerDocument, VacationRecord, WorkerContract, WorkerAlert
-- [ ] Crear migracion y verificar
-- [ ] Pagina `/dashboard/trabajadores` — Lista de trabajadores
-  - Vista tabla con columnas: Nombre, DNI, Cargo, Regimen, Fecha Ingreso, Sueldo, Score Legajo, Estado
-  - Filtros: por regimen, por estado, por departamento
-  - Busqueda por nombre o DNI
-  - Paginacion
-  - Boton "Agregar Trabajador"
-- [ ] Pagina `/dashboard/trabajadores/nuevo` — Formulario alta
-  - Datos personales: DNI (validar 8 digitos), nombres, apellidos, fecha nacimiento, genero, direccion, email, telefono
-  - Datos laborales: cargo, area, regimen laboral (dropdown con los 12 regimenes), tipo contrato, fecha ingreso, sueldo bruto, jornada semanal, asignacion familiar
-  - Datos previsionales: AFP/ONP, nombre AFP, CUSPP, SCTR
-  - Deteccion automatica de regimen: si la empresa tiene < 10 trabajadores y ventas < 150 UIT → sugerir MYPE_MICRO
-  - Validacion de duplicados por DNI dentro de la misma org
-- [ ] Pagina `/dashboard/trabajadores/[id]` — Perfil del trabajador
-  - Header con foto placeholder, nombre, cargo, regimen, estado
-  - Tabs: Informacion | Legajo Digital | Contratos | Vacaciones | Beneficios | Historial
-  - Tab Informacion: datos editables del trabajador
-  - Tab Legajo Digital: lista de 28 documentos obligatorios con estado (subido/faltante/vencido), upload de archivos, % de completitud
-  - Tab Contratos: contratos vinculados, generar nuevo contrato para este trabajador
-  - Tab Vacaciones: periodos, dias gozados/pendientes, alertas de doble periodo
-  - Tab Beneficios: calculo en tiempo real de CTS, gratificacion, vacaciones usando las calculadoras existentes y los datos del trabajador
-  - Tab Historial: audit log filtrado por este trabajador
+- [x] Agregar modelo Worker al schema Prisma (ver seccion 4.2)
+- [x] Agregar modelos WorkerDocument, VacationRecord, WorkerContract, WorkerAlert
+- [x] Crear migracion y verificar
+- [x] Pagina `/dashboard/trabajadores` — Lista de trabajadores (con KpiGrid + filtros)
+- [x] Pagina `/dashboard/trabajadores/nuevo` — Formulario alta (con DNI auto-fetch RENIEC)
+- [x] Pagina `/dashboard/trabajadores/[id]` — Worker Hub con 8 tabs (Informacion | Legajo | Contratos | Remuneraciones | Vacaciones | SST | Beneficios | Historial)
 
-#### F1.2 — Importacion masiva de trabajadores
-- [ ] Boton "Importar Excel" en pagina de trabajadores
-- [ ] Template Excel descargable con columnas esperadas
-- [ ] Parser de Excel (usar `xlsx` o `exceljs`)
-- [ ] Vista previa de datos parseados con validacion (DNI duplicado, campos requeridos)
-- [ ] Importacion en lote con reporte de errores
-- [ ] Alternativa: importar desde archivo CSV
+#### F1.2 — Importacion masiva de trabajadores ✅
+- [x] Boton "Importar Excel" en pagina de trabajadores
+- [x] Template Excel descargable con columnas esperadas
+- [x] Parser de Excel (usar `xlsx` o `exceljs`)
+- [x] Vista previa de datos parseados con validacion (DNI duplicado, campos requeridos)
+- [x] Importacion en lote con reporte de errores
+- [x] Alternativa: importar desde archivo CSV + ingesta batch de PDFs con IA
 
-#### F1.3 — Alertas Inteligentes por Trabajador (Modulo 4 mejorado)
-- [ ] Crear servicio `src/lib/alerts/alert-engine.ts`
-- [ ] Generar alertas automaticas al crear/editar trabajador:
-  - CONTRATO_POR_VENCER: contrato plazo fijo con < 30 dias para vencer
-  - CONTRATO_VENCIDO: contrato ya vencido sin renovar
-  - VACACIONES_ACUMULADAS: > 1 periodo sin goce
-  - VACACIONES_DOBLE_PERIODO: 2+ periodos → triple vacacional
-  - DOCUMENTO_FALTANTE: documentos obligatorios no subidos
-  - DOCUMENTO_VENCIDO: SCTR, examen medico, etc. vencido
-  - REGISTRO_INCOMPLETO: legajo < 70% completo
-- [ ] Generar alertas por calendario:
-  - CTS_PENDIENTE: 15 de mayo y noviembre
-  - GRATIFICACION_PENDIENTE: julio y diciembre
-  - AFP_EN_MORA: dia 5 de cada mes
-- [ ] Pagina `/dashboard/alertas` mejorada:
-  - Reemplazar alertas mock con alertas reales de WorkerAlert + NormAlert
-  - Filtros por severidad (CRITICAL/HIGH/MEDIUM/LOW)
-  - Accion directa: clic en alerta → navega al trabajador/documento afectado
-  - Marcar como resuelta con evidencia
-  - Conteo en badge del sidebar
+#### F1.3 — Alertas Inteligentes por Trabajador (Modulo 4 mejorado) ✅
+- [x] Crear servicio `src/lib/alerts/alert-engine.ts`
+- [x] Generar alertas automaticas al crear/editar trabajador (12 tipos):
+  - CONTRATO_POR_VENCER, CONTRATO_VENCIDO, VACACIONES_ACUMULADAS,
+    VACACIONES_DOBLE_PERIODO, DOCUMENTO_FALTANTE, DOCUMENTO_VENCIDO,
+    REGISTRO_INCOMPLETO, EXAMEN_MEDICO_VENCIDO, CAPACITACION_PENDIENTE
+- [x] Generar alertas por calendario (CTS_PENDIENTE, GRATIFICACION_PENDIENTE, AFP_EN_MORA)
+- [x] Pagina `/dashboard/alertas` con severidad + navegacion + resolve + conteo sidebar
 
-#### F1.4 — Calendario de Compliance (Modulo 4)
-- [ ] Pagina `/dashboard/calendario`
-- [ ] Vista mensual con vencimientos:
-  - Pre-cargados: CTS (15 may/nov), Gratificaciones (15 jul/dic), PLAME (cronograma SUNAT), AFP (1-5 cada mes)
-  - Dinamicos: vencimientos de contratos, vacaciones, documentos, SCTR
-- [ ] Vista "Proximos 30 dias" tipo lista priorizada
-- [ ] Exportacion iCal para Google Calendar / Outlook
-- [ ] Agregar item al sidebar NAV_ITEMS en constants.ts
+#### F1.4 — Calendario de Compliance (Modulo 4) ✅
+- [x] Pagina `/dashboard/calendario`
+- [x] Vista mensual con vencimientos pre-cargados + dinamicos
+- [x] Vista "Proximos 30 dias" tipo lista priorizada
+- [x] Exportacion iCal para Google Calendar / Outlook
+- [x] Agregar item al sidebar NAV_ITEMS en constants.ts
 
-#### F1.5 — Contratos expandidos (Modulo 3 mejorado)
-- [ ] Agregar templates nuevos a `contracts/templates.ts`:
-  - Contrato tiempo parcial (< 4 horas)
-  - Contrato MYPE microempresa
-  - Contrato MYPE pequena empresa
-  - Carta de amonestacion
-  - Carta de pre-aviso de despido
-  - Carta de despido
-  - Carta de renuncia (para firma del trabajador)
-  - Certificado/Constancia de trabajo
-  - Liquidacion de beneficios sociales
-- [ ] Vincular generacion de contrato con Worker: al generar contrato desde perfil del trabajador, pre-llenar datos
-- [ ] Validacion legal automatica basica: verificar que tipo de contrato sea compatible con regimen
+#### F1.5 — Contratos expandidos (Modulo 3 mejorado) ✅ (evolucionado en Fase 2.5)
+- [x] Agregar templates nuevos a `contracts/templates.ts` (3 base)
+- [x] Vincular generacion de contrato con Worker: al generar contrato desde perfil del trabajador, pre-llenar datos
+- [x] Validacion legal automatica basica: verificar que tipo de contrato sea compatible con regimen
+- [x] **Pivot zero-liability (Fase 2.5)**: biblioteca de plantillas propias de la empresa con merge fields `{{PLACEHOLDERS}}` — reemplaza la ruta original de "templates codificados en src/lib"
 
-#### F1.6 — Dashboard mejorado con Score de Compliance (Modulo 1)
-- [ ] Crear servicio `src/lib/compliance/score-calculator.ts`
-- [ ] Score Global (0-100) = promedio ponderado:
-  - Contratos vigentes y registrados: peso 20%
-  - Legajos completos: peso 15%
-  - CTS al dia: peso 15%
-  - Gratificaciones al dia: peso 10%
-  - Vacaciones sin acumulacion ilegal: peso 10%
-  - SST basico (documentos): peso 15%
-  - Documentos obligatorios completos: peso 15%
-- [ ] Reemplazar stats mock del dashboard con datos reales:
-  - Total trabajadores activos
-  - Alertas criticas abiertas
-  - Score de compliance
-  - Contratos por vencer en 30 dias
-- [ ] Semaforo visual: >= 80 verde, 60-79 amarillo, < 60 rojo
-- [ ] Monto total de multa potencial estimada
+#### F1.6 — Dashboard mejorado con Score de Compliance (Modulo 1) ✅
+- [x] Crear servicio `src/lib/compliance/score-calculator.ts`
+- [x] Score Global (0-100) = promedio ponderado por area (contratos, legajo, CTS, grati, vac, SST, docs)
+- [x] Reemplazar stats mock del dashboard con datos reales
+- [x] Semaforo visual: >= 80 verde, 60-79 amarillo, < 60 rojo
+- [x] Monto total de multa potencial estimada
+- [x] **Cockpit narrativo** (reemplazo del dashboard-grid tradicional): hero ring animado + heatmap + radar sectorial + top 5 workers riesgo + next deadlines
 
 **Criterio de completitud Fase 1**: Una empresa puede registrar sus trabajadores (manual o Excel), ver el legajo digital con % completitud, recibir alertas automaticas de vencimientos, generar contratos vinculados a trabajadores, ver su score de compliance y calendario de obligaciones. ESTO YA SE PUEDE VENDER.
+
+---
+
+### FASE 1.5 — WORKER APP + FIRMA BIOMETRICA (NUEVO, 2026-04)
+
+**Objetivo**: darle al TRABAJADOR su propio canal digital — app instalable en su celular, con firma biometrica legal y flujo de onboarding automatizado post-firma de contrato.
+
+**Razon estrategica**: sin esto, la empresa dependia de mandar PDFs por email y rezar que los trabajadores los firmaran. Con el portal:
+1. El trabajador tiene un unico lugar donde ver boletas, firmar contratos, subir documentos, ver RIT/politicas y hacer solicitudes
+2. La empresa tiene **audit trail criptografico** de cada firma (IP + userAgent + credentialId + timestamp) — evidencia solida ante SUNAFIL y juicios laborales
+3. **Zero fricción**: el trabajador firma con su Touch ID / huella / Face ID sin pelear con DocuSign ni impresoras
+4. **Cascada automatica**: al firmar contrato → cadena de onboarding (legajo + politicas + emails) sin intervencion admin
+
+#### F1.5.1 — Portal del Trabajador (PWA mobile-first) ✅
+- [x] Modelo `User` con rol `WORKER` + vinculo a `Worker` via `userId`
+- [x] Layout `/mi-portal/layout.tsx` mobile-first con bottom tab nav (5 tabs) + drawer secundario
+- [x] 5 tabs principales: Inicio, Documentos, Boletas, Solicitudes, Perfil
+- [x] Nav secundaria: Contratos, Capacitaciones, RIT y Politicas, Notificaciones, Canal de Denuncias
+- [x] PWA instalable (manifest + service worker) con install prompt beforeinstallprompt
+- [x] Push notifications VAPID desde /mi-portal
+- [x] Logout via `useClerk().signOut({ redirectUrl: '/sign-in' })`
+- [x] Safe-area-inset handling para iOS
+
+#### F1.5.2 — Firma biometrica WebAuthn (Ley 27269) ✅
+- [x] Lib `src/lib/webauthn.ts` con `tryBiometricCeremony()` + `hasBiometricHardware()` + graceful fallback
+- [x] 3 niveles de firma: `SIMPLE` (checkbox), `BIOMETRIC` (WebAuthn), `CERTIFIED` (reservado para RENIEC futuro)
+- [x] Firma de **boletas** en `/mi-portal/boletas/[id]` con `BiometricCeremonyModal`
+- [x] Firma de **contratos** en `/mi-portal/contratos/[id]` con el mismo patron
+- [x] Audit trail en `AuditLog` con IP + userAgent + credentialId + timestamp
+- [x] Metadata de firma persistida en `Contract.formData._signature` y `Payslip.acceptedAt`
+- [ ] **Pendiente**: challenge server-side con `@simplewebauthn/server` (hoy el challenge es client-side — suficiente para validez entre partes, ideal para replay-protection fuerte)
+
+#### F1.5.3 — Cascada de onboarding ✅
+- [x] Lib `src/lib/onboarding/cascade.ts` con `runOnboardingCascade(workerId, opts)` + `runOnboardingCascadeBatch`
+- [x] Template `workerOnboardingEmail()` dedicado en `src/lib/email/templates.ts`
+- [x] Auto-trigger en `PATCH /api/contracts/[id]` cuando `status → SIGNED`
+- [x] Auto-trigger en `POST /api/mi-portal/contratos/[id]/firmar`
+- [x] Endpoint manual `POST /api/workers/[id]/onboarding-cascade` para re-disparar
+- [x] UI `OnboardingCascadeCard` en tab-info del worker profile (admin puede disparar + ver resultado)
+- [x] Idempotencia via `AuditLog.action='ONBOARDING_CASCADE_EXECUTED'` (salvo `force: true`)
+
+**Criterio de completitud Fase 1.5**: el trabajador recibe un email tras firmar su contrato, entra al portal desde su celular, firma con huella, sube los documentos que le piden y la empresa ve todo reflejado en tiempo real en el worker profile. Cero mails con PDFs sueltos.
 
 ---
 
@@ -647,88 +695,89 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 
 **Objetivo**: Las funcionalidades que hacen que COMPLY360 sea unico en el mercado peruano. El "wow factor" que justifica el plan PRO.
 
-#### F2.1 — Diagnostico SUNAFIL con Score (Modulo 5)
+#### F2.1 — Diagnostico SUNAFIL con Score (Modulo 5) ✅
 
-- [ ] Crear base de preguntas de compliance en `src/lib/compliance/questions/`
-  - 120 preguntas para diagnostico completo, agrupadas por area:
-    - Contratos y registro (15 preguntas)
-    - Remuneraciones y beneficios (20 preguntas)
-    - Jornada y descansos (15 preguntas)
-    - Seguridad y Salud en el Trabajo (25 preguntas)
-    - Documentos obligatorios (15 preguntas)
-    - Relaciones laborales (10 preguntas)
-    - Igualdad y no discriminacion (10 preguntas)
-    - Trabajadores especiales (10 preguntas)
+- [x] Crear base de preguntas de compliance en `src/lib/compliance/questions/`
+  - **135 preguntas** agrupadas en 8 areas (superamos las 120 planificadas)
   - 20 preguntas para diagnostico express
-  - Cada pregunta tiene: texto, area, base_legal, multa_asociada, peso, logica_condicional
-- [ ] Logica condicional: si empresa < 20 trabajadores → omitir preguntas de Comite SST, si regimen MYPE → ajustar beneficios esperados
-- [ ] Pagina `/dashboard/diagnostico`
-  - Seleccion: Diagnostico Completo (120) vs Express (20)
-  - Wizard de preguntas agrupadas por area
-  - Para cada pregunta: Si/No/Parcial + campo para subir evidencia
-  - Barra de progreso
-- [ ] Pagina de resultados `/dashboard/diagnostico/[id]/resultado`
-  - Score global ponderado por area
-  - Desglose por area con semaforo
-  - Gap Analysis: top 10 items urgentes ordenados por (multa_estimada x probabilidad_deteccion)
-  - Plan de accion generado: por cada brecha → tarea, responsable sugerido, plazo, documento a generar
-  - Monto total de multa potencial
-  - Boton "Generar Plan de Accion" que crea tareas en el sistema
-- [ ] Crear modelos ComplianceDiagnostic y ComplianceScore en Prisma (ver seccion 4.2)
-- [ ] Historial de diagnosticos con grafico de evolucion del score
+  - Cada pregunta con texto, area, base_legal, multa_asociada, peso, logica condicional
+- [x] Logica condicional (régimen, tamaño org, sector)
+- [x] Pagina `/dashboard/diagnostico` con wizard Typeform-style + progress bar
+- [x] Pagina de resultados con radar chart + gap analysis + action plan
+- [x] Modelos `ComplianceDiagnostic` y `ComplianceScore` en Prisma
+- [x] Historial de diagnosticos con grafico de evolucion del score
+- [x] **`ComplianceTask` spawner** (`task-spawner.ts`): action plan → tareas ejecutables con owners sugeridos
 
-#### F2.2 — Simulacro SUNAFIL Interactivo (Modulo 6)
+#### F2.2 — Simulacro SUNAFIL Interactivo (Modulo 6) ✅
 
-- [ ] Pagina `/dashboard/simulacro`
-  - PASO 1 — Configuracion:
-    - Tipo de inspeccion: preventiva, por denuncia, por programa sectorial
-    - El sistema adapta el checklist al tipo + sector de la empresa
-  - PASO 2 — Visita Virtual:
-    - UI tipo chat/conversacion con "Inspector Virtual"
-    - Solicitudes secuenciales: "Muestreme el registro de asistencia del mes anterior"
-    - Para cada solicitud, buscar en legajo digital si existe el documento
-    - Si existe y vigente: verde con checkmark
-    - Si falta o vencido: rojo con multa estimada
-  - PASO 3 — Requerimiento Virtual:
-    - Genera "Acta de Requerimiento" con hallazgos (formato R.M. 199-2016-TR)
-  - PASO 4 — Informe de Riesgo:
-    - PDF descargable: infracciones por categoria (leves/graves/muy graves), multa total, plan de subsanacion
-    - Calculo del 90% de descuento si subsana antes de inspeccion real
-- [ ] Base de conocimiento: 28 tipos de documentos que SUNAFIL solicita, por sector
-- [ ] Guardar resultado como ComplianceDiagnostic tipo SIMULATION
+- [x] Pagina `/dashboard/simulacro` con los 4 pasos (config → visita virtual → requerimiento → informe)
+- [x] Base de conocimiento: 28 tipos de documentos que SUNAFIL solicita, por sector
+- [x] Guardar resultado como ComplianceDiagnostic tipo SIMULATION
+- [x] Generacion de Acta de Requerimiento (R.M. 199-2016-TR) en PDF
 
-#### F2.3 — IA Laboral Peruana (Modulo 9)
+#### F2.3 — IA Laboral Peruana (Modulo 9) ✅
 
-- [ ] Definir arquitectura RAG:
-  - Vector store: Supabase pgvector (aprovechar PostgreSQL existente) o Pinecone
-  - Embeddings: OpenAI text-embedding-3-small
-  - LLM: GPT-4o o Claude (segun costo)
-- [ ] Indexar corpus legal:
-  - D.Leg. 728 y reglamento (D.S. 003-97-TR)
-  - Ley 29783 y reglamento (D.S. 005-2012-TR)
-  - Ley 27942 (hostigamiento)
-  - Ley 32353 (MYPE)
-  - Ley 31110 (agrario)
-  - Ley 30709 (igualdad salarial)
-  - D.S. 019-2006-TR (infracciones SUNAFIL)
-  - +40 normas adicionales
-  - Resoluciones TFL de SUNAFIL (top 500 mas relevantes)
-- [ ] Pagina `/dashboard/asistente-ia`
-  - Chat interface con historial de conversaciones
-  - Modo contextual: el asistente conoce datos de la empresa (regimen, sector, n trabajadores)
-  - Respuestas con citacion de base legal exacta
-  - Capacidades: consultas, calculos, borradores de documentos, explicacion de procesos
-  - Escalamiento: si la consulta excede capacidades → boton "Consultar con abogado"
-- [ ] API route `/api/ai-chat` con:
-  - Context injection (datos de la empresa)
-  - RAG pipeline (retrieve relevant law chunks → generate answer)
-  - Guardar conversaciones para historial
-- [ ] Implementar tambien el AI Review de contratos (completar el stub existente):
-  - Analizar contrato generado vs normas aplicables
-  - Score de riesgo 0-100
-  - Lista de clausulas riesgosas con recomendacion
+- [x] Arquitectura RAG (wrapper multi-proveedor: OpenAI / Ollama / Deepseek / Groq)
+- [x] Indexar corpus legal: +40 normas + resoluciones TFL en `src/lib/ai/rag/legal-corpus.ts` y `extended-corpus.ts`
+- [x] **Copilot drawer persistente** (reemplazo evolutivo de `/dashboard/asistente-ia` como pagina aislada):
+  - Chat con historial por conversacion
+  - Streaming SSE
+  - Context injection automatico por ruta (worker, contract, etc.)
+  - Shortcut global `Cmd+I` / `Ctrl+I`
+- [x] API route `/api/ai-chat` con streaming + context injection
+- [x] AI Review de contratos con scoring de riesgo + clausulas peligrosas (`src/lib/ai/contract-review.ts`)
+- [x] **11 agentes especializados** en `src/lib/agents/` (review, generacion, plan de accion, inspector SUNAFIL, etc.)
+- [ ] **Pendiente**: pipeline automatico de indexado pgvector (el vector-retriever existe pero la ingesta inicial es manual)
 
 **Criterio de completitud Fase 2**: Una empresa puede correr un diagnostico completo, simular una inspeccion SUNAFIL interactiva, consultar al asistente IA sobre cualquier tema laboral peruano, y recibir revision inteligente de contratos. ESTO JUSTIFICA EL PLAN PRO A S/399/mes.
+
+---
+
+### FASE 2.5 — PIVOT ZERO-LIABILITY: BIBLIOTECA DE PLANTILLAS (NUEVO, 2026-04)
+
+**Decision estrategica**: el plan original apuntaba a "IA genera contratos" (F2 Modulo 3+9), pero esto crea **riesgo legal** para Comply360 — si la IA escribe una clausula invalida y la empresa la firma, somos corresponsables.
+
+**Pivot**: en lugar de IA escribiendo clausulas, la empresa **sube su propio contrato** (ya revisado por su abogado) con placeholders `{{NOMBRE_COMPLETO}}`, `{{DNI}}`, `{{SUELDO}}` — y el sistema hace **sustitucion deterministica**. Zero IA escribiendo contenido legal → zero liability.
+
+**Tradeoff**: perdemos el "wow" de "IA te escribe el contrato". Ganamos:
+- Cero riesgo legal para Comply360
+- La empresa mantiene su branding y lenguaje juridico propio
+- Es lo que **sus abogados ya validaron** — menos fricción de adopcion
+- Podemos sumar IA generativa mas adelante como feature opt-in (plan PRO+) cuando el producto madure
+
+#### F2.5.1 — Motor de merge fields ✅
+- [x] Lib `src/lib/templates/org-template-engine.ts` con:
+  - Schema `contract_template_v1` (metadata JSON serializada)
+  - Catalogo de 24 placeholders estandar (worker.firstName, worker.dni, worker.sueldoEnLetras, org.ruc, meta.today, etc.)
+  - `detectPlaceholders(content)` — regex `/\{\{\s*([A-Z_][A-Z0-9_]*)\s*\}\}/g`
+  - `renderTemplate(content, mappings, context, options)` — sustitucion pura
+  - `numberToWords` (soles peruanos para `SUELDO_LETRAS`)
+  - `formatDateDMY` / `formatDateInWords` / `formatMoney`
+- [x] 17 tipos de documento soportados: CONTRATO_INDEFINIDO, CONTRATO_PLAZO_FIJO, CONTRATO_TIEMPO_PARCIAL, CONTRATO_MYPE, CONTRATO_LOCACION_SERVICIOS, CONVENIO_PRACTICAS, ADDENDUM_AUMENTO, ADDENDUM_CAMBIO_CARGO, CARTA_PREAVISO_DESPIDO, CARTA_DESPIDO, CARTA_RENUNCIA, CERTIFICADO_TRABAJO, CONSTANCIA_HABERES, LIQUIDACION_BENEFICIOS, FINIQUITO, MEMORANDUM, AUMENTO_SUELDO
+
+#### F2.5.2 — API CRUD + generador PDF ✅
+- [x] `GET/POST /api/org-templates` — lista y creacion (plan gate EMPRESA+ via `ia_contratos`)
+- [x] `GET/PATCH/DELETE /api/org-templates/[id]` — editor detalle con auto-bump de `version`
+- [x] `POST /api/org-templates/[id]/generate?format=json|pdf` — merge con worker → crea `Contract` DRAFT + `WorkerContract` + AuditLog + incrementa `usageCount`
+- [x] PDF con jsPDF usando helpers compartidos (`src/lib/pdf/server-pdf.ts`)
+
+#### F2.5.3 — UI admin ✅
+- [x] `/dashboard/configuracion/empresa/plantillas/page.tsx` — lista + stats (placeholders / mapeados / usos)
+- [x] `/dashboard/configuracion/empresa/plantillas/[id]/page.tsx` — editor split con:
+  - Editor de contenido en mono font
+  - Sidebar de placeholders detectados con select agrupado (Trabajador / Empresa / Metadata)
+  - Boton "Auto-mapear" que cruza contra catalogo
+  - Catalogo completo de 24 fields inyectables con click
+  - Modal "Generar" con preview JSON + download PDF
+- [x] Plantilla de ejemplo precargada en modal de creacion para onboarding suave
+- [x] Sidebar: nuevo item "Plantillas de contratos" en hub **Contratos & Docs**
+
+#### F2.5.4 — Persistencia sin migracion ✅
+- [x] Reuso `OrgDocument` con `type: 'OTRO'` + metadata JSON serializada en `description` (schema `contract_template_v1`)
+- [x] `parseTemplate(doc.description)` + `isOrgTemplate(doc)` helpers para filtrar docs de plantillas
+- [x] **Zero DB migrations** para todo el feature
+
+**Criterio de completitud Fase 2.5**: el admin sube el contrato que le paso su abogado, marca `{{VARIABLES}}`, las mapea al catalogo, y genera un PDF listo para firma por cada trabajador en 2 clicks. Cero riesgo legal porque el contenido es suyo.
 
 ---
 
@@ -736,58 +785,76 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 
 **Objetivo**: Cubrir los modulos especializados que completan la oferta integral.
 
-#### F3.1 — SST Completo (Modulo 7)
-- [ ] Pagina `/dashboard/sst` con sub-secciones:
-  - Politica SST: generador con los 8 elementos obligatorios (Art. 22 Ley 29783)
-  - IPERC Digital: biblioteca de +500 peligros por sector, calculo AxB, matriz formato R.M. 050-2013-TR
-  - Plan Anual SST: asistente paso a paso con diagnostico, objetivos SMART, cronograma
-  - Comite/Supervisor SST: gestion electoral, mandato, actas mensuales
-  - Registro de accidentes/incidentes: formulario formato SUNAFIL, notificacion 24h MTPE
-  - Examenes medicos: control de vencimientos
-  - Capacitaciones SST: 4 minimas/anio, registro de asistencia
-  - Entrega de EPP: control por trabajador
-  - Mapa de riesgos: generador con senaletica estandarizada
-- [ ] Modelos SstRecord y sub-tipos en Prisma (ver seccion 4.2)
-- [ ] Integracion con score de compliance: SST pesa 15% del score global
+#### F3.1 — SST Completo (Modulo 7) ✅
+- [x] Pagina `/dashboard/sst` con sub-secciones operativas (politicas, IPERC, plan anual, comite, accidentes, EMO, capacitaciones, EPP, mapa riesgos)
+- [x] Modelos SstRecord y sub-tipos en Prisma
+- [x] Integracion con score de compliance: SST pesa 15% del score global
+- [x] **15 generadores de documentos compliance** en `src/lib/generators/` (politica-sst, hostigamiento, cuadro-categorias, acta-comite, plan-anual-sst, iperc, induccion-sst, registro-accidentes, reglamento-interno, capacitacion-sst, entrega-epp, mapa-riesgos, declaracion-jurada, horario-cartel, sintesis-legislacion)
 
-#### F3.2 — Canal de Denuncias (Modulo 8)
-- [ ] URL publica por empresa: `comply360.pe/denuncias/[org-slug]`
-  - Formulario accesible SIN login
-  - Opcion anonima o nominada
-  - Campos: tipo de conducta, descripcion, evidencia (upload), datos del denunciante (opcional)
-- [ ] Triaje con IA: clasificar tipo (hostigamiento, discriminacion, acoso laboral, otro)
-- [ ] Pagina `/dashboard/denuncias` (solo visible para Admin/Owner):
-  - Lista de denuncias con estado
-  - Gestion del Comite de Intervencion
-  - Timeline visual del proceso (plazos: 3 dias medidas proteccion, 30 dias investigacion, 5 dias resolucion)
-  - Registro de declaraciones y evidencias
-  - Resolucion con base legal
-  - Medidas de proteccion (checklist)
-- [ ] Modelos Complaint y ComplaintTimeline en Prisma (ver seccion 4.2)
-- [ ] Politica de hostigamiento: generador conforme D.S. 014-2019-MIMP
-- [ ] Estadisticas anuales anonimizadas para informe de gestion
+#### F3.2 — Canal de Denuncias (Modulo 8) ✅
+- [x] URL publica por empresa: `comply360.pe/denuncias/[org-slug]`
+- [x] Formulario sin login + opcion anonima/nominada + upload evidencia
+- [x] Pagina `/dashboard/denuncias` con lista + gestion Comite + timeline + resolucion
+- [x] Modelos `Complaint` y `ComplaintTimeline` en Prisma
+- [x] Politica de hostigamiento: generador conforme D.S. 014-2019-MIMP
+- [ ] **Pendiente**: triaje automatico con IA + estadisticas anuales anonimizadas para informe gestion
 
-#### F3.3 — Reportes Avanzados (Modulo 12)
-- [ ] Refactorizar pagina `/dashboard/reportes` con reportes reales:
-  - Reporte Ejecutivo de Compliance: score, evolucion, areas en riesgo, multas evitadas
-  - Reporte SUNAFIL-Ready: inventario de 28 documentos con estado
-  - Reporte SST Anual: accidentabilidad, frecuencia, gravedad, capacitaciones
-  - Reporte de Nomina y Beneficios: CTS, gratificaciones, vacaciones por periodo
-  - Reporte de Contratos: vigentes por modalidad, por vencer, renovaciones
-  - Reporte de Hostigamiento: denuncias (anonimizado), tiempos resolucion
-  - Reporte para Auditor Externo: ZIP con todos los documentos de un periodo
-- [ ] Generacion PDF profesional con logo de empresa (usar @react-pdf/renderer o similar)
-- [ ] Exportacion Excel y CSV
-- [ ] Programar reportes periodicos (mensual/trimestral)
+#### F3.3 — Reportes Avanzados (Modulo 12) 🟡 PARCIAL
+- [x] Pagina `/dashboard/reportes/*` (rutas existen para los 7 tipos)
+- [x] PDF generacion base con jsPDF (helpers compartidos en `src/lib/pdf/server-pdf.ts`)
+- [ ] **Pendiente**: refactor con @react-pdf/renderer para reportes ejecutivos profesionales
+- [ ] **Pendiente**: exportacion Excel de los reportes (CSV existe via `src/lib/exports/`)
+- [ ] **Pendiente**: programar reportes periodicos (mensual/trimestral) — hoy son on-demand
 
-#### F3.4 — Notificaciones Multi-Canal
-- [ ] Email: integrar con servicio de email (Resend, SendGrid o SES)
-  - Alertas a 30, 15, 7, 3 y 1 dia de vencimiento
-  - Template HTML profesional con instrucciones de accion
-- [ ] WhatsApp Business API: mensajes para alertas criticas al responsable RRHH
-- [ ] Preferencias de notificacion en configuracion (ya existe el UI)
+#### F3.4 — Notificaciones Multi-Canal 🟡 PARCIAL (email + push done)
+- [x] Email Resend con 6 templates (welcome, alert, digest, complaint, password reset, worker onboarding)
+- [x] Alertas a 30, 15, 7, 3 y 1 dia de vencimiento via cron daily-alerts
+- [x] Push notifications VAPID operativas (solo CRITICAL)
+- [x] Preferencias de notificacion en `/dashboard/configuracion/notificaciones`
+- [ ] **Pendiente**: WhatsApp Business API (stub en `src/lib/whatsapp.ts`)
 
 **Criterio de completitud Fase 3**: Compliance laboral integral. SST operativo, canal de denuncias funcional, reportes profesionales exportables, notificaciones automaticas. La empresa puede demostrar compliance total ante SUNAFIL.
+
+---
+
+### FASE 3.5 — IA VISION PARA LEGAJO (NUEVO, 2026-04)
+
+**Objetivo**: cuando el trabajador sube su DNI / CV / examen medico desde el celular, la IA valida el documento, extrae los datos, los cruza contra el worker y **auto-marca** `status=VERIFIED` sin intervencion del admin.
+
+**Razon estrategica**: sin esto, el admin tiene que abrir cada documento manualmente, leer, cruzar datos, y marcar verified. Es una **friccion enorme** para empresas con >50 trabajadores. La IA vision lo elimina.
+
+**Zero-knowledge**: la huella biometrica del trabajador nunca sale del dispositivo, y las fotos de sus documentos nunca se guardan en logs ni se mandan a otros proveedores que OpenAI (uso por request, sin training opt-out gracias al TOS de OpenAI API enterprise).
+
+#### F3.5.1 — Motor de verificacion con GPT-4o vision ✅
+- [x] Lib `src/lib/ai/document-verifier.ts` con:
+  - `verifyDocument(document, worker): Promise<VerificationResult>`
+  - Prompts especificos por `documentType` (dni_copia, cv, declaracion_jurada, examen_medico_*, afp_onp_afiliacion)
+  - Cross-match fuzzy de DNI + nombres (tolerante a tildes, orden, case)
+  - 4 decisiones: `auto-verified` (≥85% + todos los matches) / `needs-review` / `mismatch` / `wrong-type` / `unreadable` / `unsupported` / `error`
+  - Jamas marca REJECTED automaticamente — decision final es humana
+- [x] Soporta JPG/PNG (fotos desde celular)
+- [ ] **Pendiente**: soporte PDF (renderizar primera pagina con `pdfjs-dist` antes de mandar a GPT-4o) — CVs y certificados medicos vienen PDF
+
+#### F3.5.2 — Persistencia sin migracion ✅
+- [x] Sentinel `WorkerDocument.verifiedBy='ai-v1'` distingue IA vs humano
+- [x] Metadata completa (decision, confidence, issues, extracted, model) en `AuditLog` con `action='document.ai_verified'` o `'document.ai_reviewed'`
+- [x] `GET /api/workers/:id/documents` hace join con AuditLog y devuelve `aiVerification` inline
+
+#### F3.5.3 — API + auto-trigger ✅
+- [x] `POST /api/workers/[id]/documents/[docId]/verify` — endpoint manual ADMIN+ (re-correr)
+- [x] Auto-trigger fire-and-forget en `POST /api/workers/[id]/documents` (admin uploads)
+- [x] Auto-trigger fire-and-forget en `POST /api/mi-portal/documentos` (worker uploads, ahora con upload real a Supabase)
+- [x] Helper compartido `persistVerification` para no duplicar logica
+- [x] Plan gate: **PRO** (feature `review_ia`) — diferenciador premium
+- [x] Requiere `OPENAI_API_KEY` — falla segura si falta
+
+#### F3.5.4 — UI ✅
+- [x] Badge esmerald gradient "IA ✨" en `tab-legajo.tsx` al lado del titulo del doc si `verifiedBy==='ai-v1'`
+- [x] Tooltip con summary + confidence % + primeros 3 issues detectados
+- [x] Badge amber "Revisar" si IA procesó pero con confianza baja o mismatch
+- [x] Data flow: `/api/workers/:id/documents` con AuditLog join → tab-legajo via `worker-profile.tsx`
+
+**Criterio de completitud Fase 3.5**: un worker sube la foto de su DNI desde su celular un domingo a las 11pm, y cuando el admin entra el lunes ya esta marcado como VERIFIED con tooltip explicando "DNI validado con IA, confianza 92%, DNI 45678912 coincide con el trabajador". Cero intervencion humana.
 
 ---
 
@@ -826,20 +893,23 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 
 ## 6. MAPA DE MODULOS VS FASES
 
-| Modulo Plan Maestro | Fase | Prioridad |
-|---|---|---|
-| M1: Dashboard Compliance | F0 base + F1 score | CRITICA |
-| M2: Trabajadores y Legajo | F1.1 - F1.2 | CRITICA |
-| M3: Contratos y Documentos | F0 existente + F1.5 expand | ALTA |
-| M4: Alertas y Calendario | F1.3 - F1.4 | CRITICA |
-| M5: Diagnostico SUNAFIL | F2.1 | ALTA |
-| M6: Simulacro SUNAFIL | F2.2 | ALTA |
-| M7: SST Completo | F3.1 | MEDIA |
-| M8: Canal Denuncias | F3.2 | MEDIA |
-| M9: IA Laboral | F2.3 | ALTA |
-| M10: E-Learning | F4.1 | BAJA |
-| M11: Actualizaciones Normativas | F4.2 | BAJA |
-| M12: Reportes y Auditoria | F3.3 | MEDIA |
+| Modulo Plan Maestro | Fase | Prioridad | Estado |
+|---|---|---|---|
+| M1: Dashboard Compliance | F0 base + F1.6 score + Cockpit narrativo | CRITICA | ✅ DONE |
+| M2: Trabajadores y Legajo | F1.1 - F1.2 | CRITICA | ✅ DONE |
+| M3: Contratos y Documentos | F0 + F1.5 + **F2.5 pivot zero-liability** | ALTA | ✅ DONE |
+| M4: Alertas y Calendario | F1.3 - F1.4 | CRITICA | ✅ DONE |
+| M5: Diagnostico SUNAFIL | F2.1 (135 preguntas) | ALTA | ✅ DONE |
+| M6: Simulacro SUNAFIL | F2.2 | ALTA | ✅ DONE |
+| M7: SST Completo | F3.1 (+ 15 generadores) | MEDIA | ✅ DONE |
+| M8: Canal Denuncias | F3.2 | MEDIA | ✅ DONE (triaje IA + stats anuales pendientes) |
+| M9: IA Laboral | F2.3 (RAG + 11 agentes + copilot) | ALTA | ✅ DONE (pgvector indexing pendiente) |
+| M10: E-Learning | F4.1 | BAJA | ⏳ PENDIENTE |
+| M11: Actualizaciones Normativas | F4.2 | BAJA | ⏳ PENDIENTE |
+| M12: Reportes y Auditoria | F3.3 | MEDIA | 🟡 PARCIAL (rutas existen, templates @react-pdf/renderer pendientes) |
+| **M13: Portal del Trabajador + Firma biometrica** | **F1.5 (nuevo)** | **ALTA** | **✅ DONE** |
+| **M14: Biblioteca de plantillas propias** | **F2.5 (nuevo)** | **ALTA** | **✅ DONE** |
+| **M15: Auto-verificacion IA de legajo** | **F3.5 (nuevo)** | **MEDIA** | **✅ DONE (PDF support pendiente)** |
 
 ---
 

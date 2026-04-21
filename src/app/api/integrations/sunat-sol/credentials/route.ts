@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withRole } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
-import { encryptJson, decryptJson } from '@/lib/crypto/encrypt'
+import { encryptJson } from '@/lib/crypto/encrypt'
 import { validarRUC } from '@/lib/integrations/sunat'
 import { rateLimit } from '@/lib/rate-limit'
 

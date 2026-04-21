@@ -85,7 +85,7 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
   const gridLines = [25, 50, 75, 100].filter(v => v >= minScore && v <= maxScore)
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-6 space-y-4">
+    <div className="rounded-2xl border border-white/[0.08] bg-white p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
           <History className="h-5 w-5 text-primary" />
@@ -111,11 +111,11 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
                 x1={PAD.left} y1={yScale(v)}
                 x2={PAD.left + chartW} y2={yScale(v)}
                 stroke="currentColor" strokeWidth="0.5"
-                className="text-gray-200 text-slate-700"
+                className="text-slate-700"
                 strokeDasharray="4 4"
               />
               <text x={PAD.left - 6} y={yScale(v) + 4} textAnchor="end" fontSize="10"
-                className="fill-gray-400 fill-slate-500">{v}</text>
+                className="fill-slate-500">{v}</text>
             </g>
           ))}
 
@@ -154,13 +154,13 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
                 <text x={cx} y={cy - 14} textAnchor="middle" fontSize="10" fontWeight="700"
                   fill={color}>{d.score}</text>
                 <text x={cx} y={H - 8} textAnchor="middle" fontSize="9"
-                  className="fill-gray-400 fill-slate-500">{label}</text>
+                  className="fill-slate-500">{label}</text>
               </g>
             )
           })}
         </svg>
       </div>
-      <p className="text-xs text-gray-400 text-slate-500">El punto resaltado corresponde al diagnostico actual</p>
+      <p className="text-xs text-slate-500">El punto resaltado corresponde al diagnostico actual</p>
     </div>
   )
 }
@@ -194,10 +194,10 @@ function AreaBar({ label, score, weight }: { label: string; score: number; weigh
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
-        <span className="font-medium text-gray-300 text-gray-200">{label}</span>
-        <span className="text-gray-500 text-gray-400">{score}% <span className="text-xs text-gray-400 text-slate-500">(peso {weight}%)</span></span>
+        <span className="font-medium text-[color:var(--text-secondary)]">{label}</span>
+        <span className="text-gray-400">{score}% <span className="text-xs text-slate-500">(peso {weight}%)</span></span>
       </div>
-      <div className="h-2.5 rounded-full bg-white/[0.04]">
+      <div className="h-2.5 rounded-full bg-[color:var(--neutral-100)]">
         <div className={cn('h-2.5 rounded-full transition-all duration-700', color)} style={{ width: `${score}%` }} />
       </div>
     </div>
@@ -208,7 +208,6 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
   const { id } = use(params)
   const [data, setData] = useState<DiagnosticData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [expandedArea, setExpandedArea] = useState<string | null>(null)
   const [showAllGaps, setShowAllGaps] = useState(false)
   const [pastDiags, setPastDiags] = useState<PastDiagnostic[]>([])
   const [completedActions, setCompletedActions] = useState<Set<string>>(new Set())
@@ -307,7 +306,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
             <ArrowLeft className="h-4 w-4" /> Diagnosticos
           </Link>
           <h1 className="text-2xl font-bold text-white">Resultado del Diagnostico</h1>
-          <p className="text-sm text-gray-500 text-gray-400">
+          <p className="text-sm text-gray-400">
             {data.type === 'FULL' ? 'Completo' : 'Express'} — {new Date(data.completedAt || data.createdAt).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -328,26 +327,26 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
       {/* Score overview */}
       <div className="grid gap-6 md:grid-cols-3">
-        <div className="flex flex-col items-center rounded-xl border border-white/[0.08] bg-[#141824] p-6">
+        <div className="flex flex-col items-center rounded-xl border border-white/[0.08] bg-white p-6">
           <ScoreRing score={data.scoreGlobal} />
-          <h3 className="mt-3 text-sm font-semibold text-gray-300 text-gray-200">Score de Compliance</h3>
-          <p className="text-xs text-gray-400 text-slate-500">
+          <h3 className="mt-3 text-sm font-semibold text-[color:var(--text-secondary)]">Score de Compliance</h3>
+          <p className="text-xs text-slate-500">
             {data.scoreGlobal >= 80 ? 'Buen nivel de cumplimiento' : data.scoreGlobal >= 60 ? 'Cumplimiento parcial — corregir' : 'Alto riesgo — accion inmediata'}
           </p>
         </div>
 
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-[#141824] p-6">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6">
           <AlertTriangle className={cn('h-10 w-10', data.totalMultaRiesgo > 50000 ? 'text-red-500' : 'text-yellow-500')} />
           <p className="mt-2 text-2xl font-bold text-white">S/ {data.totalMultaRiesgo.toLocaleString()}</p>
-          <h3 className="text-sm font-semibold text-gray-300 text-gray-200">Multa Potencial Total</h3>
-          <p className="mt-1 text-xs text-gray-400 text-slate-500">Riesgo estimado ante inspeccion SUNAFIL</p>
+          <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Multa Potencial Total</h3>
+          <p className="mt-1 text-xs text-slate-500">Riesgo estimado ante inspeccion SUNAFIL</p>
         </div>
 
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-[#141824] p-6">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6">
           <ShieldCheck className="h-10 w-10 text-green-500" />
           <p className="mt-2 text-2xl font-bold text-green-600">S/ {subsanacion90.toLocaleString()}</p>
-          <h3 className="text-sm font-semibold text-gray-300 text-gray-200">Si Subsana al 90%</h3>
-          <p className="mt-1 text-xs text-gray-400 text-slate-500">Descuento Art. 40 Ley 28806 por subsanacion voluntaria</p>
+          <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Si Subsana al 90%</h3>
+          <p className="mt-1 text-xs text-slate-500">Descuento Art. 40 Ley 28806 por subsanacion voluntaria</p>
         </div>
       </div>
 
@@ -367,7 +366,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       />
 
       {/* Score by area */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-6">
+      <div className="rounded-xl border border-white/[0.08] bg-white p-6">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
           <BarChart3 className="h-5 w-5" /> Desglose por Area
         </h2>
@@ -386,11 +385,11 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Gap Analysis */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-6">
+      <div className="rounded-xl border border-white/[0.08] bg-white p-6">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
           <Target className="h-5 w-5 text-red-500" /> Brechas Prioritarias
         </h2>
-        <p className="mb-4 text-sm text-gray-500 text-gray-400">Items ordenados por riesgo (multa x gravedad). Los primeros requieren atencion inmediata.</p>
+        <p className="mb-4 text-sm text-gray-400">Items ordenados por riesgo (multa x gravedad). Los primeros requieren atencion inmediata.</p>
 
         <div className="space-y-3">
           {visibleGaps.map((gap, i) => (
@@ -435,21 +434,21 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Action Plan — with checkboxes and fine reduction */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-6">
+      <div className="rounded-xl border border-white/[0.08] bg-white p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
               <CheckCircle2 className="h-5 w-5 text-green-500" /> Plan de Accion
             </h2>
-            <p className="mt-1 text-sm text-gray-500 text-gray-400">
+            <p className="mt-1 text-sm text-gray-400">
               Marca las acciones completadas para rastrear tu progreso. Cada accion reduce tu riesgo de multa.
             </p>
           </div>
           {completedActions.size > 0 && (
-            <div className="shrink-0 rounded-lg bg-green-50 bg-green-900/20 border border-green-200 border-green-800 px-3 py-2 text-center">
-              <p className="text-xs text-green-600 text-green-400 font-medium">Completadas</p>
-              <p className="text-xl font-bold text-green-700 text-green-300">{completedActions.size}/{actionPlan.length}</p>
-              <p className="text-xs text-green-600 text-green-400">
+            <div className="shrink-0 rounded-lg bg-green-900/20 border border-green-800 px-3 py-2 text-center">
+              <p className="text-xs text-green-400 font-medium">Completadas</p>
+              <p className="text-xl font-bold text-green-300">{completedActions.size}/{actionPlan.length}</p>
+              <p className="text-xs text-green-400">
                 S/ {actionPlan
                   .filter(a => completedActions.has(a.questionId))
                   .reduce((sum, a) => sum + a.multaEvitable, 0)
@@ -467,7 +466,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
               ? 'bg-red-100 text-red-700 bg-red-900/30 text-red-400'
               : item.plazoSugerido.includes('Corto')
                 ? 'bg-orange-100 text-orange-700 bg-orange-900/30 text-orange-400'
-                : 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400'
+                : 'bg-blue-100 text-blue-700 bg-blue-900/30 text-emerald-600'
 
             return (
               <div
@@ -475,8 +474,8 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                 className={cn(
                   'flex items-start gap-3 rounded-lg border p-4 transition-all',
                   done
-                    ? 'border-green-200 border-green-800 bg-green-50/50 bg-green-900/10 opacity-75'
-                    : 'border-white/[0.08] hover:bg-white/[0.02] hover:bg-white/[0.04]/50'
+                    ? 'border-green-800 bg-green-900/10 opacity-75'
+                    : 'border-white/[0.08] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50'
                 )}
               >
                 {/* Checkbox */}
@@ -486,7 +485,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                     'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors',
                     done
                       ? 'border-green-500 bg-green-500 text-white'
-                      : 'border-white/10 border-slate-600 hover:border-green-400'
+                      : 'border-white/10 border-[color:var(--border-default)] hover:border-green-400'
                   )}
                   aria-label={done ? 'Marcar como pendiente' : 'Marcar como completado'}
                 >
@@ -503,13 +502,13 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm font-medium', done ? 'line-through text-gray-400 text-slate-500' : 'text-white')}>
+                  <p className={cn('text-sm font-medium', done ? 'line-through text-slate-500' : 'text-white')}>
                     {item.action}
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-gray-500 text-gray-400">{item.areaLabel}</span>
-                    <span className="text-xs text-gray-400 text-slate-500">·</span>
-                    <span className="text-xs text-gray-400 text-slate-500">{item.baseLegal}</span>
+                    <span className="text-xs text-gray-400">{item.areaLabel}</span>
+                    <span className="text-xs text-slate-500">·</span>
+                    <span className="text-xs text-slate-500">{item.baseLegal}</span>
                     <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', plazoColor)}>
                       {item.plazoSugerido}
                     </span>
@@ -518,10 +517,10 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
                 {/* Fine reduction */}
                 <div className="shrink-0 text-right">
-                  <p className={cn('text-sm font-semibold', done ? 'text-green-600 text-green-400' : 'text-red-600 text-red-400')}>
+                  <p className={cn('text-sm font-semibold', done ? 'text-green-400' : 'text-red-400')}>
                     {done ? '✓ ' : ''}S/ {item.multaEvitable.toLocaleString()}
                   </p>
-                  <p className="text-xs text-gray-400 text-slate-500">multa evitable</p>
+                  <p className="text-xs text-slate-500">multa evitable</p>
                 </div>
               </div>
             )
@@ -529,7 +528,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
         </div>
 
         {actionPlan.length > 0 && (
-          <div className="mt-4 rounded-lg bg-blue-50 bg-blue-900/20 border border-blue-200 border-blue-800 p-3 text-sm text-blue-700 text-blue-300">
+          <div className="mt-4 rounded-lg bg-blue-900/20 border border-blue-800 p-3 text-sm text-emerald-600">
             <span className="font-semibold">Subsanacion voluntaria:</span> Si corriges estas brechas antes de una inspeccion,
             puedes reducir la multa hasta un 90% segun el Art. 40 de la Ley 28806.
           </div>
@@ -542,18 +541,18 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       {/* ─── NEW DIAGNOSTIC CTA ─── */}
       <div className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-indigo-50 from-primary/10 to-slate-800/60 border-primary/30 p-6">
         <h2 className="mb-1 text-lg font-bold text-white">Iniciar Nuevo Diagnostico</h2>
-        <p className="mb-5 text-sm text-gray-500 text-gray-400">Realiza un nuevo diagnostico para medir tu progreso</p>
+        <p className="mb-5 text-sm text-gray-400">Realiza un nuevo diagnostico para medir tu progreso</p>
         <div className="grid gap-4 sm:grid-cols-3">
           {/* Full */}
           <Link
             href="/dashboard/diagnostico"
-            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-[#141824] p-5 text-left transition-all hover:border-primary hover:shadow-lg hover:border-primary"
+            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-primary hover:shadow-lg hover:border-primary"
           >
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
               <Search className="h-5 w-5 text-primary" />
             </div>
             <h3 className="font-semibold text-white">Diagnostico Completo</h3>
-            <p className="mt-1 text-xs text-gray-500 text-gray-400">120 preguntas · ~45 min</p>
+            <p className="mt-1 text-xs text-gray-400">120 preguntas · ~45 min</p>
             <p className="mt-auto pt-3 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
               Iniciar →
             </p>
@@ -562,13 +561,13 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
           {/* Express */}
           <Link
             href="/dashboard/diagnostico"
-            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-[#141824] p-5 text-left transition-all hover:border-amber-400 hover:shadow-lg hover:border-amber-400"
+            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-amber-400 hover:shadow-lg hover:border-amber-400"
           >
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50 bg-amber-900/20">
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-amber-900/20">
               <Zap className="h-5 w-5 text-amber-500" />
             </div>
             <h3 className="font-semibold text-white">Diagnostico Express</h3>
-            <p className="mt-1 text-xs text-gray-500 text-gray-400">20 preguntas · ~10 min</p>
+            <p className="mt-1 text-xs text-gray-400">20 preguntas · ~10 min</p>
             <p className="mt-auto pt-3 text-xs font-medium text-amber-500 opacity-0 transition-opacity group-hover:opacity-100">
               Iniciar →
             </p>
@@ -577,13 +576,13 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
           {/* Simulacro */}
           <Link
             href="/dashboard/diagnostico"
-            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-[#141824] p-5 text-left transition-all hover:border-red-400 hover:shadow-lg hover:border-red-400"
+            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-red-400 hover:shadow-lg hover:border-red-400"
           >
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-red-50 bg-red-900/20">
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-red-900/20">
               <FlaskConical className="h-5 w-5 text-red-500" />
             </div>
             <h3 className="font-semibold text-white">Simulacro SUNAFIL</h3>
-            <p className="mt-1 text-xs text-gray-500 text-gray-400">Simular inspeccion real · ~45 min</p>
+            <p className="mt-1 text-xs text-gray-400">Simular inspeccion real · ~45 min</p>
             <p className="mt-auto pt-3 text-xs font-medium text-red-500 opacity-0 transition-opacity group-hover:opacity-100">
               Iniciar →
             </p>
@@ -592,7 +591,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Footer actions */}
-      <div className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-white/[0.02] bg-[#141824] p-4">
+      <div className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[color:var(--neutral-50)] bg-white p-4">
         <Link
           href="/dashboard/trabajadores"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
@@ -601,7 +600,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
         </Link>
         <Link
           href="/dashboard/diagnostico"
-          className="rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-4 py-2 text-sm font-medium text-gray-300 text-gray-200 hover:bg-white/[0.02] hover:bg-slate-600"
+          className="rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] px-4 py-2 text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-200)]"
         >
           Ver Historial
         </Link>

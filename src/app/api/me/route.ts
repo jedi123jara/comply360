@@ -20,6 +20,7 @@ export const GET = withAuth(async (_req, ctx) => {
   return NextResponse.json({
     userId: ctx.userId,
     orgId: ctx.orgId,
+    role: ctx.role,
     workerId: worker?.id ?? null,
     workerName: worker ? `${worker.firstName} ${worker.lastName}` : null,
     workerPosition: worker?.position ?? null,

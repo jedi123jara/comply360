@@ -30,6 +30,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/comply360/editorial-title'
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface ReportData {
@@ -99,9 +100,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Planilla Mensual',
     description: 'Detalle de remuneraciones, descuentos, aportes y netos por trabajador.',
     icon: BarChart3,
-    color: 'text-blue-600 text-blue-400',
-    bg: 'bg-blue-50 bg-blue-900/30',
-    borderColor: 'border-blue-200 border-blue-800',
+    color: 'text-emerald-600',
+    bg: 'bg-blue-900/30',
+    borderColor: 'border-blue-800',
     gradientFrom: 'from-blue-500',
     filters: ['department', 'regime'],
   },
@@ -110,9 +111,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Cumplimiento Normativo',
     description: 'Score de compliance, areas criticas, obligaciones pendientes y multas evitadas.',
     icon: ClipboardList,
-    color: 'text-emerald-600 text-emerald-400',
-    bg: 'bg-emerald-50 bg-emerald-900/30',
-    borderColor: 'border-emerald-200 border-emerald-800',
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-900/30',
+    borderColor: 'border-emerald-800',
     gradientFrom: 'from-emerald-500',
     filters: [],
   },
@@ -121,9 +122,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Trabajadores por Regimen',
     description: 'Listado completo de trabajadores agrupados por regimen laboral y tipo de contrato.',
     icon: HardHat,
-    color: 'text-amber-600 text-amber-400',
-    bg: 'bg-amber-50 bg-amber-900/30',
-    borderColor: 'border-amber-200 border-amber-800',
+    color: 'text-amber-400',
+    bg: 'bg-amber-900/30',
+    borderColor: 'border-amber-800',
     gradientFrom: 'from-amber-500',
     filters: ['regime'],
   },
@@ -132,9 +133,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Contratos',
     description: 'Contratos vencidos, vigentes y por vencer con alertas de renovacion.',
     icon: FileText,
-    color: 'text-purple-600 text-purple-400',
-    bg: 'bg-purple-50 bg-purple-900/30',
-    borderColor: 'border-purple-200 border-purple-800',
+    color: 'text-purple-400',
+    bg: 'bg-purple-900/30',
+    borderColor: 'border-purple-800',
     gradientFrom: 'from-purple-500',
     filters: ['department'],
   },
@@ -143,9 +144,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Alertas y Riesgos',
     description: 'Alertas activas por severidad, acciones requeridas y riesgos identificados.',
     icon: AlertTriangle,
-    color: 'text-red-600 text-red-400',
-    bg: 'bg-red-50 bg-red-900/30',
-    borderColor: 'border-red-200 border-red-800',
+    color: 'text-red-400',
+    bg: 'bg-red-900/30',
+    borderColor: 'border-red-800',
     gradientFrom: 'from-red-500',
     filters: [],
   },
@@ -154,9 +155,9 @@ const REPORT_CATALOG = [
     title: 'Reporte SST',
     description: 'Accidentes laborales, capacitaciones SST, IPERC, examenes medicos y EPP.',
     icon: Heart,
-    color: 'text-pink-600 text-pink-400',
-    bg: 'bg-pink-50 bg-pink-900/30',
-    borderColor: 'border-pink-200 border-pink-800',
+    color: 'text-pink-400',
+    bg: 'bg-pink-900/30',
+    borderColor: 'border-pink-800',
     gradientFrom: 'from-pink-500',
     filters: ['department'],
   },
@@ -165,9 +166,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Costos Laborales',
     description: 'Analisis de costos laborales totales: sueldos, beneficios, cargas sociales y provisiones.',
     icon: DollarSign,
-    color: 'text-teal-600 text-teal-400',
-    bg: 'bg-teal-50 bg-teal-900/30',
-    borderColor: 'border-teal-200 border-teal-800',
+    color: 'text-teal-400',
+    bg: 'bg-teal-900/30',
+    borderColor: 'border-teal-800',
     gradientFrom: 'from-teal-500',
     filters: ['department'],
   },
@@ -176,9 +177,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Rotacion de Personal',
     description: 'Indice de rotacion, ingresos, ceses, motivos de salida y tendencias.',
     icon: UserMinus,
-    color: 'text-orange-600 text-orange-400',
-    bg: 'bg-orange-50 bg-orange-900/30',
-    borderColor: 'border-orange-200 border-orange-800',
+    color: 'text-orange-400',
+    bg: 'bg-orange-900/30',
+    borderColor: 'border-orange-800',
     gradientFrom: 'from-orange-500',
     filters: ['department'],
   },
@@ -187,9 +188,9 @@ const REPORT_CATALOG = [
     title: 'Reporte de Capacitaciones',
     description: 'Capacitaciones realizadas, asistencia, horas invertidas y cumplimiento del plan anual.',
     icon: GraduationCap,
-    color: 'text-indigo-600 text-indigo-400',
-    bg: 'bg-indigo-50 bg-indigo-900/30',
-    borderColor: 'border-indigo-200 border-indigo-800',
+    color: 'text-indigo-400',
+    bg: 'bg-indigo-900/30',
+    borderColor: 'border-indigo-800',
     gradientFrom: 'from-indigo-500',
     filters: ['department'],
   },
@@ -256,14 +257,14 @@ function StatCard({ icon: Icon, label, value, sub, iconBg, iconColor }: {
   iconColor: string
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#141824] p-5 shadow-sm">
+    <div className="flex items-center gap-4 rounded-xl bg-white backdrop-blur-xl border border-[color:var(--border-default)] p-5 shadow-sm">
       <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', iconBg)}>
         <Icon className={cn('h-6 w-6', iconColor)} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-2xl font-bold text-white">{value}</p>
-        <p className="text-sm text-gray-500 text-gray-400">{label}</p>
-        {sub && <p className="text-xs text-gray-400 text-slate-500 mt-0.5">{sub}</p>}
+        <p className="text-sm text-[color:var(--text-tertiary)]">{label}</p>
+        {sub && <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -271,12 +272,12 @@ function StatCard({ icon: Icon, label, value, sub, iconBg, iconColor }: {
 
 function FormatBadge({ format }: { format: string }) {
   const styles: Record<string, string> = {
-    PDF: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400',
-    Excel: 'bg-green-100 text-green-700 bg-green-900/30 text-green-400',
-    CSV: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400',
+    PDF: 'bg-red-900/30 text-red-400',
+    Excel: 'bg-green-900/30 text-green-400',
+    CSV: 'bg-blue-900/30 text-emerald-600',
   }
   return (
-    <span className={cn('inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold', styles[format] || 'bg-white/[0.04] text-gray-600')}>
+    <span className={cn('inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold', styles[format] || 'bg-[color:var(--neutral-100)] text-[color:var(--text-tertiary)]')}>
       {format}
     </span>
   )
@@ -284,7 +285,7 @@ function FormatBadge({ format }: { format: string }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────
 export default function ReportesPage() {
-  const [data, setData] = useState<ReportData | null>(null)
+  const [, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState<string | null>(null)
   const [reportError, setReportError] = useState<string | null>(null)
@@ -381,7 +382,7 @@ export default function ReportesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-700" />
       </div>
     )
   }
@@ -390,12 +391,12 @@ export default function ReportesPage() {
     <div className="space-y-6">
       {/* Error banner — replaces native alert() */}
       {reportError && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 border-red-800 bg-red-50 bg-red-900/20 px-4 py-3">
+        <div className="flex items-center gap-3 rounded-xl border border-red-800 bg-red-900/20 px-4 py-3">
           <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
-          <p className="text-sm text-red-800 text-red-300 flex-1">{reportError}</p>
+          <p className="text-sm text-red-300 flex-1">{reportError}</p>
           <button
             onClick={() => setReportError(null)}
-            className="ml-auto p-1 rounded hover:bg-red-100 hover:bg-red-800/50"
+            className="ml-auto p-1 rounded hover:bg-red-800/50"
             aria-label="Cerrar error"
           >
             <X className="h-4 w-4 text-red-400" />
@@ -404,30 +405,29 @@ export default function ReportesPage() {
       )}
 
       {/* ─── Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Centro de Reportes</h1>
-          <p className="mt-1 text-gray-500 text-gray-400">
-            Genera, descarga y programa reportes de tu organizacion.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <a
-            href="/api/export?type=workers&format=xlsx"
-            className="flex items-center gap-2 px-4 py-2.5 border border-white/10 border-slate-600 rounded-xl text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Exportar Trabajadores
-          </a>
-          <a
-            href="/api/export?type=calculations&format=xlsx"
-            className="flex items-center gap-2 px-4 py-2.5 border border-white/10 border-slate-600 rounded-xl text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Exportar Calculos
-          </a>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Reportes"
+        title="Extrae tu data en <em>reportes ejecutivos</em>."
+        subtitle="Genera, descarga y programa reportes de tu organización en PDF, Excel o CSV."
+        actions={
+          <>
+            <a
+              href="/api/export?type=workers&format=xlsx"
+              className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white hover:bg-[color:var(--neutral-50)] text-[color:var(--text-emerald-700)] px-3.5 py-2 text-xs font-semibold transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Exportar Trabajadores
+            </a>
+            <a
+              href="/api/export?type=calculations&format=xlsx"
+              className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white hover:bg-[color:var(--neutral-50)] text-[color:var(--text-emerald-700)] px-3.5 py-2 text-xs font-semibold transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Exportar Cálculos
+            </a>
+          </>
+        }
+      />
 
       {/* ─── Quick Stats ────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -436,15 +436,15 @@ export default function ReportesPage() {
           label="Reportes este mes"
           value={reportsThisMonth}
           sub={`${recentReports.length} total generados`}
-          iconBg="bg-blue-50 bg-blue-900/30"
-          iconColor="text-blue-600"
+          iconBg="bg-blue-900/30"
+          iconColor="text-emerald-600"
         />
         <StatCard
           icon={Clock}
           label="Ultimo reporte generado"
           value={lastReport ? lastReport.typeLabel : 'Ninguno'}
           sub={lastReport ? new Date(lastReport.date).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : undefined}
-          iconBg="bg-emerald-50 bg-emerald-900/30"
+          iconBg="bg-emerald-900/30"
           iconColor="text-emerald-600"
         />
         <StatCard
@@ -452,13 +452,13 @@ export default function ReportesPage() {
           label="Reportes programados activos"
           value={activeScheduled}
           sub={`${scheduledReports.length} configurados en total`}
-          iconBg="bg-purple-50 bg-purple-900/30"
-          iconColor="text-purple-600"
+          iconBg="bg-purple-900/30"
+          iconColor="text-purple-400"
         />
       </div>
 
       {/* ─── Tab Navigation ─────────────────────────────────────────── */}
-      <div className="border-b border-white/[0.08]">
+      <div className="border-b border-[color:var(--border-default)]">
         <nav className="flex gap-6">
           {([
             { key: 'galeria' as const, label: 'Galeria de Reportes', icon: BarChart3 },
@@ -473,8 +473,8 @@ export default function ReportesPage() {
                 className={cn(
                   'flex items-center gap-2 py-3 px-1 text-sm font-medium border-b-2 transition-colors -mb-px',
                   activeTab === tab.key
-                    ? 'border-[#1e3a6e] text-[#1e3a6e] border-blue-400 text-blue-400'
-                    : 'border-transparent text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-300 hover:border-white/10 hover:border-slate-600'
+                    ? 'border-blue-400 text-emerald-600'
+                    : 'border-transparent text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)] hover:border-[color:var(--border-default)]'
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -490,13 +490,13 @@ export default function ReportesPage() {
         <div className="space-y-6">
           {/* Search */}
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[color:var(--text-tertiary)]" />
             <input
               type="text"
               placeholder="Buscar tipo de reporte..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-white/10 border-slate-600 bg-[#141824] text-sm text-gray-300 text-slate-300 placeholder:text-gray-400 placeholder:text-slate-500 focus:ring-2 focus:ring-[#1e3a6e]/20 focus:ring-gold/30/20 focus:border-[#1e3a6e] focus:border-gold/50 outline-none"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[color:var(--border-default)] bg-surface text-sm text-[color:var(--text-secondary)] placeholder:text-[color:var(--text-tertiary)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
           </div>
 
@@ -511,10 +511,10 @@ export default function ReportesPage() {
                 <div
                   key={report.id}
                   className={cn(
-                    'group rounded-xl border-2 bg-[#141824] shadow-sm transition-all duration-200 cursor-pointer',
+                    'group rounded-xl bg-white backdrop-blur-xl border border-[color:var(--border-default)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 cursor-pointer',
                     isSelected
-                      ? 'border-[#1e3a6e] border-blue-500 shadow-md ring-2 ring-[#1e3a6e]/10 ring-blue-500/10'
-                      : 'border-white/[0.08] hover:border-white/10 hover:border-slate-600 hover:shadow-md'
+                      ? 'border-blue-500 shadow-md ring-2 ring-blue-500/10'
+                      : 'hover:border-[color:var(--border-default)]-hover hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_0_10px_var(--color-gold-glow)]'
                   )}
                   onClick={() => setSelectedReport(isSelected ? null : report.id)}
                 >
@@ -528,11 +528,11 @@ export default function ReportesPage() {
                         <Icon className={cn('h-6 w-6', report.color)} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-bold text-white text-gray-200 leading-tight">{report.title}</h3>
-                        <p className="mt-1.5 text-xs text-gray-500 text-gray-400 leading-relaxed">{report.description}</p>
+                        <h3 className="text-sm font-bold text-[color:var(--text-secondary)] leading-tight">{report.title}</h3>
+                        <p className="mt-1.5 text-xs text-[color:var(--text-tertiary)] leading-relaxed">{report.description}</p>
                       </div>
                       <ChevronDown className={cn(
-                        'h-4 w-4 text-gray-400 text-slate-500 shrink-0 transition-transform',
+                        'h-4 w-4 text-[color:var(--text-tertiary)] shrink-0 transition-transform',
                         isSelected && 'rotate-180'
                       )} />
                     </div>
@@ -540,11 +540,11 @@ export default function ReportesPage() {
                     {/* Quick action row */}
                     {!isSelected && (
                       <div className="mt-4 flex items-center gap-2">
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 text-slate-500">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-[color:var(--text-tertiary)]">
                           PDF / Excel / CSV
                         </span>
                         <span className="flex-1" />
-                        <span className="text-xs text-gray-400 text-slate-500">
+                        <span className="text-xs text-[color:var(--text-tertiary)]">
                           Click para configurar
                         </span>
                       </div>
@@ -553,30 +553,30 @@ export default function ReportesPage() {
 
                   {/* Expanded Form */}
                   {isSelected && (
-                    <div className="border-t border-white/[0.06] border-white/[0.08] p-5 space-y-4" onClick={e => e.stopPropagation()}>
+                    <div className="border-t border-[color:var(--border-default)] p-5 space-y-4" onClick={e => e.stopPropagation()}>
                       {/* Date Range */}
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <Calendar className="h-4 w-4 text-gray-400 text-slate-500" />
-                          <span className="text-xs font-semibold text-gray-400">Periodo</span>
+                          <Calendar className="h-4 w-4 text-[color:var(--text-tertiary)]" />
+                          <span className="text-xs font-semibold text-[color:var(--text-tertiary)]">Periodo</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[11px] text-gray-400 text-slate-500 mb-1 block">Desde</label>
+                            <label className="text-[11px] text-[color:var(--text-tertiary)] mb-1 block">Desde</label>
                             <input
                               type="date"
                               value={formState.startDate}
                               onChange={e => setFormState(s => ({ ...s, startDate: e.target.value }))}
-                              className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-xs text-gray-300 text-slate-300 focus:ring-2 focus:ring-[#1e3a6e]/20 focus:border-[#1e3a6e] focus:ring-gold/30/20 focus:border-gold/50 outline-none"
+                              className="w-full rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] px-3 py-2 text-xs text-[color:var(--text-secondary)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                             />
                           </div>
                           <div>
-                            <label className="text-[11px] text-gray-400 text-slate-500 mb-1 block">Hasta</label>
+                            <label className="text-[11px] text-[color:var(--text-tertiary)] mb-1 block">Hasta</label>
                             <input
                               type="date"
                               value={formState.endDate}
                               onChange={e => setFormState(s => ({ ...s, endDate: e.target.value }))}
-                              className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-xs text-gray-300 text-slate-300 focus:ring-2 focus:ring-[#1e3a6e]/20 focus:border-[#1e3a6e] focus:ring-gold/30/20 focus:border-gold/50 outline-none"
+                              className="w-full rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] px-3 py-2 text-xs text-[color:var(--text-secondary)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                             />
                           </div>
                         </div>
@@ -584,7 +584,7 @@ export default function ReportesPage() {
 
                       {/* Format */}
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-400 mb-2 block">Formato de salida</label>
+                        <label className="text-[11px] font-semibold text-[color:var(--text-tertiary)] mb-2 block">Formato de salida</label>
                         <div className="flex gap-2">
                           {(['PDF', 'Excel', 'CSV'] as const).map(fmt => (
                             <button
@@ -594,11 +594,11 @@ export default function ReportesPage() {
                                 'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors',
                                 formState.format === fmt
                                   ? fmt === 'PDF'
-                                    ? 'bg-red-50 bg-red-900/30 border-red-300 border-red-700 text-red-700 text-red-400'
+                                    ? 'bg-red-900/30 border-red-700 text-red-400'
                                     : fmt === 'Excel'
-                                      ? 'bg-green-50 bg-green-900/30 border-green-300 border-green-700 text-green-700 text-green-400'
-                                      : 'bg-blue-50 bg-blue-900/30 border-blue-300 border-blue-700 text-blue-700 text-blue-400'
-                                  : 'bg-white/[0.02] bg-white/[0.04] border-white/[0.08] border-slate-600 text-gray-500 text-gray-400 hover:bg-white/[0.04] hover:bg-slate-600'
+                                      ? 'bg-green-900/30 border-green-700 text-green-400'
+                                      : 'bg-blue-900/30 border-blue-700 text-emerald-600'
+                                  : 'bg-[color:var(--neutral-100)] border-[color:var(--border-default)] text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)]'
                               )}
                             >
                               {fmt === 'PDF' && <FileText className="h-3.5 w-3.5" />}
@@ -615,13 +615,13 @@ export default function ReportesPage() {
                         <div className="grid grid-cols-2 gap-3">
                           {report.filters.includes('department') && (
                             <div>
-                              <label className="text-[11px] font-semibold text-gray-400 mb-1 block">
+                              <label className="text-[11px] font-semibold text-[color:var(--text-tertiary)] mb-1 block">
                                 <Filter className="h-3 w-3 inline mr-1" />Area
                               </label>
                               <select
                                 value={formState.department}
                                 onChange={e => setFormState(s => ({ ...s, department: e.target.value }))}
-                                className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-xs text-gray-300 text-slate-300 focus:ring-2 focus:ring-[#1e3a6e]/20 focus:border-[#1e3a6e] focus:ring-gold/30/20 focus:border-gold/50 outline-none"
+                                className="w-full rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] px-3 py-2 text-xs text-[color:var(--text-secondary)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                               >
                                 {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                               </select>
@@ -629,13 +629,13 @@ export default function ReportesPage() {
                           )}
                           {report.filters.includes('regime') && (
                             <div>
-                              <label className="text-[11px] font-semibold text-gray-400 mb-1 block">
+                              <label className="text-[11px] font-semibold text-[color:var(--text-tertiary)] mb-1 block">
                                 <Filter className="h-3 w-3 inline mr-1" />Regimen
                               </label>
                               <select
                                 value={formState.regime}
                                 onChange={e => setFormState(s => ({ ...s, regime: e.target.value }))}
-                                className="w-full rounded-lg border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-xs text-gray-300 text-slate-300 focus:ring-2 focus:ring-[#1e3a6e]/20 focus:border-[#1e3a6e] focus:ring-gold/30/20 focus:border-gold/50 outline-none"
+                                className="w-full rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] px-3 py-2 text-xs text-[color:var(--text-secondary)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                               >
                                 {REGIMES.map(r => <option key={r} value={r}>{r}</option>)}
                               </select>
@@ -648,7 +648,7 @@ export default function ReportesPage() {
                       <button
                         onClick={() => handleGenerate(report.id)}
                         disabled={isGenerating}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1e3a6e] hover:bg-[#162d57] bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-[#1e3a6e]/20 shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-600-dark text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isGenerating ? (
                           <>
@@ -670,9 +670,9 @@ export default function ReportesPage() {
           </div>
 
           {filteredCatalog.length === 0 && (
-            <div className="text-center py-12 rounded-xl border border-dashed border-white/10 border-white/[0.08]">
-              <Search className="h-8 w-8 text-gray-300 text-slate-600 mx-auto" />
-              <p className="mt-3 text-sm text-gray-500 text-gray-400">No se encontraron reportes con "{searchTerm}"</p>
+            <div className="text-center py-12 rounded-xl border border-dashed border-[color:var(--border-default)]">
+              <Search className="h-8 w-8 text-gray-600 mx-auto" />
+              <p className="mt-3 text-sm text-[color:var(--text-tertiary)]">No se encontraron reportes con &ldquo;{searchTerm}&rdquo;</p>
             </div>
           )}
         </div>
@@ -682,18 +682,18 @@ export default function ReportesPage() {
       {activeTab === 'historial' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white text-gray-200">Ultimos reportes generados</h2>
-            <span className="text-xs text-gray-400 text-slate-500">{recentReports.length} reportes</span>
+            <h2 className="text-base font-semibold text-[color:var(--text-secondary)]">Ultimos reportes generados</h2>
+            <span className="text-xs text-[color:var(--text-tertiary)]">{recentReports.length} reportes</span>
           </div>
 
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm overflow-hidden">
+          <div className="rounded-xl border border-[color:var(--border-default)] bg-surface shadow-sm overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-white/[0.02] bg-[#141824]/80 border-b border-white/[0.08]">
-              <span className="col-span-4 text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider">Tipo de Reporte</span>
-              <span className="col-span-3 text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider">Fecha</span>
-              <span className="col-span-1 text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider">Formato</span>
-              <span className="col-span-1 text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider">Tamano</span>
-              <span className="col-span-3 text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider text-right">Acciones</span>
+            <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-surface/80 border-b border-[color:var(--border-default)]">
+              <span className="col-span-4 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Tipo de Reporte</span>
+              <span className="col-span-3 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Fecha</span>
+              <span className="col-span-1 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Formato</span>
+              <span className="col-span-1 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Tamano</span>
+              <span className="col-span-3 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider text-right">Acciones</span>
             </div>
 
             {/* Table Rows */}
@@ -705,21 +705,21 @@ export default function ReportesPage() {
                 <div
                   key={report.id}
                   className={cn(
-                    'grid grid-cols-12 gap-4 px-5 py-4 items-center transition-colors hover:bg-white/[0.02] hover:bg-white/[0.04]/50',
-                    idx < recentReports.length - 1 && 'border-b border-white/[0.06] border-white/[0.08]/50'
+                    'grid grid-cols-12 gap-4 px-5 py-4 items-center transition-colors hover:bg-[color:var(--neutral-100)]',
+                    idx < recentReports.length - 1 && 'border-b border-[color:var(--border-default)]'
                   )}
                 >
                   <div className="col-span-4 flex items-center gap-3 min-w-0">
-                    <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', catalog?.bg || 'bg-white/[0.04]')}>
-                      <Icon className={cn('h-4 w-4', catalog?.color || 'text-gray-500')} />
+                    <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', catalog?.bg || 'bg-[color:var(--neutral-100)]')}>
+                      <Icon className={cn('h-4 w-4', catalog?.color || 'text-[color:var(--text-tertiary)]')} />
                     </div>
-                    <span className="text-sm font-medium text-white text-gray-200 truncate">{report.typeLabel}</span>
+                    <span className="text-sm font-medium text-[color:var(--text-secondary)] truncate">{report.typeLabel}</span>
                   </div>
                   <div className="col-span-3">
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-[color:var(--text-tertiary)]">
                       {new Date(report.date).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
-                    <span className="block text-xs text-gray-400 text-slate-500">
+                    <span className="block text-xs text-[color:var(--text-tertiary)]">
                       {new Date(report.date).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -727,13 +727,13 @@ export default function ReportesPage() {
                     <FormatBadge format={report.format} />
                   </div>
                   <div className="col-span-1">
-                    <span className="text-sm text-gray-500 text-gray-400">{report.size}</span>
+                    <span className="text-sm text-[color:var(--text-tertiary)]">{report.size}</span>
                   </div>
                   <div className="col-span-3 flex items-center justify-end gap-2">
                     <button
                       disabled
                       title="Regenera el reporte para descargarlo"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#1e3a6e] bg-gold text-black font-bold opacity-50 cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 text-white opacity-50 cursor-not-allowed"
                     >
                       <Download className="h-3.5 w-3.5" />
                       Descargar
@@ -741,7 +741,7 @@ export default function ReportesPage() {
                     <button
                       disabled
                       title="Proximamente"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 border-slate-600 text-gray-400 opacity-50 cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[color:var(--border-default)] text-[color:var(--text-tertiary)] opacity-50 cursor-not-allowed"
                     >
                       <Mail className="h-3.5 w-3.5" />
                       Enviar
@@ -753,9 +753,9 @@ export default function ReportesPage() {
 
             {recentReports.length === 0 && (
               <div className="py-12 text-center">
-                <FileText className="h-10 w-10 text-gray-300 text-slate-600 mx-auto" />
-                <p className="mt-3 text-sm text-gray-500 text-gray-400">No hay reportes generados aun.</p>
-                <p className="text-xs text-gray-400 text-slate-500 mt-1">Genera tu primer reporte desde la galeria.</p>
+                <FileText className="h-10 w-10 text-gray-600 mx-auto" />
+                <p className="mt-3 text-sm text-[color:var(--text-tertiary)]">No hay reportes generados aun.</p>
+                <p className="text-xs text-[color:var(--text-tertiary)] mt-1">Genera tu primer reporte desde la galeria.</p>
               </div>
             )}
           </div>
@@ -766,14 +766,14 @@ export default function ReportesPage() {
       {activeTab === 'programados' && (
         <div className="space-y-6">
           {/* "Coming soon" banner */}
-          <div className="rounded-xl border-2 border-dashed border-amber-300 border-amber-700 bg-amber-50/50 bg-amber-900/10 p-5">
+          <div className="rounded-xl border-2 border-dashed border-amber-700 bg-amber-900/10 p-5">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 bg-amber-900/30">
-                <Zap className="h-5 w-5 text-amber-600 text-amber-400" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-900/30">
+                <Zap className="h-5 w-5 text-amber-400" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-amber-800 text-amber-300">Programacion automatica - Proximamente</h3>
-                <p className="mt-1 text-xs text-amber-700 text-amber-400/80 leading-relaxed">
+                <h3 className="text-sm font-bold text-amber-700">Programacion automatica - Proximamente</h3>
+                <p className="mt-1 text-xs text-amber-400/80 leading-relaxed">
                   Configura envios automaticos de reportes por email con frecuencia diaria, semanal o mensual.
                   Esta funcionalidad estara disponible en la proxima actualizacion.
                 </p>
@@ -782,16 +782,16 @@ export default function ReportesPage() {
           </div>
 
           {/* New scheduled report card */}
-          <div className="rounded-xl border-2 border-dashed border-white/10 border-slate-600 bg-[#141824] p-6 hover:border-[#1e3a6e] hover:border-blue-500 transition-colors cursor-pointer group">
+          <div className="rounded-xl border-2 border-dashed border-[color:var(--border-default)] bg-surface p-6 hover:border-primary transition-colors cursor-pointer group">
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.04] group-hover:bg-[#1e3a6e]/10 group-hover:bg-blue-900/30 transition-colors">
-                <Plus className="h-7 w-7 text-gray-400 text-slate-500 group-hover:text-[#1e3a6e] group-hover:text-blue-400 transition-colors" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:var(--neutral-100)] group-hover:bg-emerald-50 transition-colors">
+                <Plus className="h-7 w-7 text-[color:var(--text-tertiary)] group-hover:text-emerald-600 transition-colors" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-300 text-slate-300 group-hover:text-[#1e3a6e] group-hover:text-blue-400 transition-colors">
+                <h3 className="text-sm font-bold text-[color:var(--text-secondary)] group-hover:text-emerald-600 transition-colors">
                   Programar envio automatico
                 </h3>
-                <p className="mt-1 text-xs text-gray-400 text-slate-500">
+                <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">
                   Selecciona un reporte, frecuencia y destinatarios
                 </p>
               </div>
@@ -800,20 +800,20 @@ export default function ReportesPage() {
 
           {/* Existing scheduled reports */}
           <div>
-            <h3 className="text-sm font-semibold text-white text-gray-200 mb-4">Reportes configurados</h3>
+            <h3 className="text-sm font-semibold text-[color:var(--text-secondary)] mb-4">Reportes configurados</h3>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {scheduledReports.map(sched => (
-                <div key={sched.id} className="rounded-xl border border-white/[0.08] bg-[#141824] p-5 shadow-sm">
+                <div key={sched.id} className="rounded-xl border border-[color:var(--border-default)] bg-white backdrop-blur-xl p-5 shadow-sm">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="text-sm font-bold text-white text-gray-200">{sched.typeLabel}</h4>
-                      <p className="text-xs text-gray-500 text-gray-400 mt-0.5">Envio {sched.frequency.toLowerCase()}</p>
+                      <h4 className="text-sm font-bold text-[color:var(--text-secondary)]">{sched.typeLabel}</h4>
+                      <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">Envio {sched.frequency.toLowerCase()}</p>
                     </div>
                     <span className={cn(
                       'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold',
                       sched.active
-                        ? 'bg-green-100 text-green-700 bg-green-900/30 text-green-400'
-                        : 'bg-white/[0.04] text-gray-500 bg-white/[0.04] text-gray-400'
+                        ? 'bg-green-900/30 text-green-400'
+                        : 'bg-[color:var(--neutral-100)] text-[color:var(--text-tertiary)]'
                     )}>
                       {sched.active ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
                       {sched.active ? 'Activo' : 'Pausado'}
@@ -822,26 +822,26 @@ export default function ReportesPage() {
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-gray-400 text-slate-500" />
-                      <span className="text-xs text-gray-400">
-                        Frecuencia: <span className="font-medium text-white text-gray-200">{sched.frequency}</span>
+                      <Calendar className="h-3.5 w-3.5 text-[color:var(--text-tertiary)]" />
+                      <span className="text-xs text-[color:var(--text-tertiary)]">
+                        Frecuencia: <span className="font-medium text-[color:var(--text-secondary)]">{sched.frequency}</span>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 text-gray-400 text-slate-500" />
-                      <span className="text-xs text-gray-400">
-                        Proximo envio: <span className="font-medium text-white text-gray-200">
+                      <Clock className="h-3.5 w-3.5 text-[color:var(--text-tertiary)]" />
+                      <span className="text-xs text-[color:var(--text-tertiary)]">
+                        Proximo envio: <span className="font-medium text-[color:var(--text-secondary)]">
                           {new Date(sched.nextRun).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}
                         </span>
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Mail className="h-3.5 w-3.5 text-gray-400 text-slate-500 mt-0.5" />
+                      <Mail className="h-3.5 w-3.5 text-[color:var(--text-tertiary)] mt-0.5" />
                       <div className="flex-1">
-                        <span className="text-xs text-gray-400">Destinatarios:</span>
+                        <span className="text-xs text-[color:var(--text-tertiary)]">Destinatarios:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {sched.recipients.map(email => (
-                            <span key={email} className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/[0.04] text-[10px] font-medium text-gray-400">
+                            <span key={email} className="inline-flex items-center px-2 py-0.5 rounded-md bg-[color:var(--neutral-100)] text-[10px] font-medium text-[color:var(--text-tertiary)]">
                               {email}
                             </span>
                           ))}
@@ -850,16 +850,16 @@ export default function ReportesPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-white/[0.06] border-white/[0.08] flex items-center gap-2">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-white/[0.08] border-slate-600 text-gray-400 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                  <div className="mt-4 pt-3 border-t border-[color:var(--border-default)] flex items-center gap-2">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-[color:var(--border-default)] text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)] transition-colors">
                       <RefreshCw className="h-3.5 w-3.5" />
                       Editar
                     </button>
                     <button className={cn(
                       'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
                       sched.active
-                        ? 'bg-amber-50 bg-amber-900/20 text-amber-700 text-amber-400 border border-amber-200 border-amber-800 hover:bg-amber-100 hover:bg-amber-900/30'
-                        : 'bg-green-50 bg-green-900/20 text-green-700 text-green-400 border border-green-200 border-green-800 hover:bg-green-100 hover:bg-green-900/30'
+                        ? 'bg-amber-900/20 text-amber-400 border border-amber-800 hover:bg-amber-900/30'
+                        : 'bg-green-900/20 text-green-400 border border-green-800 hover:bg-green-900/30'
                     )}>
                       {sched.active ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                       {sched.active ? 'Pausar' : 'Activar'}

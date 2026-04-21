@@ -4,10 +4,10 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import {
   GraduationCap, BookOpen, Award, Users, Clock, ChevronRight,
-  Loader2, CheckCircle, AlertTriangle, Shield, Scale, HardHat,
+  Loader2, AlertTriangle, Shield, Scale, HardHat,
   FileText, BarChart3, Zap, Search, SlidersHorizontal, Flame,
-  Star, TrendingUp, Trophy, Target, Play, RotateCcw, Eye,
-  ChevronDown, X, Sparkles, CalendarDays,
+  Star, Trophy, Target, Play, Eye,
+  ChevronDown, X, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -42,20 +42,20 @@ interface CourseData {
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: typeof GraduationCap; color: string; bg: string; border: string }> = {
-  SST:                { label: 'Seguridad y Salud', icon: HardHat,       color: 'text-amber-600 text-amber-400',   bg: 'bg-amber-50 bg-amber-900/30',   border: 'border-amber-200 border-amber-800' },
-  HOSTIGAMIENTO:      { label: 'Hostigamiento',     icon: Shield,        color: 'text-red-600 text-red-400',       bg: 'bg-red-50 bg-red-900/30',       border: 'border-red-200 border-red-800' },
-  DERECHOS_LABORALES: { label: 'Derechos',          icon: Scale,         color: 'text-blue-600 text-blue-400',     bg: 'bg-blue-50 bg-blue-900/30',     border: 'border-blue-200 border-blue-800' },
-  CONTRATOS:          { label: 'Contratos',         icon: FileText,      color: 'text-purple-600 text-purple-400', bg: 'bg-purple-50 bg-purple-900/30', border: 'border-purple-200 border-purple-800' },
-  PLANILLA:           { label: 'Planilla',          icon: BarChart3,     color: 'text-emerald-600 text-emerald-400', bg: 'bg-emerald-50 bg-emerald-900/30', border: 'border-emerald-200 border-emerald-800' },
-  INSPECCIONES:       { label: 'Inspecciones',      icon: AlertTriangle, color: 'text-orange-600 text-orange-400', bg: 'bg-orange-50 bg-orange-900/30', border: 'border-orange-200 border-orange-800' },
-  IGUALDAD:           { label: 'Igualdad Salarial', icon: Users,         color: 'text-pink-600 text-pink-400',     bg: 'bg-pink-50 bg-pink-900/30',     border: 'border-pink-200 border-pink-800' },
-  GENERAL:            { label: 'General',           icon: BookOpen,      color: 'text-gray-400',     bg: 'bg-white/[0.02] bg-gray-700',        border: 'border-white/[0.08] border-gray-600' },
+  SST:                { label: 'Seguridad y Salud', icon: HardHat,       color: 'text-amber-400',   bg: 'bg-amber-900/30',   border: 'border-amber-800' },
+  HOSTIGAMIENTO:      { label: 'Hostigamiento',     icon: Shield,        color: 'text-red-400',       bg: 'bg-red-900/30',       border: 'border-red-800' },
+  DERECHOS_LABORALES: { label: 'Derechos',          icon: Scale,         color: 'text-emerald-600',     bg: 'bg-blue-900/30',     border: 'border-blue-800' },
+  CONTRATOS:          { label: 'Contratos',         icon: FileText,      color: 'text-purple-400', bg: 'bg-purple-900/30', border: 'border-purple-800' },
+  PLANILLA:           { label: 'Planilla',          icon: BarChart3,     color: 'text-emerald-600', bg: 'bg-emerald-900/30', border: 'border-emerald-800' },
+  INSPECCIONES:       { label: 'Inspecciones',      icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-900/30', border: 'border-orange-800' },
+  IGUALDAD:           { label: 'Igualdad Salarial', icon: Users,         color: 'text-pink-400',     bg: 'bg-pink-900/30',     border: 'border-pink-800' },
+  GENERAL:            { label: 'General',           icon: BookOpen,      color: 'text-[color:var(--text-tertiary)]',     bg: 'bg-[color:var(--neutral-50)] bg-gray-700',        border: 'border-[color:var(--border-default)] border-gray-600' },
 }
 
 const DIFFICULTY_CONFIG = {
-  BASICO:      { label: 'Básico',       color: 'text-green-700 text-green-400',  bg: 'bg-green-100 bg-green-900/30' },
-  INTERMEDIO:  { label: 'Intermedio',   color: 'text-yellow-700 text-yellow-400', bg: 'bg-yellow-100 bg-yellow-900/30' },
-  AVANZADO:    { label: 'Avanzado',     color: 'text-red-700 text-red-400',      bg: 'bg-red-100 bg-red-900/30' },
+  BASICO:      { label: 'Básico',       color: 'text-green-400',  bg: 'bg-green-900/30' },
+  INTERMEDIO:  { label: 'Intermedio',   color: 'text-yellow-400', bg: 'bg-yellow-900/30' },
+  AVANZADO:    { label: 'Avanzado',     color: 'text-red-400',      bg: 'bg-red-900/30' },
 }
 
 function formatDuration(minutes: number): string {
@@ -77,7 +77,7 @@ function ProgressRing({ value, max, size = 80, stroke = 7, color = '#6366f1' }: 
     <svg width={size} height={size} className="-rotate-90">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
         stroke="currentColor" strokeWidth={stroke}
-        className="text-gray-100 text-slate-700" />
+        className="text-slate-700" />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
         stroke={color} strokeWidth={stroke}
         strokeDasharray={`${dash} ${circ}`}
@@ -100,7 +100,7 @@ function CourseCard({ course, userProgress }: { course: CourseData; userProgress
   return (
     <Link
       href={`/dashboard/capacitaciones/${course.id}`}
-      className="group relative flex flex-col rounded-xl border border-white/[0.08] bg-[#141824] shadow-sm
+      className="group relative flex flex-col rounded-xl border border-[color:var(--border-default)] bg-white shadow-sm
                  transition-all duration-200 hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 overflow-hidden"
     >
       {/* Top color band */}
@@ -140,17 +140,17 @@ function CourseCard({ course, userProgress }: { course: CourseData; userProgress
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-bold text-white text-slate-100 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+        <h3 className="text-sm font-bold text-white text-[color:var(--text-emerald-700)] group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug">
           {course.title}
         </h3>
 
         {/* Description */}
-        <p className="text-xs text-gray-500 text-gray-400 line-clamp-2 leading-relaxed flex-1">
+        <p className="text-xs text-[color:var(--text-tertiary)] line-clamp-2 leading-relaxed flex-1">
           {course.description}
         </p>
 
         {/* Meta row */}
-        <div className="flex items-center gap-3 text-xs text-gray-400 text-slate-500">
+        <div className="flex items-center gap-3 text-xs text-[color:var(--text-tertiary)]">
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />{formatDuration(course.durationMin)}
           </span>
@@ -164,7 +164,7 @@ function CourseCard({ course, userProgress }: { course: CourseData; userProgress
 
         {/* Enrolled count */}
         {enrolled > 0 && (
-          <p className="text-[10px] text-gray-400 text-slate-500 flex items-center gap-1">
+          <p className="text-[10px] text-[color:var(--text-tertiary)] flex items-center gap-1">
             <Users className="h-3 w-3" />
             {enrolled.toLocaleString('es-PE')} trabajador{enrolled !== 1 ? 'es' : ''} completaron
           </p>
@@ -174,16 +174,16 @@ function CourseCard({ course, userProgress }: { course: CourseData; userProgress
         {isStarted || isCompleted ? (
           <div className="pt-1">
             <div className="flex items-center justify-between text-[10px] mb-1">
-              <span className="text-gray-500 text-gray-400">
+              <span className="text-[color:var(--text-tertiary)]">
                 {isCompleted ? 'Completado' : 'En progreso'}
               </span>
-              <span className={cn('font-semibold', isCompleted ? 'text-green-600 text-green-400' : 'text-primary')}>
+              <span className={cn('font-semibold', isCompleted ? 'text-green-400' : 'text-emerald-700')}>
                 {pct}%
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.04]">
+            <div className="h-1.5 rounded-full bg-[color:var(--neutral-100)]">
               <div
-                className={cn('h-1.5 rounded-full transition-all', isCompleted ? 'bg-green-500' : 'bg-primary')}
+                className={cn('h-1.5 rounded-full transition-all', isCompleted ? 'bg-green-500' : 'bg-emerald-600')}
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -191,12 +191,12 @@ function CourseCard({ course, userProgress }: { course: CourseData; userProgress
         ) : (
           <div className="pt-1">
             <div className="flex items-center justify-between text-[10px] mb-1">
-              <span className="text-gray-400 text-slate-500">
+              <span className="text-[color:var(--text-tertiary)]">
                 Tasa de aprobación del catalogo
               </span>
-              <span className="font-medium text-gray-500 text-gray-400">{course.stats.completionRate}%</span>
+              <span className="font-medium text-[color:var(--text-tertiary)]">{course.stats.completionRate}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.04]">
+            <div className="h-1.5 rounded-full bg-[color:var(--neutral-100)]">
               <div
                 className={cn(
                   'h-1.5 rounded-full transition-all',
@@ -214,10 +214,10 @@ function CourseCard({ course, userProgress }: { course: CourseData; userProgress
           <div className={cn(
             'flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all',
             isCompleted
-              ? 'bg-green-50 bg-green-900/20 text-green-700 text-green-400'
+              ? 'bg-green-900/20 text-green-400'
               : isStarted
-                ? 'bg-primary/10 text-primary'
-                : 'bg-primary text-white group-hover:bg-primary/90'
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-emerald-600 text-white group-hover:bg-emerald-600/90'
           )}>
             {isCompleted ? (
               <><Eye className="h-3.5 w-3.5" /> Revisar Curso</>
@@ -338,8 +338,8 @@ export default function CapacitacionesPage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white text-slate-100">Capacitaciones</h1>
-          <p className="mt-1 text-sm text-gray-500 text-gray-400">
+          <h1 className="text-2xl font-bold text-white text-[color:var(--text-emerald-700)]">Capacitaciones</h1>
+          <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
             Cursos obligatorios y de desarrollo para cumplimiento normativo (Ley 29783, Ley 27942)
           </p>
         </div>
@@ -347,7 +347,7 @@ export default function CapacitacionesPage() {
           <button
             onClick={handleSeed}
             disabled={seeding}
-            className="flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+            className="flex shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600/90 disabled:opacity-50"
           >
             {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             {seeding ? 'Cargando...' : 'Cargar Catálogo'}
@@ -358,51 +358,51 @@ export default function CapacitacionesPage() {
       {/* ── Learning Dashboard ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {/* Progress ring */}
-        <div className="col-span-2 lg:col-span-1 rounded-xl border border-white/[0.08] bg-[#141824] p-4 flex items-center gap-4">
+        <div className="col-span-2 lg:col-span-1 rounded-xl border border-[color:var(--border-default)] bg-white p-4 flex items-center gap-4">
           <div className="relative shrink-0">
             <ProgressRing value={completedCourses} max={courses.length || 1} size={72} stroke={7} color="#6366f1" />
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-300 text-gray-200">
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[color:var(--text-secondary)]">
               {courses.length > 0 ? Math.round((completedCourses / courses.length) * 100) : 0}%
             </span>
           </div>
           <div>
-            <p className="text-lg font-bold text-white text-slate-100">
-              {completedCourses}<span className="text-sm font-normal text-gray-400 text-slate-500"> / {courses.length}</span>
+            <p className="text-lg font-bold text-white text-[color:var(--text-emerald-700)]">
+              {completedCourses}<span className="text-sm font-normal text-[color:var(--text-tertiary)]"> / {courses.length}</span>
             </p>
-            <p className="text-xs text-gray-500 text-gray-400 leading-tight">cursos completados</p>
+            <p className="text-xs text-[color:var(--text-tertiary)] leading-tight">cursos completados</p>
           </div>
         </div>
 
         {/* Hours */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 bg-blue-900/30">
-            <Clock className="h-5 w-5 text-blue-600 text-blue-400" />
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-900/30">
+            <Clock className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <p className="text-xl font-bold text-white text-slate-100">{hoursThisMonth}h</p>
-            <p className="text-xs text-gray-500 text-gray-400">aprendiendo este mes</p>
+            <p className="text-xl font-bold text-white text-[color:var(--text-emerald-700)]">{hoursThisMonth}h</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">aprendiendo este mes</p>
           </div>
         </div>
 
         {/* Certificates */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 bg-amber-900/30">
-            <Award className="h-5 w-5 text-amber-600 text-amber-400" />
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-900/30">
+            <Award className="h-5 w-5 text-amber-400" />
           </div>
           <div>
-            <p className="text-xl font-bold text-white text-slate-100">{certificatesEarned}</p>
-            <p className="text-xs text-gray-500 text-gray-400">certificados obtenidos</p>
+            <p className="text-xl font-bold text-white text-[color:var(--text-emerald-700)]">{certificatesEarned}</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">certificados obtenidos</p>
           </div>
         </div>
 
         {/* Streak */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 bg-orange-900/30">
-            <Flame className="h-5 w-5 text-orange-600 text-orange-400" />
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-900/30">
+            <Flame className="h-5 w-5 text-orange-400" />
           </div>
           <div>
-            <p className="text-xl font-bold text-white text-slate-100">{streak} días</p>
-            <p className="text-xs text-gray-500 text-gray-400">racha consecutiva</p>
+            <p className="text-xl font-bold text-white text-[color:var(--text-emerald-700)]">{streak} días</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">racha consecutiva</p>
           </div>
         </div>
       </div>
@@ -442,7 +442,7 @@ export default function CapacitacionesPage() {
             </div>
             <Link
               href={`/dashboard/capacitaciones/${featuredCourse.id}`}
-              className="shrink-0 flex items-center gap-2 rounded-xl bg-[#141824] px-5 py-2.5 text-sm font-bold text-primary shadow hover:bg-[#141824]/90 transition-colors"
+              className="shrink-0 flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-emerald-700 shadow hover:bg-white/90 transition-colors"
             >
               <Play className="h-4 w-4" /> Comenzar ahora
             </Link>
@@ -454,13 +454,13 @@ export default function CapacitacionesPage() {
       {courses.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Obligatory pending */}
-          <div className="lg:col-span-2 rounded-xl border border-amber-200 border-amber-800 bg-amber-50 bg-amber-900/20 p-4">
+          <div className="lg:col-span-2 rounded-xl border border-amber-800 bg-amber-900/20 p-4">
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="h-4 w-4 text-amber-600 text-amber-400" />
-              <h3 className="text-sm font-bold text-amber-800 text-amber-300">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-amber-700">
                 Cursos Obligatorios Pendientes
               </h3>
-              <span className="ml-auto rounded-full bg-amber-200 bg-amber-800 px-2 py-0.5 text-xs font-bold text-amber-800 text-amber-200">
+              <span className="ml-auto rounded-full bg-amber-800 px-2 py-0.5 text-xs font-bold text-amber-700">
                 {obligatoryPending.length}
               </span>
             </div>
@@ -472,23 +472,23 @@ export default function CapacitacionesPage() {
                   <Link
                     key={c.id}
                     href={`/dashboard/capacitaciones/${c.id}`}
-                    className="flex items-center gap-3 rounded-lg bg-[#141824] border border-white/[0.08] px-3 py-2.5 hover:border-amber-400 transition-colors group"
+                    className="flex items-center gap-3 rounded-lg bg-white border border-[color:var(--border-default)] px-3 py-2.5 hover:border-amber-400 transition-colors group"
                   >
                     <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', catConf.bg)}>
                       <CIcon className={cn('h-4 w-4', catConf.color)} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-white text-slate-100 group-hover:text-amber-700 group-hover:text-amber-400 truncate">
+                      <p className="text-xs font-semibold text-white text-[color:var(--text-emerald-700)] group-hover:text-amber-700 group-hover:text-amber-400 truncate">
                         {c.title}
                       </p>
-                      <p className="text-[10px] text-gray-400 text-slate-500">{formatDuration(c.durationMin)} · {c.lessons.length} lecciones</p>
+                      <p className="text-[10px] text-[color:var(--text-tertiary)]">{formatDuration(c.durationMin)} · {c.lessons.length} lecciones</p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-amber-400 shrink-0" />
                   </Link>
                 )
               })}
               {obligatoryPending.length > 3 && (
-                <p className="text-center text-xs text-amber-600 text-amber-400 pt-1">
+                <p className="text-center text-xs text-amber-400 pt-1">
                   +{obligatoryPending.length - 3} más obligatorios
                 </p>
               )}
@@ -498,16 +498,16 @@ export default function CapacitacionesPage() {
           {/* Certified employee badge + next recommended */}
           <div className="flex flex-col gap-3">
             {/* Badge progress */}
-            <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 flex flex-col gap-2">
+            <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-amber-500" />
-                <span className="text-xs font-bold text-gray-200">Empleado Certificado</span>
+                <span className="text-xs font-bold text-[color:var(--text-secondary)]">Empleado Certificado</span>
               </div>
-              <p className="text-[10px] text-gray-500 text-gray-400">
+              <p className="text-[10px] text-[color:var(--text-tertiary)]">
                 Completa todos los cursos obligatorios para obtener esta insignia.
               </p>
               <div className="mt-1">
-                <div className="flex justify-between text-[10px] text-gray-500 text-gray-400 mb-1">
+                <div className="flex justify-between text-[10px] text-[color:var(--text-tertiary)] mb-1">
                   <span>{completedCourses} de {globalStats.obligatoryCourses} obligatorios</span>
                   <span className="font-semibold">
                     {globalStats.obligatoryCourses > 0
@@ -515,7 +515,7 @@ export default function CapacitacionesPage() {
                       : 0}%
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-white/[0.04]">
+                <div className="h-2 rounded-full bg-[color:var(--neutral-100)]">
                   <div
                     className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all"
                     style={{
@@ -530,20 +530,20 @@ export default function CapacitacionesPage() {
 
             {/* Next recommended */}
             {nextRecommended && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4">
+              <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-bold text-gray-200">Próximo recomendado</span>
+                  <Target className="h-4 w-4 text-emerald-700" />
+                  <span className="text-xs font-bold text-[color:var(--text-secondary)]">Próximo recomendado</span>
                 </div>
-                <p className="text-xs font-semibold text-white text-slate-100 line-clamp-2">
+                <p className="text-xs font-semibold text-white text-[color:var(--text-emerald-700)] line-clamp-2">
                   {nextRecommended.title}
                 </p>
-                <p className="text-[10px] text-gray-400 text-slate-500 mt-0.5">
+                <p className="text-[10px] text-[color:var(--text-tertiary)] mt-0.5">
                   {formatDuration(nextRecommended.durationMin)}
                 </p>
                 <Link
                   href={`/dashboard/capacitaciones/${nextRecommended.id}`}
-                  className="mt-2 flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline"
+                  className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700 font-semibold hover:underline"
                 >
                   <Play className="h-3 w-3" /> Empezar
                 </Link>
@@ -556,25 +556,25 @@ export default function CapacitacionesPage() {
       {/* ── Catalog Stats (compact) ── */}
       {courses.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-3 text-center">
-            <p className="text-xl font-bold text-white text-slate-100">{globalStats.totalCourses}</p>
-            <p className="text-[10px] text-gray-500 text-gray-400">Cursos disponibles</p>
+          <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-3 text-center">
+            <p className="text-xl font-bold text-white text-[color:var(--text-emerald-700)]">{globalStats.totalCourses}</p>
+            <p className="text-[10px] text-[color:var(--text-tertiary)]">Cursos disponibles</p>
           </div>
-          <div className="rounded-xl border border-red-200 border-red-800 bg-red-50 bg-red-900/20 p-3 text-center">
-            <p className="text-xl font-bold text-red-600 text-red-400">{globalStats.obligatoryCourses}</p>
-            <p className="text-[10px] text-red-600 text-red-400">Obligatorios</p>
+          <div className="rounded-xl border border-red-800 bg-red-900/20 p-3 text-center">
+            <p className="text-xl font-bold text-red-400">{globalStats.obligatoryCourses}</p>
+            <p className="text-[10px] text-red-400">Obligatorios</p>
           </div>
-          <div className="rounded-xl border border-blue-200 border-blue-800 bg-blue-50 bg-blue-900/20 p-3 text-center">
-            <p className="text-xl font-bold text-blue-600 text-blue-400">{globalStats.totalEnrolled}</p>
-            <p className="text-[10px] text-blue-600 text-blue-400">Inscritos total</p>
+          <div className="rounded-xl border border-blue-800 bg-blue-900/20 p-3 text-center">
+            <p className="text-xl font-bold text-emerald-600">{globalStats.totalEnrolled}</p>
+            <p className="text-[10px] text-emerald-600">Inscritos total</p>
           </div>
-          <div className="rounded-xl border border-green-200 border-green-800 bg-green-50 bg-green-900/20 p-3 text-center">
-            <p className="text-xl font-bold text-green-600 text-green-400">{globalStats.totalPassed}</p>
-            <p className="text-[10px] text-green-600 text-green-400">Aprobados</p>
+          <div className="rounded-xl border border-green-800 bg-green-900/20 p-3 text-center">
+            <p className="text-xl font-bold text-green-400">{globalStats.totalPassed}</p>
+            <p className="text-[10px] text-green-400">Aprobados</p>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-3 text-center">
-            <p className="text-xl font-bold text-purple-600 text-purple-400">{globalStats.avgCompletionRate}%</p>
-            <p className="text-[10px] text-gray-500 text-gray-400">Tasa promedio</p>
+          <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-3 text-center">
+            <p className="text-xl font-bold text-purple-400">{globalStats.avgCompletionRate}%</p>
+            <p className="text-[10px] text-[color:var(--text-tertiary)]">Tasa promedio</p>
           </div>
         </div>
       )}
@@ -584,17 +584,17 @@ export default function CapacitacionesPage() {
         <div className="flex gap-2">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[color:var(--text-tertiary)]" />
             <input
               type="text"
               placeholder="Buscar cursos..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-[#141824] py-2 pl-9 pr-3 text-sm text-white text-slate-100 placeholder-gray-400 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full rounded-lg border border-[color:var(--border-default)] bg-white py-2 pl-9 pr-3 text-sm text-white text-[color:var(--text-emerald-700)] placeholder-gray-400 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2">
-                <X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600 text-slate-500 hover:text-slate-300" />
+                <X className="h-3.5 w-3.5 text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)]" />
               </button>
             )}
           </div>
@@ -604,13 +604,13 @@ export default function CapacitacionesPage() {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
-              className="appearance-none rounded-lg border border-slate-600 bg-[#141824] py-2 pl-3 pr-8 text-sm text-gray-300 text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="appearance-none rounded-lg border border-[color:var(--border-default)] bg-white py-2 pl-3 pr-8 text-sm text-[color:var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               <option value="obligatorio">Obligatorio primero</option>
               <option value="popular">Más popular</option>
               <option value="reciente">Más reciente</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[color:var(--text-tertiary)]" />
           </div>
 
           {/* Filter toggle */}
@@ -619,14 +619,14 @@ export default function CapacitacionesPage() {
             className={cn(
               'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
               showFilters || activeFilterCount > 0
-                ? 'border-primary bg-primary/5 text-primary bg-primary/10'
-                : 'border-white/[0.08] border-slate-600 bg-[#141824] text-slate-300'
+                ? 'border-primary bg-emerald-50 text-emerald-700 bg-emerald-50'
+                : 'border-[color:var(--border-default)] border-[color:var(--border-default)] bg-white text-[color:var(--text-secondary)]'
             )}
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filtros
             {activeFilterCount > 0 && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -635,21 +635,21 @@ export default function CapacitacionesPage() {
 
         {/* Filter panel */}
         {showFilters && (
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 flex flex-wrap gap-4">
+          <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 flex flex-wrap gap-4">
             {/* Category */}
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-gray-500 text-gray-400">Categoría</p>
+              <p className="mb-1.5 text-xs font-semibold text-[color:var(--text-tertiary)]">Categoría</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => setCategoryFilter('')}
                   className={cn('rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
-                    !categoryFilter ? 'bg-primary text-white' : 'bg-white/[0.04] text-slate-300 hover:bg-gray-200 hover:bg-slate-600'
+                    !categoryFilter ? 'bg-emerald-600 text-white' : 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-200)]'
                   )}
                 >Todas</button>
                 {Object.entries(CATEGORY_CONFIG).map(([key, conf]) => (
                   <button key={key} onClick={() => setCategoryFilter(categoryFilter === key ? '' : key)}
                     className={cn('rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
-                      categoryFilter === key ? 'bg-primary text-white' : 'bg-white/[0.04] text-slate-300 hover:bg-gray-200 hover:bg-slate-600'
+                      categoryFilter === key ? 'bg-emerald-600 text-white' : 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-200)]'
                     )}
                   >{conf.label}</button>
                 ))}
@@ -658,12 +658,12 @@ export default function CapacitacionesPage() {
 
             {/* Difficulty */}
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-gray-500 text-gray-400">Dificultad</p>
+              <p className="mb-1.5 text-xs font-semibold text-[color:var(--text-tertiary)]">Dificultad</p>
               <div className="flex gap-1.5">
                 {(['', 'BASICO', 'INTERMEDIO', 'AVANZADO'] as const).map(d => (
                   <button key={d} onClick={() => setDiffFilter(d)}
                     className={cn('rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
-                      diffFilter === d ? 'bg-primary text-white' : 'bg-white/[0.04] text-slate-300 hover:bg-gray-200 hover:bg-slate-600'
+                      diffFilter === d ? 'bg-emerald-600 text-white' : 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-200)]'
                     )}
                   >{d === '' ? 'Todas' : DIFFICULTY_CONFIG[d].label}</button>
                 ))}
@@ -674,7 +674,7 @@ export default function CapacitacionesPage() {
             {activeFilterCount > 0 && (
               <button
                 onClick={() => { setCategoryFilter(''); setDiffFilter(''); setStatusFilter('') }}
-                className="ml-auto flex items-center gap-1 text-xs text-red-600 text-red-400 hover:underline"
+                className="ml-auto flex items-center gap-1 text-xs text-red-400 hover:underline"
               >
                 <X className="h-3 w-3" /> Limpiar filtros
               </button>
@@ -686,33 +686,33 @@ export default function CapacitacionesPage() {
       {/* ── Course Grid ── */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          <Loader2 className="h-7 w-7 animate-spin text-emerald-700" />
         </div>
       ) : courses.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 border-slate-600 bg-white/[0.02] bg-[#141824] p-12 text-center">
-          <GraduationCap className="mx-auto h-10 w-10 text-gray-300 text-slate-600" />
-          <p className="mt-2 text-sm text-gray-500 text-gray-400">No hay cursos disponibles.</p>
-          <p className="text-xs text-gray-400 text-slate-500">Carga el catálogo usando el botón superior.</p>
+        <div className="rounded-xl border border-dashed border-white/10 border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-white p-12 text-center">
+          <GraduationCap className="mx-auto h-10 w-10 text-[color:var(--text-secondary)]" />
+          <p className="mt-2 text-sm text-[color:var(--text-tertiary)]">No hay cursos disponibles.</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Carga el catálogo usando el botón superior.</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 border-slate-600 bg-white/[0.02] bg-[#141824] p-10 text-center">
-          <Search className="mx-auto h-8 w-8 text-gray-300 text-slate-600" />
-          <p className="mt-2 text-sm text-gray-500 text-gray-400">No se encontraron cursos con esos filtros.</p>
+        <div className="rounded-xl border border-dashed border-white/10 border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-white p-10 text-center">
+          <Search className="mx-auto h-8 w-8 text-[color:var(--text-secondary)]" />
+          <p className="mt-2 text-sm text-[color:var(--text-tertiary)]">No se encontraron cursos con esos filtros.</p>
           <button
             onClick={() => { setSearch(''); setCategoryFilter(''); setDiffFilter('') }}
-            className="mt-2 text-xs text-primary hover:underline"
+            className="mt-2 text-xs text-emerald-700 hover:underline"
           >Limpiar filtros</button>
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500 text-gray-400">
+            <p className="text-xs text-[color:var(--text-tertiary)]">
               {filtered.length} curso{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
             </p>
             {(search || activeFilterCount > 0) && (
               <button
                 onClick={() => { setSearch(''); setCategoryFilter(''); setDiffFilter('') }}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
+                className="text-xs text-emerald-700 hover:underline flex items-center gap-1"
               >
                 <X className="h-3 w-3" /> Quitar filtros
               </button>

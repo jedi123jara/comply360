@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import {
-  AlertTriangle, Plus, Loader2, Shield, Download, ChevronRight,
-  ChevronLeft, CheckCircle2, Clock, X, BarChart3,
-} from 'lucide-react'
+import { AlertTriangle, Plus, Loader2, Download, ChevronRight, ChevronLeft, CheckCircle2, Clock, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   PELIGRO_TIPOS,
@@ -19,7 +16,7 @@ import {
   type NivelRiesgo,
   type ProbabilidadFactors,
 } from '@/lib/sst/iperc-template'
-import { PELIGROS_LIBRARY, getPeligrosByTipo, type PeligroEntry } from '@/lib/sst/peligros-library'
+import { PELIGROS_LIBRARY, getPeligrosByTipo } from '@/lib/sst/peligros-library'
 
 interface IpercRow {
   id: string
@@ -235,7 +232,7 @@ export default function IpercPage() {
         <div className="flex gap-2">
           <button
             onClick={exportData}
-            className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium text-gray-300 hover:bg-white/[0.02]"
+            className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)]"
           >
             <Download className="h-4 w-4" /> Exportar
           </button>
@@ -250,7 +247,7 @@ export default function IpercPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <div className="rounded-xl border bg-[#141824] p-3 text-center">
+        <div className="rounded-xl border bg-white p-3 text-center">
           <p className="text-2xl font-bold text-white">{stats.totalRisks}</p>
           <p className="text-xs text-gray-500">Total Riesgos</p>
         </div>
@@ -295,8 +292,8 @@ export default function IpercPage() {
 
       {/* IPERC Table */}
       {entries.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
-          <AlertTriangle className="mx-auto h-10 w-10 text-gray-300" />
+        <div className="rounded-lg border border-dashed border-white/10 bg-[color:var(--neutral-50)] p-12 text-center">
+          <AlertTriangle className="mx-auto h-10 w-10 text-[color:var(--text-secondary)]" />
           <p className="mt-2 text-sm text-gray-500">No hay riesgos registrados en la matriz IPERC.</p>
           <button
             onClick={() => { resetForm(); setStepError(null); setShowWizard(true) }}
@@ -306,10 +303,10 @@ export default function IpercPage() {
           </button>
         </div>
       ) : (
-        <div className="rounded-xl border bg-[#141824] overflow-x-auto">
+        <div className="rounded-xl border bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-white/[0.02] text-left text-xs font-medium uppercase text-gray-500">
+              <tr className="border-b bg-[color:var(--neutral-50)] text-left text-xs font-medium uppercase text-gray-500">
                 <th className="px-3 py-3">Proceso / Area</th>
                 <th className="px-3 py-3">Actividad / Tarea</th>
                 <th className="px-3 py-3">Peligro</th>
@@ -326,27 +323,27 @@ export default function IpercPage() {
               {entries.map(entry => {
                 const nivelConfig = NIVEL_RIESGO_CONFIG[entry.nivelRiesgoLabel] || NIVEL_RIESGO_CONFIG.TRIVIAL
                 return (
-                  <tr key={entry.id} className="border-b last:border-b-0 hover:bg-white/[0.02]">
+                  <tr key={entry.id} className="border-b last:border-b-0 hover:bg-[color:var(--neutral-50)]">
                     <td className="px-3 py-3">
                       <p className="font-medium text-white">{entry.proceso}</p>
                       <p className="text-xs text-gray-500">{entry.area}</p>
                     </td>
                     <td className="px-3 py-3">
-                      <p className="text-gray-300">{entry.actividad}</p>
+                      <p className="text-[color:var(--text-secondary)]">{entry.actividad}</p>
                       <p className="text-xs text-gray-500">{entry.tarea}</p>
                     </td>
                     <td className="px-3 py-3">
-                      <span className="inline-block rounded bg-white/[0.04] px-1.5 py-0.5 text-xs font-medium text-gray-300 mb-1">
+                      <span className="inline-block rounded bg-[color:var(--neutral-100)] px-1.5 py-0.5 text-xs font-medium text-[color:var(--text-secondary)] mb-1">
                         {PELIGRO_TIPOS[entry.peligroTipo as PeligroTipo]?.label || entry.peligroTipo}
                       </span>
                       <p className="text-xs text-gray-600">{entry.peligroDescripcion}</p>
                     </td>
-                    <td className="px-3 py-3 text-xs text-gray-300 max-w-[150px]">
+                    <td className="px-3 py-3 text-xs text-[color:var(--text-secondary)] max-w-[150px]">
                       <p>{entry.riesgoAsociado}</p>
                       <p className="text-gray-400 mt-0.5">{entry.consecuencia}</p>
                     </td>
-                    <td className="px-3 py-3 text-center font-mono text-gray-300">{entry.probabilidad}</td>
-                    <td className="px-3 py-3 text-center font-mono text-gray-300">{entry.severidad}</td>
+                    <td className="px-3 py-3 text-center font-mono text-[color:var(--text-secondary)]">{entry.probabilidad}</td>
+                    <td className="px-3 py-3 text-center font-mono text-[color:var(--text-secondary)]">{entry.severidad}</td>
                     <td className="px-3 py-3 text-center font-mono font-bold text-white">{entry.nivelRiesgo}</td>
                     <td className="px-3 py-3 text-center">
                       <span className={cn('inline-block rounded-full px-2 py-0.5 text-xs font-semibold', nivelConfig.bgColor, nivelConfig.color)}>
@@ -386,10 +383,10 @@ export default function IpercPage() {
       {/* Wizard Modal */}
       {showWizard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8">
-          <div className="w-full max-w-2xl rounded-xl bg-[#141824] p-6 shadow-xl mx-4">
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Nuevo Riesgo IPERC</h3>
-              <button onClick={() => setShowWizard(false)} className="rounded p-1 hover:bg-white/[0.04]">
+              <button onClick={() => setShowWizard(false)} className="rounded p-1 hover:bg-[color:var(--neutral-100)]">
                 <X className="h-5 w-5 text-gray-400" />
               </button>
             </div>
@@ -400,7 +397,7 @@ export default function IpercPage() {
                 <div key={s} className="flex items-center gap-1 flex-1">
                   <div className={cn(
                     'flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium',
-                    i <= step ? 'bg-primary text-white' : 'bg-white/[0.04] text-gray-400'
+                    i <= step ? 'bg-primary text-white' : 'bg-[color:var(--neutral-100)] text-gray-400'
                   )}>
                     {i + 1}
                   </div>
@@ -430,23 +427,23 @@ export default function IpercPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300">Proceso *</label>
+                    <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Proceso *</label>
                     <input type="text" value={form.proceso} onChange={e => setForm(p => ({ ...p, proceso: e.target.value }))}
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Ej: Produccion" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300">Area *</label>
+                    <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Area *</label>
                     <input type="text" value={form.area} onChange={e => setForm(p => ({ ...p, area: e.target.value }))}
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Ej: Planta principal" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Actividad *</label>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Actividad *</label>
                   <input type="text" value={form.actividad} onChange={e => setForm(p => ({ ...p, actividad: e.target.value }))}
                     className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Ej: Operacion de maquinaria" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Tarea *</label>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Tarea *</label>
                   <input type="text" value={form.tarea} onChange={e => setForm(p => ({ ...p, tarea: e.target.value }))}
                     className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Ej: Corte de materiales" />
                 </div>
@@ -457,7 +454,7 @@ export default function IpercPage() {
             {step === 1 && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Tipo de peligro *</label>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Tipo de peligro *</label>
                   <select value={form.peligroTipo} onChange={e => setForm(p => ({ ...p, peligroTipo: e.target.value as PeligroTipo }))}
                     className="mt-1 w-full rounded-lg border px-3 py-2 text-sm">
                     <option value="">Seleccionar...</option>
@@ -476,7 +473,7 @@ export default function IpercPage() {
                   const filtered = getPeligrosByTipo(form.peligroTipo as PeligroTipo)
                   return filtered.length > 0 ? (
                     <div>
-                      <label className="block text-sm font-medium text-gray-300">Seleccionar de biblioteca (opcional)</label>
+                      <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Seleccionar de biblioteca (opcional)</label>
                       <select
                         value=""
                         onChange={e => {
@@ -497,23 +494,23 @@ export default function IpercPage() {
                           <option key={p.id} value={p.id}>{p.peligro}</option>
                         ))}
                       </select>
-                      <p className="mt-1 text-xs text-amber-600 text-amber-400">Al seleccionar, se auto-completan peligro, riesgo y consecuencia</p>
+                      <p className="mt-1 text-xs text-amber-400">Al seleccionar, se auto-completan peligro, riesgo y consecuencia</p>
                     </div>
                   ) : null
                 })()}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Descripcion del peligro *</label>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Descripcion del peligro *</label>
                   <input type="text" value={form.peligroDescripcion} onChange={e => setForm(p => ({ ...p, peligroDescripcion: e.target.value }))}
                     className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Ej: Ruido excesivo de maquinaria" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Riesgo asociado *</label>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Riesgo asociado *</label>
                   <input type="text" value={form.riesgoAsociado} onChange={e => setForm(p => ({ ...p, riesgoAsociado: e.target.value }))}
                     className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Ej: Hipoacusia inducida por ruido" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Consecuencia *</label>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Consecuencia *</label>
                   <input type="text" value={form.consecuencia} onChange={e => setForm(p => ({ ...p, consecuencia: e.target.value }))}
                     className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Ej: Perdida auditiva permanente" />
                 </div>
@@ -523,7 +520,7 @@ export default function IpercPage() {
             {/* Step 2: Evaluacion */}
             {step === 2 && (
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-gray-300">Factores de Probabilidad</h4>
+                <h4 className="text-sm font-semibold text-[color:var(--text-secondary)]">Factores de Probabilidad</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600">Personas expuestas</label>
@@ -568,7 +565,7 @@ export default function IpercPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Severidad *</label>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Severidad *</label>
                   <select value={form.severidad}
                     onChange={e => setForm(p => ({ ...p, severidad: parseInt(e.target.value) as Severidad }))}
                     className="mt-1 w-full rounded-lg border px-3 py-2 text-sm">
@@ -580,12 +577,12 @@ export default function IpercPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300">Responsable *</label>
+                    <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Responsable *</label>
                     <input type="text" value={form.responsable} onChange={e => setForm(p => ({ ...p, responsable: e.target.value }))}
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="Nombre del responsable" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300">Fecha</label>
+                    <label className="block text-sm font-medium text-[color:var(--text-secondary)]">Fecha</label>
                     <input type="date" value={form.fecha} onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" />
                   </div>
@@ -604,7 +601,7 @@ export default function IpercPage() {
                 {form.medidasControl.map((mc, idx) => (
                   <div key={idx} className="rounded-lg border p-3 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-300">Medida {idx + 1}</span>
+                      <span className="text-sm font-medium text-[color:var(--text-secondary)]">Medida {idx + 1}</span>
                       {form.medidasControl.length > 1 && (
                         <button onClick={() => removeMedidaControl(idx)} className="text-xs text-red-500 hover:underline">Eliminar</button>
                       )}
@@ -656,7 +653,7 @@ export default function IpercPage() {
             {/* Step 4: Resumen */}
             {step === 4 && (
               <div className="space-y-3 text-sm">
-                <div className="rounded-lg bg-white/[0.02] p-4 space-y-2">
+                <div className="rounded-lg bg-[color:var(--neutral-50)] p-4 space-y-2">
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     <p><span className="font-medium text-gray-500">Proceso:</span> {form.proceso}</p>
                     <p><span className="font-medium text-gray-500">Area:</span> {form.area}</p>
@@ -699,9 +696,10 @@ export default function IpercPage() {
               <button
                 onClick={() => {
                   setStepError(null)
-                  step > 0 ? setStep(step - 1) : setShowWizard(false)
+                  if (step > 0) setStep(step - 1)
+                  else setShowWizard(false)
                 }}
-                className="flex items-center gap-1 rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-white/[0.02]"
+                className="flex items-center gap-1 rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-[color:var(--neutral-50)]"
               >
                 <ChevronLeft className="h-4 w-4" /> {step > 0 ? 'Anterior' : 'Cancelar'}
               </button>
@@ -716,7 +714,7 @@ export default function IpercPage() {
               ) : (
                 <div className="flex flex-col items-end gap-2">
                   {saveError && (
-                    <p className="text-xs text-red-600 text-red-400 max-w-xs text-right">{saveError}</p>
+                    <p className="text-xs text-red-400 max-w-xs text-right">{saveError}</p>
                   )}
                   <button
                     onClick={saveEntry}

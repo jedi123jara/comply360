@@ -1,18 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import * as Dialog from '@radix-ui/react-dialog'
+import { Command as CmdkCommand } from 'cmdk'
 import {
   Search,
+  Sparkles,
+  ArrowRight,
   LayoutDashboard,
+  Users,
   FileText,
   Calculator,
+  Calendar,
   Bell,
   Settings,
   FolderOpen,
   BarChart3,
-  Users,
-  Calendar,
   ShieldCheck,
   ShieldAlert,
   Bot,
@@ -23,228 +27,538 @@ import {
   CreditCard,
   Building2,
   Equal,
-  X,
+  FileStack,
+  Radar,
+  Siren,
+  Inbox,
+  Banknote,
+  Receipt,
+  FileSpreadsheet,
+  ScrollText,
+  CalendarRange,
+  Sun as SunIcon,
+  Clock,
+  ClipboardList,
+  Briefcase,
+  Store,
+  Award,
+  Trophy,
+  Code2,
+  Laptop2,
+  UserCircle,
+  Workflow,
+  FileSearch,
+  Scale,
+  Shield,
+  Command as CommandIcon,
 } from 'lucide-react'
-import { NAV_ITEMS, CALCULATOR_TYPES } from '@/lib/constants'
+import { NAV_HUBS, CALCULATOR_TYPES } from '@/lib/constants'
+import { useCopilot } from '@/providers/copilot-provider'
 import { cn } from '@/lib/utils'
 
+/**
+ * Command Palette — cmdk-based, Obsidian skin.
+ *
+ * Capabilities:
+ * - Navigate to any of the 7 hubs or their items
+ * - Jump to any of the 13 calculators
+ * - Dynamic search of workers / contracts / documents (debounced API calls)
+ * - Quick actions (new worker, new contract, generate report…)
+ * - "Ask copilot" fallback: if query doesn't match anything, offer to send
+ *   it to the AI copilot.
+ *
+ * Opens with Cmd+K / Ctrl+K globally. The dashboard layout also passes
+ * `onExternalOpen` to wire up the sidebar and topbar triggers.
+ */
+
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard, Users, FileText, Calculator, Calendar, Bell, Settings,
-  FolderOpen, BarChart3, ShieldCheck, ShieldAlert, Bot, HardHat,
-  GraduationCap, Newspaper, Plug, CreditCard, Building2, Equal,
+  LayoutDashboard,
+  Users,
+  FileText,
+  Calculator,
+  Calendar,
+  Bell,
+  Settings,
+  FolderOpen,
+  BarChart3,
+  ShieldCheck,
+  ShieldAlert,
+  Bot,
+  HardHat,
+  GraduationCap,
+  Newspaper,
+  Plug,
+  CreditCard,
+  Building2,
+  Equal,
+  FileStack,
+  Radar,
+  Siren,
+  Inbox,
+  Banknote,
+  Receipt,
+  FileSpreadsheet,
+  ScrollText,
+  CalendarRange,
+  Sun: SunIcon,
+  Clock,
+  ClipboardList,
+  Briefcase,
+  Store,
+  Award,
+  Trophy,
+  Code2,
+  Laptop2,
+  UserCircle,
+  Workflow,
+  FileSearch,
+  Scale,
+  Shield,
+  Sparkles,
 }
 
-interface PaletteItem {
+function iconFor(name: string | undefined) {
+  if (!name) return FileText
+  return ICON_MAP[name] ?? FileText
+}
+
+/* ── Types ───────────────────────────────────────────────────────────── */
+
+interface QuickAction {
   id: string
+  label: string
+  hint?: string
+  icon: React.ComponentType<{ className?: string }>
+  perform: () => void
+  shortcut?: string
+}
+
+interface SearchHit {
+  id: string
+  kind: 'worker' | 'contract' | 'document'
   label: string
   sublabel?: string
   href: string
-  icon: string
-  group: string
 }
 
-const STATIC_ITEMS: PaletteItem[] = [
-  ...NAV_ITEMS.map(n => ({
-    id: n.href,
-    label: n.label,
-    href: n.href,
-    icon: n.icon,
-    group: 'Navegacion',
-  })),
-  ...CALCULATOR_TYPES.map(c => ({
-    id: `/dashboard/calculadoras/${c.key}`,
-    label: c.label,
-    sublabel: c.description,
-    href: `/dashboard/calculadoras/${c.key}`,
-    icon: 'Calculator',
-    group: 'Calculadoras',
-  })),
-]
+/* ── Hook: debounced dynamic search ─────────────────────────────────── */
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
+function useDebouncedSearch(query: string): { results: SearchHit[]; loading: boolean } {
+  const [results, setResults] = useState<SearchHit[]>([])
+  const [loading, setLoading] = useState(false)
+  const abortRef = useRef<AbortController | null>(null)
 
-  const filtered = query.trim() === ''
-    ? STATIC_ITEMS.slice(0, 10)
-    : STATIC_ITEMS.filter(item =>
-        item.label.toLowerCase().includes(query.toLowerCase()) ||
-        item.sublabel?.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 12)
-
-  const handleOpen = useCallback(() => {
-    setOpen(true)
-    setQuery('')
-    setSelectedIndex(0)
-    setTimeout(() => inputRef.current?.focus(), 50)
-  }, [])
-
-  const handleClose = useCallback(() => {
-    setOpen(false)
-    setQuery('')
-  }, [])
-
-  const handleSelect = useCallback((item: PaletteItem) => {
-    router.push(item.href)
-    handleClose()
-  }, [router, handleClose])
-
-  // Global keydown: Ctrl+K or Cmd+K opens palette
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        setOpen(prev => {
-          if (!prev) {
-            setQuery('')
-            setSelectedIndex(0)
-            setTimeout(() => inputRef.current?.focus(), 50)
-          }
-          return !prev
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
+      // Schedule state resets in a microtask so we aren't calling setState
+      // synchronously in the effect body.
+      const id = requestAnimationFrame(() => {
+        setResults([])
+        setLoading(false)
+      })
+      return () => cancelAnimationFrame(id)
+    }
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+    const startId = requestAnimationFrame(() => setLoading(true))
+    const handle = setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(trimmed)}&limit=12`, {
+        signal: ctrl.signal,
+      })
+        .then((r) => (r.ok ? r.json() : { results: [] }))
+        .then((d) => {
+          const hits: SearchHit[] = Array.isArray(d?.results) ? d.results : []
+          setResults(hits)
+          setLoading(false)
         })
-      }
-      if (!open) return
-      if (e.key === 'Escape') handleClose()
-      if (e.key === 'ArrowDown') {
+        .catch((err) => {
+          if (err?.name !== 'AbortError') setLoading(false)
+        })
+    }, 200)
+    return () => {
+      cancelAnimationFrame(startId)
+      clearTimeout(handle)
+      ctrl.abort()
+    }
+  }, [query])
+
+  return { results, loading }
+}
+
+/* ── Component ──────────────────────────────────────────────────────── */
+
+export interface CommandPaletteHandle {
+  open: () => void
+  close: () => void
+  toggle: () => void
+}
+
+export function CommandPalette({
+  openState,
+  setOpenState,
+}: {
+  openState: boolean
+  setOpenState: (v: boolean) => void
+}) {
+  const router = useRouter()
+  const copilot = useCopilot()
+  const [query, setQuery] = useState('')
+  const { results: searchHits, loading: searching } = useDebouncedSearch(query)
+
+  const navItems = useMemo(
+    () => NAV_HUBS.flatMap((hub) => hub.items.map((item) => ({ ...item, hubLabel: hub.label }))),
+    []
+  )
+
+  const close = useCallback(() => {
+    setOpenState(false)
+    setQuery('')
+  }, [setOpenState])
+
+  const go = useCallback(
+    (href: string) => {
+      close()
+      router.push(href)
+    },
+    [router, close]
+  )
+
+  const askCopilot = useCallback(() => {
+    const q = query.trim()
+    close()
+    copilot.open(q || undefined)
+  }, [query, copilot, close])
+
+  // Quick actions (static)
+  const quickActions: QuickAction[] = useMemo(
+    () => [
+      {
+        id: 'qa-new-worker',
+        label: 'Nuevo trabajador',
+        hint: 'Agregar a /dashboard/trabajadores',
+        icon: Users,
+        perform: () => go('/dashboard/trabajadores/nuevo'),
+      },
+      {
+        id: 'qa-new-contract',
+        label: 'Generar contrato',
+        hint: 'Plantilla · régimen · IA',
+        icon: FileText,
+        perform: () => go('/dashboard/contratos/nuevo'),
+      },
+      {
+        id: 'qa-diagnostic',
+        label: 'Iniciar diagnóstico SUNAFIL',
+        hint: '120 preguntas · score automático',
+        icon: ShieldCheck,
+        perform: () => go('/dashboard/diagnostico'),
+      },
+      {
+        id: 'qa-simulacro',
+        label: 'Iniciar simulacro SUNAFIL',
+        hint: 'Inspector virtual',
+        icon: ShieldAlert,
+        perform: () => go('/dashboard/simulacro'),
+      },
+      {
+        id: 'qa-open-copilot',
+        label: 'Abrir Copilot IA',
+        hint: 'Ctrl+I',
+        icon: Sparkles,
+        perform: () => {
+          close()
+          copilot.open()
+        },
+        shortcut: '⌃I',
+      },
+      {
+        id: 'qa-reports',
+        label: 'Descargar reporte ejecutivo',
+        hint: 'PDF compliance mensual',
+        icon: BarChart3,
+        perform: () => go('/dashboard/reportes'),
+      },
+    ],
+    [go, close, copilot]
+  )
+
+  // Reset query when dialog closes (deferred to next frame so we don't setState
+  // synchronously inside the effect body).
+  useEffect(() => {
+    if (openState) return
+    const id = requestAnimationFrame(() => setQuery(''))
+    return () => cancelAnimationFrame(id)
+  }, [openState])
+
+  // Global Ctrl+K / Cmd+K shortcut
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        setSelectedIndex(prev => Math.min(prev + 1, filtered.length - 1))
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelectedIndex(prev => Math.max(prev - 1, 0))
-      }
-      if (e.key === 'Enter' && filtered[selectedIndex]) {
-        handleSelect(filtered[selectedIndex])
+        setOpenState(!openState)
       }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, filtered, selectedIndex, handleClose, handleSelect])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [openState, setOpenState])
 
-  // Reset selection when query changes
-  useEffect(() => { setSelectedIndex(0) }, [query])
+  const filteredNav = query.trim()
+    ? navItems.filter(
+        (n) =>
+          n.label.toLowerCase().includes(query.toLowerCase()) ||
+          n.hubLabel.toLowerCase().includes(query.toLowerCase())
+      )
+    : navItems.slice(0, 8)
 
-  if (!open) return null
+  const filteredCalcs = query.trim()
+    ? CALCULATOR_TYPES.filter(
+        (c) =>
+          c.label.toLowerCase().includes(query.toLowerCase()) ||
+          c.description.toLowerCase().includes(query.toLowerCase())
+      )
+    : CALCULATOR_TYPES.slice(0, 4)
 
-  // Group items for display
-  const groups: Record<string, PaletteItem[]> = {}
-  for (const item of filtered) {
-    if (!groups[item.group]) groups[item.group] = []
-    groups[item.group].push(item)
-  }
+  const hasQuery = query.trim().length > 0
+  const noResults =
+    hasQuery &&
+    !searching &&
+    searchHits.length === 0 &&
+    filteredNav.length === 0 &&
+    filteredCalcs.length === 0
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]"
-      aria-modal="true"
-      role="dialog"
-    >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
-        aria-hidden="true"
-      />
+    <Dialog.Root open={openState} onOpenChange={setOpenState}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[var(--z-command)] bg-neutral-900/40 backdrop-blur-sm data-[state=open]:motion-fade-in" />
+        <Dialog.Content
+          className="fixed left-1/2 top-[12vh] -translate-x-1/2 z-[var(--z-command)] w-[calc(100vw-2rem)] max-w-2xl overflow-hidden rounded-2xl border border-[color:var(--border-strong)] bg-white shadow-[var(--elevation-4)] data-[state=open]:motion-scale-in focus:outline-none"
+          aria-label="Paleta de comandos"
+        >
+          <Dialog.Title className="sr-only">Buscar y ejecutar comandos</Dialog.Title>
+          <Dialog.Description className="sr-only">
+            Escribe para buscar trabajadores, contratos, módulos o acciones. Presiona Enter para abrir el seleccionado.
+          </Dialog.Description>
+          <CmdkCommand
+            loop
+            shouldFilter={false}
+            className="flex flex-col"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-[color:var(--border-subtle)]">
+              <Search className="h-4 w-4 text-[color:var(--text-tertiary)] shrink-0" />
+              <CmdkCommand.Input
+                value={query}
+                onValueChange={setQuery}
+                autoFocus
+                placeholder="Buscar trabajadores, contratos, módulos o acciones…"
+                className="flex-1 bg-transparent text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)] outline-none"
+              />
+              <kbd className="hidden sm:inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1.5 py-0.5 font-mono text-[10px] text-[color:var(--text-tertiary)]">
+                ESC
+              </kbd>
+            </div>
 
-      {/* Panel */}
-      <div className="relative w-full max-w-lg mx-4 rounded-2xl border border-white/[0.08] border-white/[0.08] bg-[#141824] bg-[#141824] shadow-2xl overflow-hidden animate-fade-in">
-        {/* Input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] border-white/[0.08]">
-          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            id="command-palette-search"
-            name="commandSearch"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Buscar modulos, calculadoras..."
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-400 outline-none"
-          />
-          <div className="flex items-center gap-1.5">
-            <kbd className="hidden sm:inline-flex items-center rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
-              ESC
-            </kbd>
-            <button onClick={handleClose} className="p-1 hover:bg-white/[0.04] rounded-md transition-colors">
-              <X className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-          </div>
-        </div>
-
-        {/* Results */}
-        <div className="max-h-80 overflow-y-auto py-2">
-          {filtered.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-gray-400">
-              Sin resultados para &quot;{query}&quot;
-            </p>
-          ) : (
-            Object.entries(groups).map(([groupName, items]) => {
-              return (
-                <div key={groupName}>
-                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                    {groupName}
+            <CmdkCommand.List className="max-h-[60vh] overflow-y-auto py-2">
+              {noResults ? (
+                <div className="px-4 py-6 text-center">
+                  <p className="text-sm text-[color:var(--text-secondary)]">
+                    Sin coincidencias para
+                    <span className="ml-1 font-semibold text-[color:var(--text-primary)]">&quot;{query}&quot;</span>
                   </p>
-                  {items.map(item => {
-                    const Icon = ICON_MAP[item.icon]
-                    const globalIndex = filtered.indexOf(item)
-                    const isSelected = globalIndex === selectedIndex
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleSelect(item)}
-                        onMouseEnter={() => setSelectedIndex(globalIndex)}
-                        className={cn(
-                          'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left',
-                          isSelected ? 'bg-primary/5' : 'hover:bg-white/[0.02] hover:bg-white/[0.04]',
-                        )}
-                      >
-                        <div className={cn(
-                          'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg',
-                          isSelected ? 'bg-primary text-white' : 'bg-white/[0.04] bg-white/[0.04] text-gray-500',
-                        )}>
-                          {Icon && <Icon className="h-3.5 w-3.5" />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className={cn(
-                            'font-medium truncate',
-                            isSelected ? 'text-primary' : 'text-gray-900',
-                          )}>
-                            {item.label}
-                          </p>
-                          {item.sublabel && (
-                            <p className="text-xs text-gray-400 truncate">{item.sublabel}</p>
-                          )}
-                        </div>
-                        {isSelected && (
-                          <kbd className="ml-auto text-[10px] text-gray-400 border border-white/[0.08] rounded px-1 py-0.5 bg-white/[0.02]">
-                            ↵
-                          </kbd>
-                        )}
-                      </button>
-                    )
-                  })}
+                  <button
+                    type="button"
+                    onClick={askCopilot}
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Preguntar al Copilot
+                  </button>
                 </div>
-              )
-            })
-          )}
-        </div>
+              ) : null}
 
-        {/* Footer hint */}
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-white/[0.06] border-white/[0.08] bg-white/[0.02]">
-          <span className="flex items-center gap-1 text-[10px] text-gray-400">
-            <kbd className="border border-white/[0.08] rounded px-1 py-0.5 bg-[#141824]">↑↓</kbd> navegar
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-gray-400">
-            <kbd className="border border-white/[0.08] rounded px-1 py-0.5 bg-[#141824]">↵</kbd> abrir
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-gray-400">
-            <kbd className="border border-white/[0.08] rounded px-1 py-0.5 bg-[#141824]">Ctrl+K</kbd> cerrar
-          </span>
-        </div>
+              {/* Ask copilot — always at top when there's a query */}
+              {hasQuery ? (
+                <CmdkCommand.Group heading={<GroupHeading>IA Copilot</GroupHeading>}>
+                  <PaletteRow
+                    icon={Sparkles}
+                    label={`Preguntar al Copilot: "${query}"`}
+                    hint="Respuesta con base legal peruana"
+                    accent
+                    onSelect={askCopilot}
+                  />
+                </CmdkCommand.Group>
+              ) : null}
+
+              {/* Dynamic search hits */}
+              {searchHits.length > 0 ? (
+                <CmdkCommand.Group heading={<GroupHeading>Resultados</GroupHeading>}>
+                  {searchHits.map((hit) => (
+                    <PaletteRow
+                      key={`${hit.kind}-${hit.id}`}
+                      icon={hit.kind === 'worker' ? Users : hit.kind === 'contract' ? FileText : FileStack}
+                      label={hit.label}
+                      hint={hit.sublabel}
+                      tag={hit.kind === 'worker' ? 'Trabajador' : hit.kind === 'contract' ? 'Contrato' : 'Documento'}
+                      onSelect={() => go(hit.href)}
+                    />
+                  ))}
+                </CmdkCommand.Group>
+              ) : null}
+
+              {/* Quick actions */}
+              {!hasQuery ? (
+                <CmdkCommand.Group heading={<GroupHeading>Acciones rápidas</GroupHeading>}>
+                  {quickActions.map((a) => (
+                    <PaletteRow
+                      key={a.id}
+                      icon={a.icon}
+                      label={a.label}
+                      hint={a.hint}
+                      shortcut={a.shortcut}
+                      onSelect={a.perform}
+                    />
+                  ))}
+                </CmdkCommand.Group>
+              ) : null}
+
+              {/* Navigation */}
+              {filteredNav.length > 0 ? (
+                <CmdkCommand.Group heading={<GroupHeading>Navegación</GroupHeading>}>
+                  {filteredNav.slice(0, 14).map((n) => (
+                    <PaletteRow
+                      key={n.href}
+                      icon={iconFor(n.icon)}
+                      label={n.label}
+                      hint={n.hubLabel}
+                      onSelect={() => go(n.href)}
+                    />
+                  ))}
+                </CmdkCommand.Group>
+              ) : null}
+
+              {/* Calculators */}
+              {filteredCalcs.length > 0 ? (
+                <CmdkCommand.Group heading={<GroupHeading>Calculadoras</GroupHeading>}>
+                  {filteredCalcs.map((c) => (
+                    <PaletteRow
+                      key={c.key}
+                      icon={Calculator}
+                      label={c.label}
+                      hint={c.description}
+                      onSelect={() => go(`/dashboard/calculadoras/${c.key}`)}
+                    />
+                  ))}
+                </CmdkCommand.Group>
+              ) : null}
+
+              {searching ? (
+                <div className="px-4 py-3 text-xs text-[color:var(--text-tertiary)]">
+                  Buscando…
+                </div>
+              ) : null}
+            </CmdkCommand.List>
+
+            {/* Footer */}
+            <div className="flex items-center gap-4 px-4 py-2 border-t border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] text-[10px] text-[color:var(--text-tertiary)]">
+              <span className="flex items-center gap-1">
+                <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
+                  ↑↓
+                </kbd>
+                navegar
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
+                  ↵
+                </kbd>
+                abrir
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
+                  <CommandIcon className="h-2.5 w-2.5" />K
+                </kbd>
+                cerrar
+              </span>
+              <span className="ml-auto flex items-center gap-1">
+                <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
+                  ⇧↵
+                </kbd>
+                preguntar al Copilot
+              </span>
+            </div>
+          </CmdkCommand>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
+/* ── Row component ──────────────────────────────────────────────────── */
+
+function PaletteRow({
+  icon: Icon,
+  label,
+  hint,
+  tag,
+  shortcut,
+  accent,
+  onSelect,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  hint?: string
+  tag?: string
+  shortcut?: string
+  accent?: boolean
+  onSelect: () => void
+}) {
+  return (
+    <CmdkCommand.Item
+      onSelect={onSelect}
+      className={cn(
+        'flex items-center gap-3 mx-1 my-0.5 rounded-lg px-2.5 py-2 text-sm cursor-default select-none',
+        'transition-colors duration-100',
+        'data-[selected=true]:bg-[color:var(--neutral-100)]',
+        accent && 'data-[selected=true]:bg-emerald-100'
+      )}
+    >
+      <span
+        className={cn(
+          'shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-lg',
+          accent
+            ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+            : 'bg-[color:var(--neutral-100)] border border-[color:var(--border-subtle)] text-[color:var(--text-tertiary)]'
+        )}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className={cn('truncate font-medium', accent ? 'text-emerald-700' : 'text-[color:var(--text-primary)]')}>
+          {label}
+        </p>
+        {hint ? (
+          <p className="truncate text-xs text-[color:var(--text-tertiary)]">{hint}</p>
+        ) : null}
       </div>
-    </div>
+      {tag ? (
+        <span className="shrink-0 rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">
+          {tag}
+        </span>
+      ) : null}
+      {shortcut ? (
+        <kbd className="shrink-0 rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1.5 py-0.5 font-mono text-[10px] text-[color:var(--text-tertiary)]">
+          {shortcut}
+        </kbd>
+      ) : null}
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity duration-100 data-[selected=true]:opacity-100 text-[color:var(--text-tertiary)]" />
+    </CmdkCommand.Item>
+  )
+}
+
+function GroupHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-[color:var(--text-tertiary)]">
+      {children}
+    </span>
   )
 }

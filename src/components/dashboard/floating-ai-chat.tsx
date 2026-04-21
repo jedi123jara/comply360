@@ -307,7 +307,7 @@ export default function FloatingAiChat() {
                     ${
                       msg.role === 'user'
                         ? 'bg-amber-500 text-white rounded-br-md'
-                        : 'bg-white/[0.04] bg-[#141824] text-gray-200 rounded-bl-md'
+                        : 'bg-[color:var(--neutral-100)] bg-[#141824] text-gray-200 rounded-bl-md'
                     }
                   `}
                 >
@@ -337,7 +337,7 @@ export default function FloatingAiChat() {
                   className="
                     flex items-center gap-1.5
                     rounded-2xl rounded-bl-md
-                    bg-white/[0.04] bg-[#141824]
+                    bg-[color:var(--neutral-100)] bg-[#141824]
                     px-4 py-3
                   "
                 >
@@ -371,7 +371,7 @@ export default function FloatingAiChat() {
               disabled={isLoading}
               className="
                 flex-1 rounded-xl
-                bg-white/[0.04] bg-[#141824]
+                bg-[color:var(--neutral-100)] bg-[#141824]
                 border border-white/[0.08] border-white/[0.08]
                 px-4 py-2.5 text-sm
                 text-gray-800
@@ -411,7 +411,7 @@ export default function FloatingAiChat() {
           transition-all duration-300
           ${
             isOpen
-              ? 'bg-gray-600 hover:bg-gray-700 bg-white/[0.04] hover:bg-white/[0.06] rotate-0'
+              ? 'bg-gray-600 hover:bg-gray-700 bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)] rotate-0'
               : 'bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
           }
         `}

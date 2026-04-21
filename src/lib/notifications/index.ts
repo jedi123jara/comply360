@@ -86,6 +86,7 @@ export class WebPushStubProvider implements NotificationProvider {
   readonly channel = 'web-push' as const
   readonly name = 'Web Push (VAPID stub)'
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async send(payload: NotificationPayload): Promise<NotificationDelivery> {
     if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
       return {
@@ -112,6 +113,7 @@ export class WhatsAppStubProvider implements NotificationProvider {
   readonly channel = 'whatsapp' as const
   readonly name = 'WhatsApp Business (stub)'
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async send(payload: NotificationPayload): Promise<NotificationDelivery> {
     const token = process.env.WHATSAPP_BUSINESS_TOKEN
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID

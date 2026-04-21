@@ -20,9 +20,27 @@ export function OPTIONS() {
 // =============================================
 // POST /api/integrations/sunat-sol/receive
 // Auth: uses extension token (not Clerk cookies) because Chrome Extension
-// can't send cookies from a different origin
+// can't send cookies from a different origin.
+// El token se valida contra `process.env.EXTENSION_TOKEN`. En dev, si la env
+// no está seteada, se permite el paso con warning (para no romper dev local).
 // =============================================
 export async function POST(req: NextRequest) {
+  // ── Token check (defensa contra abuso público) ───────────────────────
+  const extensionToken = req.headers.get('X-Extension-Token')
+  const expectedToken = process.env.EXTENSION_TOKEN
+
+  if (expectedToken) {
+    if (!extensionToken || extensionToken !== expectedToken) {
+      return json({ error: 'Invalid or missing extension token' }, 401)
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    // En prod sin EXTENSION_TOKEN configurado → rechazar por seguridad
+    console.error('[sunat-sol/receive] EXTENSION_TOKEN no configurado en prod — rechazando')
+    return json({ error: 'Endpoint not configured' }, 503)
+  } else {
+    console.warn('[sunat-sol/receive] EXTENSION_TOKEN no configurado — modo dev permisivo')
+  }
+
   try {
     const body = await req.json()
     const { data, source, extractedAt, orgId: bodyOrgId } = body as {

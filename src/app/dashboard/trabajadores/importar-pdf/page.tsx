@@ -125,7 +125,7 @@ export default function ImportarPdfPage() {
 
   // Estado de detección de duplicados
   const [duplicateWorker, setDuplicateWorker] = useState<ExtractedWorkerData | null>(null)
-  const [duplicateWorkerId, setDuplicateWorkerId] = useState<string | null>(null)
+  const [, setDuplicateWorkerId] = useState<string | null>(null)
   const [duplicateUpdated, setDuplicateUpdated] = useState<Record<number, boolean>>({})
   const duplicateCache = useRef<Record<string, { worker: ExtractedWorkerData; id: string } | 'none'>>({})
   // Ref para abortar prefetch si el usuario cambia de contrato
@@ -459,7 +459,7 @@ export default function ImportarPdfPage() {
         </div>
 
         {/* Cómo funciona */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
+        <div className="rounded-2xl border border-slate-800 bg-white/40 p-5">
           <h2 className="text-sm font-semibold text-slate-300 mb-3">¿Cómo funciona?</h2>
           <div className="space-y-2">
             {[
@@ -479,7 +479,7 @@ export default function ImportarPdfPage() {
         </div>
 
         {/* Drop zone */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <div className="rounded-2xl border border-slate-800 bg-white p-6">
           <div
             onClick={() => !uploading && inputRef.current?.click()}
             className={[
@@ -492,10 +492,10 @@ export default function ImportarPdfPage() {
             ].join(' ')}
           >
             {uploading ? (
-              <Loader2 className="mx-auto h-12 w-12 text-blue-400 animate-spin" />
+              <Loader2 className="mx-auto h-12 w-12 text-emerald-600 animate-spin" />
             ) : file ? (
               <div className="mx-auto h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Upload className="h-6 w-6 text-blue-400" />
+                <Upload className="h-6 w-6 text-emerald-600" />
               </div>
             ) : (
               <Upload className="mx-auto h-12 w-12 text-slate-500" />
@@ -508,7 +508,7 @@ export default function ImportarPdfPage() {
                 : 'Haz clic para seleccionar un PDF con contratos'}
             </p>
             {file && !uploading && (
-              <p className="mt-1 text-xs text-blue-400/80">
+              <p className="mt-1 text-xs text-emerald-600/80">
                 {(file.size / 1024 / 1024).toFixed(2)} MB · PDF · Listo para analizar
               </p>
             )}
@@ -548,7 +548,7 @@ export default function ImportarPdfPage() {
                 'inline-flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold transition-all duration-200',
                 'disabled:cursor-not-allowed disabled:opacity-40',
                 file && !uploading
-                  ? 'bg-gold text-slate-950 hover:bg-gold-light shadow-md shadow-gold/20'
+                  ? 'bg-gold text-slate-950 hover:bg-amber-400 shadow-md shadow-gold/20'
                   : 'bg-white/5 text-slate-500',
               ].join(' ')}
             >
@@ -605,7 +605,7 @@ export default function ImportarPdfPage() {
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-4">
             <StatCard label="Nuevos" value={newWorkers} color="text-green-400" bg="bg-green-400/10" />
-            <StatCard label="Actualizados" value={updated} color="text-blue-400" bg="bg-blue-400/10" />
+            <StatCard label="Actualizados" value={updated} color="text-emerald-600" bg="bg-blue-400/10" />
             <StatCard label="Saltados" value={skipped} color="text-yellow-400" bg="bg-yellow-400/10" />
             <StatCard label="Con error" value={failed} color="text-red-400" bg="bg-red-400/10" />
           </div>
@@ -613,7 +613,7 @@ export default function ImportarPdfPage() {
 
         {/* Lista de guardados */}
         {saved > 0 && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+          <div className="rounded-2xl border border-slate-800 bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-slate-300 flex items-center gap-2">
               <Users className="h-4 w-4 text-green-400" />
               Trabajadores guardados
@@ -631,11 +631,11 @@ export default function ImportarPdfPage() {
                     className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-950/50 px-4 py-2.5"
                   >
                     <div className="flex items-center gap-3">
-                      <CheckCircle2 className={`h-4 w-4 flex-shrink-0 ${duplicateUpdated[idx] ? 'text-blue-400' : 'text-green-400'}`} />
+                      <CheckCircle2 className={`h-4 w-4 flex-shrink-0 ${duplicateUpdated[idx] ? 'text-emerald-600' : 'text-green-400'}`} />
                       <span className="text-sm text-white">{name}</span>
                       <PagesBadge start={item.startPage} end={item.endPage} />
                       {duplicateUpdated[idx] && (
-                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-300">
+                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
                           ACTUALIZADO
                         </span>
                       )}
@@ -658,7 +658,7 @@ export default function ImportarPdfPage() {
         <div className="flex justify-center gap-3">
           <button
             onClick={() => router.push('/dashboard/trabajadores')}
-            className="rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-gold-light"
+            className="rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400"
           >
             Ver todos los trabajadores
           </button>
@@ -695,7 +695,7 @@ export default function ImportarPdfPage() {
     <div className="space-y-5 p-6">
       {/* ── Banner resumen del archivo ── */}
       {fileInfo && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-5 py-3 flex flex-wrap items-center gap-4 text-sm">
+        <div className="rounded-xl border border-slate-800 bg-white px-5 py-3 flex flex-wrap items-center gap-4 text-sm">
           <div className="flex items-center gap-2 text-slate-300">
             <BookOpen className="h-4 w-4 text-gold" />
             <span className="font-medium">{fileInfo.name}</span>
@@ -710,7 +710,7 @@ export default function ImportarPdfPage() {
       )}
 
       {/* ── Barra de progreso del wizard ── */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+      <div className="rounded-2xl border border-slate-800 bg-white p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <FileBadge2 className="h-5 w-5 text-gold" />
@@ -763,7 +763,7 @@ export default function ImportarPdfPage() {
       {/* ── Tarjeta: extrayendo con IA ── */}
       {extracting ? (
         <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-8 text-center">
-          <Loader2 className="mx-auto h-10 w-10 text-blue-400 animate-spin" />
+          <Loader2 className="mx-auto h-10 w-10 text-emerald-600 animate-spin" />
           <p className="mt-4 text-lg font-semibold text-white">Extrayendo datos con IA...</p>
           <p className="mt-2 text-sm text-slate-400">
             Analizando contrato {current.index} (págs. {current.startPage}–{current.endPage})
@@ -798,7 +798,7 @@ export default function ImportarPdfPage() {
                 // Forzar re-trigger del useEffect
                 setRetryTrigger(prev => prev + 1)
               }}
-              className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 px-4 py-2 text-sm text-blue-300 hover:bg-blue-500/10"
+              className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 px-4 py-2 text-sm text-emerald-600 hover:bg-blue-500/10"
             >
               <RefreshCw className="h-4 w-4" /> Reintentar
             </button>
@@ -833,7 +833,7 @@ export default function ImportarPdfPage() {
           )}
 
           {/* ── Formulario editable ── */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+          <div className="rounded-2xl border border-slate-800 bg-white p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-base font-semibold text-white">
                 {duplicateWorker ? 'Datos del contrato (revisar antes de actualizar)' : 'Datos extraídos del contrato'}
@@ -953,7 +953,7 @@ export default function ImportarPdfPage() {
                 type="checkbox"
                 checked={Boolean(draft.asignacionFamiliar)}
                 onChange={e => updateDraft({ asignacionFamiliar: e.target.checked })}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-950 text-gold focus:ring-gold"
+                className="h-4 w-4 rounded border-[color:var(--border-default)] bg-slate-950 text-gold focus:ring-gold"
               />
               Tiene asignación familiar (10% UIT = S/550)
             </label>
@@ -971,7 +971,7 @@ export default function ImportarPdfPage() {
           </div>
 
           {/* ── Vista previa + acciones ── */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+          <div className="rounded-2xl border border-slate-800 bg-white p-5">
             <div className="mb-4">
               <p className="text-xs font-medium text-slate-400 mb-1">
                 Vista previa del contrato (págs. {current.startPage}–{current.endPage}):
@@ -996,7 +996,7 @@ export default function ImportarPdfPage() {
                 <button
                   onClick={handleSaveCurrent}
                   disabled={savingNow}
-                  className="inline-flex items-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-gold-light disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
                 >
                   {savingNow ? (
                     <>
@@ -1023,7 +1023,7 @@ export default function ImportarPdfPage() {
 
 function PagesBadge({ start, end }: { start: number; end: number }) {
   return (
-    <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-300">
+    <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600">
       pág. {start === end ? start : `${start}–${end}`}
     </span>
   )
@@ -1133,16 +1133,16 @@ function ProgressStep({
       {status === 'done' ? (
         <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
       ) : status === 'active' ? (
-        <Loader2 className="h-4 w-4 text-blue-400 animate-spin flex-shrink-0" />
+        <Loader2 className="h-4 w-4 text-emerald-600 animate-spin flex-shrink-0" />
       ) : (
-        <div className="h-4 w-4 rounded-full border border-slate-600 flex-shrink-0" />
+        <div className="h-4 w-4 rounded-full border border-[color:var(--border-default)] flex-shrink-0" />
       )}
       <span
         className={`text-sm ${
           status === 'done'
             ? 'text-green-400'
             : status === 'active'
-            ? 'text-blue-300 font-medium'
+            ? 'text-emerald-600 font-medium'
             : 'text-slate-500'
         }`}
       >
@@ -1198,7 +1198,7 @@ function DiffTable({
           <tr className="bg-yellow-500/10">
             <th className="px-3 py-2 text-left text-yellow-300 font-medium">Campo</th>
             <th className="px-3 py-2 text-left text-slate-400 font-medium">Registro actual</th>
-            <th className="px-3 py-2 text-left text-blue-300 font-medium">Contrato PDF</th>
+            <th className="px-3 py-2 text-left text-emerald-600 font-medium">Contrato PDF</th>
             <th className="px-3 py-2 text-left text-slate-400 font-medium">Estado</th>
           </tr>
         </thead>
@@ -1270,7 +1270,7 @@ function ContractObservations({ data }: { data: ExtractedWorkerData }) {
       )}
       {infos.length > 0 && (
         <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
-          <p className="text-xs font-semibold text-blue-300 mb-2">
+          <p className="text-xs font-semibold text-emerald-600 mb-2">
             Notas ({infos.length})
           </p>
           <div className="space-y-2">
@@ -1288,7 +1288,7 @@ function ObservationRow({ obs }: { obs: ContractObservation }) {
   return (
     <div className="flex items-start gap-2 text-xs">
       <AlertTriangle className={`mt-0.5 h-3 w-3 flex-shrink-0 ${
-        obs.type === 'error' ? 'text-red-400' : obs.type === 'warning' ? 'text-yellow-400' : 'text-blue-400'
+        obs.type === 'error' ? 'text-red-400' : obs.type === 'warning' ? 'text-yellow-400' : 'text-emerald-600'
       }`} />
       <div>
         <span className={

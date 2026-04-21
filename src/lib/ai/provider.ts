@@ -318,6 +318,67 @@ export async function callAI(
   throw new Error(`Límite de velocidad de ${provider}. Espera unos segundos y reintenta.`)
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Fallback chain — intenta provider principal, cae a alternativos si falla
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calcula la chain de fallback según qué providers tienen keys configuradas.
+ * Excluye el provider principal para evitar loop.
+ */
+function getFallbackChain(primary: AIProvider): AIProvider[] {
+  const candidates: AIProvider[] = []
+  if (primary !== 'groq' && process.env.GROQ_API_KEY) candidates.push('groq')
+  if (primary !== 'deepseek' && process.env.DEEPSEEK_API_KEY) candidates.push('deepseek')
+  if (primary !== 'openai' && process.env.OPENAI_API_KEY) candidates.push('openai')
+  if (primary !== 'ollama' && (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL)) {
+    candidates.push('ollama')
+  }
+  return candidates
+}
+
+/**
+ * Llama al LLM con fallback automático a providers alternativos si el primario
+ * falla. Uso recomendado para llamadas críticas (copilot, diagnóstico, review).
+ *
+ * Retry automático de rate limits está en `callAI`; `callAIWithFallback` maneja
+ * los fallos duros (500, timeout, provider down).
+ *
+ * Devuelve `{ content, provider }` para que el caller pueda trackear cuál
+ * proveedor respondió efectivamente.
+ */
+export async function callAIWithFallback(
+  messages: AIMessage[],
+  options: AICallOptions = {},
+): Promise<{ content: string; provider: AIProvider; attempts: number }> {
+  const primary = detectProvider(options)
+  const chain: AIProvider[] = [primary, ...getFallbackChain(primary)]
+
+  let lastError: Error | null = null
+  let attempts = 0
+
+  for (const provider of chain) {
+    attempts++
+    try {
+      const content = await callAI(messages, { ...options, provider })
+      if (attempts > 1) {
+        console.log(`[AI Fallback] Éxito con ${provider} tras fallar ${attempts - 1} provider(s)`)
+      }
+      return { content, provider, attempts }
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      console.warn(
+        `[AI Fallback] ${provider} falló: ${lastError.message.slice(0, 150)}. ${attempts < chain.length ? 'Probando siguiente...' : 'Sin más fallbacks.'}`,
+      )
+    }
+  }
+
+  throw (
+    lastError ??
+    new Error('No hay providers de AI disponibles. Configurá OPENAI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY.')
+  )
+}
+
 /**
  * Helper: extrae JSON de una respuesta del LLM.
  * Maneja:

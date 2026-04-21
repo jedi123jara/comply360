@@ -6,7 +6,7 @@
  * POST  — Complete or pause the session (action: "complete" | "pause" | "resume")
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import {

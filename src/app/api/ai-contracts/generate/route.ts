@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { generateContract, type ContractGenInput } from '@/lib/ai/contract-generator'
 import { z } from 'zod'
 
@@ -30,7 +30,7 @@ const PostSchema = z.object({
   beneficiosAdicionales: z.string().optional(),
 })
 
-export const POST = withAuth(async (req) => {
+export const POST = withPlanGate('ia_contratos', async (req) => {
   let body: unknown
   try {
     body = await req.json()

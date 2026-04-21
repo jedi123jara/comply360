@@ -80,8 +80,48 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
     },
   })
 
+  // ── Onboarding cascade: si el contrato pasa a SIGNED, disparar para cada
+  //    worker vinculado. Fire-and-forget: no bloqueamos la respuesta al admin.
+  if (body.status === 'SIGNED' && contract.status !== 'SIGNED') {
+    void triggerOnboardingCascadeForContract(params.id, ctx.orgId, ctx.userId)
+  }
+
   return NextResponse.json({ data: updated })
 })
+
+/**
+ * Dispara la cascada de onboarding para todos los workers vinculados a este
+ * contrato. No bloquea la respuesta al cliente.
+ */
+async function triggerOnboardingCascadeForContract(
+  contractId: string,
+  orgId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const links = await prisma.workerContract.findMany({
+      where: { contractId },
+      select: { workerId: true },
+    })
+    if (links.length === 0) return
+
+    // Lazy import para que no pese en el bundle si nunca se llama
+    const { runOnboardingCascadeBatch } = await import('@/lib/onboarding/cascade')
+    const workerIds = links.map((l) => l.workerId)
+    const result = await runOnboardingCascadeBatch(workerIds, {
+      triggeredBy: userId,
+      contractId,
+    })
+    console.log('[contract.signed] cascade', {
+      contractId,
+      orgId,
+      workers: workerIds.length,
+      ...result.totals,
+    })
+  } catch (err) {
+    console.error('[contract.signed] cascade failed', err)
+  }
+}
 
 // =============================================
 // DELETE /api/contracts/[id] — archive (soft delete)

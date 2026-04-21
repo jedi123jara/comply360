@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -107,7 +107,7 @@ const TIPO_CESE_OPTIONS: { value: TipoCese; label: string; desc: string; icon: R
     value: 'RENUNCIA_VOLUNTARIA',
     label: 'Renuncia Voluntaria',
     desc: 'Art. 18 D.S. 003-97-TR — Preaviso de 30 dias',
-    icon: <FileText className="h-5 w-5 text-blue-400" />,
+    icon: <FileText className="h-5 w-5 text-emerald-600" />,
   },
   {
     value: 'DESPIDO_CAUSA_JUSTA',
@@ -420,7 +420,7 @@ function LiqRow({ label, sublabel, amount }: { label: string; sublabel: string; 
       </div>
       <span className={cn(
         'text-sm font-medium tabular-nums shrink-0',
-        amount > 0 ? 'text-white' : 'text-slate-600',
+        amount > 0 ? 'text-white' : 'text-[color:var(--text-secondary)]',
       )}>
         S/ {amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </span>
@@ -449,7 +449,7 @@ function CountdownTimer({ fechaLimite }: { fechaLimite: string | undefined | nul
         isExpired ? 'text-red-400' :
         isUrgent ? 'text-red-400' :
         isWarning ? 'text-amber-400' :
-        'text-blue-400',
+        'text-emerald-600',
       )} />
       <div>
         {isExpired ? (
@@ -461,13 +461,13 @@ function CountdownTimer({ fechaLimite }: { fechaLimite: string | undefined | nul
           <>
             <p className={cn(
               'text-sm font-semibold',
-              isUrgent ? 'text-red-300' : isWarning ? 'text-amber-300' : 'text-blue-300',
+              isUrgent ? 'text-red-300' : isWarning ? 'text-amber-700' : 'text-emerald-600',
             )}>
               {dias === 0 ? 'Vence HOY' : `${dias} dia${dias !== 1 ? 's' : ''} restante${dias !== 1 ? 's' : ''}`}
             </p>
             <p className={cn(
               'text-[11px]',
-              isUrgent ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-blue-400',
+              isUrgent ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-emerald-600',
             )}>
               Plazo limite de descargos: {fmtDate(fechaLimite)}
             </p>
@@ -510,13 +510,13 @@ function CartaModal({ titulo, contenido, onClose }: CartaModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-2xl rounded-2xl border border-white/[0.08] bg-[#141824] flex flex-col max-h-[90vh]"
+        className="w-full max-w-2xl rounded-2xl border border-white/[0.08] bg-white flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
           <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-400" />
+            <FileText className="h-5 w-5 text-emerald-600" />
             {titulo}
           </h3>
           <button
@@ -574,7 +574,7 @@ function ChecklistPanel({ tipoCese }: ChecklistPanelProps) {
   const done = Object.values(checked).filter(Boolean).length
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4">
+    <div className="rounded-xl border border-white/[0.08] bg-white p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
           <ListChecks className="h-4 w-4" />
@@ -621,7 +621,6 @@ function ChecklistPanel({ tipoCese }: ChecklistPanelProps) {
 
 export default function CesePage() {
   const params = useParams()
-  const router = useRouter()
   const workerId = params.id as string
 
   const [worker, setWorker] = useState<WorkerInfo | null>(null)
@@ -869,7 +868,6 @@ export default function CesePage() {
 
   // ── Derived state ─────────────────────────────────────────────────
   const procesoActivo = ceseRecord && ceseRecord.etapa !== 'COMPLETADO' && ceseRecord.etapa !== 'ANULADO'
-  const procesoFinalizado = ceseRecord && (ceseRecord.etapa === 'COMPLETADO' || ceseRecord.etapa === 'ANULADO')
 
   // ── Loading state ─────────────────────────────────────────────────
   if (loading) {
@@ -887,7 +885,7 @@ export default function CesePage() {
       <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-6 text-center space-y-3">
         <AlertTriangle className="h-10 w-10 text-red-400 mx-auto" />
         <p className="text-red-300 font-medium">{error || 'Trabajador no encontrado'}</p>
-        <Link href="/dashboard/trabajadores" className="inline-block text-sm text-blue-400 hover:underline">
+        <Link href="/dashboard/trabajadores" className="inline-block text-sm text-emerald-600 hover:underline">
           Volver a Trabajadores
         </Link>
       </div>
@@ -936,7 +934,7 @@ export default function CesePage() {
       )}
 
       {/* Worker summary card */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4">
+      <div className="rounded-xl border border-white/[0.08] bg-white p-4">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <InfoItem label="Regimen" value={REGIMEN_LABELS[worker.regimenLaboral] ?? worker.regimenLaboral} />
           <InfoItem label="Tipo Contrato" value={worker.tipoContrato.replace(/_/g, ' ')} />
@@ -955,7 +953,7 @@ export default function CesePage() {
       {!ceseRecord && worker.status !== 'TERMINATED' && (
         <div className="space-y-6">
           {/* Tipo de cese selection */}
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5">
+          <div className="rounded-xl border border-white/[0.08] bg-white p-5">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <FileText className="h-5 w-5 text-amber-400" />
               Seleccionar Tipo de Cese
@@ -994,7 +992,7 @@ export default function CesePage() {
 
           {/* Form fields (show when tipo selected) */}
           {selectedTipo && (
-            <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5 space-y-5">
+            <div className="rounded-xl border border-white/[0.08] bg-white p-5 space-y-5">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-amber-400" />
                 Datos del Cese
@@ -1103,7 +1101,7 @@ export default function CesePage() {
                 <div className="rounded-lg border border-amber-500/30 bg-amber-900/20 px-4 py-3 flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-amber-300">
+                    <p className="text-sm font-semibold text-amber-700">
                       Indemnizacion Obligatoria (Art. 38 D.Leg. 728)
                     </p>
                     <p className="mt-1 text-xs text-amber-400/80">
@@ -1118,12 +1116,12 @@ export default function CesePage() {
               {/* Warning for despido causa justa */}
               {selectedTipo === 'DESPIDO_CAUSA_JUSTA' && (
                 <div className="rounded-lg border border-blue-500/30 bg-blue-900/20 px-4 py-3 flex items-start gap-3">
-                  <BookOpen className="h-5 w-5 shrink-0 text-blue-400 mt-0.5" />
+                  <BookOpen className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-blue-300">
+                    <p className="text-sm font-semibold text-emerald-600">
                       Procedimiento Legal Obligatorio (Art. 31-32 D.Leg. 728)
                     </p>
-                    <p className="mt-1 text-xs text-blue-400/80">
+                    <p className="mt-1 text-xs text-emerald-600/80">
                       1. Se generara la <strong>Carta de Preaviso</strong> notificando la falta grave.<br />
                       2. El trabajador tendra <strong>6 dias naturales</strong> para presentar descargos.<br />
                       3. Tras evaluar los descargos, se emite la <strong>Carta de Despido</strong> con fecha de cese.<br />
@@ -1153,7 +1151,7 @@ export default function CesePage() {
 
       {/* ─── Worker already terminated (no active process) ─────────── */}
       {!ceseRecord && worker.status === 'TERMINATED' && (
-        <div className="rounded-xl border border-slate-700 bg-[#141824] p-8 text-center">
+        <div className="rounded-xl border border-slate-700 bg-white p-8 text-center">
           <CheckCircle2 className="h-12 w-12 text-slate-500 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-white mb-1">Trabajador ya Cesado</h3>
           <p className="text-sm text-slate-400">
@@ -1168,7 +1166,7 @@ export default function CesePage() {
           {/* Left: Timeline + Stage actions */}
           <div className="space-y-6">
             {/* Progress timeline */}
-            <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5">
+            <div className="rounded-xl border border-white/[0.08] bg-white p-5">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Clock className="h-4 w-4 text-amber-400" />
                 Progreso del Proceso
@@ -1186,7 +1184,7 @@ export default function CesePage() {
                         <div className={cn(
                           'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
                           isCompleted ? 'border-green-500 bg-green-500/20' :
-                          isCurrent ? 'border-amber-400 bg-amber-400/20 animate-pulse' :
+                          isCurrent ? 'border-amber-400 bg-amber-100 animate-pulse' :
                           'border-white/20 bg-white/5',
                         )}>
                           {isCompleted ? (
@@ -1233,7 +1231,7 @@ export default function CesePage() {
 
             {/* Stage-specific actions */}
             {procesoActivo && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5 space-y-4">
+              <div className="rounded-xl border border-white/[0.08] bg-white p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                   <ChevronRight className="h-4 w-4 text-amber-400" />
                   Accion Requerida
@@ -1243,7 +1241,7 @@ export default function CesePage() {
                 {ceseRecord.etapa === 'CARTA_PREAVISO' && (
                   <div className="space-y-3">
                     <div className="rounded-lg bg-blue-900/20 border border-blue-500/30 px-4 py-3">
-                      <p className="text-sm text-blue-300">
+                      <p className="text-sm text-emerald-600">
                         <strong>Paso actual:</strong> Se ha generado la Carta de Preaviso
                         {ceseRecord.fechaCartaPreaviso && (
                           <> (fecha: {fmtDate(ceseRecord.fechaCartaPreaviso)})</>
@@ -1251,7 +1249,7 @@ export default function CesePage() {
                         Debe notificar al trabajador y esperar el periodo de descargos.
                       </p>
                       {ceseRecord.fechaLimiteDescargos && (
-                        <p className="mt-2 text-xs text-blue-400">
+                        <p className="mt-2 text-xs text-emerald-600">
                           <strong>Plazo para descargos:</strong> hasta el {fmtDate(ceseRecord.fechaLimiteDescargos)} (6 dias naturales — Art. 31 D.Leg. 728)
                         </p>
                       )}
@@ -1262,7 +1260,7 @@ export default function CesePage() {
                     <div className="flex gap-2 flex-wrap">
                       <button
                         onClick={verCartaPreaviso}
-                        className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-900/20 px-4 py-2.5 text-sm text-blue-300 hover:bg-blue-900/40 transition-colors"
+                        className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-900/20 px-4 py-2.5 text-sm text-emerald-600 hover:bg-blue-900/40 transition-colors"
                       >
                         <FileText className="h-4 w-4" />
                         Ver Carta de Preaviso
@@ -1284,7 +1282,7 @@ export default function CesePage() {
                 {ceseRecord.etapa === 'PERIODO_DESCARGOS' && (
                   <div className="space-y-3">
                     <div className="rounded-lg bg-amber-900/20 border border-amber-500/30 px-4 py-3">
-                      <p className="text-sm text-amber-300">
+                      <p className="text-sm text-amber-700">
                         <strong>Periodo de descargos en curso.</strong> El trabajador tiene hasta
                         el {fmtDate(ceseRecord.fechaLimiteDescargos)} para presentar su defensa.
                       </p>
@@ -1353,7 +1351,7 @@ export default function CesePage() {
                 {ceseRecord.etapa === 'INICIADO' && ceseRecord.tipoCese !== 'PERIODO_PRUEBA' && (
                   <div className="space-y-3">
                     <div className="rounded-lg bg-blue-900/20 border border-blue-500/30 px-4 py-3">
-                      <p className="text-sm text-blue-300">
+                      <p className="text-sm text-emerald-600">
                         Proceso de cese iniciado. Tipo: <strong>{TIPO_CESE_OPTIONS.find(o => o.value === ceseRecord.tipoCese)?.label ?? ceseRecord.tipoCese}</strong>.
                         Proceda a calcular la liquidacion de beneficios sociales.
                       </p>
@@ -1364,7 +1362,7 @@ export default function CesePage() {
                       <div className="flex gap-2 flex-wrap">
                         <button
                           onClick={verCartaDespido}
-                          className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-900/20 px-4 py-2.5 text-sm text-amber-300 hover:bg-amber-900/40 transition-colors"
+                          className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-900/20 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-900/40 transition-colors"
                         >
                           <FileText className="h-4 w-4" />
                           Ver Carta de Despido
@@ -1386,7 +1384,7 @@ export default function CesePage() {
                 {/* INICIADO stage for PERIODO_PRUEBA (skip liquidacion) */}
                 {ceseRecord.etapa === 'INICIADO' && ceseRecord.tipoCese === 'PERIODO_PRUEBA' && (
                   <div className="space-y-3">
-                    <div className="rounded-lg bg-[#141824] border border-white/[0.08] px-4 py-3">
+                    <div className="rounded-lg bg-white border border-white/[0.08] px-4 py-3">
                       <p className="text-sm text-slate-300">
                         Cese dentro del <strong>periodo de prueba</strong> (Art. 10 D.Leg. 728).
                         No requiere expresion de causa ni pago de indemnizacion.
@@ -1444,7 +1442,7 @@ export default function CesePage() {
 
                     <div className="rounded-lg border border-amber-500/30 bg-amber-900/20 px-4 py-3 flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-300">
+                      <p className="text-xs text-amber-700">
                         <strong>Art. 3 D.S. 001-97-TR:</strong> El pago debe realizarse dentro de las <strong>48 horas</strong> posteriores al cese efectivo.
                       </p>
                     </div>
@@ -1508,7 +1506,7 @@ export default function CesePage() {
                     </div>
 
                     <div className="rounded-lg bg-amber-900/20 border border-amber-500/30 px-4 py-3">
-                      <p className="text-sm text-amber-300">
+                      <p className="text-sm text-amber-700">
                         <strong>Art. 3 D.S. 001-97-TR:</strong> El pago de la liquidacion debe realizarse
                         dentro de las <strong>48 horas</strong> posteriores al cese efectivo.
                       </p>
@@ -1581,7 +1579,7 @@ export default function CesePage() {
           {/* Right: Summary + Legal */}
           <div className="space-y-4">
             {/* Cese summary */}
-            <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 space-y-3">
+            <div className="rounded-xl border border-white/[0.08] bg-white p-4 space-y-3">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Scale className="h-4 w-4 text-amber-400" />
                 Resumen del Cese
@@ -1620,7 +1618,7 @@ export default function CesePage() {
 
             {/* Cartas panel — show when carta actions available */}
             {ceseRecord.tipoCese === 'DESPIDO_CAUSA_JUSTA' && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 space-y-2">
+              <div className="rounded-xl border border-white/[0.08] bg-white p-4 space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
                   <ClipboardList className="h-4 w-4" />
                   Documentos del Proceso
@@ -1630,7 +1628,7 @@ export default function CesePage() {
                     onClick={verCartaPreaviso}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <FileText className="h-4 w-4 text-blue-400" />
+                    <FileText className="h-4 w-4 text-emerald-600" />
                     Ver Carta de Preaviso
                   </button>
                 )}
@@ -1647,7 +1645,7 @@ export default function CesePage() {
             )}
 
             {ceseRecord.tipoCese === 'DESPIDO_ARBITRARIO' && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 space-y-2">
+              <div className="rounded-xl border border-white/[0.08] bg-white p-4 space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
                   <ClipboardList className="h-4 w-4" />
                   Documentos del Proceso
@@ -1664,7 +1662,7 @@ export default function CesePage() {
 
             {/* Base legal */}
             {baseLegal.length > 0 && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4">
+              <div className="rounded-xl border border-white/[0.08] bg-white p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
                   Base Legal Aplicada
@@ -1674,7 +1672,7 @@ export default function CesePage() {
                     <div key={i} className="flex items-start gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500 mt-0.5" />
                       <div>
-                        <span className="text-xs font-semibold text-blue-400">
+                        <span className="text-xs font-semibold text-emerald-600">
                           {ref.norma} {ref.articulo}
                         </span>
                         <span className="text-xs text-slate-400"> — {ref.descripcion}</span>
@@ -1686,7 +1684,7 @@ export default function CesePage() {
             )}
 
             {/* Quick links */}
-            <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 space-y-1">
+            <div className="rounded-xl border border-white/[0.08] bg-white p-4 space-y-1">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                 Acciones Rapidas
               </h3>
@@ -1701,7 +1699,7 @@ export default function CesePage() {
                 href={`/dashboard/trabajadores/${workerId}`}
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
               >
-                <User className="h-4 w-4 text-blue-400" />
+                <User className="h-4 w-4 text-emerald-600" />
                 Perfil del Trabajador
               </Link>
             </div>
@@ -1712,7 +1710,7 @@ export default function CesePage() {
       {/* ─── Modal: Anular proceso ─────────────────────────────────── */}
       {showAnular && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#141824] p-6 space-y-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-white p-6 space-y-4">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <XCircle className="h-5 w-5 text-red-400" />
               Anular Proceso de Cese

@@ -8,6 +8,7 @@ import {
   Trash2, X, ExternalLink,
 } from 'lucide-react'
 import { displayWorkerName } from '@/lib/utils'
+import { PageHeader } from '@/components/comply360/editorial-title'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -162,13 +163,13 @@ function AddPeriodModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#141824] rounded-xl shadow-xl w-full max-w-md">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b">
           <div>
             <h3 className="font-semibold text-white">Nuevo Período Vacacional</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{workerName}</p>
+            <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{workerName}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/[0.04] rounded-lg transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -187,7 +188,7 @@ function AddPeriodModal({
                 type="date"
                 value={form.periodoInicio}
                 onChange={e => setForm(f => ({ ...f, periodoInicio: e.target.value }))}
-                className="w-full px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+                className="w-full px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
               />
             </div>
             <div>
@@ -196,7 +197,7 @@ function AddPeriodModal({
                 type="date"
                 value={form.periodoFin}
                 onChange={e => setForm(f => ({ ...f, periodoFin: e.target.value }))}
-                className="w-full px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+                className="w-full px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
               />
             </div>
           </div>
@@ -210,7 +211,7 @@ function AddPeriodModal({
                 min={1}
                 max={30}
                 onChange={e => setForm(f => ({ ...f, diasCorresponden: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+                className="w-full px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
               />
             </div>
             <div>
@@ -221,20 +222,20 @@ function AddPeriodModal({
                 min={0}
                 max={form.diasCorresponden}
                 onChange={e => setForm(f => ({ ...f, diasGozados: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+                className="w-full px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
               />
             </div>
           </div>
 
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">
-              Fecha de inicio del goce <span className="font-normal text-gray-400">(opcional)</span>
+              Fecha de inicio del goce <span className="font-normal text-[color:var(--text-tertiary)]">(opcional)</span>
             </label>
             <input
               type="date"
               value={form.fechaGoce}
               onChange={e => setForm(f => ({ ...f, fechaGoce: e.target.value }))}
-              className="w-full px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+              className="w-full px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
             />
           </div>
 
@@ -250,7 +251,7 @@ function AddPeriodModal({
         <div className="flex justify-end gap-2 p-5 border-t">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:bg-white/[0.04] rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-gray-600 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors"
           >
             Cancelar
           </button>
@@ -320,13 +321,13 @@ function RegisterGoceModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#141824] rounded-xl shadow-xl w-full max-w-md">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b">
           <div>
             <h3 className="font-semibold text-white">Registrar Goce Vacacional</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{workerName}</p>
+            <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{workerName}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/[0.04] rounded-lg transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -339,9 +340,9 @@ function RegisterGoceModal({
           )}
 
           {/* Period summary */}
-          <div className="bg-white/[0.02] rounded-lg p-3">
-            <p className="text-xs text-gray-500 mb-2">Período vacacional</p>
-            <p className="text-sm font-medium text-gray-200">
+          <div className="bg-[color:var(--neutral-50)] rounded-lg p-3">
+            <p className="text-xs text-[color:var(--text-tertiary)] mb-2">Período vacacional</p>
+            <p className="text-sm font-medium text-[color:var(--text-secondary)]">
               {fmtDate(record.periodoInicio)} → {fmtDate(record.periodoFin)}
             </p>
             <div className="flex gap-4 mt-2 text-xs">
@@ -353,7 +354,7 @@ function RegisterGoceModal({
 
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">
-              Total días gozados <span className="font-normal text-gray-400">(acumulado)</span>
+              Total días gozados <span className="font-normal text-[color:var(--text-tertiary)]">(acumulado)</span>
             </label>
             <input
               type="number"
@@ -361,9 +362,9 @@ function RegisterGoceModal({
               min={record.diasGozados}
               max={record.diasCorresponden}
               onChange={e => setForm(f => ({ ...f, diasGozados: Number(e.target.value) }))}
-              className="w-full px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+              className="w-full px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
             />
-            <p className="text-xs text-gray-500 mt-1.5">
+            <p className="text-xs text-[color:var(--text-tertiary)] mt-1.5">
               Quedarán pendientes:{' '}
               <strong className={pendientesRestantes === 0 ? 'text-green-600' : 'text-amber-600'}>
                 {pendientesRestantes} días
@@ -380,7 +381,7 @@ function RegisterGoceModal({
               type="date"
               value={form.fechaGoce}
               onChange={e => setForm(f => ({ ...f, fechaGoce: e.target.value }))}
-              className="w-full px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+              className="w-full px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
             />
           </div>
         </div>
@@ -388,7 +389,7 @@ function RegisterGoceModal({
         <div className="flex justify-end gap-2 p-5 border-t">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:bg-white/[0.04] rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-gray-600 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors"
           >
             Cancelar
           </button>
@@ -409,7 +410,6 @@ function RegisterGoceModal({
 
 function VacRecordRow({
   record,
-  workerId,
   onRegisterGoce,
   onDelete,
 }: {
@@ -437,11 +437,11 @@ function VacRecordRow({
       <div className="flex items-center gap-3">
         {/* Period dates */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-gray-300">
+          <p className="text-xs font-medium text-[color:var(--text-secondary)]">
             {fmtDate(record.periodoInicio)} → {fmtDate(record.periodoFin)}
           </p>
           {record.fechaGoce && (
-            <p className="text-[11px] text-gray-500 mt-0.5">
+            <p className="text-[11px] text-[color:var(--text-tertiary)] mt-0.5">
               Inicio goce: {fmtDate(record.fechaGoce)}
             </p>
           )}
@@ -455,12 +455,12 @@ function VacRecordRow({
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="text-[10px] text-gray-400">{pct}% gozado</span>
+          <span className="text-[10px] text-[color:var(--text-tertiary)]">{pct}% gozado</span>
         </div>
 
         {/* Days summary */}
         <div className="text-right text-xs shrink-0">
-          <p className="font-semibold text-gray-200">
+          <p className="font-semibold text-[color:var(--text-secondary)]">
             {record.diasGozados}/{record.diasCorresponden}d
           </p>
           <p className={alDia ? 'text-green-600' : 'text-amber-700'}>
@@ -473,14 +473,14 @@ function VacRecordRow({
           {!alDia && (
             <button
               onClick={() => onRegisterGoce(record.id, record)}
-              className="px-2.5 py-1 bg-[#141824] border border-blue-200 hover:bg-blue-50 text-blue-700 rounded-lg text-xs font-medium transition-colors"
+              className="px-2.5 py-1 bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 rounded-lg text-xs font-medium transition-colors"
             >
               Registrar goce
             </button>
           )}
           <button
             onClick={() => onDelete(record.id)}
-            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-1.5 text-[color:var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
             title="Eliminar registro"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -521,6 +521,7 @@ function WorkerVacCard({
 
   // Auto-expand workers with double-period risk
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync UI state con prop derivada; el expand solo ocurre en un caso específico de riesgo.
     if (summary.tieneRiesgoDoble) setExpanded(true)
   }, [summary.tieneRiesgoDoble])
 
@@ -532,14 +533,14 @@ function WorkerVacCard({
 
   const cardBorder = summary.tieneRiesgoDoble
     ? 'border-red-300 shadow shadow-red-100'
-    : 'border-white/[0.08]'
+    : 'border-[color:var(--border-default)]'
 
   return (
-    <div className={`rounded-xl border bg-[#141824] overflow-hidden ${cardBorder}`}>
+    <div className={`rounded-xl border bg-white overflow-hidden ${cardBorder}`}>
       {/* Header (always visible, clickable) */}
       <button
         onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.02]/50 transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-[color:var(--neutral-50)]/50 transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div
@@ -553,7 +554,7 @@ function WorkerVacCard({
               <span className="font-medium text-sm text-white truncate">{fullName}</span>
               <StatusBadge summary={summary} />
             </div>
-            <p className="text-xs text-gray-500 truncate mt-0.5">
+            <p className="text-xs text-[color:var(--text-tertiary)] truncate mt-0.5">
               {worker.position || '—'} · {worker.department || '—'} ·{' '}
               {worker.anosServicio} año{worker.anosServicio !== 1 ? 's' : ''} ·{' '}
               {worker.diasPorAnio}d/año
@@ -563,21 +564,21 @@ function WorkerVacCard({
         <div className="flex items-center gap-4 shrink-0 ml-3">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-bold text-white">{summary.totalDiasPendientes}d</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[color:var(--text-tertiary)]">
               {summary.totalPeriodos} período{summary.totalPeriodos !== 1 ? 's' : ''}
             </p>
           </div>
           {expanded ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
+            <ChevronUp className="w-4 h-4 text-[color:var(--text-tertiary)]" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <ChevronDown className="w-4 h-4 text-[color:var(--text-tertiary)]" />
           )}
         </div>
       </button>
 
       {/* Expanded content */}
       {expanded && (
-        <div className="border-t border-white/[0.06] p-4 space-y-3">
+        <div className="border-t border-[color:var(--border-default)] p-4 space-y-3">
           {/* Double period alert */}
           {summary.tieneRiesgoDoble && (
             <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -607,7 +608,7 @@ function WorkerVacCard({
 
           {/* Vacation records */}
           {records.length === 0 ? (
-            <div className="text-center py-6 text-gray-400">
+            <div className="text-center py-6 text-[color:var(--text-tertiary)]">
               <Sun className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">Sin períodos registrados</p>
             </div>
@@ -646,7 +647,7 @@ function WorkerVacCard({
             </button>
             <Link
               href={`/dashboard/trabajadores/${worker.id}`}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className="flex items-center gap-1 text-xs text-[color:var(--text-tertiary)] hover:text-gray-600 transition-colors"
             >
               Ver perfil
               <ExternalLink className="w-3 h-3" />
@@ -676,17 +677,17 @@ function KpiCard({
     amber: { bg: 'bg-amber-100', icon: 'text-amber-600', text: 'text-white' },
     red: { bg: 'bg-red-100', icon: 'text-red-600', text: typeof value === 'number' && value > 0 ? 'text-red-600' : 'text-white' },
     purple: { bg: 'bg-purple-100', icon: 'text-purple-600', text: 'text-white' },
-    gray: { bg: 'bg-white/[0.04]', icon: 'text-gray-600', text: 'text-white' },
+    gray: { bg: 'bg-[color:var(--neutral-100)]', icon: 'text-gray-600', text: 'text-white' },
   }
   const c = colors[accent]
 
   return (
-    <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-4">
+    <div className="bg-white rounded-xl border border-[color:var(--border-default)] p-4">
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${c.bg}`}>
         <Icon className={`w-4 h-4 ${c.icon}`} />
       </div>
       <p className={`text-2xl font-bold ${c.text}`}>{value}</p>
-      <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+      <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{label}</p>
     </div>
   )
 }
@@ -771,24 +772,20 @@ export default function VacacionesPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Sun className="w-6 h-6 text-amber-500" />
-            Gestión de Vacaciones
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            D.Leg. 713 · Control de períodos vacacionales, días gozados y alertas de doble período
-          </p>
-        </div>
-        <button
-          onClick={load}
-          className="flex items-center gap-1.5 px-3 py-2 border border-white/[0.08] rounded-lg text-sm text-gray-600 hover:bg-white/[0.02] transition-colors shrink-0"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Vacaciones"
+        title="Controla los periodos <em>sin doble goce</em>."
+        subtitle="D.Leg. 713 · Control de períodos vacacionales, días gozados y alertas de doble período."
+        actions={
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white hover:bg-[color:var(--neutral-50)] text-[color:var(--text-emerald-700)] px-3.5 py-2 text-xs font-semibold transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
+        }
+      />
 
       {/* ── KPI cards ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -844,9 +841,9 @@ export default function VacacionesPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar por nombre, área o cargo..."
-          className="flex-1 px-3 py-2 border border-white/[0.08] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
+          className="flex-1 px-3 py-2 border border-[color:var(--border-default)] rounded-lg text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold/50"
         />
-        <div className="flex rounded-lg border border-white/[0.08] overflow-hidden divide-x divide-gray-200 shrink-0">
+        <div className="flex rounded-lg border border-[color:var(--border-default)] overflow-hidden divide-x divide-gray-200 shrink-0">
           {FILTER_TABS.map(tab => (
             <button
               key={tab.key}
@@ -854,7 +851,7 @@ export default function VacacionesPage() {
               className={`px-3 py-2 text-xs font-medium transition-colors ${
                 filter === tab.key
                   ? 'bg-gold text-black font-bold'
-                  : 'text-gray-600 hover:bg-white/[0.02]'
+                  : 'text-gray-600 hover:bg-[color:var(--neutral-50)]'
               }`}
             >
               {tab.label}
@@ -865,12 +862,12 @@ export default function VacacionesPage() {
 
       {/* ── Worker list ────────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-gray-400">
+        <div className="flex items-center justify-center py-20 text-[color:var(--text-tertiary)]">
           <RefreshCw className="w-5 h-5 animate-spin mr-2" />
           Cargando registros de vacaciones...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-[color:var(--text-tertiary)]">
           <Sun className="w-12 h-12 mx-auto mb-3 opacity-25" />
           <p className="text-sm font-medium">No hay trabajadores para mostrar</p>
           <p className="text-xs mt-1">
@@ -904,7 +901,7 @@ export default function VacacionesPage() {
       )}
 
       {/* ── Legal footnote ─────────────────────────────────────────────────── */}
-      <p className="text-xs text-gray-400 border-t pt-4">
+      <p className="text-xs text-[color:var(--text-tertiary)] border-t pt-4">
         Base legal: D.Leg. 713 (Descanso Vacacional Remunerado) · D.S. 012-92-TR (Reglamento) ·
         Art. 23: Triple vacacional por acumulación · Ley 32353 (MYPE — 15 días/año).
       </p>

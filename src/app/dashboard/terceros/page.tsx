@@ -87,7 +87,7 @@ const TIPO_SERVICIO_CONFIG: Record<string, { label: string; color: string; darkC
   TERCERIZACION: {
     label: 'Tercerización',
     color: 'bg-blue-100 text-blue-700',
-    darkColor: 'bg-blue-900/30 text-blue-400',
+    darkColor: 'bg-blue-900/30 text-emerald-600',
   },
   INTERMEDIACION: {
     label: 'Intermediación',
@@ -244,13 +244,13 @@ function calcularComplianceScore(tercero: Tercero): number {
 }
 
 function getScoreColor(score: number) {
-  if (score >= 80) return { text: 'text-emerald-600 text-emerald-400', bg: 'bg-emerald-500', ring: 'ring-emerald-200 ring-emerald-800' }
-  if (score >= 60) return { text: 'text-amber-600 text-amber-400', bg: 'bg-amber-500', ring: 'ring-amber-200 ring-amber-800' }
-  return { text: 'text-red-600 text-red-400', bg: 'bg-red-500', ring: 'ring-red-200 ring-red-800' }
+  if (score >= 80) return { text: 'text-emerald-600', bg: 'bg-emerald-500', ring: 'ring-emerald-200 ring-emerald-800' }
+  if (score >= 60) return { text: 'text-amber-400', bg: 'bg-amber-500', ring: 'ring-amber-200 ring-amber-800' }
+  return { text: 'text-red-400', bg: 'bg-red-500', ring: 'ring-red-200 ring-red-800' }
 }
 
 function getRiskLevel(score: number): { label: string; color: string } {
-  if (score >= 80) return { label: 'Bajo', color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-400' }
+  if (score >= 80) return { label: 'Bajo', color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600' }
   if (score >= 60) return { label: 'Medio', color: 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400' }
   return { label: 'Alto', color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' }
 }
@@ -392,7 +392,7 @@ export default function TercerosPage() {
 
   if (error || !data) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 bg-red-900/20 border-red-800 p-6 text-red-700 text-red-400">
+      <div className="rounded-lg border border-red-200 bg-red-900/20 border-red-800 p-6 text-red-400">
         {error || 'No se pudieron cargar los datos'}
       </div>
     )
@@ -406,7 +406,7 @@ export default function TercerosPage() {
           <h1 className="text-2xl font-bold text-white">
             Tercerización e Intermediación
           </h1>
-          <p className="text-sm text-gray-500 text-gray-400 mt-1">
+          <p className="text-sm text-gray-400 mt-1">
             Gestión y monitoreo continuo de empresas de tercerización e intermediación laboral
           </p>
         </div>
@@ -421,22 +421,22 @@ export default function TercerosPage() {
 
       {/* Critical Alerts Banner */}
       {(data.stats.flaggedMainActivity > 0 || alertasVencimiento.some((a) => (a.diasVencimiento ?? 0) < 0)) && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-300 border-red-800 bg-red-50 bg-red-900/20 p-4">
-          <ShieldAlert className="h-6 w-6 text-red-600 text-red-400 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-lg border border-red-800 bg-red-900/20 p-4">
+          <ShieldAlert className="h-6 w-6 text-red-400 shrink-0 mt-0.5" />
           <div>
             {data.stats.flaggedMainActivity > 0 && (
-              <p className="font-semibold text-red-800 text-red-300">
+              <p className="font-semibold text-red-300">
                 ALERTA CRITICA: {data.stats.flaggedMainActivity} tercero(s) realizando actividad
                 principal de la empresa
               </p>
             )}
             {alertasVencimiento.some((a) => (a.diasVencimiento ?? 0) < 0) && (
-              <p className="font-semibold text-red-800 text-red-300 mt-1">
+              <p className="font-semibold text-red-300 mt-1">
                 {alertasVencimiento.filter((a) => (a.diasVencimiento ?? 0) < 0).length} contrato(s)
                 vencido(s) requieren accion inmediata
               </p>
             )}
-            <p className="text-sm text-red-700 text-red-400 mt-1">
+            <p className="text-sm text-red-400 mt-1">
               Segun Art. 2 Ley 29245 y Art. 1 D.Leg. 1038, la desnaturalizacion del contrato genera
               responsabilidad solidaria. Revise y corrija estas situaciones inmediatamente.
             </p>
@@ -450,22 +450,22 @@ export default function TercerosPage() {
           label="Total Terceros"
           value={data.stats.total}
           subtitle={`${data.stats.active} activos`}
-          icon={<Building2 className="h-5 w-5 text-blue-600 text-blue-400" />}
-          bgIcon="bg-blue-100 bg-blue-900/30"
+          icon={<Building2 className="h-5 w-5 text-emerald-600" />}
+          bgIcon="bg-blue-900/30"
         />
         <KPICard
           label="Documentación Vigente"
           value={computedStats?.conDocsVigentes ?? 0}
           subtitle={`de ${data.stats.total} terceros`}
-          icon={<FileCheck className="h-5 w-5 text-emerald-600 text-emerald-400" />}
-          bgIcon="bg-emerald-100 bg-emerald-900/30"
+          icon={<FileCheck className="h-5 w-5 text-emerald-600" />}
+          bgIcon="bg-emerald-900/30"
         />
         <KPICard
           label="Con Alertas"
           value={computedStats?.conAlertas ?? 0}
           subtitle="requieren atención"
-          icon={<CircleAlert className="h-5 w-5 text-amber-600 text-amber-400" />}
-          bgIcon="bg-amber-100 bg-amber-900/30"
+          icon={<CircleAlert className="h-5 w-5 text-amber-400" />}
+          bgIcon="bg-amber-900/30"
           highlight={!!computedStats && computedStats.conAlertas > 0}
           highlightColor="amber"
         />
@@ -473,8 +473,8 @@ export default function TercerosPage() {
           label="Riesgo Alto"
           value={computedStats?.riesgoAlto ?? 0}
           subtitle="compliance < 60%"
-          icon={<ShieldAlert className="h-5 w-5 text-red-600 text-red-400" />}
-          bgIcon="bg-red-100 bg-red-900/30"
+          icon={<ShieldAlert className="h-5 w-5 text-red-400" />}
+          bgIcon="bg-red-900/30"
           highlight={!!computedStats && computedStats.riesgoAlto > 0}
           highlightColor="red"
         />
@@ -482,37 +482,37 @@ export default function TercerosPage() {
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-purple-100 bg-purple-900/30 flex items-center justify-center">
-            <Users className="h-5 w-5 text-purple-600 text-purple-400" />
+        <div className="bg-white rounded-xl border border-white/[0.08] p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-purple-900/30 flex items-center justify-center">
+            <Users className="h-5 w-5 text-purple-400" />
           </div>
           <div>
             <p className="text-xl font-bold text-white">
               {data.stats.totalTrabajadores}
             </p>
-            <p className="text-xs text-gray-500 text-gray-400">Trabajadores Asignados</p>
+            <p className="text-xs text-gray-400">Trabajadores Asignados</p>
           </div>
         </div>
-        <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-100 bg-amber-900/30 flex items-center justify-center">
-            <Calendar className="h-5 w-5 text-amber-600 text-amber-400" />
+        <div className="bg-white rounded-xl border border-white/[0.08] p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-amber-900/30 flex items-center justify-center">
+            <Calendar className="h-5 w-5 text-amber-400" />
           </div>
           <div>
             <p className="text-xl font-bold text-white">
               {data.stats.expiredContracts}
             </p>
-            <p className="text-xs text-gray-500 text-gray-400">Contratos Vencidos</p>
+            <p className="text-xs text-gray-400">Contratos Vencidos</p>
           </div>
         </div>
-        <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-red-100 bg-red-900/30 flex items-center justify-center">
-            <AlertTriangle className="h-5 w-5 text-red-600 text-red-400" />
+        <div className="bg-white rounded-xl border border-white/[0.08] p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-red-900/30 flex items-center justify-center">
+            <AlertTriangle className="h-5 w-5 text-red-400" />
           </div>
           <div>
             <p className="text-xl font-bold text-white">
               {data.stats.flaggedMainActivity}
             </p>
-            <p className="text-xs text-gray-500 text-gray-400">Act. Principal (Red Flag)</p>
+            <p className="text-xs text-gray-400">Act. Principal (Red Flag)</p>
           </div>
         </div>
       </div>
@@ -524,7 +524,7 @@ export default function TercerosPage() {
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'lista'
               ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-300'
+              : 'border-transparent text-gray-400 hover:text-slate-300'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -537,14 +537,14 @@ export default function TercerosPage() {
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'alertas'
               ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-300'
+              : 'border-transparent text-gray-400 hover:text-slate-300'
           }`}
         >
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Alertas de Vencimiento
             {alertasVencimiento.length > 0 && (
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 bg-red-900/40 text-[10px] font-bold text-red-700 text-red-400">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-900/40 text-[10px] font-bold text-red-400">
                 {alertasVencimiento.length}
               </span>
             )}
@@ -564,7 +564,7 @@ export default function TercerosPage() {
                 placeholder="Buscar por razón social, RUC o actividad..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-white/10 border-slate-600 rounded-xl text-sm bg-[#141824] text-white text-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full pl-10 pr-4 py-2.5 border border-white/10 border-[color:var(--border-default)] rounded-xl text-sm bg-white text-white text-[color:var(--text-secondary)] focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -572,7 +572,7 @@ export default function TercerosPage() {
               <select
                 value={filterRisk}
                 onChange={(e) => setFilterRisk(e.target.value as typeof filterRisk)}
-                className="border border-white/10 border-slate-600 rounded-xl px-3 py-2.5 text-sm bg-[#141824] text-white text-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="border border-white/10 border-[color:var(--border-default)] rounded-xl px-3 py-2.5 text-sm bg-white text-white text-[color:var(--text-secondary)] focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="all">Todos los riesgos</option>
                 <option value="alto">Riesgo Alto</option>
@@ -584,14 +584,14 @@ export default function TercerosPage() {
 
           {/* Terceros List */}
           {filteredTerceros.length === 0 ? (
-            <div className="rounded-xl border border-white/[0.08] bg-[#141824] flex flex-col items-center justify-center py-12">
-              <Building2 className="h-12 w-12 mb-3 text-gray-300 text-slate-600" />
-              <p className="text-lg font-medium text-gray-500 text-gray-400">
+            <div className="rounded-xl border border-white/[0.08] bg-white flex flex-col items-center justify-center py-12">
+              <Building2 className="h-12 w-12 mb-3 text-[color:var(--text-secondary)]" />
+              <p className="text-lg font-medium text-gray-400">
                 {searchTerm || filterRisk !== 'all'
                   ? 'No se encontraron terceros con los filtros aplicados'
                   : 'No hay terceros registrados'}
               </p>
-              <p className="text-sm text-gray-400 text-slate-500">
+              <p className="text-sm text-slate-500">
                 {searchTerm || filterRisk !== 'all'
                   ? 'Intente con otros criterios de busqueda'
                   : 'Agregue empresas de tercerización o intermediación'}
@@ -610,13 +610,13 @@ export default function TercerosPage() {
                     key={tercero.id}
                     className={`rounded-xl border transition-all ${
                       detectedFlags.length > 0
-                        ? 'border-red-200 border-red-800/60'
+                        ? 'border-red-800/60'
                         : 'border-white/[0.08]'
-                    } bg-[#141824]`}
+                    } bg-white`}
                   >
                     {/* Card Header */}
                     <div
-                      className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-white/[0.02] hover:bg-white/[0.04]/50 transition-colors rounded-xl"
+                      className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50 transition-colors rounded-xl"
                       onClick={() => setExpandedTercero(isExpanded ? null : tercero.id)}
                     >
                       {/* Compliance Score Circle */}
@@ -633,7 +633,7 @@ export default function TercerosPage() {
                             } ${tercero.complianceScore * 3.6}deg, #e5e7eb ${tercero.complianceScore * 3.6}deg)`,
                           }}
                         >
-                          <div className="w-10 h-10 rounded-full bg-[#141824] flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
                             <span className={`text-sm font-bold ${scoreColor.text}`}>
                               {tercero.complianceScore}
                             </span>
@@ -660,7 +660,7 @@ export default function TercerosPage() {
                             Riesgo {risk.label}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 text-gray-400">
+                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
                           <span className="font-mono">RUC: {tercero.ruc}</span>
                           <span>{tercero.trabajadoresAsignados} trabajadores</span>
                           {tercero.actividadPrincipal && (
@@ -676,7 +676,7 @@ export default function TercerosPage() {
 
                         {/* Red Flags Count */}
                         {detectedFlags.length > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-red-100 bg-red-900/30 px-2 py-1 text-xs font-bold text-red-700 text-red-400">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-red-900/30 px-2 py-1 text-xs font-bold text-red-400">
                             <AlertTriangle className="h-3.5 w-3.5" />
                             {detectedFlags.length}
                           </span>
@@ -684,7 +684,7 @@ export default function TercerosPage() {
 
                         {/* Contract Status */}
                         {tercero.isContractExpired && (
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-amber-100 bg-amber-900/30 px-2 py-1 text-xs font-bold text-amber-700 text-amber-400">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-amber-900/30 px-2 py-1 text-xs font-bold text-amber-400">
                             <Clock className="h-3.5 w-3.5" />
                             Vencido
                           </span>
@@ -694,8 +694,8 @@ export default function TercerosPage() {
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
                             tercero.isActive
-                              ? 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-400'
-                              : 'bg-white/[0.04] text-gray-500 bg-white/[0.04] text-gray-400'
+                              ? 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600'
+                              : 'bg-[color:var(--neutral-100)] text-gray-500 bg-[color:var(--neutral-100)] text-gray-400'
                           }`}
                         >
                           {tercero.isActive ? 'Activo' : 'Inactivo'}
@@ -728,23 +728,23 @@ export default function TercerosPage() {
                                     key={doc.key}
                                     className={`flex items-start gap-2 rounded-lg p-2 text-xs ${
                                       isCompleted
-                                        ? 'bg-emerald-50 bg-emerald-900/10'
-                                        : 'bg-red-50 bg-red-900/10'
+                                        ? 'bg-emerald-900/10'
+                                        : 'bg-red-900/10'
                                     }`}
                                   >
                                     <span className="mt-0.5 shrink-0">
                                       {isCompleted ? (
-                                        <CheckCircle className="h-4 w-4 text-emerald-500 text-emerald-400" />
+                                        <CheckCircle className="h-4 w-4 text-emerald-600" />
                                       ) : (
-                                        <X className="h-4 w-4 text-red-400 text-red-500" />
+                                        <X className="h-4 w-4 text-red-500" />
                                       )}
                                     </span>
                                     <div>
                                       <p
                                         className={`font-medium ${
                                           isCompleted
-                                            ? 'text-emerald-700 text-emerald-400'
-                                            : 'text-red-700 text-red-400'
+                                            ? 'text-emerald-600'
+                                            : 'text-red-400'
                                         }`}
                                       >
                                         {doc.label}
@@ -759,11 +759,11 @@ export default function TercerosPage() {
                             </div>
                             {/* Doc Summary */}
                             <div className="flex items-center gap-2 pt-1">
-                              <span className="text-xs font-medium text-gray-500 text-gray-400">
+                              <span className="text-xs font-medium text-gray-400">
                                 Estado:
                               </span>
                               <DocStatusBadge status={tercero.docs.status} showLabel />
-                              <span className="text-xs text-gray-400 text-slate-500">
+                              <span className="text-xs text-slate-500">
                                 ({tercero.docs.porcentaje}%)
                               </span>
                             </div>
@@ -783,41 +783,41 @@ export default function TercerosPage() {
                                     key={flag.key}
                                     className={`rounded-lg p-3 text-xs border ${
                                       detected
-                                        ? 'border-red-200 border-red-800 bg-red-50 bg-red-900/20'
+                                        ? 'border-red-800 bg-red-900/20'
                                         : isManual
-                                          ? 'border-amber-200 border-amber-800/60 bg-amber-50 bg-amber-900/10'
-                                          : 'border-white/[0.06] border-white/[0.08] bg-white/[0.02] bg-white/[0.04]/30'
+                                          ? 'border-amber-800/60 bg-amber-900/10'
+                                          : 'border-white/[0.06] border-white/[0.08] bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/30'
                                     }`}
                                   >
                                     <div className="flex items-start gap-2">
                                       {detected ? (
-                                        <AlertTriangle className="h-4 w-4 text-red-500 text-red-400 shrink-0 mt-0.5" />
+                                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                                       ) : isManual ? (
-                                        <CircleAlert className="h-4 w-4 text-amber-500 text-amber-400 shrink-0 mt-0.5" />
+                                        <CircleAlert className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                                       ) : (
-                                        <CheckCircle className="h-4 w-4 text-emerald-500 text-emerald-400 shrink-0 mt-0.5" />
+                                        <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                                       )}
                                       <div>
                                         <p
                                           className={`font-medium ${
                                             detected
-                                              ? 'text-red-700 text-red-400'
+                                              ? 'text-red-400'
                                               : isManual
-                                                ? 'text-amber-700 text-amber-400'
-                                                : 'text-gray-300 text-slate-300'
+                                                ? 'text-amber-400'
+                                                : 'text-slate-300'
                                           }`}
                                         >
                                           {flag.label}
                                         </p>
                                         {isManual && (
-                                          <p className="text-amber-600 text-amber-500 font-semibold mt-0.5">
+                                          <p className="text-amber-500 font-semibold mt-0.5">
                                             Requiere verificación manual
                                           </p>
                                         )}
                                         <p className="text-slate-500 mt-1">
                                           {flag.descripcion}
                                         </p>
-                                        <p className="text-[10px] font-mono text-gray-400 text-slate-600 mt-1">
+                                        <p className="text-[10px] font-mono text-[color:var(--text-secondary)] mt-1">
                                           Base legal: {flag.baseLegal}
                                         </p>
                                       </div>
@@ -869,7 +869,7 @@ export default function TercerosPage() {
                                   {tercero.complianceScore}%
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-500 text-gray-400 mt-2">
+                              <p className="text-xs text-gray-400 mt-2">
                                 60% documentación + 40% sin red flags
                               </p>
                             </div>
@@ -882,17 +882,17 @@ export default function TercerosPage() {
                               </h4>
                               <div className="space-y-2 text-xs">
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500 text-gray-400">Inicio:</span>
+                                  <span className="text-gray-400">Inicio:</span>
                                   <span className="font-medium text-white">
                                     {new Date(tercero.fechaInicio).toLocaleDateString('es-PE')}
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500 text-gray-400">Fin:</span>
+                                  <span className="text-gray-400">Fin:</span>
                                   <span
                                     className={`font-medium ${
                                       tercero.isContractExpired
-                                        ? 'text-red-600 text-red-400'
+                                        ? 'text-red-400'
                                         : 'text-white'
                                     }`}
                                   >
@@ -904,13 +904,13 @@ export default function TercerosPage() {
                                 </div>
                                 {tercero.diasVencimiento !== null && tercero.diasVencimiento > 0 && (
                                   <div className="flex justify-between">
-                                    <span className="text-gray-500 text-gray-400">
+                                    <span className="text-gray-400">
                                       Vence en:
                                     </span>
                                     <span
                                       className={`font-medium ${
                                         tercero.diasVencimiento <= 30
-                                          ? 'text-amber-600 text-amber-400'
+                                          ? 'text-amber-400'
                                           : 'text-white'
                                       }`}
                                     >
@@ -919,7 +919,7 @@ export default function TercerosPage() {
                                   </div>
                                 )}
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500 text-gray-400">
+                                  <span className="text-gray-400">
                                     Trabajadores:
                                   </span>
                                   <span className="font-medium text-white">
@@ -942,24 +942,24 @@ export default function TercerosPage() {
 
       {/* Tab: Alertas de Vencimiento */}
       {activeTab === 'alertas' && (
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824]">
+        <div className="rounded-xl border border-white/[0.08] bg-white">
           <div className="px-6 py-4 border-b border-white/[0.08]">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <Clock className="h-5 w-5 text-amber-500" />
               Alertas de Vencimiento de Contratos
             </h2>
-            <p className="text-sm text-gray-500 text-gray-400 mt-1">
+            <p className="text-sm text-gray-400 mt-1">
               Contratos que vencen en los proximos 30 dias o ya vencidos
             </p>
           </div>
 
           {alertasVencimiento.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <CheckCircle className="h-12 w-12 mb-3 text-emerald-300 text-emerald-800" />
-              <p className="text-lg font-medium text-gray-500 text-gray-400">
+              <CheckCircle className="h-12 w-12 mb-3 text-emerald-800" />
+              <p className="text-lg font-medium text-gray-400">
                 Sin alertas de vencimiento
               </p>
-              <p className="text-sm text-gray-400 text-slate-500">
+              <p className="text-sm text-slate-500">
                 Todos los contratos vigentes estan al dia
               </p>
             </div>
@@ -972,30 +972,30 @@ export default function TercerosPage() {
                   <div
                     key={tercero.id}
                     className={`px-6 py-4 flex items-center justify-between ${
-                      isExpired ? 'bg-red-50/50 bg-red-900/10' : ''
+                      isExpired ? 'bg-red-900/10' : ''
                     }`}
                   >
                     <div className="flex items-center gap-4">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center ${
                           isExpired
-                            ? 'bg-red-100 bg-red-900/30'
+                            ? 'bg-red-900/30'
                             : dias <= 7
-                              ? 'bg-amber-100 bg-amber-900/30'
-                              : 'bg-yellow-100 bg-yellow-900/30'
+                              ? 'bg-amber-900/30'
+                              : 'bg-yellow-900/30'
                         }`}
                       >
                         {isExpired ? (
-                          <X className="h-5 w-5 text-red-600 text-red-400" />
+                          <X className="h-5 w-5 text-red-400" />
                         ) : (
-                          <Clock className="h-5 w-5 text-amber-600 text-amber-400" />
+                          <Clock className="h-5 w-5 text-amber-400" />
                         )}
                       </div>
                       <div>
                         <p className="font-medium text-white">
                           {tercero.razonSocial}
                         </p>
-                        <p className="text-xs text-gray-500 text-gray-400">
+                        <p className="text-xs text-gray-400">
                           RUC: {tercero.ruc} | Vencimiento:{' '}
                           {tercero.fechaFin
                             ? new Date(tercero.fechaFin).toLocaleDateString('es-PE')
@@ -1026,20 +1026,20 @@ export default function TercerosPage() {
 
       {/* Legal Reference Section */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-blue-200 border-blue-800/50 bg-blue-50 bg-blue-900/10 p-5">
+        <div className="rounded-xl border border-blue-800/50 bg-blue-900/10 p-5">
           <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-600 text-blue-400 shrink-0 mt-0.5" />
+            <Info className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-blue-800 text-blue-300">
+              <p className="font-semibold text-emerald-600">
                 Marco Legal - Tercerización
               </p>
-              <p className="text-sm text-blue-700 text-blue-400 mt-1">
+              <p className="text-sm text-emerald-600 mt-1">
                 {data.baseLegal.tercerizacion}
               </p>
-              <p className="text-xs text-blue-600 text-blue-500 mt-1 font-mono">
+              <p className="text-xs text-blue-500 mt-1 font-mono">
                 D.Leg. 1038 - Decreto Legislativo que precisa los alcances de la Ley 29245
               </p>
-              <ul className="mt-2 space-y-1 text-xs text-blue-600 text-blue-500">
+              <ul className="mt-2 space-y-1 text-xs text-blue-500">
                 <li>
                   - Art. 2: La empresa tercerizadora debe asumir la dirección y control de los
                   servicios prestados
@@ -1063,20 +1063,20 @@ export default function TercerosPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-purple-200 border-purple-800/50 bg-purple-50 bg-purple-900/10 p-5">
+        <div className="rounded-xl border border-purple-800/50 bg-purple-900/10 p-5">
           <div className="flex items-start gap-3">
-            <FileText className="h-5 w-5 text-purple-600 text-purple-400 shrink-0 mt-0.5" />
+            <FileText className="h-5 w-5 text-purple-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-purple-800 text-purple-300">
+              <p className="font-semibold text-purple-300">
                 Marco Legal - Intermediación
               </p>
-              <p className="text-sm text-purple-700 text-purple-400 mt-1">
+              <p className="text-sm text-purple-400 mt-1">
                 {data.baseLegal.intermediacion}
               </p>
-              <p className="text-xs text-purple-600 text-purple-500 mt-1 font-mono">
+              <p className="text-xs text-purple-500 mt-1 font-mono">
                 D.S. 003-2002-TR - Reglamento de la Ley de Intermediación Laboral
               </p>
-              <ul className="mt-2 space-y-1 text-xs text-purple-600 text-purple-500">
+              <ul className="mt-2 space-y-1 text-xs text-purple-500">
                 <li>
                   - Art. 3 Ley 27626: Solo para actividades complementarias, temporales o
                   especializadas
@@ -1101,17 +1101,17 @@ export default function TercerosPage() {
       </div>
 
       {/* Restriction Notice */}
-      <div className="rounded-xl border border-amber-200 border-amber-800/50 bg-amber-50 bg-amber-900/10 p-4">
+      <div className="rounded-xl border border-amber-800/50 bg-amber-900/10 p-4">
         <div className="flex items-start gap-3">
-          <Shield className="h-5 w-5 text-amber-600 text-amber-400 shrink-0 mt-0.5" />
+          <Shield className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-amber-800 text-amber-300">
+            <p className="font-semibold text-amber-700">
               Restricciones Legales Vigentes
             </p>
-            <p className="text-sm text-amber-700 text-amber-400 mt-1">
+            <p className="text-sm text-amber-400 mt-1">
               {data.baseLegal.restriction}
             </p>
-            <p className="text-xs text-amber-600 text-amber-500 mt-2">
+            <p className="text-xs text-amber-500 mt-2">
               El incumplimiento puede generar la desnaturalización del contrato (Art. 5 Ley 29245),
               reconocimiento de relación laboral directa con la empresa usuaria, y responsabilidad
               solidaria por obligaciones laborales y de seguridad social.
@@ -1156,29 +1156,29 @@ function KPICard({
 }) {
   const borderClass = highlight
     ? highlightColor === 'red'
-      ? 'border-red-200 border-red-800/60 bg-red-50/30 bg-red-900/10'
-      : 'border-amber-200 border-amber-800/60 bg-amber-50/30 bg-amber-900/10'
-    : 'border-white/[0.08] bg-[#141824]'
+      ? 'border-red-800/60 bg-red-900/10'
+      : 'border-amber-800/60 bg-amber-900/10'
+    : 'border-white/[0.08] bg-white'
 
   return (
     <div className={`rounded-xl border p-5 ${borderClass}`}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-500 text-gray-400">{label}</p>
+        <p className="text-sm font-medium text-gray-400">{label}</p>
         <div className={`rounded-lg p-2 ${bgIcon}`}>{icon}</div>
       </div>
       <p
         className={`mt-2 text-2xl font-bold ${
           highlight
             ? highlightColor === 'red'
-              ? 'text-red-700 text-red-400'
-              : 'text-amber-700 text-amber-400'
+              ? 'text-red-400'
+              : 'text-amber-400'
             : 'text-white'
         }`}
       >
         {value}
       </p>
       {subtitle && (
-        <p className="text-xs text-gray-400 text-slate-500 mt-1">{subtitle}</p>
+        <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
       )}
     </div>
   )
@@ -1195,7 +1195,7 @@ function DocStatusBadge({
     completo: {
       icon: <CheckCircle className="h-3.5 w-3.5" />,
       label: 'Completo',
-      color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-400',
+      color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600',
     },
     parcial: {
       icon: <Eye className="h-3.5 w-3.5" />,
@@ -1230,19 +1230,19 @@ function CreateTerceroModal({
   errorMessage: string | null
 }) {
   const inputCls =
-    'mt-1 w-full rounded-lg border border-white/10 border-slate-600 px-3 py-2 text-sm bg-[#141824] bg-white/[0.04] text-white text-gray-200 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'
+    'mt-1 w-full rounded-lg border border-white/10 border-[color:var(--border-default)] px-3 py-2 text-sm bg-white bg-[color:var(--neutral-100)] text-white text-[color:var(--text-secondary)] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative mx-4 w-full max-w-lg rounded-xl bg-[#141824] shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 sticky top-0 bg-[#141824] z-10">
+      <div className="relative mx-4 w-full max-w-lg rounded-xl bg-white shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 sticky top-0 bg-white z-10">
           <h3 className="text-lg font-semibold text-white">Registrar Tercero</h3>
           <button
             onClick={onClose}
             aria-label="Cerrar modal"
-            className="rounded-lg p-1 hover:bg-white/[0.04] transition-colors"
+            className="rounded-lg p-1 hover:bg-[color:var(--neutral-100)] transition-colors"
           >
-            <X className="h-5 w-5 text-gray-500 text-gray-400" />
+            <X className="h-5 w-5 text-gray-400" />
           </button>
         </div>
 
@@ -1255,14 +1255,14 @@ function CreateTerceroModal({
         >
           {/* Inline error banner — replaces native alert() */}
           {errorMessage && (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 border-red-800 bg-red-50 bg-red-900/20 px-4 py-3">
-              <AlertTriangle className="h-4 w-4 text-red-500 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700 text-red-400">{errorMessage}</p>
+            <div className="flex items-start gap-2 rounded-lg border border-red-800 bg-red-900/20 px-4 py-3">
+              <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-400">{errorMessage}</p>
             </div>
           )}
 
           <div>
-            <label htmlFor="tercero-razonSocial" className="block text-sm font-medium text-gray-300 text-slate-300">
+            <label htmlFor="tercero-razonSocial" className="block text-sm font-medium text-slate-300">
               Razón Social *
             </label>
             <input
@@ -1276,7 +1276,7 @@ function CreateTerceroModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="tercero-ruc" className="block text-sm font-medium text-gray-300 text-slate-300">
+              <label htmlFor="tercero-ruc" className="block text-sm font-medium text-slate-300">
                 RUC *
               </label>
               <input
@@ -1290,7 +1290,7 @@ function CreateTerceroModal({
               />
             </div>
             <div>
-              <label htmlFor="tercero-tipoServicio" className="block text-sm font-medium text-gray-300 text-slate-300">
+              <label htmlFor="tercero-tipoServicio" className="block text-sm font-medium text-slate-300">
                 Tipo de Servicio
               </label>
               <select
@@ -1306,7 +1306,7 @@ function CreateTerceroModal({
           </div>
 
           <div>
-            <label htmlFor="tercero-actividadPrincipal" className="block text-sm font-medium text-gray-300 text-slate-300">
+            <label htmlFor="tercero-actividadPrincipal" className="block text-sm font-medium text-slate-300">
               Actividad Principal
             </label>
             <input
@@ -1319,7 +1319,7 @@ function CreateTerceroModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="tercero-fechaInicio" className="block text-sm font-medium text-gray-300 text-slate-300">
+              <label htmlFor="tercero-fechaInicio" className="block text-sm font-medium text-slate-300">
                 Fecha Inicio *
               </label>
               <input
@@ -1331,7 +1331,7 @@ function CreateTerceroModal({
               />
             </div>
             <div>
-              <label htmlFor="tercero-fechaFin" className="block text-sm font-medium text-gray-300 text-slate-300">
+              <label htmlFor="tercero-fechaFin" className="block text-sm font-medium text-slate-300">
                 Fecha Fin
               </label>
               <input
@@ -1344,7 +1344,7 @@ function CreateTerceroModal({
           </div>
 
           <div>
-            <label htmlFor="tercero-trabajadoresAsignados" className="block text-sm font-medium text-gray-300 text-slate-300">
+            <label htmlFor="tercero-trabajadoresAsignados" className="block text-sm font-medium text-slate-300">
               Trabajadores Asignados
             </label>
             <input
@@ -1357,7 +1357,7 @@ function CreateTerceroModal({
             />
           </div>
 
-          <div className="rounded-lg border border-red-200 border-red-800 bg-red-50 bg-red-900/10 p-3">
+          <div className="rounded-lg border border-red-800 bg-red-900/10 p-3">
             <div className="flex items-center gap-2">
               <input
                 id="isActividadPrincipal"
@@ -1368,12 +1368,12 @@ function CreateTerceroModal({
               />
               <label
                 htmlFor="isActividadPrincipal"
-                className="text-sm text-gray-300 text-slate-300"
+                className="text-sm text-slate-300"
               >
                 Involucra actividad principal de la empresa
               </label>
             </div>
-            <p className="text-xs text-red-600 text-red-400 mt-1 ml-6">
+            <p className="text-xs text-red-400 mt-1 ml-6">
               RED FLAG: Prohibido por Art. 2 Ley 29245 y Art. 1 D.Leg. 1038. Genera responsabilidad
               solidaria.
             </p>
@@ -1383,7 +1383,7 @@ function CreateTerceroModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-white/10 border-slate-600 px-4 py-2 text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+              className="rounded-lg border border-white/10 border-[color:var(--border-default)] px-4 py-2 text-sm font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors"
             >
               Cancelar
             </button>

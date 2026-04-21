@@ -1,79 +1,120 @@
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { forwardRef } from 'react'
+import * as TabsPrimitive from '@radix-ui/react-tabs'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
-interface TabsContextValue {
-  activeTab: string
-  setActiveTab: (tab: string) => void
-}
+/**
+ * Tabs — Radix + Obsidian skin.
+ *
+ * Drop-in compatible with the previous context-based API:
+ *   <Tabs defaultValue="a">
+ *     <TabsList><TabsTrigger value="a">…</TabsTrigger></TabsList>
+ *     <TabsContent value="a">…</TabsContent>
+ *   </Tabs>
+ *
+ * Variants:
+ * - `pills` (default): rounded pills in a glass tray
+ * - `underline`: classic underline bar
+ * - `segmented`: filled pill container (iOS-like)
+ */
 
-const TabsContext = createContext<TabsContextValue | null>(null)
+const listVariants = cva('inline-flex items-center', {
+  variants: {
+    variant: {
+      pills: 'gap-1 p-1 bg-[color:var(--neutral-100)] border border-[color:var(--border-subtle)] rounded-lg',
+      underline: 'gap-6 border-b border-[color:var(--border-subtle)] -mb-px w-full',
+      segmented:
+        'gap-0.5 p-0.5 bg-[color:var(--neutral-100)] border border-[color:var(--border-subtle)] rounded-md',
+    },
+    fullWidth: { true: 'w-full' },
+  },
+  defaultVariants: { variant: 'pills' },
+})
 
-function useTabs() {
-  const ctx = useContext(TabsContext)
-  if (!ctx) throw new Error('Tabs components must be used within a Tabs provider')
-  return ctx
-}
+const triggerVariants = cva(
+  [
+    'relative inline-flex items-center justify-center gap-2',
+    'text-sm font-medium',
+    'transition-all duration-200',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60',
+    'disabled:opacity-50 disabled:pointer-events-none',
+  ],
+  {
+    variants: {
+      variant: {
+        pills: [
+          'px-3.5 py-1.5 rounded-lg',
+          'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
+          'data-[state=active]:bg-white data-[state=active]:text-emerald-700',
+          'data-[state=active]:shadow-[var(--elevation-1)]',
+        ],
+        underline: [
+          'px-0 py-3',
+          'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
+          'after:absolute after:inset-x-0 after:-bottom-px after:h-0.5',
+          'after:bg-emerald-600 after:scale-x-0 after:transition-transform after:duration-200',
+          'data-[state=active]:text-[color:var(--text-primary)] data-[state=active]:after:scale-x-100',
+        ],
+        segmented: [
+          'px-3 py-1 rounded-md text-xs',
+          'text-[color:var(--text-secondary)]',
+          'data-[state=active]:bg-[color:var(--bg-surface)] data-[state=active]:text-[color:var(--text-primary)]',
+          'data-[state=active]:shadow-[var(--elevation-1)]',
+        ],
+      },
+    },
+    defaultVariants: { variant: 'pills' },
+  }
+)
 
-interface TabsProps {
-  defaultValue: string
-  children: React.ReactNode
-  className?: string
-}
+export const Tabs = TabsPrimitive.Root
 
-export function Tabs({ defaultValue, children, className }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultValue)
-  return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab }}>
-      <div className={className}>{children}</div>
-    </TabsContext.Provider>
-  )
-}
+export interface TabsListProps
+  extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>,
+    VariantProps<typeof listVariants> {}
 
-export function TabsList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn('flex gap-1 p-1 bg-white/[0.04] bg-[#141824] rounded-xl', className)}>
-      {children}
-    </div>
-  )
-}
+export const TabsList = forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  TabsListProps
+>(({ className, variant, fullWidth, ...props }, ref) => (
+  <TabsPrimitive.List
+    ref={ref}
+    className={cn(listVariants({ variant, fullWidth }), className)}
+    {...props}
+  />
+))
+TabsList.displayName = 'TabsList'
 
-interface TabsTriggerProps {
-  value: string
-  children: React.ReactNode
-  className?: string
-}
+export interface TabsTriggerProps
+  extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>,
+    VariantProps<typeof triggerVariants> {}
 
-export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
-  const { activeTab, setActiveTab } = useTabs()
-  const isActive = activeTab === value
+export const TabsTrigger = forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  TabsTriggerProps
+>(({ className, variant, ...props }, ref) => (
+  <TabsPrimitive.Trigger
+    ref={ref}
+    className={cn(triggerVariants({ variant }), className)}
+    {...props}
+  />
+))
+TabsTrigger.displayName = 'TabsTrigger'
 
-  return (
-    <button
-      onClick={() => setActiveTab(value)}
-      className={cn(
-        'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-        isActive
-          ? 'bg-[#141824] bg-white/[0.04] text-white shadow-sm'
-          : 'text-gray-500 hover:text-gray-700',
-        className
-      )}
-    >
-      {children}
-    </button>
-  )
-}
-
-interface TabsContentProps {
-  value: string
-  children: React.ReactNode
-  className?: string
-}
-
-export function TabsContent({ value, children, className }: TabsContentProps) {
-  const { activeTab } = useTabs()
-  if (activeTab !== value) return null
-
-  return <div className={cn('animate-fade-in', className)}>{children}</div>
-}
+export const TabsContent = forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Content
+    ref={ref}
+    className={cn(
+      'mt-4 focus-visible:outline-none',
+      'data-[state=active]:motion-fade-in',
+      className
+    )}
+    {...props}
+  />
+))
+TabsContent.displayName = 'TabsContent'

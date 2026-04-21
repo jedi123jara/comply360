@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   FileText,
@@ -8,7 +8,6 @@ import {
   Plus,
   Search,
   Loader2,
-  ChevronDown,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -16,12 +15,11 @@ import {
   Banknote,
   X,
   ArrowRight,
-  Briefcase,
   Calendar,
   MoreVertical,
-  Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/comply360/editorial-title'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -99,12 +97,12 @@ function fmt(n: number | string | null | undefined) {
 }
 
 const STATUS_STYLES: Record<string, { label: string; dot: string; bg: string }> = {
-  EMITIDA: { label: 'Emitida', dot: 'bg-blue-400', bg: 'bg-blue-500/10 text-blue-400' },
+  EMITIDA: { label: 'Emitida', dot: 'bg-blue-400', bg: 'bg-blue-500/10 text-emerald-600' },
   ENVIADA: { label: 'Enviada', dot: 'bg-amber-400', bg: 'bg-amber-500/10 text-amber-400' },
-  ACEPTADA: { label: 'Aceptada', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10 text-emerald-400' },
+  ACEPTADA: { label: 'Aceptada', dot: 'bg-emerald-400', bg: 'bg-emerald-50 text-emerald-600' },
 }
 
-const inputStyles = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/20 transition-colors'
+const inputStyles = 'w-full rounded-lg border border-white/10 bg-[color:var(--neutral-100)] px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/20 transition-colors'
 
 // Avatar colors based on name hash
 const AVATAR_COLORS = [
@@ -170,13 +168,13 @@ function GenerarModal({
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
           <div>
             <h3 className="text-lg font-bold text-white">Generar Boleta de Pago</h3>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
               {displayName(worker.firstName, worker.lastName)}
               <span className="mx-2 text-white/20">|</span>
-              <span className="text-gray-500">DNI {worker.dni}</span>
+              <span className="text-[color:var(--text-tertiary)]">DNI {worker.dni}</span>
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white transition-colors">
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -188,28 +186,28 @@ function GenerarModal({
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Periodo</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Periodo</label>
             <input type="month" value={periodo} onChange={e => setPeriodo(e.target.value)} className={inputStyles} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Horas Extras (S/)</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Horas Extras (S/)</label>
               <input type="number" step="0.01" min="0" value={horasExtras} onChange={e => setHorasExtras(parseFloat(e.target.value) || 0)} className={inputStyles} />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Bonificaciones (S/)</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Bonificaciones (S/)</label>
               <input type="number" step="0.01" min="0" value={bonificaciones} onChange={e => setBonificaciones(parseFloat(e.target.value) || 0)} className={inputStyles} />
             </div>
           </div>
-          <label className="flex items-center gap-4 cursor-pointer rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4 hover:bg-white/[0.04] transition-colors">
-            <input type="checkbox" checked={incluirGratif} onChange={e => setIncluirGratif(e.target.checked)} className="h-4 w-4 rounded border-white/20 bg-white/10 text-gold focus:ring-gold/30" />
+          <label className="flex items-center gap-4 cursor-pointer rounded-xl border border-white/10 bg-[color:var(--neutral-50)] px-5 py-4 hover:bg-[color:var(--neutral-100)] transition-colors">
+            <input type="checkbox" checked={incluirGratif} onChange={e => setIncluirGratif(e.target.checked)} className="h-4 w-4 rounded border-white/20 bg-white/10 text-amber-500 focus:ring-gold/30" />
             <div>
               <p className="text-sm font-semibold text-white">Incluir Gratificacion</p>
-              <p className="text-xs text-gray-500 mt-0.5">Marcar en julio y diciembre</p>
+              <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">Marcar en julio y diciembre</p>
             </div>
           </label>
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Vista previa</p>
+          <div className="rounded-xl border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] mb-3">Vista previa</p>
             <div className="space-y-2">
               {[
                 { label: 'Sueldo bruto', value: fmt(worker.sueldoBruto) },
@@ -217,15 +215,15 @@ function GenerarModal({
                 { label: 'Periodo', value: fmtPeriodo(periodo) },
               ].map(r => (
                 <div key={r.label} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{r.label}</span>
-                  <span className="font-medium text-gray-200">{r.value}</span>
+                  <span className="text-[color:var(--text-tertiary)]">{r.label}</span>
+                  <span className="font-medium text-[color:var(--text-secondary)]">{r.value}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
         <div className="flex gap-3 border-t border-white/10 px-6 py-5">
-          <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition-colors">
+          <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors">
             Cancelar
           </button>
           <button type="button" onClick={generate} disabled={loading} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gold py-2.5 text-sm font-bold text-black hover:bg-gold/90 disabled:opacity-60 transition-colors">
@@ -278,11 +276,11 @@ function PayslipsDrawer({
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-5 shrink-0">
           <div>
             <h3 className="text-lg font-bold text-white">Historial de Boletas</h3>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
               {displayName(worker.firstName, worker.lastName)} · DNI {worker.dni}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white transition-colors">
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -290,23 +288,23 @@ function PayslipsDrawer({
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin text-gold" />
-              <span className="ml-2 text-sm text-gray-500">Cargando...</span>
+              <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+              <span className="ml-2 text-sm text-[color:var(--text-tertiary)]">Cargando...</span>
             </div>
           ) : payslips.length === 0 ? (
             <div className="text-center py-12">
-              <FileText className="mx-auto h-10 w-10 text-gray-300 mb-3" />
-              <p className="text-sm text-gray-400">Sin boletas registradas</p>
+              <FileText className="mx-auto h-10 w-10 text-[color:var(--text-secondary)] mb-3" />
+              <p className="text-sm text-[color:var(--text-tertiary)]">Sin boletas registradas</p>
             </div>
           ) : (
             payslips.map(p => {
-              const st = STATUS_STYLES[p.status] ?? { label: p.status, dot: 'bg-gray-500', bg: 'bg-gray-500/10 text-gray-400' }
+              const st = STATUS_STYLES[p.status] ?? { label: p.status, dot: 'bg-gray-500', bg: 'bg-gray-500/10 text-[color:var(--text-tertiary)]' }
               return (
-                <div key={p.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <div key={p.id} className="rounded-xl border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/10">
-                        <Calendar className="h-4 w-4 text-gold" />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
+                        <Calendar className="h-4 w-4 text-amber-500" />
                       </div>
                       <div>
                         <p className="text-sm font-bold text-white">{fmtPeriodo(p.periodo)}</p>
@@ -318,7 +316,7 @@ function PayslipsDrawer({
                     </div>
                     <button
                       onClick={() => downloadPDF(p.id, p.periodo)}
-                      className="rounded-lg p-2 text-gray-500 hover:text-gold hover:bg-white/5 transition-colors"
+                      className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:text-amber-500 hover:bg-white/5 transition-colors"
                       title="Descargar PDF"
                     >
                       <Download className="h-4 w-4" />
@@ -326,16 +324,16 @@ function PayslipsDrawer({
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-xs">
                     <div>
-                      <p className="text-gray-500">Ingresos</p>
-                      <p className="text-sm font-semibold text-emerald-400 mt-0.5">{fmt(p.totalIngresos)}</p>
+                      <p className="text-[color:var(--text-tertiary)]">Ingresos</p>
+                      <p className="text-sm font-semibold text-emerald-600 mt-0.5">{fmt(p.totalIngresos)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">Descuentos</p>
+                      <p className="text-[color:var(--text-tertiary)]">Descuentos</p>
                       <p className="text-sm font-semibold text-red-400 mt-0.5">{fmt(p.totalDescuentos)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">Neto</p>
-                      <p className="text-sm font-bold text-gold mt-0.5">{fmt(p.netoPagar)}</p>
+                      <p className="text-[color:var(--text-tertiary)]">Neto</p>
+                      <p className="text-sm font-bold text-amber-500 mt-0.5">{fmt(p.netoPagar)}</p>
                     </div>
                   </div>
                 </div>
@@ -366,7 +364,7 @@ function WorkerGridCard({
   const color = getAvatarColor(fullName)
 
   return (
-    <div className="group rounded-xl border border-white/[0.08] bg-[#141824] p-4 flex flex-col transition-all shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/40 hover:border-white/10 hover:border-white/15">
+    <div className="group rounded-xl border border-[color:var(--border-default)] bg-white p-4 flex flex-col transition-all shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/40 hover:border-white/10 hover:border-white/15">
       {/* Top row: avatar + name inline */}
       <div className="flex items-center gap-3 mb-3">
         {/* Compact circular avatar */}
@@ -381,7 +379,7 @@ function WorkerGridCard({
             {fullName}
           </h3>
           {worker.position && (
-            <p className="text-[11px] text-gray-400 truncate mt-0.5">
+            <p className="text-[11px] text-[color:var(--text-tertiary)] truncate mt-0.5">
               {worker.position}
               {worker.department ? ` · ${worker.department}` : ''}
             </p>
@@ -389,7 +387,7 @@ function WorkerGridCard({
         </div>
         <button
           onClick={onViewHistory}
-          className="rounded-lg p-1.5 text-gray-400 hover:text-gray-300 hover:text-white hover:bg-white/[0.04] hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+          className="rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)] hover:text-white hover:bg-[color:var(--neutral-100)] hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
           title="Ver historial"
         >
           <MoreVertical className="h-4 w-4" />
@@ -397,25 +395,25 @@ function WorkerGridCard({
       </div>
 
       {/* DNI */}
-      <p className="text-[11px] text-gray-500 mb-3">
-        DNI: <span className="font-mono text-gray-400">{worker.dni}</span>
+      <p className="text-[11px] text-[color:var(--text-tertiary)] mb-3">
+        DNI: <span className="font-mono text-[color:var(--text-tertiary)]">{worker.dni}</span>
       </p>
 
       {/* Sueldo */}
-      <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2.5 mb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 text-gray-600 mb-0.5">Sueldo Bruto</p>
+      <div className="rounded-lg bg-[color:var(--neutral-100)] border border-[color:var(--border-default)] px-3 py-2.5 mb-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-0.5">Sueldo Bruto</p>
         <p className="text-base font-bold text-white tabular-nums">{fmt(worker.sueldoBruto)}</p>
       </div>
 
       {/* Footer: status + action */}
       <div className="mt-auto flex items-center justify-between gap-2">
         {hasCurrentMonth ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-500 text-emerald-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
             <CheckCircle2 className="h-3 w-3" />
             Al dia
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-600 text-amber-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-400">
             <Clock className="h-3 w-3" />
             Pendiente
           </span>
@@ -468,12 +466,12 @@ function BulkPayslipButton({ periodo, periodoLabel, pendingCount, onComplete }: 
     <div className="rounded-2xl border border-gold/20 bg-gold/[0.03] p-5">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10">
-            <Banknote className="h-5 w-5 text-gold" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
+            <Banknote className="h-5 w-5 text-amber-500" />
           </div>
           <div>
             <p className="text-sm font-bold text-white">Generacion masiva — {periodoLabel}</p>
-            <p className="text-xs text-gray-400">{pendingCount} trabajadores pendientes de boleta</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">{pendingCount} trabajadores pendientes de boleta</p>
           </div>
         </div>
         <button
@@ -487,7 +485,7 @@ function BulkPayslipButton({ periodo, periodoLabel, pendingCount, onComplete }: 
       </div>
       {result && (
         <div className="mt-3 pt-3 border-t border-gold/10 text-sm">
-          <p className="text-emerald-400 font-semibold">
+          <p className="text-emerald-600 font-semibold">
             {result.created} boletas creadas{result.skipped > 0 ? `, ${result.skipped} omitidas (ya existian)` : ''}
           </p>
           {result.errors && result.errors.length > 0 && (
@@ -544,7 +542,7 @@ export default function BoletasPage() {
     })
   }, [workers, payslipStatus])
 
-  const handleGenerateSuccess = (payslip: Payslip) => {
+  const handleGenerateSuccess = () => {
     if (modalWorker) {
       setPayslipStatus(prev => ({ ...prev, [modalWorker.id]: true }))
     }
@@ -559,64 +557,57 @@ export default function BoletasPage() {
   return (
     <div className="space-y-8">
       {/* ─── Header ──────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10">
-            <Banknote className="h-5 w-5 text-gold" />
-          </div>
-          Boletas de Pago
-        </h1>
-        <p className="mt-2 text-sm text-gray-400">
-          Genera y descarga boletas mensuales para cada trabajador.
-          Periodo actual: <span className="font-semibold text-white">{periodoLabel}</span>
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Boletas"
+        title="Genera y firma <em>boletas de pago</em>."
+        subtitle={`Genera y descarga boletas mensuales para cada trabajador. Periodo actual: ${periodoLabel}.`}
+      />
 
       {/* ─── KPI Cards ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-5">
+        <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-              <Users className="h-5 w-5 text-blue-400" />
+              <Users className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total</p>
+              <p className="text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider">Total</p>
               <p className="text-2xl font-bold text-white">{total}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-5">
+        <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
               <Clock className="h-5 w-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Pendientes</p>
+              <p className="text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider">Pendientes</p>
               <p className="text-2xl font-bold text-amber-400">{pendingCount}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-5">
+        <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Generadas</p>
-              <p className="text-2xl font-bold text-emerald-400">{generatedCount}</p>
+              <p className="text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider">Generadas</p>
+              <p className="text-2xl font-bold text-emerald-600">{generatedCount}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-5">
+        <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10">
-              <Calendar className="h-5 w-5 text-gold" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
+              <Calendar className="h-5 w-5 text-amber-500" />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Periodo</p>
+              <p className="text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider">Periodo</p>
               <p className="text-lg font-bold text-white">{periodoLabel}</p>
             </div>
           </div>
@@ -640,9 +631,9 @@ export default function BoletasPage() {
       {/* ─── Legal notice ────────────────────────────────────────────── */}
       <div className="rounded-xl border border-blue-500/15 bg-blue-500/[0.05] px-5 py-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-          <p className="text-[13px] text-blue-300/90 leading-relaxed">
-            <span className="font-bold text-blue-300">Obligacion legal:</span>{' '}
+          <AlertTriangle className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+          <p className="text-[13px] text-emerald-600/90 leading-relaxed">
+            <span className="font-bold text-emerald-600">Obligacion legal:</span>{' '}
             El empleador debe entregar la boleta de pago a cada trabajador a mas tardar el dia de pago
             (D.S. 003-97-TR Art. 19, modificado por D.S. 009-2011-TR).
           </p>
@@ -651,32 +642,32 @@ export default function BoletasPage() {
 
       {/* ─── Search ──────────────────────────────────────────────────── */}
       <div className="relative max-w-md">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--text-tertiary)]" />
         <input
           type="text"
           placeholder="Buscar trabajador..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-3 pl-11 pr-4 text-sm text-white placeholder-gray-500 focus:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/20 transition-colors"
+          className="w-full rounded-xl border border-white/10 bg-[color:var(--neutral-100)] py-3 pl-11 pr-4 text-sm text-white placeholder-gray-500 focus:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/20 transition-colors"
         />
         {loading && (
-          <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-500" />
+          <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[color:var(--text-tertiary)]" />
         )}
       </div>
 
       {/* ─── Workers Grid ────────────────────────────────────────────── */}
       {loading && workers.length === 0 ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-gold" />
-          <span className="ml-3 text-sm text-gray-400">Cargando trabajadores...</span>
+          <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+          <span className="ml-3 text-sm text-[color:var(--text-tertiary)]">Cargando trabajadores...</span>
         </div>
       ) : !loading && workers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#141824]/[0.01] py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.01] py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 mb-5">
             <Users className="h-8 w-8 text-gray-600" />
           </div>
           <h3 className="text-lg font-bold text-white mb-2">Sin trabajadores activos</h3>
-          <p className="max-w-md text-sm text-gray-500 mb-6">
+          <p className="max-w-md text-sm text-[color:var(--text-tertiary)] mb-6">
             Primero debes registrar trabajadores en el modulo de Trabajadores.
           </p>
           <Link
@@ -689,7 +680,7 @@ export default function BoletasPage() {
         </div>
       ) : (
         <>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">
             {workers.length} Trabajadores
           </p>
 

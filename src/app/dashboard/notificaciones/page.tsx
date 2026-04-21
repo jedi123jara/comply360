@@ -14,10 +14,7 @@ import {
   AlertTriangle,
   FileText,
   Shield,
-  ChevronDown,
-  ChevronUp,
   Archive,
-  Eye,
   EyeOff,
   TrendingUp,
   Inbox,
@@ -37,6 +34,25 @@ type Category = 'Contrato' | 'SST' | 'Cumplimiento' | 'Sistema' | 'Denuncia'
 type FilterTab = 'TODAS' | 'SIN_LEER' | 'CRITICAS' | 'ARCHIVADAS'
 type DigestDay = 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes'
 
+// ── Toggle (module-scope so it keeps state across renders) ─────────────────
+function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      onClick={onToggle}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gold/30 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+        enabled ? 'bg-blue-600' : 'bg-[color:var(--neutral-200)]'
+      }`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+        enabled ? 'translate-x-6' : 'translate-x-1'
+      }`} />
+    </button>
+  )
+}
+
 interface Notification {
   id: string
   severity: Severity
@@ -51,18 +67,18 @@ interface Notification {
 // ── Config ─────────────────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG: Record<Severity, { emoji: string; label: string; dotColor: string; bgColor: string; bgDark: string; textColor: string }> = {
-  critico: { emoji: '\uD83D\uDD34', label: 'Cr\u00edtico', dotColor: 'bg-red-500',    bgColor: 'bg-red-50',    bgDark: 'bg-red-950/40',    textColor: 'text-red-700 text-red-400' },
-  alto:    { emoji: '\uD83D\uDFE0', label: 'Alto',     dotColor: 'bg-orange-500', bgColor: 'bg-orange-50', bgDark: 'bg-orange-950/40', textColor: 'text-orange-700 text-orange-400' },
-  medio:   { emoji: '\uD83D\uDFE1', label: 'Medio',    dotColor: 'bg-yellow-500', bgColor: 'bg-yellow-50', bgDark: 'bg-yellow-950/40', textColor: 'text-yellow-700 text-yellow-400' },
-  info:    { emoji: '\uD83D\uDD35', label: 'Info',     dotColor: 'bg-blue-500',   bgColor: 'bg-blue-50',   bgDark: 'bg-blue-950/40',   textColor: 'text-blue-700 text-blue-400' },
+  critico: { emoji: '\uD83D\uDD34', label: 'Cr\u00edtico', dotColor: 'bg-red-500',    bgColor: 'bg-red-50',    bgDark: 'bg-red-950/40',    textColor: 'text-red-400' },
+  alto:    { emoji: '\uD83D\uDFE0', label: 'Alto',     dotColor: 'bg-orange-500', bgColor: 'bg-orange-50', bgDark: 'bg-orange-950/40', textColor: 'text-orange-400' },
+  medio:   { emoji: '\uD83D\uDFE1', label: 'Medio',    dotColor: 'bg-yellow-500', bgColor: 'bg-yellow-50', bgDark: 'bg-yellow-950/40', textColor: 'text-yellow-400' },
+  info:    { emoji: '\uD83D\uDD35', label: 'Info',     dotColor: 'bg-blue-500',   bgColor: 'bg-blue-50',   bgDark: 'bg-blue-950/40',   textColor: 'text-emerald-600' },
 }
 
 const CATEGORY_CONFIG: Record<Category, { icon: typeof Bell; color: string; bg: string; bgDark: string }> = {
-  Contrato:      { icon: FileText,      color: 'text-violet-600 text-violet-400',  bg: 'bg-violet-100',  bgDark: 'bg-violet-900/30' },
-  SST:           { icon: HardHat,       color: 'text-amber-600 text-amber-400',    bg: 'bg-amber-100',   bgDark: 'bg-amber-900/30' },
-  Cumplimiento:  { icon: Shield,        color: 'text-emerald-600 text-emerald-400', bg: 'bg-emerald-100', bgDark: 'bg-emerald-900/30' },
-  Sistema:       { icon: Globe,         color: 'text-sky-600 text-sky-400',         bg: 'bg-sky-100',     bgDark: 'bg-sky-900/30' },
-  Denuncia:      { icon: AlertTriangle, color: 'text-red-600 text-red-400',         bg: 'bg-red-100',     bgDark: 'bg-red-900/30' },
+  Contrato:      { icon: FileText,      color: 'text-violet-400',  bg: 'bg-violet-100',  bgDark: 'bg-violet-900/30' },
+  SST:           { icon: HardHat,       color: 'text-amber-400',    bg: 'bg-amber-100',   bgDark: 'bg-amber-900/30' },
+  Cumplimiento:  { icon: Shield,        color: 'text-emerald-600', bg: 'bg-emerald-100', bgDark: 'bg-emerald-900/30' },
+  Sistema:       { icon: Globe,         color: 'text-sky-400',         bg: 'bg-sky-100',     bgDark: 'bg-sky-900/30' },
+  Denuncia:      { icon: AlertTriangle, color: 'text-red-400',         bg: 'bg-red-100',     bgDark: 'bg-red-900/30' },
 }
 
 const FILTER_TABS: { key: FilterTab; label: string; icon: typeof Bell }[] = [
@@ -143,7 +159,7 @@ function mapCategory(normCategory: string): Category {
 
 export default function NotificacionesPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loadingNotifs, setLoadingNotifs] = useState(true)
+  const [, setLoadingNotifs] = useState(true)
 
   // Cargar alertas reales: NormAlert + WorkerAlert
   useEffect(() => {
@@ -239,26 +255,8 @@ export default function NotificacionesPage() {
     }
   }, [notifications])
 
-  // ── Render helpers ─────────────────────────────────────────────────────────
-
-  const Toggle = ({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) => (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gold/30 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-        enabled ? 'bg-blue-600' : 'bg-gray-300 bg-slate-600'
-      }`}
-    >
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-[#141824] shadow-sm transition-transform ${
-        enabled ? 'translate-x-6' : 'translate-x-1'
-      }`} />
-    </button>
-  )
-
   return (
-    <div className="min-h-screen bg-white/[0.02] bg-slate-900 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-[color:var(--neutral-50)] bg-white p-4 md:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
@@ -274,7 +272,7 @@ export default function NotificacionesPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Centro de Notificaciones</h1>
-              <p className="text-sm text-gray-500 text-gray-400">
+              <p className="text-sm text-gray-400">
                 Gestiona alertas, avisos y comunicaciones del sistema
               </p>
             </div>
@@ -283,8 +281,8 @@ export default function NotificacionesPage() {
             onClick={() => setShowSettings(!showSettings)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-all ${
               showSettings
-                ? 'bg-blue-50 bg-blue-900/20 border-blue-200 border-blue-800 text-blue-700 text-blue-300'
-                : 'bg-[#141824] border-white/[0.08] text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-slate-750'
+                ? 'bg-blue-900/20 border-blue-800 text-emerald-600'
+                : 'bg-white border-white/[0.08] text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-slate-750'
             }`}
           >
             <Settings className="w-4 h-4" />
@@ -294,31 +292,31 @@ export default function NotificacionesPage() {
 
         {/* ── Stats Mini-Dashboard ─────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-lg bg-blue-100 bg-blue-900/30">
-              <Inbox className="w-5 h-5 text-blue-600 text-blue-400" />
+          <div className="bg-white rounded-xl border border-white/[0.08] p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-lg bg-blue-900/30">
+              <Inbox className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{stats.sinLeer}</p>
-              <p className="text-sm text-gray-500 text-gray-400">Sin leer</p>
+              <p className="text-sm text-gray-400">Sin leer</p>
             </div>
           </div>
-          <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-lg bg-red-100 bg-red-900/30">
-              <AlertTriangle className="w-5 h-5 text-red-600 text-red-400" />
+          <div className="bg-white rounded-xl border border-white/[0.08] p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-lg bg-red-900/30">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{stats.criticas}</p>
-              <p className="text-sm text-gray-500 text-gray-400">Cr\u00edticas pendientes</p>
+              <p className="text-sm text-gray-400">Cr\u00edticas pendientes</p>
             </div>
           </div>
-          <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-lg bg-emerald-100 bg-emerald-900/30">
-              <TrendingUp className="w-5 h-5 text-emerald-600 text-emerald-400" />
+          <div className="bg-white rounded-xl border border-white/[0.08] p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-lg bg-emerald-900/30">
+              <TrendingUp className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{stats.estaSemana}</p>
-              <p className="text-sm text-gray-500 text-gray-400">Esta semana</p>
+              <p className="text-sm text-gray-400">Esta semana</p>
             </div>
           </div>
         </div>
@@ -326,7 +324,7 @@ export default function NotificacionesPage() {
         {/* ── Filter Tabs + Search + Bulk Actions ──────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           {/* Tabs */}
-          <div className="flex gap-1 bg-[#141824] rounded-xl p-1 border border-white/[0.08]">
+          <div className="flex gap-1 bg-white rounded-xl p-1 border border-white/[0.08]">
             {FILTER_TABS.map(tab => {
               const TabIcon = tab.icon
               const count = tab.key === 'SIN_LEER' ? stats.sinLeer : tab.key === 'CRITICAS' ? stats.criticas : undefined
@@ -337,14 +335,14 @@ export default function NotificacionesPage() {
                   className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                     activeTab === tab.key
                       ? 'bg-gold text-black font-bold shadow-sm'
-                      : 'text-gray-400 hover:text-white hover:text-white hover:bg-white/[0.04]'
+                      : 'text-gray-400 hover:text-white hover:text-white hover:bg-[color:var(--neutral-100)]'
                   }`}
                 >
                   <TabIcon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
                   {count !== undefined && count > 0 && (
                     <span className={`ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full ${
-                      activeTab === tab.key ? 'bg-[#141824]/20 text-white' : 'bg-red-100 bg-red-900/40 text-red-600 text-red-400'
+                      activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-red-900/40 text-red-400'
                     }`}>
                       {count}
                     </span>
@@ -356,17 +354,17 @@ export default function NotificacionesPage() {
 
           {/* Search */}
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               type="text"
               placeholder="Buscar notificaciones..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-white/[0.08] bg-[#141824] text-white placeholder:text-gray-400 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-transparent"
+              className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-white/[0.08] bg-white text-white placeholder:text-gray-400 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-transparent"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2">
-                <X className="w-4 h-4 text-gray-400 hover:text-gray-600 hover:text-slate-300" />
+                <X className="w-4 h-4 text-gray-400 hover:text-slate-300" />
               </button>
             )}
           </div>
@@ -375,14 +373,14 @@ export default function NotificacionesPage() {
           <div className="flex gap-2 ml-auto">
             <button
               onClick={markAllAsRead}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-[#141824] border border-white/[0.08] text-gray-400 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-white/[0.08] text-gray-400 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors"
             >
               <CheckCheck className="w-3.5 h-3.5" />
               Marcar todo le\u00eddo
             </button>
             <button
               onClick={archiveAll}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-[#141824] border border-white/[0.08] text-gray-400 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-white/[0.08] text-gray-400 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors"
             >
               <Archive className="w-3.5 h-3.5" />
               Archivar todo
@@ -393,10 +391,10 @@ export default function NotificacionesPage() {
         {/* ── Notification List ───────────────────────────────────────────── */}
         <div className="space-y-2">
           {filtered.length === 0 ? (
-            <div className="bg-[#141824] rounded-xl border border-white/[0.08] text-center py-16">
-              <BellOff className="w-12 h-12 text-gray-300 text-slate-600 mx-auto mb-3" />
-              <p className="text-gray-500 text-gray-400 font-medium">No hay notificaciones</p>
-              <p className="text-sm text-gray-400 text-slate-500 mt-1">
+            <div className="bg-white rounded-xl border border-white/[0.08] text-center py-16">
+              <BellOff className="w-12 h-12 text-[color:var(--text-secondary)] mx-auto mb-3" />
+              <p className="text-gray-400 font-medium">No hay notificaciones</p>
+              <p className="text-sm text-slate-500 mt-1">
                 {activeTab === 'SIN_LEER'
                   ? 'Todas las notificaciones han sido le\u00eddas.'
                   : activeTab === 'CRITICAS'
@@ -418,15 +416,15 @@ export default function NotificacionesPage() {
                   key={n.id}
                   className={`group relative flex items-start gap-4 p-4 rounded-xl border transition-all hover:shadow-md ${
                     n.isArchived
-                      ? 'bg-white/[0.02] bg-white/50 border-white/[0.06] border-white/[0.08]/50 opacity-75'
+                      ? 'bg-[color:var(--neutral-50)] bg-white/50 border-white/[0.06] border-white/[0.08]/50 opacity-75'
                       : n.isRead
-                      ? 'bg-[#141824] border-white/[0.06] border-white/[0.08]'
-                      : 'bg-[#141824] border-l-4 border-white/[0.06] border-white/[0.08]'
+                      ? 'bg-white border-white/[0.06] border-white/[0.08]'
+                      : 'bg-white border-l-4 border-white/[0.06] border-white/[0.08]'
                   }`}
                   style={!n.isRead && !n.isArchived ? { borderLeftColor: n.severity === 'critico' ? '#ef4444' : n.severity === 'alto' ? '#f97316' : n.severity === 'medio' ? '#eab308' : '#3b82f6' } : undefined}
                 >
                   {/* Severity indicator */}
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg ${sev.bgColor} ${sev.bgDark}`}>
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg ${sev.bgDark}`}>
                     {sev.emoji}
                   </div>
 
@@ -438,28 +436,28 @@ export default function NotificacionesPage() {
                           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0 animate-pulse" />
                         )}
                         <h3 className={`text-sm font-semibold leading-snug ${
-                          n.isRead ? 'text-gray-300 text-slate-300' : 'text-white'
+                          n.isRead ? 'text-slate-300' : 'text-white'
                         }`}>
                           {n.title}
                         </h3>
                       </div>
-                      <span className="flex items-center gap-1 text-xs text-gray-400 text-slate-500 whitespace-nowrap flex-shrink-0">
+                      <span className="flex items-center gap-1 text-xs text-slate-500 whitespace-nowrap flex-shrink-0">
                         <Clock className="w-3 h-3" />
                         {n.relativeTime}
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-500 text-gray-400 mt-1 line-clamp-2">{n.description}</p>
+                    <p className="text-sm text-gray-400 mt-1 line-clamp-2">{n.description}</p>
 
                     <div className="flex items-center gap-3 mt-3 flex-wrap">
                       {/* Category badge */}
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${cat.bg} ${cat.bgDark} ${cat.color}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${cat.bgDark} ${cat.color}`}>
                         <CatIcon className="w-3 h-3" />
                         {n.category}
                       </span>
 
                       {/* Severity badge */}
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${sev.bgColor} ${sev.bgDark} ${sev.textColor}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${sev.bgDark} ${sev.textColor}`}>
                         {sev.label}
                       </span>
 
@@ -468,7 +466,7 @@ export default function NotificacionesPage() {
                         {!n.isRead && !n.isArchived && (
                           <button
                             onClick={() => markAsRead(n.id)}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg text-gray-500 text-gray-400 hover:bg-white/[0.04] transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg text-gray-400 hover:bg-[color:var(--neutral-100)] transition-colors"
                           >
                             <Check className="w-3.5 h-3.5" />
                             Marcar le\u00eddo
@@ -477,14 +475,14 @@ export default function NotificacionesPage() {
                         {!n.isArchived && (
                           <button
                             onClick={() => archiveNotification(n.id)}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg text-gray-500 text-gray-400 hover:bg-white/[0.04] transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg text-gray-400 hover:bg-[color:var(--neutral-100)] transition-colors"
                           >
                             <Archive className="w-3.5 h-3.5" />
                             Archivar
                           </button>
                         )}
                         <button
-                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg text-blue-600 text-blue-400 hover:bg-blue-50 hover:bg-blue-900/20 transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg text-emerald-600 hover:bg-blue-900/20 transition-colors"
                         >
                           <ArrowUpRight className="w-3.5 h-3.5" />
                           Ver detalle
@@ -500,14 +498,14 @@ export default function NotificacionesPage() {
 
         {/* ── Settings Panel ──────────────────────────────────────────────── */}
         {showSettings && (
-          <div className="bg-[#141824] rounded-xl border border-white/[0.08] overflow-hidden">
+          <div className="bg-white rounded-xl border border-white/[0.08] overflow-hidden">
             <div className="px-6 py-4 border-b border-white/[0.06] border-white/[0.08] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-gray-500 text-gray-400" />
+                <Settings className="w-5 h-5 text-gray-400" />
                 <h2 className="text-lg font-semibold text-white">Preferencias de Notificaciones</h2>
               </div>
               <button onClick={() => setShowSettings(false)}>
-                <X className="w-5 h-5 text-gray-400 text-slate-500 hover:text-gray-600 hover:text-slate-300" />
+                <X className="w-5 h-5 text-slate-500 hover:text-slate-300" />
               </button>
             </div>
 
@@ -515,11 +513,11 @@ export default function NotificacionesPage() {
               {/* ── Email notifications per category ──────────────────────── */}
               <div>
                 <h3 className="text-sm font-semibold text-white mb-1">Notificaciones por categor\u00eda</h3>
-                <p className="text-xs text-gray-500 text-gray-400 mb-4">Configura qu\u00e9 canales usar para cada tipo de notificaci\u00f3n.</p>
+                <p className="text-xs text-gray-400 mb-4">Configura qu\u00e9 canales usar para cada tipo de notificaci\u00f3n.</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-gray-500 text-gray-400 border-b border-white/[0.06] border-white/[0.08]">
+                      <tr className="text-gray-400 border-b border-white/[0.06] border-white/[0.08]">
                         <th className="text-left py-2 pr-4 font-medium">Categor\u00eda</th>
                         <th className="text-center py-2 px-4 font-medium">
                           <div className="flex flex-col items-center gap-0.5"><Mail className="w-4 h-4" /><span className="text-xs">Email</span></div>
@@ -539,7 +537,7 @@ export default function NotificacionesPage() {
                         return (
                           <tr key={cat}>
                             <td className="py-3 pr-4">
-                              <span className={`inline-flex items-center gap-1.5 font-medium text-gray-300 text-slate-300`}>
+                              <span className={`inline-flex items-center gap-1.5 font-medium text-slate-300`}>
                                 <CIcon className={`w-4 h-4 ${cfg.color}`} />
                                 {cat}
                               </span>
@@ -550,8 +548,8 @@ export default function NotificacionesPage() {
                                   onClick={() => toggleCatPref(cat, ch)}
                                   className={`w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-colors ${
                                     catPrefs[cat][ch]
-                                      ? 'bg-green-100 bg-green-900/30 text-green-600 text-green-400'
-                                      : 'bg-white/[0.04] text-gray-400 text-slate-500'
+                                      ? 'bg-green-900/30 text-green-400'
+                                      : 'bg-[color:var(--neutral-100)] text-slate-500'
                                   }`}
                                 >
                                   {catPrefs[cat][ch] ? <Check className="w-4 h-4" /> : <span className="text-xs">&mdash;</span>}
@@ -567,54 +565,54 @@ export default function NotificacionesPage() {
               </div>
 
               {/* ── SMS para alertas cr\u00edticas ─────────────────────────────── */}
-              <div className="p-4 rounded-xl bg-white/[0.02] bg-white/[0.04]/30 space-y-3">
+              <div className="p-4 rounded-xl bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-red-100 bg-red-900/30">
-                      <Phone className="w-4 h-4 text-red-600 text-red-400" />
+                    <div className="p-2 rounded-lg bg-red-900/30">
+                      <Phone className="w-4 h-4 text-red-400" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">SMS para alertas cr\u00edticas</p>
-                      <p className="text-xs text-gray-500 text-gray-400">Recibe un SMS inmediato cuando se genera una alerta cr\u00edtica.</p>
+                      <p className="text-xs text-gray-400">Recibe un SMS inmediato cuando se genera una alerta cr\u00edtica.</p>
                     </div>
                   </div>
                   <Toggle enabled={smsCriticas} onToggle={() => setSmsCriticas(!smsCriticas)} />
                 </div>
                 {smsCriticas && (
                   <div className="flex items-center gap-2 ml-11">
-                    <label className="text-xs text-gray-500 text-gray-400 whitespace-nowrap">N\u00famero:</label>
+                    <label className="text-xs text-gray-400 whitespace-nowrap">N\u00famero:</label>
                     <input
                       type="tel"
                       value={smsPhone}
                       onChange={e => setSmsPhone(e.target.value)}
                       placeholder="+51 999 888 777"
-                      className="flex-1 max-w-xs px-3 py-1.5 text-sm rounded-lg border border-white/[0.08] border-slate-600 bg-[#141824] bg-white/[0.04] text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gold/30"
+                      className="flex-1 max-w-xs px-3 py-1.5 text-sm rounded-lg border border-white/[0.08] border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gold/30"
                     />
                   </div>
                 )}
               </div>
 
               {/* ── Digest semanal ────────────────────────────────────────── */}
-              <div className="p-4 rounded-xl bg-white/[0.02] bg-white/[0.04]/30 space-y-3">
+              <div className="p-4 rounded-xl bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-indigo-100 bg-indigo-900/30">
-                      <Calendar className="w-4 h-4 text-indigo-600 text-indigo-400" />
+                    <div className="p-2 rounded-lg bg-indigo-900/30">
+                      <Calendar className="w-4 h-4 text-indigo-400" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">Digest semanal por email</p>
-                      <p className="text-xs text-gray-500 text-gray-400">Recibe un resumen semanal con todas las novedades.</p>
+                      <p className="text-xs text-gray-400">Recibe un resumen semanal con todas las novedades.</p>
                     </div>
                   </div>
                   <Toggle enabled={digestSemanal} onToggle={() => setDigestSemanal(!digestSemanal)} />
                 </div>
                 {digestSemanal && (
                   <div className="flex items-center gap-2 ml-11">
-                    <label className="text-xs text-gray-500 text-gray-400 whitespace-nowrap">Enviar cada:</label>
+                    <label className="text-xs text-gray-400 whitespace-nowrap">Enviar cada:</label>
                     <select
                       value={digestDay}
                       onChange={e => setDigestDay(e.target.value as DigestDay)}
-                      className="px-3 py-1.5 text-sm rounded-lg border border-white/[0.08] border-slate-600 bg-[#141824] bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-gold/30"
+                      className="px-3 py-1.5 text-sm rounded-lg border border-white/[0.08] border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] text-white focus:outline-none focus:ring-2 focus:ring-gold/30"
                     >
                       {(['Lunes', 'Martes', 'Mi\u00e9rcoles', 'Jueves', 'Viernes'] as DigestDay[]).map(d => (
                         <option key={d} value={d}>{d}</option>
@@ -625,15 +623,15 @@ export default function NotificacionesPage() {
               </div>
 
               {/* ── Escalamiento ──────────────────────────────────────────── */}
-              <div className="p-4 rounded-xl bg-white/[0.02] bg-white/[0.04]/30">
+              <div className="p-4 rounded-xl bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-100 bg-amber-900/30">
-                      <TrendingUp className="w-4 h-4 text-amber-600 text-amber-400" />
+                    <div className="p-2 rounded-lg bg-amber-900/30">
+                      <TrendingUp className="w-4 h-4 text-amber-400" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">Escalamiento autom\u00e1tico</p>
-                      <p className="text-xs text-gray-500 text-gray-400">Si no se lee en 24h, enviar SMS al gerente de \u00e1rea.</p>
+                      <p className="text-xs text-gray-400">Si no se lee en 24h, enviar SMS al gerente de \u00e1rea.</p>
                     </div>
                   </div>
                   <Toggle enabled={escalamiento} onToggle={() => setEscalamiento(!escalamiento)} />
@@ -641,15 +639,15 @@ export default function NotificacionesPage() {
               </div>
 
               {/* ── Browser Push ──────────────────────────────────────────── */}
-              <div className="p-4 rounded-xl bg-white/[0.02] bg-white/[0.04]/30">
+              <div className="p-4 rounded-xl bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-sky-100 bg-sky-900/30">
-                      <MessageSquare className="w-4 h-4 text-sky-600 text-sky-400" />
+                    <div className="p-2 rounded-lg bg-sky-900/30">
+                      <MessageSquare className="w-4 h-4 text-sky-400" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">Notificaciones push del navegador</p>
-                      <p className="text-xs text-gray-500 text-gray-400">Recibe alertas directamente en tu navegador, incluso si no est\u00e1s en COMPLY360.</p>
+                      <p className="text-xs text-gray-400">Recibe alertas directamente en tu navegador, incluso si no est\u00e1s en COMPLY360.</p>
                     </div>
                   </div>
                   <Toggle enabled={browserPush} onToggle={() => setBrowserPush(!browserPush)} />

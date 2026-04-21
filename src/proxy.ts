@@ -12,7 +12,15 @@ const isPublicRoute = createRouteMatcher([
   '/portal-empleado(.*)',   // Lookup publico del trabajador (DNI + codigo empresa)
   '/api/portal-empleado(.*)',
   '/api/integrations/sunat-sol/receive', // Chrome Extension endpoint (CORS preflight needs to pass)
+  '/dev(.*)',               // Dev-only UI showcase (design system)
+  '/diagnostico-gratis(.*)', // Lead-capture: diagnóstico SUNAFIL público (20 preguntas)
+  '/api/leads',             // POST leads desde /diagnostico-gratis
 ])
+
+// NOTA: el chequeo de `onboardingCompleted` NO va aquí porque el middleware
+// corre en Edge runtime y no puede consultar Prisma (Postgres). En su lugar,
+// el redirect se hace en el layout server-side del dashboard
+// (`src/app/dashboard/layout.tsx`), que ya consulta getAuthContext.
 
 // Rutas que requieren rol SUPER_ADMIN (dueños de la plataforma)
 const isSuperAdminRoute = createRouteMatcher([
@@ -110,7 +118,6 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value)
   }
-
   return response
 })
 

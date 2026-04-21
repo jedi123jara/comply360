@@ -112,7 +112,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 /**
  * GET /api/documentos/generar — List available templates (metadata only, no blocks)
  */
-export const GET = withAuth(async (_req: NextRequest, _ctx: AuthContext) => {
+export const GET = withAuth(async () => {
   const { DOCUMENT_TEMPLATES } = await import('@/lib/legal-engine/documents')
 
   const templates = DOCUMENT_TEMPLATES.map(t => ({

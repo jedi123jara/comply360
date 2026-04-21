@@ -1,13 +1,13 @@
 {
-  "name": "COMPLY360 — Compliance laboral peruano",
-  "short_name": "COMPLY360",
-  "description": "El copiloto de cumplimiento laboral peruano. Calculadoras, diagnóstico SUNAFIL, agentes IA y radar de riesgo.",
-  "start_url": "/dashboard",
+  "name": "Comply360 — Compliance laboral peruano",
+  "short_name": "Comply360",
+  "description": "El copiloto de cumplimiento laboral peruano. Para empresas y sus trabajadores.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0f172a",
-  "theme_color": "#facc15",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
   "lang": "es-PE",
   "categories": ["business", "productivity", "finance"],
   "icons": [
@@ -22,23 +22,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Diagnóstico",
-      "url": "/dashboard/diagnostico",
-      "description": "Ejecuta diagnóstico de compliance"
-    },
-    {
-      "name": "Agentes IA",
-      "url": "/dashboard/agentes",
-      "description": "Consola de agentes inteligentes"
-    },
-    {
-      "name": "Calculadoras",
-      "url": "/dashboard/calculadoras",
-      "description": "Calculadoras laborales"
     }
   ]
 }

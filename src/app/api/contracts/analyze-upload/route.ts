@@ -11,7 +11,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth'
-import type { AuthContext } from '@/lib/auth'
 import {
   analizarDocumento,
   TIPOS_DOCUMENTO_LABELS,
@@ -19,6 +18,7 @@ import {
   type ResultadoAnalisis,
 } from '@/lib/compliance/contract-analyzer'
 import { splitContracts } from '@/lib/agents/contract-splitter'
+import { reviewContract, type ContractReviewResult } from '@/lib/ai/contract-review'
 
 // ── Auto-detección de tipo desde el texto ───────────────────────────────────
 
@@ -146,6 +146,10 @@ export interface ResultadoContrato extends ResultadoAnalisis {
   desnaturalizado: boolean
   indicadoresDesnaturalizacion: string[]
   veredicto: 'VALIDO' | 'CON_OBSERVACIONES' | 'DESNATURALIZADO' | 'INVALIDO'
+  /** Segunda capa: análisis IA profundo (opcional, null si falló o deep=false). */
+  aiReview: ContractReviewResult | null
+  /** Flag si la capa IA se intentó. Útil para diferenciar null=skipped vs null=failed. */
+  aiAttempted?: boolean
 }
 
 function calcularVeredicto(
@@ -161,10 +165,15 @@ function calcularVeredicto(
 
 // ── POST handler ─────────────────────────────────────────────────────────────
 
-export const POST = withAuth(async (req: NextRequest, _ctx: AuthContext) => {
+export const POST = withAuth(async (req: NextRequest) => {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
+    // ?deep=true → corre también la capa IA (reviewContract) por cada contrato.
+    // Default: true (experiencia premium). Para desactivar pasá deep=false.
+    const url = new URL(req.url)
+    const deepParam = url.searchParams.get('deep')
+    const deepMode = deepParam === null ? true : deepParam !== 'false' && deepParam !== '0'
 
     if (!file) {
       return NextResponse.json({ error: 'No se proporcionó ningún archivo' }, { status: 400 })
@@ -213,8 +222,10 @@ export const POST = withAuth(async (req: NextRequest, _ctx: AuthContext) => {
     // ── Dividir en bloques de contrato ───────────────────────────
     const bloques = splitContracts(fullText)
 
-    // ── Analizar cada contrato ───────────────────────────────────
-    const resultados: ResultadoContrato[] = bloques.map((bloque, idx) => {
+    // ── Analizar cada contrato: rule-based (rápido) + IA (en paralelo si deep) ──
+    // Rule-based siempre corre (es instantáneo). La capa IA corre después en
+    // paralelo por todos los bloques — no bloquea el rule-based output.
+    const ruleResults = bloques.map((bloque, idx) => {
       const tipo    = detectContractType(bloque.text)
       const analisis = analizarDocumento(bloque.text, tipo)
       const { desnaturalizado, indicadores } = detectarDesnaturalizacion(bloque.text, tipo, analisis)
@@ -223,15 +234,38 @@ export const POST = withAuth(async (req: NextRequest, _ctx: AuthContext) => {
         desnaturalizado,
         analisis.clausulasIlegales.length,
       )
+      return { idx, bloque, tipo, analisis, desnaturalizado, indicadores, veredicto }
+    })
 
+    // Corre las revisiones IA en paralelo. Si alguna falla, el contrato queda
+    // con aiReview=null (el rule-based sigue siendo el baseline confiable).
+    const aiReviewsSettled = deepMode
+      ? await Promise.allSettled(
+          ruleResults.map((r) =>
+            reviewContract({ contractHtml: r.bloque.text, contractType: r.tipo }),
+          ),
+        )
+      : []
+
+    const resultados: ResultadoContrato[] = ruleResults.map((r, i) => {
+      let aiReview: ContractReviewResult | null = null
+      if (deepMode) {
+        const settled = aiReviewsSettled[i]
+        if (settled?.status === 'fulfilled') aiReview = settled.value
+        else if (settled?.status === 'rejected') {
+          console.warn(`[analyze-upload] AI review #${r.idx + 1} falló:`, settled.reason)
+        }
+      }
       return {
-        indice: idx + 1,
-        tipo,
-        tipoLabel: TIPOS_DOCUMENTO_LABELS[tipo],
-        desnaturalizado,
-        indicadoresDesnaturalizacion: indicadores,
-        veredicto,
-        ...analisis,
+        indice: r.idx + 1,
+        tipo: r.tipo,
+        tipoLabel: TIPOS_DOCUMENTO_LABELS[r.tipo],
+        desnaturalizado: r.desnaturalizado,
+        indicadoresDesnaturalizacion: r.indicadores,
+        veredicto: r.veredicto,
+        aiReview,
+        aiAttempted: deepMode,
+        ...r.analisis,
       }
     })
 
@@ -250,6 +284,8 @@ export const POST = withAuth(async (req: NextRequest, _ctx: AuthContext) => {
       scorePromedio,
       estadisticas: { totalValidos, totalObservados, totalInvalidos, totalDesnaturalizados },
       resultados,
+      deepMode,
+      aiReviewsSucceeded: resultados.filter((r) => r.aiReview !== null).length,
     })
   } catch (error) {
     console.error('[contracts/analyze-upload]', error)

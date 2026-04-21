@@ -27,10 +27,6 @@ const REGIMEN_PENSION_MAP: Record<string, '0' | '1' | '2' | '3'> = {
   AFP: '2', ONP: '1', SIN_APORTE: '0',
 }
 
-function fmt2(n: number) {
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const periodo = searchParams.get('periodo') ?? ''

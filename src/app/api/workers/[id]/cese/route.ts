@@ -46,9 +46,6 @@ type EtapaCese =
 // Tipos que requieren proceso de preaviso/descargos (Art. 31 D.Leg. 728)
 const TIPOS_CON_PREAVISO: TipoCese[] = ['DESPIDO_CAUSA_JUSTA']
 
-// Tipos que generan indemnización automática (Art. 34, 38 D.Leg. 728)
-const TIPOS_CON_INDEMNIZACION: TipoCese[] = ['DESPIDO_ARBITRARIO']
-
 // Flujo de etapas por tipo de cese
 function getEtapasRequeridas(tipo: TipoCese): EtapaCese[] {
   switch (tipo) {

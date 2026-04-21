@@ -31,22 +31,25 @@ export default function DonutChart({ segments }: DonutChartProps) {
   const strokeWidth = 20;
   const circumference = 2 * Math.PI * radius;
 
-  // Build cumulative offsets for each segment
-  let cumulativeOffset = 0;
-  const arcs = segments.map((seg) => {
+  // Build cumulative offsets via reduce (evita reasignar `let` durante render —
+  // React 19 / eslint-plugin-react-hooks prohibe `let x = 0; x += ...` a nivel
+  // de componente).
+  const arcs = segments.reduce<
+    Array<{ label: string; value: number; color: string; dashArray: string; dashOffset: number; fraction: number }>
+  >((acc, seg) => {
     const fraction = seg.value / total;
     const dashLength = fraction * circumference;
     const gap = circumference - dashLength;
-    // Rotate so first segment starts at top (-90deg equivalent via offset)
-    const offset = circumference * 0.25 - cumulativeOffset;
-    cumulativeOffset += dashLength;
-    return {
+    const prevCumulative = acc.reduce((s, prev) => s + prev.fraction * circumference, 0);
+    const offset = circumference * 0.25 - prevCumulative;
+    acc.push({
       ...seg,
       dashArray: `${dashLength} ${gap}`,
       dashOffset: offset,
       fraction,
-    };
-  });
+    });
+    return acc;
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -63,7 +66,7 @@ export default function DonutChart({ segments }: DonutChartProps) {
             cy={cy}
             r={radius}
             fill="none"
-            stroke="#f1f5f9"
+            stroke="rgba(255,255,255,0.06)"
             strokeWidth={strokeWidth}
           />
 
@@ -95,7 +98,7 @@ export default function DonutChart({ segments }: DonutChartProps) {
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-bold text-white">{total}</span>
-          <span className="text-xs text-gray-500">Total</span>
+          <span className="text-xs text-text-secondary">Total</span>
         </div>
       </div>
 
@@ -107,7 +110,7 @@ export default function DonutChart({ segments }: DonutChartProps) {
               className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
               style={{ backgroundColor: seg.color }}
             />
-            <span className="text-xs text-gray-600">
+            <span className="text-xs text-text-secondary">
               {seg.label}{' '}
               <span className="font-semibold text-white">{seg.value}</span>
             </span>

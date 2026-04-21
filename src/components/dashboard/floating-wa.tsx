@@ -31,7 +31,7 @@ export function FloatingWhatsApp() {
             </button>
           </div>
           <div className="p-4">
-            <div className="bg-white/[0.04] rounded-xl rounded-tl-none p-3 mb-3">
+            <div className="bg-[color:var(--neutral-100)] rounded-xl rounded-tl-none p-3 mb-3">
               <p className="text-sm text-gray-300">
                 ¡Hola! 👋 ¿Tienes alguna consulta laboral? Estamos para ayudarte.
               </p>

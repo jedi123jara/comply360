@@ -244,7 +244,7 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-white/[0.04] rounded-lg transition-colors"
+            className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-400" />
           </button>
@@ -348,7 +348,7 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
                   e.stopPropagation()
                   setFile(null)
                 }}
-                className="p-1 hover:bg-white/[0.04] rounded"
+                className="p-1 hover:bg-[color:var(--neutral-100)] rounded"
               >
                 <X className="w-4 h-4 text-gray-400" />
               </button>
@@ -373,7 +373,7 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
               <span className="text-xs text-gray-500">Subiendo archivo...</span>
               <span className="text-xs font-medium text-primary">{progress}%</span>
             </div>
-            <div className="w-full h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
@@ -396,7 +396,7 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
             type="button"
             onClick={onClose}
             disabled={uploading}
-            className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-white/[0.04] rounded-lg transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -408,7 +408,7 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
               'flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all',
               file && !uploading
                 ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-white/[0.04] text-gray-400 cursor-not-allowed'
+                : 'bg-[color:var(--neutral-100)] text-gray-400 cursor-not-allowed'
             )}
           >
             {uploading ? (
@@ -463,7 +463,7 @@ function DocumentRow({ docDef, uploadedDoc, onUploadClick, workerId, onVerified,
   }
 
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.02] transition-colors group">
+    <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-[color:var(--neutral-50)] transition-colors group">
       {/* Status icon */}
       {isExpired ? (
         <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
@@ -491,7 +491,7 @@ function DocumentRow({ docDef, uploadedDoc, onUploadClick, workerId, onVerified,
           </span>
         )}
         {isExpiringSoon && (
-          <span className="ml-2 text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
+          <span className="ml-2 text-[10px] font-semibold text-amber-400 bg-amber-50 px-1.5 py-0.5 rounded">
             Vence en {daysUntilExpiry} días
           </span>
         )}
@@ -654,7 +654,7 @@ export function DocumentUploader({ workerId, documents: initialDocuments, onDocu
               {legajoPercent}%
             </span>
           </div>
-          <div className="w-full h-2.5 bg-white/[0.04] rounded-full overflow-hidden">
+          <div className="w-full h-2.5 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-500',
@@ -734,7 +734,7 @@ export function DocumentUploader({ workerId, documents: initialDocuments, onDocu
             {extraDocuments.map(doc => (
               <div
                 key={doc.id}
-                className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.02] transition-colors group"
+                className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-[color:var(--neutral-50)] transition-colors group"
               >
                 <FileText className="w-4 h-4 text-blue-400 shrink-0" />
                 <span className="text-sm text-gray-300 flex-1">{doc.title}</span>

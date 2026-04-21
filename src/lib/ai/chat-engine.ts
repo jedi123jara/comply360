@@ -11,6 +11,7 @@
  */
 import { callAI, detectProvider, getModelName } from './provider'
 import { retrieveRelevantLaw, formatRetrievedContext, type RetrievalResult } from './rag/retriever'
+import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
 
 export type { RetrievalResult }
 
@@ -93,10 +94,22 @@ export async function generateChatResponse(
   messages: ChatMessage[],
   orgContext: OrgContext,
 ): Promise<ChatResponseWithCitations> {
-  // ── 1. RAG: retrieve relevant legal chunks based on the last user message ──
+  // ── 1. RAG híbrido: vector (si embeddings existen) + keyword fallback ──
+  // El retriever v2 intenta embedding con OpenAI; si falla usa el corpus unificado
+  // v1 + v2 con scoring keyword. Esto garantiza que no hay regresión si
+  // embeddings.json aún no se generó.
   const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || ''
-  const ragResults = retrieveRelevantLaw(lastUserMessage, 5, 0.05)
-  const ragContext = formatRetrievedContext(ragResults)
+  let ragResults: RetrievalResult[] = []
+  let ragContext = ''
+  try {
+    ragResults = await retrieveRelevantLawVector(lastUserMessage, { topK: 5, minScore: 0.05 })
+    ragContext = formatVectorContext(ragResults)
+  } catch (err) {
+    // Safety net: si el retriever v2 lanza, caer al retriever v1.
+    console.error('[chat-engine] vector retriever error, falling back to v1:', err)
+    ragResults = retrieveRelevantLaw(lastUserMessage, 5, 0.05)
+    ragContext = formatRetrievedContext(ragResults)
+  }
   const citations = extractCitationsFromRetrieval(ragResults)
 
   // ── 2. Build system messages: base prompt + org context + RAG context ────

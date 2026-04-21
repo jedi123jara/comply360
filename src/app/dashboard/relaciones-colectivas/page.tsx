@@ -1,12 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import {
-  Scale, Users, FileText, AlertTriangle, Plus, X, Edit2,
-  Trash2, Clock, CheckCircle2, XCircle, Loader2, Download,
-  Calendar, Bell, ChevronDown, ChevronUp, ExternalLink,
-  Shield, Megaphone, Gavel, UserCheck, Flame,
-} from 'lucide-react'
+import { Scale, Users, FileText, AlertTriangle, Plus, X, Edit2, Trash2, Clock, XCircle, Loader2, Calendar, Bell, ChevronDown, ChevronUp, ExternalLink, Shield, Megaphone, Gavel, UserCheck, Flame } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /* ===================================
@@ -48,20 +43,20 @@ interface Stats {
    Constants
    =================================== */
 const TYPE_META: Record<SindicalType, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string; description: string }> = {
-  SINDICATO: { label: 'Sindicato', icon: Users, color: 'text-blue-700 text-blue-400', bg: 'bg-blue-50 bg-blue-900/30', description: 'Organización sindical registrada' },
-  CONVENIO_COLECTIVO: { label: 'Convenio Colectivo', icon: FileText, color: 'text-emerald-700 text-emerald-400', bg: 'bg-emerald-50 bg-emerald-900/30', description: 'Acuerdo colectivo vigente' },
-  NEGOCIACION: { label: 'Negociación', icon: Gavel, color: 'text-amber-700 text-amber-400', bg: 'bg-amber-50 bg-amber-900/30', description: 'Proceso de negociación en curso' },
-  PLIEGO_RECLAMOS: { label: 'Pliego de Reclamos', icon: Megaphone, color: 'text-orange-700 text-orange-400', bg: 'bg-orange-50 bg-orange-900/30', description: 'Pliego presentado por el sindicato' },
-  FUERO_SINDICAL: { label: 'Fuero Sindical', icon: UserCheck, color: 'text-purple-700 text-purple-400', bg: 'bg-purple-50 bg-purple-900/30', description: 'Dirigentes con protección legal' },
-  HUELGA: { label: 'Huelga', icon: Flame, color: 'text-red-700 text-red-400', bg: 'bg-red-50 bg-red-900/30', description: 'Registro de medida de fuerza' },
+  SINDICATO: { label: 'Sindicato', icon: Users, color: 'text-emerald-600', bg: 'bg-blue-900/30', description: 'Organización sindical registrada' },
+  CONVENIO_COLECTIVO: { label: 'Convenio Colectivo', icon: FileText, color: 'text-emerald-600', bg: 'bg-emerald-900/30', description: 'Acuerdo colectivo vigente' },
+  NEGOCIACION: { label: 'Negociación', icon: Gavel, color: 'text-amber-400', bg: 'bg-amber-900/30', description: 'Proceso de negociación en curso' },
+  PLIEGO_RECLAMOS: { label: 'Pliego de Reclamos', icon: Megaphone, color: 'text-orange-400', bg: 'bg-orange-900/30', description: 'Pliego presentado por el sindicato' },
+  FUERO_SINDICAL: { label: 'Fuero Sindical', icon: UserCheck, color: 'text-purple-400', bg: 'bg-purple-900/30', description: 'Dirigentes con protección legal' },
+  HUELGA: { label: 'Huelga', icon: Flame, color: 'text-red-400', bg: 'bg-red-900/30', description: 'Registro de medida de fuerza' },
 }
 
 const STATUS_META: Record<RecordStatus, { label: string; color: string }> = {
-  ACTIVE: { label: 'Activo', color: 'bg-emerald-100 text-emerald-800 bg-emerald-900/40 text-emerald-300' },
+  ACTIVE: { label: 'Activo', color: 'bg-emerald-100 text-emerald-800 bg-emerald-900/40 text-emerald-700' },
   EXPIRED: { label: 'Vencido', color: 'bg-red-100 text-red-800 bg-red-900/40 text-red-300' },
-  PENDING: { label: 'Pendiente', color: 'bg-amber-100 text-amber-800 bg-amber-900/40 text-amber-300' },
-  SUSPENDED: { label: 'Suspendido', color: 'bg-white/[0.04] text-gray-300 bg-gray-700 text-gray-300' },
-  CLOSED: { label: 'Cerrado', color: 'bg-slate-100 text-slate-700 bg-white/[0.04] text-slate-300' },
+  PENDING: { label: 'Pendiente', color: 'bg-amber-100 text-amber-800 bg-amber-900/40 text-amber-700' },
+  SUSPENDED: { label: 'Suspendido', color: 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] bg-gray-700 text-[color:var(--text-secondary)]' },
+  CLOSED: { label: 'Cerrado', color: 'bg-slate-100 text-slate-700 bg-[color:var(--neutral-100)] text-slate-300' },
 }
 
 const LEGAL_REFS = [
@@ -127,23 +122,23 @@ function RecordModal({ initial, onClose, onSave, saving }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-[#141824] rounded-2xl shadow-2xl">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-white/[0.08]">
           <h2 className="text-lg font-bold text-white text-gray-100">
             {initial?.id ? 'Editar registro' : 'Nuevo registro sindical'}
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/[0.04] text-gray-500">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[color:var(--neutral-100)] text-gray-500">
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Tipo *</label>
+            <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">Tipo *</label>
             <select
               value={form.type}
               onChange={e => setForm(f => ({ ...f, type: e.target.value as SindicalType }))}
-              className="w-full px-3 py-2 border border-white/10 border-slate-600 rounded-lg bg-[#141824] bg-white/[0.04] text-white text-gray-100 text-sm"
+              className="w-full px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-lg bg-white bg-[color:var(--neutral-100)] text-white text-gray-100 text-sm"
             >
               {Object.entries(TYPE_META).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
@@ -152,54 +147,54 @@ function RecordModal({ initial, onClose, onSave, saving }: ModalProps) {
           </div>
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Título *</label>
+            <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">Título *</label>
             <input
               required
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Ej: Sindicato de Trabajadores MYPE S.A."
-              className="w-full px-3 py-2 border border-white/10 border-slate-600 rounded-lg bg-[#141824] bg-white/[0.04] text-white text-gray-100 text-sm"
+              className="w-full px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-lg bg-white bg-[color:var(--neutral-100)] text-white text-gray-100 text-sm"
             />
           </div>
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
+            <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">Descripción</label>
             <textarea
               rows={3}
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="Detalles adicionales..."
-              className="w-full px-3 py-2 border border-white/10 border-slate-600 rounded-lg bg-[#141824] bg-white/[0.04] text-white text-gray-100 text-sm resize-none"
+              className="w-full px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-lg bg-white bg-[color:var(--neutral-100)] text-white text-gray-100 text-sm resize-none"
             />
           </div>
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Fecha inicio</label>
+              <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">Fecha inicio</label>
               <input
                 type="date"
                 value={form.startDate}
                 onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-white/10 border-slate-600 rounded-lg bg-[#141824] bg-white/[0.04] text-white text-gray-100 text-sm"
+                className="w-full px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-lg bg-white bg-[color:var(--neutral-100)] text-white text-gray-100 text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Fecha fin / vencimiento</label>
+              <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">Fecha fin / vencimiento</label>
               <input
                 type="date"
                 value={form.endDate}
                 onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-white/10 border-slate-600 rounded-lg bg-[#141824] bg-white/[0.04] text-white text-gray-100 text-sm"
+                className="w-full px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-lg bg-white bg-[color:var(--neutral-100)] text-white text-gray-100 text-sm"
               />
             </div>
           </div>
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Estado</label>
+            <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">Estado</label>
             <select
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value as RecordStatus }))}
-              className="w-full px-3 py-2 border border-white/10 border-slate-600 rounded-lg bg-[#141824] bg-white/[0.04] text-white text-gray-100 text-sm"
+              className="w-full px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-lg bg-white bg-[color:var(--neutral-100)] text-white text-gray-100 text-sm"
             >
               {Object.entries(STATUS_META).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
@@ -211,7 +206,7 @@ function RecordModal({ initial, onClose, onSave, saving }: ModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-300 bg-white/[0.04] hover:bg-gray-200 hover:bg-slate-600 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[color:var(--text-secondary)] bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-200)] rounded-lg transition-colors"
             >
               Cancelar
             </button>
@@ -252,9 +247,9 @@ function RecordCard({
 
   return (
     <div className={cn(
-      'bg-[#141824] rounded-xl border transition-all',
-      isExpired ? 'border-red-200 border-red-800' :
-      isExpiringSoon ? 'border-amber-200 border-amber-800' :
+      'bg-white rounded-xl border transition-all',
+      isExpired ? 'border-red-800' :
+      isExpiringSoon ? 'border-amber-800' :
       'border-white/[0.08]'
     )}>
       <div className="p-4">
@@ -265,7 +260,7 @@ function RecordCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-xs font-medium text-gray-500 text-gray-400 mb-0.5">{meta.label}</p>
+                <p className="text-xs font-medium text-gray-400 mb-0.5">{meta.label}</p>
                 <h3 className="font-semibold text-white text-gray-100 text-sm leading-tight">{record.title}</h3>
               </div>
               <span className={cn('shrink-0 text-xs font-medium px-2 py-0.5 rounded-full', statusMeta.color)}>
@@ -275,7 +270,7 @@ function RecordCard({
             {/* Dates */}
             <div className="flex items-center gap-4 mt-2">
               {record.startDate && (
-                <div className="flex items-center gap-1 text-xs text-gray-500 text-gray-400">
+                <div className="flex items-center gap-1 text-xs text-gray-400">
                   <Calendar className="w-3 h-3" />
                   <span>Inicio: {formatDate(record.startDate)}</span>
                 </div>
@@ -283,9 +278,9 @@ function RecordCard({
               {record.endDate && (
                 <div className={cn(
                   'flex items-center gap-1 text-xs font-medium',
-                  isExpired ? 'text-red-600 text-red-400' :
-                  isExpiringSoon ? 'text-amber-600 text-amber-400' :
-                  'text-gray-500 text-gray-400'
+                  isExpired ? 'text-red-400' :
+                  isExpiringSoon ? 'text-amber-400' :
+                  'text-gray-400'
                 )}>
                   <Clock className="w-3 h-3" />
                   <span>
@@ -305,7 +300,7 @@ function RecordCard({
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06] border-white/[0.08]">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-xs text-gray-500 text-gray-400 hover:text-gray-300 hover:text-gray-200 transition-colors"
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-[color:var(--text-secondary)] transition-colors"
           >
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             {expanded ? 'Ocultar' : 'Ver detalle'}
@@ -313,13 +308,13 @@ function RecordCard({
           <div className="flex items-center gap-1">
             <button
               onClick={() => onEdit(record)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:text-blue-400 hover:bg-blue-50 hover:bg-blue-900/30 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-blue-900/30 transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onDelete(record.id)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:text-red-400 hover:bg-red-50 hover:bg-red-900/30 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-900/30 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -328,7 +323,7 @@ function RecordCard({
 
         {/* Expanded description */}
         {expanded && record.description && (
-          <div className="mt-3 p-3 bg-white/[0.02] bg-white/[0.04]/50 rounded-lg text-sm text-gray-300 leading-relaxed">
+          <div className="mt-3 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50 rounded-lg text-sm text-[color:var(--text-secondary)] leading-relaxed">
             {record.description}
           </div>
         )}
@@ -361,7 +356,7 @@ export default function RelacionesColectivasPage() {
       setRecords(json.records ?? [])
       setStats(json.stats ?? { total: 0, activeUnions: 0, activeConvenios: 0, ongoingNeg: 0, openPliego: 0 })
       setExpiringSoon(json.expiringSoon ?? [])
-    } catch (e) {
+    } catch {
       setError('No se pudieron cargar los registros sindicales.')
     } finally {
       setLoading(false)
@@ -409,7 +404,7 @@ export default function RelacionesColectivasPage() {
     <div className="flex items-center justify-center min-h-64">
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-        <p className="text-sm text-gray-500 text-gray-400">Cargando relaciones colectivas...</p>
+        <p className="text-sm text-gray-400">Cargando relaciones colectivas...</p>
       </div>
     </div>
   )
@@ -423,14 +418,14 @@ export default function RelacionesColectivasPage() {
             <Scale className="w-7 h-7 text-primary" />
             Relaciones Colectivas
           </h1>
-          <p className="text-sm text-gray-500 text-gray-400 mt-1">
+          <p className="text-sm text-gray-400 mt-1">
             Sindicatos, convenios colectivos, negociaciones y pliegos de reclamos
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowLegal(!showLegal)}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-400 bg-[#141824] border border-white/[0.08] rounded-lg hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-400 bg-white border border-white/[0.08] rounded-lg hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors"
           >
             <Shield className="w-4 h-4" />
             Marco legal
@@ -447,22 +442,22 @@ export default function RelacionesColectivasPage() {
 
       {/* Legal references panel */}
       {showLegal && (
-        <div className="bg-blue-50 bg-blue-900/20 border border-blue-200 border-blue-800 rounded-xl p-4 animate-fade-in">
+        <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-4 animate-fade-in">
           <div className="flex items-start justify-between">
-            <h3 className="text-sm font-semibold text-blue-900 text-blue-200 mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-blue-200 mb-3 flex items-center gap-2">
               <Shield className="w-4 h-4" /> Marco normativo — Relaciones Colectivas de Trabajo
             </h3>
-            <button onClick={() => setShowLegal(false)} className="text-blue-400 hover:text-blue-600">
+            <button onClick={() => setShowLegal(false)} className="text-emerald-600 hover:text-blue-600">
               <X className="w-4 h-4" />
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {LEGAL_REFS.map((r, i) => (
-              <div key={i} className="flex items-start gap-2 p-2 bg-[#141824] bg-blue-900/30 rounded-lg">
+              <div key={i} className="flex items-start gap-2 p-2 bg-white bg-blue-900/30 rounded-lg">
                 <ExternalLink className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-xs font-bold text-blue-800 text-blue-300">{r.norm}</p>
-                  <p className="text-xs text-blue-700 text-blue-400">{r.desc} — {r.art}</p>
+                  <p className="text-xs font-bold text-emerald-600">{r.norm}</p>
+                  <p className="text-xs text-emerald-600">{r.desc} — {r.art}</p>
                 </div>
               </div>
             ))}
@@ -479,23 +474,23 @@ export default function RelacionesColectivasPage() {
           { label: 'En negociación', value: stats.ongoingNeg, icon: Gavel, color: 'text-amber-600' },
           { label: 'Pliegos abiertos', value: stats.openPliego, icon: Megaphone, color: 'text-orange-600' },
         ].map((s, i) => (
-          <div key={i} className="bg-[#141824] rounded-xl border border-white/[0.08] p-3">
+          <div key={i} className="bg-white rounded-xl border border-white/[0.08] p-3">
             <div className="flex items-center justify-between mb-2">
               <s.icon className={cn('w-4 h-4', s.color)} />
             </div>
             <p className="text-2xl font-bold text-white text-gray-100">{s.value}</p>
-            <p className="text-xs text-gray-500 text-gray-400 mt-0.5 leading-tight">{s.label}</p>
+            <p className="text-xs text-gray-400 mt-0.5 leading-tight">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Expiring soon alert */}
       {expiringSoon.length > 0 && (
-        <div className="bg-amber-50 bg-amber-900/20 border border-amber-200 border-amber-800 rounded-xl p-4">
+        <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm font-semibold text-amber-900 text-amber-200 mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-amber-700 mb-2 flex items-center gap-2">
                 <Bell className="w-4 h-4" />
                 {expiringSoon.length} registro(s) próximos a vencer (90 días)
               </h3>
@@ -504,8 +499,8 @@ export default function RelacionesColectivasPage() {
                   const days = daysUntil(r.endDate)
                   return (
                     <div key={r.id} className="flex items-center justify-between text-sm">
-                      <span className="text-amber-800 text-amber-300 font-medium">{r.title}</span>
-                      <span className="text-amber-600 text-amber-400 text-xs font-semibold">
+                      <span className="text-amber-700 font-medium">{r.title}</span>
+                      <span className="text-amber-400 text-xs font-semibold">
                         {days! <= 0 ? 'Vencido' : `${days} días`}
                       </span>
                     </div>
@@ -519,9 +514,9 @@ export default function RelacionesColectivasPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 bg-red-900/20 border border-red-200 border-red-800 rounded-xl p-4 flex items-center gap-3">
-          <XCircle className="w-5 h-5 text-red-600 text-red-400" />
-          <p className="text-sm text-red-700 text-red-300">{error}</p>
+        <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 flex items-center gap-3">
+          <XCircle className="w-5 h-5 text-red-400" />
+          <p className="text-sm text-red-300">{error}</p>
         </div>
       )}
 
@@ -535,7 +530,7 @@ export default function RelacionesColectivasPage() {
               'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
               activeTab === tab.key
                 ? 'bg-primary text-white'
-                : 'bg-[#141824] text-gray-400 border border-white/[0.08] hover:bg-white/[0.02] hover:bg-white/[0.04]'
+                : 'bg-white text-gray-400 border border-white/[0.08] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]'
             )}
           >
             {tab.label}
@@ -550,12 +545,12 @@ export default function RelacionesColectivasPage() {
 
       {/* Records grid */}
       {filtered.length === 0 ? (
-        <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-12 text-center">
-          <Scale className="w-12 h-12 text-gray-300 text-gray-600 mx-auto mb-4" />
+        <div className="bg-white rounded-xl border border-white/[0.08] p-12 text-center">
+          <Scale className="w-12 h-12 text-gray-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-white text-gray-100 mb-2">
             {activeTab === 'ALL' ? 'Sin registros sindicales' : `Sin registros de tipo ${TYPE_META[activeTab as SindicalType]?.label}`}
           </h3>
-          <p className="text-sm text-gray-500 text-gray-400 mb-6 max-w-sm mx-auto">
+          <p className="text-sm text-gray-400 mb-6 max-w-sm mx-auto">
             Registra sindicatos, convenios colectivos, procesos de negociación y pliegos de reclamos de tu empresa.
           </p>
           <button
@@ -576,7 +571,7 @@ export default function RelacionesColectivasPage() {
 
       {/* Timeline de negociaciones activas */}
       {records.filter(r => r.type === 'NEGOCIACION' && r.status === 'ACTIVE').length > 0 && (
-        <div className="bg-[#141824] rounded-xl border border-white/[0.08] p-5">
+        <div className="bg-white rounded-xl border border-white/[0.08] p-5">
           <h2 className="text-sm font-bold text-white text-gray-100 mb-4 flex items-center gap-2">
             <Gavel className="w-4 h-4 text-amber-600" />
             Negociaciones en curso
@@ -584,7 +579,7 @@ export default function RelacionesColectivasPage() {
           <div className="space-y-3">
             {records
               .filter(r => r.type === 'NEGOCIACION' && r.status === 'ACTIVE')
-              .map((r, idx) => {
+              .map((r) => {
                 const days = daysUntil(r.endDate)
                 const pct = r.startDate && r.endDate
                   ? Math.max(0, Math.min(100, ((Date.now() - new Date(r.startDate).getTime()) /
@@ -601,14 +596,14 @@ export default function RelacionesColectivasPage() {
                       )}
                     </div>
                     {r.startDate && r.endDate && (
-                      <div className="w-full bg-white/[0.04] rounded-full h-2">
+                      <div className="w-full bg-[color:var(--neutral-100)] rounded-full h-2">
                         <div
                           className="h-2 rounded-full bg-amber-500 transition-all"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-xs text-gray-400 text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
                       <span>Inicio: {formatDate(r.startDate)}</span>
                       <span>Límite: {formatDate(r.endDate)}</span>
                     </div>
@@ -621,11 +616,11 @@ export default function RelacionesColectivasPage() {
 
       {/* Guía legal */}
       <div className="bg-slate-50 bg-white/50 rounded-xl border border-slate-200 border-white/[0.08] p-5">
-        <h3 className="text-sm font-bold text-slate-900 text-slate-100 mb-3 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-slate-600" />
+        <h3 className="text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-[color:var(--text-secondary)]" />
           Plazos legales importantes (Ley 25593 y D.S. 010-2003-TR)
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 text-slate-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
           {[
             { plazo: '10 días hábiles', desc: 'Para que el empleador responda al pliego de reclamos' },
             { plazo: '20 días', desc: 'Duración mínima de la etapa de trato directo' },
@@ -634,9 +629,9 @@ export default function RelacionesColectivasPage() {
             { plazo: '3 afiliados mínimo', desc: 'Para formar un sindicato de empresa' },
             { plazo: '20% planilla', desc: 'Para que el sindicato sea mayoritario (negociación con eficacia general)' },
           ].map((p, i) => (
-            <div key={i} className="flex items-start gap-2 p-2 bg-[#141824] bg-white/[0.04] rounded-lg">
-              <span className="shrink-0 font-bold text-primary text-blue-400">{p.plazo}</span>
-              <span className="text-slate-600 text-gray-400">{p.desc}</span>
+            <div key={i} className="flex items-start gap-2 p-2 bg-white bg-[color:var(--neutral-100)] rounded-lg">
+              <span className="shrink-0 font-bold text-primary text-emerald-600">{p.plazo}</span>
+              <span className="text-gray-400">{p.desc}</span>
             </div>
           ))}
         </div>

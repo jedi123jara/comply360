@@ -34,6 +34,30 @@ const sampleQuestions: ComplianceQuestion[] = [
 const TOTAL_WORKERS = 5
 const UIT = 5500 // must match the constant in diagnostic-scorer.ts
 
+/**
+ * Worker-factor scale as per D.S. 019-2006-TR Art. 48 (Cuadro de Escala de Multas).
+ * Must match the scale used in diagnostic-scorer.ts.
+ */
+function factor(totalWorkers: number): number {
+  if (totalWorkers <= 10) return 1
+  if (totalWorkers <= 50) return 5
+  if (totalWorkers <= 100) return 10
+  if (totalWorkers <= 500) return 20
+  return 30
+}
+
+/**
+ * Priority formula mirrors `calculateGapPriority` in diagnostic-scorer.ts.
+ * Used to compute expected priority values in tests.
+ */
+function priority(q: ComplianceQuestion, multaPEN: number): number {
+  const gravityFactor = q.infraccionGravedad === 'MUY_GRAVE' ? 3 : q.infraccionGravedad === 'GRAVE' ? 2 : 1
+  const weightScore = q.peso * gravityFactor
+  const multaScore = Math.min(multaPEN / 10000, 10)
+  const detectionBonus = ['contratos_registro', 'remuneraciones_beneficios', 'sst'].includes(q.area) ? 2 : 0
+  return Math.round((weightScore + multaScore + detectionBonus) * 100) / 100
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -112,7 +136,7 @@ describe('scoreDiagnostic', () => {
     })
 
     it('should calculate multa using UIT * workerFactor for NO', () => {
-      const workerFactor = Math.max(1, Math.min(TOTAL_WORKERS, 10))
+      const workerFactor = factor(TOTAL_WORKERS)
       // Check the first gap matches expected formula
       const q = sampleQuestions[0]
       const gap = result.gapAnalysis.find(g => g.questionId === q.id)!
@@ -169,7 +193,7 @@ describe('scoreDiagnostic', () => {
     })
 
     it('should apply 0.3 factor to PARCIAL multa', () => {
-      const workerFactor = Math.max(1, Math.min(TOTAL_WORKERS, 10))
+      const workerFactor = factor(TOTAL_WORKERS)
       const rbGap = result.gapAnalysis.find(g => g.questionId === 'T-RB-01')!
       expect(rbGap.answer).toBe('PARCIAL')
       expect(rbGap.multaPEN).toBe(Math.round(2.63 * UIT * workerFactor * 0.3))
@@ -191,17 +215,27 @@ describe('scoreDiagnostic', () => {
     })
 
     it('should assign higher priority to MUY_GRAVE questions', () => {
-      // T-RB-01 peso=5, MUY_GRAVE -> priority = 5*3 = 15
+      // Priority now includes multa + detection bonus for core areas
       const rbGap = result.gapAnalysis.find(g => g.questionId === 'T-RB-01')!
-      expect(rbGap.priority).toBe(15)
+      expect(rbGap.priority).toBe(priority(
+        sampleQuestions.find(q => q.id === 'T-RB-01')!,
+        rbGap.multaPEN,
+      ))
 
-      // T-CR-01 peso=5, GRAVE -> priority = 5*2 = 10
       const crGap = result.gapAnalysis.find(g => g.questionId === 'T-CR-01')!
-      expect(crGap.priority).toBe(10)
+      expect(crGap.priority).toBe(priority(
+        sampleQuestions.find(q => q.id === 'T-CR-01')!,
+        crGap.multaPEN,
+      ))
 
-      // T-CR-02 peso=3, LEVE -> priority = 3*1 = 3
       const crGap2 = result.gapAnalysis.find(g => g.questionId === 'T-CR-02')!
-      expect(crGap2.priority).toBe(3)
+      expect(crGap2.priority).toBe(priority(
+        sampleQuestions.find(q => q.id === 'T-CR-02')!,
+        crGap2.multaPEN,
+      ))
+
+      // MUY_GRAVE must have strictly higher priority than LEVE for equal weight
+      expect(rbGap.priority).toBeGreaterThan(crGap2.priority)
     })
 
     it('should limit gapAnalysis to top 20 items', () => {
@@ -283,19 +317,21 @@ describe('scoreDiagnostic', () => {
       expect(result.actionPlan).toHaveLength(0)
     })
 
-    it('should cap workerFactor at 10 for large orgs', () => {
+    it('should scale workerFactor by bracket (D.S. 019-2006-TR Art. 48)', () => {
       const answers: QuestionAnswer[] = sampleQuestions.map(q => ({
         questionId: q.id,
         answer: 'NO' as const,
       }))
-      const resultSmall = scoreDiagnostic(sampleQuestions, answers, 5)
-      const resultLarge = scoreDiagnostic(sampleQuestions, answers, 500)
-      const resultTen = scoreDiagnostic(sampleQuestions, answers, 10)
+      const resultSmall = scoreDiagnostic(sampleQuestions, answers, 5)   // factor 1
+      const resultTen = scoreDiagnostic(sampleQuestions, answers, 10)    // factor 1
+      const resultLarge = scoreDiagnostic(sampleQuestions, answers, 500) // factor 20
 
-      // Workers 500 should equal workers 10 since factor is capped at 10
-      expect(resultLarge.totalMultaRiesgo).toBe(resultTen.totalMultaRiesgo)
-      // Workers 5 should be less than workers 10
-      expect(resultSmall.totalMultaRiesgo).toBeLessThan(resultTen.totalMultaRiesgo)
+      // ≤10 trabajadores comparten el mismo factor (=1)
+      expect(resultSmall.totalMultaRiesgo).toBe(resultTen.totalMultaRiesgo)
+      // 500 trabajadores está en tramo superior → multa mayor
+      expect(resultLarge.totalMultaRiesgo).toBeGreaterThan(resultTen.totalMultaRiesgo)
+      // Relación exacta: factor 20 / factor 1 = 20×
+      expect(resultLarge.totalMultaRiesgo).toBe(resultTen.totalMultaRiesgo * 20)
     })
 
     it('should give areas without questions a score of 100', () => {

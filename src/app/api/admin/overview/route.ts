@@ -1,68 +1,53 @@
 import { NextResponse } from 'next/server'
 import { withSuperAdmin } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { computeFounderMetrics } from '@/lib/metrics/founder-metrics'
 
-const PLAN_PRICE: Record<string, number> = {
-  FREE: 0,
-  STARTER: 99,
-  EMPRESA: 299,
-  PRO: 799,
-}
+/**
+ * GET /api/admin/overview
+ *
+ * Snapshot completo para el Founder Console.
+ * Mantiene backwards-compat con el shape legacy (`totals`, `mrr`, `growth`,
+ * `planDistribution`, `recentSignups`, `alerts`) Y agrega el snapshot profundo
+ * de `computeFounderMetrics()` bajo la key `metrics`.
+ *
+ * La UI puede leer solo lo legacy (compat) o todo lo nuevo (founder-grade).
+ */
+
+export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 export const GET = withSuperAdmin(async () => {
-  const now = new Date()
-  const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-  const [
-    totalOrgs,
-    totalUsers,
-    totalWorkers,
-    activeSubs,
-    newOrgsLast30,
-    newUsersLast30,
-    planGrouping,
-    recentSignups,
-    pastDueSubs,
-    failedPayments,
-  ] = await Promise.all([
-    prisma.organization.count(),
-    prisma.user.count(),
-    prisma.worker.count(),
-    prisma.subscription.count({ where: { status: 'ACTIVE' } }),
-    prisma.organization.count({ where: { createdAt: { gte: last30 } } }),
-    prisma.user.count({ where: { createdAt: { gte: last30 } } }),
-    prisma.organization.groupBy({
-      by: ['plan'],
-      _count: { _all: true },
-    }),
+  const [metrics, recentSignups, planGrouping] = await Promise.all([
+    computeFounderMetrics(),
     prisma.organization.findMany({
       orderBy: { createdAt: 'desc' },
       take: 8,
       select: { id: true, name: true, plan: true, createdAt: true, sizeRange: true },
     }),
-    prisma.subscription.count({ where: { status: 'PAST_DUE' } }),
-    0, // placeholder — failed payments would come from billing provider
+    prisma.organization.groupBy({
+      by: ['plan'],
+      _count: { _all: true },
+    }),
   ])
 
-  // Calculate MRR
-  const subsByPlan = await prisma.subscription.groupBy({
-    by: ['plan'],
-    _count: { _all: true },
-    where: { status: 'ACTIVE' },
-  })
-  const mrr = subsByPlan.reduce((sum, g) => sum + (PLAN_PRICE[g.plan] || 0) * g._count._all, 0)
+  const [totalUsers, totalWorkers] = await Promise.all([
+    prisma.user.count(),
+    prisma.worker.count(),
+  ])
 
   return NextResponse.json({
+    // ─── Legacy shape (compat con UI existente) ─────────────────────────────
     totals: {
-      organizations: totalOrgs,
+      organizations: metrics.growth.totalOrgs,
       users: totalUsers,
       workers: totalWorkers,
-      activeSubscriptions: activeSubs,
+      activeSubscriptions: metrics.business.activeSubscriptions,
     },
-    mrr,
+    mrr: metrics.business.mrr,
     growth: {
-      organizationsLast30: newOrgsLast30,
-      usersLast30: newUsersLast30,
+      organizationsLast30: metrics.growth.newOrgs30d,
+      usersLast30: 0, // calculable si hace falta; no crítico para founder view
     },
     planDistribution: planGrouping.map((g) => ({
       plan: g.plan,
@@ -76,9 +61,12 @@ export const GET = withSuperAdmin(async () => {
       sizeRange: o.sizeRange,
     })),
     alerts: {
-      pastDueSubscriptions: pastDueSubs,
-      inactiveOrgs30d: 0,
-      failedPayments,
+      pastDueSubscriptions: metrics.business.pastDueCount,
+      inactiveOrgs30d: metrics.health.churnRiskOrgs,
+      failedPayments: 0, // placeholder — billing provider webhook
     },
+
+    // ─── NUEVO: Founder Console deep metrics ────────────────────────────────
+    metrics,
   })
 })

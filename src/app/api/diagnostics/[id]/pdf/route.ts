@@ -26,18 +26,6 @@ import {
 
 // ─── Types extracted from DB JSON fields ────────────────────────────────────
 
-interface AreaScore {
-  area: string
-  label: string
-  score: number
-  weight: number
-  totalQuestions: number
-  answeredYes: number
-  answeredPartial: number
-  answeredNo: number
-  multaEstimada: number
-}
-
 interface GapItem {
   questionId: string
   text: string
@@ -82,12 +70,6 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     const scoreByArea = (diagnostic.scoreByArea ?? {}) as unknown as Record<string, number>
     const gapAnalysis = (diagnostic.gapAnalysis ?? []) as unknown as GapItem[]
     const actionPlan = (diagnostic.actionPlan ?? []) as unknown as ActionItem[]
-
-    // Reconstruct areaScores from scoreByArea if questionsJson has the detail
-    const questionsJson = diagnostic.questionsJson as unknown
-    const areaScores: AreaScore[] = Array.isArray(questionsJson)
-      ? [] // answers-only format — we'll use scoreByArea for the chart
-      : ((questionsJson as Record<string, unknown>)?.areaScores as AreaScore[] ?? [])
 
     const org = diagnostic.organization
     const score = diagnostic.scoreGlobal

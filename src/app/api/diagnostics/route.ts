@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { ALL_QUESTIONS, EXPRESS_QUESTIONS, getFilteredQuestions } from '@/lib/compliance/questions'
 import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
 import type { QuestionAnswer } from '@/lib/compliance/diagnostic-scorer'
 import type { DiagnosticType } from '@/generated/prisma/client'
+import { actionPlanToTaskInputs, spawnTasksFromActionPlan } from '@/lib/compliance/task-spawner'
 
 // =============================================
 // GET /api/diagnostics — List diagnostics + get questions
@@ -78,7 +80,7 @@ export const GET = withAuth(async (req, ctx) => {
 // =============================================
 // POST /api/diagnostics — Submit diagnostic answers
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('diagnostico', async (req, ctx) => {
   try {
     const body = await req.json()
     const { type = 'FULL', answers } = body as {
@@ -87,9 +89,10 @@ export const POST = withAuth(async (req, ctx) => {
     }
     const orgId = ctx.orgId
 
-    if (type !== 'FULL' && type !== 'EXPRESS') {
+    const VALID_TYPES: DiagnosticType[] = ['FULL', 'EXPRESS', 'SIMULATION']
+    if (!VALID_TYPES.includes(type as DiagnosticType)) {
       return NextResponse.json(
-        { error: "type must be 'FULL' or 'EXPRESS'" },
+        { error: "type must be 'FULL', 'EXPRESS' or 'SIMULATION'" },
         { status: 400 }
       )
     }
@@ -105,7 +108,7 @@ export const POST = withAuth(async (req, ctx) => {
     })
     const totalWorkers = await prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } })
 
-    // Get applicable questions
+    // Get applicable questions (SIMULATION uses FULL question set)
     const baseQuestions = type === 'EXPRESS' ? EXPRESS_QUESTIONS : ALL_QUESTIONS
     const filtered = getFilteredQuestions(baseQuestions, {
       sizeRange: org?.sizeRange || undefined,
@@ -120,7 +123,7 @@ export const POST = withAuth(async (req, ctx) => {
     const diagnostic = await prisma.complianceDiagnostic.create({
       data: {
         orgId,
-        type: type as 'FULL',
+        type: type as DiagnosticType,
         scoreGlobal: result.scoreGlobal,
         scoreByArea: result.scoreByArea as object,
         totalMultaRiesgo: result.totalMultaRiesgo,
@@ -145,8 +148,26 @@ export const POST = withAuth(async (req, ctx) => {
       },
     })
 
+    // Spawn accionable tasks from the action plan (idempotente por sourceId).
+    // Un fallo aquí no debe romper el endpoint — el diagnóstico ya está guardado.
+    let tasksCreated = 0
+    try {
+      const taskInputs = actionPlanToTaskInputs(
+        result.actionPlan,
+        result.gapAnalysis.map(g => ({
+          questionId: g.questionId,
+          gravedad: g.gravedad,
+          text: g.text,
+        })),
+      )
+      tasksCreated = await spawnTasksFromActionPlan(orgId, diagnostic.id, taskInputs)
+    } catch (e) {
+      console.error('[Diagnostics] task spawn failed:', e)
+    }
+
     return NextResponse.json({
       diagnosticId: diagnostic.id,
+      tasksCreated,
       ...result,
     })
   } catch (error) {

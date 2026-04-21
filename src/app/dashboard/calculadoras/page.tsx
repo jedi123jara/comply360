@@ -12,6 +12,7 @@ import {
   Percent,
   ArrowRight,
   Sparkles,
+  DollarSign,
 } from 'lucide-react'
 
 const CALCULADORAS = [
@@ -22,7 +23,7 @@ const CALCULADORAS = [
     icon: Calculator,
     color: 'from-blue-600 to-blue-800',
     badge: 'Más usado',
-    badgeColor: 'bg-amber-100 text-amber-700',
+    badgeColor: 'bg-amber-500/15 text-amber-400',
     href: '/dashboard/calculadoras/liquidacion',
     available: true,
   },
@@ -78,7 +79,7 @@ const CALCULADORAS = [
     icon: AlertTriangle,
     color: 'from-yellow-600 to-yellow-800',
     badge: 'Empresas',
-    badgeColor: 'bg-blue-100 text-blue-700',
+    badgeColor: 'bg-blue-500/15 text-emerald-600',
     href: '/dashboard/calculadoras/multa-sunafil',
     available: true,
   },
@@ -88,9 +89,18 @@ const CALCULADORAS = [
     description: 'Calcula intereses laborales con tasa del BCRP actualizada.',
     icon: Percent,
     color: 'from-slate-600 to-slate-800',
-    badge: 'Nuevo',
-    badgeColor: 'bg-green-100 text-green-700',
     href: '/dashboard/calculadoras/intereses-legales',
+    available: true,
+  },
+  {
+    id: 'costo-empleador',
+    name: 'Costo Total Empleador',
+    description: 'Calcula el costo REAL de un trabajador: sueldo + EsSalud + CTS + gratificaciones + vacaciones + SCTR.',
+    icon: DollarSign,
+    color: 'from-gold/80 to-amber-800',
+    badge: 'Nuevo',
+    badgeColor: 'bg-amber-500/15 text-amber-400',
+    href: '/dashboard/calculadoras/costo-empleador',
     available: true,
   },
 ]
@@ -101,7 +111,7 @@ export default function CalculadorasPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Calculadoras Legales</h1>
-        <p className="text-gray-500 text-gray-400 mt-1">
+        <p className="text-gray-400 mt-1">
           Herramientas de cálculo basadas en la normativa laboral peruana vigente.
           Todas las fórmulas se actualizan automáticamente con cambios normativos.
         </p>
@@ -118,7 +128,7 @@ export default function CalculadorasPage() {
               {isAvailable ? (
                 <Link
                   href={calc.href}
-                  className="block bg-[#141824] rounded-2xl border border-white/[0.08] p-6 hover:shadow-lg hover:border-primary/30 transition-all duration-300 h-full"
+                  className="block bg-surface/75 backdrop-blur-xl rounded-2xl border border-white/[0.08] p-6 hover:shadow-lg hover:border-primary/30 transition-all duration-300 h-full"
                 >
                   <CalcCardContent calc={calc} Icon={Icon} />
                   <div className="flex items-center gap-1.5 mt-4 text-sm font-semibold text-primary">
@@ -127,9 +137,9 @@ export default function CalculadorasPage() {
                   </div>
                 </Link>
               ) : (
-                <div className="block bg-[#141824] rounded-2xl border border-white/[0.08] p-6 opacity-60 h-full">
+                <div className="block bg-surface/75 backdrop-blur-xl rounded-2xl border border-white/[0.08] p-6 opacity-60 h-full">
                   <CalcCardContent calc={calc} Icon={Icon} />
-                  <div className="flex items-center gap-1.5 mt-4 text-sm font-medium text-gray-400 text-slate-500">
+                  <div className="flex items-center gap-1.5 mt-4 text-sm font-medium text-slate-500">
                     <Sparkles className="w-4 h-4" />
                     <span>Próximamente</span>
                   </div>
@@ -163,7 +173,7 @@ function CalcCardContent({
         )}
       </div>
       <h3 className="text-base font-bold text-white mb-1">{calc.name}</h3>
-      <p className="text-sm text-gray-500 text-gray-400 leading-relaxed">{calc.description}</p>
+      <p className="text-sm text-gray-400 leading-relaxed">{calc.description}</p>
     </>
   )
 }

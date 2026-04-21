@@ -2,23 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import {
-  FileSpreadsheet,
-  Download,
-  RefreshCw,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Loader2,
-  Users,
-  Banknote,
-  TrendingUp,
-  FileText,
-  Play,
-  ChevronDown,
-  ChevronUp,
-  Filter,
-} from 'lucide-react'
+import { FileSpreadsheet, Download, RefreshCw, CheckCircle2, Clock, Loader2, Users, Banknote, TrendingUp, FileText, Play, ChevronDown, Filter } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -66,17 +50,9 @@ interface PlanillaSummary {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-
 function getPeriodoActual() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
-
-function fmtPeriodo(p: string) {
-  const [y, m] = p.split('-')
-  return `${MESES[parseInt(m ?? '1', 10)] ?? ''} ${y}`
 }
 
 function fmt(n: number | null | undefined) {
@@ -96,7 +72,7 @@ function WorkerRow({ row, onPdfDownload }: {
     <div className={cn(
       'rounded-2xl border overflow-hidden transition-all',
       payslip
-        ? 'border-white/[0.08] bg-[#141824] hover:border-white/15'
+        ? 'border-white/[0.08] bg-white hover:border-white/15'
         : 'border-amber-500/20 bg-amber-950/20 hover:border-amber-500/30',
     )}>
       <button
@@ -109,7 +85,7 @@ function WorkerRow({ row, onPdfDownload }: {
           'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-lg',
           payslip
             ? 'bg-gradient-to-br from-primary/80 to-primary text-white shadow-primary/20'
-            : 'bg-amber-900/40 text-amber-300 shadow-amber-900/10',
+            : 'bg-amber-900/40 text-amber-700 shadow-amber-900/10',
         )}>
           {workerInitials(worker.firstName, worker.lastName)}
         </div>
@@ -121,7 +97,7 @@ function WorkerRow({ row, onPdfDownload }: {
           </p>
           <div className="mt-1.5 flex items-center gap-3 flex-wrap">
             <span className="text-xs text-gray-400">
-              DNI: <span className="font-mono text-gray-300">{worker.dni}</span>
+              DNI: <span className="font-mono text-[color:var(--text-secondary)]">{worker.dni}</span>
             </span>
             {worker.position && (
               <span className="text-xs text-gray-500">{worker.position}</span>
@@ -141,7 +117,7 @@ function WorkerRow({ row, onPdfDownload }: {
                 {fmt(payslip.netoPagar)}
               </p>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Generada
             </span>
@@ -180,10 +156,10 @@ function WorkerRow({ row, onPdfDownload }: {
                 <p className={cn(
                   'text-sm tabular-nums font-semibold',
                   item.type === 'gold' ? 'text-gold font-bold' :
-                  item.type === 'total-income' ? 'text-emerald-400' :
+                  item.type === 'total-income' ? 'text-emerald-600' :
                   item.type === 'total-deduction' ? 'text-red-400' :
                   item.type === 'deduction' ? 'text-red-400/70' :
-                  'text-gray-300',
+                  'text-[color:var(--text-secondary)]',
                 )}>
                   {item.value}
                 </p>
@@ -206,7 +182,7 @@ function WorkerRow({ row, onPdfDownload }: {
 
       {open && !payslip && (
         <div className="border-t border-amber-500/15 bg-amber-950/10 px-6 pb-4 pt-3">
-          <p className="text-sm text-amber-300/90 leading-relaxed">
+          <p className="text-sm text-amber-700/90 leading-relaxed">
             Sin boleta para este periodo. Usa el boton &quot;Generar Planilla&quot; para crear todas las boletas pendientes,
             o ve al{' '}
             <Link href="/dashboard/boletas" className="font-semibold underline underline-offset-2">modulo de Boletas</Link>{' '}
@@ -324,8 +300,6 @@ export default function PlanillaPage() {
       })
     : []
 
-  const periodoLabel = fmtPeriodo(periodo)
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -377,7 +351,7 @@ export default function PlanillaPage() {
                 Planilla generada: {generateResult.generated} boletas nuevas, {generateResult.skipped} ya existían
               </p>
               {generateResult.errors.length > 0 && (
-                <p className="text-xs text-amber-300 mt-0.5">
+                <p className="text-xs text-amber-700 mt-0.5">
                   {generateResult.errors.length} errores: {generateResult.errors.map(e => e.name).join(', ')}
                 </p>
               )}
@@ -390,15 +364,15 @@ export default function PlanillaPage() {
       {summary && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
           {[
-            { label: 'Trabajadores', value: String(summary.totalWorkers), icon: <Users className="h-5 w-5 text-blue-400" />, bg: 'bg-blue-500/10' },
-            { label: 'Con boleta', value: String(summary.generadas), icon: <CheckCircle2 className="h-5 w-5 text-emerald-400" />, bg: 'bg-emerald-500/10' },
+            { label: 'Trabajadores', value: String(summary.totalWorkers), icon: <Users className="h-5 w-5 text-emerald-600" />, bg: 'bg-blue-500/10' },
+            { label: 'Con boleta', value: String(summary.generadas), icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />, bg: 'bg-emerald-50' },
             { label: 'Pendientes', value: String(summary.pendientes), icon: <Clock className="h-5 w-5 text-amber-400" />, bg: 'bg-amber-500/10' },
             { label: 'Masa Salarial', value: `S/ ${summary.totales.masaSalarial.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <TrendingUp className="h-5 w-5 text-gold" />, bg: 'bg-gold/10' },
-            { label: 'Neto a Pagar', value: `S/ ${summary.totales.neto.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <Banknote className="h-5 w-5 text-emerald-400" />, bg: 'bg-emerald-500/10' },
+            { label: 'Neto a Pagar', value: `S/ ${summary.totales.neto.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <Banknote className="h-5 w-5 text-emerald-600" />, bg: 'bg-emerald-50' },
             { label: 'AFP/ONP', value: `S/ ${summary.totales.afpOnp.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <FileText className="h-5 w-5 text-purple-400" />, bg: 'bg-purple-500/10' },
             { label: 'EsSalud emp.', value: `S/ ${summary.totales.essalud.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <FileText className="h-5 w-5 text-cyan-400" />, bg: 'bg-cyan-500/10' },
           ].map(item => (
-            <div key={item.label} className="rounded-2xl border border-white/[0.08] bg-[#141824] p-4">
+            <div key={item.label} className="rounded-2xl border border-white/[0.08] bg-white p-4">
               <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl mb-3', item.bg)}>
                 {item.icon}
               </div>
@@ -432,7 +406,7 @@ export default function PlanillaPage() {
           <button
             onClick={downloadPDF}
             disabled={pdfLoading || !summary?.generadas}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-[color:var(--text-secondary)] hover:text-white hover:bg-white/10 disabled:opacity-50 transition-colors"
           >
             {pdfLoading
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -456,7 +430,7 @@ export default function PlanillaPage() {
           <button
             onClick={() => downloadExport('plame')}
             disabled={exportLoading === 'plame' || !summary?.totalWorkers}
-            className="flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-900/20 px-3 py-2 text-xs font-medium text-blue-400 hover:bg-blue-900/30 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-900/20 px-3 py-2 text-xs font-medium text-emerald-600 hover:bg-blue-900/30 disabled:opacity-50 transition-colors"
           >
             {exportLoading === 'plame'
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

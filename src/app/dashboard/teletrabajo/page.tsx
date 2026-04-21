@@ -170,7 +170,7 @@ export default function TeletrabajoPage() {
 
       {/* Política */}
       {policy && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <div className="rounded-2xl border border-slate-800 bg-white p-6">
           <h2 className="mb-4 text-lg font-semibold text-white">
             Política de desconexión digital
           </h2>
@@ -215,7 +215,7 @@ export default function TeletrabajoPage() {
                     className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                       active
                         ? 'border-gold-500 bg-gold-500/15 text-gold-300'
-                        : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                        : 'border-slate-700 text-slate-400 hover:border-[color:var(--border-default)]'
                     }`}
                   >
                     {d.label}
@@ -242,7 +242,7 @@ export default function TeletrabajoPage() {
               type="checkbox"
               checked={policy.bloqueoAutomatico}
               onChange={e => setPolicy({ ...policy, bloqueoAutomatico: e.target.checked })}
-              className="rounded border-slate-600 bg-slate-950"
+              className="rounded border-[color:var(--border-default)] bg-slate-950"
             />
             Bloquear notificaciones automáticamente fuera del horario
           </label>
@@ -275,7 +275,7 @@ export default function TeletrabajoPage() {
       {/* Resumen reembolsos */}
       {summary && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+          <div className="rounded-2xl border border-slate-800 bg-white p-6">
             <p className="text-xs uppercase text-slate-500">Reembolsos pendientes</p>
             <p className="mt-2 text-3xl font-bold text-orange-400">
               S/ {summary.totalReembolsosPendientes.toLocaleString('es-PE')}
@@ -284,7 +284,7 @@ export default function TeletrabajoPage() {
               Internet, electricidad y equipos asumidos por el trabajador
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+          <div className="rounded-2xl border border-slate-800 bg-white p-6">
             <p className="text-xs uppercase text-slate-500">Reembolsos pagados</p>
             <p className="mt-2 text-3xl font-bold text-green-400">
               S/ {summary.totalReembolsosPagados.toLocaleString('es-PE')}
@@ -319,7 +319,7 @@ function Kpi({
   color?: string
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+    <div className="rounded-2xl border border-slate-800 bg-white p-5">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs uppercase text-slate-500">{label}</p>
         {icon}

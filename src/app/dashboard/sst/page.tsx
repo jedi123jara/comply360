@@ -1,1327 +1,351 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
-  ShieldCheck, FileText, AlertTriangle, Users, Clipboard, HardHat,
-  Plus, CheckCircle2, Clock, XCircle, Loader2, ChevronRight,
-  Activity, BookOpen, Stethoscope, MapPin, Flame, ClipboardList,
-  HeartPulse, UserCheck, UserX, AlertCircle, TrendingUp, TrendingDown,
-  Minus, Download, Filter, Calendar, BarChart3, Award,
-  FileCheck, ChevronDown, X,
+  HardHat,
+  ShieldAlert,
+  ClipboardList,
+  GraduationCap,
+  Activity,
+  Users2,
+  BookOpen,
+  ShieldCheck,
+  AlertTriangle,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react'
-import { cn, displayWorkerName } from '@/lib/utils'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { ProgressRing } from '@/components/ui/progress-ring'
+import { SkeletonStats } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/comply360/editorial-title'
+import { useCopilot } from '@/providers/copilot-provider'
 
-// -------------------------------------------------------------------
-// Seguro Vida Ley types
-// -------------------------------------------------------------------
-type SeguroVidaStatus = 'COMPLIANT' | 'NON_COMPLIANT' | 'APPROACHING' | 'NOT_APPLICABLE'
+/**
+ * SST Hub — Fase D Sprint 3.
+ *
+ * Reemplaza la página monstruo de 1,327 líneas (preservada como
+ * `.page-legacy.tsx.bak`) por un hub con 7 tabs temáticos:
+ *   Política SST · IPERC · Capacitaciones · Accidentes · Comité SST ·
+ *   Exámenes médicos · EPP.
+ *
+ * Cada tab muestra un panorama + CTA al módulo especializado o al formulario
+ * correspondiente. La integración profunda de cada tab se hará por sprints
+ * — lo que importa ahora es la arquitectura clara y la identidad visual.
+ */
 
-interface SeguroVidaWorker {
-  id: string
-  dni: string
-  firstName: string
-  lastName: string
-  position: string | null
-  department: string | null
-  fechaIngreso: string
-  yearsOfService: number
-  hasPolicy: boolean
-  status: SeguroVidaStatus
-  daysUntilRequired: number | null
+interface SstSummary {
+  politicaVigente: boolean
+  ipercCount: number
+  ipercPendiente: number
+  capacitacionesEsteAnio: number
+  accidentesUlt30d: number
+  examenesVencidos: number
+  eppPendientes: number
+  scoreSst: number
 }
 
-interface SeguroVidaData {
-  totalEligible: number
-  totalCompliant: number
-  totalNonCompliant: number
-  totalApproaching: number
-  workers: SeguroVidaWorker[]
+const FALLBACK: SstSummary = {
+  politicaVigente: false,
+  ipercCount: 0,
+  ipercPendiente: 0,
+  capacitacionesEsteAnio: 0,
+  accidentesUlt30d: 0,
+  examenesVencidos: 0,
+  eppPendientes: 0,
+  scoreSst: 0,
 }
 
-// -------------------------------------------------------------------
-// SST types
-// -------------------------------------------------------------------
-type SstType =
-  | 'POLITICA_SST' | 'IPERC' | 'PLAN_ANUAL' | 'CAPACITACION'
-  | 'ACCIDENTE' | 'INCIDENTE' | 'EXAMEN_MEDICO' | 'ENTREGA_EPP'
-  | 'ACTA_COMITE' | 'MAPA_RIESGOS' | 'SIMULACRO_EVACUACION' | 'MONITOREO_AGENTES'
-
-type SstStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE'
-
-interface SstRecord {
-  id: string
-  type: SstType
-  title: string
-  description: string | null
-  status: SstStatus
-  dueDate: string | null
-  completedAt: string | null
-  createdAt: string
-}
-
-// -------------------------------------------------------------------
-// SST Sections config
-// -------------------------------------------------------------------
-const SST_SECTIONS = [
-  { type: 'POLITICA_SST' as SstType, label: 'Politica SST', desc: 'Documento con los 8 elementos obligatorios (Art. 22 Ley 29783)', icon: FileText, color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400' },
-  { type: 'IPERC' as SstType, label: 'IPERC', desc: 'Identificacion de Peligros, Evaluacion de Riesgos y Control', icon: AlertTriangle, color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' },
-  { type: 'PLAN_ANUAL' as SstType, label: 'Plan Anual SST', desc: 'Objetivos, cronograma y actividades del anio', icon: ClipboardList, color: 'bg-purple-100 text-purple-700 bg-purple-900/30 text-purple-400' },
-  { type: 'ACTA_COMITE' as SstType, label: 'Comite/Supervisor SST', desc: 'Actas de eleccion, reunion mensual, mandato', icon: Users, color: 'bg-green-100 text-green-700 bg-green-900/30 text-green-400' },
-  { type: 'CAPACITACION' as SstType, label: 'Capacitaciones SST', desc: 'Minimo 4 anuales con registro de asistencia', icon: BookOpen, color: 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400' },
-  { type: 'EXAMEN_MEDICO' as SstType, label: 'Examenes Medicos', desc: 'Ingreso, periodicos y de retiro', icon: Stethoscope, color: 'bg-teal-100 text-teal-700 bg-teal-900/30 text-teal-400' },
-  { type: 'ENTREGA_EPP' as SstType, label: 'Entrega de EPP', desc: 'Control por trabajador con firma de recepcion', icon: HardHat, color: 'bg-orange-100 text-orange-700 bg-orange-900/30 text-orange-400' },
-  { type: 'ACCIDENTE' as SstType, label: 'Accidentes/Incidentes', desc: 'Registro formato SUNAFIL, notificacion MTPE', icon: Activity, color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' },
-  { type: 'MAPA_RIESGOS' as SstType, label: 'Mapa de Riesgos', desc: 'Ubicacion de peligros con senaletica', icon: MapPin, color: 'bg-indigo-100 text-indigo-700 bg-indigo-900/30 text-indigo-400' },
-  { type: 'SIMULACRO_EVACUACION' as SstType, label: 'Simulacros Evacuacion', desc: 'Minimo 2 anuales (INDECI)', icon: Flame, color: 'bg-rose-100 text-rose-700 bg-rose-900/30 text-rose-400' },
-  { type: 'MONITOREO_AGENTES' as SstType, label: 'Monitoreo de Agentes', desc: 'Fisicos, quimicos y biologicos', icon: Clipboard, color: 'bg-cyan-100 text-cyan-700 bg-cyan-900/30 text-cyan-400' },
-]
-
-const STATUS_CONFIG: Record<SstStatus, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  PENDING: { label: 'Pendiente', color: 'bg-white/[0.04] text-gray-300 bg-white/[0.04] text-slate-300', icon: Clock },
-  IN_PROGRESS: { label: 'En Progreso', color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400', icon: Loader2 },
-  COMPLETED: { label: 'Completado', color: 'bg-green-100 text-green-700 bg-green-900/30 text-green-400', icon: CheckCircle2 },
-  OVERDUE: { label: 'Vencido', color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400', icon: XCircle },
-}
-
-// -------------------------------------------------------------------
-// Ley 29783 Compliance checklist
-// -------------------------------------------------------------------
-const LEY_29783_ITEMS = [
-  { id: 'politica', label: 'Politica de SST aprobada y publicada', art: 'Art. 22-23' },
-  { id: 'reglamento', label: 'Reglamento Interno de SST', art: 'Art. 74' },
-  { id: 'comite', label: 'Comite de SST constituido (>20 trabajadores)', art: 'Art. 29' },
-  { id: 'iperc', label: 'IPERC actualizado en el ultimo anio', art: 'Art. 57' },
-  { id: 'plan_anual', label: 'Plan Anual de SST aprobado', art: 'Art. 38' },
-  { id: 'registro_accidentes', label: 'Registro de accidentes actualizado', art: 'Art. 28' },
-  { id: 'capacitaciones', label: 'Capacitaciones SST (min. 4 anuales)', art: 'Art. 35' },
-  { id: 'examenes_medicos', label: 'Examenes medicos ocupacionales vigentes', art: 'Art. 36' },
-  { id: 'mapa_riesgos', label: 'Mapa de riesgos elaborado y expuesto', art: 'Art. 35b' },
-  { id: 'epp', label: 'Registro de entrega de EPP', art: 'Art. 97' },
-  { id: 'simulacros', label: 'Simulacros de evacuacion (min. 2 anuales)', art: 'R.M. 111' },
-  { id: 'auditoria', label: 'Auditoria SST anual realizada', art: 'Art. 43' },
-]
-
-// -------------------------------------------------------------------
-// SST Calendar obligations
-// -------------------------------------------------------------------
-const SST_OBLIGATIONS = [
-  {
-    title: 'Reunion Comite SST',
-    frequency: 'mensual',
-    icon: '👥',
-    color: 'bg-green-100 bg-green-900/20 border-green-200 border-green-800',
-    textColor: 'text-green-700 text-green-400',
-    badgeColor: 'bg-green-100 bg-green-900/30 text-green-700 text-green-400',
-    nextDue: getNextDue(1),
-  },
-  {
-    title: 'Revision IPERC',
-    frequency: 'trimestral',
-    icon: '⚠️',
-    color: 'bg-amber-100 bg-amber-900/20 border-amber-200 border-amber-800',
-    textColor: 'text-amber-700 text-amber-400',
-    badgeColor: 'bg-amber-100 bg-amber-900/30 text-amber-700 text-amber-400',
-    nextDue: getNextDue(3),
-  },
-  {
-    title: 'Simulacro de evacuacion',
-    frequency: 'semestral',
-    icon: '🚨',
-    color: 'bg-orange-100 bg-orange-900/20 border-orange-200 border-orange-800',
-    textColor: 'text-orange-700 text-orange-400',
-    badgeColor: 'bg-orange-100 bg-orange-900/30 text-orange-700 text-orange-400',
-    nextDue: getNextDue(6),
-  },
-  {
-    title: 'Examenes medicos periodicos',
-    frequency: 'anual',
-    icon: '🏥',
-    color: 'bg-blue-100 bg-blue-900/20 border-blue-200 border-blue-800',
-    textColor: 'text-blue-700 text-blue-400',
-    badgeColor: 'bg-blue-100 bg-blue-900/30 text-blue-700 text-blue-400',
-    nextDue: getNextDue(12),
-  },
-  {
-    title: 'Auditoria SST interna',
-    frequency: 'anual',
-    icon: '📋',
-    color: 'bg-purple-100 bg-purple-900/20 border-purple-200 border-purple-800',
-    textColor: 'text-purple-700 text-purple-400',
-    badgeColor: 'bg-purple-100 bg-purple-900/30 text-purple-700 text-purple-400',
-    nextDue: getNextDue(12),
-  },
-  {
-    title: 'Capacitacion SST',
-    frequency: 'trimestral',
-    icon: '🎓',
-    color: 'bg-teal-100 bg-teal-900/20 border-teal-200 border-teal-800',
-    textColor: 'text-teal-700 text-teal-400',
-    badgeColor: 'bg-teal-100 bg-teal-900/30 text-teal-700 text-teal-400',
-    nextDue: getNextDue(3),
-  },
-]
-
-function getNextDue(months: number): string {
-  const d = new Date()
-  d.setMonth(d.getMonth() + months)
-  return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function daysUntil(dateStr: string): number {
-  const target = new Date(dateStr)
-  const now = new Date()
-  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-// -------------------------------------------------------------------
-// Quick-add actions
-// -------------------------------------------------------------------
-const QUICK_ACTIONS = [
-  { type: 'ACCIDENTE' as SstType, label: 'Registrar Accidente/Incidente', icon: '➕', color: 'border-red-200 border-red-800 hover:bg-red-50 hover:bg-red-900/20 text-red-700 text-red-400' },
-  { type: 'IPERC' as SstType, label: 'Actualizar IPERC', icon: '📋', color: 'border-amber-200 border-amber-800 hover:bg-amber-50 hover:bg-amber-900/20 text-amber-700 text-amber-400' },
-  { type: 'CAPACITACION' as SstType, label: 'Registrar Capacitacion', icon: '🎓', color: 'border-blue-200 border-blue-800 hover:bg-blue-50 hover:bg-blue-900/20 text-blue-700 text-blue-400' },
-  { type: 'ENTREGA_EPP' as SstType, label: 'Entregar EPP', icon: '🦺', color: 'border-orange-200 border-orange-800 hover:bg-orange-50 hover:bg-orange-900/20 text-orange-700 text-orange-400' },
-  { type: 'EXAMEN_MEDICO' as SstType, label: 'Examen Medico', icon: '🏥', color: 'border-teal-200 border-teal-800 hover:bg-teal-50 hover:bg-teal-900/20 text-teal-700 text-teal-400' },
-  { type: 'ACTA_COMITE' as SstType, label: 'Acta de Comite SST', icon: '📊', color: 'border-purple-200 border-purple-800 hover:bg-purple-50 hover:bg-purple-900/20 text-purple-700 text-purple-400' },
-]
-
-// -------------------------------------------------------------------
-// Sub-areas for compliance score
-// -------------------------------------------------------------------
-const COMPLIANCE_AREAS = [
-  { key: 'POLITICA_SST', label: 'Politica SST', weight: 20, requiredCount: 1 },
-  { key: 'IPERC', label: 'IPERC', weight: 25, requiredCount: 1 },
-  { key: 'CAPACITACION', label: 'Capacitacion', weight: 20, requiredCount: 4 },
-  { key: 'ENTREGA_EPP', label: 'Equipos EPP', weight: 15, requiredCount: 1 },
-  { key: 'ACCIDENTE', label: 'Registros', weight: 20, requiredCount: 1 },
-]
-
-// -------------------------------------------------------------------
-// Industry averages (Peru sector construction reference)
-// -------------------------------------------------------------------
-const INDUSTRY_AVERAGES = { IF: 8.5, IG: 120, IA: 5.1 }
-
-export default function SstPage() {
-  const [records, setRecords] = useState<SstRecord[]>([])
-  const [stats, setStats] = useState({ totalRecords: 0, completed: 0, overdue: 0, pending: 0 })
+export default function SstHub() {
+  const copilot = useCopilot()
+  const [summary, setSummary] = useState<SstSummary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedType, setSelectedType] = useState<SstType | null>(null)
-  const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({ type: '' as SstType | '', title: '', description: '', dueDate: '' })
-  const [saving, setSaving] = useState(false)
 
-  // Filters
-  const [filterType, setFilterType] = useState<SstType | ''>('')
-  const [filterStatus, setFilterStatus] = useState<SstStatus | ''>('')
-  const [filterDateFrom, setFilterDateFrom] = useState('')
-  const [filterDateTo, setFilterDateTo] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-
-  // Seguro Vida Ley state
-  const [seguroVida, setSeguroVida] = useState<SeguroVidaData | null>(null)
-  const [seguroVidaLoading, setSeguroVidaLoading] = useState(true)
-  const [seguroVidaTab, setSeguroVidaTab] = useState<'non_compliant' | 'approaching' | 'compliant'>('non_compliant')
-  const [activatingId, setActivatingId] = useState<string | null>(null)
-  const [sstError, setSstError] = useState<string | null>(null)
-
-  // Ley 29783 checklist state
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(() => {
-    if (typeof window === 'undefined') return {}
-    try {
-      return JSON.parse(localStorage.getItem('sst_ley29783_checklist') || '{}')
-    } catch { return {} }
-  })
-
-  // SST KPI inputs
-  const [kpiInputs, setKpiInputs] = useState({
-    accidentes: 2,
-    diasPerdidos: 35,
-    horasTrabajadas: 48000,
-  })
-  const [showKpiEdit, setShowKpiEdit] = useState(false)
-
-  // Derived KPIs
-  const kpis = useMemo(() => {
-    const { accidentes, diasPerdidos, horasTrabajadas } = kpiInputs
-    const IF = horasTrabajadas > 0 ? (accidentes * 200000) / horasTrabajadas : 0
-    const IG = horasTrabajadas > 0 ? (diasPerdidos * 200000) / horasTrabajadas : 0
-    const IA = (IF * IG) / 200
-    return { IF: Math.round(IF * 10) / 10, IG: Math.round(IG * 10) / 10, IA: Math.round(IA * 100) / 100 }
-  }, [kpiInputs])
-
-  function kpiColor(value: number, avg: number, lowerIsBetter = true): string {
-    const ratio = value / avg
-    if (lowerIsBetter) {
-      if (ratio <= 0.5) return 'text-green-600 text-green-400'
-      if (ratio <= 1.0) return 'text-amber-600 text-amber-400'
-      return 'text-red-600 text-red-400'
-    }
-    return ratio >= 1 ? 'text-green-600 text-green-400' : 'text-red-600 text-red-400'
-  }
-
-  function kpiBg(value: number, avg: number): string {
-    const ratio = value / avg
-    if (ratio <= 0.5) return 'border-green-200 border-green-800 bg-green-50/50 bg-green-900/10'
-    if (ratio <= 1.0) return 'border-amber-200 border-amber-800 bg-amber-50/50 bg-amber-900/10'
-    return 'border-red-200 border-red-800 bg-red-50/50 bg-red-900/10'
-  }
-
-  function kpiTrend(value: number, avg: number) {
-    const ratio = value / avg
-    if (ratio <= 0.5) return <TrendingDown className="h-4 w-4 text-green-500" />
-    if (ratio <= 1.0) return <Minus className="h-4 w-4 text-amber-500" />
-    return <TrendingUp className="h-4 w-4 text-red-500" />
-  }
-
-  function kpiLabel(value: number, avg: number): string {
-    const ratio = value / avg
-    if (ratio <= 0.5) return 'Bueno'
-    if (ratio <= 1.0) return 'Aceptable'
-    return 'Critico'
-  }
-
-  async function loadSeguroVida() {
-    setSeguroVidaLoading(true)
-    try {
-      const res = await fetch('/api/workers/seguro-vida')
-      if (res.ok) {
-        const data = await res.json()
-        setSeguroVida(data)
-      }
-    } catch { /* ignore */ }
-    finally { setSeguroVidaLoading(false) }
-  }
-
-  async function activarSeguro(workerId: string) {
-    setActivatingId(workerId)
-    try {
-      await fetch(`/api/workers/${workerId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ essaludVida: true }),
-      })
-      await loadSeguroVida()
-    } catch { setSstError('Error al activar seguro de vida. Intente nuevamente.') }
-    finally { setActivatingId(null) }
-  }
-
-  async function loadData(type?: SstType | null) {
-    try {
-      const params = new URLSearchParams()
-      if (type) params.set('type', type)
-      const qs = params.toString()
-      const res = await fetch(`/api/sst${qs ? `?${qs}` : ''}`)
-      const data = await res.json()
-      setRecords(data.records || [])
-      setStats(data.stats || { totalRecords: 0, completed: 0, overdue: 0, pending: 0 })
-    } catch { /* ignore */ }
-    finally { setLoading(false) }
-  }
-
-  useEffect(() => { loadData(selectedType) }, [selectedType])
-  useEffect(() => { loadSeguroVida() }, [])
-
-  // Persist checklist
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sst_ley29783_checklist', JSON.stringify(checkedItems))
+    let mounted = true
+    fetch('/api/sst/summary')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!mounted) return
+        setSummary((d?.data ?? d ?? FALLBACK) as SstSummary)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (mounted) {
+          setSummary(FALLBACK)
+          setLoading(false)
+        }
+      })
+    return () => {
+      mounted = false
     }
-  }, [checkedItems])
-
-  async function createRecord() {
-    if (!formData.type || !formData.title) return
-    setSaving(true)
-    try {
-      await fetch('/api/sst', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: formData.type,
-          title: formData.title,
-          description: formData.description || null,
-          dueDate: formData.dueDate || null,
-        }),
-      })
-      setShowForm(false)
-      setFormData({ type: '', title: '', description: '', dueDate: '' })
-      loadData(selectedType)
-    } catch { setSstError('Error al crear registro SST. Intente nuevamente.') }
-    finally { setSaving(false) }
-  }
-
-  async function updateStatus(id: string, status: SstStatus) {
-    try {
-      await fetch('/api/sst', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status }),
-      })
-      loadData(selectedType)
-    } catch { /* ignore */ }
-  }
-
-  function exportToCSV() {
-    const headers = ['Tipo', 'Titulo', 'Descripcion', 'Estado', 'Fecha Vencimiento', 'Completado', 'Creado']
-    const rows = filteredRecords.map(r => [
-      SST_SECTIONS.find(s => s.type === r.type)?.label || r.type,
-      r.title,
-      r.description || '',
-      STATUS_CONFIG[r.status].label,
-      r.dueDate ? new Date(r.dueDate).toLocaleDateString('es-PE') : '',
-      r.completedAt ? new Date(r.completedAt).toLocaleDateString('es-PE') : '',
-      new Date(r.createdAt).toLocaleDateString('es-PE'),
-    ])
-    const csv = [headers, ...rows].map(row => row.map(c => `"${c}"`).join(',')).join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `registros-sst-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  // Computed compliance score by sub-area
-  const complianceAreas = useMemo(() => {
-    return COMPLIANCE_AREAS.map(area => {
-      const areaRecords = records.filter(r => r.type === area.key && r.status === 'COMPLETED')
-      const count = areaRecords.length
-      const pct = Math.min(100, Math.round((count / area.requiredCount) * 100))
-      return { ...area, count, pct }
-    })
-  }, [records])
-
-  const overallCompliance = useMemo(() => {
-    if (complianceAreas.length === 0) return 0
-    const total = complianceAreas.reduce((sum, a) => sum + (a.pct * a.weight) / 100, 0)
-    const maxWeight = complianceAreas.reduce((sum, a) => sum + a.weight, 0)
-    return Math.round((total / maxWeight) * 100)
-  }, [complianceAreas])
-
-  const checkedCount = Object.values(checkedItems).filter(Boolean).length
-
-  // Filtered records
-  const filteredRecords = useMemo(() => {
-    return records.filter(r => {
-      if (filterType && r.type !== filterType) return false
-      if (filterStatus && r.status !== filterStatus) return false
-      if (filterDateFrom && r.createdAt < filterDateFrom) return false
-      if (filterDateTo && r.createdAt > filterDateTo + 'T23:59:59') return false
-      return true
-    })
-  }, [records, filterType, filterStatus, filterDateFrom, filterDateTo])
-
-  const activeFiltersCount = [filterType, filterStatus, filterDateFrom, filterDateTo].filter(Boolean).length
-
-  function openQuickAdd(type: SstType) {
-    setFormData(p => ({ ...p, type }))
-    setShowForm(true)
-  }
+  }, [])
 
   return (
     <div className="space-y-6">
-      {/* Error banner — replaces native alert() */}
-      {sstError && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 border-red-800 bg-red-50 bg-red-900/20 px-4 py-3">
-          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
-          <p className="text-sm text-red-800 text-red-300 flex-1">{sstError}</p>
-          <button
-            onClick={() => setSstError(null)}
-            aria-label="Cerrar error"
-            className="ml-auto p-1 rounded hover:bg-red-100 hover:bg-red-800/50"
-          >
-            <X className="h-4 w-4 text-red-400" />
-          </button>
-        </div>
-      )}
+      <Header />
+      {loading ? <SkeletonStats count={4} /> : <StatsRow summary={summary ?? FALLBACK} />}
 
-      {/* ============================================================ */}
-      {/* Header */}
-      {/* ============================================================ */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Seguridad y Salud en el Trabajo</h1>
-          <p className="mt-1 text-gray-500 text-gray-400">Gestion integral de SST conforme a la Ley 29783</p>
-        </div>
-        <button
-          onClick={() => { setFormData({ type: '', title: '', description: '', dueDate: '' }); setShowForm(true) }}
-          className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" /> Nuevo Registro
-        </button>
-      </div>
+      <Tabs defaultValue="overview">
+        <TabsList variant="underline" fullWidth className="overflow-x-auto">
+          <TabsTrigger variant="underline" value="overview">
+            <ShieldCheck className="h-3.5 w-3.5" /> Panorama
+          </TabsTrigger>
+          <TabsTrigger variant="underline" value="politica">
+            <BookOpen className="h-3.5 w-3.5" /> Política
+          </TabsTrigger>
+          <TabsTrigger variant="underline" value="iperc">
+            <ShieldAlert className="h-3.5 w-3.5" /> IPERC
+          </TabsTrigger>
+          <TabsTrigger variant="underline" value="capacitaciones">
+            <GraduationCap className="h-3.5 w-3.5" /> Capacitaciones
+          </TabsTrigger>
+          <TabsTrigger variant="underline" value="accidentes">
+            <Activity className="h-3.5 w-3.5" /> Accidentes
+          </TabsTrigger>
+          <TabsTrigger variant="underline" value="comite">
+            <Users2 className="h-3.5 w-3.5" /> Comité
+          </TabsTrigger>
+          <TabsTrigger variant="underline" value="examenes">
+            <ClipboardList className="h-3.5 w-3.5" /> Exámenes
+          </TabsTrigger>
+          <TabsTrigger variant="underline" value="epp">
+            <HardHat className="h-3.5 w-3.5" /> EPP
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ============================================================ */}
-      {/* SECTION 1 — SST Dashboard: KPI Indicators (Ley 29783)        */}
-      {/* ============================================================ */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <BarChart3 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Dashboard SST — Indicadores Ley 29783</h2>
-              <p className="text-sm text-gray-500 text-gray-400">Indices de frecuencia, gravedad y accidentabilidad</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowKpiEdit(!showKpiEdit)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
-          >
-            Editar datos <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showKpiEdit && 'rotate-180')} />
-          </button>
-        </div>
-
-        {/* KPI input editor */}
-        {showKpiEdit && (
-          <div className="border-b border-white/[0.08] bg-white/[0.02] bg-slate-900/50 px-6 py-4">
-            <p className="mb-3 text-xs font-medium text-gray-500 text-gray-400 uppercase tracking-wide">Datos del periodo (anual)</p>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300">N° Accidentes</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={kpiInputs.accidentes}
-                  onChange={e => setKpiInputs(p => ({ ...p, accidentes: parseInt(e.target.value) || 0 }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-1.5 text-sm text-white text-gray-200"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-300">N° Dias Perdidos</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={kpiInputs.diasPerdidos}
-                  onChange={e => setKpiInputs(p => ({ ...p, diasPerdidos: parseInt(e.target.value) || 0 }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-1.5 text-sm text-white text-gray-200"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-300">Horas Trabajadas</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={kpiInputs.horasTrabajadas}
-                  onChange={e => setKpiInputs(p => ({ ...p, horasTrabajadas: parseInt(e.target.value) || 1 }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-1.5 text-sm text-white text-gray-200"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 gap-0 divide-y divide-slate-700 md:grid-cols-3 md:divide-x md:divide-y-0">
-          {/* IF */}
-          <div className={cn('p-6 border border-white/[0.08] md:border-0', kpiBg(kpis.IF, INDUSTRY_AVERAGES.IF))}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 text-gray-400">IF — Indice de Frecuencia</p>
-                <p className={cn('mt-2 text-4xl font-bold', kpiColor(kpis.IF, INDUSTRY_AVERAGES.IF))}>{kpis.IF}</p>
-                <p className="mt-1 text-xs text-gray-500 text-gray-400">accidentes × 200,000 / hrs trabajadas</p>
-              </div>
-              {kpiTrend(kpis.IF, INDUSTRY_AVERAGES.IF)}
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-xs text-gray-500 text-gray-400">
-                <span className="font-medium">Promedio sector:</span> {INDUSTRY_AVERAGES.IF}
-              </div>
-              <span className={cn(
-                'rounded-full px-2 py-0.5 text-xs font-semibold',
-                kpis.IF <= INDUSTRY_AVERAGES.IF * 0.5
-                  ? 'bg-green-100 bg-green-900/30 text-green-700 text-green-400'
-                  : kpis.IF <= INDUSTRY_AVERAGES.IF
-                    ? 'bg-amber-100 bg-amber-900/30 text-amber-700 text-amber-400'
-                    : 'bg-red-100 bg-red-900/30 text-red-700 text-red-400'
-              )}>
-                {kpiLabel(kpis.IF, INDUSTRY_AVERAGES.IF)}
-              </span>
-            </div>
-          </div>
-
-          {/* IG */}
-          <div className={cn('p-6', kpiBg(kpis.IG, INDUSTRY_AVERAGES.IG))}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 text-gray-400">IG — Indice de Gravedad</p>
-                <p className={cn('mt-2 text-4xl font-bold', kpiColor(kpis.IG, INDUSTRY_AVERAGES.IG))}>{kpis.IG}</p>
-                <p className="mt-1 text-xs text-gray-500 text-gray-400">dias perdidos × 200,000 / hrs trabajadas</p>
-              </div>
-              {kpiTrend(kpis.IG, INDUSTRY_AVERAGES.IG)}
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-xs text-gray-500 text-gray-400">
-                <span className="font-medium">Promedio sector:</span> {INDUSTRY_AVERAGES.IG}
-              </div>
-              <span className={cn(
-                'rounded-full px-2 py-0.5 text-xs font-semibold',
-                kpis.IG <= INDUSTRY_AVERAGES.IG * 0.5
-                  ? 'bg-green-100 bg-green-900/30 text-green-700 text-green-400'
-                  : kpis.IG <= INDUSTRY_AVERAGES.IG
-                    ? 'bg-amber-100 bg-amber-900/30 text-amber-700 text-amber-400'
-                    : 'bg-red-100 bg-red-900/30 text-red-700 text-red-400'
-              )}>
-                {kpiLabel(kpis.IG, INDUSTRY_AVERAGES.IG)}
-              </span>
-            </div>
-          </div>
-
-          {/* IA */}
-          <div className={cn('p-6', kpiBg(kpis.IA, INDUSTRY_AVERAGES.IA))}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 text-gray-400">IA — Indice de Accidentabilidad</p>
-                <p className={cn('mt-2 text-4xl font-bold', kpiColor(kpis.IA, INDUSTRY_AVERAGES.IA))}>{kpis.IA}</p>
-                <p className="mt-1 text-xs text-gray-500 text-gray-400">IF × IG / 200</p>
-              </div>
-              {kpiTrend(kpis.IA, INDUSTRY_AVERAGES.IA)}
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-xs text-gray-500 text-gray-400">
-                <span className="font-medium">Promedio sector:</span> {INDUSTRY_AVERAGES.IA}
-              </div>
-              <span className={cn(
-                'rounded-full px-2 py-0.5 text-xs font-semibold',
-                kpis.IA <= INDUSTRY_AVERAGES.IA * 0.5
-                  ? 'bg-green-100 bg-green-900/30 text-green-700 text-green-400'
-                  : kpis.IA <= INDUSTRY_AVERAGES.IA
-                    ? 'bg-amber-100 bg-amber-900/30 text-amber-700 text-amber-400'
-                    : 'bg-red-100 bg-red-900/30 text-red-700 text-red-400'
-              )}>
-                {kpiLabel(kpis.IA, INDUSTRY_AVERAGES.IA)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Formula reference */}
-        <div className="border-t border-white/[0.08] bg-white/[0.02] bg-slate-900/30 px-6 py-3">
-          <p className="text-xs text-gray-400 text-slate-500">
-            Formulas R.M. 050-2013-TR: IF = (N° accidentes × 200,000) / Horas trabajadas &nbsp;|&nbsp;
-            IG = (N° dias perdidos × 200,000) / Horas trabajadas &nbsp;|&nbsp;
-            IA = IF × IG / 200
-          </p>
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* SECTION 2 — SST Compliance Score                             */}
-      {/* ============================================================ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Compliance Score Card */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-6 lg:col-span-1">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 bg-emerald-900/30">
-              <Award className="h-5 w-5 text-emerald-600 text-emerald-400" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-white">Cumplimiento SST</h2>
-              <p className="text-xs text-gray-500 text-gray-400">Score global de conformidad</p>
-            </div>
-          </div>
-
-          {/* Big score */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="relative flex h-28 w-28 items-center justify-center">
-              <svg className="h-28 w-28 -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" strokeWidth="12"
-                  className="text-gray-100 text-slate-700" />
-                <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" strokeWidth="12"
-                  strokeDasharray={`${2 * Math.PI * 50}`}
-                  strokeDashoffset={`${2 * Math.PI * 50 * (1 - overallCompliance / 100)}`}
-                  strokeLinecap="round"
-                  className={overallCompliance >= 80 ? 'text-emerald-500' : overallCompliance >= 60 ? 'text-amber-500' : 'text-red-500'}
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center">
-                <span className={cn('text-3xl font-bold',
-                  overallCompliance >= 80 ? 'text-emerald-600 text-emerald-400'
-                    : overallCompliance >= 60 ? 'text-amber-600 text-amber-400'
-                      : 'text-red-600 text-red-400'
-                )}>
-                  {overallCompliance}%
-                </span>
-                <span className="text-xs text-gray-400 text-slate-500">SST</span>
-              </div>
-            </div>
-            <p className={cn('mt-2 text-sm font-medium',
-              overallCompliance >= 80 ? 'text-emerald-600 text-emerald-400'
-                : overallCompliance >= 60 ? 'text-amber-600 text-amber-400'
-                  : 'text-red-600 text-red-400'
-            )}>
-              {overallCompliance >= 80 ? 'Cumplimiento alto' : overallCompliance >= 60 ? 'En proceso' : 'Requiere atencion'}
-            </p>
-          </div>
-
-          {/* Sub-areas */}
-          <div className="space-y-3">
-            {complianceAreas.map(area => (
-              <div key={area.key}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-slate-300">{area.label}</span>
-                  <span className={cn('text-xs font-bold',
-                    area.pct >= 100 ? 'text-emerald-600 text-emerald-400'
-                      : area.pct >= 50 ? 'text-amber-600 text-amber-400'
-                        : 'text-red-600 text-red-400'
-                  )}>
-                    {area.count}/{area.requiredCount}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-white/[0.04]">
-                  <div
-                    className={cn('h-1.5 rounded-full transition-all',
-                      area.pct >= 100 ? 'bg-emerald-500'
-                        : area.pct >= 50 ? 'bg-amber-500'
-                          : 'bg-red-500'
-                    )}
-                    style={{ width: `${area.pct}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right column: Quick Actions + Calendar */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* ========================================================= */}
-          {/* SECTION 3 — Quick Add Actions                             */}
-          {/* ========================================================= */}
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-6">
-            <h2 className="mb-4 text-base font-semibold text-white">Acciones Rapidas</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {QUICK_ACTIONS.map(action => (
-                <button
-                  key={action.type}
-                  onClick={() => openQuickAdd(action.type)}
-                  className={cn(
-                    'flex flex-col items-center gap-2 rounded-xl border p-4 text-center text-sm font-medium transition-all',
-                    action.color
-                  )}
-                >
-                  <span className="text-2xl">{action.icon}</span>
-                  <span className="leading-tight">{action.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ========================================================= */}
-          {/* SECTION 5 — SST Calendar: Upcoming Obligations            */}
-          {/* ========================================================= */}
-          <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar className="h-5 w-5 text-primary" />
-              <h2 className="text-base font-semibold text-white">Calendario SST</h2>
-            </div>
-            <div className="space-y-2">
-              {SST_OBLIGATIONS.map((ob, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    'flex items-center justify-between rounded-lg border px-4 py-3',
-                    ob.color
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{ob.icon}</span>
-                    <div>
-                      <p className={cn('text-sm font-medium', ob.textColor)}>{ob.title}</p>
-                      <p className="text-xs text-gray-500 text-gray-400">Proximo: {ob.nextDue}</p>
-                    </div>
-                  </div>
-                  <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold capitalize', ob.badgeColor)}>
-                    {ob.frequency}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* SECTION 6 — Legal Compliance Checklist Ley 29783             */}
-      {/* ============================================================ */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824]">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 bg-blue-900/30">
-              <FileCheck className="h-5 w-5 text-blue-600 text-blue-400" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-white">Checklist Requisitos Legales — Ley 29783</h2>
-              <p className="text-sm text-gray-500 text-gray-400">
-                <span className={cn('font-medium', checkedCount >= 10 ? 'text-emerald-600 text-emerald-400' : checkedCount >= 6 ? 'text-amber-600 text-amber-400' : 'text-red-600 text-red-400')}>
-                  {checkedCount} de {LEY_29783_ITEMS.length} requisitos cumplidos
-                </span>
-              </p>
-            </div>
-          </div>
-          {/* Progress bar */}
-          <div className="hidden sm:flex flex-col items-end gap-1 min-w-[120px]">
-            <span className="text-xs text-gray-400 text-slate-500">{Math.round((checkedCount / LEY_29783_ITEMS.length) * 100)}%</span>
-            <div className="h-2 w-28 rounded-full bg-white/[0.04]">
-              <div
-                className={cn('h-2 rounded-full transition-all',
-                  checkedCount / LEY_29783_ITEMS.length >= 0.8 ? 'bg-emerald-500'
-                    : checkedCount / LEY_29783_ITEMS.length >= 0.5 ? 'bg-amber-500'
-                      : 'bg-red-500'
-                )}
-                style={{ width: `${(checkedCount / LEY_29783_ITEMS.length) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-        <div className="grid gap-0 divide-y divide-slate-700 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-          {/* Left column */}
-          <div className="divide-y divide-slate-700/50">
-            {LEY_29783_ITEMS.slice(0, 6).map(item => (
-              <label
-                key={item.id}
-                className="flex cursor-pointer items-start gap-3 px-6 py-3.5 hover:bg-white/[0.02] hover:bg-white/[0.04]/50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!checkedItems[item.id]}
-                  onChange={e => setCheckedItems(p => ({ ...p, [item.id]: e.target.checked }))}
-                  className="mt-0.5 h-4 w-4 rounded border-white/10 border-slate-600 accent-primary"
-                />
-                <div className="flex-1">
-                  <p className={cn('text-sm', checkedItems[item.id] ? 'line-through text-gray-400 text-slate-500' : 'text-gray-200')}>
-                    {item.label}
-                  </p>
-                  <p className="text-xs text-gray-400 text-slate-500">{item.art}</p>
-                </div>
-                {checkedItems[item.id] && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />}
-              </label>
-            ))}
-          </div>
-          {/* Right column */}
-          <div className="divide-y divide-slate-700/50">
-            {LEY_29783_ITEMS.slice(6).map(item => (
-              <label
-                key={item.id}
-                className="flex cursor-pointer items-start gap-3 px-6 py-3.5 hover:bg-white/[0.02] hover:bg-white/[0.04]/50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!checkedItems[item.id]}
-                  onChange={e => setCheckedItems(p => ({ ...p, [item.id]: e.target.checked }))}
-                  className="mt-0.5 h-4 w-4 rounded border-white/10 border-slate-600 accent-primary"
-                />
-                <div className="flex-1">
-                  <p className={cn('text-sm', checkedItems[item.id] ? 'line-through text-gray-400 text-slate-500' : 'text-gray-200')}>
-                    {item.label}
-                  </p>
-                  <p className="text-xs text-gray-400 text-slate-500">{item.art}</p>
-                </div>
-                {checkedItems[item.id] && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />}
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* SECTION 4 — Records Table with Enhanced Filtering            */}
-      {/* ============================================================ */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] overflow-hidden">
-        {/* Table header */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Registros SST</h2>
-            <p className="text-sm text-gray-500 text-gray-400">{filteredRecords.length} de {records.length} registros</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
-                activeFiltersCount > 0
-                  ? 'border-primary bg-primary/5 text-primary border-primary bg-primary/10'
-                  : 'border-white/[0.08] border-slate-600 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]'
-              )}
-            >
-              <Filter className="h-4 w-4" />
-              Filtros
-              {activeFiltersCount > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={exportToCSV}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
-            >
-              <Download className="h-4 w-4" /> Exportar Excel
-            </button>
-          </div>
-        </div>
-
-        {/* Filters panel */}
-        {showFilters && (
-          <div className="border-b border-white/[0.08] bg-white/[0.02] bg-slate-900/40 px-6 py-4">
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 text-gray-400 mb-1">Tipo</label>
-                <select
-                  value={filterType}
-                  onChange={e => setFilterType(e.target.value as SstType | '')}
-                  className="w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-1.5 text-sm text-white text-gray-200"
-                >
-                  <option value="">Todos los tipos</option>
-                  {SST_SECTIONS.map(s => <option key={s.type} value={s.type}>{s.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 text-gray-400 mb-1">Estado</label>
-                <select
-                  value={filterStatus}
-                  onChange={e => setFilterStatus(e.target.value as SstStatus | '')}
-                  className="w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-1.5 text-sm text-white text-gray-200"
-                >
-                  <option value="">Todos los estados</option>
-                  {Object.entries(STATUS_CONFIG).map(([key, val]) => <option key={key} value={key}>{val.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 text-gray-400 mb-1">Desde</label>
-                <input
-                  type="date"
-                  value={filterDateFrom}
-                  onChange={e => setFilterDateFrom(e.target.value)}
-                  className="w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-1.5 text-sm text-white text-gray-200"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 text-gray-400 mb-1">Hasta</label>
-                <input
-                  type="date"
-                  value={filterDateTo}
-                  onChange={e => setFilterDateTo(e.target.value)}
-                  className="w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-1.5 text-sm text-white text-gray-200"
-                />
-              </div>
-            </div>
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={() => { setFilterType(''); setFilterStatus(''); setFilterDateFrom(''); setFilterDateTo('') }}
-                className="mt-3 text-xs text-red-500 text-red-400 hover:underline"
-              >
-                Limpiar filtros
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Table */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : filteredRecords.length === 0 ? (
-          <div className="p-8 text-center">
-            <ShieldCheck className="mx-auto h-10 w-10 text-gray-300 text-slate-600" />
-            <p className="mt-2 text-sm text-gray-500 text-gray-400">
-              {records.length === 0 ? 'No hay registros SST. Crea tu primer registro.' : 'No hay registros que coincidan con los filtros.'}
-            </p>
-            {records.length === 0 && (
-              <button onClick={() => setShowForm(true)} className="mt-3 text-sm font-medium text-primary hover:underline">
-                + Crear registro
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.08] bg-white/[0.02] bg-slate-900/40 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 text-gray-400">
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Titulo</th>
-                  <th className="px-4 py-3 hidden sm:table-cell">Fecha</th>
-                  <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700">
-                {filteredRecords.map(record => {
-                  const statusConf = STATUS_CONFIG[record.status]
-                  const StatusIcon = statusConf.icon
-                  const section = SST_SECTIONS.find(s => s.type === record.type)
-                  const SectionIcon = section?.icon || FileText
-                  return (
-                    <tr key={record.id} className="hover:bg-white/[0.02] hover:bg-white/[0.04]/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className={cn('inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium', section?.color || 'bg-white/[0.04] text-gray-300')}>
-                          <SectionIcon className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">{section?.label || record.type}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-white">{record.title}</p>
-                        {record.description && (
-                          <p className="mt-0.5 text-xs text-gray-400 text-slate-500 line-clamp-1">{record.description}</p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 text-gray-400 hidden sm:table-cell">
-                        {record.dueDate
-                          ? <span>{new Date(record.dueDate).toLocaleDateString('es-PE')}</span>
-                          : <span className="text-gray-300 text-slate-600">—</span>
-                        }
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', statusConf.color)}>
-                          <StatusIcon className="h-3 w-3" />
-                          {statusConf.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {record.status !== 'COMPLETED' && (
-                          <button
-                            onClick={() => updateStatus(record.id, 'COMPLETED')}
-                            className="rounded border border-slate-600 px-2 py-1 text-xs text-green-600 text-green-400 hover:bg-green-50 hover:bg-green-900/20"
-                          >
-                            Completar
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* SST Sections grid */}
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-white">Areas de SST</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SST_SECTIONS.map(section => {
-            const Icon = section.icon
-            const isSelected = selectedType === section.type
-            const typeRecords = records.filter(r => r.type === section.type)
-            return (
-              <button
-                key={section.type}
-                onClick={() => setSelectedType(isSelected ? null : section.type)}
-                className={cn(
-                  'flex items-start gap-3 rounded-xl border p-4 text-left transition-all',
-                  isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'bg-[#141824] border-white/[0.08] hover:bg-white/[0.02] hover:bg-white/[0.04]'
-                )}
-              >
-                <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', section.color)}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold text-white">{section.label}</h3>
-                  <p className="mt-0.5 text-xs text-gray-500 text-gray-400 line-clamp-2">{section.desc}</p>
-                  {!isSelected && (
-                    <p className="mt-1 text-xs text-gray-400 text-slate-500">{typeRecords.length} registros</p>
-                  )}
-                </div>
-                <ChevronRight className={cn('h-4 w-4 shrink-0 text-gray-400 text-slate-500 transition-transform', isSelected && 'rotate-90')} />
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* Seguro Vida Ley - D.Leg. 688                                 */}
-      {/* ============================================================ */}
-      <div className="mt-8 rounded-xl border border-white/[0.08] bg-[#141824]">
-        <div className="border-b border-white/[0.08] px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-100 bg-rose-900/30">
-              <HeartPulse className="h-5 w-5 text-rose-600 text-rose-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Seguro Vida Ley</h2>
-              <p className="text-sm text-gray-500 text-gray-400">
-                D.Leg. 688 - Obligatorio para trabajadores con 4+ anios de servicio
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {seguroVidaLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : seguroVida ? (
-          <div>
-            {/* Summary stats */}
-            <div className="grid grid-cols-2 gap-4 p-6 md:grid-cols-4">
-              <div className="rounded-lg border border-white/[0.08] p-3 text-center">
-                <Users className="mx-auto h-5 w-5 text-blue-500" />
-                <p className="mt-1 text-xl font-bold text-white">{seguroVida.totalEligible}</p>
-                <p className="text-xs text-gray-500 text-gray-400">Elegibles (4+ anios)</p>
-              </div>
-              <div className="rounded-lg border border-white/[0.08] p-3 text-center">
-                <UserCheck className="mx-auto h-5 w-5 text-green-500" />
-                <p className="mt-1 text-xl font-bold text-green-600">{seguroVida.totalCompliant}</p>
-                <p className="text-xs text-gray-500 text-gray-400">Con Seguro Activo</p>
-              </div>
-              <div className="rounded-lg border border-white/[0.08] p-3 text-center">
-                <UserX className="mx-auto h-5 w-5 text-red-500" />
-                <p className="mt-1 text-xl font-bold text-red-600">{seguroVida.totalNonCompliant}</p>
-                <p className="text-xs text-gray-500 text-gray-400">Sin Seguro (incumplimiento)</p>
-              </div>
-              <div className="rounded-lg border border-white/[0.08] p-3 text-center">
-                <AlertCircle className="mx-auto h-5 w-5 text-amber-500" />
-                <p className="mt-1 text-xl font-bold text-amber-600">{seguroVida.totalApproaching}</p>
-                <p className="text-xs text-gray-500 text-gray-400">Proximo a 4 anios</p>
-              </div>
-            </div>
-
-            {/* Non-compliant alert banner */}
-            {seguroVida.totalNonCompliant > 0 && (
-              <div className="mx-6 mb-4 flex items-start gap-3 rounded-lg border border-red-200 border-red-800 bg-red-50 bg-red-900/20 p-4">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-500 text-red-400" />
-                <div>
-                  <p className="text-sm font-medium text-red-800 text-red-300">
-                    {seguroVida.totalNonCompliant} trabajador{seguroVida.totalNonCompliant > 1 ? 'es' : ''} sin Seguro Vida Ley
-                  </p>
-                  <p className="mt-0.5 text-xs text-red-600 text-red-400">
-                    Infraccion grave (Art. 25.17 D.S. 019-2006-TR). Multa estimada: 1.57 - 26.12 UIT segun tamano de empresa.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Tab navigation */}
-            <div className="flex gap-1 border-b border-white/[0.08] px-6">
-              <button
-                onClick={() => setSeguroVidaTab('non_compliant')}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium transition-colors',
-                  seguroVidaTab === 'non_compliant'
-                    ? 'border-b-2 border-red-500 text-red-600 text-red-400'
-                    : 'text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-200'
-                )}
-              >
-                Sin Seguro ({seguroVida.totalNonCompliant})
-              </button>
-              <button
-                onClick={() => setSeguroVidaTab('approaching')}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium transition-colors',
-                  seguroVidaTab === 'approaching'
-                    ? 'border-b-2 border-amber-500 text-amber-600 text-amber-400'
-                    : 'text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-200'
-                )}
-              >
-                Proximos ({seguroVida.totalApproaching})
-              </button>
-              <button
-                onClick={() => setSeguroVidaTab('compliant')}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium transition-colors',
-                  seguroVidaTab === 'compliant'
-                    ? 'border-b-2 border-green-500 text-green-600 text-green-400'
-                    : 'text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-200'
-                )}
-              >
-                Cumpliendo ({seguroVida.totalCompliant})
-              </button>
-            </div>
-
-            {/* Worker list for selected tab */}
-            <div className="p-6">
-              {(() => {
-                const filterStatus =
-                  seguroVidaTab === 'non_compliant' ? 'NON_COMPLIANT'
-                    : seguroVidaTab === 'approaching' ? 'APPROACHING'
-                      : 'COMPLIANT'
-
-                const filtered = seguroVida.workers.filter(w => w.status === filterStatus)
-
-                if (filtered.length === 0) {
-                  return (
-                    <div className="py-8 text-center">
-                      {seguroVidaTab === 'non_compliant' ? (
-                        <>
-                          <CheckCircle2 className="mx-auto h-8 w-8 text-green-400" />
-                          <p className="mt-2 text-sm text-gray-500 text-gray-400">
-                            Todos los trabajadores elegibles tienen su Seguro Vida Ley activo.
-                          </p>
-                        </>
-                      ) : seguroVidaTab === 'approaching' ? (
-                        <>
-                          <Clock className="mx-auto h-8 w-8 text-gray-300 text-slate-600" />
-                          <p className="mt-2 text-sm text-gray-500 text-gray-400">
-                            No hay trabajadores proximos a cumplir 4 anios de servicio.
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <Users className="mx-auto h-8 w-8 text-gray-300 text-slate-600" />
-                          <p className="mt-2 text-sm text-gray-500 text-gray-400">
-                            No hay trabajadores con Seguro Vida Ley activo.
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  )
-                }
-
-                return (
-                  <div className="space-y-2">
-                    {filtered.map(w => (
-                      <div
-                        key={w.id}
-                        className="flex items-center justify-between rounded-lg border border-white/[0.08] px-4 py-3 transition-colors hover:bg-white/[0.02] hover:bg-white/[0.04]"
-                      >
-                        <div className="flex items-center gap-3">
-                          {w.status === 'NON_COMPLIANT' ? (
-                            <XCircle className="h-5 w-5 shrink-0 text-red-500" />
-                          ) : w.status === 'APPROACHING' ? (
-                            <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
-                          ) : (
-                            <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-                          )}
-                          <div>
-                            <p className="text-sm font-medium text-white">
-                              {displayWorkerName(w.firstName, w.lastName)}
-                            </p>
-                            <p className="text-xs text-gray-500 text-gray-400">
-                              DNI: {w.dni}
-                              {w.position && ` — ${w.position}`}
-                              {w.department && ` (${w.department})`}
-                            </p>
-                            <p className="text-xs text-gray-400 text-slate-500">
-                              {w.yearsOfService.toFixed(1)} anios de servicio
-                              {w.daysUntilRequired !== null && (
-                                <span className="ml-1 font-medium text-amber-600 text-amber-400">
-                                  — Faltan {w.daysUntilRequired} dias para obligatoriedad
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {w.status === 'NON_COMPLIANT' && (
-                            <button
-                              onClick={() => activarSeguro(w.id)}
-                              disabled={activatingId === w.id}
-                              className="flex items-center gap-1 rounded-lg border border-red-200 border-red-800 bg-red-50 bg-red-900/20 px-3 py-1.5 text-xs font-medium text-red-700 text-red-400 hover:bg-red-100 hover:bg-red-900/40 disabled:opacity-50"
-                            >
-                              {activatingId === w.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <HeartPulse className="h-3 w-3" />
-                              )}
-                              Activar Seguro
-                            </button>
-                          )}
-                          {w.status === 'APPROACHING' && (
-                            <span className="rounded-full bg-amber-100 bg-amber-900/30 px-2.5 py-0.5 text-xs font-medium text-amber-700 text-amber-400">
-                              Preparar
-                            </span>
-                          )}
-                          {w.status === 'COMPLIANT' && (
-                            <span className="rounded-full bg-green-100 bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-700 text-green-400">
-                              Activo
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        ) : (
-          <div className="py-8 text-center">
-            <HeartPulse className="mx-auto h-8 w-8 text-gray-300 text-slate-600" />
-            <p className="mt-2 text-sm text-gray-500 text-gray-400">No se pudo cargar la informacion de Seguro Vida Ley.</p>
-          </div>
-        )}
-      </div>
-
-      {/* ============================================================ */}
-      {/* Create form modal                                             */}
-      {/* ============================================================ */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-lg rounded-xl bg-[#141824] p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Nuevo Registro SST</h3>
-              <button onClick={() => setShowForm(false)} className="rounded p-1 hover:bg-white/[0.04]">
-                <X className="h-5 w-5 text-gray-400" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 text-gray-200">Tipo de registro *</label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData(p => ({ ...p, type: e.target.value as SstType }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white text-gray-200"
-                >
-                  <option value="">Seleccionar...</option>
-                  {SST_SECTIONS.map(s => (
-                    <option key={s.type} value={s.type}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 text-gray-200">Titulo *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white text-gray-200"
-                  placeholder="Ej: Capacitacion SST Q1 2026"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 text-gray-200">Descripcion</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white text-gray-200"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 text-gray-200">Fecha limite</label>
-                <input
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={e => setFormData(p => ({ ...p, dueDate: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 bg-[#141824] bg-white/[0.04] px-3 py-2 text-sm text-white text-gray-200"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setShowForm(false)}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={createRecord}
-                disabled={!formData.type || !formData.title || saving}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-              >
-                {saving ? 'Guardando...' : 'Crear Registro'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <TabsContent value="overview">
+          <Overview summary={summary ?? FALLBACK} onAskCopilot={() => copilot.open('Dame el plan priorizado para mejorar mi score SST hoy')} />
+        </TabsContent>
+        <TabsContent value="politica">
+          <TabBody
+            icon={BookOpen}
+            title="Política SST"
+            description="Documento obligatorio con los 8 elementos del Art. 22 Ley 29783. Generador con firma del empleador."
+            actionLabel="Generar política"
+            actionHref="/dashboard/sst/politica"
+          />
+        </TabsContent>
+        <TabsContent value="iperc">
+          <TabBody
+            icon={ShieldAlert}
+            title="IPERC — Identificación de Peligros y Evaluación de Riesgos"
+            description="Matriz formato R.M. 050-2013-TR con biblioteca de 500+ peligros por sector. Cálculo A × B automático."
+            actionLabel="Abrir IPERC"
+            actionHref="/dashboard/sst/iperc"
+          />
+        </TabsContent>
+        <TabsContent value="capacitaciones">
+          <TabBody
+            icon={GraduationCap}
+            title="Capacitaciones SST"
+            description="4 capacitaciones obligatorias por año. Registro de asistencia, evaluación y certificado con QR."
+            actionLabel="Ver capacitaciones"
+            actionHref="/dashboard/capacitaciones"
+          />
+        </TabsContent>
+        <TabsContent value="accidentes">
+          <TabBody
+            icon={Activity}
+            title="Accidentes e incidentes"
+            description="Formato SUNAFIL con notificación 24h al MTPE. Línea de tiempo con investigaciones y medidas."
+            actionLabel="Registrar accidente"
+            actionHref="/dashboard/sst/accidentes/nuevo"
+          />
+        </TabsContent>
+        <TabsContent value="comite">
+          <TabBody
+            icon={Users2}
+            title="Comité / Supervisor SST"
+            description="Gestión electoral bianual, actas mensuales, mandato y estructura según tamaño de empresa."
+            actionLabel="Gestionar Comité"
+            actionHref="/dashboard/sst/comite"
+          />
+        </TabsContent>
+        <TabsContent value="examenes">
+          <TabBody
+            icon={ClipboardList}
+            title="Exámenes médicos ocupacionales"
+            description="Control de vencimientos pre-ocupacional, anual y de retiro. Alertas 30/15/7 días antes."
+            actionLabel="Ver exámenes"
+            actionHref="/dashboard/sst/examenes"
+          />
+        </TabsContent>
+        <TabsContent value="epp">
+          <TabBody
+            icon={HardHat}
+            title="Entrega de EPP"
+            description="Registro de entrega por trabajador con firma digital. Inventario, vida útil y reposición."
+            actionLabel="Registrar entrega"
+            actionHref="/dashboard/sst/epp"
+          />
+        </TabsContent>
+      </Tabs>
     </div>
+  )
+}
+
+/* ── Subcomponents ──────────────────────────────────────────────────── */
+
+function Header() {
+  return (
+    <PageHeader
+      eyebrow="SST"
+      title="Seguridad y salud <em>al día</em>."
+      subtitle="Hub de compliance SST: política, IPERC, capacitaciones, comité, accidentes, exámenes médicos y EPP. Todo lo que SUNAFIL revisa en una inspección."
+      actions={
+        <Link
+          href="/dashboard/simulacro?mode=sst"
+          className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white hover:bg-[color:var(--neutral-50)] text-[color:var(--text-primary)] px-3.5 py-2 text-xs font-semibold transition-colors"
+        >
+          Simulacro SST
+        </Link>
+      }
+    />
+  )
+}
+
+function StatsRow({ summary }: { summary: SstSummary }) {
+  const stats = [
+    {
+      label: 'Política SST',
+      value: summary.politicaVigente ? 'Vigente' : 'Pendiente',
+      variant: summary.politicaVigente ? ('success' as const) : ('danger' as const),
+    },
+    {
+      label: 'IPERC completos',
+      value: `${summary.ipercCount - summary.ipercPendiente} / ${summary.ipercCount}`,
+      variant: summary.ipercPendiente === 0 ? ('success' as const) : ('warning' as const),
+    },
+    {
+      label: 'Capacitaciones año',
+      value: `${summary.capacitacionesEsteAnio} / 4`,
+      variant: summary.capacitacionesEsteAnio >= 4 ? ('success' as const) : ('warning' as const),
+    },
+    {
+      label: 'Accidentes 30d',
+      value: summary.accidentesUlt30d,
+      variant: summary.accidentesUlt30d === 0 ? ('success' as const) : ('danger' as const),
+    },
+  ]
+  return (
+    <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {stats.map((s) => (
+        <Card key={s.label} padding="md">
+          <p className="text-[11px] uppercase tracking-widest text-[color:var(--text-tertiary)]">
+            {s.label}
+          </p>
+          <p className="mt-1 text-2xl font-bold tracking-tight">{s.value}</p>
+          <Badge variant={s.variant} size="xs" className="mt-2">
+            {s.variant === 'success' ? 'OK' : s.variant === 'danger' ? 'Crítico' : 'Atender'}
+          </Badge>
+        </Card>
+      ))}
+    </section>
+  )
+}
+
+function Overview({
+  summary,
+  onAskCopilot,
+}: {
+  summary: SstSummary
+  onAskCopilot: () => void
+}) {
+  return (
+    <div className="relative grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 items-center rounded-2xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-3)] p-6 overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-[4px] before:bg-[image:var(--accent-bar-amber)]">
+      <ProgressRing value={summary.scoreSst} size={160} stroke={12}>
+        <div className="text-center">
+          <div className="text-4xl font-bold tracking-tight">{summary.scoreSst}</div>
+          <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-tertiary)] mt-0.5">
+            score SST
+          </div>
+        </div>
+      </ProgressRing>
+      <div className="space-y-3">
+        <h2 className="text-xl font-bold tracking-tight">
+          {summary.scoreSst >= 80 ? 'SST en buena forma' : summary.scoreSst >= 60 ? 'Mejorable' : 'Requiere acción urgente'}
+        </h2>
+        <p className="text-sm text-[color:var(--text-secondary)] leading-relaxed max-w-xl">
+          {summary.examenesVencidos > 0 ? (
+            <>
+              Tenés <strong className="text-crimson-700">{summary.examenesVencidos}</strong>{' '}
+              exámenes médicos vencidos y{' '}
+              <strong className="text-amber-700">{summary.ipercPendiente}</strong> IPERC
+              pendientes. Resolverlos sube tu score SST ~15 puntos.
+            </>
+          ) : summary.ipercPendiente > 0 ? (
+            <>Tenés {summary.ipercPendiente} IPERC por completar. Priorizalos esta semana.</>
+          ) : (
+            <>Sin observaciones críticas activas. Mantené las capacitaciones al día.</>
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" icon={<Sparkles className="h-3.5 w-3.5" />} onClick={onAskCopilot}>
+            Plan IA priorizado
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/diagnostico">
+              Diagnóstico completo <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TabBody({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  actionHref,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  description: string
+  actionLabel: string
+  actionHref: string
+}) {
+  return (
+    <Card padding="lg">
+      <CardHeader className="!p-0 !border-none !pb-4">
+        <div className="flex items-start gap-3">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 border border-amber-200">
+            <Icon className="h-5 w-5 text-amber-600" />
+          </span>
+          <div>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription className="mt-1 max-w-2xl">{description}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="!p-0 !pt-2">
+        <div className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link href={actionHref}>
+              {actionLabel} <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/dashboard/sst?legacy=1">Ver módulo completo</Link>
+          </Button>
+        </div>
+        <Card variant="outline" padding="md" className="mt-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-500 shrink-0" />
+            <p className="text-xs text-[color:var(--text-secondary)] leading-relaxed">
+              Esta pestaña delega a su módulo especializado. La integración inline
+              (formularios, listados con filtros) está planificada para sprints
+              siguientes — mientras tanto el CTA te lleva al flujo completo.
+            </p>
+          </div>
+        </Card>
+      </CardContent>
+    </Card>
   )
 }

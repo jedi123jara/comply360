@@ -44,12 +44,12 @@ const TYPE_LABELS: Record<ComplaintType, string> = {
 }
 
 const STATUS_CONFIG: Record<ComplaintStatus, { label: string; color: string; icon: typeof Clock }> = {
-  RECEIVED: { label: 'Recibida', color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400', icon: Clock },
-  UNDER_REVIEW: { label: 'En Evaluacion', color: 'bg-yellow-100 text-yellow-700 bg-yellow-900/30 text-yellow-400', icon: Eye },
-  INVESTIGATING: { label: 'En Investigacion', color: 'bg-orange-100 text-orange-700 bg-orange-900/30 text-orange-400', icon: AlertTriangle },
-  PROTECTION_APPLIED: { label: 'Medidas Aplicadas', color: 'bg-purple-100 text-purple-700 bg-purple-900/30 text-purple-400', icon: ShieldAlert },
-  RESOLVED: { label: 'Resuelta', color: 'bg-green-100 text-green-700 bg-green-900/30 text-green-400', icon: CheckCircle2 },
-  DISMISSED: { label: 'Desestimada', color: 'bg-white/[0.04] text-gray-300 bg-gray-900/30 text-gray-400', icon: XCircle },
+  RECEIVED: { label: 'Recibida', color: 'bg-blue-900/30 text-emerald-600', icon: Clock },
+  UNDER_REVIEW: { label: 'En Evaluacion', color: 'bg-yellow-900/30 text-yellow-400', icon: Eye },
+  INVESTIGATING: { label: 'En Investigacion', color: 'bg-orange-900/30 text-orange-400', icon: AlertTriangle },
+  PROTECTION_APPLIED: { label: 'Medidas Aplicadas', color: 'bg-purple-900/30 text-purple-400', icon: ShieldAlert },
+  RESOLVED: { label: 'Resuelta', color: 'bg-green-900/30 text-green-400', icon: CheckCircle2 },
+  DISMISSED: { label: 'Desestimada', color: 'bg-gray-900/30 text-[color:var(--text-tertiary)]', icon: XCircle },
 }
 
 const PLAZOS = [
@@ -115,6 +115,7 @@ export default function DenunciasPage() {
     finally { setLoading(false) }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData() }, [statusFilter])
 
   async function updateComplaint(id: string, status: ComplaintStatus, timelineAction: string) {
@@ -135,35 +136,35 @@ export default function DenunciasPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Canal de Denuncias</h1>
-          <p className="mt-1 text-gray-500 text-gray-400">Gestion de denuncias por hostigamiento, discriminacion y acoso laboral (Ley 27942)</p>
+          <p className="mt-1 text-[color:var(--text-tertiary)]">Gestion de denuncias por hostigamiento, discriminacion y acoso laboral (Ley 27942)</p>
         </div>
-        <div className="rounded-lg border bg-amber-50 bg-amber-900/20 border-amber-800 px-3 py-2">
-          <p className="text-xs font-medium text-amber-800 text-amber-400">URL publica para denuncias:</p>
-          <p className="text-xs text-amber-600 text-amber-500 font-mono">/denuncias/org-demo</p>
+        <div className="rounded-lg border bg-amber-900/20 border-amber-800 px-3 py-2">
+          <p className="text-xs font-medium text-amber-400">URL publica para denuncias:</p>
+          <p className="text-xs text-amber-400 font-mono">/denuncias/org-demo</p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-3 text-center">
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-3 text-center">
           <p className="text-2xl font-bold text-white">{stats.total}</p>
-          <p className="text-xs text-gray-500 text-gray-400">Total</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Total</p>
         </div>
-        <div className="rounded-xl border border-white/[0.08] bg-blue-50 bg-blue-900/20 p-3 text-center">
-          <p className="text-2xl font-bold text-blue-600 text-blue-400">{stats.received}</p>
-          <p className="text-xs text-blue-700 text-blue-400">Recibidas</p>
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-blue-900/20 p-3 text-center">
+          <p className="text-2xl font-bold text-emerald-600">{stats.received}</p>
+          <p className="text-xs text-emerald-600">Recibidas</p>
         </div>
-        <div className="rounded-xl border border-white/[0.08] bg-orange-50 bg-orange-900/20 p-3 text-center">
-          <p className="text-2xl font-bold text-orange-600 text-orange-400">{(stats.underReview || 0) + (stats.investigating || 0)}</p>
-          <p className="text-xs text-orange-700 text-orange-400">En Proceso</p>
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-orange-900/20 p-3 text-center">
+          <p className="text-2xl font-bold text-orange-400">{(stats.underReview || 0) + (stats.investigating || 0)}</p>
+          <p className="text-xs text-orange-400">En Proceso</p>
         </div>
-        <div className="rounded-xl border border-white/[0.08] bg-green-50 bg-green-900/20 p-3 text-center">
-          <p className="text-2xl font-bold text-green-600 text-green-400">{stats.resolved}</p>
-          <p className="text-xs text-green-700 text-green-400">Resueltas</p>
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-green-900/20 p-3 text-center">
+          <p className="text-2xl font-bold text-green-400">{stats.resolved}</p>
+          <p className="text-xs text-green-400">Resueltas</p>
         </div>
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] bg-white/[0.04] p-3 text-center">
-          <p className="text-2xl font-bold text-slate-300">{stats.dismissed}</p>
-          <p className="text-xs text-gray-500 text-gray-400">Desestimadas</p>
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] p-3 text-center">
+          <p className="text-2xl font-bold text-[color:var(--text-secondary)]">{stats.dismissed}</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Desestimadas</p>
         </div>
       </div>
 
@@ -173,14 +174,14 @@ export default function DenunciasPage() {
           'rounded-xl border p-4 flex items-start gap-3',
           deadlineSummary.overdueDeadlines > 0 ? 'border-red-300 bg-red-50 border-red-800 bg-red-900/20' : 'border-amber-300 bg-amber-50 border-amber-800 bg-amber-900/20'
         )}>
-          <Timer className={cn('h-5 w-5 shrink-0 mt-0.5', deadlineSummary.overdueDeadlines > 0 ? 'text-red-600 text-red-400' : 'text-amber-600 text-amber-400')} />
+          <Timer className={cn('h-5 w-5 shrink-0 mt-0.5', deadlineSummary.overdueDeadlines > 0 ? 'text-red-400' : 'text-amber-400')} />
           <div>
-            <p className={cn('font-semibold', deadlineSummary.overdueDeadlines > 0 ? 'text-red-800 text-red-400' : 'text-amber-800 text-amber-400')}>
+            <p className={cn('font-semibold', deadlineSummary.overdueDeadlines > 0 ? 'text-red-400' : 'text-amber-400')}>
               {deadlineSummary.overdueDeadlines > 0
                 ? `${deadlineSummary.overdueDeadlines} plazo(s) VENCIDO(S) — accion inmediata requerida`
                 : `${deadlineSummary.expiringSoonDeadlines} plazo(s) vencen en menos de 3 dias`}
             </p>
-            <p className={cn('text-sm mt-0.5', deadlineSummary.overdueDeadlines > 0 ? 'text-red-700 text-red-400' : 'text-amber-700 text-amber-400')}>
+            <p className={cn('text-sm mt-0.5', deadlineSummary.overdueDeadlines > 0 ? 'text-red-400' : 'text-amber-400')}>
               Los plazos de hostigamiento sexual son obligatorios bajo D.S. 014-2019-MIMP.
               Su incumplimiento expone a la empresa a multas SUNAFIL por infraccion muy grave.
             </p>
@@ -189,14 +190,14 @@ export default function DenunciasPage() {
       )}
 
       {/* Plazos legales */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4">
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4">
         <h3 className="text-sm font-semibold text-white">Plazos Legales Obligatorios</h3>
         <div className="mt-2 grid gap-2 md:grid-cols-3">
           {PLAZOS.map(p => (
-            <div key={p.label} className="rounded-lg bg-white/[0.02] bg-white/[0.04] px-3 py-2">
-              <p className="text-sm font-medium text-white text-slate-100">{p.label}</p>
-              <p className="text-xs text-primary font-semibold">{p.plazo}</p>
-              <p className="text-[10px] text-gray-400">{p.base}</p>
+            <div key={p.label} className="rounded-lg bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] px-3 py-2">
+              <p className="text-sm font-medium text-white text-[color:var(--text-emerald-700)]">{p.label}</p>
+              <p className="text-xs text-emerald-700 font-semibold">{p.plazo}</p>
+              <p className="text-[10px] text-[color:var(--text-tertiary)]">{p.base}</p>
             </div>
           ))}
         </div>
@@ -204,11 +205,11 @@ export default function DenunciasPage() {
 
       {/* Filter */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500 text-gray-400">Filtrar:</span>
+        <span className="text-sm text-[color:var(--text-tertiary)]">Filtrar:</span>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as ComplaintStatus | '')}
-          className="rounded-lg border border-slate-600 bg-white/[0.04] text-gray-200 px-3 py-1.5 text-sm"
+          className="rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] px-3 py-1.5 text-sm"
         >
           <option value="">Todas</option>
           {Object.entries(STATUS_CONFIG).map(([key, conf]) => (
@@ -220,29 +221,28 @@ export default function DenunciasPage() {
       {/* Complaints list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-emerald-700" />
         </div>
       ) : complaints.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-white/10 border-slate-600 bg-white/[0.02] bg-white/50 p-12 text-center">
-          <MessageSquare className="mx-auto h-10 w-10 text-gray-300 text-slate-600" />
-          <p className="mt-2 text-sm text-gray-500 text-gray-400">No hay denuncias registradas.</p>
-          <p className="text-xs text-gray-400 text-slate-500">Las denuncias se reciben a traves del formulario publico.</p>
+        <div className="rounded-lg border border-dashed border-white/10 border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-white/50 p-12 text-center">
+          <MessageSquare className="mx-auto h-10 w-10 text-[color:var(--text-secondary)]" />
+          <p className="mt-2 text-sm text-[color:var(--text-tertiary)]">No hay denuncias registradas.</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Las denuncias se reciben a traves del formulario publico.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {complaints.map(complaint => {
             const statusConf = STATUS_CONFIG[complaint.status]
-            const StatusIcon = statusConf.icon
             const isExpanded = expandedId === complaint.id
             return (
-              <div key={complaint.id} className="rounded-xl border border-white/[0.08] bg-[#141824]">
+              <div key={complaint.id} className="rounded-xl border border-[color:var(--border-default)] bg-white">
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : complaint.id)}
                   className="flex w-full items-center justify-between px-4 py-3 text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn('flex h-10 w-10 items-center justify-center rounded-full', complaint.type === 'HOSTIGAMIENTO_SEXUAL' ? 'bg-red-100 bg-red-900/30' : 'bg-orange-100 bg-orange-900/30')}>
-                      {complaint.type === 'HOSTIGAMIENTO_SEXUAL' ? <UserX className="h-5 w-5 text-red-600 text-red-400" /> : <Scale className="h-5 w-5 text-orange-600 text-orange-400" />}
+                    <div className={cn('flex h-10 w-10 items-center justify-center rounded-full', complaint.type === 'HOSTIGAMIENTO_SEXUAL' ? 'bg-red-900/30' : 'bg-orange-900/30')}>
+                      {complaint.type === 'HOSTIGAMIENTO_SEXUAL' ? <UserX className="h-5 w-5 text-red-400" /> : <Scale className="h-5 w-5 text-orange-400" />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function DenunciasPage() {
                           {statusConf.label}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 text-gray-400">
+                      <p className="text-xs text-[color:var(--text-tertiary)]">
                         {TYPE_LABELS[complaint.type]}
                         {complaint.isAnonymous ? ' — Anonima' : ` — ${complaint.reporterName}`}
                         {' — '}{new Date(complaint.receivedAt).toLocaleDateString('es-PE')}
@@ -264,12 +264,12 @@ export default function DenunciasPage() {
                         return (
                           <div className="flex items-center gap-1 mt-0.5">
                             {overdue.length > 0 && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 bg-red-900/30 px-1.5 py-0.5 text-[10px] font-bold text-red-700 text-red-400">
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-red-900/30 px-1.5 py-0.5 text-[10px] font-bold text-red-400">
                                 <Timer className="h-2.5 w-2.5" />{overdue.length} vencido{overdue.length > 1 ? 's' : ''}
                               </span>
                             )}
                             {soon.length > 0 && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 text-amber-400">
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
                                 <Timer className="h-2.5 w-2.5" />{soon.length} por vencer
                               </span>
                             )}
@@ -278,15 +278,15 @@ export default function DenunciasPage() {
                       })()}
                     </div>
                   </div>
-                  {isExpanded ? <ChevronUp className="h-4 w-4 text-gray-400 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-gray-400 text-slate-500" />}
+                  {isExpanded ? <ChevronUp className="h-4 w-4 text-[color:var(--text-tertiary)]" /> : <ChevronDown className="h-4 w-4 text-[color:var(--text-tertiary)]" />}
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-white/[0.08] px-4 py-4 space-y-4">
+                  <div className="border-t border-[color:var(--border-default)] px-4 py-4 space-y-4">
                     {/* Deadline tracker */}
                     {deadlineMap[complaint.id] && (
                       <div>
-                        <h4 className="text-xs font-semibold uppercase text-gray-400 text-slate-500 flex items-center gap-1">
+                        <h4 className="text-xs font-semibold uppercase text-[color:var(--text-tertiary)] flex items-center gap-1">
                           <Timer className="h-3.5 w-3.5" /> Plazos Legales
                         </h4>
                         <div className="mt-2 space-y-1.5">
@@ -295,21 +295,21 @@ export default function DenunciasPage() {
                               'flex items-center justify-between rounded-lg px-3 py-2 text-xs',
                               d.status === 'OVERDUE' ? 'bg-red-50 border border-red-200 bg-red-900/20 border-red-800' :
                               d.status === 'EXPIRING_SOON' ? 'bg-amber-50 border border-amber-200 bg-amber-900/20 border-amber-800' :
-                              'bg-white/[0.02] border border-white/[0.08] bg-white/[0.04] border-slate-600'
+                              'bg-[color:var(--neutral-50)] border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] border-[color:var(--border-default)]'
                             )}>
                               <div>
-                                <p className={cn('font-semibold', d.status === 'OVERDUE' ? 'text-red-800 text-red-400' : d.status === 'EXPIRING_SOON' ? 'text-amber-800 text-amber-400' : 'text-gray-200')}>
+                                <p className={cn('font-semibold', d.status === 'OVERDUE' ? 'text-red-400' : d.status === 'EXPIRING_SOON' ? 'text-amber-400' : 'text-[color:var(--text-secondary)]')}>
                                   {d.label}
                                 </p>
-                                <p className="text-gray-400 text-slate-500">{d.baseLegal}</p>
+                                <p className="text-[color:var(--text-tertiary)]">{d.baseLegal}</p>
                               </div>
                               <div className="text-right">
-                                <p className={cn('font-bold', d.status === 'OVERDUE' ? 'text-red-700 text-red-400' : d.status === 'EXPIRING_SOON' ? 'text-amber-700 text-amber-400' : 'text-green-700 text-green-400')}>
+                                <p className={cn('font-bold', d.status === 'OVERDUE' ? 'text-red-400' : d.status === 'EXPIRING_SOON' ? 'text-amber-400' : 'text-green-400')}>
                                   {d.status === 'OVERDUE' ? `Vencido hace ${Math.abs(d.daysRemaining)} dia(s)` :
                                    d.status === 'EXPIRING_SOON' ? `${d.daysRemaining} dia(s)` :
                                    `${d.daysRemaining} dia(s)`}
                                 </p>
-                                <p className="text-gray-400 text-slate-500">{new Date(d.dueDate).toLocaleDateString('es-PE')}</p>
+                                <p className="text-[color:var(--text-tertiary)]">{new Date(d.dueDate).toLocaleDateString('es-PE')}</p>
                               </div>
                             </div>
                           ))}
@@ -319,36 +319,36 @@ export default function DenunciasPage() {
 
                     {/* Description */}
                     <div>
-                      <h4 className="text-xs font-semibold uppercase text-gray-400 text-slate-500">Descripcion</h4>
-                      <p className="mt-1 text-sm text-gray-300 text-gray-200">{complaint.description}</p>
+                      <h4 className="text-xs font-semibold uppercase text-[color:var(--text-tertiary)]">Descripcion</h4>
+                      <p className="mt-1 text-sm text-[color:var(--text-secondary)]">{complaint.description}</p>
                     </div>
 
                     {complaint.accusedName && (
                       <div>
-                        <h4 className="text-xs font-semibold uppercase text-gray-400 text-slate-500">Denunciado</h4>
-                        <p className="mt-1 text-sm text-gray-300 text-gray-200">{complaint.accusedName} {complaint.accusedPosition && `— ${complaint.accusedPosition}`}</p>
+                        <h4 className="text-xs font-semibold uppercase text-[color:var(--text-tertiary)]">Denunciado</h4>
+                        <p className="mt-1 text-sm text-[color:var(--text-secondary)]">{complaint.accusedName} {complaint.accusedPosition && `— ${complaint.accusedPosition}`}</p>
                       </div>
                     )}
 
                     {complaint.resolution && (
                       <div>
-                        <h4 className="text-xs font-semibold uppercase text-gray-400 text-slate-500">Resolucion</h4>
-                        <p className="mt-1 text-sm text-gray-300 text-gray-200">{complaint.resolution}</p>
+                        <h4 className="text-xs font-semibold uppercase text-[color:var(--text-tertiary)]">Resolucion</h4>
+                        <p className="mt-1 text-sm text-[color:var(--text-secondary)]">{complaint.resolution}</p>
                       </div>
                     )}
 
                     {/* Timeline */}
                     {complaint.timeline.length > 0 && (
                       <div>
-                        <h4 className="text-xs font-semibold uppercase text-gray-400 text-slate-500">Historial</h4>
+                        <h4 className="text-xs font-semibold uppercase text-[color:var(--text-tertiary)]">Historial</h4>
                         <div className="mt-2 space-y-2">
                           {complaint.timeline.map(entry => (
                             <div key={entry.id} className="flex items-start gap-2">
-                              <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                              <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />
                               <div>
-                                <p className="text-xs font-medium text-gray-300 text-gray-200">{entry.action.replace(/_/g, ' ')}</p>
-                                {entry.description && <p className="text-xs text-gray-500 text-gray-400">{entry.description}</p>}
-                                <p className="text-[10px] text-gray-400 text-slate-500">{new Date(entry.createdAt).toLocaleString('es-PE')} — {entry.performedBy}</p>
+                                <p className="text-xs font-medium text-[color:var(--text-secondary)]">{entry.action.replace(/_/g, ' ')}</p>
+                                {entry.description && <p className="text-xs text-[color:var(--text-tertiary)]">{entry.description}</p>}
+                                <p className="text-[10px] text-[color:var(--text-tertiary)]">{new Date(entry.createdAt).toLocaleString('es-PE')} — {entry.performedBy}</p>
                               </div>
                             </div>
                           ))}
@@ -358,21 +358,21 @@ export default function DenunciasPage() {
 
                     {/* Actions */}
                     {complaint.status !== 'RESOLVED' && complaint.status !== 'DISMISSED' && (
-                      <div className="flex flex-wrap gap-2 border-t border-white/[0.08] pt-3">
+                      <div className="flex flex-wrap gap-2 border-t border-[color:var(--border-default)] pt-3">
                         {complaint.status === 'RECEIVED' && (
-                          <button onClick={() => updateComplaint(complaint.id, 'UNDER_REVIEW', 'INICIO_EVALUACION')} disabled={updatingId === complaint.id} className="rounded border border-slate-600 px-3 py-1.5 text-xs font-medium text-yellow-700 text-yellow-400 hover:bg-yellow-50 hover:bg-yellow-900/20">Iniciar Evaluacion</button>
+                          <button onClick={() => updateComplaint(complaint.id, 'UNDER_REVIEW', 'INICIO_EVALUACION')} disabled={updatingId === complaint.id} className="rounded border border-[color:var(--border-default)] px-3 py-1.5 text-xs font-medium text-yellow-400 hover:bg-yellow-900/20">Iniciar Evaluacion</button>
                         )}
                         {complaint.status === 'UNDER_REVIEW' && (
                           <>
-                            <button onClick={() => updateComplaint(complaint.id, 'INVESTIGATING', 'INICIO_INVESTIGACION')} disabled={updatingId === complaint.id} className="rounded border border-slate-600 px-3 py-1.5 text-xs font-medium text-orange-700 text-orange-400 hover:bg-orange-50 hover:bg-orange-900/20">Iniciar Investigacion</button>
-                            <button onClick={() => updateComplaint(complaint.id, 'DISMISSED', 'DESESTIMADA')} disabled={updatingId === complaint.id} className="rounded border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]">Desestimar</button>
+                            <button onClick={() => updateComplaint(complaint.id, 'INVESTIGATING', 'INICIO_INVESTIGACION')} disabled={updatingId === complaint.id} className="rounded border border-[color:var(--border-default)] px-3 py-1.5 text-xs font-medium text-orange-400 hover:bg-orange-900/20">Iniciar Investigacion</button>
+                            <button onClick={() => updateComplaint(complaint.id, 'DISMISSED', 'DESESTIMADA')} disabled={updatingId === complaint.id} className="rounded border border-[color:var(--border-default)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]">Desestimar</button>
                           </>
                         )}
                         {complaint.status === 'INVESTIGATING' && (
-                          <button onClick={() => updateComplaint(complaint.id, 'PROTECTION_APPLIED', 'MEDIDAS_PROTECCION')} disabled={updatingId === complaint.id} className="rounded border border-slate-600 px-3 py-1.5 text-xs font-medium text-purple-700 text-purple-400 hover:bg-purple-50 hover:bg-purple-900/20">Aplicar Medidas de Proteccion</button>
+                          <button onClick={() => updateComplaint(complaint.id, 'PROTECTION_APPLIED', 'MEDIDAS_PROTECCION')} disabled={updatingId === complaint.id} className="rounded border border-[color:var(--border-default)] px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-900/20">Aplicar Medidas de Proteccion</button>
                         )}
                         {(complaint.status === 'INVESTIGATING' || complaint.status === 'PROTECTION_APPLIED') && (
-                          <button onClick={() => updateComplaint(complaint.id, 'RESOLVED', 'RESUELTA')} disabled={updatingId === complaint.id} className="rounded border border-slate-600 px-3 py-1.5 text-xs font-medium text-green-700 text-green-400 hover:bg-green-50 hover:bg-green-900/20">Marcar Resuelta</button>
+                          <button onClick={() => updateComplaint(complaint.id, 'RESOLVED', 'RESUELTA')} disabled={updatingId === complaint.id} className="rounded border border-[color:var(--border-default)] px-3 py-1.5 text-xs font-medium text-green-400 hover:bg-green-900/20">Marcar Resuelta</button>
                         )}
                       </div>
                     )}

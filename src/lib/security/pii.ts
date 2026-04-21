@@ -51,6 +51,7 @@ export function maskEmail(email: string): string {
 /**
  * Mask a salary for log output: 5000 → "S/ ****"
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function maskSalary(amount: number | string): string {
   return 'S/ ****'
 }
@@ -70,7 +71,6 @@ export function maskPhone(phone: string): string {
  */
 export function sanitizeForLog(obj: Record<string, unknown>): Record<string, unknown> {
   const sensitiveKeys = ['password', 'clave', 'secret', 'token', 'key', 'solPassword', 'solUser', 'creditCard']
-  const piiKeys = ['dni', 'email', 'phone', 'telefono', 'sueldoBruto', 'salary']
 
   const sanitized: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(obj)) {

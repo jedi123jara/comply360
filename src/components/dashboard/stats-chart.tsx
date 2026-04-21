@@ -48,22 +48,6 @@ export default function StatsChart({ data }: StatsChartProps) {
     value: d.value,
   }));
 
-  // Build smooth quadratic bezier path
-  function buildSmoothPath(pts: { x: number; y: number }[]): string {
-    if (pts.length < 2) return '';
-    let path = `M ${pts[0].x},${pts[0].y}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const curr = pts[i];
-      const next = pts[i + 1];
-      const cpX = (curr.x + next.x) / 2;
-      path += ` Q ${curr.x},${curr.y} ${cpX},${(curr.y + next.y) / 2}`;
-    }
-    // Final segment to last point
-    const last = pts[pts.length - 1];
-    path += ` T ${last.x},${last.y}`;
-    return path;
-  }
-
   // Build a cubic bezier path for smoother curves
   function buildCubicPath(pts: { x: number; y: number }[]): string {
     if (pts.length < 2) return '';
@@ -134,9 +118,19 @@ export default function StatsChart({ data }: StatsChartProps) {
       <defs>
         {/* Gradient for area fill */}
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1e3a6e" stopOpacity="0.3" />
+          <stop offset="0%" stopColor="#d4a853" stopOpacity="0.15" />
+          <stop offset="35%" stopColor="#1e3a6e" stopOpacity="0.2" />
           <stop offset="100%" stopColor="#1e3a6e" stopOpacity="0.02" />
         </linearGradient>
+
+        {/* Glow filter for hovered dots */}
+        <filter id="dotGlow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
 
         {/* Clip path for draw-in animation */}
         <clipPath id={clipId}>
@@ -162,7 +156,7 @@ export default function StatsChart({ data }: StatsChartProps) {
             y1={y}
             x2={padding.left + chartW}
             y2={y}
-            stroke="#e5e7eb"
+            stroke="rgba(255,255,255,0.06)"
             strokeWidth="0.5"
             strokeDasharray="4 4"
           />
@@ -180,7 +174,7 @@ export default function StatsChart({ data }: StatsChartProps) {
       <path
         d={linePath}
         fill="none"
-        stroke="#1e3a6e"
+        stroke="#d4a853"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -195,9 +189,10 @@ export default function StatsChart({ data }: StatsChartProps) {
           cy={pt.y}
           r={tooltip?.x === pt.x ? 5 : 3.5}
           fill="#ffffff"
-          stroke="#1e3a6e"
+          stroke="#d4a853"
           strokeWidth="2"
           clipPath={`url(#${clipId})`}
+          filter={tooltip?.x === pt.x ? 'url(#dotGlow)' : undefined}
           style={{ transition: 'r 0.15s ease' }}
         />
       ))}
@@ -225,10 +220,10 @@ export default function StatsChart({ data }: StatsChartProps) {
             y1={padding.top}
             x2={tooltip.x}
             y2={padding.top + chartH}
-            stroke="#1e3a6e"
+            stroke="#d4a853"
             strokeWidth="0.75"
             strokeDasharray="3 3"
-            opacity="0.4"
+            opacity="0.3"
           />
 
           {/* Tooltip background */}
@@ -239,11 +234,13 @@ export default function StatsChart({ data }: StatsChartProps) {
             height="22"
             rx="6"
             fill="#1e3a6e"
+            opacity="0.95"
           />
           {/* Tooltip arrow */}
           <polygon
             points={`${tooltip.x - 4},${tooltip.y - 8} ${tooltip.x + 4},${tooltip.y - 8} ${tooltip.x},${tooltip.y - 3}`}
             fill="#1e3a6e"
+            opacity="0.95"
           />
           {/* Tooltip text */}
           <text

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withRole } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { decryptJson } from '@/lib/crypto/encrypt'
-import { scrapeSupanat, type SunatSolData } from '@/lib/integrations/sunat-sol-scraper'
+import { scrapeSupanat } from '@/lib/integrations/sunat-sol-scraper'
 import { rateLimit } from '@/lib/rate-limit'
 
 interface SolCredentials {
@@ -85,7 +85,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
   }
 
   // ── Cross-reference workers ───────────────────────────────────────
-  let workerSync = { matched: 0, newFromSunat: 0, notInSunat: 0 }
+  const workerSync = { matched: 0, newFromSunat: 0, notInSunat: 0 }
 
   if (data.workers.length > 0) {
     const existingWorkers = await prisma.worker.findMany({

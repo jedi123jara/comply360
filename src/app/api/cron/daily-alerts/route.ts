@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { alertEmail } from '@/lib/email/templates'
+import { sendPushToOrg } from '@/lib/notifications/web-push-server'
 
 // ==============================================
 // GET /api/cron/daily-alerts
@@ -32,61 +33,120 @@ export async function GET(request: NextRequest) {
     const in15Days = new Date(now)
     in15Days.setDate(in15Days.getDate() + 15)
 
+    // Errores por seccion — si una query falla, los contadores se quedan en 0
+    // pero el resto del cron sigue corriendo. Evita que un fallo en SST tumbe
+    // los emails de contratos (o viceversa).
+    const sectionErrors: string[] = []
+
+    // ------------------------------------------------
+    // 0. Auto-mark contracts as EXPIRED when expiresAt < now
+    //    Runs before emails so email counts are accurate.
+    // ------------------------------------------------
+    let expiredCount = 0
+    try {
+      const expiredResult = await prisma.contract.updateMany({
+        where: {
+          expiresAt: { lt: now },
+          status: { in: ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED'] },
+        },
+        data: { status: 'EXPIRED' },
+      })
+      expiredCount = expiredResult.count
+      if (expiredCount > 0) {
+        console.log(`[daily-alerts] Auto-marked ${expiredCount} contracts as EXPIRED`)
+      }
+    } catch (err) {
+      sectionErrors.push('autoExpire: ' + (err instanceof Error ? err.message : String(err)))
+      console.error('[daily-alerts] auto-expire failed:', err)
+    }
+
     // ------------------------------------------------
     // 1. Contracts expiring within 7 days
     // ------------------------------------------------
-    const expiringContracts = await prisma.contract.findMany({
-      where: {
-        expiresAt: {
-          gte: now,
-          lte: in7Days,
+    type ExpiringContract = {
+      id: string
+      title: string
+      expiresAt: Date | null
+      orgId: string
+      organization: { id: string; name: string; alertEmail: string | null }
+    }
+    let expiringContracts: ExpiringContract[] = []
+    try {
+      expiringContracts = await prisma.contract.findMany({
+        where: {
+          expiresAt: {
+            gte: now,
+            lte: in7Days,
+          },
+          status: { in: ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED'] },
         },
-        status: { in: ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED'] },
-      },
-      select: {
-        id: true,
-        title: true,
-        expiresAt: true,
-        orgId: true,
-        organization: {
-          select: { id: true, name: true, alertEmail: true },
+        select: {
+          id: true,
+          title: true,
+          expiresAt: true,
+          orgId: true,
+          organization: {
+            select: { id: true, name: true, alertEmail: true },
+          },
         },
-      },
-    })
+      })
+    } catch (err) {
+      sectionErrors.push('expiringContracts: ' + (err instanceof Error ? err.message : String(err)))
+      console.error('[daily-alerts] expiring contracts query failed:', err)
+    }
 
     // ------------------------------------------------
     // 2. Overdue SST records
     // ------------------------------------------------
-    const overdueSst = await prisma.sstRecord.findMany({
-      where: {
-        status: { in: ['PENDING', 'IN_PROGRESS'] },
-        dueDate: { lt: now },
-      },
-      select: {
-        id: true,
-        title: true,
-        type: true,
-        dueDate: true,
-        orgId: true,
-      },
-    })
+    type OverdueSstRow = {
+      id: string
+      title: string
+      type: string
+      dueDate: Date | null
+      orgId: string
+    }
+    let overdueSst: OverdueSstRow[] = []
+    try {
+      const rows = await prisma.sstRecord.findMany({
+        where: {
+          status: { in: ['PENDING', 'IN_PROGRESS'] },
+          dueDate: { lt: now },
+        },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          dueDate: true,
+          orgId: true,
+        },
+      })
+      overdueSst = rows.map((r) => ({ ...r, type: String(r.type) }))
+    } catch (err) {
+      sectionErrors.push('overdueSst: ' + (err instanceof Error ? err.message : String(err)))
+      console.error('[daily-alerts] overdue SST query failed:', err)
+    }
 
     // To get the org alertEmail for SST records (no direct relation),
     // collect unique orgIds and fetch orgs
     const sstOrgIds = [...new Set(overdueSst.map((r) => r.orgId))]
-    const sstOrgs = sstOrgIds.length > 0
-      ? await prisma.organization.findMany({
+    let sstOrgs: { id: string; name: string; alertEmail: string | null }[] = []
+    if (sstOrgIds.length > 0) {
+      try {
+        sstOrgs = await prisma.organization.findMany({
           where: { id: { in: sstOrgIds } },
           select: { id: true, name: true, alertEmail: true },
         })
-      : []
+      } catch (err) {
+        sectionErrors.push('sstOrgs: ' + (err instanceof Error ? err.message : String(err)))
+        console.error('[daily-alerts] sst orgs query failed:', err)
+      }
+    }
     const sstOrgMap = new Map(sstOrgs.map((o) => [o.id, o]))
 
     // ------------------------------------------------
     // 3. Pending CTS deposits — within 15 days of May/Nov deadline
     //    CTS deadlines: May 15 and November 15 each year
     // ------------------------------------------------
-    const currentMonth = now.getMonth() // 0-indexed
     const currentYear = now.getFullYear()
 
     let ctsDeadline: Date | null = null
@@ -111,39 +171,64 @@ export async function GET(request: NextRequest) {
     // who haven't had CTS calculated yet
     let ctsOrgs: { id: string; name: string; alertEmail: string | null; workerCount: number }[] = []
     if (ctsDeadline) {
-      const orgsWithWorkers = await prisma.organization.findMany({
-        where: {
-          workers: {
-            some: { status: 'ACTIVE' },
+      try {
+        const orgsWithWorkers = await prisma.organization.findMany({
+          where: {
+            workers: {
+              some: { status: 'ACTIVE' },
+            },
           },
-        },
-        select: {
-          id: true,
-          name: true,
-          alertEmail: true,
-          _count: { select: { workers: { where: { status: 'ACTIVE' } } } },
-        },
-      })
-      ctsOrgs = orgsWithWorkers.map((o) => ({
-        id: o.id,
-        name: o.name,
-        alertEmail: o.alertEmail,
-        workerCount: o._count.workers,
-      }))
+          select: {
+            id: true,
+            name: true,
+            alertEmail: true,
+            _count: { select: { workers: { where: { status: 'ACTIVE' } } } },
+          },
+        })
+        ctsOrgs = orgsWithWorkers.map((o) => ({
+          id: o.id,
+          name: o.name,
+          alertEmail: o.alertEmail,
+          workerCount: o._count.workers,
+        }))
+      } catch (err) {
+        sectionErrors.push('ctsOrgs: ' + (err instanceof Error ? err.message : String(err)))
+        console.error('[daily-alerts] cts orgs query failed:', err)
+      }
     }
 
     // ------------------------------------------------
     // 4. Complaint deadline alerts
     //    3 days: proteccion, 30 days: investigacion, 5 days: resolucion
     // ------------------------------------------------
-    const openComplaints = await prisma.complaint.findMany({
-      where: {
-        status: { in: ['RECEIVED', 'UNDER_REVIEW', 'INVESTIGATING', 'PROTECTION_APPLIED'] },
-      },
-      include: {
-        organization: { select: { id: true, name: true, alertEmail: true } },
-      },
-    })
+    type OpenComplaint = {
+      id: string
+      code: string
+      status: string
+      receivedAt: Date
+      organization: { id: string; name: string; alertEmail: string | null }
+    }
+    let openComplaints: OpenComplaint[] = []
+    try {
+      const rows = await prisma.complaint.findMany({
+        where: {
+          status: { in: ['RECEIVED', 'UNDER_REVIEW', 'INVESTIGATING', 'PROTECTION_APPLIED'] },
+        },
+        include: {
+          organization: { select: { id: true, name: true, alertEmail: true } },
+        },
+      })
+      openComplaints = rows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        status: String(r.status),
+        receivedAt: r.receivedAt,
+        organization: r.organization,
+      }))
+    } catch (err) {
+      sectionErrors.push('openComplaints: ' + (err instanceof Error ? err.message : String(err)))
+      console.error('[daily-alerts] complaints query failed:', err)
+    }
 
     const complaintAlerts: { orgId: string; email: string | null; orgName: string; title: string; desc: string; due: string }[] = []
     for (const c of openComplaints) {
@@ -254,45 +339,80 @@ export async function GET(request: NextRequest) {
     let emailsFailed = 0
 
     for (const [, orgData] of orgAlerts) {
-      const firstAlert = orgData.alerts[0]
-      const totalAlerts = orgData.alerts.length
+      try {
+        const firstAlert = orgData.alerts[0]
+        const totalAlerts = orgData.alerts.length
 
-      // Build description including all alerts if more than one
-      let description = firstAlert.description
-      if (totalAlerts > 1) {
-        const extraLines = orgData.alerts
-          .slice(1)
-          .map((a) => `- ${a.title}: ${a.description}`)
-          .join('<br>')
-        description += `<br><br>Ademas tiene ${totalAlerts - 1} alerta(s) adicional(es):<br>${extraLines}`
+        // Build description including all alerts if more than one
+        let description = firstAlert.description
+        if (totalAlerts > 1) {
+          const extraLines = orgData.alerts
+            .slice(1)
+            .map((a) => `- ${a.title}: ${a.description}`)
+            .join('<br>')
+          description += `<br><br>Ademas tiene ${totalAlerts - 1} alerta(s) adicional(es):<br>${extraLines}`
+        }
+
+        const html = alertEmail(
+          `${totalAlerts} Alerta(s) de Cumplimiento`,
+          description,
+          firstAlert.dueDate
+        )
+
+        const sent = await sendEmail({
+          to: orgData.email,
+          subject: `[COMPLY360] ${totalAlerts} alerta(s) de cumplimiento para ${orgData.orgName}`,
+          html,
+        })
+
+        if (sent) emailsSent++
+        else emailsFailed++
+      } catch (err) {
+        emailsFailed++
+        console.error(`[daily-alerts] email to org failed (${orgData.email}):`, err)
       }
+    }
 
-      const html = alertEmail(
-        `${totalAlerts} Alerta(s) de Cumplimiento`,
-        description,
-        firstAlert.dueDate
-      )
-
-      const sent = await sendEmail({
-        to: orgData.email,
-        subject: `[COMPLY360] ${totalAlerts} alerta(s) de cumplimiento para ${orgData.orgName}`,
-        html,
-      })
-
-      if (sent) emailsSent++
-      else emailsFailed++
+    // ------------------------------------------------
+    // Push notifications para alertas críticas (Fase D Sprint 5)
+    // Solo se dispara para orgs con ≥ 1 alerta CRITICAL/HIGH y usuarios
+    // con pushSubscription activa. No bloquea el return si falla.
+    // ------------------------------------------------
+    let pushesSent = 0
+    let pushesFailed = 0
+    for (const [orgId, orgData] of orgAlerts) {
+      // Identifica la alerta más urgente para el payload
+      const top = orgData.alerts[0]
+      if (!top) continue
+      try {
+        const result = await sendPushToOrg(orgId, {
+          title: `${orgData.alerts.length} alerta(s) críticas`,
+          body: top.title,
+          url: '/dashboard/alertas',
+          tag: `daily-${orgId}`,
+          severity: 'CRITICAL',
+        })
+        pushesSent += result.sent
+        pushesFailed += result.failed
+      } catch {
+        pushesFailed += 1
+      }
     }
 
     return NextResponse.json({
       ok: true,
       summary: {
+        contractsAutoExpired: expiredCount,
         expiringContracts: expiringContracts.length,
         overdueSst: overdueSst.length,
         ctsDeadlineActive: ctsDeadline !== null,
         complaintDeadlineAlerts: complaintAlerts.length,
         orgsNotified: orgAlerts.size,
+        sectionErrors: sectionErrors.length > 0 ? sectionErrors : undefined,
         emailsSent,
         emailsFailed,
+        pushesSent,
+        pushesFailed,
       },
     })
   } catch (error) {

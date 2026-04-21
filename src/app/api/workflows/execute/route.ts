@@ -4,6 +4,8 @@
 /* ================================================================== */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAuth } from '@/lib/api-auth'
+import type { AuthContext } from '@/lib/auth'
 import {
   workflowEngine,
   type WorkflowDefinition,
@@ -256,17 +258,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 /* ------------------------------------------------------------------ */
-/*  GET – List workflow executions                                     */
+/*  GET – List workflow executions (solo del org autenticado)         */
 /* ------------------------------------------------------------------ */
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   seedDemoData()
 
   try {
     const { searchParams } = new URL(req.url)
     const workflowId = searchParams.get('workflowId') ?? undefined
-    const orgId = searchParams.get('orgId') ?? undefined
     const status = (searchParams.get('status') as ExecutionStatus) ?? undefined
+    // orgId viene del AuthContext — NUNCA del query string (multi-tenant safety)
+    const orgId = ctx.orgId
 
     const executions = workflowEngine.listExecutions({ workflowId, orgId, status })
     const workflows = workflowEngine.listWorkflows(orgId)
@@ -289,4 +292,4 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       { status: 500 },
     )
   }
-}
+})

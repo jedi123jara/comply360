@@ -96,6 +96,7 @@ export function GettingStartedGuide() {
     if (typeof window !== 'undefined') {
       const d = localStorage.getItem(DISMISS_KEY)
       if (d === 'true') {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Hidratación desde localStorage; migrar a useSyncExternalStore.
         setDismissed(true)
         setLoading(false)
         return
@@ -236,7 +237,7 @@ export function GettingStartedGuide() {
                 key={step.key}
                 className={cn(
                   'relative flex items-center gap-3 rounded-xl p-3.5 transition-all border',
-                  isCompleted && 'bg-emerald-500/15 border-emerald-400/40',
+                  isCompleted && 'bg-emerald-50 border-emerald-400/40',
                   isActive && 'bg-gold/15 border-gold/50 shadow-lg shadow-gold/10',
                   isFuture && 'bg-white/5 border-white/10 opacity-55'
                 )}
@@ -274,7 +275,7 @@ export function GettingStartedGuide() {
                       </span>
                     )}
                     {isCompleted && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/30 text-emerald-200 rounded-full uppercase tracking-wide">
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-200 text-emerald-200 rounded-full uppercase tracking-wide">
                         Listo
                       </span>
                     )}

@@ -17,7 +17,7 @@ export default function CTSPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 text-gray-400 mb-2">
+          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
             <span>Calculadoras</span>
             <span>/</span>
             <span className="text-primary font-medium">CTS</span>
@@ -25,21 +25,21 @@ export default function CTSPage() {
           <h1 className="text-2xl font-bold text-white">
             Calculadora de CTS
           </h1>
-          <p className="text-gray-500 text-gray-400 mt-1 text-sm">
+          <p className="text-gray-400 mt-1 text-sm">
             Compensación por Tiempo de Servicios semestral según el D.S. 001-97-TR.
             Incluye asignación familiar y 1/6 de gratificación.
           </p>
         </div>
 
         {/* Mode toggle */}
-        <div className="flex gap-1 bg-white/[0.04] bg-[#141824] rounded-xl p-1 border border-white/[0.08] self-start">
+        <div className="flex gap-1 bg-[color:var(--neutral-100)] bg-white rounded-xl p-1 border border-white/[0.08] self-start">
           <button
             onClick={() => setMode('individual')}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors',
               mode === 'individual'
-                ? 'bg-[#141824] bg-white/[0.04] text-white shadow-sm'
-                : 'text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-200',
+                ? 'bg-white bg-[color:var(--neutral-100)] text-white shadow-sm'
+                : 'text-gray-400 hover:text-slate-200',
             )}
           >
             <User className="w-4 h-4" />
@@ -50,8 +50,8 @@ export default function CTSPage() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors',
               mode === 'masivo'
-                ? 'bg-[#141824] bg-white/[0.04] text-white shadow-sm'
-                : 'text-gray-500 text-gray-400 hover:text-gray-300 hover:text-slate-200',
+                ? 'bg-white bg-[color:var(--neutral-100)] text-white shadow-sm'
+                : 'text-gray-400 hover:text-slate-200',
             )}
           >
             <Users className="w-4 h-4" />

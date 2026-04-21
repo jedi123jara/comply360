@@ -1,83 +1,110 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Building2,
   Scale,
   Bell,
-  CheckCircle,
+  CheckCircle2,
   ArrowRight,
   ArrowLeft,
   Loader2,
-  Sparkles,
   Rocket,
   AlertTriangle,
   Check,
   X,
+  ShieldCheck,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+/**
+ * OnboardingWizard v3 — "Stripe Onboarding".
+ *
+ * Fondo blanco, stepper horizontal limpio, cards blancas con sombra suave,
+ * verde emerald como acento. Microinteracciones discretas, sin gradientes
+ * saturados ni fondos verdes pesados.
+ *
+ * Mantiene toda la lógica del original:
+ *   - Lookup SUNAT automático (debounced 500ms)
+ *   - Auto-detección de sector por actividad económica
+ *   - Sugerencia de régimen según tamaño de empresa
+ *   - Upload manual de Ficha RUC como fallback
+ *   - Validación paso a paso
+ *   - Persistencia vía /api/onboarding
+ */
 
 const SECTORS = [
   { value: 'COMERCIO', label: 'Comercio' },
   { value: 'SERVICIOS', label: 'Servicios' },
   { value: 'MANUFACTURA', label: 'Manufactura' },
-  { value: 'CONSTRUCCION', label: 'Construccion' },
-  { value: 'MINERIA', label: 'Mineria' },
+  { value: 'CONSTRUCCION', label: 'Construcción' },
+  { value: 'MINERIA', label: 'Minería' },
   { value: 'AGROINDUSTRIA', label: 'Agroindustria' },
   { value: 'PESCA', label: 'Pesca' },
   { value: 'TEXTIL', label: 'Textil y Confecciones' },
-  { value: 'TECNOLOGIA', label: 'Tecnologia' },
-  { value: 'EDUCACION', label: 'Educacion' },
+  { value: 'TECNOLOGIA', label: 'Tecnología' },
+  { value: 'EDUCACION', label: 'Educación' },
   { value: 'SALUD', label: 'Salud' },
-  { value: 'TRANSPORTE', label: 'Transporte y Logistica' },
-  { value: 'HOTELERIA', label: 'Hoteleria y Turismo' },
+  { value: 'TRANSPORTE', label: 'Transporte y Logística' },
+  { value: 'HOTELERIA', label: 'Hotelería y Turismo' },
   { value: 'OTRO', label: 'Otro' },
 ] as const
 
 const SIZE_RANGES = [
   { value: '1-10', label: '1 a 10 trabajadores', hint: 'Microempresa' },
-  { value: '11-50', label: '11 a 50 trabajadores', hint: 'Pequena empresa' },
-  { value: '51-100', label: '51 a 100 trabajadores', hint: 'Pequena empresa' },
+  { value: '11-50', label: '11 a 50 trabajadores', hint: 'Pequeña empresa' },
+  { value: '51-100', label: '51 a 100 trabajadores', hint: 'Pequeña empresa' },
   { value: '101-200', label: '101 a 200 trabajadores', hint: 'Mediana empresa' },
-  { value: '200+', label: 'Mas de 200 trabajadores', hint: 'Gran empresa' },
+  { value: '200+', label: 'Más de 200 trabajadores', hint: 'Gran empresa' },
 ] as const
 
 const REGIMENES = [
   {
     value: 'GENERAL',
-    label: 'Regimen General',
-    description: 'D.Leg. 728 — CTS, gratificaciones, vacaciones 30 dias',
-    hint: 'La mayoria de empresas',
+    label: 'Régimen General',
+    description: 'D.Leg. 728 — CTS, gratificaciones, vacaciones 30 días',
+    hint: 'La mayoría de empresas',
   },
   {
     value: 'MYPE_MICRO',
     label: 'MYPE Microempresa',
-    description: 'Ley 32353 — Sin CTS ni gratificaciones, vacaciones 15 dias',
+    description: 'Ley 32353 — Sin CTS ni gratificaciones, vacaciones 15 días',
     hint: 'Hasta 10 trabajadores y ventas < 150 UIT',
   },
   {
     value: 'MYPE_PEQUENA',
-    label: 'MYPE Pequena Empresa',
-    description: 'Ley 32353 — 50% CTS y gratificaciones, vacaciones 15 dias',
+    label: 'MYPE Pequeña Empresa',
+    description: 'Ley 32353 — 50% CTS y gratificaciones, vacaciones 15 días',
     hint: 'Hasta 100 trabajadores y ventas < 1700 UIT',
   },
   {
     value: 'AGRARIO',
-    label: 'Regimen Agrario',
-    description: 'Ley 31110 — CTS y gratificacion incluidas en remuneracion diaria',
+    label: 'Régimen Agrario',
+    description: 'Ley 31110 — CTS y gratificación incluidas en remuneración diaria',
     hint: 'Empresas del sector agrario',
   },
   {
     value: 'CONSTRUCCION_CIVIL',
-    label: 'Construccion Civil',
-    description: 'Regimen especial con jornal diario y beneficios diferenciados',
-    hint: 'Empresas de construccion',
+    label: 'Construcción Civil',
+    description: 'Régimen especial con jornal diario y beneficios diferenciados',
+    hint: 'Empresas de construcción',
   },
   {
     value: 'OTRO',
-    label: 'Otro regimen',
-    description: 'Minero, pesquero, textil exportacion, domestico, CAS, etc.',
-    hint: 'Selecciona si tu regimen no esta listado arriba',
+    label: 'Otro régimen',
+    description: 'Minero, pesquero, textil exportación, doméstico, CAS, etc.',
+    hint: 'Selecciona si tu régimen no está listado arriba',
   },
 ] as const
 
@@ -99,22 +126,28 @@ const INITIAL_FORM: FormData = {
   alertEmail: '',
 }
 
+const STEPS = [
+  { title: 'Datos de empresa', description: 'RUC, razón social y sector', icon: Building2 },
+  { title: 'Régimen laboral', description: 'Define beneficios y obligaciones', icon: Scale },
+  { title: 'Alertas', description: '¿A dónde enviamos los recordatorios?', icon: Bell },
+  { title: 'Confirmación', description: 'Revisa y comienza', icon: ShieldCheck },
+] as const
+
 export function OnboardingWizard() {
+  const router = useRouter()
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [step, setStep] = useState(0) // 0-3
+  const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormData>(INITIAL_FORM)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [done, setDone] = useState(false)
 
-  // RUC lookup state
   const [rucLookupStatus, setRucLookupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [rucLookupMessage, setRucLookupMessage] = useState('')
   const rucLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastLookedUpRuc = useRef('')
 
-  // Debounced SUNAT RUC lookup
   const lookupRuc = useCallback(async (ruc: string) => {
     if (lastLookedUpRuc.current === ruc) return
     lastLookedUpRuc.current = ruc
@@ -134,7 +167,6 @@ export function OnboardingWizard() {
 
       const data = json.data
       if (data?.razonSocial) {
-        // Auto-detect sector from SUNAT's actividad economica
         const actEcon = (data.actividadEconomica || '').toLowerCase()
         let detectedSector = ''
         if (actEcon.includes('comerci')) detectedSector = 'COMERCIO'
@@ -158,7 +190,7 @@ export function OnboardingWizard() {
         }))
         setErrors(prev => ({ ...prev, razonSocial: undefined, sector: undefined }))
         setRucLookupStatus('success')
-        setRucLookupMessage(`${data.razonSocial}${data.estado ? ` — ${data.estado}` : ''}${data.condicion ? ` (${data.condicion})` : ''}`)
+        setRucLookupMessage(`${data.razonSocial}${data.estado ? ` · ${data.estado}` : ''}${data.condicion ? ` (${data.condicion})` : ''}`)
       } else {
         setRucLookupStatus('error')
         setRucLookupMessage('RUC no encontrado')
@@ -169,17 +201,14 @@ export function OnboardingWizard() {
     }
   }, [])
 
-  // Watch RUC field and trigger debounced lookup
   useEffect(() => {
     const ruc = form.ruc.trim()
 
-    // Clear timer on every change
     if (rucLookupTimer.current) {
       clearTimeout(rucLookupTimer.current)
       rucLookupTimer.current = null
     }
 
-    // Reset status if RUC is incomplete
     if (ruc.length !== 11) {
       if (rucLookupStatus !== 'idle') {
         setRucLookupStatus('idle')
@@ -189,7 +218,6 @@ export function OnboardingWizard() {
       return
     }
 
-    // Only lookup if starts with valid prefix (10, 15, 17, 20, 30)
     const prefix = ruc.substring(0, 2)
     if (!['10', '15', '17', '20', '30'].includes(prefix)) {
       setRucLookupStatus('idle')
@@ -197,10 +225,8 @@ export function OnboardingWizard() {
       return
     }
 
-    // Skip if already looked up this RUC
     if (lastLookedUpRuc.current === ruc) return
 
-    // Debounce 500ms
     rucLookupTimer.current = setTimeout(() => {
       lookupRuc(ruc)
     }, 500)
@@ -210,10 +236,9 @@ export function OnboardingWizard() {
         clearTimeout(rucLookupTimer.current)
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.ruc, lookupRuc])
 
-  // Check onboarding status on mount
   useEffect(() => {
     fetch('/api/onboarding')
       .then(res => res.json())
@@ -221,7 +246,6 @@ export function OnboardingWizard() {
         if (!d.onboardingCompleted) {
           setShow(true)
         }
-        // Pre-fill if org data exists
         if (d.org) {
           setForm(prev => ({
             ...prev,
@@ -245,7 +269,6 @@ export function OnboardingWizard() {
     setErrors(prev => ({ ...prev, [field]: undefined }))
   }
 
-  // Auto-suggest regime based on size — fix stale closure by merging in one setForm
   const handleSizeChange = (size: string) => {
     setForm(prev => {
       const next = { ...prev, sizeRange: size }
@@ -260,17 +283,14 @@ export function OnboardingWizard() {
   }
 
   const nextStep = () => {
-    // Validate inline against the *current* form state (avoid stale closure issues)
     const newErrors: Partial<Record<keyof FormData, string>> = {}
     if (step === 0) {
       if (!form.razonSocial.trim()) newErrors.razonSocial = 'Requerido'
       if (!form.ruc.trim()) newErrors.ruc = 'Requerido'
-      else if (!/^\d{11}$/.test(form.ruc.trim())) newErrors.ruc = 'Debe tener 11 digitos'
+      else if (!/^\d{11}$/.test(form.ruc.trim())) newErrors.ruc = 'Debe tener 11 dígitos'
       if (!form.sector) newErrors.sector = 'Requerido'
       if (!form.sizeRange) newErrors.sizeRange = 'Requerido'
     }
-    // Debug: ver en consola del navegador si el botón responde y qué falla
-    console.log('[COMPLY360] Siguiente → step:', step, '| form:', form, '| errors:', newErrors)
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
@@ -298,12 +318,34 @@ export function OnboardingWizard() {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Error al guardar')
+        const err = await res.json().catch(() => ({}))
+        const msg = err.error || 'Error al guardar. Intenta de nuevo.'
+        // Si el RUC choca con otra org, mostrar el error en el campo RUC
+        if (res.status === 409 && /ruc/i.test(msg)) {
+          setErrors({ ruc: msg })
+          setStep(0)
+        } else {
+          setErrors({ razonSocial: msg })
+          setStep(0)
+        }
+        return
       }
 
       setDone(true)
-      setTimeout(() => setShow(false), 2500)
+
+      // Auto-activar trial PRO 14 días sin tarjeta (best-effort, no bloquea si falla).
+      // Si ya usó trial antes (409), seguirá con STARTER — no es crítico.
+      fetch('/api/trial/start', { method: 'POST' })
+        .then(() => console.log('[onboarding] trial PRO auto-activated'))
+        .catch(() => console.log('[onboarding] trial activation skipped'))
+
+      // Dar tiempo a que el usuario vea el estado "¡listo!" y luego redirigir
+      // al dashboard. Evita que se quede con la página en blanco.
+      setTimeout(() => {
+        setShow(false)
+        router.push('/dashboard?welcome=trial')
+        router.refresh()
+      }, 2000)
     } catch (err) {
       console.error('Onboarding submit error:', err)
       setErrors({ razonSocial: 'Error al guardar. Intenta de nuevo.' })
@@ -313,80 +355,74 @@ export function OnboardingWizard() {
     }
   }
 
-  const STEPS = [
-    { title: 'Datos de empresa', icon: Building2 },
-    { title: 'Regimen laboral', icon: Scale },
-    { title: 'Alertas', icon: Bell },
-    { title: 'Confirmacion', icon: CheckCircle },
-  ]
-
-  // Success state
+  // ── Success state (Stripe-style: limpio, verde acento sutil) ─────────
   if (done) {
     return (
-      <div className="relative bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-2xl p-8 text-white text-center overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-        <Rocket className="w-12 h-12 mx-auto mb-3 text-yellow-300" />
-        <h3 className="text-xl font-bold mb-1">Tu empresa esta configurada</h3>
-        <p className="text-white/80 text-sm">Ya puedes empezar a usar COMPLY360. Bienvenido.</p>
-      </div>
+      <Card padding="xl" className="max-w-xl mx-auto text-center motion-fade-in-up">
+        <div className="flex flex-col items-center gap-4 py-4">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200">
+            <Rocket className="h-7 w-7 text-emerald-600" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold tracking-tight text-[color:var(--text-primary)]">
+              Todo listo
+            </h3>
+            <p className="mt-2 text-sm text-[color:var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
+              Tu empresa está configurada. Ya puedes empezar a usar COMPLY360.
+            </p>
+          </div>
+        </div>
+      </Card>
     )
   }
 
+  // ── Wizard body (Stripe-style: blanco, stepper horizontal, card limpia) ──
   return (
-    <div className="relative bg-gradient-to-r from-primary via-primary-light to-primary rounded-2xl p-6 text-white overflow-hidden">
-      <div className="pointer-events-none absolute top-0 right-0 w-64 h-64 bg-gold/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
-
-      <div className="relative">
+    <div className="min-h-[calc(100vh-var(--topbar-height))] flex items-start justify-center py-6">
+      <div className="w-full max-w-3xl space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <Sparkles className="w-6 h-6 text-gold" />
-          <div>
-            <h3 className="text-lg font-bold">Configura tu empresa</h3>
-            <p className="text-sm text-white/70">Completa estos datos para personalizar tu experiencia</p>
+        <header className="text-center space-y-2 motion-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+            <span className="text-xs font-medium text-emerald-700">
+              Configuración inicial
+            </span>
           </div>
-        </div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[color:var(--text-primary)]">
+            Bienvenido a COMPLY360
+          </h1>
+          <p className="text-sm md:text-base text-[color:var(--text-secondary)] max-w-xl mx-auto">
+            Cuéntanos sobre tu empresa para personalizar alertas, calendario
+            de obligaciones y el régimen laboral aplicable.
+          </p>
+        </header>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-6">
-          {STEPS.map((s, i) => {
-            const Icon = s.icon
-            return (
-              <div key={i} className="flex items-center gap-2 flex-1">
-                <div
-                  className={cn(
-                    'flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all',
-                    i < step ? 'bg-gold text-primary' :
-                    i === step ? 'bg-[#141824] text-primary' :
-                    'bg-white/20 text-white/50'
-                  )}
-                >
-                  {i < step ? <CheckCircle className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
-                </div>
-                <span className={cn(
-                  'text-xs font-medium hidden sm:block',
-                  i <= step ? 'text-white' : 'text-white/40'
-                )}>
-                  {s.title}
-                </span>
-                {i < STEPS.length - 1 && (
-                  <div className={cn(
-                    'flex-1 h-0.5 rounded-full',
-                    i < step ? 'bg-gold' : 'bg-white/20'
-                  )} />
-                )}
-              </div>
-            )
-          })}
-        </div>
+        {/* Stepper */}
+        <Stepper step={step} />
 
-        {/* Step content */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 mb-4 min-h-[200px]">
-          {/* STEP 0: Company data */}
+        {/* Content card */}
+        <Card
+          padding="xl"
+          variant="elevated"
+          accentBar="emerald"
+          className="motion-fade-in-up overflow-hidden"
+        >
+          <div className="space-y-1 mb-6">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[color:var(--text-tertiary)]">
+              Paso {step + 1} de {STEPS.length}
+            </p>
+            <h2 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
+              {STEPS[step].title}
+            </h2>
+            <p className="text-sm text-[color:var(--text-secondary)]">
+              {STEPS[step].description}
+            </p>
+          </div>
+
+          {/* STEP 0 — Company data */}
           {step === 0 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">Razon Social *</label>
+            <div className="space-y-5">
+              <Field label="Razón social" required error={errors.razonSocial}>
                 <input
                   type="text"
                   id="razon-social"
@@ -394,15 +430,27 @@ export function OnboardingWizard() {
                   value={form.razonSocial}
                   onChange={e => updateField('razonSocial', e.target.value)}
                   placeholder="Ej: Inversiones ABC S.A.C."
-                  className={cn(
-                    'w-full px-3 py-2.5 rounded-lg bg-white/10 border text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50',
-                    errors.razonSocial ? 'border-red-400' : 'border-white/20'
-                  )}
+                  className={cn('w-full text-sm', inputCls(!!errors.razonSocial))}
                 />
-                {errors.razonSocial && <p className="text-xs text-red-300 mt-1">{errors.razonSocial}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">RUC *</label>
+              </Field>
+
+              <Field
+                label="RUC"
+                required
+                error={errors.ruc}
+                hint={
+                  rucLookupStatus === 'loading'
+                    ? 'Consultando SUNAT…'
+                    : rucLookupStatus === 'success'
+                      ? `Validado: ${rucLookupMessage}`
+                      : rucLookupStatus === 'error'
+                        ? rucLookupMessage
+                        : 'Te lo buscamos automáticamente en SUNAT'
+                }
+                hintTone={
+                  rucLookupStatus === 'success' ? 'success' : rucLookupStatus === 'error' ? 'error' : 'muted'
+                }
+              >
                 <div className="relative">
                   <input
                     type="text"
@@ -413,146 +461,136 @@ export function OnboardingWizard() {
                     placeholder="20XXXXXXXXX"
                     maxLength={11}
                     className={cn(
-                      'w-full px-3 py-2.5 pr-10 rounded-lg bg-white/10 border text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50',
-                      errors.ruc ? 'border-red-400' :
-                      rucLookupStatus === 'success' ? 'border-emerald-400' :
-                      rucLookupStatus === 'error' ? 'border-red-400' :
-                      'border-white/20'
+                      'w-full pr-10 text-sm font-mono',
+                      inputCls(!!errors.ruc, rucLookupStatus === 'success' ? 'success' : rucLookupStatus === 'error' ? 'error' : null)
                     )}
                   />
-                  {/* RUC lookup status indicator */}
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     {rucLookupStatus === 'loading' && (
-                      <Loader2 className="w-4 h-4 text-white/60 animate-spin" />
+                      <Loader2 className="w-4 h-4 text-[color:var(--text-tertiary)] animate-spin" />
                     )}
                     {rucLookupStatus === 'success' && (
-                      <Check className="w-4 h-4 text-emerald-400" />
+                      <Check className="w-4 h-4 text-emerald-600" />
                     )}
                     {rucLookupStatus === 'error' && (
-                      <X className="w-4 h-4 text-red-400" />
+                      <X className="w-4 h-4 text-crimson-600" />
                     )}
                   </div>
                 </div>
-                {errors.ruc && <p className="text-xs text-red-300 mt-1">{errors.ruc}</p>}
-                {rucLookupStatus === 'loading' && (
-                  <p className="text-xs text-white/50 mt-1">Consultando SUNAT...</p>
-                )}
-                {rucLookupStatus === 'success' && (
-                  <p className="text-xs text-emerald-300 mt-1 flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Validado con SUNAT: {rucLookupMessage}
-                  </p>
-                )}
-                {rucLookupStatus === 'error' && !errors.ruc && (
-                  <p className="text-xs text-red-300 mt-1">{rucLookupMessage || 'RUC no encontrado'}</p>
-                )}
 
-                {/* Upload Ficha RUC option */}
                 {(rucLookupStatus === 'error' || rucLookupStatus === 'idle') && (
-                  <FichaRucUpload onDataExtracted={(data) => {
-                    setForm(prev => ({
-                      ...prev,
-                      razonSocial: data.razonSocial || prev.razonSocial,
-                      ruc: data.ruc || prev.ruc,
-                      sector: data.sector || prev.sector,
-                    }))
-                    setErrors(prev => ({ ...prev, razonSocial: undefined, ruc: undefined, sector: undefined }))
-                    setRucLookupStatus('success')
-                    setRucLookupMessage(data.razonSocial || 'Datos cargados desde Ficha RUC')
-                  }} />
+                  <FichaRucUpload
+                    onDataExtracted={(data) => {
+                      setForm(prev => ({
+                        ...prev,
+                        razonSocial: data.razonSocial || prev.razonSocial,
+                        ruc: data.ruc || prev.ruc,
+                        sector: data.sector || prev.sector,
+                      }))
+                      setErrors(prev => ({ ...prev, razonSocial: undefined, ruc: undefined, sector: undefined }))
+                      setRucLookupStatus('success')
+                      setRucLookupMessage(data.razonSocial || 'Datos cargados desde Ficha RUC')
+                    }}
+                  />
                 )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">Sector *</label>
-                  <select
-                    value={form.sector}
-                    onChange={e => updateField('sector', e.target.value)}
-                    className={cn(
-                      'w-full px-3 py-2.5 rounded-lg bg-white/10 border text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 [&>option]:text-gray-900',
-                      errors.sector ? 'border-red-400' : 'border-white/20'
-                    )}
-                  >
-                    <option value="">Selecciona...</option>
-                    {SECTORS.map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
-                  {errors.sector && <p className="text-xs text-red-300 mt-1">{errors.sector}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">Tamanio *</label>
-                  <select
-                    value={form.sizeRange}
-                    onChange={e => handleSizeChange(e.target.value)}
-                    className={cn(
-                      'w-full px-3 py-2.5 rounded-lg bg-white/10 border text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 [&>option]:text-gray-900',
-                      errors.sizeRange ? 'border-red-400' : 'border-white/20'
-                    )}
-                  >
-                    <option value="">Selecciona...</option>
-                    {SIZE_RANGES.map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
-                  {errors.sizeRange && <p className="text-xs text-red-300 mt-1">{errors.sizeRange}</p>}
-                </div>
-              </div>
+              </Field>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <Field label="Sector" required error={errors.sector}>
+                  <Select
+                    value={form.sector}
+                    onValueChange={(v) => updateField('sector', v)}
+                  >
+                    <SelectTrigger error={!!errors.sector}>
+                      <SelectValue placeholder="Selecciona…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SECTORS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field label="Tamaño de empresa" required error={errors.sizeRange}>
+                  <Select
+                    value={form.sizeRange}
+                    onValueChange={handleSizeChange}
+                  >
+                    <SelectTrigger error={!!errors.sizeRange}>
+                      <SelectValue placeholder="Selecciona…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SIZE_RANGES.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
             </div>
           )}
 
-          {/* STEP 1: Labor regime */}
+          {/* STEP 1 — Labor regime */}
           {step === 1 && (
             <div className="space-y-3">
-              <p className="text-sm text-white/70 mb-3">
-                Selecciona el regimen laboral principal de tu empresa. Esto determina los beneficios y obligaciones.
-              </p>
               {form.sizeRange === '1-10' && form.regimenPrincipal !== 'MYPE_MICRO' && (
-                <div className="flex items-start gap-2 bg-amber-500/20 rounded-lg p-3 mb-3">
-                  <AlertTriangle className="w-4 h-4 text-amber-300 mt-0.5 shrink-0" />
-                  <p className="text-xs text-amber-200">
-                    Con menos de 10 trabajadores, tu empresa podria acogerse al regimen MYPE Microempresa para reducir costos laborales.
+                <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-800 leading-relaxed">
+                    Con menos de 10 trabajadores, tu empresa podría acogerse al régimen
+                    <strong className="font-semibold"> MYPE Microempresa</strong> para reducir costos laborales.
                   </p>
                 </div>
               )}
-              {REGIMENES.map(r => (
-                <label
-                  key={r.value}
-                  className={cn(
-                    'flex items-start gap-3 rounded-lg p-3 cursor-pointer transition-all border',
-                    form.regimenPrincipal === r.value
-                      ? 'bg-gold/20 border-gold/50'
-                      : 'bg-white/5 border-white/10 hover:bg-white/10'
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="regimen"
-                    value={r.value}
-                    checked={form.regimenPrincipal === r.value}
-                    onChange={e => updateField('regimenPrincipal', e.target.value)}
-                    className="mt-1 accent-yellow-400"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold">{r.label}</p>
-                    <p className="text-xs text-white/60">{r.description}</p>
-                    <p className="text-xs text-gold/80 mt-0.5">{r.hint}</p>
-                  </div>
-                </label>
-              ))}
+              {REGIMENES.map(r => {
+                const selected = form.regimenPrincipal === r.value
+                return (
+                  <label
+                    key={r.value}
+                    className={cn(
+                      'flex items-start gap-3 rounded-lg p-4 cursor-pointer transition-all border',
+                      selected
+                        ? 'bg-emerald-50 border-emerald-300 shadow-[0_0_0_4px_rgba(16,185,129,0.08)]'
+                        : 'bg-white border-[color:var(--border-default)] hover:border-emerald-200 hover:bg-emerald-50/40'
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="regimen"
+                      value={r.value}
+                      checked={selected}
+                      onChange={e => updateField('regimenPrincipal', e.target.value)}
+                      className="mt-1 h-4 w-4 accent-emerald-600"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className={cn('text-sm font-semibold', selected ? 'text-emerald-700' : 'text-[color:var(--text-primary)]')}>
+                        {r.label}
+                      </p>
+                      <p className="text-xs text-[color:var(--text-secondary)] mt-0.5 leading-relaxed">
+                        {r.description}
+                      </p>
+                      <p className="text-[11px] text-[color:var(--text-tertiary)] mt-1 font-medium">
+                        {r.hint}
+                      </p>
+                    </div>
+                  </label>
+                )
+              })}
             </div>
           )}
 
-          {/* STEP 2: Alert config */}
+          {/* STEP 2 — Alert config */}
           {step === 2 && (
-            <div className="space-y-4">
-              <p className="text-sm text-white/70 mb-2">
-                Configura a donde enviamos las alertas de vencimientos, cambios normativos y obligaciones pendientes.
-              </p>
-              <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">
-                  Email del responsable de RRHH
-                </label>
+            <div className="space-y-5">
+              <Field
+                label="Email del responsable de RRHH"
+                hint="Opcional — puedes configurarlo después en Configuración."
+              >
                 <input
                   type="email"
                   id="alert-email"
@@ -560,141 +598,106 @@ export function OnboardingWizard() {
                   value={form.alertEmail}
                   onChange={e => updateField('alertEmail', e.target.value)}
                   placeholder="rrhh@tuempresa.com"
-                  className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50"
+                  className={cn('w-full text-sm', inputCls(false))}
                 />
-                <p className="text-xs text-white/50 mt-1">
-                  Opcional — puedes configurarlo despues en Configuracion.
-                </p>
-              </div>
-              <div className="bg-white/5 rounded-lg p-4 mt-4">
-                <h4 className="text-sm font-semibold mb-2">COMPLY360 te alertara sobre:</h4>
-                <ul className="space-y-2 text-xs text-white/70">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-gold shrink-0" />
-                    Deposito de CTS (15 mayo / 15 noviembre)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-gold shrink-0" />
-                    Pago de gratificaciones (julio / diciembre)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-gold shrink-0" />
-                    Vencimiento de contratos a plazo fijo
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-gold shrink-0" />
-                    Cambios normativos que afectan a tu empresa
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-gold shrink-0" />
-                    Documentos y SCTR por vencer
-                  </li>
+              </Field>
+
+              <div className="rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-4">
+                <h4 className="text-sm font-semibold text-[color:var(--text-primary)] mb-3">
+                  COMPLY360 te alertará sobre:
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  {[
+                    'Depósito de CTS (15 mayo / 15 noviembre)',
+                    'Pago de gratificaciones (julio / diciembre)',
+                    'Vencimiento de contratos a plazo fijo',
+                    'Cambios normativos que afectan a tu empresa',
+                    'Documentos y SCTR por vencer',
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-[color:var(--text-secondary)]">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
           )}
 
-          {/* STEP 3: Confirmation */}
+          {/* STEP 3 — Confirmation */}
           {step === 3 && (
             <div className="space-y-4">
-              <p className="text-sm text-white/70 mb-2">Revisa la informacion antes de continuar:</p>
+              <p className="text-sm text-[color:var(--text-secondary)]">
+                Revisa la información antes de continuar:
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-white/50 mb-0.5">Razon Social</p>
-                  <p className="text-sm font-semibold">{form.razonSocial}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-white/50 mb-0.5">RUC</p>
-                  <p className="text-sm font-semibold">{form.ruc}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-white/50 mb-0.5">Sector</p>
-                  <p className="text-sm font-semibold">
-                    {SECTORS.find(s => s.value === form.sector)?.label || form.sector}
-                  </p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-white/50 mb-0.5">Tamanio</p>
-                  <p className="text-sm font-semibold">
-                    {SIZE_RANGES.find(s => s.value === form.sizeRange)?.label || form.sizeRange}
-                  </p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-white/50 mb-0.5">Regimen Laboral</p>
-                  <p className="text-sm font-semibold">
-                    {REGIMENES.find(r => r.value === form.regimenPrincipal)?.label || form.regimenPrincipal}
-                  </p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-white/50 mb-0.5">Email de alertas</p>
-                  <p className="text-sm font-semibold">{form.alertEmail || 'No configurado'}</p>
-                </div>
+                <ReviewItem label="Razón Social" value={form.razonSocial} />
+                <ReviewItem label="RUC" value={form.ruc} mono />
+                <ReviewItem
+                  label="Sector"
+                  value={SECTORS.find(s => s.value === form.sector)?.label || form.sector}
+                />
+                <ReviewItem
+                  label="Tamaño"
+                  value={SIZE_RANGES.find(s => s.value === form.sizeRange)?.label || form.sizeRange}
+                />
+                <ReviewItem
+                  label="Régimen laboral"
+                  value={REGIMENES.find(r => r.value === form.regimenPrincipal)?.label || form.regimenPrincipal}
+                />
+                <ReviewItem
+                  label="Email de alertas"
+                  value={form.alertEmail || 'No configurado'}
+                  muted={!form.alertEmail}
+                />
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
-        {/* Banner de errores de validación — visible solo cuando hay errores */}
+        {/* Error banner */}
         {Object.keys(errors).filter(k => errors[k as keyof FormData]).length > 0 && (
-          <div className="relative z-10 flex items-start gap-2 bg-red-500/40 border border-red-400 rounded-xl px-4 py-3 mb-3">
-            <AlertTriangle className="w-4 h-4 text-red-200 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-white">Completa todos los campos obligatorios (*)</p>
-              <ul className="mt-1 text-xs text-red-200 space-y-0.5 list-disc list-inside">
-                {(errors.razonSocial) && <li>Razon Social: {errors.razonSocial}</li>}
-                {(errors.ruc) && <li>RUC: {errors.ruc}</li>}
-                {(errors.sector) && <li>Sector: {errors.sector}</li>}
-                {(errors.sizeRange) && <li>Tamaño: {errors.sizeRange}</li>}
+          <div className="flex items-start gap-2.5 rounded-lg border border-crimson-200 bg-crimson-50 px-4 py-3 motion-fade-in-up">
+            <AlertTriangle className="w-4 h-4 text-crimson-600 mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-crimson-700">
+                Completa todos los campos obligatorios
+              </p>
+              <ul className="mt-1 text-xs text-crimson-700/80 space-y-0.5 list-disc list-inside">
+                {errors.razonSocial && <li>Razón Social: {errors.razonSocial}</li>}
+                {errors.ruc && <li>RUC: {errors.ruc}</li>}
+                {errors.sector && <li>Sector: {errors.sector}</li>}
+                {errors.sizeRange && <li>Tamaño: {errors.sizeRange}</li>}
               </ul>
             </div>
           </div>
         )}
 
-        {/* Navigation buttons — relative z-10 para evitar que elementos absolutos los cubran */}
-        <div className="relative z-10 flex items-center justify-between">
-          <button
-            type="button"
+        {/* Navigation */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="md"
             onClick={prevStep}
             disabled={step === 0}
-            className={cn(
-              'flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-              step === 0
-                ? 'opacity-0 pointer-events-none'
-                : 'text-white/70 hover:text-white hover:bg-white/10'
-            )}
+            icon={<ArrowLeft className="h-4 w-4" />}
+            className={cn(step === 0 && 'opacity-0 pointer-events-none')}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Atras
-          </button>
+            Atrás
+          </Button>
 
           {step < 3 ? (
-            <button
-              type="button"
-              onClick={nextStep}
-              className="flex items-center gap-1 px-5 py-2.5 bg-gold hover:bg-gold-light text-primary rounded-lg text-sm font-bold transition-all shadow-lg cursor-pointer"
-            >
-              Siguiente
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <Button onClick={nextStep} iconRight={<ArrowRight className="h-4 w-4" />}>
+              Continuar
+            </Button>
           ) : (
-            <button
-              type="button"
+            <Button
               onClick={handleSubmit}
-              disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gold hover:bg-gold-light text-primary rounded-lg text-sm font-bold transition-all shadow-lg disabled:opacity-60 cursor-pointer"
+              loading={submitting}
+              icon={!submitting ? <Rocket className="h-4 w-4" /> : undefined}
             >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4" />
-                  Comenzar a usar COMPLY360
-                </>
-              )}
-            </button>
+              {submitting ? 'Guardando…' : 'Comenzar a usar COMPLY360'}
+            </Button>
           )}
         </div>
       </div>
@@ -702,7 +705,137 @@ export function OnboardingWizard() {
   )
 }
 
-// ── Subir Ficha RUC — pega el texto de la ficha para auto-llenar ───────
+/* ── Stepper ───────────────────────────────────────────────────────── */
+
+function Stepper({ step }: { step: number }) {
+  return (
+    <nav aria-label="Progreso" className="motion-fade-in-up">
+      <ol className="flex items-center gap-2">
+        {STEPS.map((s, i) => {
+          const Icon = s.icon
+          const isDone = i < step
+          const isActive = i === step
+          return (
+            <li key={i} className="flex items-center gap-2 flex-1 min-w-0">
+              <div
+                className={cn(
+                  'flex items-center justify-center h-8 w-8 rounded-full text-xs font-semibold transition-all shrink-0 border',
+                  isDone
+                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                    : isActive
+                      ? 'bg-white border-emerald-500 text-emerald-700 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]'
+                      : 'bg-white border-[color:var(--border-default)] text-[color:var(--text-tertiary)]'
+                )}
+              >
+                {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+              </div>
+              <span
+                className={cn(
+                  'text-xs font-medium hidden sm:inline truncate',
+                  isActive
+                    ? 'text-[color:var(--text-primary)]'
+                    : isDone
+                      ? 'text-emerald-700'
+                      : 'text-[color:var(--text-tertiary)]'
+                )}
+              >
+                {s.title}
+              </span>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={cn(
+                    'flex-1 h-0.5 rounded-full transition-colors',
+                    isDone ? 'bg-emerald-600' : 'bg-[color:var(--neutral-200)]'
+                  )}
+                />
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
+
+/* ── Field + input utilities ───────────────────────────────────────── */
+
+function Field({
+  label,
+  required,
+  error,
+  hint,
+  hintTone = 'muted',
+  children,
+}: {
+  label: string
+  required?: boolean
+  error?: string
+  hint?: string
+  hintTone?: 'muted' | 'success' | 'error'
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-[color:var(--text-primary)] mb-1.5">
+        {label}
+        {required ? <span className="text-crimson-600 ml-0.5">*</span> : null}
+      </label>
+      {children}
+      {error ? (
+        <p className="mt-1 text-xs font-medium text-crimson-600 flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" />
+          {error}
+        </p>
+      ) : hint ? (
+        <p
+          className={cn(
+            'mt-1 text-xs leading-relaxed',
+            hintTone === 'success'
+              ? 'text-emerald-700'
+              : hintTone === 'error'
+                ? 'text-crimson-700'
+                : 'text-[color:var(--text-tertiary)]'
+          )}
+        >
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function inputCls(hasError: boolean, state: 'success' | 'error' | null = null): string {
+  return cn(
+    'rounded-lg px-3 py-2.5 bg-white border text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)]',
+    'transition-all focus:outline-none',
+    hasError || state === 'error'
+      ? 'border-crimson-300 focus:border-crimson-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)]'
+      : state === 'success'
+        ? 'border-emerald-300 focus:border-emerald-500 focus:shadow-[0_0_0_4px_rgba(16,185,129,0.12)]'
+        : 'border-[color:var(--border-default)] focus:border-emerald-500 focus:shadow-[0_0_0_4px_rgba(16,185,129,0.10)]'
+  )
+}
+
+function ReviewItem({ label, value, mono, muted }: { label: string; value: React.ReactNode; mono?: boolean; muted?: boolean }) {
+  return (
+    <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] px-3 py-2.5">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-[color:var(--text-tertiary)]">
+        {label}
+      </p>
+      <p
+        className={cn(
+          'text-sm mt-0.5 truncate',
+          muted ? 'text-[color:var(--text-tertiary)] italic' : 'text-[color:var(--text-primary)] font-medium',
+          mono && 'font-mono'
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  )
+}
+
+/* ── Ficha RUC upload (fallback manual) ────────────────────────────── */
 
 function FichaRucUpload({ onDataExtracted }: {
   onDataExtracted: (data: { ruc?: string; razonSocial?: string; sector?: string; direccion?: string; representante?: string }) => void
@@ -712,17 +845,12 @@ function FichaRucUpload({ onDataExtracted }: {
 
   const handleParse = () => {
     if (!text.trim()) return
-
     const t = text
-
-    // Parse known Ficha RUC fields
     const rucMatch = t.match(/(?:RUC|N[uú]mero de RUC)[:\s]*(\d{11})/i)
     const razonMatch = t.match(/(?:Nombre o Raz[oó]n Social|Raz[oó]n Social)[:\s]*([^\n]+)/i)
     const direccionMatch = t.match(/(?:Domicilio Fiscal|Direcci[oó]n Fiscal)[:\s]*([^\n]+)/i)
     const actividadMatch = t.match(/(?:Actividad[:\s]*Econ[oó]mica|Actividad\(es\) Econ[oó]mica)[:\s]*([^\n]+)/i)
     const representanteMatch = t.match(/(?:Representante Legal|Rep\. Legal)[:\s]*([^\n]+)/i)
-
-    // Auto-detect sector from actividad
     let sector = ''
     const act = (actividadMatch?.[1] || '').toLowerCase()
     if (act.includes('comerci')) sector = 'COMERCIO'
@@ -744,46 +872,38 @@ function FichaRucUpload({ onDataExtracted }: {
       direccion: direccionMatch?.[1]?.trim(),
       representante: representanteMatch?.[1]?.trim(),
     })
-
     setExpanded(false)
     setText('')
   }
 
   return (
-    <div className="mt-2">
+    <div className="mt-2.5">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="text-xs text-amber-300/80 hover:text-amber-300 underline underline-offset-2 flex items-center gap-1"
+        className="text-xs text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)] flex items-center gap-1 font-medium"
       >
-        <ArrowRight className={cn('w-3 h-3 transition-transform', expanded && 'rotate-90')} />
-        {expanded ? 'Cerrar' : '¿No se valido? Pega tu Ficha RUC aqui'}
+        <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
+        {expanded ? 'Ocultar carga manual' : '¿No se validó? Pega tu Ficha RUC'}
       </button>
 
       {expanded && (
-        <div className="mt-2 space-y-2">
-          <p className="text-[11px] text-white/40">
-            Ve a <b>sunat.gob.pe</b> → Consulta RUC → copia todo el texto de la ficha y pegalo aqui:
+        <div className="mt-3 space-y-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-3">
+          <p className="text-[11px] text-[color:var(--text-secondary)] leading-relaxed">
+            Ve a <a href="https://sunat.gob.pe" target="_blank" rel="noreferrer" className="text-emerald-600 hover:text-emerald-700 font-medium">sunat.gob.pe</a> → Consulta RUC → copiá todo el texto y pegalo aquí.
           </p>
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Pega aqui el contenido de la Ficha RUC..."
+            placeholder="Pega aquí el contenido de la Ficha RUC…"
             rows={4}
-            className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-xs placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-gold/50 resize-none"
+            className="w-full rounded-lg bg-white border border-[color:var(--border-default)] px-3 py-2 text-xs text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)] focus:outline-none focus:border-emerald-500 focus:shadow-[0_0_0_4px_rgba(16,185,129,0.10)] resize-none"
           />
-          <button
-            type="button"
-            onClick={handleParse}
-            disabled={!text.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-xs font-semibold text-amber-300 disabled:opacity-40"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
+          <Button size="sm" onClick={handleParse} disabled={!text.trim()}>
             Extraer datos
-          </button>
+          </Button>
         </div>
       )}
     </div>
   )
 }
-

@@ -126,8 +126,112 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     filename = `diagnosticos_${new Date().toISOString().split('T')[0]}`
   }
 
+  else if (type === 'contracts') {
+    const contractsList = await prisma.contract.findMany({
+      where: {
+        orgId,
+        ...(ids ? { id: { in: ids.split(',') } } : {}),
+        status: { not: 'ARCHIVED' },
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        title: true,
+        type: true,
+        status: true,
+        aiRiskScore: true,
+        expiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+        signedAt: true,
+        createdBy: { select: { firstName: true, lastName: true } },
+        workerContracts: {
+          take: 1,
+          select: {
+            worker: { select: { firstName: true, lastName: true, dni: true, position: true } },
+          },
+        },
+      },
+    })
+
+    const TYPE_LABELS_MAP: Record<string, string> = {
+      LABORAL_INDEFINIDO: 'Plazo Indeterminado',
+      LABORAL_PLAZO_FIJO: 'Plazo Fijo',
+      LOCACION_SERVICIOS: 'Locacion de Servicios',
+      TIEMPO_PARCIAL: 'Tiempo Parcial',
+      MYPE_MICRO: 'MYPE Microempresa',
+      MYPE_PEQUENA: 'MYPE Pequena Empresa',
+      CONVENIO_PRACTICAS: 'Convenio de Practicas',
+      NDA: 'Confidencialidad',
+      CUSTOM: 'Personalizado',
+    }
+
+    rows = contractsList.map(c => {
+      const worker = c.workerContracts[0]?.worker
+      return {
+        'Titulo': c.title,
+        'Tipo': TYPE_LABELS_MAP[c.type] ?? c.type,
+        'Estado': c.status,
+        'Score IA': c.aiRiskScore ?? '',
+        'Trabajador': worker ? `${worker.lastName}, ${worker.firstName}` : '',
+        'DNI Trabajador': worker?.dni ?? '',
+        'Cargo': worker?.position ?? '',
+        'Fecha Vencimiento': c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('es-PE') : '',
+        'Fecha Firma': c.signedAt ? new Date(c.signedAt).toLocaleDateString('es-PE') : '',
+        'Creado Por': c.createdBy ? `${c.createdBy.firstName} ${c.createdBy.lastName}` : '',
+        'Fecha Creacion': new Date(c.createdAt).toLocaleDateString('es-PE'),
+        'Ultima Actualizacion': new Date(c.updatedAt).toLocaleDateString('es-PE'),
+      }
+    })
+    sheetName = 'Contratos'
+    filename = `contratos_${new Date().toISOString().split('T')[0]}`
+  }
+
+  else if (type === 'alerts') {
+    const alertsList = await prisma.workerAlert.findMany({
+      where: {
+        orgId,
+        resolvedAt: null,
+        ...(ids ? { id: { in: ids.split(',') } } : {}),
+      },
+      orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        type: true,
+        severity: true,
+        title: true,
+        description: true,
+        dueDate: true,
+        multaEstimada: true,
+        createdAt: true,
+        worker: { select: { firstName: true, lastName: true, dni: true, position: true, department: true } },
+      },
+    })
+
+    const SEVERITY_LABEL: Record<string, string> = {
+      CRITICAL: 'Crítico',
+      HIGH: 'Alto',
+      MEDIUM: 'Medio',
+      LOW: 'Bajo',
+    }
+
+    rows = alertsList.map(a => ({
+      'Severidad': SEVERITY_LABEL[a.severity] ?? a.severity,
+      'Tipo': a.type.replace(/_/g, ' '),
+      'Título': a.title,
+      'Descripción': a.description ?? '',
+      'Trabajador': a.worker ? `${a.worker.lastName}, ${a.worker.firstName}` : '',
+      'DNI': a.worker?.dni ?? '',
+      'Cargo': a.worker?.position ?? '',
+      'Área': a.worker?.department ?? '',
+      'Fecha Límite': a.dueDate ? new Date(a.dueDate).toLocaleDateString('es-PE') : '',
+      'Multa Estimada (S/)': a.multaEstimada ? Number(a.multaEstimada).toFixed(2) : '',
+      'Fecha Alerta': new Date(a.createdAt).toLocaleDateString('es-PE'),
+    }))
+    sheetName = 'Alertas'
+    filename = `alertas_${new Date().toISOString().split('T')[0]}`
+  }
+
   else {
-    return NextResponse.json({ error: `Tipo no reconocido: ${type}. Use workers, calculations o diagnostics.` }, { status: 400 })
+    return NextResponse.json({ error: `Tipo no reconocido: ${type}. Use workers, calculations, diagnostics, contracts o alerts.` }, { status: 400 })
   }
 
   // Build workbook

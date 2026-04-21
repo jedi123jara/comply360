@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth, withRole } from '@/lib/api-auth'
-import type { AuthContext } from '@/lib/auth'
 import { ALL_TEMPLATES } from '@/lib/templates/contract-templates'
 import type { ContractType } from '@/generated/prisma/client'
 
 // =============================================
 // GET /api/templates - List contract templates from DB
 // =============================================
-export const GET = withAuth(async (_req: NextRequest, _ctx: AuthContext) => {
+export const GET = withAuth(async () => {
   try {
     const templates = await prisma.contractTemplate.findMany({
       where: { isActive: true },
@@ -35,7 +34,7 @@ export const GET = withAuth(async (_req: NextRequest, _ctx: AuthContext) => {
 // =============================================
 // POST /api/templates?action=seed - Seed the 5 default templates
 // =============================================
-export const POST = withRole('ADMIN', async (req: NextRequest, _ctx: AuthContext) => {
+export const POST = withRole('ADMIN', async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)
   const action = searchParams.get('action')
 

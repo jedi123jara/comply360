@@ -1,10 +1,12 @@
-'use client'
-
 import { cn } from '@/lib/utils'
 
-/* -------------------------------------------------------------------------- */
-/*  Base Skeleton                                                             */
-/* -------------------------------------------------------------------------- */
+/**
+ * Skeleton — shimmer placeholder for loading states.
+ *
+ * Uses the `.shimmer-bg` utility from tokens.css (pure CSS animation, zero JS).
+ * Composable helpers (SkeletonText, SkeletonCard, SkeletonTable, SkeletonStats,
+ * SkeletonRow) match common layouts.
+ */
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
@@ -13,9 +15,9 @@ interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
     <div
+      aria-hidden="true"
       className={cn(
-        'rounded-lg bg-gray-200 animate-[shimmer_1.5s_ease-in-out_infinite] bg-[length:200%_100%]',
-        'bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200',
+        'shimmer-bg rounded-lg border border-[color:var(--border-subtle)]',
         className
       )}
       {...props}
@@ -23,107 +25,101 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*  SkeletonText — multiple lines with varying widths                         */
-/* -------------------------------------------------------------------------- */
-
-interface SkeletonTextProps {
-  lines?: number
-  className?: string
-}
+/* ── SkeletonText ──────────────────────────────────────────────────────── */
 
 const lineWidths = ['w-full', 'w-5/6', 'w-4/6', 'w-3/4', 'w-2/3']
 
-export function SkeletonText({ lines = 3, className }: SkeletonTextProps) {
+export function SkeletonText({
+  lines = 3,
+  className,
+}: {
+  lines?: number
+  className?: string
+}) {
   return (
     <div className={cn('space-y-2.5', className)}>
       {Array.from({ length: lines }).map((_, i) => (
         <Skeleton
           key={i}
-          className={cn('h-3.5', lineWidths[i % lineWidths.length])}
+          className={cn('h-3.5 border-0', lineWidths[i % lineWidths.length])}
         />
       ))}
     </div>
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*  SkeletonCard — card with image area + text lines                          */
-/* -------------------------------------------------------------------------- */
+/* ── SkeletonRow ───────────────────────────────────────────────────────── */
 
-interface SkeletonCardProps {
-  className?: string
+export function SkeletonRow({ columns = 4 }: { columns?: number }) {
+  return (
+    <div className="flex items-center gap-4 py-3">
+      {Array.from({ length: columns }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={cn(
+            'h-4 border-0',
+            i === 0 ? 'w-1/3' : i === columns - 1 ? 'w-16' : 'flex-1'
+          )}
+        />
+      ))}
+    </div>
+  )
 }
 
-export function SkeletonCard({ className }: SkeletonCardProps) {
+/* ── SkeletonCard ──────────────────────────────────────────────────────── */
+
+export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/[0.08] bg-[#141824] p-5 space-y-4',
+        'rounded-xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-1)] p-5 space-y-4',
         className
       )}
     >
-      {/* Image area */}
-      <Skeleton className="h-36 w-full rounded-xl" />
-
-      {/* Title */}
-      <Skeleton className="h-4 w-3/4" />
-
-      {/* Text lines */}
+      <Skeleton className="h-36 w-full rounded-xl border-0" />
+      <Skeleton className="h-4 w-3/4 border-0" />
       <SkeletonText lines={2} />
-
-      {/* Footer / action */}
       <div className="flex items-center gap-3 pt-2">
-        <Skeleton className="h-8 w-8 rounded-full" />
-        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-8 w-8 rounded-full border-0" />
+        <Skeleton className="h-3 w-24 border-0" />
       </div>
     </div>
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*  SkeletonTable — table header + 5 body rows                               */
-/* -------------------------------------------------------------------------- */
-
-interface SkeletonTableProps {
-  rows?: number
-  columns?: number
-  className?: string
-}
+/* ── SkeletonTable ─────────────────────────────────────────────────────── */
 
 export function SkeletonTable({
   rows = 5,
   columns = 4,
   className,
-}: SkeletonTableProps) {
+}: {
+  rows?: number
+  columns?: number
+  className?: string
+}) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/[0.08] bg-[#141824] overflow-hidden',
+        'rounded-xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-1)] overflow-hidden',
         className
       )}
     >
-      {/* Header */}
-      <div className="flex gap-4 border-b border-white/[0.08] bg-white/[0.02] px-5 py-3">
+      <div className="flex gap-4 border-b border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] px-5 py-3">
         {Array.from({ length: columns }).map((_, i) => (
-          <Skeleton
-            key={`h-${i}`}
-            className="h-3.5 flex-1"
-          />
+          <Skeleton key={`h-${i}`} className="h-3.5 flex-1 border-0" />
         ))}
       </div>
-
-      {/* Body rows */}
       {Array.from({ length: rows }).map((_, rowIdx) => (
         <div
           key={`r-${rowIdx}`}
-          className="flex gap-4 border-b border-white/[0.06] px-5 py-3.5 last:border-b-0"
+          className="flex gap-4 border-b border-[color:var(--border-subtle)] px-5 py-3.5 last:border-b-0"
         >
           {Array.from({ length: columns }).map((_, colIdx) => (
             <Skeleton
               key={`c-${rowIdx}-${colIdx}`}
               className={cn(
-                'h-3.5 flex-1',
+                'h-3.5 flex-1 border-0',
                 colIdx === 0 && 'max-w-[40%]'
               )}
             />
@@ -134,16 +130,15 @@ export function SkeletonTable({
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*  SkeletonStats — 4 stat card skeletons matching dashboard layout           */
-/* -------------------------------------------------------------------------- */
+/* ── SkeletonStats ─────────────────────────────────────────────────────── */
 
-interface SkeletonStatsProps {
+export function SkeletonStats({
+  count = 4,
+  className,
+}: {
   count?: number
   className?: string
-}
-
-export function SkeletonStats({ count = 4, className }: SkeletonStatsProps) {
+}) {
   return (
     <div
       className={cn(
@@ -154,21 +149,16 @@ export function SkeletonStats({ count = 4, className }: SkeletonStatsProps) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-white/[0.08] bg-[#141824] p-5 space-y-3"
+          className="rounded-xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-1)] p-5 space-y-3"
         >
-          {/* Icon + label row */}
           <div className="flex items-center justify-between">
-            <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-9 w-9 rounded-xl" />
+            <Skeleton className="h-3.5 w-24 border-0" />
+            <Skeleton className="h-9 w-9 rounded-xl border-0" />
           </div>
-
-          {/* Big number */}
-          <Skeleton className="h-7 w-20" />
-
-          {/* Trend */}
+          <Skeleton className="h-7 w-20 border-0" />
           <div className="flex items-center gap-2">
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-12 border-0" />
+            <Skeleton className="h-3 w-20 border-0" />
           </div>
         </div>
       ))}

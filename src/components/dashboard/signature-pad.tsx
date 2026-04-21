@@ -222,7 +222,7 @@ export default function SignaturePad({
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
             ${mode === 'draw'
               ? 'bg-blue-600 text-white'
-              : 'bg-white/[0.04] text-gray-300 hover:bg-gray-200 bg-white/[0.04] hover:bg-white/[0.06]'
+              : 'bg-[color:var(--neutral-100)] text-gray-300 hover:bg-gray-200 bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)]'
             }
             disabled:opacity-50 disabled:cursor-not-allowed`}
         >
@@ -236,7 +236,7 @@ export default function SignaturePad({
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
             ${mode === 'type'
               ? 'bg-blue-600 text-white'
-              : 'bg-white/[0.04] text-gray-300 hover:bg-gray-200 bg-white/[0.04] hover:bg-white/[0.06]'
+              : 'bg-[color:var(--neutral-100)] text-gray-300 hover:bg-gray-200 bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)]'
             }
             disabled:opacity-50 disabled:cursor-not-allowed`}
         >
@@ -281,7 +281,7 @@ export default function SignaturePad({
               type="button"
               onClick={undo}
               disabled={disabled || history.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-white/[0.04] text-gray-300 hover:bg-gray-200 bg-white/[0.04] hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-[color:var(--neutral-100)] text-gray-300 hover:bg-gray-200 bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Undo2 className="h-3.5 w-3.5" />
               Deshacer
@@ -290,7 +290,7 @@ export default function SignaturePad({
               type="button"
               onClick={clearCanvas}
               disabled={disabled || !hasDrawing}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-white/[0.04] text-gray-300 hover:bg-gray-200 bg-white/[0.04] hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-[color:var(--neutral-100)] text-gray-300 hover:bg-gray-200 bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Eraser className="h-3.5 w-3.5" />
               Limpiar

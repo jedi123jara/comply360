@@ -662,12 +662,12 @@ function NuevoContratoInner() {
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/contratos"
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-300"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[color:var(--text-secondary)]"
         >
           <ArrowLeft className="w-4 h-4" />
           Contratos
         </Link>
-        <span className="text-gray-300">/</span>
+        <span className="text-[color:var(--text-secondary)]">/</span>
         <span className="text-sm font-medium text-white">Nuevo Contrato</span>
       </div>
 
@@ -723,10 +723,10 @@ function NuevoContratoInner() {
                   disabled={!opt.available}
                   className={`text-left p-6 rounded-2xl border-2 transition-all ${
                     !opt.available
-                      ? 'border-white/[0.06] bg-white/[0.02] opacity-50 cursor-not-allowed'
+                      ? 'border-white/[0.06] bg-[color:var(--neutral-50)] opacity-50 cursor-not-allowed'
                       : isAi
                         ? 'border-purple-300 hover:border-purple-500 hover:shadow-xl bg-gradient-to-br from-purple-50 via-white to-indigo-50 cursor-pointer'
-                        : 'border-white/[0.08] hover:border-primary hover:shadow-lg bg-[#141824] cursor-pointer'
+                        : 'border-white/[0.08] hover:border-primary hover:shadow-lg bg-white cursor-pointer'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -758,7 +758,7 @@ function NuevoContratoInner() {
       {/* AI Generation Modal */}
       {showAiModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#141824] shadow-2xl">
+          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.08] bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4">
               <div className="flex items-center gap-3">
@@ -773,7 +773,7 @@ function NuevoContratoInner() {
               <button
                 type="button"
                 onClick={handleResetAi}
-                className="rounded-lg p-2 text-gray-400 hover:bg-[#141824] hover:text-gray-600"
+                className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-600"
                 aria-label="Cerrar"
               >
                 <X className="h-5 w-5" />
@@ -786,7 +786,7 @@ function NuevoContratoInner() {
                 <>
                   {/* ── Descripción ───────────────────────────────────────── */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-200 mb-1.5">
+                    <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
                       ¿Qué contrato necesitas? <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -794,7 +794,7 @@ function NuevoContratoInner() {
                       onChange={e => setAiDescription(e.target.value)}
                       rows={3}
                       placeholder="Ej: Contrato para profesional de marketing y ventas, jornada completa, salario S/3500 mensual, regimen general..."
-                      className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm text-white placeholder:text-gray-400 resize-none bg-[#141824]"
+                      className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm text-white placeholder:text-gray-400 resize-none bg-white"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Mientras más detallado, mejor el resultado.
@@ -809,7 +809,7 @@ function NuevoContratoInner() {
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1 flex items-center gap-1.5">
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1 flex items-center gap-1.5">
                           RUC <span className="text-purple-600 font-normal text-[11px]">→ auto-carga datos</span>
                           {empRuc && empRucStatus === 'idle' && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Precargado de tu empresa</span>
@@ -822,7 +822,7 @@ function NuevoContratoInner() {
                             onChange={e => handleRucChange(e.target.value)}
                             placeholder="20XXXXXXXXX"
                             maxLength={11}
-                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium transition-colors ${
+                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium transition-colors ${
                               empRucStatus === 'ok' ? 'border-green-400' :
                               empRucStatus === 'error' ? 'border-red-400' :
                               'border-white/10'
@@ -838,7 +838,7 @@ function NuevoContratoInner() {
                         {empRucStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">RUC no encontrado — ingresa manualmente</p>}
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
                           Razon Social {empRucStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
                         </label>
                         <input
@@ -846,11 +846,11 @@ function NuevoContratoInner() {
                           value={empRazonSocial}
                           onChange={e => setEmpRazonSocial(e.target.value)}
                           placeholder="Mi Empresa SAC"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
                           Representante Legal <span className="text-[11px] text-amber-600 font-normal">(ingresar manualmente)</span>
                         </label>
                         <input
@@ -858,11 +858,11 @@ function NuevoContratoInner() {
                           value={empRepresentante}
                           onChange={e => setEmpRepresentante(e.target.value)}
                           placeholder="Juan Garcia Lopez — Gerente General"
-                          className="w-full px-3 py-2.5 border border-amber-300 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 font-medium"
+                          className="w-full px-3 py-2.5 border border-amber-300 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 font-medium"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
                           Direccion {empRucStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
                         </label>
                         <input
@@ -870,7 +870,7 @@ function NuevoContratoInner() {
                           value={empDireccion}
                           onChange={e => setEmpDireccion(e.target.value)}
                           placeholder="Av. Principal 123, Lima"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
                         />
                       </div>
                     </div>
@@ -884,7 +884,7 @@ function NuevoContratoInner() {
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
                           DNI <span className="text-blue-600 font-normal text-[11px]">→ auto-carga nombre</span>
                         </label>
                         <div className="relative">
@@ -894,7 +894,7 @@ function NuevoContratoInner() {
                             onChange={e => handleDniChange(e.target.value)}
                             placeholder="12345678"
                             maxLength={8}
-                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium transition-colors ${
+                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium transition-colors ${
                               trabDniStatus === 'ok' ? 'border-green-400' :
                               trabDniStatus === 'error' ? 'border-red-400' :
                               'border-white/10'
@@ -910,7 +910,7 @@ function NuevoContratoInner() {
                         {trabDniStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">DNI no encontrado — ingresa manualmente</p>}
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
                           Nombre Completo {trabDniStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
                         </label>
                         <input
@@ -918,7 +918,7 @@ function NuevoContratoInner() {
                           value={trabNombre}
                           onChange={e => setTrabNombre(e.target.value)}
                           placeholder="Juan Perez Garcia"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium"
                         />
                       </div>
                     </div>
@@ -932,11 +932,11 @@ function NuevoContratoInner() {
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Modalidad</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Modalidad</label>
                         <select
                           value={modalidad}
                           onChange={e => setModalidad(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-[#141824] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         >
                           <option value="">IA lo detecta auto</option>
                           <option value="INDEFINIDO">Plazo Indeterminado</option>
@@ -948,11 +948,11 @@ function NuevoContratoInner() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Periodo de Prueba</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Periodo de Prueba</label>
                         <select
                           value={periodoPrueba}
                           onChange={e => setPeriodoPrueba(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-[#141824] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         >
                           <option value="3">3 meses (estandar)</option>
                           <option value="6">6 meses (trabajador confianza)</option>
@@ -961,12 +961,12 @@ function NuevoContratoInner() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Fecha de Inicio</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha de Inicio</label>
                         <input
                           type="date"
                           value={fechaInicio}
                           onChange={e => setFechaInicio(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-[#141824] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         />
                       </div>
                     </div>
@@ -975,16 +975,16 @@ function NuevoContratoInner() {
                     {(modalidad === 'PLAZO_FIJO' || modalidad === 'PRACTICAS') && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-emerald-200 pt-3">
                         <div>
-                          <label className="block text-xs font-semibold text-gray-300 mb-1">Fecha de Vencimiento</label>
+                          <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha de Vencimiento</label>
                           <input
                             type="date"
                             value={fechaFin}
                             onChange={e => setFechaFin(e.target.value)}
-                            className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-[#141824] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                            className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-gray-300 mb-1">
+                          <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
                             Causa Objetiva <span className="text-red-500">*</span>
                             <span className="text-[11px] text-gray-500 font-normal ml-1">(D.S. 003-97-TR Art. 53)</span>
                           </label>
@@ -993,7 +993,7 @@ function NuevoContratoInner() {
                             value={causaObjetiva}
                             onChange={e => setCausaObjetiva(e.target.value)}
                             placeholder="Ej: Incremento extraordinario de actividad comercial"
-                            className="w-full px-3 py-2.5 border border-orange-300 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-orange-400/20 focus:border-orange-400 font-medium"
+                            className="w-full px-3 py-2.5 border border-orange-300 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-orange-400/20 focus:border-orange-400 font-medium"
                           />
                         </div>
                       </div>
@@ -1008,21 +1008,21 @@ function NuevoContratoInner() {
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="col-span-2 sm:col-span-1">
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Cargo / Puesto</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Cargo / Puesto</label>
                         <input
                           type="text"
                           value={cargo}
                           onChange={e => setCargo(e.target.value)}
                           placeholder="Gerente de Marketing"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Jornada semanal</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Jornada semanal</label>
                         <select
                           value={jornada}
                           onChange={e => setJornada(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-[#141824] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         >
                           <option value="48">48 horas (completa)</option>
                           <option value="40">40 horas</option>
@@ -1032,13 +1032,13 @@ function NuevoContratoInner() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Horario</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Horario</label>
                         <input
                           type="text"
                           value={horario}
                           onChange={e => setHorario(e.target.value)}
                           placeholder="08:00 - 17:00"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         />
                       </div>
                     </div>
@@ -1046,7 +1046,7 @@ function NuevoContratoInner() {
                     {/* ── Remuneración ─ */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Remuneracion Mensual S/</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Remuneracion Mensual S/</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">S/</span>
                           <input
@@ -1055,17 +1055,17 @@ function NuevoContratoInner() {
                             onChange={e => setRemuneracion(e.target.value)}
                             placeholder="3500"
                             min="1130"
-                            className="w-full pl-8 pr-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                            className="w-full pl-8 pr-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                           />
                         </div>
                         <p className="text-[11px] text-gray-500 mt-0.5">Min. RMV: S/ 1,130</p>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Forma de Pago</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Forma de Pago</label>
                         <select
                           value={formaPago}
                           onChange={e => setFormaPago(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-[#141824] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         >
                           <option value="MENSUAL">Mensual</option>
                           <option value="QUINCENAL">Quincenal</option>
@@ -1073,13 +1073,13 @@ function NuevoContratoInner() {
                         </select>
                       </div>
                       <div className="col-span-2 sm:col-span-1">
-                        <label className="block text-xs font-semibold text-gray-300 mb-1">Beneficios adicionales</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Beneficios adicionales</label>
                         <input
                           type="text"
                           value={beneficios}
                           onChange={e => setBeneficios(e.target.value)}
                           placeholder="Movilidad S/150, bono metas 5%, laptop..."
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-[#141824] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         />
                       </div>
                     </div>
@@ -1163,23 +1163,23 @@ function NuevoContratoInner() {
                   )}
 
                   {/* Clausulas */}
-                  <div className="rounded-xl border border-white/[0.08] bg-[#141824] max-h-96 overflow-y-auto">
-                    <div className="sticky top-0 bg-[#141824] border-b border-white/[0.08] px-4 py-2 flex items-center gap-2">
+                  <div className="rounded-xl border border-white/[0.08] bg-white max-h-96 overflow-y-auto">
+                    <div className="sticky top-0 bg-white border-b border-white/[0.08] px-4 py-2 flex items-center gap-2">
                       <ScrollText className="h-4 w-4 text-gray-400" />
-                      <span className="text-xs font-semibold text-gray-300">
+                      <span className="text-xs font-semibold text-[color:var(--text-secondary)]">
                         {aiContract.clausulas.length} clausulas generadas
                       </span>
                     </div>
                     <div className="p-4 space-y-4">
                       {aiContract.clausulas.map((c, idx) => (
-                        <div key={idx} className="border-l-2 border-purple-300 pl-3">
+                        <div key={idx} className="border-purple-300 pl-3">
                           <h5 className="text-xs font-bold text-white uppercase">
                             {c.numero}. {c.titulo}
                             {c.obligatoria && (
                               <span className="ml-2 text-[10px] font-medium text-red-600">(obligatoria)</span>
                             )}
                           </h5>
-                          <p className="mt-1 text-xs text-gray-300 leading-relaxed whitespace-pre-line">{c.contenido}</p>
+                          <p className="mt-1 text-xs text-[color:var(--text-secondary)] leading-relaxed whitespace-pre-line">{c.contenido}</p>
                           {c.baseLegal && (
                             <p className="mt-1 text-[10px] italic text-gray-500">Base: {c.baseLegal}</p>
                           )}
@@ -1214,7 +1214,7 @@ function NuevoContratoInner() {
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                     <button
                       onClick={() => { setAiContract(null); setAiError(null); setAiSavedId(null) }}
-                      className="px-4 py-2 text-sm font-medium text-gray-300 border border-white/10 rounded-lg hover:bg-white/[0.02]"
+                      className="px-4 py-2 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-lg hover:bg-[color:var(--neutral-50)]"
                     >
                       Volver
                     </button>
@@ -1265,7 +1265,7 @@ function NuevoContratoInner() {
                 Sección {currentSection + 1} de {totalSections}
               </span>
             </div>
-            <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
+            <div className="h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
@@ -1274,7 +1274,7 @@ function NuevoContratoInner() {
           </div>
 
           {/* Fields */}
-          <div className="bg-[#141824] rounded-2xl border border-white/[0.08] shadow-sm p-8 space-y-5">
+          <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-8 space-y-5">
             {selectedTemplate.sections[currentSection]?.fields.map(field => {
               // Check condition
               if (field.condition) {
@@ -1313,7 +1313,7 @@ function NuevoContratoInner() {
                   setSelectedTemplate(null)
                 }
               }}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white border border-white/10 rounded-xl hover:bg-white/[0.02] transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] hover:text-white border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)] transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Anterior
@@ -1340,7 +1340,7 @@ function NuevoContratoInner() {
         <div className="space-y-6">
           <h1 className="text-xl font-bold text-white">Vista Previa del Contrato</h1>
 
-          <div className="bg-[#141824] rounded-2xl border border-white/[0.08] shadow-sm p-12 max-w-3xl mx-auto">
+          <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-12 max-w-3xl mx-auto">
             <div className="prose prose-sm max-w-none">
               {selectedTemplate.contentBlocks.map(block => {
                 // Check condition
@@ -1368,7 +1368,7 @@ function NuevoContratoInner() {
                         {block.title}
                       </h3>
                     )}
-                    <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-line">
+                    <p className="text-sm leading-relaxed text-[color:var(--text-secondary)] whitespace-pre-line">
                       {text}
                     </p>
                   </div>
@@ -1379,12 +1379,12 @@ function NuevoContratoInner() {
               <div className="grid grid-cols-2 gap-16 mt-16 pt-8 border-t border-white/[0.08]">
                 <div className="text-center">
                   <div className="w-full h-px bg-gray-400 mb-2" />
-                  <p className="text-sm font-semibold text-gray-300">EL EMPLEADOR</p>
+                  <p className="text-sm font-semibold text-[color:var(--text-secondary)]">EL EMPLEADOR</p>
                   <p className="text-xs text-gray-500">{formData.empleador_razon_social as string || '___'}</p>
                 </div>
                 <div className="text-center">
                   <div className="w-full h-px bg-gray-400 mb-2" />
-                  <p className="text-sm font-semibold text-gray-300">EL TRABAJADOR</p>
+                  <p className="text-sm font-semibold text-[color:var(--text-secondary)]">EL TRABAJADOR</p>
                   <p className="text-xs text-gray-500">{formData.trabajador_nombre as string || '___'}</p>
                 </div>
               </div>
@@ -1397,12 +1397,12 @@ function NuevoContratoInner() {
               ? 'border-green-200 bg-green-50'
               : templateAutoSaveStatus === 'error'
                 ? 'border-amber-200 bg-amber-50'
-                : 'border-white/[0.08] bg-white/[0.02]'
+                : 'border-white/[0.08] bg-[color:var(--neutral-50)]'
           }`}>
             {templateAutoSaveStatus === 'saving' && (
               <>
                 <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-                <p className="text-xs text-gray-300">Guardando borrador automáticamente...</p>
+                <p className="text-xs text-[color:var(--text-secondary)]">Guardando borrador automáticamente...</p>
               </>
             )}
             {templateAutoSaveStatus === 'saved' && (
@@ -1434,7 +1434,7 @@ function NuevoContratoInner() {
                 setStep('form')
                 setCurrentSection(totalSections - 1)
               }}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/[0.02]"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)]"
             >
               <ArrowLeft className="w-4 h-4" />
               Editar datos
@@ -1452,7 +1452,7 @@ function NuevoContratoInner() {
                 <button
                   onClick={handleSaveDraft}
                   disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/[0.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Guardar borrador
@@ -1460,7 +1460,7 @@ function NuevoContratoInner() {
               )}
               <button
                 onClick={handleDownloadDocx}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/[0.02]"
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)]"
               >
                 <Download className="w-4 h-4" />
                 Descargar DOCX
@@ -1482,7 +1482,7 @@ function NuevoContratoInner() {
         <div className="space-y-6">
           <h1 className="text-xl font-bold text-white">Revisión con IA</h1>
 
-          <div className="bg-[#141824] rounded-2xl border border-white/[0.08] shadow-sm p-8 text-center">
+          <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-8 text-center">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
@@ -1494,7 +1494,7 @@ function NuevoContratoInner() {
               con la normativa vigente. Esto toma unos segundos.
             </p>
             <div className="mt-6 max-w-xs mx-auto">
-              <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
+              <div className="h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full animate-[progress_3s_ease-in-out_infinite] w-2/3" />
               </div>
             </div>
@@ -1522,7 +1522,7 @@ function DynamicField({
     case 'date':
       return (
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-1.5">
+          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
           <input
@@ -1531,7 +1531,7 @@ function DynamicField({
             onChange={e => onChange(e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-[#141824] placeholder:text-gray-400"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white placeholder:text-gray-400"
           />
           {field.helpText && (
             <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
@@ -1542,7 +1542,7 @@ function DynamicField({
     case 'number':
       return (
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-1.5">
+          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
           <input
@@ -1552,7 +1552,7 @@ function DynamicField({
             min={field.validation?.min}
             max={field.validation?.max}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-[#141824]"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white"
           />
           {field.helpText && (
             <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
@@ -1563,7 +1563,7 @@ function DynamicField({
     case 'currency':
       return (
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-1.5">
+          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
           <div className="relative">
@@ -1576,7 +1576,7 @@ function DynamicField({
               min="0"
               required={field.required}
               placeholder="0.00"
-              className="w-full pl-10 pr-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-[#141824]"
+              className="w-full pl-10 pr-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white"
             />
           </div>
           {field.helpText && (
@@ -1588,14 +1588,14 @@ function DynamicField({
     case 'select':
       return (
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-1.5">
+          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
           <select
             value={(value as string) ?? ''}
             onChange={e => onChange(e.target.value)}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-[#141824]"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white"
           >
             <option value="">Selecciona...</option>
             {field.options?.map(opt => (
@@ -1611,7 +1611,7 @@ function DynamicField({
     case 'textarea':
       return (
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-1.5">
+          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
           <textarea
@@ -1620,7 +1620,7 @@ function DynamicField({
             placeholder={field.placeholder}
             required={field.required}
             rows={4}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-[#141824] placeholder:text-gray-400 resize-y"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white placeholder:text-gray-400 resize-y"
           />
           {field.helpText && (
             <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
@@ -1630,9 +1630,9 @@ function DynamicField({
 
     case 'toggle':
       return (
-        <label className="flex items-center justify-between p-4 bg-white/[0.02] rounded-xl cursor-pointer group hover:bg-white/[0.04] transition-colors">
+        <label className="flex items-center justify-between p-4 bg-[color:var(--neutral-50)] rounded-xl cursor-pointer group hover:bg-[color:var(--neutral-100)] transition-colors">
           <div>
-            <span className="text-sm font-semibold text-gray-300 group-hover:text-white">
+            <span className="text-sm font-semibold text-[color:var(--text-secondary)] group-hover:text-white">
               {field.label}
             </span>
             {field.helpText && (
@@ -1647,7 +1647,7 @@ function DynamicField({
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-primary transition-colors" />
-            <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-[#141824] rounded-full shadow transition-transform peer-checked:translate-x-5" />
+            <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
           </div>
         </label>
       )

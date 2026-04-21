@@ -17,7 +17,7 @@ export interface PDFOptions {
  * Returns true if the print window was opened successfully.
  */
 export function generatePDFFromHTML(options: PDFOptions): boolean {
-  const { title, filename, content, watermark } = options
+  const { title, content, watermark } = options
 
   const printWindow = window.open('', '_blank')
   if (!printWindow) {

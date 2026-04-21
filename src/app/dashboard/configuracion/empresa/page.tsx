@@ -1,26 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import {
-  Building2,
-  Save,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  RefreshCw,
-  Upload,
-  X,
-  Crown,
-  Sparkles,
-  Users,
-  ChevronLeft,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  FileText,
-} from 'lucide-react'
+import { Building2, Save, Loader2, CheckCircle2, AlertCircle, XCircle, Upload, X, Crown, Sparkles, Users, ChevronLeft, User, Phone, Mail, MapPin, FileText, Search, Landmark, ShieldAlert, Briefcase, MapPinned } from 'lucide-react'
 import Link from 'next/link'
 
 // =============================================
@@ -136,7 +117,7 @@ const PLANS: PlanInfo[] = [
     key: 'FREE',
     name: 'Free',
     price: 'S/ 0/mes',
-    color: 'text-gray-300 text-slate-300',
+    color: 'text-slate-300',
     gradient: 'from-gray-500 to-gray-600',
     workersLimit: 'Hasta 5',
     usersLimit: '1 usuario',
@@ -146,7 +127,7 @@ const PLANS: PlanInfo[] = [
     key: 'STARTER',
     name: 'Starter',
     price: 'S/ 79/mes',
-    color: 'text-blue-700 text-blue-400',
+    color: 'text-emerald-600',
     gradient: 'from-blue-500 to-blue-600',
     workersLimit: 'Hasta 25',
     usersLimit: '3 usuarios',
@@ -156,7 +137,7 @@ const PLANS: PlanInfo[] = [
     key: 'EMPRESA',
     name: 'Empresa',
     price: 'S/ 149/mes',
-    color: 'text-indigo-700 text-indigo-400',
+    color: 'text-indigo-400',
     gradient: 'from-indigo-500 to-purple-600',
     workersLimit: 'Hasta 100',
     usersLimit: '10 usuarios',
@@ -166,7 +147,7 @@ const PLANS: PlanInfo[] = [
     key: 'PRO',
     name: 'Pro',
     price: 'S/ 249/mes',
-    color: 'text-amber-700 text-amber-400',
+    color: 'text-amber-400',
     gradient: 'from-amber-500 to-orange-600',
     workersLimit: 'Ilimitados',
     usersLimit: 'Ilimitados',
@@ -178,9 +159,9 @@ const PLANS: PlanInfo[] = [
 // Shared styles
 // =============================================
 
-const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-white/10 border-slate-600 bg-[#141824] bg-white/[0.04] text-white placeholder-gray-400 placeholder-gray-500 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors text-sm'
-const labelCls = 'block text-sm font-semibold text-gray-300 text-gray-200 mb-1.5'
-const cardCls = 'bg-[#141824] rounded-2xl border border-white/[0.08] p-6 shadow-sm'
+const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] text-white placeholder-gray-400 placeholder-gray-500 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors text-sm'
+const labelCls = 'block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5'
+const cardCls = 'bg-white rounded-2xl border border-white/[0.08] p-6 shadow-sm'
 const sectionTitleCls = 'text-base font-bold text-white mb-5 flex items-center gap-2'
 
 // =============================================
@@ -203,8 +184,8 @@ function FeedbackBanner({ feedback, onDismiss }: { feedback: FeedbackState; onDi
     <div
       className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${
         isSuccess
-          ? 'bg-green-50 bg-green-900/30 text-green-700 text-green-400 border border-green-200 border-green-800'
-          : 'bg-red-50 bg-red-900/30 text-red-700 text-red-400 border border-red-200 border-red-800'
+          ? 'bg-green-900/30 text-green-400 border border-green-800'
+          : 'bg-red-900/30 text-red-400 border border-red-800'
       }`}
     >
       {isSuccess
@@ -228,7 +209,7 @@ function RucBadge({ status, message }: { status: RucStatus; message: string }) {
 
   if (status === 'loading') {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-blue-600 text-blue-400 mt-1.5">
+      <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1.5">
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
         Consultando SUNAT...
       </div>
@@ -237,7 +218,7 @@ function RucBadge({ status, message }: { status: RucStatus; message: string }) {
 
   if (status === 'verified') {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-green-600 text-green-400 mt-1.5">
+      <div className="flex items-center gap-1.5 text-xs text-green-400 mt-1.5">
         <CheckCircle2 className="w-3.5 h-3.5" />
         <span>✓ RUC Verificado en SUNAT — {message}</span>
       </div>
@@ -245,7 +226,7 @@ function RucBadge({ status, message }: { status: RucStatus; message: string }) {
   }
 
   return (
-    <div className="flex items-center gap-1.5 text-xs text-red-600 text-red-400 mt-1.5">
+    <div className="flex items-center gap-1.5 text-xs text-red-400 mt-1.5">
       <XCircle className="w-3.5 h-3.5" />
       ⚠️ RUC no verificado — {message}
     </div>
@@ -268,8 +249,8 @@ function PlanCard({ plan, currentPlan, workersUsed, workersLimit }: {
   return (
     <div className={`rounded-2xl border-2 p-5 transition-all ${
       isCurrent
-        ? 'border-primary shadow-lg shadow-primary/10 bg-[#141824]'
-        : 'border-white/[0.08] bg-[#141824] opacity-70'
+        ? 'border-primary shadow-lg shadow-primary/10 bg-white'
+        : 'border-white/[0.08] bg-white opacity-70'
     }`}>
       {isCurrent && (
         <div className="flex items-center gap-2 mb-3">
@@ -300,16 +281,16 @@ function PlanCard({ plan, currentPlan, workersUsed, workersLimit }: {
       {isCurrent && (
         <div className="mt-4 pt-4 border-t border-white/[0.06] border-white/[0.08] space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1 text-gray-500 text-gray-400">
+            <span className="flex items-center gap-1 text-gray-400">
               <Users className="w-3.5 h-3.5" />
               Trabajadores
             </span>
-            <span className="font-semibold text-gray-300 text-gray-200">
+            <span className="font-semibold text-[color:var(--text-secondary)]">
               {workersUsed} / {workersLimit ?? '∞'}
             </span>
           </div>
           {workersLimit && (
-            <div className="w-full h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
                   usagePercent >= 90 ? 'bg-red-500' : usagePercent >= 70 ? 'bg-amber-500' : 'bg-primary'
@@ -324,12 +305,12 @@ function PlanCard({ plan, currentPlan, workersUsed, workersLimit }: {
       {isCurrent ? (
         <button
           disabled
-          className="mt-4 w-full py-2 rounded-xl bg-white/[0.04] text-gray-400 text-slate-500 text-sm font-semibold text-center cursor-default"
+          className="mt-4 w-full py-2 rounded-xl bg-[color:var(--neutral-100)] text-slate-500 text-sm font-semibold text-center cursor-default"
         >
           Plan actual
         </button>
       ) : (
-        <button className="mt-4 w-full py-2 rounded-xl border border-white/10 border-slate-600 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04] text-sm font-semibold transition-colors flex items-center justify-center gap-1">
+        <button className="mt-4 w-full py-2 rounded-xl border border-white/10 border-[color:var(--border-default)] text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] text-sm font-semibold transition-colors flex items-center justify-center gap-1">
           Actualizar plan
           <span className="text-[10px] ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full border border-amber-200 font-bold">
             Próximamente
@@ -384,6 +365,35 @@ export default function EmpresaPage() {
       email: '',
     },
   })
+
+  // SUNAT advanced data
+  const [sunatLoading, setSunatLoading] = useState(false)
+  const [sunatData, setSunatData] = useState<{
+    deuda: { items: { monto: string; periodo: string; fechaCobranza: string; entidad: string }[]; totalItems: number } | null
+    representantes: { representantes: { tipoDocumento: string; numDocumento: string; nombre: string; cargo: string; fechaDesde: string }[]; totalRepresentantes: number } | null
+    trabajadores: { periodos: { periodo: string; totalTrabajadores: number; pensionistas: number; prestadoresServicios: number }[] } | null
+    establecimientos: { establecimientos: { codigo: string; descripcionTipo: string; direccion: string; actividadEconomica: string }[]; totalEstablecimientos: number } | null
+  } | null>(null)
+  const [sunatError, setSunatError] = useState<string | null>(null)
+
+  const fetchSunatAdvanced = useCallback(async () => {
+    if (!form.ruc || form.ruc.length !== 11) return
+    setSunatLoading(true)
+    setSunatError(null)
+    try {
+      const res = await fetch(`/api/integrations/sunat/consulta-ruc?ruc=${form.ruc}&tipo=all`)
+      const json = await res.json()
+      if (!res.ok) {
+        setSunatError(json.error || 'Error al consultar SUNAT')
+        return
+      }
+      setSunatData(json.data)
+    } catch {
+      setSunatError('Error de conexión al consultar SUNAT')
+    } finally {
+      setSunatLoading(false)
+    }
+  }, [form.ruc])
 
   // Plan data — fetched from real API
   const PLAN_WORKER_LIMITS: Record<string, number | null> = {
@@ -607,19 +617,19 @@ export default function EmpresaPage() {
       <div>
         <Link
           href="/dashboard/configuracion"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 text-gray-400 hover:text-primary transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors mb-4"
         >
           <ChevronLeft className="w-4 h-4" />
           Configuración
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-100 bg-blue-900/30 rounded-xl">
-              <Building2 className="h-6 w-6 text-blue-600 text-blue-400" />
+            <div className="p-2.5 bg-blue-900/30 rounded-xl">
+              <Building2 className="h-6 w-6 text-emerald-600" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Datos de Empresa</h1>
-              <p className="text-sm text-gray-500 text-gray-400">
+              <p className="text-sm text-gray-400">
                 Información fiscal, tributaria y comercial de tu organización
               </p>
             </div>
@@ -643,7 +653,7 @@ export default function EmpresaPage() {
       {/* ============================== */}
       <div className={cardCls}>
         <h2 className={sectionTitleCls}>
-          <Building2 className="h-5 w-5 text-gray-400 text-slate-500" />
+          <Building2 className="h-5 w-5 text-slate-500" />
           Información General
         </h2>
 
@@ -651,9 +661,9 @@ export default function EmpresaPage() {
         <div className="flex items-start gap-5 mb-6 pb-6 border-b border-white/[0.06] border-white/[0.08]">
           <div className="flex-shrink-0">
             {logoPreview ? (
-              <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/[0.08] border-slate-600">
+              <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/[0.08] border-[color:var(--border-default)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoPreview} alt="Logo empresa" className="w-full h-full object-contain bg-white/[0.02] bg-white/[0.04]" />
+                <img src={logoPreview} alt="Logo empresa" className="w-full h-full object-contain bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]" />
                 <button
                   onClick={() => { setLogoPreview(null); if (logoInputRef.current) logoInputRef.current.value = '' }}
                   className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
@@ -662,19 +672,19 @@ export default function EmpresaPage() {
                 </button>
               </div>
             ) : (
-              <div className="w-20 h-20 rounded-xl bg-white/[0.04] border border-white/[0.08] border-slate-600 flex items-center justify-center">
-                <Building2 className="w-8 h-8 text-gray-400 text-slate-500" />
+              <div className="w-20 h-20 rounded-xl bg-[color:var(--neutral-100)] border border-white/[0.08] border-[color:var(--border-default)] flex items-center justify-center">
+                <Building2 className="w-8 h-8 text-slate-500" />
               </div>
             )}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-300 text-gray-200 mb-1">Logo de la empresa</p>
-            <p className="text-xs text-gray-500 text-gray-400 mb-3">
+            <p className="text-sm font-semibold text-[color:var(--text-secondary)] mb-1">Logo de la empresa</p>
+            <p className="text-xs text-gray-400 mb-3">
               PNG, JPG o SVG. Máximo 2 MB. Recomendado: 200×200px.
             </p>
             <button
               onClick={() => logoInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-3 py-2 border border-white/10 border-slate-600 rounded-xl text-xs font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-xl text-xs font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors"
             >
               <Upload className="w-3.5 h-3.5" />
               Subir logo
@@ -703,7 +713,7 @@ export default function EmpresaPage() {
               className={`${inputCls} font-mono`}
             />
             <RucBadge status={rucStatus} message={rucMessage} />
-            <p className="text-xs text-gray-400 text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Al ingresar 11 dígitos se consulta SUNAT automáticamente
             </p>
           </div>
@@ -792,7 +802,7 @@ export default function EmpresaPage() {
               placeholder="alertas@miempresa.pe"
               className={inputCls}
             />
-            <p className="text-xs text-gray-400 text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Recibirás alertas normativas y vencimientos aquí.
             </p>
           </div>
@@ -871,7 +881,7 @@ export default function EmpresaPage() {
       {/* ============================== */}
       <div className={cardCls}>
         <h2 className={sectionTitleCls}>
-          <FileText className="h-5 w-5 text-gray-400 text-slate-500" />
+          <FileText className="h-5 w-5 text-slate-500" />
           Datos Tributarios
         </h2>
 
@@ -892,7 +902,7 @@ export default function EmpresaPage() {
 
           {/* Representante Legal */}
           <div className="md:col-span-2">
-            <h3 className="text-sm font-semibold text-gray-300 text-slate-300 mb-3 flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-1.5">
               <User className="w-4 h-4 text-gray-400" />
               Representante Legal
             </h3>
@@ -933,7 +943,7 @@ export default function EmpresaPage() {
 
           {/* Contador Responsable */}
           <div className="md:col-span-2">
-            <h3 className="text-sm font-semibold text-gray-300 text-slate-300 mb-3 flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-1.5">
               <User className="w-4 h-4 text-gray-400" />
               Contador Responsable
             </h3>
@@ -974,7 +984,201 @@ export default function EmpresaPage() {
       </div>
 
       {/* ============================== */}
-      {/* Card 3: Plan e Información     */}
+      {/* Card 3: Datos Avanzados SUNAT  */}
+      {/* ============================== */}
+      {rucStatus === 'verified' && (
+        <div className={cardCls}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className={sectionTitleCls}>
+              <Landmark className="h-5 w-5 text-slate-500" />
+              Datos Avanzados SUNAT
+            </h2>
+            <button
+              onClick={fetchSunatAdvanced}
+              disabled={sunatLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors"
+            >
+              {sunatLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+              {sunatLoading ? 'Consultando...' : sunatData ? 'Actualizar' : 'Consultar SUNAT'}
+            </button>
+          </div>
+
+          {sunatError && (
+            <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-800 rounded-xl text-xs text-red-400 mb-4">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {sunatError}
+            </div>
+          )}
+
+          {!sunatData && !sunatLoading && !sunatError && (
+            <p className="text-sm text-gray-500 text-center py-6">
+              Haz clic en &quot;Consultar SUNAT&quot; para obtener deuda coactiva, representantes legales, trabajadores y establecimientos.
+            </p>
+          )}
+
+          {sunatData && (
+            <div className="space-y-5">
+
+              {/* Deuda Coactiva */}
+              <div className="p-4 bg-[color:var(--neutral-50)] rounded-xl border border-white/[0.06]">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-red-400" />
+                  Deuda Coactiva
+                  {sunatData.deuda && sunatData.deuda.totalItems > 0 && (
+                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-full">
+                      {sunatData.deuda.totalItems} deuda(s)
+                    </span>
+                  )}
+                </h3>
+                {sunatData.deuda && sunatData.deuda.totalItems > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b border-white/[0.06]">
+                          <th className="pb-2 pr-4">Monto</th>
+                          <th className="pb-2 pr-4">Periodo</th>
+                          <th className="pb-2 pr-4">Fecha Cobranza</th>
+                          <th className="pb-2">Entidad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sunatData.deuda.items.map((d, i) => (
+                          <tr key={i} className="border-b border-white/[0.04]">
+                            <td className="py-2 pr-4 text-red-400 font-mono">S/ {d.monto}</td>
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{d.periodo}</td>
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{d.fechaCobranza}</td>
+                            <td className="py-2 text-[color:var(--text-secondary)]">{d.entidad}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-green-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Sin deudas coactivas registradas
+                  </div>
+                )}
+              </div>
+
+              {/* Representantes Legales */}
+              <div className="p-4 bg-[color:var(--neutral-50)] rounded-xl border border-white/[0.06]">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-emerald-600" />
+                  Representantes Legales
+                  {sunatData.representantes && (
+                    <span className="px-2 py-0.5 bg-blue-500/20 text-emerald-600 text-[10px] font-bold rounded-full">
+                      {sunatData.representantes.totalRepresentantes}
+                    </span>
+                  )}
+                </h3>
+                {sunatData.representantes && sunatData.representantes.representantes.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b border-white/[0.06]">
+                          <th className="pb-2 pr-4">Documento</th>
+                          <th className="pb-2 pr-4">Nombre</th>
+                          <th className="pb-2 pr-4">Cargo</th>
+                          <th className="pb-2">Desde</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sunatData.representantes.representantes.map((r, i) => (
+                          <tr key={i} className="border-b border-white/[0.04]">
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)] font-mono">{r.tipoDocumento} {r.numDocumento}</td>
+                            <td className="py-2 pr-4 text-white font-medium">{r.nombre}</td>
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{r.cargo}</td>
+                            <td className="py-2 text-[color:var(--text-secondary)]">{r.fechaDesde}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">Sin representantes legales registrados</p>
+                )}
+              </div>
+
+              {/* Cantidad de Trabajadores */}
+              <div className="p-4 bg-[color:var(--neutral-50)] rounded-xl border border-white/[0.06]">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-400" />
+                  Trabajadores Registrados en SUNAT
+                </h3>
+                {sunatData.trabajadores && sunatData.trabajadores.periodos.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b border-white/[0.06]">
+                          <th className="pb-2 pr-4">Periodo</th>
+                          <th className="pb-2 pr-4">Trabajadores</th>
+                          <th className="pb-2 pr-4">Pensionistas</th>
+                          <th className="pb-2">Prestadores</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sunatData.trabajadores.periodos.map((t, i) => (
+                          <tr key={i} className="border-b border-white/[0.04]">
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{t.periodo}</td>
+                            <td className="py-2 pr-4 text-white font-semibold">{t.totalTrabajadores.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{t.pensionistas.toLocaleString()}</td>
+                            <td className="py-2 text-[color:var(--text-secondary)]">{t.prestadoresServicios.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">Sin datos de trabajadores disponibles</p>
+                )}
+              </div>
+
+              {/* Establecimientos */}
+              <div className="p-4 bg-[color:var(--neutral-50)] rounded-xl border border-white/[0.06]">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <MapPinned className="w-4 h-4 text-green-400" />
+                  Establecimientos / Sucursales
+                  {sunatData.establecimientos && (
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full">
+                      {sunatData.establecimientos.totalEstablecimientos}
+                    </span>
+                  )}
+                </h3>
+                {sunatData.establecimientos && sunatData.establecimientos.establecimientos.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b border-white/[0.06]">
+                          <th className="pb-2 pr-4">Codigo</th>
+                          <th className="pb-2 pr-4">Tipo</th>
+                          <th className="pb-2 pr-4">Direccion</th>
+                          <th className="pb-2">Actividad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sunatData.establecimientos.establecimientos.map((e, i) => (
+                          <tr key={i} className="border-b border-white/[0.04]">
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)] font-mono">{e.codigo}</td>
+                            <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{e.descripcionTipo}</td>
+                            <td className="py-2 pr-4 text-white">{e.direccion}</td>
+                            <td className="py-2 text-[color:var(--text-secondary)] max-w-[200px] truncate">{e.actividadEconomica}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">Sin establecimientos adicionales registrados</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* Card 4: Plan e Información     */}
       {/* ============================== */}
       <div className={cardCls}>
         <h2 className={sectionTitleCls}>
@@ -994,9 +1198,9 @@ export default function EmpresaPage() {
           ))}
         </div>
 
-        <div className="mt-5 flex items-start gap-3 p-4 bg-blue-50 bg-blue-900/20 rounded-xl border border-blue-200 border-blue-800">
+        <div className="mt-5 flex items-start gap-3 p-4 bg-blue-900/20 rounded-xl border border-blue-800">
           <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700 text-blue-400">
+          <p className="text-xs text-emerald-600">
             La gestión de pagos y cambios de plan estará disponible próximamente. Para upgrades urgentes contacta a nuestro equipo de soporte.
           </p>
         </div>

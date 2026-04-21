@@ -45,7 +45,7 @@ const CATEGORIES = [
 ]
 
 const TIER_COLORS: Record<string, string> = {
-  STARTER: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+  STARTER: 'bg-blue-500/15 text-emerald-600 border-blue-500/30',
   EMPRESA: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
   PRO: 'bg-gold-500/15 text-gold-300 border-gold-500/30',
 }
@@ -104,7 +104,7 @@ export default function MarketplacePage() {
             SUNAT, AFPnet, firma digital, WhatsApp y más.
           </p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3 text-right">
+        <div className="rounded-xl border border-slate-800 bg-white px-4 py-3 text-right">
           <p className="text-xs text-slate-500">Activas</p>
           <p className="text-lg font-bold text-gold-400">
             {configuredCount}/{totalCount}
@@ -131,7 +131,7 @@ export default function MarketplacePage() {
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                 category === c.key
                   ? 'bg-gold-500 text-slate-950'
-                  : 'border border-slate-700 text-slate-400 hover:border-slate-600'
+                  : 'border border-slate-700 text-slate-400 hover:border-[color:var(--border-default)]'
               }`}
             >
               {c.label}
@@ -145,8 +145,8 @@ export default function MarketplacePage() {
           <Loader2 className="h-8 w-8 animate-spin text-gold-500" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-12 text-center">
-          <Plug className="mx-auto h-14 w-14 text-slate-600" />
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-white/40 p-12 text-center">
+          <Plug className="mx-auto h-14 w-14 text-[color:var(--text-secondary)]" />
           <p className="mt-4 text-sm text-slate-400">No hay integraciones que coincidan</p>
         </div>
       ) : (
@@ -156,7 +156,7 @@ export default function MarketplacePage() {
             return (
               <div
                 key={i.slug}
-                className="flex flex-col rounded-2xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-gold-500/40"
+                className="flex flex-col rounded-2xl border border-slate-800 bg-white p-5 transition hover:border-gold-500/40"
               >
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">

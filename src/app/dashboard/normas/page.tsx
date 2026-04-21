@@ -33,10 +33,10 @@ interface ModuleImpact {
 }
 
 const IMPACT_STYLE: Record<ImpactLevel, { bg: string; text: string; dot: string }> = {
-  Alto:        { bg: 'bg-red-100 bg-red-900/30',    text: 'text-red-700 text-red-400',       dot: 'bg-red-500' },
-  Medio:       { bg: 'bg-amber-100 bg-amber-900/30', text: 'text-amber-700 text-amber-400', dot: 'bg-amber-500' },
-  Bajo:        { bg: 'bg-blue-100 bg-blue-900/30',   text: 'text-blue-700 text-blue-400',   dot: 'bg-blue-500' },
-  'Sin impacto': { bg: 'bg-white/[0.04]',   text: 'text-slate-300',  dot: 'bg-gray-400' },
+  Alto:        { bg: 'bg-red-900/30',    text: 'text-red-400',       dot: 'bg-red-500' },
+  Medio:       { bg: 'bg-amber-900/30', text: 'text-amber-400', dot: 'bg-amber-500' },
+  Bajo:        { bg: 'bg-blue-900/30',   text: 'text-emerald-600',   dot: 'bg-blue-500' },
+  'Sin impacto': { bg: 'bg-[color:var(--neutral-100)]',   text: 'text-slate-300',  dot: 'bg-gray-400' },
 }
 
 const TRAFFIC: Record<TrafficLight, { label: string; bg: string; ring: string }> = {
@@ -185,7 +185,7 @@ export default function NormasPage() {
           <h1 className="text-2xl font-bold text-white">
             Monitor de Normativa Laboral
           </h1>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 text-gray-400">
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-400">
             <Clock className="h-4 w-4" />
             Última actualización:{' '}
             {counts.lastUpdated
@@ -194,7 +194,7 @@ export default function NormasPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-900/30 text-emerald-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-900/30 text-emerald-600">
             <TrendingUp className="h-3.5 w-3.5" /> {counts.totalNormas} normas monitoreadas
           </span>
         </div>
@@ -214,13 +214,13 @@ export default function NormasPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setExpandedId('1')}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#141824]/20 px-4 py-2 text-sm font-medium backdrop-blur-sm transition hover:bg-[#141824]/30"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur-sm transition hover:bg-white/30"
               >
                 <Eye className="h-4 w-4" /> Ver impacto
               </button>
               <button
                 onClick={() => setShowBanner(false)}
-                className="rounded-lg p-1.5 transition hover:bg-[#141824]/20"
+                className="rounded-lg p-1.5 transition hover:bg-white/20"
                 aria-label="Cerrar alerta"
               >
                 ✕
@@ -234,19 +234,19 @@ export default function NormasPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: 'Normas Monitoreadas',    value: String(counts.totalNormas), icon: Newspaper,     color: 'text-primary',      bg: 'bg-primary/10 bg-primary/20' },
-          { label: 'Actualizaciones este mes', value: String(counts.updatesThisMonth), icon: Calendar, color: 'text-blue-600 text-blue-400', bg: 'bg-blue-50 bg-blue-900/20' },
-          { label: 'Impacto en tu empresa',  value: `${counts.impactingNormas} norma${counts.impactingNormas !== 1 ? 's' : ''}`, icon: AlertTriangle, color: 'text-amber-600 text-amber-400', bg: 'bg-amber-50 bg-amber-900/20' },
-          { label: 'Cumplimiento actual',    value: `${counts.complianceScore}%`, icon: Shield,       color: 'text-emerald-600 text-emerald-400', bg: 'bg-emerald-50 bg-emerald-900/20' },
+          { label: 'Actualizaciones este mes', value: String(counts.updatesThisMonth), icon: Calendar, color: 'text-emerald-600', bg: 'bg-blue-900/20' },
+          { label: 'Impacto en tu empresa',  value: `${counts.impactingNormas} norma${counts.impactingNormas !== 1 ? 's' : ''}`, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-900/20' },
+          { label: 'Cumplimiento actual',    value: `${counts.complianceScore}%`, icon: Shield,       color: 'text-emerald-600', bg: 'bg-emerald-900/20' },
         ].map((card) => (
           <div
             key={card.label}
-            className="rounded-xl border border-white/[0.08] bg-[#141824] p-5 border-white/[0.08] bg-[#141824]"
+            className="rounded-xl border border-white/[0.08] bg-white p-5 border-white/[0.08] bg-white"
           >
             <div className={`inline-flex rounded-lg p-2.5 ${card.bg}`}>
               <card.icon className={`h-5 w-5 ${card.color}`} />
             </div>
             <p className="mt-3 text-2xl font-bold text-white">{card.value}</p>
-            <p className="mt-0.5 text-xs text-gray-500 text-gray-400">{card.label}</p>
+            <p className="mt-0.5 text-xs text-gray-400">{card.label}</p>
           </div>
         ))}
       </div>
@@ -257,21 +257,21 @@ export default function NormasPage() {
           <h2 className="text-lg font-semibold text-white">Actualizaciones Recientes</h2>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 placeholder="Buscar norma..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="rounded-lg border border-white/[0.08] bg-[#141824] py-2 pl-9 pr-3 text-sm text-white placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary border-slate-600 bg-[#141824] text-white placeholder:text-slate-500"
+                className="rounded-lg border border-white/[0.08] bg-white py-2 pl-9 pr-3 text-sm text-white placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary border-[color:var(--border-default)] bg-white text-white placeholder:text-slate-500"
               />
             </div>
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 text-slate-500" />
+              <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <select
                 value={impactFilter}
                 onChange={(e) => setImpactFilter(e.target.value as ImpactLevel | '')}
-                className="appearance-none rounded-lg border border-white/[0.08] bg-[#141824] py-2 pl-9 pr-8 text-sm text-gray-300 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary border-slate-600 bg-[#141824] text-gray-200"
+                className="appearance-none rounded-lg border border-white/[0.08] bg-white py-2 pl-9 pr-8 text-sm text-[color:var(--text-secondary)] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary border-[color:var(--border-default)] bg-white text-[color:var(--text-secondary)]"
               >
                 <option value="">Todos</option>
                 <option value="Alto">Alto</option>
@@ -285,9 +285,9 @@ export default function NormasPage() {
 
         <div className="space-y-3">
           {filtered.length === 0 && (
-            <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center border-slate-600 bg-white/50">
-              <Newspaper className="mx-auto h-10 w-10 text-gray-300 text-slate-600" />
-              <p className="mt-2 text-sm text-gray-500 text-gray-400">No se encontraron normas con los filtros aplicados.</p>
+            <div className="rounded-xl border border-dashed border-white/10 bg-[color:var(--neutral-50)] p-10 text-center border-[color:var(--border-default)] bg-white/50">
+              <Newspaper className="mx-auto h-10 w-10 text-[color:var(--text-secondary)]" />
+              <p className="mt-2 text-sm text-gray-400">No se encontraron normas con los filtros aplicados.</p>
             </div>
           )}
 
@@ -297,7 +297,7 @@ export default function NormasPage() {
             return (
               <div
                 key={norm.id}
-                className="rounded-xl border border-white/[0.08] bg-[#141824] transition border-white/[0.08] bg-[#141824]"
+                className="rounded-xl border border-white/[0.08] bg-white transition border-white/[0.08] bg-white"
               >
                 <button
                   onClick={() => setExpandedId(isOpen ? null : norm.id)}
@@ -312,34 +312,34 @@ export default function NormasPage() {
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.bg} ${style.text}`}>
                         {norm.impact}
                       </span>
-                      <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-gray-500 bg-white/[0.04] text-gray-400">
+                      <span className="rounded-full bg-[color:var(--neutral-100)] px-2 py-0.5 text-[10px] font-medium text-gray-500 bg-[color:var(--neutral-100)] text-gray-400">
                         {norm.source}
                       </span>
                     </div>
                     <p className="mt-1 text-sm font-medium text-white">{norm.title}</p>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-gray-400 text-slate-500">
+                    <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" /> {norm.date}
                       </span>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500 text-gray-400">
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-400">
                       {norm.summary}
                     </p>
                   </div>
 
                   {isOpen
-                    ? <ChevronUp className="mt-1 h-5 w-5 shrink-0 text-gray-400 text-slate-500" />
-                    : <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-gray-400 text-slate-500" />
+                    ? <ChevronUp className="mt-1 h-5 w-5 shrink-0 text-slate-500" />
+                    : <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-slate-500" />
                   }
                 </button>
 
                 {/* Expandable detail */}
                 {isOpen && (
                   <div className="border-t border-white/[0.06] px-4 pb-4 pt-3 border-white/[0.08]">
-                    <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400 text-slate-500">
+                    <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Detalle
                     </h4>
-                    <p className="text-sm leading-relaxed text-gray-300 text-slate-300">{norm.detail}</p>
+                    <p className="text-sm leading-relaxed text-slate-300">{norm.detail}</p>
                     <a
                       href={`https://busquedas.elperuano.pe/normaslegales/${encodeURIComponent(norm.code)}`}
                       target="_blank"
@@ -364,11 +364,11 @@ export default function NormasPage() {
         <div className="overflow-hidden rounded-xl border border-white/[0.08]">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-white/[0.08] bg-white/[0.02] border-white/[0.08] bg-[#141824]">
-                <th className="px-4 py-3 font-semibold text-gray-300 text-slate-300">Módulo</th>
-                <th className="px-4 py-3 font-semibold text-gray-300 text-slate-300">Estado</th>
-                <th className="hidden px-4 py-3 font-semibold text-gray-300 text-slate-300 md:table-cell">Norma relacionada</th>
-                <th className="hidden px-4 py-3 font-semibold text-gray-300 text-slate-300 lg:table-cell">Observación</th>
+              <tr className="border-b border-white/[0.08] bg-[color:var(--neutral-50)] border-white/[0.08] bg-white">
+                <th className="px-4 py-3 font-semibold text-slate-300">Módulo</th>
+                <th className="px-4 py-3 font-semibold text-slate-300">Estado</th>
+                <th className="hidden px-4 py-3 font-semibold text-slate-300 md:table-cell">Norma relacionada</th>
+                <th className="hidden px-4 py-3 font-semibold text-slate-300 lg:table-cell">Observación</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 divide-slate-700">
@@ -380,11 +380,11 @@ export default function NormasPage() {
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${t.ring}`}>
                         <span className={`h-2 w-2 rounded-full ${t.bg}`} />
-                        <span className="text-gray-300 text-slate-300">{t.label}</span>
+                        <span className="text-slate-300">{t.label}</span>
                       </span>
                     </td>
-                    <td className="hidden px-4 py-3 font-mono text-xs text-gray-500 text-gray-400 md:table-cell">{m.norm}</td>
-                    <td className="hidden px-4 py-3 text-xs text-gray-500 text-gray-400 lg:table-cell">{m.note}</td>
+                    <td className="hidden px-4 py-3 font-mono text-xs text-gray-400 md:table-cell">{m.norm}</td>
+                    <td className="hidden px-4 py-3 text-xs text-gray-400 lg:table-cell">{m.note}</td>
                   </tr>
                 )
               })}
@@ -394,7 +394,7 @@ export default function NormasPage() {
       </section>
 
       {/* ---- 6. Subscription Settings ---- */}
-      <section className="rounded-xl border border-white/[0.08] bg-[#141824] p-6 border-white/[0.08] bg-[#141824]">
+      <section className="rounded-xl border border-white/[0.08] bg-white p-6 border-white/[0.08] bg-white">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
           <Bell className="h-5 w-5 text-primary" />
           Configuración de Notificaciones
@@ -403,7 +403,7 @@ export default function NormasPage() {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Toggles */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 text-slate-500">Suscripciones</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Suscripciones</p>
 
             {([
               { label: 'Nuevas normas publicadas',   value: notifNormas,  set: setNotifNormas },
@@ -412,14 +412,14 @@ export default function NormasPage() {
             ] as const).map((item) => (
               <label
                 key={item.label}
-                className="flex cursor-pointer items-center justify-between rounded-lg border border-white/[0.06] px-4 py-3 transition hover:bg-white/[0.02] border-white/[0.08] hover:bg-white/[0.04]/50"
+                className="flex cursor-pointer items-center justify-between rounded-lg border border-white/[0.06] px-4 py-3 transition hover:bg-[color:var(--neutral-50)] border-white/[0.08] hover:bg-[color:var(--neutral-100)]/50"
               >
                 <div className="flex items-center gap-3">
                   {item.value
                     ? <Bell className="h-4 w-4 text-primary" />
-                    : <BellOff className="h-4 w-4 text-gray-400 text-slate-500" />
+                    : <BellOff className="h-4 w-4 text-slate-500" />
                   }
-                  <span className="text-sm text-gray-300 text-slate-300">{item.label}</span>
+                  <span className="text-sm text-slate-300">{item.label}</span>
                 </div>
                 <button
                   type="button"
@@ -427,11 +427,11 @@ export default function NormasPage() {
                   aria-checked={item.value}
                   onClick={() => item.set(!item.value)}
                   className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                    item.value ? 'bg-primary' : 'bg-gray-300 bg-slate-600'
+                    item.value ? 'bg-primary' : 'bg-[color:var(--neutral-200)]'
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-[#141824] shadow transition-transform ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
                       item.value ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
@@ -442,7 +442,7 @@ export default function NormasPage() {
 
           {/* Email frequency */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Frecuencia de email
             </p>
             <div className="space-y-2">
@@ -452,7 +452,7 @@ export default function NormasPage() {
                   className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition ${
                     emailFreq === freq
                       ? 'border-primary bg-primary/5 border-primary bg-primary/10'
-                      : 'border-white/[0.06] hover:bg-white/[0.02] border-white/[0.08] hover:bg-white/[0.04]/50'
+                      : 'border-white/[0.06] hover:bg-[color:var(--neutral-50)] border-white/[0.08] hover:bg-[color:var(--neutral-100)]/50'
                   }`}
                 >
                   <input
@@ -461,9 +461,9 @@ export default function NormasPage() {
                     value={freq}
                     checked={emailFreq === freq}
                     onChange={() => setEmailFreq(freq)}
-                    className="h-4 w-4 border-white/10 text-primary focus:ring-primary border-slate-600"
+                    className="h-4 w-4 border-white/10 text-primary focus:ring-primary border-[color:var(--border-default)]"
                   />
-                  <span className="text-sm capitalize text-gray-300 text-slate-300">{freq}</span>
+                  <span className="text-sm capitalize text-slate-300">{freq}</span>
                 </label>
               ))}
             </div>

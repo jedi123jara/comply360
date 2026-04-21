@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import {
   FileText, RefreshCw, Plus, ChevronDown, ChevronUp,
-  AlertTriangle, Users, DollarSign, X, Check,
+  AlertTriangle, DollarSign, X, Check,
   Clock, Receipt, Search, ExternalLink, Info, Percent,
 } from 'lucide-react'
 import { displayWorkerName, workerInitials } from '@/lib/utils'
@@ -92,23 +92,23 @@ function KpiCard({
   accent: 'blue' | 'amber' | 'green' | 'purple' | 'red'
 }) {
   const colors: Record<string, { bg: string; icon: string }> = {
-    blue:   { bg: 'bg-blue-500/10',   icon: 'text-blue-400'   },
+    blue:   { bg: 'bg-blue-500/10',   icon: 'text-emerald-600'   },
     amber:  { bg: 'bg-amber-500/10',  icon: 'text-amber-400'  },
-    green:  { bg: 'bg-emerald-500/10', icon: 'text-emerald-400' },
+    green:  { bg: 'bg-emerald-50', icon: 'text-emerald-600' },
     purple: { bg: 'bg-purple-500/10', icon: 'text-purple-400' },
     red:    { bg: 'bg-red-500/10',    icon: 'text-red-400'    },
   }
   const c = colors[accent]
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-5">
+    <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5">
       <div className={`flex h-10 w-10 items-center justify-center rounded-xl mb-3 ${c.bg}`}>
         <Icon className={`w-5 h-5 ${c.icon}`} />
       </div>
       <p className="text-2xl font-bold text-white">
-        {prefix && <span className="text-sm font-normal text-gray-500 mr-0.5">{prefix}</span>}
+        {prefix && <span className="text-sm font-normal text-[color:var(--text-tertiary)] mr-0.5">{prefix}</span>}
         {value}
       </p>
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-1">{label}</p>
+      <p className="text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider mt-1">{label}</p>
     </div>
   )
 }
@@ -176,12 +176,12 @@ function NewInvoiceModal({
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.08]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[color:var(--border-default)]">
           <div>
             <h3 className="font-semibold text-white">Registrar Recibo por Honorarios</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{providerName}</p>
+            <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{providerName}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white">
+          <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-[color:var(--text-tertiary)] hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -193,92 +193,92 @@ function NewInvoiceModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-400 mb-1 block">N de Recibo *</label>
+              <label className="text-xs font-medium text-[color:var(--text-tertiary)] mb-1 block">N de Recibo *</label>
               <input
                 value={form.invoiceNumber}
                 onChange={e => setForm(f => ({ ...f, invoiceNumber: e.target.value }))}
                 placeholder="E001-00001"
-                className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+                className="w-full px-3 py-2 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-400 mb-1 block">Periodo *</label>
+              <label className="text-xs font-medium text-[color:var(--text-tertiary)] mb-1 block">Periodo *</label>
               <input
                 type="month"
                 value={form.periodo}
                 onChange={e => setForm(f => ({ ...f, periodo: e.target.value }))}
-                className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+                className="w-full px-3 py-2 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-400 mb-1 block">Fecha Emision *</label>
+              <label className="text-xs font-medium text-[color:var(--text-tertiary)] mb-1 block">Fecha Emision *</label>
               <input
                 type="date"
                 value={form.issueDate}
                 onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+                className="w-full px-3 py-2 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-400 mb-1 block">Monto Bruto (S/) *</label>
+              <label className="text-xs font-medium text-[color:var(--text-tertiary)] mb-1 block">Monto Bruto (S/) *</label>
               <input
                 type="number"
                 step="0.01"
                 value={form.grossAmount}
                 onChange={e => setForm(f => ({ ...f, grossAmount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+                className="w-full px-3 py-2 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-400 mb-1 block">
+            <label className="text-xs font-medium text-[color:var(--text-tertiary)] mb-1 block">
               Notas <span className="font-normal text-gray-600">(opcional)</span>
             </label>
             <input
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Descripcion del servicio..."
-              className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+              className="w-full px-3 py-2 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
             />
           </div>
 
           {/* Calculation preview */}
           {gross > 0 && (
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 space-y-1.5">
+            <div className="bg-[color:var(--neutral-50)] border border-[color:var(--border-default)] rounded-xl p-3 space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-500">Monto bruto</span>
-                <span className="font-medium text-gray-300">S/ {fmt(gross)}</span>
+                <span className="text-[color:var(--text-tertiary)]">Monto bruto</span>
+                <span className="font-medium text-[color:var(--text-secondary)]">S/ {fmt(gross)}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-gray-500">
+                <span className="text-[color:var(--text-tertiary)]">
                   Retencion IR 4ta ({shouldRetain ? '8%' : hasSuspension ? 'Suspendida' : '< S/ 1,500'})
                 </span>
                 <span className={`font-medium ${shouldRetain ? 'text-red-400' : 'text-gray-600'}`}>
                   {shouldRetain ? `- S/ ${fmt(retention)}` : 'S/ 0.00'}
                 </span>
               </div>
-              <div className="flex justify-between text-sm pt-1.5 border-t border-white/[0.06]">
-                <span className="font-semibold text-gray-300">Neto a pagar</span>
-                <span className="font-bold text-gold">S/ {fmt(netAmount)}</span>
+              <div className="flex justify-between text-sm pt-1.5 border-t border-[color:var(--border-default)]">
+                <span className="font-semibold text-[color:var(--text-secondary)]">Neto a pagar</span>
+                <span className="font-bold text-amber-500">S/ {fmt(netAmount)}</span>
               </div>
             </div>
           )}
 
           {hasSuspension && (
-            <div className="flex items-start gap-2 text-xs text-blue-300 bg-blue-500/[0.05] rounded-xl p-2.5 border border-blue-500/15">
+            <div className="flex items-start gap-2 text-xs text-emerald-600 bg-blue-500/[0.05] rounded-xl p-2.5 border border-blue-500/15">
               <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span>Este prestador tiene suspension de retencion vigente. No se aplica el 8% IR.</span>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-5 border-t border-white/[0.08]">
-          <button onClick={onClose} className="px-4 py-2.5 text-sm border border-white/10 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-colors">
+        <div className="flex justify-end gap-2 px-6 py-5 border-t border-[color:var(--border-default)]">
+          <button onClick={onClose} className="px-4 py-2.5 text-sm border border-white/10 bg-[color:var(--neutral-100)] text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white rounded-xl transition-colors">
             Cancelar
           </button>
           <button
@@ -298,7 +298,6 @@ function NewInvoiceModal({
 
 function InvoiceRow({
   invoice,
-  providerId,
   onStatusChange,
   onDelete,
 }: {
@@ -312,38 +311,38 @@ function InvoiceRow({
 
   return (
     <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
-      isPaid ? 'bg-emerald-500/[0.03] border-emerald-500/10' : isCancelled ? 'bg-[#141824]/[0.01] border-white/[0.04] opacity-60' : 'bg-white/[0.02] border-white/[0.06]'
+      isPaid ? 'bg-emerald-500/[0.03] border-emerald-500/10' : isCancelled ? 'bg-white/[0.01] border-white/[0.04] opacity-60' : 'bg-[color:var(--neutral-50)] border-[color:var(--border-default)]'
     }`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-mono font-medium text-gray-300">{invoice.invoiceNumber}</span>
+          <span className="text-sm font-mono font-medium text-[color:var(--text-secondary)]">{invoice.invoiceNumber}</span>
           {isPaid && (
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-emerald-500/10 text-emerald-400">PAGADO</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 text-emerald-600">PAGADO</span>
           )}
           {isCancelled && (
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-gray-500/10 text-gray-500">ANULADO</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-gray-500/10 text-[color:var(--text-tertiary)]">ANULADO</span>
           )}
           {!isPaid && !isCancelled && (
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-amber-500/10 text-amber-400">PENDIENTE</span>
           )}
         </div>
-        <p className="text-[11px] text-gray-500 mt-0.5">
+        <p className="text-[11px] text-[color:var(--text-tertiary)] mt-0.5">
           {fmtDate(invoice.issueDate)}
           {invoice.hasRetention && <span className="ml-2 text-red-400">IR 8%: -S/ {fmt(invoice.retention)}</span>}
-          {invoice.paidAt && <span className="ml-2 text-emerald-400">Pagado: {fmtDate(invoice.paidAt)}</span>}
+          {invoice.paidAt && <span className="ml-2 text-emerald-600">Pagado: {fmtDate(invoice.paidAt)}</span>}
         </p>
       </div>
 
       <div className="text-right shrink-0">
-        <p className="text-xs text-gray-500">S/ {fmt(invoice.grossAmount)}</p>
-        <p className="text-sm font-bold text-gold">S/ {fmt(invoice.netAmount)}</p>
+        <p className="text-xs text-[color:var(--text-tertiary)]">S/ {fmt(invoice.grossAmount)}</p>
+        <p className="text-sm font-bold text-amber-500">S/ {fmt(invoice.netAmount)}</p>
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
         {!isPaid && !isCancelled && (
           <button
             onClick={() => onStatusChange(invoice.id, 'PAID')}
-            className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
             title="Marcar como pagado"
           >
             <Check className="w-4 h-4" />
@@ -360,7 +359,7 @@ function InvoiceRow({
         )}
         <button
           onClick={() => onDelete(invoice.id)}
-          className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          className="p-1.5 text-[color:var(--text-tertiary)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
           title="Eliminar"
         >
           <X className="w-3.5 h-3.5" />
@@ -389,14 +388,15 @@ function ProviderCard({
   const hasPending = summary.pendientes > 0
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Auto-expand UI state en respuesta a prop derivada.
     if (hasPending) setExpanded(true)
   }, [hasPending])
 
   return (
-    <div className={`rounded-2xl border bg-[#141824] overflow-hidden ${hasPending ? 'border-amber-500/30' : 'border-white/[0.08]'}`}>
+    <div className={`rounded-2xl border bg-white overflow-hidden ${hasPending ? 'border-amber-500/30' : 'border-[color:var(--border-default)]'}`}>
       <button
         onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-[color:var(--neutral-50)] transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 shadow-lg ${
@@ -404,7 +404,7 @@ function ProviderCard({
               ? 'bg-gradient-to-br from-amber-500/80 to-amber-600 text-white shadow-amber-500/20'
               : invoices.length > 0
                 ? 'bg-gradient-to-br from-primary/80 to-primary text-white shadow-primary/20'
-                : 'bg-[#141824]/[0.06] text-gray-500'
+                : 'bg-white/[0.06] text-[color:var(--text-tertiary)]'
           }`}>
             {workerInitials(provider.firstName, provider.lastName)}
           </div>
@@ -417,32 +417,32 @@ function ProviderCard({
                 </span>
               )}
               {provider.hasSuspensionRetencion && (
-                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-blue-500/10 text-blue-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-blue-500/10 text-emerald-600">
                   Sin retencion
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 truncate mt-0.5">
-              <span className="font-mono text-gray-300">{provider.ruc ? `RUC ${provider.ruc}` : `DNI ${provider.documentNumber}`}</span>
+            <p className="text-xs text-[color:var(--text-tertiary)] truncate mt-0.5">
+              <span className="font-mono text-[color:var(--text-secondary)]">{provider.ruc ? `RUC ${provider.ruc}` : `DNI ${provider.documentNumber}`}</span>
               {provider.profession ? ` · ${provider.profession}` : ''}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4 shrink-0 ml-3">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-gold">
+            <p className="text-sm font-bold text-amber-500">
               S/ {fmt(summary.totalNeto)}
             </p>
-            <p className="text-xs text-gray-500">{summary.count} recibo{summary.count !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">{summary.count} recibo{summary.count !== 1 ? 's' : ''}</p>
           </div>
-          {expanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-[color:var(--text-tertiary)]" /> : <ChevronDown className="w-4 h-4 text-[color:var(--text-tertiary)]" />}
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t border-white/[0.06] bg-[#0f1219] px-6 py-5 space-y-2">
+        <div className="border-t border-[color:var(--border-default)] bg-[#0f1219] px-6 py-5 space-y-2">
           {invoices.length === 0 ? (
-            <p className="text-center py-4 text-sm text-gray-500">Sin recibos para este periodo</p>
+            <p className="text-center py-4 text-sm text-[color:var(--text-tertiary)]">Sin recibos para este periodo</p>
           ) : (
             invoices.map(inv => (
               <InvoiceRow
@@ -465,7 +465,7 @@ function ProviderCard({
             </button>
             <Link
               href={`/dashboard/prestadores/${provider.id}`}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition-colors"
+              className="flex items-center gap-1 text-xs text-[color:var(--text-tertiary)] hover:text-white transition-colors"
             >
               Ver prestador <ExternalLink className="w-3 h-3" />
             </Link>
@@ -504,6 +504,7 @@ export default function HonorariosPage() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void load() }, [periodo])
 
   async function handleStatusChange(providerId: string, invoiceId: string, status: string) {
@@ -562,7 +563,7 @@ export default function HonorariosPage() {
             <h1 className="text-2xl font-bold text-white">
               Recibos por Honorarios
             </h1>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-[color:var(--text-tertiary)] mt-1">
               Gestion de pagos a prestadores de servicios · Retencion IR 4ta Categoria (8%)
             </p>
           </div>
@@ -572,11 +573,11 @@ export default function HonorariosPage() {
             type="month"
             value={periodo}
             onChange={e => setPeriodo(e.target.value)}
-            className="px-3 py-2 border border-white/10 bg-white/[0.03] rounded-xl text-sm text-white focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+            className="px-3 py-2 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-sm text-white focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
           />
           <button
             onClick={load}
-            className="p-2 border border-white/10 bg-white/[0.03] rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
+            className="p-2 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -625,11 +626,11 @@ export default function HonorariosPage() {
         <div className="flex items-start gap-3 p-4 bg-amber-500/[0.05] border border-amber-500/15 rounded-xl">
           <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-amber-300 text-sm">
+            <p className="font-semibold text-amber-700 text-sm">
               {totals.pendientes} recibo{totals.pendientes !== 1 ? 's' : ''} pendiente{totals.pendientes !== 1 ? 's' : ''} de pago
             </p>
-            <p className="text-xs text-amber-300/70 mt-1">
-              Total por pagar: <strong className="text-amber-300">S/ {fmt(
+            <p className="text-xs text-amber-700/70 mt-1">
+              Total por pagar: <strong className="text-amber-700">S/ {fmt(
                 data?.providers
                   .flatMap(p => p.invoices)
                   .filter(i => i.status === 'PENDING')
@@ -644,12 +645,12 @@ export default function HonorariosPage() {
       {/* ── Filters ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[color:var(--text-tertiary)]" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre, DNI o RUC..."
-            className="w-full pl-9 pr-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
+            className="w-full pl-9 pr-3 py-2.5 border border-white/10 bg-[color:var(--neutral-100)] rounded-xl text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/30"
           />
         </div>
         <div className="flex rounded-xl overflow-hidden shrink-0 gap-1">
@@ -658,7 +659,7 @@ export default function HonorariosPage() {
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={`px-3 py-2 text-xs font-medium rounded-xl transition-colors ${
-                filter === tab.key ? 'bg-gold text-black font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                filter === tab.key ? 'bg-gold text-black font-bold' : 'text-[color:var(--text-tertiary)] hover:text-white hover:bg-white/5'
               }`}
             >
               {tab.label}
@@ -669,14 +670,14 @@ export default function HonorariosPage() {
 
       {/* ── Provider list ──────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-gray-500">
+        <div className="flex items-center justify-center py-20 text-[color:var(--text-tertiary)]">
           <RefreshCw className="w-5 h-5 animate-spin mr-2" />
           Cargando honorarios...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
+        <div className="text-center py-20 text-[color:var(--text-tertiary)]">
           <FileText className="w-12 h-12 mx-auto mb-3 opacity-25" />
-          <p className="text-sm font-medium text-gray-400">No hay prestadores para mostrar</p>
+          <p className="text-sm font-medium text-[color:var(--text-tertiary)]">No hay prestadores para mostrar</p>
           <p className="text-xs mt-1 text-gray-600">
             {search || filter !== 'todos'
               ? 'Pruebe con otros filtros'
@@ -699,23 +700,23 @@ export default function HonorariosPage() {
 
       {/* ── Footer totals ──────────────────────────────────────────────────── */}
       {totals && totals.totalRecibos > 0 && (
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-[color:var(--neutral-50)] border border-[color:var(--border-default)] rounded-xl p-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">
+            <span className="text-[color:var(--text-tertiary)]">
               Totales del periodo · {totals.providersConRecibo} prestador{totals.providersConRecibo !== 1 ? 'es' : ''}
               · {totals.totalRecibos} recibo{totals.totalRecibos !== 1 ? 's' : ''}
             </span>
             <div className="flex gap-6 font-medium">
-              <span className="text-gray-400">Bruto: <strong className="text-gray-300">S/ {fmt(totals.totalBruto)}</strong></span>
+              <span className="text-[color:var(--text-tertiary)]">Bruto: <strong className="text-[color:var(--text-secondary)]">S/ {fmt(totals.totalBruto)}</strong></span>
               <span className="text-red-400">IR 4ta: <strong>S/ {fmt(totals.totalRetencion)}</strong></span>
-              <span className="text-gold">Neto: <strong>S/ {fmt(totals.totalNeto)}</strong></span>
+              <span className="text-amber-500">Neto: <strong>S/ {fmt(totals.totalNeto)}</strong></span>
             </div>
           </div>
         </div>
       )}
 
       {/* ── Legal footnote ─────────────────────────────────────────────────── */}
-      <p className="text-xs text-gray-600 border-t border-white/[0.06] pt-4">
+      <p className="text-xs text-gray-600 border-t border-[color:var(--border-default)] pt-4">
         Art. 33 y 34 TUO LIR (D.S. 179-2004-EF) · Retencion 8% para montos &gt; S/ 1,500 mensuales ·
         Suspension de retencion: formulario 1609 SUNAT (cuando proyeccion anual &lt; 7 UIT).
       </p>

@@ -75,3 +75,47 @@ self.addEventListener('fetch', event => {
       .catch(() => caches.match(req).then(cached => cached || caches.match('/')))
   )
 })
+
+/* ── Push notifications ─────────────────────────────────────────────── */
+
+self.addEventListener('push', event => {
+  if (!event.data) return
+  let payload = {}
+  try {
+    payload = event.data.json()
+  } catch {
+    payload = { title: 'COMPLY360', body: event.data.text() }
+  }
+  const {
+    title = 'COMPLY360',
+    body = '',
+    url = '/dashboard/alertas',
+    tag,
+    severity,
+  } = payload
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: tag || 'comply360-alert',
+      renotify: true,
+      data: { url },
+      requireInteraction: severity === 'CRITICAL',
+    })
+  )
+})
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const target = (event.notification.data && event.notification.data.url) || '/dashboard'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const client of list) {
+        if (client.url.includes(target) && 'focus' in client) return client.focus()
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target)
+    })
+  )
+})

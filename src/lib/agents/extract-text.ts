@@ -24,6 +24,7 @@ if (typeof globalThis.DOMMatrix === 'undefined') {
     constructor(_init?: string | number[]) {}
     translate(tx = 0, ty = 0, tz = 0) { void [tx, ty, tz]; return this }
     scale(sx = 1, sy?: number, sz = 1, ox = 0, oy = 0, oz = 0) { void [sx, sy, sz, ox, oy, oz]; return this }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     multiply(_other: unknown) { return this }
     inverse() { return this }
     toString() { return `matrix(${this.a},${this.b},${this.c},${this.d},${this.e},${this.f})` }

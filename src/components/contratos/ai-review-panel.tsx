@@ -148,7 +148,7 @@ export function AIReviewPanel({ contractHtml, contractType, onComplete }: AIRevi
 
           <button
             onClick={runReview}
-            className="p-2 hover:bg-white/[0.04] rounded-xl transition-colors flex-shrink-0"
+            className="p-2 hover:bg-[color:var(--neutral-100)] rounded-xl transition-colors flex-shrink-0"
             title="Reanalizar"
           >
             <RefreshCw className="w-5 h-5 text-gray-400" />

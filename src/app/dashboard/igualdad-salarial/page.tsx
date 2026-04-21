@@ -71,13 +71,6 @@ function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(amount)
 }
 
-function getGapColor(gap: number): string {
-  const abs = Math.abs(gap)
-  if (abs <= 5) return 'text-green-600 text-green-400'
-  if (abs <= 15) return 'text-yellow-600 text-yellow-400'
-  return 'text-red-600 text-red-400'
-}
-
 function getGapBadgeColor(gap: number): string {
   const abs = Math.abs(gap)
   if (abs <= 5) return 'bg-green-100 text-green-700 bg-green-900/40 text-green-400'
@@ -109,7 +102,7 @@ function SalaryGapChart({ groups }: { groups: GenderGroup[] }) {
 
   if (chartGroups.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-gray-400 text-slate-500">
+      <div className="flex flex-col items-center justify-center py-12 text-[color:var(--text-tertiary)]">
         <BarChart3 className="h-10 w-10 mb-2" />
         <p className="text-sm">No hay datos suficientes para el grafico.</p>
         <p className="text-xs mt-1">Se necesitan grupos con ambos generos representados.</p>
@@ -139,9 +132,9 @@ function SalaryGapChart({ groups }: { groups: GenderGroup[] }) {
         {/* Legend */}
         <g transform={`translate(${leftMargin}, 10)`}>
           <rect x="0" y="0" width="12" height="12" rx="2" fill="#3b82f6" />
-          <text x="16" y="10" className="text-[10px] fill-gray-600 fill-slate-400" fontSize="10">Hombres</text>
+          <text x="16" y="10" className="text-[10px] fill-slate-400" fontSize="10">Hombres</text>
           <rect x="80" y="0" width="12" height="12" rx="2" fill="#ec4899" />
-          <text x="96" y="10" className="text-[10px] fill-gray-600 fill-slate-400" fontSize="10">Mujeres</text>
+          <text x="96" y="10" className="text-[10px] fill-slate-400" fontSize="10">Mujeres</text>
         </g>
 
         {chartGroups.map((g, i) => {
@@ -159,7 +152,7 @@ function SalaryGapChart({ groups }: { groups: GenderGroup[] }) {
                 x={leftMargin - 8}
                 y={barHeight + 4}
                 textAnchor="end"
-                className="fill-gray-700 fill-slate-300"
+                className="fill-slate-300"
                 fontSize="11"
                 fontWeight="500"
               >
@@ -179,7 +172,7 @@ function SalaryGapChart({ groups }: { groups: GenderGroup[] }) {
               <text
                 x={leftMargin + maleWidth + 4}
                 y={barHeight - 4}
-                className="fill-gray-600 fill-slate-400"
+                className="fill-slate-400"
                 fontSize="9"
               >
                 {formatCurrency(g.avgSalaryMale)}
@@ -198,7 +191,7 @@ function SalaryGapChart({ groups }: { groups: GenderGroup[] }) {
               <text
                 x={leftMargin + femaleWidth + 4}
                 y={barHeight * 2}
-                className="fill-gray-600 fill-slate-400"
+                className="fill-slate-400"
                 fontSize="9"
               >
                 {formatCurrency(g.avgSalaryFemale)}
@@ -214,7 +207,7 @@ function SalaryGapChart({ groups }: { groups: GenderGroup[] }) {
               <text
                 x={chartWidth - 24}
                 y={barHeight + 6}
-                className="fill-gray-700 fill-slate-300"
+                className="fill-slate-300"
                 fontSize="10"
                 fontWeight="600"
               >
@@ -415,7 +408,7 @@ export default function IgualdadSalarialPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-700" />
       </div>
     )
   }
@@ -428,37 +421,37 @@ export default function IgualdadSalarialPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Scale className="h-6 w-6 text-primary" />
+            <Scale className="h-6 w-6 text-emerald-700" />
             Igualdad Salarial
           </h1>
-          <p className="mt-1 text-gray-500 text-gray-400">
+          <p className="mt-1 text-[color:var(--text-tertiary)]">
             Analisis de brecha salarial y cumplimiento de la Ley 30709
           </p>
         </div>
         <button
           onClick={exportReport}
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 shadow-sm"
+          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600/90 shadow-sm"
         >
           <Download className="h-4 w-4" /> Descargar Reporte Ley 30709
         </button>
       </div>
 
       {/* Legal basis banner */}
-      <div className="rounded-xl border border-blue-200 border-blue-800 bg-blue-50 bg-blue-900/30 px-4 py-3">
+      <div className="rounded-xl border border-blue-800 bg-blue-900/30 px-4 py-3">
         <div className="flex items-start gap-3">
-          <FileText className="h-5 w-5 text-blue-600 text-blue-400 mt-0.5 shrink-0" />
+          <FileText className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-blue-800 text-blue-300">
+            <p className="text-sm font-semibold text-emerald-600">
               Base Legal: Ley 30709 — Ley que prohibe la discriminacion remunerativa entre varones y mujeres
             </p>
-            <p className="mt-0.5 text-xs text-blue-600 text-blue-400">
+            <p className="mt-0.5 text-xs text-emerald-600">
               Obligacion: Mantener un cuadro de categorias y funciones con bandas salariales objetivas. Brecha mayor al 5% requiere justificacion documentada.
             </p>
             <a
               href="https://busquedas.elperuano.pe/normaslegales/ley-que-prohibe-la-discriminacion-remunerativa-entre-varones-ley-n-30709-1600963-1/"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-blue-700 text-blue-300 hover:underline"
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:underline"
             >
               <ExternalLink className="h-3 w-3" /> Ver norma completa en El Peruano
             </a>
@@ -468,9 +461,9 @@ export default function IgualdadSalarialPage() {
 
       {/* Banner: workers without gender */}
       {stats.noGenderCount > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 border-amber-700 bg-amber-50 bg-amber-900/20 px-4 py-3">
-          <AlertTriangle className="h-4 w-4 text-amber-600 text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-sm text-amber-800 text-amber-300">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-700 bg-amber-900/20 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-sm text-amber-700">
             <span className="font-semibold">{stats.noGenderCount} trabajador{stats.noGenderCount !== 1 ? 'es' : ''} sin género registrado</span>
             {' '}no aparecen en el análisis de brecha salarial. Para incluirlos, ve al perfil de cada trabajador y establece el campo <span className="font-semibold">Género</span> (Información → Datos Personales).
           </p>
@@ -479,31 +472,31 @@ export default function IgualdadSalarialPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 text-center">
-          <Users className="mx-auto h-5 w-5 text-gray-400 text-slate-500" />
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 text-center">
+          <Users className="mx-auto h-5 w-5 text-[color:var(--text-tertiary)]" />
           <p className="mt-1 text-2xl font-bold text-white">{stats.totalWorkers}</p>
-          <p className="text-xs text-gray-500 text-gray-400">Trabajadores</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Trabajadores</p>
         </div>
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 text-center">
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 text-center">
           <Equal className="mx-auto h-5 w-5 text-purple-500" />
-          <p className="mt-1 text-2xl font-bold text-purple-600 text-purple-400">{stats.femalePercent}%</p>
-          <p className="text-xs text-gray-500 text-gray-400">Mujeres</p>
+          <p className="mt-1 text-2xl font-bold text-purple-400">{stats.femalePercent}%</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Mujeres</p>
         </div>
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 text-center">
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 text-center">
           <TrendingDown className="mx-auto h-5 w-5 text-blue-500" />
           {stats.totalMale > 0 && stats.totalFemale > 0 ? (
-            <p className={cn('mt-1 text-2xl font-bold', Math.abs(stats.overallAvgGap) > 5 ? 'text-red-600 text-red-400' : 'text-green-600 text-green-400')}>
+            <p className={cn('mt-1 text-2xl font-bold', Math.abs(stats.overallAvgGap) > 5 ? 'text-red-400' : 'text-green-400')}>
               {stats.overallAvgGap}%
             </p>
           ) : (
-            <p className="mt-1 text-2xl font-bold text-gray-400 text-slate-500">N/A</p>
+            <p className="mt-1 text-2xl font-bold text-[color:var(--text-tertiary)]">N/A</p>
           )}
-          <p className="text-xs text-gray-500 text-gray-400">Brecha Promedio</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Brecha Promedio</p>
         </div>
-        <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4 text-center">
+        <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 text-center">
           <AlertTriangle className="mx-auto h-5 w-5 text-red-500" />
-          <p className="mt-1 text-2xl font-bold text-red-600 text-red-400">{stats.groupsWithGap}</p>
-          <p className="text-xs text-gray-500 text-gray-400">Grupos con Brecha</p>
+          <p className="mt-1 text-2xl font-bold text-red-400">{stats.groupsWithGap}</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Grupos con Brecha</p>
         </div>
       </div>
 
@@ -511,10 +504,10 @@ export default function IgualdadSalarialPage() {
           ALERTS SECTION
           ============================ */}
       {(alerts.length > 0 || criticalGroups.length > 0) && (
-        <div className="rounded-xl border border-red-200 border-red-800 bg-red-50 bg-red-900/20">
-          <div className="flex items-center gap-2 border-b border-red-200 border-red-800 px-4 py-3">
-            <Bell className="h-5 w-5 text-red-600 text-red-400" />
-            <h2 className="text-lg font-semibold text-red-800 text-red-300">
+        <div className="rounded-xl border border-red-800 bg-red-900/20">
+          <div className="flex items-center gap-2 border-b border-red-800 px-4 py-3">
+            <Bell className="h-5 w-5 text-red-400" />
+            <h2 className="text-lg font-semibold text-red-300">
               Alertas Automaticas — Brecha Critica (&gt;15%)
             </h2>
           </div>
@@ -524,10 +517,10 @@ export default function IgualdadSalarialPage() {
                 <div key={i} className="flex items-start gap-3 px-4 py-3">
                   <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-red-800 text-red-300">
+                    <p className="text-sm font-medium text-red-300">
                       {a.name || 'Trabajador'} — {a.position}
                     </p>
-                    <p className="text-xs text-red-600 text-red-400 mt-0.5">
+                    <p className="text-xs text-red-400 mt-0.5">
                       Departamento: {a.department} | Sueldo: {formatCurrency(a.salary)} |
                       Promedio {a.gender === 'F' ? 'masculino' : 'femenino'}: {formatCurrency(a.avgOther)}
                     </p>
@@ -542,10 +535,10 @@ export default function IgualdadSalarialPage() {
                 <div key={i} className="flex items-start gap-3 px-4 py-3">
                   <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-red-800 text-red-300">
+                    <p className="text-sm font-medium text-red-300">
                       {g.position || 'Sin Puesto'} — {g.department || 'Sin Departamento'}
                     </p>
-                    <p className="text-xs text-red-600 text-red-400 mt-0.5">
+                    <p className="text-xs text-red-400 mt-0.5">
                       H: {formatCurrency(g.avgSalaryMale)} | M: {formatCurrency(g.avgSalaryFemale)} | Brecha: {Math.abs(g.gapPercent)}%
                     </p>
                   </div>
@@ -559,13 +552,13 @@ export default function IgualdadSalarialPage() {
       {/* ============================
           SALARY GAP CHART
           ============================ */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824]">
-        <div className="border-b border-white/[0.08] px-4 py-3">
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white">
+        <div className="border-b border-[color:var(--border-default)] px-4 py-3">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
+            <BarChart3 className="h-5 w-5 text-emerald-700" />
             Grafico de Brecha Salarial por Departamento
           </h2>
-          <p className="text-xs text-gray-500 text-gray-400">Comparacion de salario promedio hombres vs mujeres</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Comparacion de salario promedio hombres vs mujeres</p>
         </div>
         <div className="p-4">
           <SalaryGapChart groups={groups} />
@@ -575,23 +568,23 @@ export default function IgualdadSalarialPage() {
       {/* ============================
           GENDER PAY GAP TABLE
           ============================ */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824]">
-        <div className="border-b border-white/[0.08] px-4 py-3">
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white">
+        <div className="border-b border-[color:var(--border-default)] px-4 py-3">
           <h2 className="text-lg font-semibold text-white">Analisis por Grupo Ocupacional</h2>
-          <p className="text-xs text-gray-500 text-gray-400">Comparacion salarial por genero agrupada por puesto y departamento</p>
+          <p className="text-xs text-[color:var(--text-tertiary)]">Comparacion salarial por genero agrupada por puesto y departamento</p>
         </div>
 
         {groups.length === 0 ? (
           <div className="p-8 text-center">
-            <BarChart3 className="mx-auto h-10 w-10 text-gray-300 text-slate-600" />
-            <p className="mt-2 text-sm text-gray-500 text-gray-400">No hay datos suficientes para analisis.</p>
-            <p className="text-xs text-gray-400 text-slate-500">Registre trabajadores con puesto, departamento, genero y sueldo.</p>
+            <BarChart3 className="mx-auto h-10 w-10 text-[color:var(--text-secondary)]" />
+            <p className="mt-2 text-sm text-[color:var(--text-tertiary)]">No hay datos suficientes para analisis.</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">Registre trabajadores con puesto, departamento, genero y sueldo.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.08] bg-white/[0.02] bg-white/[0.04]/50 text-left text-xs font-medium uppercase text-gray-500 text-gray-400">
+                <tr className="border-b border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50 text-left text-xs font-medium uppercase text-[color:var(--text-tertiary)]">
                   <th className="px-4 py-3">Puesto</th>
                   <th className="px-4 py-3">Departamento</th>
                   <th className="px-4 py-3 text-center">Total</th>
@@ -606,28 +599,28 @@ export default function IgualdadSalarialPage() {
               </thead>
               <tbody>
                 {groups.map((g, i) => (
-                  <tr key={i} className="border-b border-white/[0.08] last:border-b-0 hover:bg-white/[0.02] hover:bg-white/[0.04]/50">
+                  <tr key={i} className="border-b border-[color:var(--border-default)] last:border-b-0 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50">
                     <td className="px-4 py-3 font-medium text-white">
                       <div className="flex items-center gap-1.5">
                         {g.position || 'Sin Puesto'}
                         {g.noGenderCount > 0 && (
                           <span
                             title={`${g.noGenderCount} trabajador${g.noGenderCount !== 1 ? 'es' : ''} sin género registrado`}
-                            className="inline-flex items-center rounded-full bg-amber-100 bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 text-amber-400 cursor-help"
+                            className="inline-flex items-center rounded-full bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400 cursor-help"
                           >
                             {g.noGenderCount} S/G
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{g.department || 'Sin Departamento'}</td>
+                    <td className="px-4 py-3 text-[color:var(--text-secondary)]">{g.department || 'Sin Departamento'}</td>
                     <td className="px-4 py-3 text-center font-semibold text-white">{g.totalWorkers}</td>
-                    <td className="px-4 py-3 text-center text-blue-700 text-blue-300 font-medium">{g.maleCount || '-'}</td>
-                    <td className="px-4 py-3 text-center text-pink-700 text-pink-300 font-medium">{g.femaleCount || '-'}</td>
-                    <td className="px-4 py-3 text-right font-mono text-blue-700 text-blue-300">
+                    <td className="px-4 py-3 text-center text-emerald-600 font-medium">{g.maleCount || '-'}</td>
+                    <td className="px-4 py-3 text-center text-pink-300 font-medium">{g.femaleCount || '-'}</td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-600">
                       {g.avgSalaryMale > 0 ? formatCurrency(g.avgSalaryMale) : '-'}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-pink-700 text-pink-300">
+                    <td className="px-4 py-3 text-right font-mono text-pink-300">
                       {g.avgSalaryFemale > 0 ? formatCurrency(g.avgSalaryFemale) : '-'}
                     </td>
                     <td className="px-4 py-3 text-right font-mono font-semibold text-white">
@@ -639,22 +632,22 @@ export default function IgualdadSalarialPage() {
                           {g.gapPercent > 0 ? '+' : ''}{g.gapPercent}%
                         </span>
                       ) : g.noGenderCount > 0 ? (
-                        <span className="text-xs text-amber-600 text-amber-400 font-medium">Sin género</span>
+                        <span className="text-xs text-amber-400 font-medium">Sin género</span>
                       ) : (
-                        <span className="text-xs text-gray-400 text-slate-500">N/A</span>
+                        <span className="text-xs text-[color:var(--text-tertiary)]">N/A</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {g.requiresReview ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 text-red-400">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-400">
                           <AlertTriangle className="h-3.5 w-3.5" /> Revisar
                         </span>
                       ) : g.maleCount === 0 && g.femaleCount === 0 ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 text-amber-400">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400">
                           <AlertTriangle className="h-3.5 w-3.5" /> Sin género
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 text-green-400">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-400">
                           <CheckCircle2 className="h-3.5 w-3.5" /> OK
                         </span>
                       )}
@@ -670,13 +663,13 @@ export default function IgualdadSalarialPage() {
       {/* ============================
           LEY 30709 COMPLIANCE CHECKLIST
           ============================ */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824]">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white">
+        <div className="flex items-center justify-between border-b border-[color:var(--border-default)] px-4 py-3">
           <div className="flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5 text-primary" />
+            <ClipboardCheck className="h-5 w-5 text-emerald-700" />
             <div>
               <h2 className="text-lg font-semibold text-white">Cumplimiento Ley 30709</h2>
-              <p className="text-xs text-gray-500 text-gray-400">Checklist de requisitos de la norma de igualdad remunerativa</p>
+              <p className="text-xs text-[color:var(--text-tertiary)]">Checklist de requisitos de la norma de igualdad remunerativa</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -693,7 +686,7 @@ export default function IgualdadSalarialPage() {
 
         {/* Progress bar */}
         <div className="px-4 pt-3">
-          <div className="h-2 w-full rounded-full bg-gray-200 bg-white/[0.04]">
+          <div className="h-2 w-full rounded-full bg-gray-200 bg-[color:var(--neutral-100)]">
             <div
               className={cn(
                 'h-2 rounded-full transition-all duration-500',
@@ -713,20 +706,20 @@ export default function IgualdadSalarialPage() {
                 'flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors',
                 item.checked
                   ? 'border-green-200 bg-green-50 border-green-800 bg-green-900/20'
-                  : 'border-white/[0.08] bg-[#141824] hover:bg-white/[0.02] border-white/[0.08] bg-[#141824] hover:bg-white/[0.04]/50'
+                  : 'border-[color:var(--border-default)] bg-white hover:bg-[color:var(--neutral-50)] border-[color:var(--border-default)] bg-white hover:bg-[color:var(--neutral-100)]/50'
               )}
             >
               <input
                 type="checkbox"
                 checked={item.checked}
                 onChange={() => toggleCompliance(item.id)}
-                className="h-4 w-4 rounded border-white/10 text-primary focus:ring-primary border-slate-600 bg-white/[0.04]"
+                className="h-4 w-4 rounded border-white/10 text-emerald-700 focus:ring-primary border-[color:var(--border-default)] bg-[color:var(--neutral-100)]"
               />
               <span className={cn(
                 'text-sm',
                 item.checked
-                  ? 'text-green-700 text-green-400 font-medium'
-                  : 'text-gray-300 text-slate-300'
+                  ? 'text-green-400 font-medium'
+                  : 'text-[color:var(--text-secondary)]'
               )}>
                 {item.label}
               </span>
@@ -741,15 +734,15 @@ export default function IgualdadSalarialPage() {
       {/* ============================
           CUADRO DE CATEGORIAS
           ============================ */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824]">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white">
+        <div className="flex items-center justify-between border-b border-[color:var(--border-default)] px-4 py-3">
           <div>
             <h2 className="text-lg font-semibold text-white">Cuadro de Categorias y Funciones</h2>
-            <p className="text-xs text-gray-500 text-gray-400">Definicion de categorias con bandas salariales objetivas (Art. 2, Ley 30709)</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">Definicion de categorias con bandas salariales objetivas (Art. 2, Ley 30709)</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
+            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-600/90"
           >
             <Plus className="h-4 w-4" /> Agregar Categoria
           </button>
@@ -757,12 +750,12 @@ export default function IgualdadSalarialPage() {
 
         {categorias.length === 0 ? (
           <div className="p-8 text-center">
-            <Equal className="mx-auto h-10 w-10 text-gray-300 text-slate-600" />
-            <p className="mt-2 text-sm text-gray-500 text-gray-400">No hay categorias definidas.</p>
-            <p className="text-xs text-gray-400 text-slate-500">Defina las categorias de puestos con sus bandas salariales.</p>
+            <Equal className="mx-auto h-10 w-10 text-[color:var(--text-secondary)]" />
+            <p className="mt-2 text-sm text-[color:var(--text-tertiary)]">No hay categorias definidas.</p>
+            <p className="text-xs text-[color:var(--text-tertiary)]">Defina las categorias de puestos con sus bandas salariales.</p>
             <button
               onClick={() => setShowForm(true)}
-              className="mt-3 text-sm font-medium text-primary hover:underline"
+              className="mt-3 text-sm font-medium text-emerald-700 hover:underline"
             >
               + Crear primera categoria
             </button>
@@ -771,7 +764,7 @@ export default function IgualdadSalarialPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.08] bg-white/[0.02] bg-white/[0.04]/50 text-left text-xs font-medium uppercase text-gray-500 text-gray-400">
+                <tr className="border-b border-[color:var(--border-default)] bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50 text-left text-xs font-medium uppercase text-[color:var(--text-tertiary)]">
                   <th className="px-4 py-3">Categoria</th>
                   <th className="px-4 py-3">Nivel</th>
                   <th className="px-4 py-3">Funciones</th>
@@ -782,13 +775,13 @@ export default function IgualdadSalarialPage() {
               </thead>
               <tbody>
                 {categorias.map(c => (
-                  <tr key={c.id} className="border-b border-white/[0.08] last:border-b-0 hover:bg-white/[0.02] hover:bg-white/[0.04]/50">
+                  <tr key={c.id} className="border-b border-[color:var(--border-default)] last:border-b-0 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50">
                     <td className="px-4 py-3 font-medium text-white">{c.categoryName}</td>
-                    <td className="px-4 py-3 text-slate-300">{c.level || '-'}</td>
-                    <td className="px-4 py-3 text-slate-300 max-w-xs truncate">{c.functions || '-'}</td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-300 text-gray-200">{formatCurrency(c.salaryRangeMin)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-300 text-gray-200">{formatCurrency(c.salaryRangeMax)}</td>
-                    <td className="px-4 py-3 text-slate-300 max-w-xs truncate">{c.requirements || '-'}</td>
+                    <td className="px-4 py-3 text-[color:var(--text-secondary)]">{c.level || '-'}</td>
+                    <td className="px-4 py-3 text-[color:var(--text-secondary)] max-w-xs truncate">{c.functions || '-'}</td>
+                    <td className="px-4 py-3 text-right font-mono text-[color:var(--text-secondary)]">{formatCurrency(c.salaryRangeMin)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-[color:var(--text-secondary)]">{formatCurrency(c.salaryRangeMax)}</td>
+                    <td className="px-4 py-3 text-[color:var(--text-secondary)] max-w-xs truncate">{c.requirements || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -798,20 +791,20 @@ export default function IgualdadSalarialPage() {
       </div>
 
       {/* Gap Legend */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-4">
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4">
         <h3 className="text-sm font-semibold text-white">Referencia de Indicadores</h3>
         <div className="mt-2 flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full bg-green-500" />
-            <span className="text-xs text-slate-300">Brecha &le; 5% (Conforme)</span>
+            <span className="text-xs text-[color:var(--text-secondary)]">Brecha &le; 5% (Conforme)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full bg-yellow-500" />
-            <span className="text-xs text-slate-300">Brecha 5-15% (Requiere revision)</span>
+            <span className="text-xs text-[color:var(--text-secondary)]">Brecha 5-15% (Requiere revision)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full bg-red-500" />
-            <span className="text-xs text-slate-300">Brecha &gt; 15% (Critico)</span>
+            <span className="text-xs text-[color:var(--text-secondary)]">Brecha &gt; 15% (Critico)</span>
           </div>
         </div>
       </div>
@@ -821,45 +814,45 @@ export default function IgualdadSalarialPage() {
           ============================ */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-lg rounded-xl bg-[#141824] p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">Nueva Categoria</h3>
               <button
                 onClick={() => { setShowForm(false); setSaveError(null) }}
                 aria-label="Cerrar modal"
-                className="rounded p-1 hover:bg-white/[0.04]"
+                className="rounded p-1 hover:bg-[color:var(--neutral-100)]"
               >
-                <X className="h-5 w-5 text-gray-400 text-slate-500" />
+                <X className="h-5 w-5 text-[color:var(--text-tertiary)]" />
               </button>
             </div>
 
             <div className="mt-4 space-y-4">
               {/* Inline error — replaces native alert() */}
               {saveError && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-200 border-red-800 bg-red-50 bg-red-900/20 px-4 py-3">
+                <div className="flex items-start gap-2 rounded-lg border border-red-800 bg-red-900/20 px-4 py-3">
                   <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700 text-red-400">{saveError}</p>
+                  <p className="text-sm text-red-400">{saveError}</p>
                 </div>
               )}
 
               <div>
-                <label htmlFor="cat-categoryName" className="block text-sm font-medium text-gray-300 text-gray-200">Nombre de categoria *</label>
+                <label htmlFor="cat-categoryName" className="block text-sm font-medium text-[color:var(--text-secondary)]">Nombre de categoria *</label>
                 <input
                   id="cat-categoryName"
                   type="text"
                   value={formData.categoryName}
                   onChange={e => setFormData(p => ({ ...p, categoryName: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-white/[0.04] text-gray-200"
+                  className="mt-1 w-full rounded-lg border border-[color:var(--border-default)] px-3 py-2 text-sm bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
                   placeholder="Ej: Gerente de Area"
                 />
               </div>
               <div>
-                <label htmlFor="cat-level" className="block text-sm font-medium text-gray-300 text-gray-200">Nivel</label>
+                <label htmlFor="cat-level" className="block text-sm font-medium text-[color:var(--text-secondary)]">Nivel</label>
                 <select
                   id="cat-level"
                   value={formData.level}
                   onChange={e => setFormData(p => ({ ...p, level: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-white/[0.04] text-gray-200"
+                  className="mt-1 w-full rounded-lg border border-[color:var(--border-default)] px-3 py-2 text-sm bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
                 >
                   <option value="">Seleccionar...</option>
                   <option value="Directivo">Directivo</option>
@@ -872,38 +865,38 @@ export default function IgualdadSalarialPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="cat-functions" className="block text-sm font-medium text-gray-300 text-gray-200">Funciones principales</label>
+                <label htmlFor="cat-functions" className="block text-sm font-medium text-[color:var(--text-secondary)]">Funciones principales</label>
                 <textarea
                   id="cat-functions"
                   value={formData.functions}
                   onChange={e => setFormData(p => ({ ...p, functions: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-white/[0.04] text-gray-200"
+                  className="mt-1 w-full rounded-lg border border-[color:var(--border-default)] px-3 py-2 text-sm bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
                   rows={3}
                   placeholder="Describir las funciones principales del puesto..."
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="cat-salaryRangeMin" className="block text-sm font-medium text-gray-300 text-gray-200">Rango salarial minimo (S/)</label>
+                  <label htmlFor="cat-salaryRangeMin" className="block text-sm font-medium text-[color:var(--text-secondary)]">Rango salarial minimo (S/)</label>
                   <input
                     id="cat-salaryRangeMin"
                     type="number"
                     value={formData.salaryRangeMin}
                     onChange={e => setFormData(p => ({ ...p, salaryRangeMin: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-white/[0.04] text-gray-200"
+                    className="mt-1 w-full rounded-lg border border-[color:var(--border-default)] px-3 py-2 text-sm bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
                     placeholder="0.00"
                     min="0"
                     step="0.01"
                   />
                 </div>
                 <div>
-                  <label htmlFor="cat-salaryRangeMax" className="block text-sm font-medium text-gray-300 text-gray-200">Rango salarial maximo (S/)</label>
+                  <label htmlFor="cat-salaryRangeMax" className="block text-sm font-medium text-[color:var(--text-secondary)]">Rango salarial maximo (S/)</label>
                   <input
                     id="cat-salaryRangeMax"
                     type="number"
                     value={formData.salaryRangeMax}
                     onChange={e => setFormData(p => ({ ...p, salaryRangeMax: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-white/[0.04] text-gray-200"
+                    className="mt-1 w-full rounded-lg border border-[color:var(--border-default)] px-3 py-2 text-sm bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
                     placeholder="0.00"
                     min="0"
                     step="0.01"
@@ -911,12 +904,12 @@ export default function IgualdadSalarialPage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="cat-requirements" className="block text-sm font-medium text-gray-300 text-gray-200">Requisitos del puesto</label>
+                <label htmlFor="cat-requirements" className="block text-sm font-medium text-[color:var(--text-secondary)]">Requisitos del puesto</label>
                 <textarea
                   id="cat-requirements"
                   value={formData.requirements}
                   onChange={e => setFormData(p => ({ ...p, requirements: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-white/[0.04] text-gray-200"
+                  className="mt-1 w-full rounded-lg border border-[color:var(--border-default)] px-3 py-2 text-sm bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
                   rows={2}
                   placeholder="Formacion, experiencia, competencias..."
                 />
@@ -926,14 +919,14 @@ export default function IgualdadSalarialPage() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => { setShowForm(false); setSaveError(null) }}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.02] hover:bg-white/[0.04]"
+                className="rounded-lg border border-[color:var(--border-default)] px-4 py-2 text-sm text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]"
               >
                 Cancelar
               </button>
               <button
                 onClick={saveCategoria}
                 disabled={!formData.categoryName || saving}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600/90 disabled:opacity-50"
               >
                 {saving ? 'Guardando...' : 'Guardar Categoria'}
               </button>

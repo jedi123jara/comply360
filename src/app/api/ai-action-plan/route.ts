@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { generateActionPlan, type DiagnosticInput } from '@/lib/ai/action-plan'
 import { z } from 'zod'
 
@@ -13,7 +13,7 @@ const PostSchema = z.object({
 // Genera plan de acción a partir del diagnóstico más reciente
 // (o de uno específico si se pasa diagnosticId)
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('diagnostico', async (req, ctx) => {
   const body = await req.json().catch(() => ({}))
   const parsed = PostSchema.safeParse(body)
   if (!parsed.success) {
@@ -60,9 +60,15 @@ export const POST = withAuth(async (req, ctx) => {
   }
 
   // 4. Generar plan con IA (con fallback a simulado)
-  // Nota: NO se persiste — el plan básico generado en /api/diagnostics
-  // se mantiene intacto. El plan IA se regenera on-demand.
   const plan = await generateActionPlan(input)
+
+  // 5. Persistir plan de acción en el diagnóstico para no regenerar cada vez
+  await prisma.complianceDiagnostic.update({
+    where: { id: diagnostic.id },
+    data: { actionPlan: JSON.parse(JSON.stringify(plan)) },
+  }).catch((err) => {
+    console.warn('[AI Action Plan] Failed to persist plan:', err)
+  })
 
   return NextResponse.json({
     diagnosticId: diagnostic.id,

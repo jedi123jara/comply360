@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import {
-  ClipboardList, CheckCircle2, XCircle, Clock, Loader2,
-  AlertTriangle, Filter, RefreshCw, User, Calendar,
-} from 'lucide-react'
+import { ClipboardList, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, RefreshCw, User, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -48,10 +45,10 @@ const TYPE_LABELS: Record<string, string> = {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   PENDIENTE: { label: 'Pendiente', color: 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400', icon: Clock },
-  EN_REVISION: { label: 'En revisión', color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400', icon: Clock },
-  APROBADA: { label: 'Aprobada', color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-400', icon: CheckCircle2 },
+  EN_REVISION: { label: 'En revisión', color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-emerald-600', icon: Clock },
+  APROBADA: { label: 'Aprobada', color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600', icon: CheckCircle2 },
   RECHAZADA: { label: 'Rechazada', color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400', icon: XCircle },
-  CANCELADA: { label: 'Cancelada', color: 'bg-white/[0.04] text-gray-600 bg-gray-800 text-gray-400', icon: XCircle },
+  CANCELADA: { label: 'Cancelada', color: 'bg-[color:var(--neutral-100)] text-gray-600 bg-gray-800 text-gray-400', icon: XCircle },
 }
 
 // ─── Review Modal ─────────────────────────────────────────────────────────────
@@ -93,19 +90,19 @@ function ReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#141824] bg-slate-900 shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white bg-white shadow-2xl">
         <div className="p-6 border-b border-white/[0.06] border-white/[0.08]">
           <h2 className="text-lg font-bold text-white">
             Revisar Solicitud — {TYPE_LABELS[request.type] || request.type}
           </h2>
-          <p className="text-sm text-gray-500 text-gray-400 mt-0.5">
+          <p className="text-sm text-gray-400 mt-0.5">
             Solicitado por: {request.worker?.name}
           </p>
         </div>
 
         <div className="p-6 space-y-4">
           {/* Request details */}
-          <div className="rounded-xl bg-white/[0.02] bg-[#141824] p-4 space-y-2 text-sm">
+          <div className="rounded-xl bg-[color:var(--neutral-50)] bg-white p-4 space-y-2 text-sm">
             {request.startDate && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Fecha inicio:</span>
@@ -139,7 +136,7 @@ function ReviewModal({
             {request.description && (
               <div>
                 <span className="text-gray-500">Descripción:</span>
-                <p className="mt-1 text-gray-300 text-slate-300">{request.description}</p>
+                <p className="mt-1 text-slate-300">{request.description}</p>
               </div>
             )}
           </div>
@@ -151,7 +148,7 @@ function ReviewModal({
               className={cn(
                 'flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all',
                 action === 'APROBADA'
-                  ? 'border-emerald-500 bg-emerald-50 bg-emerald-900/20 text-emerald-700 text-emerald-400'
+                  ? 'border-emerald-500 bg-emerald-900/20 text-emerald-600'
                   : 'border-white/[0.08] text-slate-300 hover:border-emerald-300'
               )}
             >
@@ -163,7 +160,7 @@ function ReviewModal({
               className={cn(
                 'flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all',
                 action === 'RECHAZADA'
-                  ? 'border-red-500 bg-red-50 bg-red-900/20 text-red-700 text-red-400'
+                  ? 'border-red-500 bg-red-900/20 text-red-400'
                   : 'border-white/[0.08] text-slate-300 hover:border-red-300'
               )}
             >
@@ -173,7 +170,7 @@ function ReviewModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-slate-300 mb-1">
               Notas de revisión {action === 'RECHAZADA' && <span className="text-red-500">*</span>}
             </label>
             <textarea
@@ -181,12 +178,12 @@ function ReviewModal({
               onChange={(e) => setReviewNotes(e.target.value)}
               placeholder={action === 'RECHAZADA' ? 'Explica el motivo del rechazo...' : 'Comentario opcional...'}
               rows={3}
-              className="w-full rounded-lg border border-white/[0.08] bg-[#141824] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-white/[0.08] bg-white px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 bg-red-900/20 border border-red-200 border-red-800 px-3 py-2 text-sm text-red-700 text-red-400">
+            <div className="flex items-center gap-2 rounded-lg bg-red-900/20 border border-red-800 px-3 py-2 text-sm text-red-400">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               {error}
             </div>
@@ -195,7 +192,7 @@ function ReviewModal({
           <div className="flex gap-3 pt-1">
             <button
               onClick={onClose}
-              className="flex-1 rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-medium text-gray-300 text-slate-300 hover:bg-white/[0.02] hover:bg-slate-800"
+              className="flex-1 rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-slate-800"
             >
               Cancelar
             </button>
@@ -248,18 +245,18 @@ export default function SolicitudesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Solicitudes de Trabajadores</h1>
-          <p className="mt-1 text-sm text-gray-500 text-gray-400">
+          <p className="mt-1 text-sm text-gray-400">
             Gestiona vacaciones, permisos, licencias y otras solicitudes del portal empleado.
           </p>
         </div>
         <div className="flex items-center gap-3">
           {pendingCount > 0 && (
-            <span className="flex items-center gap-1.5 rounded-full bg-amber-100 bg-amber-900/30 px-3 py-1.5 text-sm font-semibold text-amber-700 text-amber-400">
+            <span className="flex items-center gap-1.5 rounded-full bg-amber-900/30 px-3 py-1.5 text-sm font-semibold text-amber-400">
               <Clock className="h-4 w-4" />
               {pendingCount} pendientes
             </span>
           )}
-          <button onClick={load} className="rounded-xl border border-white/[0.08] p-2.5 hover:bg-white/[0.02] hover:bg-slate-800">
+          <button onClick={load} className="rounded-xl border border-white/[0.08] p-2.5 hover:bg-[color:var(--neutral-50)] hover:bg-slate-800">
             <RefreshCw className="h-4 w-4 text-gray-500" />
           </button>
         </div>
@@ -280,7 +277,7 @@ export default function SolicitudesPage() {
               'rounded-lg px-4 py-2 text-sm font-medium transition-all',
               statusFilter === f.value
                 ? 'bg-indigo-600 text-white shadow-sm'
-                : 'border border-white/[0.08] text-slate-300 hover:bg-white/[0.02] hover:bg-slate-800'
+                : 'border border-white/[0.08] text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-slate-800'
             )}
           >
             {f.label}
@@ -295,18 +292,18 @@ export default function SolicitudesPage() {
         </div>
       ) : requests.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/[0.08] py-16 text-center">
-          <ClipboardList className="mx-auto h-10 w-10 text-gray-300 text-slate-600 mb-3" />
-          <p className="text-sm font-medium text-gray-500 text-gray-400">
+          <ClipboardList className="mx-auto h-10 w-10 text-[color:var(--text-secondary)] mb-3" />
+          <p className="text-sm font-medium text-gray-400">
             No hay solicitudes con este filtro.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] border-white/[0.08] bg-[#141824] shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-white/[0.06] border-white/[0.08] bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-100 divide-slate-700">
-            <thead className="bg-white/[0.02] bg-white/[0.04]/50">
+            <thead className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50">
               <tr>
                 {['Trabajador', 'Tipo', 'Período', 'Estado', 'Fecha solicitud', 'Acciones'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 text-gray-400 uppercase tracking-wider">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     {h}
                   </th>
                 ))}
@@ -317,23 +314,23 @@ export default function SolicitudesPage() {
                 const statusCfg = STATUS_CONFIG[req.status] || STATUS_CONFIG.PENDIENTE
                 const StatusIcon = statusCfg.icon
                 return (
-                  <tr key={req.id} className="hover:bg-white/[0.02] hover:bg-white/[0.04]/30 transition-colors">
+                  <tr key={req.id} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 bg-indigo-900/30">
-                          <User className="h-4 w-4 text-indigo-600 text-indigo-400" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-900/30">
+                          <User className="h-4 w-4 text-indigo-400" />
                         </div>
                         <div>
                           <p className="text-sm font-medium text-white">
                             {req.worker?.name || '—'}
                           </p>
-                          <p className="text-xs text-gray-400 text-slate-500">
+                          <p className="text-xs text-slate-500">
                             {req.worker?.position || req.worker?.department || req.worker?.dni || ''}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-300 text-slate-300">
+                    <td className="px-4 py-3 text-sm text-slate-300">
                       {TYPE_LABELS[req.type] || req.type}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-400">
@@ -354,19 +351,19 @@ export default function SolicitudesPage() {
                         {statusCfg.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 text-gray-400">
+                    <td className="px-4 py-3 text-sm text-gray-400">
                       {new Date(req.createdAt).toLocaleDateString('es-PE')}
                     </td>
                     <td className="px-4 py-3">
                       {req.status === 'PENDIENTE' || req.status === 'EN_REVISION' ? (
                         <button
                           onClick={() => setReviewingRequest(req)}
-                          className="rounded-lg bg-indigo-50 bg-indigo-900/20 hover:bg-indigo-100 hover:bg-indigo-900/40 px-3 py-1.5 text-xs font-semibold text-indigo-700 text-indigo-400"
+                          className="rounded-lg bg-indigo-900/20 hover:bg-indigo-900/40 px-3 py-1.5 text-xs font-semibold text-indigo-400"
                         >
                           Revisar
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400 text-slate-500">
+                        <span className="text-xs text-slate-500">
                           {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString('es-PE') : '—'}
                         </span>
                       )}

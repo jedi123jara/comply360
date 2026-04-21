@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import {
   FileSearch, AlertTriangle, CheckCircle2, XCircle, Loader2, Scale,
   ShieldAlert, ChevronDown, ChevronUp, Gavel, ClipboardList, Info,
-  Upload, FileText, File, TriangleAlert, BadgeCheck, Siren,
+  Upload, FileText, File, TriangleAlert, Siren,
   AlertOctagon, ArrowRight, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -51,6 +51,9 @@ interface ResultadoContrato {
   alertasMedias: number
   resumenEjecutivo: string
   recomendacionesPrioritarias: string[]
+  /** Segunda capa IA (la corre el backend automáticamente con deep mode). */
+  aiReview?: AIReviewResult | null
+  aiAttempted?: boolean
 }
 
 interface AnalysisResult {
@@ -64,6 +67,42 @@ interface AnalysisResult {
     totalDesnaturalizados: number
   }
   resultados: ResultadoContrato[]
+}
+
+// ── AI Review (análisis profundo con LLM + RAG) ────────────────────────────
+interface AIReviewRisk {
+  id: string
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  category: string
+  title: string
+  description: string
+  clause: string
+  recommendation: string
+  legalBasis?: string
+  multaUIT?: number
+}
+interface AIReviewSuggestion {
+  type: 'ADD' | 'MODIFY' | 'REMOVE'
+  clause: string
+  suggestion: string
+  reason: string
+  priority: 'LOW' | 'MEDIUM' | 'HIGH'
+}
+interface AIReviewClausula {
+  nombre: string
+  descripcion: string
+  presente: boolean
+  baseLegal: string
+  obligatoriedad: 'OBLIGATORIA' | 'RECOMENDADA'
+}
+interface AIReviewResult {
+  overallScore: number
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  risks: AIReviewRisk[]
+  suggestions: AIReviewSuggestion[]
+  clausulasObligatorias: AIReviewClausula[]
+  resumenEjecutivo: string
+  multaEstimadaUIT?: number
 }
 
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -85,7 +124,7 @@ const NIVEL_CONFIG: Record<NivelRiesgo, {
   CRITICO: { label: 'Crítico', bg: 'bg-red-900/30',    text: 'text-red-300',    border: 'border-red-700',    icon: XCircle },
   ALTO:    { label: 'Alto',    bg: 'bg-orange-900/20', text: 'text-orange-300', border: 'border-orange-700', icon: AlertTriangle },
   MEDIO:   { label: 'Medio',  bg: 'bg-yellow-900/20', text: 'text-yellow-400', border: 'border-yellow-700', icon: AlertTriangle },
-  BAJO:    { label: 'Bajo',   bg: 'bg-blue-900/20',   text: 'text-blue-300',   border: 'border-blue-700',   icon: Info },
+  BAJO:    { label: 'Bajo',   bg: 'bg-blue-900/20',   text: 'text-emerald-600',   border: 'border-blue-700',   icon: Info },
 }
 
 const TIPO_HALLAZGO_CONFIG: Record<TipoHallazgo, { label: string; color: string }> = {
@@ -161,8 +200,8 @@ function HallazgoCard({ h }: { h: Hallazgo }) {
         <div className="border-t border-white/[0.08] px-4 py-3 space-y-3 text-sm">
           <p className="text-slate-300">{h.descripcion}</p>
           <div className="flex items-start gap-2 rounded-lg bg-blue-900/20 px-3 py-2">
-            <Scale className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-300"><span className="font-semibold">Base legal:</span> {h.baseLegal}</p>
+            <Scale className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <p className="text-xs text-emerald-600"><span className="font-semibold">Base legal:</span> {h.baseLegal}</p>
           </div>
           {h.jurisprudencia && (
             <div className="flex items-start gap-2 rounded-lg bg-purple-900/20 px-3 py-2">
@@ -193,7 +232,7 @@ function ContratoCard({ r, defaultOpen }: { r: ResultadoContrato; defaultOpen: b
   const hallazgosFiltrados = r.hallazgos.filter(h => filtro === 'TODOS' || h.nivel === filtro)
 
   return (
-    <div className={cn('rounded-2xl border', vcfg.border, 'bg-[#141824]')}>
+    <div className={cn('rounded-2xl border', vcfg.border, 'bg-white')}>
       {/* Header */}
       <button onClick={() => setOpen(p => !p)} className="w-full text-left p-5">
         <div className="flex items-center gap-4">
@@ -261,7 +300,7 @@ function ContratoCard({ r, defaultOpen }: { r: ResultadoContrato; defaultOpen: b
           )}
 
           {/* Resumen ejecutivo */}
-          <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+          <div className="rounded-xl bg-[color:var(--neutral-50)] border border-white/[0.06] p-4">
             <p className="text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Resumen ejecutivo</p>
             <p className="text-sm text-slate-300">{r.resumenEjecutivo}</p>
           </div>
@@ -282,12 +321,12 @@ function ContratoCard({ r, defaultOpen }: { r: ResultadoContrato; defaultOpen: b
           {/* Acciones prioritarias */}
           {r.recomendacionesPrioritarias.length > 0 && (
             <div className="rounded-xl border border-amber-800 bg-amber-900/20 p-4">
-              <h4 className="font-semibold text-amber-300 flex items-center gap-2 mb-2 text-sm">
+              <h4 className="font-semibold text-amber-700 flex items-center gap-2 mb-2 text-sm">
                 <ClipboardList className="h-4 w-4" /> Acciones prioritarias
               </h4>
               <ol className="space-y-1.5">
                 {r.recomendacionesPrioritarias.map((rec, i) => (
-                  <li key={i} className="text-xs text-amber-300 flex gap-2">
+                  <li key={i} className="text-xs text-amber-700 flex gap-2">
                     <span className="font-bold shrink-0">{i + 1}.</span>
                     <span>{rec}</span>
                   </li>
@@ -364,7 +403,7 @@ function UploadZone({
         'relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed py-16 px-8 cursor-pointer transition-all',
         dragging
           ? 'border-primary bg-primary/10 scale-[1.01]'
-          : 'border-white/[0.12] bg-white/[0.02] hover:border-primary/50 hover:bg-primary/5',
+          : 'border-white/[0.12] bg-[color:var(--neutral-50)] hover:border-primary/50 hover:bg-primary/5',
         loading && 'pointer-events-none opacity-70'
       )}
     >
@@ -396,7 +435,7 @@ function UploadZone({
             <p className="text-sm text-slate-400 mt-1">o haz clic para buscar</p>
             <div className="flex items-center justify-center gap-2 mt-3">
               {['PDF', 'DOCX', 'TXT'].map(ext => (
-                <span key={ext} className="text-[11px] font-bold px-2 py-0.5 rounded bg-white/[0.06] text-slate-400 border border-white/[0.08]">
+                <span key={ext} className="text-[11px] font-bold px-2 py-0.5 rounded bg-[color:var(--neutral-100)] text-slate-400 border border-white/[0.08]">
                   {ext}
                 </span>
               ))}
@@ -414,7 +453,7 @@ function UploadZone({
 export default function AnalizarContratoPage() {
   const [modo, setModo]         = useState<Modo>('archivo')
   // Modo archivo
-  const [archivo, setArchivo]   = useState<File | null>(null)
+  const [, setArchivo]   = useState<File | null>(null)
   const [loading, setLoading]   = useState(false)
   const [resultado, setResultado] = useState<AnalysisResult | null>(null)
   // Modo texto (legacy)
@@ -422,6 +461,10 @@ export default function AnalizarContratoPage() {
   const [texto, setTexto]       = useState('')
   const [analizando, setAnalizando] = useState(false)
   const [resultadoTexto, setResultadoTexto] = useState<ResultadoContrato | null>(null)
+  // AI Review (segunda capa: LLM + RAG sobre el mismo texto ya analizado)
+  const [aiReview, setAiReview] = useState<AIReviewResult | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
   // Shared
   const [error, setError]       = useState<string | null>(null)
 
@@ -458,7 +501,7 @@ export default function AnalizarContratoPage() {
       const res  = await fetch('/api/compliance/analyze-contract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto, tipo }),
+        body: JSON.stringify({ texto, tipo, deep: true }), // IA siempre on
       })
       const data = await res.json()
       if (!data.ok && data.error) throw new Error(data.error)
@@ -476,6 +519,42 @@ export default function AnalizarContratoPage() {
     setResultadoTexto(null)
     setError(null)
     setTexto('')
+    setAiReview(null)
+    setAiError(null)
+  }
+
+  /**
+   * Análisis IA profundo: complementa el rule-based con una revisión LLM
+   * fundamentada por el corpus legal RAG (v1 73 chunks + v2 361 chunks).
+   * Devuelve: clausulas obligatorias presentes/ausentes, risks con severity,
+   * sugerencias ADD/MODIFY/REMOVE, score global + multa estimada en UIT.
+   */
+  async function runDeepAIReview() {
+    const contractText = texto.trim()
+    if (!contractText || contractText.length < 50) {
+      setAiError('Necesitás el texto del contrato cargado antes de correr el análisis IA.')
+      return
+    }
+    setAiLoading(true)
+    setAiError(null)
+    setAiReview(null)
+    try {
+      const res = await fetch('/api/ai-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contractHtml: contractText, // el server hace strip HTML
+          contractType: tipo,
+        }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`)
+      setAiReview(body.data as AIReviewResult)
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Error al correr el análisis IA')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   const hasResults = resultado !== null || resultadoTexto !== null
@@ -508,7 +587,7 @@ export default function AnalizarContratoPage() {
       {/* ── Modo selector ── */}
       {!hasResults && (
         <>
-          <div className="flex gap-2 p-1 bg-white/[0.03] rounded-xl border border-white/[0.06] w-fit">
+          <div className="flex gap-2 p-1 bg-[color:var(--neutral-100)] rounded-xl border border-white/[0.06] w-fit">
             {(['archivo', 'texto'] as const).map(m => (
               <button
                 key={m}
@@ -541,7 +620,7 @@ export default function AnalizarContratoPage() {
                   { icon: Sparkles,     label: 'Auto-detección de tipo',  desc: 'Detecta automáticamente si es indefinido, plazo fijo, locación, etc.' },
                   { icon: ShieldAlert,  label: 'Desnaturalización',       desc: 'Identifica locación de servicios que encubren relación laboral.' },
                 ].map(({ icon: Icon, label, desc }) => (
-                  <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 flex items-start gap-3">
+                  <div key={label} className="rounded-xl border border-white/[0.06] bg-[color:var(--neutral-50)] p-3 flex items-start gap-3">
                     <Icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs font-semibold text-white">{label}</p>
@@ -555,7 +634,7 @@ export default function AnalizarContratoPage() {
 
           {/* ── Modo: texto ── */}
           {modo === 'texto' && (
-            <div className="rounded-xl border border-white/[0.08] bg-[#141824] p-5 space-y-4">
+            <div className="rounded-xl border border-white/[0.08] bg-white p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Tipo de documento</label>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -584,7 +663,7 @@ export default function AnalizarContratoPage() {
                   onChange={e => setTexto(e.target.value)}
                   rows={12}
                   placeholder={`Pegue el texto completo del ${TIPOS_LABEL[tipo].toLowerCase()} aquí...`}
-                  className="w-full rounded-lg border border-white/[0.08] bg-[#0f172a] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                  className="w-full rounded-lg border border-white/[0.08] bg-[#0f172a] px-3 py-2.5 text-sm text-white placeholder:text-[color:var(--text-secondary)] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
                 />
                 <p className="mt-1 text-xs text-slate-500">{texto.length.toLocaleString()} caracteres</p>
               </div>
@@ -614,7 +693,7 @@ export default function AnalizarContratoPage() {
       {resultado && (
         <div className="space-y-5">
           {/* Resumen global */}
-          <div className="rounded-2xl border border-white/[0.08] bg-[#141824] p-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-white p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-xs text-slate-500 font-medium mb-0.5">Archivo analizado</p>
@@ -658,19 +737,45 @@ export default function AnalizarContratoPage() {
             )}
           </div>
 
-          {/* Cards por contrato */}
+          {/* Cards por contrato + IA inline (la corre el backend) */}
           <div className="space-y-4">
             {resultado.resultados.map(r => (
-              <ContratoCard key={r.indice} r={r} defaultOpen={resultado.totalContratos === 1} />
+              <div key={r.indice} className="space-y-3">
+                <ContratoCard r={r} defaultOpen={resultado.totalContratos === 1} />
+                {r.aiReview ? (
+                  <InlineAIReview result={r.aiReview} contratoIdx={r.indice} />
+                ) : r.aiAttempted ? (
+                  <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-2 text-xs text-amber-200 flex items-center gap-2">
+                    <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+                    Análisis IA no disponible para este contrato (timeout o fallo del LLM). El
+                    análisis por reglas arriba sigue siendo confiable.
+                  </div>
+                ) : null}
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── Resultados: texto ── */}
+      {/* ── Resultados: texto (rule + IA) ── */}
       {resultadoTexto && (
         <div className="space-y-4">
           <ContratoCard r={resultadoTexto} defaultOpen={true} />
+
+          {/* IA inline: del backend (deep mode) O del botón manual como fallback */}
+          {(resultadoTexto.aiReview || aiReview) ? (
+            <InlineAIReview result={(resultadoTexto.aiReview ?? aiReview)!} />
+          ) : resultadoTexto.aiAttempted ? (
+            <AIFailedNotice onRetry={runDeepAIReview} loading={aiLoading} error={aiError} />
+          ) : (
+            <AIReviewPanel
+              canRun={texto.trim().length >= 50}
+              loading={aiLoading}
+              error={aiError}
+              result={aiReview}
+              onRun={runDeepAIReview}
+            />
+          )}
         </div>
       )}
 
@@ -681,6 +786,492 @@ export default function AnalizarContratoPage() {
         </div>
       )}
 
+    </div>
+  )
+}
+
+/* ─── Análisis IA profundo ────────────────────────────────────────────────
+ * Corre sobre el mismo texto ya analizado por reglas. Aporta:
+ *   - Score global 0-100 + nivel de riesgo (LOW/MEDIUM/HIGH/CRITICAL)
+ *   - Multa estimada en UIT (D.S. 019-2006-TR)
+ *   - Checklist de cláusulas obligatorias (presente / ausente)
+ *   - Risks con severity + recomendación + base legal
+ *   - Sugerencias ADD/MODIFY/REMOVE priorizadas
+ * Fundamentado por RAG v2 (corpus v1 73 chunks + v2 361 chunks)
+ * ───────────────────────────────────────────────────────────────────────── */
+
+function AIReviewPanel({
+  canRun,
+  loading,
+  error,
+  result,
+  onRun,
+}: {
+  canRun: boolean
+  loading: boolean
+  error: string | null
+  result: AIReviewResult | null
+  onRun: () => void
+}) {
+  return (
+    <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/30 overflow-hidden">
+      <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-emerald-800/40">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-900/50 border border-emerald-700">
+            <Sparkles className="h-4 w-4 text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-emerald-100">Análisis IA profundo</p>
+            <p className="mt-0.5 text-xs text-emerald-200/70 max-w-xl">
+              Capa LLM fundamentada en nuestro corpus legal (434 chunks + jurisprudencia SUNAFIL).
+              Detecta cláusulas omitidas, calcula multa estimada y prioriza acciones correctivas.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={!canRun || loading}
+          className={cn(
+            'shrink-0 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
+            loading
+              ? 'bg-emerald-900 text-emerald-200 cursor-wait'
+              : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed'
+          )}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Analizando…
+            </>
+          ) : result ? (
+            <>
+              <RotateCcw className="h-3.5 w-3.5" />
+              Correr otra vez
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-3.5 w-3.5" />
+              Correr análisis IA
+            </>
+          )}
+        </button>
+      </div>
+
+      {error ? (
+        <div className="px-5 py-3 border-b border-emerald-800/40 bg-red-900/20 text-xs text-red-300 flex items-center gap-2">
+          <TriangleAlert className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      ) : null}
+
+      {result ? (
+        <div className="px-5 py-4 space-y-4">
+          {/* Score + Riesgo + Multa */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <AITile
+              label="Score global"
+              value={`${result.overallScore}`}
+              suffix="/100"
+              tone={
+                result.overallScore >= 80 ? 'emerald' : result.overallScore >= 60 ? 'amber' : 'crimson'
+              }
+            />
+            <AITile
+              label="Nivel de riesgo"
+              value={result.riskLevel}
+              tone={
+                result.riskLevel === 'CRITICAL' || result.riskLevel === 'HIGH'
+                  ? 'crimson'
+                  : result.riskLevel === 'MEDIUM'
+                    ? 'amber'
+                    : 'emerald'
+              }
+            />
+            <AITile
+              label="Multa estimada"
+              value={`${(result.multaEstimadaUIT ?? 0).toFixed(2)}`}
+              suffix=" UIT"
+              hint={`≈ S/ ${Math.round((result.multaEstimadaUIT ?? 0) * 5500).toLocaleString('es-PE')}`}
+              tone={
+                (result.multaEstimadaUIT ?? 0) >= 5 ? 'crimson' : (result.multaEstimadaUIT ?? 0) >= 1 ? 'amber' : 'emerald'
+              }
+            />
+          </div>
+
+          {/* Resumen ejecutivo */}
+          {result.resumenEjecutivo ? (
+            <div className="rounded-lg border border-emerald-800/40 bg-emerald-900/20 p-3">
+              <p className="text-xs uppercase tracking-widest text-emerald-300/80 mb-1">
+                Resumen ejecutivo
+              </p>
+              <p className="text-sm text-emerald-100 leading-relaxed">{result.resumenEjecutivo}</p>
+            </div>
+          ) : null}
+
+          {/* Cláusulas obligatorias */}
+          {result.clausulasObligatorias?.length > 0 ? (
+            <div>
+              <p className="text-xs uppercase tracking-widest text-emerald-300/80 mb-2">
+                Cláusulas obligatorias ({result.clausulasObligatorias.filter((c) => c.presente).length}/
+                {result.clausulasObligatorias.length} presentes)
+              </p>
+              <ul className="space-y-1.5">
+                {result.clausulasObligatorias.map((c, i) => (
+                  <li
+                    key={i}
+                    className={cn(
+                      'flex items-start gap-2 text-xs rounded-md px-2 py-1.5 border',
+                      c.presente
+                        ? 'border-emerald-800/40 bg-emerald-900/10 text-emerald-100'
+                        : 'border-red-800/50 bg-red-900/20 text-red-200'
+                    )}
+                  >
+                    {c.presente ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-400" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-red-400" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold">{c.nombre}</p>
+                      <p className="text-[11px] text-emerald-200/70 font-mono">{c.baseLegal}</p>
+                    </div>
+                    {c.obligatoriedad === 'OBLIGATORIA' ? (
+                      <span className="shrink-0 rounded-full bg-red-800/60 text-red-100 text-[10px] px-2 py-0.5 uppercase tracking-widest">
+                        Obligatoria
+                      </span>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-amber-800/60 text-amber-100 text-[10px] px-2 py-0.5 uppercase tracking-widest">
+                        Recomendada
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {/* Risks priorizados por severity */}
+          {result.risks?.length > 0 ? (
+            <div>
+              <p className="text-xs uppercase tracking-widest text-emerald-300/80 mb-2">
+                Riesgos detectados ({result.risks.length})
+              </p>
+              <ul className="space-y-2">
+                {[...result.risks]
+                  .sort((a, b) => {
+                    const order: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+                    return (order[a.severity] ?? 9) - (order[b.severity] ?? 9)
+                  })
+                  .slice(0, 8)
+                  .map((r) => (
+                    <li
+                      key={r.id}
+                      className="rounded-lg border border-emerald-800/40 bg-white/40 p-3"
+                    >
+                      <div className="flex items-start gap-2 mb-1">
+                        <span
+                          className={cn(
+                            'shrink-0 rounded-md text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5',
+                            r.severity === 'CRITICAL'
+                              ? 'bg-red-800/60 text-red-100'
+                              : r.severity === 'HIGH'
+                                ? 'bg-orange-800/60 text-orange-100'
+                                : r.severity === 'MEDIUM'
+                                  ? 'bg-amber-800/60 text-amber-100'
+                                  : 'bg-slate-700 text-slate-200'
+                          )}
+                        >
+                          {r.severity}
+                        </span>
+                        <p className="text-sm font-semibold text-emerald-100 flex-1">{r.title}</p>
+                        {r.multaUIT ? (
+                          <span className="shrink-0 text-[11px] font-mono text-red-300">
+                            {r.multaUIT.toFixed(2)} UIT
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-emerald-200/80 leading-relaxed">{r.description}</p>
+                      {r.recommendation ? (
+                        <p className="mt-2 text-xs text-emerald-300">
+                          <strong>Acción:</strong> {r.recommendation}
+                        </p>
+                      ) : null}
+                      {r.legalBasis ? (
+                        <p className="mt-1 text-[10px] font-mono text-emerald-400/70">
+                          {r.legalBasis}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {/* Sugerencias */}
+          {result.suggestions?.length > 0 ? (
+            <div>
+              <p className="text-xs uppercase tracking-widest text-emerald-300/80 mb-2">
+                Sugerencias accionables
+              </p>
+              <ul className="space-y-1.5">
+                {result.suggestions.slice(0, 6).map((s, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-xs text-emerald-100 rounded-md border border-emerald-800/40 bg-white/30 px-2 py-1.5"
+                  >
+                    <span
+                      className={cn(
+                        'shrink-0 rounded text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5',
+                        s.type === 'ADD'
+                          ? 'bg-emerald-800/50 text-emerald-100'
+                          : s.type === 'MODIFY'
+                            ? 'bg-amber-800/50 text-amber-100'
+                            : 'bg-red-800/50 text-red-100'
+                      )}
+                    >
+                      {s.type}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold">{s.clause}</p>
+                      <p className="text-emerald-200/80">{s.suggestion}</p>
+                      {s.reason ? (
+                        <p className="text-[10px] text-emerald-300/70 mt-0.5">— {s.reason}</p>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : !loading ? (
+        <div className="px-5 py-4">
+          <p className="text-xs text-emerald-200/70">
+            El análisis IA agrega una segunda capa sobre el análisis por reglas: detecta lo que un
+            abogado laboralista detectaría en una segunda lectura. Usa DeepSeek (gratis) o el
+            provider configurado.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function AITile({
+  label,
+  value,
+  suffix,
+  hint,
+  tone,
+}: {
+  label: string
+  value: string
+  suffix?: string
+  hint?: string
+  tone: 'emerald' | 'amber' | 'crimson'
+}) {
+  const toneClass =
+    tone === 'emerald'
+      ? 'text-emerald-300'
+      : tone === 'amber'
+        ? 'text-amber-300'
+        : 'text-red-300'
+  return (
+    <div className="rounded-lg border border-emerald-800/40 bg-white/50 px-3 py-2.5">
+      <p className="text-[10px] uppercase tracking-widest text-emerald-300/70">{label}</p>
+      <p className={cn('mt-1 text-2xl font-bold tabular-nums', toneClass)}>
+        {value}
+        {suffix ? <span className="text-sm font-normal text-emerald-200/60 ml-0.5">{suffix}</span> : null}
+      </p>
+      {hint ? <p className="text-[10px] text-emerald-300/60 font-mono mt-0.5">{hint}</p> : null}
+    </div>
+  )
+}
+
+/* InlineAIReview — versión sin botón (el backend ya corrió el análisis en deep mode). */
+function InlineAIReview({ result, contratoIdx }: { result: AIReviewResult; contratoIdx?: number }) {
+  return (
+    <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/30 overflow-hidden">
+      <div className="flex items-start gap-3 px-5 py-4 border-b border-emerald-800/40">
+        <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-900/50 border border-emerald-700">
+          <Sparkles className="h-4 w-4 text-emerald-300" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-emerald-100">
+            Análisis IA profundo{contratoIdx ? ` · Contrato #${contratoIdx}` : ''}
+          </p>
+          <p className="mt-0.5 text-xs text-emerald-200/70 max-w-xl">
+            Segunda capa sobre el análisis por reglas — fundamentado en el corpus legal RAG.
+          </p>
+        </div>
+      </div>
+      <div className="px-5 py-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <AITile
+            label="Score global"
+            value={`${result.overallScore}`}
+            suffix="/100"
+            tone={
+              result.overallScore >= 80 ? 'emerald' : result.overallScore >= 60 ? 'amber' : 'crimson'
+            }
+          />
+          <AITile
+            label="Nivel de riesgo"
+            value={result.riskLevel}
+            tone={
+              result.riskLevel === 'CRITICAL' || result.riskLevel === 'HIGH'
+                ? 'crimson'
+                : result.riskLevel === 'MEDIUM'
+                  ? 'amber'
+                  : 'emerald'
+            }
+          />
+          <AITile
+            label="Multa estimada"
+            value={`${(result.multaEstimadaUIT ?? 0).toFixed(2)}`}
+            suffix=" UIT"
+            hint={`≈ S/ ${Math.round((result.multaEstimadaUIT ?? 0) * 5500).toLocaleString('es-PE')}`}
+            tone={
+              (result.multaEstimadaUIT ?? 0) >= 5
+                ? 'crimson'
+                : (result.multaEstimadaUIT ?? 0) >= 1
+                  ? 'amber'
+                  : 'emerald'
+            }
+          />
+        </div>
+        {result.resumenEjecutivo ? (
+          <div className="rounded-lg border border-emerald-800/40 bg-emerald-900/20 p-3">
+            <p className="text-xs uppercase tracking-widest text-emerald-300/80 mb-1">
+              Resumen ejecutivo
+            </p>
+            <p className="text-sm text-emerald-100 leading-relaxed">{result.resumenEjecutivo}</p>
+          </div>
+        ) : null}
+        {result.clausulasObligatorias?.length > 0 ? (
+          <div>
+            <p className="text-xs uppercase tracking-widest text-emerald-300/80 mb-2">
+              Cláusulas obligatorias ({result.clausulasObligatorias.filter((c) => c.presente).length}/
+              {result.clausulasObligatorias.length} presentes)
+            </p>
+            <ul className="space-y-1.5">
+              {result.clausulasObligatorias.map((c, i) => (
+                <li
+                  key={i}
+                  className={cn(
+                    'flex items-start gap-2 text-xs rounded-md px-2 py-1.5 border',
+                    c.presente
+                      ? 'border-emerald-800/40 bg-emerald-900/10 text-emerald-100'
+                      : 'border-red-800/50 bg-red-900/20 text-red-200',
+                  )}
+                >
+                  {c.presente ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-400" />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-red-400" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{c.nombre}</p>
+                    <p className="text-[11px] text-emerald-200/70 font-mono">{c.baseLegal}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {result.risks?.length > 0 ? (
+          <div>
+            <p className="text-xs uppercase tracking-widest text-emerald-300/80 mb-2">
+              Riesgos detectados ({result.risks.length})
+            </p>
+            <ul className="space-y-2">
+              {[...result.risks]
+                .sort((a, b) => {
+                  const order: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+                  return (order[a.severity] ?? 9) - (order[b.severity] ?? 9)
+                })
+                .slice(0, 6)
+                .map((r) => (
+                  <li
+                    key={r.id}
+                    className="rounded-lg border border-emerald-800/40 bg-white/40 p-3"
+                  >
+                    <div className="flex items-start gap-2 mb-1">
+                      <span
+                        className={cn(
+                          'shrink-0 rounded-md text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5',
+                          r.severity === 'CRITICAL'
+                            ? 'bg-red-800/60 text-red-100'
+                            : r.severity === 'HIGH'
+                              ? 'bg-orange-800/60 text-orange-100'
+                              : r.severity === 'MEDIUM'
+                                ? 'bg-amber-800/60 text-amber-100'
+                                : 'bg-slate-700 text-slate-200',
+                        )}
+                      >
+                        {r.severity}
+                      </span>
+                      <p className="text-sm font-semibold text-emerald-100 flex-1">{r.title}</p>
+                      {r.multaUIT ? (
+                        <span className="shrink-0 text-[11px] font-mono text-red-300">
+                          {r.multaUIT.toFixed(2)} UIT
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-emerald-200/80 leading-relaxed">{r.description}</p>
+                    {r.recommendation ? (
+                      <p className="mt-2 text-xs text-emerald-300">
+                        <strong>Acción:</strong> {r.recommendation}
+                      </p>
+                    ) : null}
+                    {r.legalBasis ? (
+                      <p className="mt-1 text-[10px] font-mono text-emerald-400/70">
+                        {r.legalBasis}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/* AIFailedNotice — muestra que el backend intentó la IA pero falló, con retry. */
+function AIFailedNotice({
+  onRetry,
+  loading,
+  error,
+}: {
+  onRetry: () => void
+  loading: boolean
+  error: string | null
+}) {
+  return (
+    <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-3 flex items-start gap-3">
+      <TriangleAlert className="h-4 w-4 text-amber-300 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-amber-100">
+          El análisis IA automático no pudo completarse
+        </p>
+        <p className="mt-0.5 text-xs text-amber-200/80">
+          Probablemente timeout del LLM o falta de API key. El análisis por reglas arriba sigue
+          siendo confiable. Podés reintentar manualmente.
+        </p>
+        {error ? <p className="mt-1 text-xs text-red-300">{error}</p> : null}
+      </div>
+      <button
+        type="button"
+        onClick={onRetry}
+        disabled={loading}
+        className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-3 py-1.5 text-xs font-semibold text-amber-100 disabled:opacity-50"
+      >
+        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+        Reintentar
+      </button>
     </div>
   )
 }

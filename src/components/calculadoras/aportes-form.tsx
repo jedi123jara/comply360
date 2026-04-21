@@ -37,7 +37,7 @@ const AFP_OPTIONS = [
 const TIPO_APORTE_OPTIONS = [
   { value: 'AFP', label: 'AFP', color: 'text-blue-700', bgLight: 'bg-blue-50', borderActive: 'border-blue-500 ring-blue-200' },
   { value: 'ONP', label: 'ONP', color: 'text-emerald-700', bgLight: 'bg-emerald-50', borderActive: 'border-emerald-500 ring-emerald-200' },
-  { value: 'SIN_APORTE', label: 'Sin Aporte', color: 'text-gray-700', bgLight: 'bg-white/[0.02] bg-white/[0.04]', borderActive: 'border-gray-500 ring-gray-200' },
+  { value: 'SIN_APORTE', label: 'Sin Aporte', color: 'text-gray-700', bgLight: 'bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]', borderActive: 'border-gray-500 ring-gray-200' },
 ] as const
 
 export function AportesCalculadora() {
@@ -129,7 +129,7 @@ export function AportesCalculadora() {
                   placeholder="0.00"
                   min={0}
                   step={100}
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                 />
               </div>
             </div>
@@ -148,7 +148,7 @@ export function AportesCalculadora() {
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
                       input.tipoAporte === tipo.value
                         ? `${tipo.borderActive} ${tipo.color} ${tipo.bgLight} ring-2`
-                        : 'border-white/[0.08] border-white/10 text-gray-500 hover:border-white/10 hover:bg-white/[0.02] hover:bg-white/[0.04] hover:bg-white/[0.04]'
+                        : 'border-white/[0.08] border-white/10 text-gray-500 hover:border-white/10 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] hover:bg-[color:var(--neutral-100)]'
                     }`}
                   >
                     <span className="text-sm font-bold">{tipo.label}</span>
@@ -166,7 +166,7 @@ export function AportesCalculadora() {
                 <select
                   value={input.afpNombre ?? 'PRIMA'}
                   onChange={e => updateField('afpNombre', e.target.value)}
-                  className="w-full px-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium bg-[#141824] bg-white/[0.04]"
+                  className="w-full px-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium bg-[#141824] bg-[color:var(--neutral-100)]"
                 >
                   {AFP_OPTIONS.map(afp => (
                     <option key={afp.value} value={afp.value}>
@@ -191,7 +191,7 @@ export function AportesCalculadora() {
                   placeholder="0.00"
                   min={0}
                   step={50}
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-white/[0.04] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-semibold"
+                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-semibold"
                 />
               </div>
             </div>
@@ -268,7 +268,7 @@ export function AportesCalculadora() {
       <div className="lg:col-span-3 space-y-6">
         {!result ? (
           <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
               <Calculator className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -414,8 +414,8 @@ export function AportesCalculadora() {
                 Resumen
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-white/[0.02] bg-white/[0.04] rounded-xl border border-white/[0.06] border-white/10">
-                  <div className="w-10 h-10 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+                <div className="flex items-center gap-3 p-4 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-xl border border-white/[0.06] border-white/10">
+                  <div className="w-10 h-10 rounded-lg bg-[color:var(--neutral-100)] flex items-center justify-center flex-shrink-0">
                     <DollarSign className="w-5 h-5 text-gray-600" />
                   </div>
                   <div>
@@ -425,8 +425,8 @@ export function AportesCalculadora() {
                     <p className="text-xs font-medium text-gray-500">Remuneracion computable</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 bg-white/[0.02] bg-white/[0.04] rounded-xl border border-white/[0.06] border-white/10">
-                  <div className="w-10 h-10 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+                <div className="flex items-center gap-3 p-4 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-xl border border-white/[0.06] border-white/10">
+                  <div className="w-10 h-10 rounded-lg bg-[color:var(--neutral-100)] flex items-center justify-center flex-shrink-0">
                     <Shield className="w-5 h-5 text-gray-600" />
                   </div>
                   <div>
@@ -453,7 +453,7 @@ export function AportesCalculadora() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-white/[0.02] bg-white/[0.04]">
+                      <tr className="bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]">
                         <th className="text-left px-4 py-3 font-bold text-gray-300">Sistema</th>
                         <th className="text-right px-4 py-3 font-bold text-gray-300">Descuento</th>
                         <th className="text-right px-4 py-3 font-bold text-gray-300">Sueldo Neto</th>
@@ -462,7 +462,7 @@ export function AportesCalculadora() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {Object.entries(comparison.afps).map(([name, res]) => (
-                        <tr key={name} className="hover:bg-white/[0.02] hover:bg-white/[0.04]">
+                        <tr key={name} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]">
                           <td className="px-4 py-3 font-semibold text-blue-700">AFP {name.charAt(0) + name.slice(1).toLowerCase()}</td>
                           <td className="px-4 py-3 text-right tabular-nums text-red-600 font-medium">
                             S/ {res.totalDescuentoTrabajador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
@@ -510,7 +510,7 @@ export function AportesCalculadora() {
               </h3>
               <div className="space-y-2">
                 {result.baseLegal.split('; ').map((ref, i) => (
-                  <div key={i} className="flex items-start gap-2 p-3 bg-white/[0.02] bg-white/[0.04] rounded-lg">
+                  <div key={i} className="flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
                       {ref.split(',')[0]}
                     </span>
@@ -580,7 +580,7 @@ export function AportesCalculadora() {
                     sueldo_bruto: input.sueldoBruto,
                   },
                 })}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/[0.04] bg-white/[0.04] hover:bg-gray-200 hover:bg-white/[0.06] text-gray-300 rounded-xl font-semibold text-sm transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] hover:bg-gray-200 hover:bg-[color:var(--neutral-100)] text-gray-300 rounded-xl font-semibold text-sm transition-colors"
               >
                 <MessageCircle className="w-4 h-4" />
                 Consultar por WhatsApp
@@ -645,7 +645,7 @@ function BreakdownRow({
           </div>
         </div>
         <div className="mt-2 flex items-center gap-3">
-          <div className="flex-1 h-2 bg-white/[0.04] rounded-full overflow-hidden">
+          <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
             <div
               className={`h-full bg-gradient-to-r ${gradientClass} rounded-full transition-all duration-700`}
               style={{ width: `${Math.min(percentage * 5, 100)}%` }}

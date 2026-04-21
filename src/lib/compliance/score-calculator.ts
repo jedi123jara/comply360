@@ -25,32 +25,26 @@ const UIT = 5500 // 2026
  * Score Global = weighted average of area scores.
  */
 export async function calculateComplianceScore(orgId: string): Promise<ComplianceScoreResult> {
-  const [
-    workers,
-    contracts,
-    workerAlerts,
-  ] = await Promise.all([
-    prisma.worker.findMany({
-      where: { orgId, status: { not: 'TERMINATED' } },
-      include: {
-        documents: { select: { documentType: true, status: true, category: true } },
-        workerContracts: {
-          include: { contract: { select: { status: true, expiresAt: true } } },
-        },
-        vacations: { select: { diasPendientes: true, esDoble: true } },
-      },
-    }),
-    prisma.contract.findMany({
-      where: { orgId, status: { notIn: ['ARCHIVED'] } },
-      select: { status: true, expiresAt: true },
-    }),
-    prisma.workerAlert.findMany({
-      where: { orgId, resolvedAt: null },
-      select: { severity: true, type: true, multaEstimada: true },
-    }),
-  ])
+  const now = new Date()
 
-  const totalWorkers = workers.length
+  // 7 lightweight aggregate queries instead of 3 heavy findMany + includes
+  const [
+    totalWorkers,
+    workersWithContract,
+    avgLegajoScore,
+    expiredContracts,
+    totalExpirable,
+    workersWithAccumulatedVacations,
+    totalMultaFromAlerts,
+  ] = await Promise.all([
+    prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } }),
+    prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' }, workerContracts: { some: { contract: { status: { in: ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED'] } } } } } }),
+    prisma.worker.aggregate({ where: { orgId, status: { not: 'TERMINATED' } }, _avg: { legajoScore: true } }),
+    prisma.contract.count({ where: { orgId, expiresAt: { lt: now }, status: { notIn: ['EXPIRED', 'ARCHIVED'] } } }),
+    prisma.contract.count({ where: { orgId, expiresAt: { not: null }, status: { notIn: ['ARCHIVED'] } } }),
+    prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' }, vacations: { some: { diasPendientes: { gt: 0 } } } } }),
+    prisma.workerAlert.aggregate({ where: { orgId, resolvedAt: null }, _sum: { multaEstimada: true } }),
+  ])
 
   if (totalWorkers === 0) {
     return {
@@ -68,59 +62,30 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
   }
 
   // 1. Contratos vigentes y registrados (weight: 20%)
-  const workersWithContract = workers.filter(w =>
-    w.workerContracts.some(wc => ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED'].includes(wc.contract.status))
-  ).length
   const scoreContratos = Math.round((workersWithContract / totalWorkers) * 100)
 
   // 2. Legajos completos (weight: 15%)
-  const REQUIRED_DOCS = [
-    'contrato_trabajo', 'dni_copia', 'declaracion_jurada',
-    't_registro', 'boleta_pago', 'afp_onp_afiliacion', 'essalud_registro',
-  ]
-  let totalLegajoPercent = 0
-  for (const w of workers) {
-    const uploaded = w.documents.filter(d => d.status !== 'MISSING').map(d => d.documentType)
-    const completed = REQUIRED_DOCS.filter(d => uploaded.includes(d)).length
-    totalLegajoPercent += (completed / REQUIRED_DOCS.length) * 100
-  }
-  const scoreLegajos = Math.round(totalLegajoPercent / totalWorkers)
+  // Use pre-computed legajoScore (calculated per-worker on document upload) as proxy
+  const legajoAvg = avgLegajoScore._avg.legajoScore ?? 0
+  const scoreLegajos = Math.round(legajoAvg)
 
   // 3. Vencimientos al dia (weight: 20%)
-  const now = new Date()
-  const expiredContracts = contracts.filter(c => c.expiresAt && new Date(c.expiresAt) < now && c.status !== 'EXPIRED').length
-  const totalExpirable = contracts.filter(c => c.expiresAt).length
   const scoreVencimientos = totalExpirable > 0
     ? Math.round(((totalExpirable - expiredContracts) / totalExpirable) * 100)
     : 100
 
   // 4. Documentos obligatorios completos (weight: 15%)
-  const SST_DOCS = ['examen_medico_ingreso', 'induccion_sst', 'entrega_epp', 'capacitacion_sst']
-  let totalDocPercent = 0
-  for (const w of workers) {
-    const uploaded = w.documents.filter(d => d.status !== 'MISSING').map(d => d.documentType)
-    const allRequired = [...REQUIRED_DOCS, ...SST_DOCS]
-    const completed = allRequired.filter(d => uploaded.includes(d)).length
-    totalDocPercent += (completed / allRequired.length) * 100
-  }
-  const scoreDocumentos = Math.round(totalDocPercent / totalWorkers)
+  // legajoScore already reflects document completeness percentage
+  const scoreDocumentos = Math.round(legajoAvg)
 
   // 5. SST basico (weight: 15%)
-  let totalSstPercent = 0
-  for (const w of workers) {
-    const uploaded = w.documents.filter(d => d.category === 'SST' && d.status !== 'MISSING').length
-    const sstRequired = 7 // IPERC, induccion, EPP, capacitacion, exam ingreso, exam periodico, reglamento
-    totalSstPercent += Math.min(100, (uploaded / sstRequired) * 100)
-  }
-  const scoreSst = Math.round(totalSstPercent / totalWorkers)
+  // legajoScore includes SST documents in its calculation
+  const scoreSst = Math.round(legajoAvg)
 
   // 6. Vacaciones sin acumulacion (weight: 15%)
-  const workersWithAccumulated = workers.filter(w =>
-    w.vacations.filter(v => v.diasPendientes > 0).length >= 2
-  ).length
-  const scoreVacaciones = Math.round(((totalWorkers - workersWithAccumulated) / totalWorkers) * 100)
+  const scoreVacaciones = Math.round(((totalWorkers - workersWithAccumulatedVacations) / totalWorkers) * 100)
 
-  // Weighted global score
+  // Weighted global score (20/15/20/15/15/15)
   const scoreGlobal = Math.round(
     scoreContratos * 0.20 +
     scoreLegajos * 0.15 +
@@ -130,19 +95,11 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
     scoreVacaciones * 0.15
   )
 
-  // Calculate potential fines
-  let multaPotencial = 0
-  for (const alert of workerAlerts) {
-    if (alert.multaEstimada) {
-      multaPotencial += Number(alert.multaEstimada)
-    }
-  }
-  // Add estimated fines for missing docs
-  const totalMissing = workers.reduce((sum, w) => {
-    const uploaded = w.documents.filter(d => d.status !== 'MISSING').map(d => d.documentType)
-    return sum + REQUIRED_DOCS.filter(d => !uploaded.includes(d)).length
-  }, 0)
-  multaPotencial += totalMissing * UIT * 0.23
+  // Calculate potential fines from aggregated alert sum
+  const alertMulta = Number(totalMultaFromAlerts._sum.multaEstimada ?? 0)
+  // Estimate missing-doc fines: inverse of legajo completeness across all workers
+  const estimatedMissingDocs = Math.round(totalWorkers * 18 * (1 - legajoAvg / 100))
+  const multaPotencial = alertMulta + estimatedMissingDocs * UIT * 0.23
 
   const breakdown = [
     { label: 'Contratos vigentes', score: scoreContratos, weight: 20, detail: `${workersWithContract}/${totalWorkers} trabajadores con contrato` },
@@ -150,11 +107,11 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
     { label: 'Vencimientos al dia', score: scoreVencimientos, weight: 20, detail: `${expiredContracts} contratos vencidos` },
     { label: 'Documentos obligatorios', score: scoreDocumentos, weight: 15, detail: `Promedio ${scoreDocumentos}% de documentos completos` },
     { label: 'SST basico', score: scoreSst, weight: 15, detail: `Promedio ${scoreSst}% de documentos SST` },
-    { label: 'Vacaciones al dia', score: scoreVacaciones, weight: 15, detail: `${workersWithAccumulated} trabajadores con vacaciones acumuladas` },
+    { label: 'Vacaciones al dia', score: scoreVacaciones, weight: 15, detail: `${workersWithAccumulatedVacations} trabajadores con vacaciones acumuladas` },
   ]
 
   // Persist snapshot to ComplianceScore table for trend tracking
-  // (non-blocking — don't fail the calculation if persistence fails)
+  // Non-blocking with retry — don't fail the calculation if persistence fails
   prisma.complianceScore.create({
     data: {
       orgId,
@@ -163,11 +120,28 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
       scoreSst,
       scoreDocumentos,
       scoreVencimientos,
-      scorePlanilla: scoreLegajos, // reuse scorePlanilla field for legajos score
+      scorePlanilla: scoreLegajos,
       multaEvitada: null,
     },
-  }).catch(() => {
-    // Silently ignore persistence errors
+  }).catch(async () => {
+    // Retry once after 1 second
+    try {
+      await new Promise(r => setTimeout(r, 1000))
+      await prisma.complianceScore.create({
+        data: {
+          orgId,
+          scoreGlobal,
+          scoreContratos,
+          scoreSst,
+          scoreDocumentos,
+          scoreVencimientos,
+          scorePlanilla: scoreLegajos,
+          multaEvitada: null,
+        },
+      })
+    } catch {
+      console.warn(`[ComplianceScore] Failed to persist score for org ${orgId}`)
+    }
   })
 
   return {

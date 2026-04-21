@@ -8,7 +8,7 @@
  * Rate limited: 10 requests per minute per organization
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-auth'
 import { rateLimit, withRateLimitHeaders } from '@/lib/rate-limit'
 import { consultarRUC, consultarDNI, validarRUC, validarDNI } from '@/lib/integrations/sunat'

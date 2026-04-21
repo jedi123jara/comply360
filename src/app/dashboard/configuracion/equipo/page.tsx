@@ -42,9 +42,9 @@ interface Invitation {
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType; description: string }> = {
   OWNER: { label: 'Propietario', color: 'bg-purple-100 text-purple-700 bg-purple-900/30 text-purple-400', icon: Crown, description: 'Acceso total, gestiona pagos y equipo' },
-  ADMIN: { label: 'Administrador', color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-blue-400', icon: Shield, description: 'Gestiona trabajadores, contratos y configuracion' },
+  ADMIN: { label: 'Administrador', color: 'bg-blue-100 text-blue-700 bg-blue-900/30 text-emerald-600', icon: Shield, description: 'Gestiona trabajadores, contratos y configuracion' },
   MEMBER: { label: 'Miembro', color: 'bg-green-100 text-green-700 bg-green-900/30 text-green-400', icon: Users, description: 'Puede ver y crear registros' },
-  VIEWER: { label: 'Lector', color: 'bg-white/[0.04] text-gray-300 bg-white/[0.04] text-slate-300', icon: Eye, description: 'Solo lectura' },
+  VIEWER: { label: 'Lector', color: 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] bg-[color:var(--neutral-100)] text-slate-300', icon: Eye, description: 'Solo lectura' },
 }
 
 export default function EquipoPage() {
@@ -203,13 +203,13 @@ export default function EquipoPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 text-gray-400 mb-1">
-            <Link href="/dashboard/configuracion" className="hover:text-gray-300 hover:text-slate-200">Configuracion</Link>
+          <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
+            <Link href="/dashboard/configuracion" className="hover:text-slate-200">Configuracion</Link>
             <span>/</span>
             <span>Equipo</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Gestion de Equipo</h1>
-          <p className="text-gray-500 text-gray-400 mt-1">Administra los miembros e invitaciones de tu organizacion.</p>
+          <p className="text-gray-400 mt-1">Administra los miembros e invitaciones de tu organizacion.</p>
         </div>
       </div>
 
@@ -218,19 +218,19 @@ export default function EquipoPage() {
         {Object.entries(ROLE_CONFIG).map(([key, cfg]) => {
           const Icon = cfg.icon
           return (
-            <div key={key} className="bg-[#141824] rounded-xl border border-white/[0.08] p-3">
+            <div key={key} className="bg-white rounded-xl border border-white/[0.08] p-3">
               <div className="flex items-center gap-2 mb-1">
-                <Icon className="w-4 h-4 text-gray-400 text-slate-500" />
+                <Icon className="w-4 h-4 text-slate-500" />
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
               </div>
-              <p className="text-xs text-gray-500 text-gray-400">{cfg.description}</p>
+              <p className="text-xs text-gray-400">{cfg.description}</p>
             </div>
           )
         })}
       </div>
 
       {/* Invite form */}
-      <div className="bg-[#141824] rounded-2xl border border-white/[0.08] p-6">
+      <div className="bg-white rounded-2xl border border-white/[0.08] p-6">
         <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
           <UserPlus className="w-4 h-4 text-primary" />
           Invitar nuevo miembro
@@ -243,7 +243,7 @@ export default function EquipoPage() {
               value={inviteEmail}
               onChange={e => setInviteEmail(e.target.value)}
               placeholder="correo@empresa.com"
-              className="w-full pl-9 pr-4 py-2.5 border border-white/10 border-slate-600 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-white/[0.04] text-gray-200"
+              className="w-full pl-9 pr-4 py-2.5 border border-white/10 border-[color:var(--border-default)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
               required
             />
           </div>
@@ -251,7 +251,7 @@ export default function EquipoPage() {
             <select
               value={inviteRole}
               onChange={e => setInviteRole(e.target.value)}
-              className="appearance-none pl-4 pr-8 py-2.5 border border-white/10 border-slate-600 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-[#141824] bg-white/[0.04] text-gray-200"
+              className="appearance-none pl-4 pr-8 py-2.5 border border-white/10 border-[color:var(--border-default)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-white bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]"
             >
               <option value="MEMBER">Miembro</option>
               <option value="ADMIN">Administrador</option>
@@ -262,7 +262,7 @@ export default function EquipoPage() {
           <button
             type="submit"
             disabled={inviting}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3a6e] hover:bg-[#162d57] text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
           >
             {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
             Invitar
@@ -270,7 +270,7 @@ export default function EquipoPage() {
         </form>
         {inviteMsg && (
           <div className={`mt-3 px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 ${
-            inviteMsg.type === 'success' ? 'bg-green-50 bg-green-900/30 text-green-800 text-green-400 border border-green-200 border-green-800' : 'bg-red-50 bg-red-900/30 text-red-800 text-red-400 border border-red-200 border-red-800'
+            inviteMsg.type === 'success' ? 'bg-green-900/30 text-green-400 border border-green-800' : 'bg-red-900/30 text-red-400 border border-red-800'
           }`}>
             {inviteMsg.text}
             <button onClick={() => setInviteMsg(null)} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
@@ -280,23 +280,22 @@ export default function EquipoPage() {
 
       {/* Action error banner */}
       {actionError && (
-        <div className="px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 bg-red-50 bg-red-900/30 text-red-800 text-red-400 border border-red-200 border-red-800">
+        <div className="px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 bg-red-900/30 text-red-400 border border-red-800">
           {actionError}
           <button onClick={() => setActionError(null)} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
       {/* Members list */}
-      <div className="bg-[#141824] rounded-2xl border border-white/[0.08] overflow-hidden">
+      <div className="bg-white rounded-2xl border border-white/[0.08] overflow-hidden">
         <div className="px-6 py-4 border-b border-white/[0.06] border-white/[0.08]">
           <h2 className="font-semibold text-white">
-            Miembros actuales <span className="text-gray-400 text-slate-500 font-normal text-sm">({members.length})</span>
+            Miembros actuales <span className="text-slate-500 font-normal text-sm">({members.length})</span>
           </h2>
         </div>
         <div className="divide-y divide-gray-100 divide-slate-700">
           {members.map(member => {
             const cfg = ROLE_CONFIG[member.role]
-            const Icon = cfg?.icon ?? Users
             const isUpdating = updatingId === member.id
             return (
               <div key={member.id} className="flex items-center gap-4 px-6 py-4">
@@ -309,7 +308,7 @@ export default function EquipoPage() {
                       ? displayWorkerName(member.firstName, member.lastName)
                       : member.email}
                   </p>
-                  <p className="text-xs text-gray-500 text-gray-400">{member.email}</p>
+                  <p className="text-xs text-gray-400">{member.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {isUpdating ? (
@@ -320,7 +319,7 @@ export default function EquipoPage() {
                         value={member.role}
                         onChange={e => changeRole(member.id, e.target.value)}
                         disabled={member.role === 'OWNER'}
-                        className={`appearance-none pl-2 pr-6 py-1 text-xs font-semibold rounded-full border-0 outline-none cursor-pointer ${cfg?.color ?? 'bg-white/[0.04] text-gray-600'} disabled:cursor-default`}
+                        className={`appearance-none pl-2 pr-6 py-1 text-xs font-semibold rounded-full border-0 outline-none cursor-pointer ${cfg?.color ?? 'bg-[color:var(--neutral-100)] text-gray-600'} disabled:cursor-default`}
                       >
                         <option value="OWNER">Propietario</option>
                         <option value="ADMIN">Administrador</option>
@@ -343,7 +342,7 @@ export default function EquipoPage() {
                         </button>
                         <button
                           onClick={() => setConfirmRemoveId(null)}
-                          className="px-2.5 py-1 text-xs font-semibold text-gray-500 text-gray-400 border border-white/[0.08] border-gray-600 hover:bg-white/[0.02] hover:bg-gray-800 rounded-lg transition-colors"
+                          className="px-2.5 py-1 text-xs font-semibold text-gray-400 border border-white/[0.08] border-gray-600 hover:bg-[color:var(--neutral-50)] hover:bg-gray-800 rounded-lg transition-colors"
                         >
                           No
                         </button>
@@ -367,10 +366,10 @@ export default function EquipoPage() {
 
       {/* Pending invitations */}
       {invitations.length > 0 && (
-        <div className="bg-[#141824] rounded-2xl border border-white/[0.08] overflow-hidden">
+        <div className="bg-white rounded-2xl border border-white/[0.08] overflow-hidden">
           <div className="px-6 py-4 border-b border-white/[0.06] border-white/[0.08]">
             <h2 className="font-semibold text-white">
-              Invitaciones pendientes <span className="text-gray-400 text-slate-500 font-normal text-sm">({invitations.length})</span>
+              Invitaciones pendientes <span className="text-slate-500 font-normal text-sm">({invitations.length})</span>
             </h2>
           </div>
           <div className="divide-y divide-gray-100 divide-slate-700">
@@ -386,12 +385,12 @@ export default function EquipoPage() {
                     <p className="text-sm font-semibold text-white">{inv.email}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Clock className="w-3 h-3 text-gray-400" />
-                      <span className={`text-xs ${isExpired ? 'text-red-500' : 'text-gray-500 text-gray-400'}`}>
+                      <span className={`text-xs ${isExpired ? 'text-red-500' : 'text-gray-400'}`}>
                         {isExpired ? 'Vencida' : `Vence ${new Date(inv.expiresAt).toLocaleDateString('es-PE')}`}
                       </span>
                     </div>
                   </div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg?.color ?? 'bg-white/[0.04] text-gray-600 bg-white/[0.04] text-slate-300'}`}>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg?.color ?? 'bg-[color:var(--neutral-100)] text-gray-600 bg-[color:var(--neutral-100)] text-slate-300'}`}>
                     {cfg?.label ?? inv.role}
                   </span>
                   <button
@@ -409,7 +408,7 @@ export default function EquipoPage() {
       )}
 
       {/* ── Herramientas de Datos ──────────────────────────────────────── */}
-      <div className="bg-[#141824] rounded-2xl border border-white/[0.08] p-6">
+      <div className="bg-white rounded-2xl border border-white/[0.08] p-6">
         <h2 className="font-semibold text-white mb-1 flex items-center gap-2">
           <Wrench className="w-4 h-4 text-amber-400" />
           Herramientas de Datos
@@ -419,7 +418,7 @@ export default function EquipoPage() {
         </p>
 
         {/* Fix nombres duplicados */}
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <div className="rounded-xl border border-white/[0.06] bg-[color:var(--neutral-50)] p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">Corregir nombres duplicados</p>
@@ -451,7 +450,7 @@ export default function EquipoPage() {
             {(fixStatus === 'done' || (fixStatus === 'preview' && fixPreview?.affected === 0)) && (
               <button
                 onClick={() => { setFixStatus('idle'); setFixPreview(null); setFixResult(null) }}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-white/[0.04] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08] transition-colors whitespace-nowrap"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-[color:var(--neutral-100)] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08] transition-colors whitespace-nowrap"
               >
                 Volver a analizar
               </button>

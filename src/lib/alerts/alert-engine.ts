@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { REQUIRED_DOC_TYPES } from '@/lib/compliance/legajo-config'
 
 interface WorkerData {
   id: string
@@ -157,14 +158,9 @@ function computeAlerts(w: WorkerData): AlertInput[] {
     })
   }
 
-  // --- Missing required documents ---
-  const REQUIRED_DOCS = [
-    'contrato_trabajo', 'dni_copia', 'declaracion_jurada',
-    't_registro', 'boleta_pago', 'examen_medico_ingreso',
-    'induccion_sst', 'entrega_epp', 'afp_onp_afiliacion', 'essalud_registro',
-  ]
+  // --- Missing required documents (uses canonical 18-doc list from legajo-config) ---
   const uploadedTypes = w.documents.filter(d => d.status !== 'MISSING').map(d => d.documentType)
-  const missing = REQUIRED_DOCS.filter(d => !uploadedTypes.includes(d))
+  const missing = REQUIRED_DOC_TYPES.filter(d => !uploadedTypes.includes(d))
 
   if (missing.length > 0) {
     alerts.push({

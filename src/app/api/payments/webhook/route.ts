@@ -3,7 +3,15 @@ import { prisma } from '@/lib/prisma'
 import { createHmac } from 'crypto'
 
 // =============================================
-// POST /api/payments/webhook - Culqi webhook handler
+// POST /api/payments/webhook
+//
+// Webhook receiver de Culqi (INBOUND). Procesa eventos de pago → activa planes.
+//
+// ⚠️ NO confundir con `/api/webhooks/subscriptions` que es CRUD de webhooks
+// salientes (suscripciones de clientes PRO que quieren recibir eventos de Comply360).
+//
+// Dead letter queue: si un handler falla, registramos el evento en AuditLog
+// con action='culqi.webhook.dlq' para permitir retry manual u inspección.
 // =============================================
 
 interface CulqiWebhookPayload {
@@ -53,23 +61,35 @@ function validateWebhookSignature(
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const receivedAt = new Date().toISOString()
+  let rawBody = ''
+  let payload: CulqiWebhookPayload | null = null
+
   try {
-    const rawBody = await req.text()
+    rawBody = await req.text()
     const signature = req.headers.get('x-culqi-signature')
 
     // ---- Validar firma ----
     if (!validateWebhookSignature(rawBody, signature)) {
-      console.error('[Webhook] Firma invalida')
+      console.error('[Culqi Webhook] Firma invalida', {
+        signaturePresent: !!signature,
+        bodyLength: rawBody.length,
+      })
+      // No DLQ en este caso — firma inválida = posible ataque, dropear silencioso
       return NextResponse.json(
         { error: 'Firma de webhook invalida' },
         { status: 401 }
       )
     }
 
-    const payload = JSON.parse(rawBody) as CulqiWebhookPayload
+    payload = JSON.parse(rawBody) as CulqiWebhookPayload
     const { type, data } = payload
 
-    console.log(`[Webhook] Evento recibido: ${type}`, { chargeId: data.id })
+    console.log(`[Culqi Webhook] Evento recibido: ${type}`, {
+      chargeId: data.id,
+      amount: data.amount,
+      receivedAt,
+    })
 
     // ---- Procesar eventos ----
     switch (type) {
@@ -86,14 +106,41 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         break
 
       default:
-        console.log(`[Webhook] Evento no manejado: ${type}`)
+        console.log(`[Culqi Webhook] Evento no manejado: ${type}`)
+        // No es DLQ: es evento válido que no procesamos (ej: charge.refunded en el futuro)
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('[Webhook] Error procesando webhook:', error)
+    console.error('[Culqi Webhook] Error procesando webhook:', error)
+
+    // ── Dead Letter Queue ─────────────────────────────────────────────────
+    // Persistimos el evento crudo en AuditLog para retry manual / investigación.
+    // orgId en metadata del evento si está; si no, usamos 'system'.
+    try {
+      const orgIdFromMeta = payload?.data?.metadata?.orgId
+      const orgId = typeof orgIdFromMeta === 'string' ? orgIdFromMeta : 'system'
+      await prisma.auditLog.create({
+        data: {
+          orgId,
+          action: 'culqi.webhook.dlq',
+          entityType: 'CulqiWebhook',
+          entityId: payload?.data?.id ?? 'unknown',
+          metadataJson: {
+            eventType: payload?.type ?? null,
+            rawBodySnippet: rawBody.slice(0, 2000),
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack?.slice(0, 1000) : null,
+            receivedAt,
+          },
+        },
+      })
+    } catch (dlqErr) {
+      console.error('[Culqi Webhook] DLQ persist failed', dlqErr)
+    }
+
     return NextResponse.json(
-      { error: 'Error interno al procesar el webhook' },
+      { error: 'Error interno al procesar el webhook', dlq: true },
       { status: 500 }
     )
   }

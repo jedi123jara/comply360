@@ -30,7 +30,6 @@ const c = {
 function log(msg)  { console.log(msg) }
 function ok(msg)   { console.log(c.green('  ✓ ') + msg) }
 function warn(msg) { console.log(c.yellow('  ⚠ ') + msg) }
-function err(msg)  { console.log(c.red('  ✗ ') + msg) }
 
 // ─── Guardar JSON formateado ───────────────────────────────────────────────
 function saveJson(filename, data) {

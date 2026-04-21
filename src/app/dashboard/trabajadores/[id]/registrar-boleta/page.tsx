@@ -71,7 +71,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
       <div className="flex items-center gap-3">
         <Link
           href={`/dashboard/trabajadores/${id}`}
-          className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors"
+          className="p-2 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Link>
@@ -88,7 +88,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5 bg-[#141824] rounded-2xl border border-white/[0.08] p-6">
+      <form onSubmit={handleSubmit} className="space-y-5 bg-white rounded-2xl border border-white/[0.08] p-6">
         <div>
           <label className="block text-xs font-semibold text-gray-400 mb-1.5">Periodo *</label>
           <input
@@ -96,7 +96,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
             value={periodo}
             onChange={e => setPeriodo(e.target.value)}
             required
-            className="w-full px-4 py-2.5 border border-white/[0.08] bg-white/[0.04] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm"
+            className="w-full px-4 py-2.5 border border-white/[0.08] bg-[color:var(--neutral-100)] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm"
           />
           <p className="text-xs text-gray-500 mt-1">{periodoLabel}</p>
         </div>
@@ -110,7 +110,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
             value={horasExtras}
             onChange={e => setHorasExtras(e.target.value)}
             placeholder="0.00"
-            className="w-full px-4 py-2.5 border border-white/[0.08] bg-white/[0.04] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm placeholder-gray-500"
+            className="w-full px-4 py-2.5 border border-white/[0.08] bg-[color:var(--neutral-100)] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm placeholder-gray-500"
           />
         </div>
 
@@ -123,14 +123,14 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
             value={bonificaciones}
             onChange={e => setBonificaciones(e.target.value)}
             placeholder="0.00"
-            className="w-full px-4 py-2.5 border border-white/[0.08] bg-white/[0.04] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm placeholder-gray-500"
+            className="w-full px-4 py-2.5 border border-white/[0.08] bg-[color:var(--neutral-100)] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm placeholder-gray-500"
           />
         </div>
 
         {showGratToggle && (
           <label className="flex items-center justify-between p-4 bg-amber-900/10 border border-amber-800/30 rounded-xl cursor-pointer">
             <div>
-              <span className="text-sm font-semibold text-amber-300">Incluir gratificacion</span>
+              <span className="text-sm font-semibold text-amber-700">Incluir gratificacion</span>
               <p className="text-xs text-amber-400/70 mt-0.5">
                 {month <= 7 ? 'Gratificacion Fiestas Patrias (julio)' : 'Gratificacion Navidad (diciembre)'}
               </p>
@@ -139,7 +139,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
               type="checkbox"
               checked={incluirGratificacion}
               onChange={e => setIncluirGratificacion(e.target.checked)}
-              className="w-5 h-5 rounded border-amber-600 bg-white/[0.04] text-amber-500 focus:ring-amber-500/30"
+              className="w-5 h-5 rounded border-amber-600 bg-[color:var(--neutral-100)] text-amber-500 focus:ring-amber-500/30"
             />
           </label>
         )}
@@ -148,7 +148,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
           <button
             type="submit"
             disabled={saving || !periodo}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-[#1e3a6e] hover:bg-[#162d57] text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
             Generar boleta para {periodoLabel}

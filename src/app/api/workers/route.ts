@@ -3,19 +3,102 @@ import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
+import { checkWorkerLimit } from '@/lib/plan-gate'
+import { syncComplianceScore } from '@/lib/compliance/sync-score'
+
+// Valid sort columns and their Prisma field names
+const SORT_FIELDS: Record<string, string> = {
+  lastName: 'lastName',
+  sueldoBruto: 'sueldoBruto',
+  fechaIngreso: 'fechaIngreso',
+  legajoScore: 'legajoScore',
+  createdAt: 'createdAt',
+}
 
 // =============================================
 // GET /api/workers - List workers
+// Query params:
+//   status, regimen, department, search — filters
+//   page, limit                         — pagination
+//   sortBy, sortDir                     — sorting (sortBy: lastName|sueldoBruto|fechaIngreso|legajoScore)
+//   stats=1                             — return org-wide aggregate stats instead of list
 // =============================================
 export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
+
+  // ── Aggregate stats mode ──────────────────────────────────────
+  if (searchParams.get('stats') === '1') {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const [statusGroups, regimenGroups, aggregates, departments, recentCount] = await Promise.all([
+      prisma.worker.groupBy({
+        by: ['status'],
+        where: { orgId },
+        _count: { id: true },
+      }),
+      prisma.worker.groupBy({
+        by: ['regimenLaboral'],
+        where: { orgId, status: { not: 'TERMINATED' } },
+        _count: { id: true },
+      }),
+      prisma.worker.aggregate({
+        where: { orgId, status: { not: 'TERMINATED' } },
+        _avg: { sueldoBruto: true, legajoScore: true },
+        _sum: { sueldoBruto: true },
+        _count: { id: true },
+      }),
+      prisma.worker.findMany({
+        where: { orgId, department: { not: null } },
+        select: { department: true },
+        distinct: ['department'],
+        orderBy: { department: 'asc' },
+      }),
+      prisma.worker.count({
+        where: { orgId, createdAt: { gte: thirtyDaysAgo } },
+      }),
+    ])
+
+    const byStatus = Object.fromEntries(
+      statusGroups.map(g => [g.status, g._count.id])
+    )
+    const byRegimen = Object.fromEntries(
+      regimenGroups.map(g => [g.regimenLaboral, g._count.id])
+    )
+    const lowLegajoCount = await prisma.worker.count({
+      where: { orgId, status: { not: 'TERMINATED' }, legajoScore: { lt: 50 } },
+    })
+
+    return NextResponse.json({
+      byStatus: {
+        ACTIVE: byStatus['ACTIVE'] ?? 0,
+        ON_LEAVE: byStatus['ON_LEAVE'] ?? 0,
+        SUSPENDED: byStatus['SUSPENDED'] ?? 0,
+        TERMINATED: byStatus['TERMINATED'] ?? 0,
+      },
+      byRegimen,
+      totalActivos: aggregates._count.id,
+      avgSueldo: aggregates._avg.sueldoBruto ? Math.round(Number(aggregates._avg.sueldoBruto)) : 0,
+      totalPlanilla: aggregates._sum.sueldoBruto ? Math.round(Number(aggregates._sum.sueldoBruto)) : 0,
+      avgLegajoScore: aggregates._avg.legajoScore ? Math.round(Number(aggregates._avg.legajoScore)) : 0,
+      lowLegajoCount,
+      departments: departments.map(d => d.department).filter(Boolean) as string[],
+      recentlyAdded: recentCount,
+    })
+  }
+
+  // ── List mode ─────────────────────────────────────────────────
   const status = searchParams.get('status')
   const regimen = searchParams.get('regimen')
   const department = searchParams.get('department')
   const search = searchParams.get('search')
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')
+
+  // Sorting
+  const sortByRaw = searchParams.get('sortBy') ?? 'createdAt'
+  const sortDir = searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc'
+  const sortField = SORT_FIELDS[sortByRaw] ?? 'createdAt'
 
   const where = {
     orgId,
@@ -41,7 +124,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const [workers, total] = await Promise.all([
     prisma.worker.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [sortField]: sortDir },
       skip: (page - 1) * limit,
       take: limit,
       select: {
@@ -81,6 +164,18 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
+
+  // --- Plan gate: check worker limit ---
+  const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { plan: true } })
+  const { allowed, current, max } = await checkWorkerLimit(orgId, org?.plan ?? 'STARTER')
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Limite de trabajadores alcanzado para tu plan actual. Actualiza tu plan para agregar mas trabajadores.', code: 'WORKER_LIMIT_REACHED', current, max, upgradeUrl: '/dashboard/planes' },
+      { status: 403 },
+    )
+  }
+  // --- End plan gate ---
+
   const body = await req.json()
   const {
     dni,
@@ -200,6 +295,9 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   } catch (err) {
     console.error('[workers/POST] generateWorkerAlerts failed', { workerId: worker.id, err })
   }
+
+  // Fire-and-forget compliance score recalculation
+  syncComplianceScore(orgId).catch(() => {})
 
   return NextResponse.json({ data: worker }, { status: 201 })
 })
