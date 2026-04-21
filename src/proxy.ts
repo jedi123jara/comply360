@@ -45,13 +45,13 @@ const isProd = process.env.NODE_ENV === 'production'
 // Build Content-Security-Policy
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.clerk.dev https://*.clerk.accounts.dev https://clerk.comply360.pe https://*.comply360.pe https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.clerk.dev https://*.clerk.accounts.dev https://clerk.comply360.pe https://*.comply360.pe https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net",
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: https: blob:",
-  "connect-src 'self' https://api.clerk.dev https://*.clerk.accounts.dev https://clerk.comply360.pe https://*.comply360.pe https://clerk-telemetry.com https://api.openai.com https://api.apis.net.pe https://*.supabase.co https://*.sentry.io https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://o0.ingest.sentry.io http://localhost:11434",
-  "frame-src 'self' https://accounts.clerk.dev https://*.clerk.accounts.dev https://clerk.comply360.pe",
+  "connect-src 'self' https://api.clerk.dev https://*.clerk.accounts.dev https://clerk.comply360.pe https://*.comply360.pe https://challenges.cloudflare.com https://clerk-telemetry.com https://api.openai.com https://api.apis.net.pe https://*.supabase.co https://*.sentry.io https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://o0.ingest.sentry.io http://localhost:11434",
+  "frame-src 'self' https://accounts.clerk.dev https://*.clerk.accounts.dev https://clerk.comply360.pe https://challenges.cloudflare.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
