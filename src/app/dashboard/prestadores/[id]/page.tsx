@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Briefcase, Mail, Phone, MapPin, Calendar, DollarSign, AlertTriangle, ShieldCheck, Receipt, Trash2, FileText, Info } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn, displayWorkerName } from '@/lib/utils'
 
 interface RhInvoice {
@@ -88,10 +89,11 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
     try {
       const res = await fetch(`/api/prestadores/${id}`, { method: 'DELETE' })
       if (res.ok) {
+        toast.success('Prestador finalizado')
         router.push('/dashboard/prestadores')
       } else {
-        const d = await res.json()
-        alert(d.error ?? 'Error al finalizar el prestador')
+        const d = await res.json().catch(() => ({}))
+        toast.error(d.error ?? 'Error al finalizar el prestador')
       }
     } finally {
       setDeleting(false)

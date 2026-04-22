@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Scale, Users, FileText, AlertTriangle, Plus, X, Edit2, Trash2, Clock, XCircle, Loader2, Calendar, Bell, ChevronDown, ChevronUp, ExternalLink, Shield, Megaphone, Gavel, UserCheck, Flame } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 /* ===================================
@@ -383,8 +384,9 @@ export default function RelacionesColectivasPage() {
       setShowModal(false)
       setEditingRecord(undefined)
       await load()
+      toast.success('Registro guardado')
     } catch {
-      alert('Error al guardar')
+      toast.error('Error al guardar')
     } finally {
       setSaving(false)
     }
