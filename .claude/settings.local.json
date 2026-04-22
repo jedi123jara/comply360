@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -oE '\\\\.[^.]+$')",
+      "Bash(xargs wc *)"
+    ]
+  }
+}
