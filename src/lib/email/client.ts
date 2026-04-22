@@ -18,22 +18,41 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 
   try {
+    // Resend requires the "from" domain to be verified. We fallback to
+    // Resend's sandbox address while propagation finalises, so outbound
+    // notifications don't silently drop.
+    const fromAddress =
+      process.env.EMAIL_FROM ??
+      (process.env.RESEND_FROM ?? 'COMPLY360 <notificaciones@comply360.pe>')
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'COMPLY360 <notificaciones@comply360.pe>',
+        from: fromAddress,
         to: options.to,
         subject: options.subject,
         html: options.html,
       }),
     })
+
+    if (!res.ok) {
+      let detail: string
+      try {
+        detail = JSON.stringify(await res.json())
+      } catch {
+        detail = await res.text().catch(() => '(no body)')
+      }
+      console.error(
+        `[email] Resend rejected (${res.status}) from=${fromAddress} to=${options.to}: ${detail}`,
+      )
+    }
     return res.ok
-  } catch {
-    console.error('[email] Failed to send')
+  } catch (err) {
+    console.error('[email] Failed to send:', err)
     return false
   }
 }

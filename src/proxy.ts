@@ -7,6 +7,10 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
 
+  // SEO files (Next.js generates these from src/app/sitemap.ts + robots.ts)
+  '/sitemap.xml',
+  '/robots.txt',
+
   // Marketing pages (route group `(marketing)/*` en el filesystem, URL al root)
   '/calculadoras(.*)',       // hub + CTS / grati / multa-sunafil / etc.
   '/planes(.*)',             // pricing page
