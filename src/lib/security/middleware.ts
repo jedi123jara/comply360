@@ -67,6 +67,11 @@ export function getClientIp(req: Request): string {
  * Returns null if OK, or an error message if blocked.
  */
 export function checkIpBlock(ip: string): string | null {
+  // ESCAPE HATCH: set DISABLE_RATE_LIMIT=1 in env to bypass all IP blocks
+  // and DoS throttling. Used during bootstrapping / demos when false
+  // positives from legitimate SPA fan-out are more costly than DoS exposure.
+  if (process.env.DISABLE_RATE_LIMIT === '1') return null
+
   cleanupRecords()
   const record = ipRecords.get(ip)
   if (!record) return null
@@ -90,6 +95,9 @@ export function checkIpBlock(ip: string): string | null {
  * Record a failed authentication attempt for an IP.
  */
 export function recordAuthFailure(ip: string): void {
+  // ESCAPE HATCH: skip failure accounting entirely when rate-limit is disabled.
+  if (process.env.DISABLE_RATE_LIMIT === '1') return
+
   const now = Date.now()
   const record = ipRecords.get(ip) || {
     failures: 0,

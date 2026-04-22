@@ -81,6 +81,18 @@ if (typeof setInterval !== 'undefined') {
 // ---------------------------------------------------------------------------
 
 function consumeToken(key: string, config: RateLimitConfig): RateLimitResult {
+  // ESCAPE HATCH: set DISABLE_RATE_LIMIT=1 in env to bypass entirely.
+  // Useful while bootstrapping prod / during demos when false positives
+  // from legitimate SPA traffic are more costly than the DoS exposure.
+  if (process.env.DISABLE_RATE_LIMIT === '1') {
+    return {
+      success: true,
+      limit: config.limit,
+      remaining: config.limit,
+      reset: Date.now() + config.interval,
+    }
+  }
+
   const now = Date.now()
   let bucket = buckets.get(key)
 
