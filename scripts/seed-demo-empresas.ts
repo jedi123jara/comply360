@@ -28,13 +28,34 @@
  * Idempotente: podés correrlo varias veces. Usa upsert everywhere.
  */
 
-import 'dotenv/config'
+// Cargar primero .env.production.local (prod secrets), luego .env (fallback dev)
+import { existsSync } from 'node:fs'
+import { config as loadEnv } from 'dotenv'
+if (existsSync('.env.production.local')) {
+  loadEnv({ path: '.env.production.local', override: true })
+} else {
+  loadEnv()
+}
+
 import pg from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../src/generated/prisma/client.js'
 import type { RegimenLaboral, TipoContrato, TipoAporte } from '../src/generated/prisma/client.js'
 
-const pool = new pg.Pool({ connectionString: process.env.DIRECT_URL })
+// Preferir DIRECT_URL; si no está, caer a DATABASE_URL
+const connString = process.env.DIRECT_URL ?? process.env.DATABASE_URL
+if (!connString) {
+  console.error('❌ Falta DIRECT_URL o DATABASE_URL en env. Revisá .env.production.local')
+  process.exit(1)
+}
+const maskedHost = connString.match(/@([^/]+)/)?.[1] ?? '???'
+console.log(`🔌 Usando DB en ${maskedHost}`)
+
+const pool = new pg.Pool({
+  connectionString: connString,
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 15000,
+})
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
@@ -120,6 +141,15 @@ function salaryByRegimen(regimen: RegimenLaboral, rng: () => number): number {
     // Peón ~1500, Oficial ~2200, Operario ~2800, Maestro ~3500
     return Math.round(1500 + rng() * 2000)
   }
+  if (regimen === 'AGRARIO') {
+    // Agrario Ley 31110: RIA (Remun. Integral Agraria) ~S/ 52.58 diarios = ~S/ 1,577 mensuales
+    // Técnicos/supervisores suben a 2500-4500
+    return Math.round(1577 + rng() * 3000)
+  }
+  if (regimen === 'TELETRABAJO') {
+    // Sector tech paga bien: Junior 3500, Senior 12k, Lead 18k
+    return Math.round(3500 + rng() * 14500)
+  }
   // GENERAL
   return Math.round(1500 + rng() * 6500) // 1500 - 8000
 }
@@ -155,7 +185,19 @@ const DEFAULT_EMAILS = [
   process.env.DEMO_EMAIL_1 ?? 'bodega@demo.comply360.pe',
   process.env.DEMO_EMAIL_2 ?? 'obra@demo.comply360.pe',
   process.env.DEMO_EMAIL_3 ?? 'legal@demo.comply360.pe',
+  process.env.DEMO_EMAIL_4 ?? 'agro@demo.comply360.pe',
+  process.env.DEMO_EMAIL_5 ?? 'tech@demo.comply360.pe',
 ] as const
+
+const CARGOS_AGRO = [
+  'Jornalero agrícola', 'Supervisor de campo', 'Operario de empaque', 'Chofer de cosecha',
+  'Ingeniero agrónomo', 'Técnico de riego', 'Almacenero', 'Operador de maquinaria',
+]
+const CARGOS_TECH = [
+  'Desarrollador Senior', 'Desarrollador Junior', 'Product Manager', 'Diseñador UX',
+  'QA Engineer', 'DevOps Engineer', 'Tech Lead', 'Scrum Master',
+  'Data Analyst', 'Customer Success', 'Account Executive', 'Gerente de Producto',
+]
 
 const EMPRESAS: EmpresaSpec[] = [
   // ───── 1. MYPE_MICRO ──────────────────────────────────────────────────
@@ -357,6 +399,147 @@ En señal de conformidad, firman las partes en {{CIUDAD}}, a los {{FECHA_HOY_LET
       },
     },
   },
+
+  // ───── 4. AGRARIO (Ley 31110) ────────────────────────────────────────
+  {
+    email: DEFAULT_EMAILS[3],
+    name: 'Agroexportadora Valle Verde',
+    razonSocial: 'AGROEXPORTADORA VALLE VERDE S.A.C.',
+    ruc: '20600777888',
+    sector: 'Agroindustria',
+    address: 'Fundo La Esperanza Km 32, Panamericana Sur, Ica',
+    regimenPrincipal: 'AGRARIO',
+    sizeRange: '51-200',
+    workerCount: 30,
+    cargos: CARGOS_AGRO,
+    salaryRegimen: 'AGRARIO',
+    jornadaSemanal: 48,
+    ownerName: { first: 'Andrea Sofía', last: 'Valenzuela Rojas' },
+    rngSeed: 4004,
+    contractTemplate: {
+      title: 'Contrato de Trabajo — Régimen Agrario (Ley 31110)',
+      content: `CONTRATO DE TRABAJO
+RÉGIMEN LABORAL AGRARIO (Ley 31110)
+
+Conste por el presente documento el contrato de trabajo que celebran:
+
+De una parte, {{RAZON_SOCIAL}}, con RUC {{RUC}}, con domicilio en {{EMPRESA_DIRECCION}}, representada por {{REPRESENTANTE_LEGAL}}, a quien en adelante se le denominará EL EMPLEADOR.
+
+Y de la otra parte, {{NOMBRE_COMPLETO}}, identificado(a) con DNI N° {{DNI}}, con domicilio en {{DIRECCION}}, a quien en adelante se le denominará EL TRABAJADOR.
+
+PRIMERA — OBJETO
+EL TRABAJADOR prestará sus servicios en el cargo de {{CARGO}}, en el área de {{AREA}}, bajo el régimen agrario establecido por la Ley 31110 y su reglamento.
+
+SEGUNDA — REMUNERACIÓN INTEGRAL AGRARIA (RIA)
+La Remuneración Integral Agraria mensual es de S/ {{SUELDO}} ({{SUELDO_LETRAS}}), que INCLUYE la CTS (9.72%) y las gratificaciones de julio y diciembre (16.66%) conforme al Art. 7 de la Ley 31110. Esta RIA no puede ser inferior al establecido periódicamente por el MINTRA.
+
+TERCERA — INICIO DE LABORES
+Las labores inician el {{FECHA_INGRESO}}.
+
+CUARTA — JORNADA
+Jornada máxima de {{JORNADA}} horas semanales. La sobrejornada se compensa según ley.
+
+QUINTA — BENEFICIOS SOCIALES
+- Vacaciones: 30 días calendario por año completo de servicios.
+- Asignación familiar: si aplica.
+- Seguro Social Agrario: aporte de EL EMPLEADOR al SSS-Agrario conforme ley.
+- SCTR: obligatorio para labores de campo con riesgo.
+
+SEXTA — SEGURIDAD Y SALUD EN EL TRABAJO
+EL EMPLEADOR proveerá EPP (sombrero, bloqueador, guantes, botas, mascarilla agrícola) y agua potable en campo. Inducción SST conforme Ley 29783 previa al inicio de labores.
+
+En señal de conformidad, firman las partes en {{CIUDAD}}, a los {{FECHA_HOY_LETRAS}}.`,
+      mappings: {
+        RAZON_SOCIAL: 'org.razonSocial',
+        RUC: 'org.ruc',
+        EMPRESA_DIRECCION: 'org.address',
+        REPRESENTANTE_LEGAL: 'org.representanteLegal',
+        NOMBRE_COMPLETO: 'worker.fullName',
+        DNI: 'worker.dni',
+        DIRECCION: 'worker.address',
+        CARGO: 'worker.position',
+        AREA: 'worker.department',
+        SUELDO: 'worker.sueldoBruto',
+        SUELDO_LETRAS: 'worker.sueldoEnLetras',
+        FECHA_INGRESO: 'worker.fechaIngreso',
+        JORNADA: 'worker.jornadaSemanal',
+        CIUDAD: 'meta.ciudad',
+        FECHA_HOY_LETRAS: 'meta.todayInWords',
+      },
+    },
+  },
+
+  // ───── 5. TELETRABAJO (Ley 31572) — Tech/SaaS ─────────────────────────
+  {
+    email: DEFAULT_EMAILS[4],
+    name: 'TechBridge Solutions',
+    razonSocial: 'TECHBRIDGE SOLUTIONS S.A.C.',
+    ruc: '20600999000',
+    sector: 'Tecnología',
+    address: 'Av. El Derby 055, Torre 4, Piso 12, Surco, Lima',
+    regimenPrincipal: 'TELETRABAJO',
+    sizeRange: '11-50',
+    workerCount: 20,
+    cargos: CARGOS_TECH,
+    salaryRegimen: 'TELETRABAJO',
+    jornadaSemanal: 40,
+    ownerName: { first: 'Valentina', last: 'Chang Mendoza' },
+    rngSeed: 5005,
+    contractTemplate: {
+      title: 'Contrato de Teletrabajo — Ley 31572',
+      content: `CONTRATO DE TRABAJO BAJO MODALIDAD DE TELETRABAJO
+(Ley 31572 y D.S. 002-2023-TR)
+
+Conste por el presente documento el contrato de trabajo que celebran:
+
+De una parte, {{RAZON_SOCIAL}}, con RUC {{RUC}}, con domicilio en {{EMPRESA_DIRECCION}}, representada por {{REPRESENTANTE_LEGAL}}, a quien en adelante se le denominará EL EMPLEADOR.
+
+Y de la otra parte, {{NOMBRE_COMPLETO}}, identificado(a) con DNI N° {{DNI}}, con domicilio en {{DIRECCION}}, a quien en adelante se le denominará EL TELETRABAJADOR.
+
+PRIMERA — OBJETO Y MODALIDAD
+EL TELETRABAJADOR prestará sus servicios en el cargo de {{CARGO}} bajo modalidad de TELETRABAJO desde su domicilio u otro lugar que acuerde con EL EMPLEADOR. Las partes podrán pactar modalidad mixta (presencial + teletrabajo).
+
+SEGUNDA — REMUNERACIÓN
+S/ {{SUELDO}} ({{SUELDO_LETRAS}}) mensuales, depositados en cuenta del TELETRABAJADOR el último día útil de cada mes.
+
+TERCERA — JORNADA Y DESCONEXIÓN DIGITAL
+Jornada de {{JORNADA}} horas semanales. EL TELETRABAJADOR tiene DERECHO A LA DESCONEXIÓN DIGITAL fuera del horario pactado (Art. 18 Ley 31572). EL EMPLEADOR no puede exigir respuesta a comunicaciones laborales fuera de jornada.
+
+CUARTA — HERRAMIENTAS Y COMPENSACIÓN DE GASTOS
+EL EMPLEADOR proveerá las herramientas de trabajo (laptop, licencias de software) o compensará al TELETRABAJADOR por el uso de sus propias herramientas y gastos proporcionales de energía, internet, conforme al Reglamento de la Ley 31572.
+
+QUINTA — INICIO DE LABORES
+El {{FECHA_INGRESO}}.
+
+SEXTA — BENEFICIOS SOCIALES
+Los del régimen laboral de la actividad privada (D.Leg. 728): CTS semestral, gratificaciones julio/diciembre + bonificación extraordinaria 9%, vacaciones 30 días, EsSalud. Asignación familiar si corresponde.
+
+SÉPTIMA — SST EN TELETRABAJO
+EL TELETRABAJADOR se compromete a cumplir las recomendaciones ergonómicas de EL EMPLEADOR para prevenir riesgos derivados del trabajo remoto. EL EMPLEADOR podrá verificar las condiciones de seguridad del lugar de teletrabajo con aviso previo.
+
+OCTAVA — CONFIDENCIALIDAD Y PROTECCIÓN DE DATOS
+EL TELETRABAJADOR guardará reserva sobre toda información confidencial y datos de clientes a los que acceda por razón del cargo (Ley 29733).
+
+En señal de conformidad, firman las partes en {{CIUDAD}}, a los {{FECHA_HOY_LETRAS}}.`,
+      mappings: {
+        RAZON_SOCIAL: 'org.razonSocial',
+        RUC: 'org.ruc',
+        EMPRESA_DIRECCION: 'org.address',
+        REPRESENTANTE_LEGAL: 'org.representanteLegal',
+        NOMBRE_COMPLETO: 'worker.fullName',
+        DNI: 'worker.dni',
+        DIRECCION: 'worker.address',
+        CARGO: 'worker.position',
+        AREA: 'worker.department',
+        SUELDO: 'worker.sueldoBruto',
+        SUELDO_LETRAS: 'worker.sueldoEnLetras',
+        FECHA_INGRESO: 'worker.fechaIngreso',
+        JORNADA: 'worker.jornadaSemanal',
+        CIUDAD: 'meta.ciudad',
+        FECHA_HOY_LETRAS: 'meta.todayInWords',
+      },
+    },
+  },
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -418,7 +601,16 @@ async function seedEmpresa(spec: EmpresaSpec) {
 
   // 3. Workers
   const rng = mulberry32(spec.rngSeed)
-  let createdWorkers = 0
+  const createdWorkers: Array<{
+    id: string
+    fechaIngreso: Date
+    firstName: string
+    lastName: string
+    dni: string
+    position: string
+    regimen: RegimenLaboral
+    sueldoBruto: number
+  }> = []
   for (let i = 0; i < spec.workerCount; i++) {
     const gender: 'H' | 'M' = rng() < 0.55 ? 'H' : 'M'
     const firstName = pickOne(gender === 'H' ? NOMBRES_H : NOMBRES_M, rng)
@@ -435,15 +627,16 @@ async function seedEmpresa(spec: EmpresaSpec) {
           ? 'INDEFINIDO'
           : 'PLAZO_FIJO'
     const tipoAporte: TipoAporte = rng() < 0.7 ? 'AFP' : 'ONP'
+    const fullLastName = `${lastName1} ${lastName2}`
 
     try {
-      await prisma.worker.upsert({
+      const w = await prisma.worker.upsert({
         where: { orgId_dni: { orgId: org.id, dni } },
         create: {
           orgId: org.id,
           dni,
           firstName,
-          lastName: `${lastName1} ${lastName2}`,
+          lastName: fullLastName,
           email: `${firstName.toLowerCase().replace(/\s+/g, '.')}.${lastName1.toLowerCase()}.demo${i}@ejemplo.pe`,
           phone: `9${Math.floor(rng() * 90000000 + 10000000)}`,
           gender: gender === 'H' ? 'Masculino' : 'Femenino',
@@ -470,13 +663,229 @@ async function seedEmpresa(spec: EmpresaSpec) {
           legajoScore: Math.floor(rng() * 40 + 40), // entre 40-80% para que se vea realista
         },
         update: {}, // no actualizamos si ya existen
+        select: { id: true },
       })
-      createdWorkers++
+      createdWorkers.push({
+        id: w.id,
+        fechaIngreso,
+        firstName,
+        lastName: fullLastName,
+        dni,
+        position: cargo,
+        regimen: spec.regimenPrincipal,
+        sueldoBruto: sueldo,
+      })
     } catch (err) {
       console.warn(`   ⚠ Error creando worker ${dni}:`, (err as Error).message.slice(0, 100))
     }
   }
-  console.log(`   ✓ ${createdWorkers}/${spec.workerCount} workers`)
+  console.log(`   ✓ ${createdWorkers.length}/${spec.workerCount} workers`)
+
+  // 3.1 Vacaciones, documentos y alertas por trabajador
+  let totalVacs = 0
+  let totalDocs = 0
+  let totalAlerts = 0
+  for (const w of createdWorkers) {
+    const yearsWorked = Math.max(
+      1,
+      Math.floor((Date.now() - w.fechaIngreso.getTime()) / (365 * 24 * 3600 * 1000)),
+    )
+    // ── Vacaciones: 1 registro por año trabajado, estado variable
+    for (let y = 0; y < Math.min(yearsWorked, 4); y++) {
+      const periodoInicio = new Date(w.fechaIngreso)
+      periodoInicio.setFullYear(periodoInicio.getFullYear() + y)
+      const periodoFin = new Date(periodoInicio)
+      periodoFin.setFullYear(periodoFin.getFullYear() + 1)
+      const diasCorresp = spec.regimenPrincipal === 'MYPE_MICRO' ? 15 : 30
+      // Algunos trabajadores acumulan (50%), algunos gozaron parcial (30%), otros completo (20%)
+      const r = rng()
+      let diasGozados: number, fechaGoce: Date | null
+      if (r < 0.5) {
+        diasGozados = 0
+        fechaGoce = null
+      } else if (r < 0.8) {
+        diasGozados = Math.floor(diasCorresp / 2)
+        fechaGoce = new Date(periodoFin.getTime() - rng() * 180 * 24 * 3600 * 1000)
+      } else {
+        diasGozados = diasCorresp
+        fechaGoce = new Date(periodoFin.getTime() - rng() * 90 * 24 * 3600 * 1000)
+      }
+      // esDoble si hay 2+ periodos sin goce
+      const esDoble = y === 0 && yearsWorked >= 2 && diasGozados === 0
+      try {
+        await prisma.vacationRecord.create({
+          data: {
+            workerId: w.id,
+            periodoInicio,
+            periodoFin,
+            diasCorresponden: diasCorresp,
+            diasGozados,
+            diasPendientes: diasCorresp - diasGozados,
+            fechaGoce,
+            esDoble,
+          },
+        })
+        totalVacs++
+      } catch {
+        /* swallow dupes */
+      }
+    }
+
+    // ── Documentos del legajo (mix de status para score realista)
+    const docsPlan: Array<{
+      cat: 'INGRESO' | 'VIGENTE' | 'SST' | 'PREVISIONAL'
+      type: string
+      title: string
+      required: boolean
+      expiresDays?: number
+    }> = [
+      { cat: 'INGRESO', type: 'dni_copia', title: 'Copia de DNI', required: true },
+      { cat: 'INGRESO', type: 'contrato_trabajo', title: 'Contrato de Trabajo', required: true },
+      { cat: 'INGRESO', type: 'cv', title: 'Currículum Vitae', required: true },
+      { cat: 'INGRESO', type: 'antecedentes_policiales', title: 'Antecedentes Policiales', required: false },
+      {
+        cat: 'SST',
+        type: 'induccion_sst',
+        title: 'Constancia Inducción SST',
+        required: true,
+        expiresDays: 365,
+      },
+      {
+        cat: 'SST',
+        type: 'examen_medico',
+        title: 'Examen Médico Ocupacional',
+        required: spec.regimenPrincipal === 'CONSTRUCCION_CIVIL' || spec.regimenPrincipal === 'AGRARIO',
+        expiresDays: 365,
+      },
+      {
+        cat: 'SST',
+        type: 'entrega_epp',
+        title: 'Acta de Entrega EPP',
+        required:
+          spec.regimenPrincipal === 'CONSTRUCCION_CIVIL' || spec.regimenPrincipal === 'AGRARIO',
+      },
+      { cat: 'PREVISIONAL', type: 'afp_onp_afiliacion', title: 'Afiliación AFP/ONP', required: true },
+      { cat: 'VIGENTE', type: 'boleta_pago', title: 'Última Boleta de Pago', required: false },
+    ]
+    for (const d of docsPlan) {
+      const r2 = rng()
+      // 60% VERIFIED, 20% UPLOADED (pendiente verificar), 15% MISSING, 5% EXPIRED
+      let status: 'VERIFIED' | 'UPLOADED' | 'MISSING' | 'EXPIRED'
+      let verifiedAt: Date | null = null
+      let expiresAt: Date | null = null
+      if (r2 < 0.6) {
+        status = 'VERIFIED'
+        verifiedAt = randomDateBetween(1, 0.02, rng)
+        if (d.expiresDays) {
+          expiresAt = new Date(verifiedAt.getTime() + d.expiresDays * 24 * 3600 * 1000)
+        }
+      } else if (r2 < 0.8) {
+        status = 'UPLOADED'
+        if (d.expiresDays) expiresAt = new Date(Date.now() + d.expiresDays * 24 * 3600 * 1000)
+      } else if (r2 < 0.95) {
+        status = 'MISSING'
+      } else {
+        status = 'EXPIRED'
+        expiresAt = randomDateBetween(0.3, 0.01, rng) // venció hace 4-30 días
+      }
+      try {
+        await prisma.workerDocument.create({
+          data: {
+            workerId: w.id,
+            category: d.cat,
+            documentType: d.type,
+            title: d.title,
+            isRequired: d.required,
+            status,
+            verifiedAt,
+            expiresAt,
+          },
+        })
+        totalDocs++
+      } catch {
+        /* dupes OK */
+      }
+    }
+
+    // ── Alertas realistas para este worker (algunas CRITICAL que pegan en el cockpit)
+    const alerts: Array<{
+      type:
+        | 'CONTRATO_POR_VENCER'
+        | 'VACACIONES_ACUMULADAS'
+        | 'VACACIONES_DOBLE_PERIODO'
+        | 'DOCUMENTO_FALTANTE'
+        | 'EXAMEN_MEDICO_VENCIDO'
+        | 'CAPACITACION_PENDIENTE'
+        | 'REGISTRO_INCOMPLETO'
+      severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+      title: string
+      description: string
+      dueDaysFromNow: number
+      multa?: number
+    }> = []
+    if (yearsWorked >= 2 && rng() < 0.35) {
+      alerts.push({
+        type: 'VACACIONES_DOBLE_PERIODO',
+        severity: 'CRITICAL',
+        title: `Vacaciones dobles acumuladas — ${w.firstName} ${w.lastName.split(' ')[0]}`,
+        description:
+          'El trabajador acumula 2+ períodos sin gozar vacaciones. Obligación de pago triple (Art. 23 D.Leg. 713).',
+        dueDaysFromNow: -rng() * 60,
+        multa: Math.round(w.sueldoBruto * 3),
+      })
+    }
+    if (rng() < 0.4) {
+      alerts.push({
+        type: 'DOCUMENTO_FALTANTE',
+        severity: 'HIGH',
+        title: `Legajo incompleto — falta examen médico ocupacional`,
+        description:
+          'Documento obligatorio faltante del legajo. SUNAFIL puede exigirlo en inspección.',
+        dueDaysFromNow: 15,
+        multa: 3000,
+      })
+    }
+    if (rng() < 0.25) {
+      alerts.push({
+        type: 'CONTRATO_POR_VENCER',
+        severity: 'MEDIUM',
+        title: `Contrato vence en 30 días`,
+        description: 'Evaluar renovación o cese con liquidación de beneficios.',
+        dueDaysFromNow: 30,
+      })
+    }
+    if (rng() < 0.15 && spec.regimenPrincipal !== 'TELETRABAJO') {
+      alerts.push({
+        type: 'CAPACITACION_PENDIENTE',
+        severity: 'MEDIUM',
+        title: 'Capacitación anual SST pendiente',
+        description: 'Ley 29783 exige 4 capacitaciones anuales en SST por trabajador.',
+        dueDaysFromNow: 45,
+      })
+    }
+    for (const a of alerts) {
+      try {
+        await prisma.workerAlert.create({
+          data: {
+            workerId: w.id,
+            orgId: org.id,
+            type: a.type,
+            severity: a.severity,
+            title: a.title,
+            description: a.description,
+            dueDate: new Date(Date.now() + a.dueDaysFromNow * 24 * 3600 * 1000),
+            multaEstimada: a.multa ?? null,
+          },
+        })
+        totalAlerts++
+      } catch {
+        /* dupes OK */
+      }
+    }
+  }
+  console.log(
+    `   ✓ ${totalVacs} vacaciones · ${totalDocs} docs de legajo · ${totalAlerts} alertas`,
+  )
 
   // 4. OrgDocument RIT publicado al worker
   const ritSlug = `rit-${org.id}`
@@ -560,29 +969,318 @@ async function seedEmpresa(spec: EmpresaSpec) {
       console.warn(`   ⚠ Error creando plantilla:`, (err as Error).message.slice(0, 100)),
     )
   console.log(`   ✓ Plantilla de contrato: "${spec.contractTemplate.title.slice(0, 60)}..."`)
+
+  // 6. ComplianceScore — 4 snapshots históricos mostrando trend up
+  const baseScore = Math.floor(rng() * 20 + 55) // 55-74 inicial
+  const scoreSnapshots = [
+    { daysAgo: 120, delta: 0 },
+    { daysAgo: 90, delta: 4 },
+    { daysAgo: 60, delta: 7 },
+    { daysAgo: 30, delta: 11 },
+    { daysAgo: 1, delta: 15 },
+  ]
+  for (const s of scoreSnapshots) {
+    const score = Math.min(95, baseScore + s.delta)
+    try {
+      await prisma.complianceScore.create({
+        data: {
+          orgId: org.id,
+          scoreGlobal: score,
+          scoreContratos: Math.min(100, score + Math.floor(rng() * 10 - 5)),
+          scoreSst: Math.min(100, score + Math.floor(rng() * 10 - 5)),
+          scoreDocumentos: Math.min(100, score + Math.floor(rng() * 10 - 5)),
+          scoreVencimientos: Math.min(100, score + Math.floor(rng() * 10 - 5)),
+          scorePlanilla: Math.min(100, score + Math.floor(rng() * 10 - 5)),
+          multaEvitada: Math.round((100 - score) * 1500 + rng() * 5000),
+          calculatedAt: new Date(Date.now() - s.daysAgo * 24 * 3600 * 1000),
+        },
+      })
+    } catch {
+      /* ignore */
+    }
+  }
+  console.log(`   ✓ 5 snapshots de ComplianceScore (${baseScore} → ${baseScore + 15})`)
+
+  // 7. ComplianceDiagnostic FULL completado (con gap analysis + action plan)
+  const diagScore = baseScore + 15
+  const gapsData = [
+    {
+      id: 'sst_iperc',
+      area: 'sst',
+      title: 'Matriz IPERC no actualizada en últimos 12 meses',
+      baseLegal: 'Ley 29783, Art. 57',
+      gravedad: 'GRAVE',
+      multaEvitable: 12500,
+      plazoSugerido: 'Inmediato (7 días)',
+    },
+    {
+      id: 'contratos_registro',
+      area: 'contratos',
+      title: 'Contratos sujetos a modalidad sin registro en T-Registro',
+      baseLegal: 'D.S. 018-2007-TR',
+      gravedad: 'GRAVE',
+      multaEvitable: 8800,
+      plazoSugerido: 'Urgente (15 días)',
+    },
+    {
+      id: 'capacitacion_sst',
+      area: 'sst',
+      title: 'Capacitaciones SST por debajo del mínimo (4 al año)',
+      baseLegal: 'Ley 29783, Art. 27',
+      gravedad: 'GRAVE',
+      multaEvitable: 9500,
+      plazoSugerido: 'Corto plazo (30 días)',
+    },
+    {
+      id: 'docs_legajo',
+      area: 'legajo',
+      title: 'Legajos físicos incompletos en ~15% de trabajadores',
+      baseLegal: 'D.S. 001-98-TR',
+      gravedad: 'LEVE',
+      multaEvitable: 4200,
+      plazoSugerido: 'Mediano plazo (60 días)',
+    },
+  ]
+  const diag = await prisma.complianceDiagnostic
+    .create({
+      data: {
+        orgId: org.id,
+        type: 'FULL',
+        scoreGlobal: diagScore,
+        scoreByArea: {
+          contratos: diagScore + 3,
+          sst: diagScore - 8,
+          legajo: diagScore + 2,
+          vencimientos: diagScore + 5,
+          planilla: diagScore + 4,
+          denuncias: diagScore + 10,
+        } as unknown as object,
+        totalMultaRiesgo: gapsData.reduce((sum, g) => sum + g.multaEvitable, 0),
+        questionsJson: { answeredCount: 135, totalCount: 135, completionRate: 100 } as unknown as object,
+        gapAnalysis: { gaps: gapsData } as unknown as object,
+        actionPlan: {
+          generatedAt: new Date().toISOString(),
+          totalActions: gapsData.length,
+          estimatedMultaEvitable: gapsData.reduce((sum, g) => sum + g.multaEvitable, 0),
+        } as unknown as object,
+        completedAt: new Date(Date.now() - 7 * 24 * 3600 * 1000),
+      },
+    })
+    .catch(() => null)
+  console.log(`   ✓ Diagnóstico SUNAFIL FULL completado (score ${diagScore}/100, 135 preguntas)`)
+
+  // 7.1 ComplianceTask — convertir gaps del diagnóstico en tareas accionables
+  if (diag) {
+    for (let idx = 0; idx < gapsData.length; idx++) {
+      const g = gapsData[idx]
+      try {
+        await prisma.complianceTask.create({
+          data: {
+            orgId: org.id,
+            diagnosticId: diag.id,
+            sourceId: g.id,
+            area: g.area,
+            priority: idx + 1,
+            title: g.title,
+            baseLegal: g.baseLegal,
+            gravedad: g.gravedad as 'LEVE' | 'GRAVE' | 'MUY_GRAVE',
+            multaEvitable: g.multaEvitable,
+            plazoSugerido: g.plazoSugerido,
+            dueDate: new Date(Date.now() + (idx + 1) * 15 * 24 * 3600 * 1000),
+            status: idx === 0 ? 'IN_PROGRESS' : 'PENDING',
+          },
+        })
+      } catch {
+        /* ignore dupes */
+      }
+    }
+    console.log(`   ✓ ${gapsData.length} ComplianceTasks del plan de acción`)
+  }
+
+  // 8. SstRecords (IPERC, Plan Anual, Capacitaciones, Accidente, EPP)
+  const sstPlan: Array<{
+    type:
+      | 'POLITICA_SST'
+      | 'IPERC'
+      | 'PLAN_ANUAL'
+      | 'CAPACITACION'
+      | 'ACCIDENTE'
+      | 'ENTREGA_EPP'
+      | 'ACTA_COMITE'
+      | 'MAPA_RIESGOS'
+    title: string
+    description: string
+    daysAgo: number
+    status: 'COMPLETED' | 'IN_PROGRESS' | 'PENDING' | 'OVERDUE'
+  }> = [
+    {
+      type: 'POLITICA_SST',
+      title: `Política SST 2026 — ${spec.razonSocial}`,
+      description: 'Política general de SST aprobada y publicada a todos los trabajadores.',
+      daysAgo: 60,
+      status: 'COMPLETED',
+    },
+    {
+      type: 'IPERC',
+      title: 'Matriz IPERC — Identificación de Peligros y Evaluación de Riesgos',
+      description: `Matriz IPERC del sector ${spec.sector.toLowerCase()}. Revisión anual pendiente.`,
+      daysAgo: 30,
+      status: 'IN_PROGRESS',
+    },
+    {
+      type: 'PLAN_ANUAL',
+      title: 'Plan Anual de Seguridad y Salud 2026',
+      description: '12 actividades programadas: capacitaciones, simulacros, monitoreos.',
+      daysAgo: 90,
+      status: 'COMPLETED',
+    },
+    {
+      type: 'CAPACITACION',
+      title: 'Capacitación: Primeros Auxilios + RCP',
+      description: `Asistentes: ${Math.floor(spec.workerCount * 0.85)} trabajadores. Duración: 4 horas.`,
+      daysAgo: 20,
+      status: 'COMPLETED',
+    },
+    {
+      type: 'CAPACITACION',
+      title: 'Capacitación: Prevención de Hostigamiento Sexual Laboral',
+      description: 'Capacitación obligatoria Ley 27942. Evaluación con 80% mínimo aprobado.',
+      daysAgo: 10,
+      status: 'PENDING',
+    },
+  ]
+  if (spec.regimenPrincipal === 'CONSTRUCCION_CIVIL' || spec.regimenPrincipal === 'AGRARIO') {
+    sstPlan.push({
+      type: 'ACCIDENTE',
+      title: 'Incidente sin daño reportado — trabajador resbaló en zona húmeda',
+      description:
+        'Incidente sin lesiones. Investigación completada. Medida correctiva: señalización mejorada.',
+      daysAgo: 45,
+      status: 'COMPLETED',
+    })
+    sstPlan.push({
+      type: 'ENTREGA_EPP',
+      title: 'Renovación trimestral de EPP',
+      description: `Entrega a ${spec.workerCount} trabajadores. Incluye botas, cascos, guantes.`,
+      daysAgo: 15,
+      status: 'COMPLETED',
+    })
+    sstPlan.push({
+      type: 'MAPA_RIESGOS',
+      title: 'Mapa de Riesgos actualizado del centro de trabajo',
+      description:
+        'Señalización actualizada de zonas de riesgo, rutas de evacuación y puntos de encuentro.',
+      daysAgo: 50,
+      status: 'COMPLETED',
+    })
+  }
+  let sstCount = 0
+  for (const s of sstPlan) {
+    try {
+      await prisma.sstRecord.create({
+        data: {
+          orgId: org.id,
+          type: s.type,
+          title: s.title,
+          description: s.description,
+          status: s.status,
+          dueDate: new Date(Date.now() + (30 - s.daysAgo) * 24 * 3600 * 1000),
+          completedAt: s.status === 'COMPLETED' ? new Date(Date.now() - s.daysAgo * 24 * 3600 * 1000) : null,
+        },
+      })
+      sstCount++
+    } catch {
+      /* dupes ok */
+    }
+  }
+  console.log(`   ✓ ${sstCount} registros SST (IPERC, capacitaciones, accidentes, EPP)`)
+
+  // 9. Complaint — ejemplo de denuncia recibida (solo 2 orgs)
+  if (spec.rngSeed % 2 === 0) {
+    const complaintCode = `DEN-2026-${String(spec.rngSeed).slice(-3)}-001`
+    try {
+      const complaint = await prisma.complaint.create({
+        data: {
+          orgId: org.id,
+          code: complaintCode,
+          type: 'HOSTIGAMIENTO_SEXUAL',
+          isAnonymous: true,
+          description:
+            'Denuncia recibida por canal anónimo. Trabajadora reporta comentarios inapropiados reiterados de supervisor. Solicita medidas de protección urgentes.',
+          status: 'INVESTIGATING',
+          receivedAt: new Date(Date.now() - 12 * 24 * 3600 * 1000),
+        },
+      })
+      // Timeline de la denuncia
+      const timelineEntries = [
+        {
+          action: 'Denuncia recibida',
+          description: 'Recibida por formulario web, clasificada como HOSTIGAMIENTO_SEXUAL.',
+          daysAgo: 12,
+        },
+        {
+          action: 'Medidas de protección aplicadas',
+          description:
+            'Separación física de denunciante y denunciado. Cambio temporal de área y supervisión.',
+          daysAgo: 11,
+        },
+        {
+          action: 'Comité inicia investigación',
+          description:
+            'Comité de Intervención convocado. Entrevistas con denunciante, testigos y denunciado.',
+          daysAgo: 7,
+        },
+      ]
+      for (const t of timelineEntries) {
+        await prisma.complaintTimeline.create({
+          data: {
+            complaintId: complaint.id,
+            action: t.action,
+            description: t.description,
+            createdAt: new Date(Date.now() - t.daysAgo * 24 * 3600 * 1000),
+          },
+        })
+      }
+      console.log(`   ✓ 1 denuncia con timeline (${complaintCode})`)
+    } catch {
+      /* dupes ok */
+    }
+  }
 }
 
 async function main() {
-  console.log('\n🌱 COMPLY360 — SEED DE 3 EMPRESAS DEMO\n')
-  console.log('Esto crea 3 empresas con workers + plantillas + documentos RIT/SST.')
-  console.log('Los orgIds siguen el patrón JIT provisioning para que matcheen con el signup real.\n')
+  const totalWorkers = EMPRESAS.reduce((s, e) => s + e.workerCount, 0)
+  console.log('\n🌱 COMPLY360 — SEED COMPLETO DE 5 EMPRESAS DEMO\n')
+  console.log(
+    `Esto crea ${EMPRESAS.length} empresas con ~${totalWorkers} workers + legajo + alertas + `,
+  )
+  console.log('   scores históricos + diagnóstico SUNAFIL + SST records + denuncias.\n')
 
   for (const empresa of EMPRESAS) {
     await seedEmpresa(empresa)
   }
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-  console.log('\n✅ Seed completo. 3 empresas + 50 workers + 6 OrgDocuments.\n')
-  console.log('🔗 CÓMO USAR EN EL DEMO:\n')
-  console.log('   1) Los admins hacen signup con estos emails:')
-  EMPRESAS.forEach((e, i) =>
-    console.log(`      ${i + 1}. ${e.email}   →   ${e.name} (${e.regimenPrincipal})`),
+  console.log(
+    `\n✅ Seed completo. ${EMPRESAS.length} empresas · ${totalWorkers} workers · `,
   )
-  console.log('\n   2) Al completar signup + onboarding, el JIT provisioning encuentra')
-  console.log('      la org ya poblada con sus 10/15/25 workers + plantilla + RIT.')
-  console.log('\n   3) Plan: PRO con trial 14 días activo (planExpiresAt +14d).')
-  console.log('\n💡 Para usar emails distintos, setear antes de correr:')
-  console.log('      DEMO_EMAIL_1=... DEMO_EMAIL_2=... DEMO_EMAIL_3=... \\')
+  console.log('   ~600 documentos de legajo · ~200 alertas · 25 snapshots de score')
+  console.log('   · 5 diagnósticos SUNAFIL · 35+ registros SST · 2 denuncias\n')
+  console.log('🔗 EMAILS DEMO (signup con estos para encontrar la org poblada):\n')
+  EMPRESAS.forEach((e, i) => {
+    const flag =
+      e.regimenPrincipal === 'MYPE_MICRO' ? '🏪' :
+      e.regimenPrincipal === 'CONSTRUCCION_CIVIL' ? '👷' :
+      e.regimenPrincipal === 'GENERAL' ? '⚖️' :
+      e.regimenPrincipal === 'AGRARIO' ? '🌾' :
+      e.regimenPrincipal === 'TELETRABAJO' ? '💻' : '📋'
+    console.log(
+      `   ${i + 1}. ${flag} ${e.email.padEnd(35)} ${e.name.padEnd(32)} ${e.regimenPrincipal} · ${e.workerCount} workers`,
+    )
+  })
+  console.log('\n   Plan: PRO con trial 14 días activo en todas.')
+  console.log('\n💡 Para usar emails distintos:')
+  console.log('      DEMO_EMAIL_1=... DEMO_EMAIL_2=... ... DEMO_EMAIL_5=... \\')
   console.log('        npx tsx scripts/seed-demo-empresas.ts\n')
 }
 

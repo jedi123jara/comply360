@@ -35,6 +35,10 @@ yarn-error.log*
 # Plantillas públicas SIN secrets — deben commitearse
 !.env.example
 
+# Archivos con secrets locales (no commitear)
+VERCEL_ENV_IMPORT.txt
+SUPABASE_PASSWORD.txt
+
 # vercel
 .vercel
 

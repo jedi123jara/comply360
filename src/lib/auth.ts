@@ -161,6 +161,32 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       // Dev default: PRO para desbloquear features. Prod default: STARTER.
       const defaultPlan = process.env.NODE_ENV === 'development' ? 'PRO' : 'STARTER'
 
+      // Founder safelist: emails en FOUNDER_EMAILS (coma-separados) reciben
+      // SUPER_ADMIN automáticamente en su primer signup. Útil para que los
+      // founders puedan entrar al console sin tocar SQL.
+      const founderEmails = (process.env.FOUNDER_EMAILS ?? process.env.FOUNDER_EMAIL ?? '')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean)
+      const isFounderByEnv = founderEmails.includes(email.toLowerCase())
+
+      // Pending admin: alguien con SUPER_ADMIN existente invitó este email
+      // desde /admin/admins antes de que existiera la cuenta. Al registrarse,
+      // la convertimos en SUPER_ADMIN automáticamente.
+      const pendingInvite = await prisma.auditLog.findFirst({
+        where: {
+          action: 'ADMIN_PENDING',
+          entityType: 'User',
+          entityId: email.toLowerCase(),
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, metadataJson: true },
+      })
+      const isPendingAdmin = !!pendingInvite
+
+      const isFounder = isFounderByEnv || isPendingAdmin
+      const defaultRole = isFounder ? 'SUPER_ADMIN' : 'OWNER'
+
       // 1. Create org for THIS user (if not exists)
       await prisma.organization.upsert({
         where: { id: orgId },
@@ -182,13 +208,43 @@ export async function getAuthContext(): Promise<AuthContext | null> {
           email,
           firstName,
           lastName,
-          role: 'OWNER',
+          role: defaultRole,
         },
-        update: {}, // DON'T override orgId on existing users
+        // For existing users, if they're in the founder safelist but don't
+        // yet have SUPER_ADMIN (e.g. created before env var was set), promote
+        // them. We never demote here — existing SUPER_ADMIN stays.
+        update: isFounder ? { role: 'SUPER_ADMIN' } : {},
         select: { id: true, clerkId: true, orgId: true, email: true, role: true },
       })
 
-      console.log(`[auth] JIT-provisioned User+Org for clerkId=${clerkId} email=${email} plan=${defaultPlan}`)
+      // Si fue pending invite, consumimos el marker y loggeamos la promoción
+      // contra la org del user recién creado (ADMIN_PROMOTED) para auditoría.
+      if (isPendingAdmin && pendingInvite) {
+        try {
+          await prisma.auditLog.create({
+            data: {
+              orgId,
+              userId: seeded.id,
+              action: 'ADMIN_PROMOTED',
+              entityType: 'User',
+              entityId: seeded.id,
+              metadataJson: {
+                email,
+                promotedVia: 'pending_invite',
+                originalInviteAuditLogId: pendingInvite.id,
+                pendingMeta: pendingInvite.metadataJson,
+              },
+            },
+          })
+        } catch (logErr) {
+          console.error('[auth] Failed to log ADMIN_PROMOTED for pending invite:', logErr)
+        }
+      }
+
+      console.log(
+        `[auth] JIT-provisioned User+Org for clerkId=${clerkId} email=${email} ` +
+          `plan=${defaultPlan} role=${defaultRole}${isFounder ? ' (founder)' : ''}`,
+      )
 
       return {
         userId: seeded.id,

@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Building2, CreditCard, LifeBuoy, ShieldCheck,
-  Settings, BarChart3, LogOut, Menu, X, Sparkles
+  Settings, BarChart3, LogOut, Menu, X, Sparkles, UserCog
 } from 'lucide-react'
 
 const NAV = [
   { href: '/admin', label: 'Vista general', icon: LayoutDashboard },
   { href: '/admin/empresas', label: 'Empresas', icon: Building2 },
+  { href: '/admin/admins', label: 'Administradores', icon: UserCog },
   { href: '/admin/billing', label: 'Billing', icon: CreditCard },
   { href: '/admin/soporte', label: 'Soporte', icon: LifeBuoy },
   { href: '/admin/auditoria', label: 'Auditoría', icon: ShieldCheck },
