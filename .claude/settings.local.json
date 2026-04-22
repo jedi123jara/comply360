@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(grep -oE '\\\\.[^.]+$')",
-      "Bash(xargs wc *)"
+      "Bash(xargs wc *)",
+      "Bash(find \"C:\\\\Users\\\\User\\\\Desktop\\\\comply360\\\\legaliapro-platform/src/app/api\" -name \"route.ts\" -type f -exec grep -l \"^export const\" {} \\\\;)",
+      "Bash(ls -1d \"/c/Users/User/Desktop/comply360/legaliapro-platform/src/components\"/*/)",
+      "Bash(grep -r \"it\\\\|test\" src/lib/legal-engine/calculators/__tests__/*.test.ts)",
+      "Bash(grep \"^  {$\" C:/Users/User/Desktop/comply360/legaliapro-platform/src/lib/constants.ts)",
+      "Bash(xargs -I {} sh -c 'grep \"^export const\" {} 2>/dev/null || true')",
+      "Bash(grep -h \"^\\\\s*it\\\\|^\\\\s*test\" src/lib/legal-engine/calculators/__tests__/*.test.ts)",
+      "Bash(ls -1 /c/Users/User/Desktop/comply360/legaliapro-platform/src/lib/generators/*.ts)",
+      "Bash(ls -1 /c/Users/User/Desktop/comply360/legaliapro-platform/src/lib/agents/*.ts)",
+      "Bash(grep -rh \"^\\\\s*it\\\\|^\\\\s*test\" src/**/__tests__/*.test.ts src/**/__tests__/*.test.tsx)",
+      "Bash(bc)",
+      "Bash(python3 *)"
     ]
   }
 }
