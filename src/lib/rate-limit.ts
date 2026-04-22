@@ -177,33 +177,40 @@ export function rateLimit(config: RateLimitConfig) {
 // Pre-configured limiters for common COMPLY 360 tiers
 // ---------------------------------------------------------------------------
 
-/** Public endpoints (general): 10 req/min per IP */
-export const publicLimiter = rateLimit({ interval: 60_000, limit: 10 })
+// NOTE: Limits sized for a modern SPA. A single dashboard mount easily
+// issues 15+ parallel requests during hydration (React Query prefetch,
+// sidebar counters, topbar alerts, etc.). Multiply that by a user
+// navigating or refreshing a few times per minute and 60/min is hit
+// within seconds. Set limits to tolerate ~5-10 full page loads per
+// minute comfortably.
 
-/** Portal empleado: 3 req/min per IP (strict — prevents DNI enumeration) */
-export const portalEmpleadoLimiter = rateLimit({ interval: 60_000, limit: 3 })
+/** Public endpoints (general): 30 req/min per IP */
+export const publicLimiter = rateLimit({ interval: 60_000, limit: 30 })
 
-/** Authenticated endpoints: 60 req/min per orgId */
-export const authenticatedLimiter = rateLimit({ interval: 60_000, limit: 60 })
+/** Portal empleado: 10 req/min per IP (prevents DNI enumeration but tolerates real portal use) */
+export const portalEmpleadoLimiter = rateLimit({ interval: 60_000, limit: 10 })
 
-/** AI endpoints (ai-chat, ai-review): 10 req/min per orgId */
-export const aiLimiter = rateLimit({ interval: 60_000, limit: 10 })
+/** Authenticated endpoints: 300 req/min per orgId */
+export const authenticatedLimiter = rateLimit({ interval: 60_000, limit: 300 })
 
-/** Export endpoints (PDF, DOCX, etc.): 5 req/min per orgId */
-export const exportLimiter = rateLimit({ interval: 60_000, limit: 5 })
+/** AI endpoints (ai-chat, ai-review): 20 req/min per orgId */
+export const aiLimiter = rateLimit({ interval: 60_000, limit: 20 })
+
+/** Export endpoints (PDF, DOCX, etc.): 15 req/min per orgId */
+export const exportLimiter = rateLimit({ interval: 60_000, limit: 15 })
 
 // ---------------------------------------------------------------------------
 // Tiered limiters by role (3-tier access architecture)
 // ---------------------------------------------------------------------------
 
-/** Worker portal — 30 req/min per worker (suficiente para uso normal del portal) */
-export const workerPortalLimiter = rateLimit({ interval: 60_000, limit: 30 })
+/** Worker portal — 120 req/min per worker */
+export const workerPortalLimiter = rateLimit({ interval: 60_000, limit: 120 })
 
-/** Org dashboard endpoints — 100 req/min per orgId (uso intensivo de gerentes) */
-export const orgDashboardLimiter = rateLimit({ interval: 60_000, limit: 100 })
+/** Org dashboard endpoints — 500 req/min per orgId (heavy SPA hydration) */
+export const orgDashboardLimiter = rateLimit({ interval: 60_000, limit: 500 })
 
-/** Super-admin endpoints — 500 req/min per super-admin (operaciones globales bulk) */
-export const superAdminLimiter = rateLimit({ interval: 60_000, limit: 500 })
+/** Super-admin endpoints — 1000 req/min per super-admin (operaciones globales bulk) */
+export const superAdminLimiter = rateLimit({ interval: 60_000, limit: 1000 })
 
 /**
  * Pick a limiter based on role.
