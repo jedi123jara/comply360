@@ -102,16 +102,42 @@ export default function SoportePage() {
 
   const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [ticketError, setTicketError] = useState<string | null>(null)
+  const [ticketCode, setTicketCode] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: integrate API
-    setTicketSuccess(true)
-    setSubject('')
-    setCategory('')
-    setPriority('')
-    setDescription('')
-    setFiles([])
-    setTimeout(() => setTicketSuccess(false), 5000)
+    if (!subject.trim() || !description.trim()) {
+      setTicketError('Completá asunto y descripción.')
+      return
+    }
+    setSubmitting(true)
+    setTicketError(null)
+    try {
+      const r = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ subject, category, priority, description }),
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data?.error ?? 'Error al enviar el ticket')
+      setTicketCode(data.ticketCode ?? null)
+      setTicketSuccess(true)
+      setSubject('')
+      setCategory('')
+      setPriority('')
+      setDescription('')
+      setFiles([])
+      setTimeout(() => {
+        setTicketSuccess(false)
+        setTicketCode(null)
+      }, 8000)
+    } catch (err) {
+      setTicketError((err as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const planLabel = { starter: 'Starter', empresa: 'Empresa', pro: 'Pro' }[CURRENT_PLAN]
@@ -229,13 +255,22 @@ export default function SoportePage() {
           <Plus className="w-5 h-5" />
           Crear Ticket
         </h2>
-        {/* Success banner — replaces native alert() */}
+        {/* Success banner */}
         {ticketSuccess && (
           <div className="flex items-center gap-3 rounded-xl border border-emerald-800 bg-emerald-900/20 px-4 py-3 mb-4">
             <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-            <p className="text-sm font-medium text-emerald-700">
-              Ticket enviado correctamente. Te contactaremos pronto.
+            <p className="text-sm font-medium text-emerald-400">
+              Ticket {ticketCode ?? ''} recibido. Te respondemos por email dentro de las 24h hábiles.
             </p>
+          </div>
+        )}
+        {/* Error banner */}
+        {ticketError && (
+          <div className="flex items-center gap-3 rounded-xl border border-red-800 bg-red-900/20 px-4 py-3 mb-4">
+            <svg className="h-5 w-5 text-red-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <p className="text-sm font-medium text-red-300">{ticketError}</p>
           </div>
         )}
 
@@ -331,10 +366,11 @@ export default function SoportePage() {
 
           <button
             type="submit"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium text-sm transition focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900"
           >
             <MessageSquare className="w-4 h-4" />
-            Enviar Ticket
+            {submitting ? 'Enviando...' : 'Enviar Ticket'}
           </button>
         </form>
       </section>
