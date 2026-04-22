@@ -33,7 +33,11 @@ const BLOCK_THRESHOLDS = isDev ? [
   { failures: 50, blockMinutes: 1440 },// 50 failures → 24 hour block
 ]
 
-const MAX_REQUESTS_PER_SECOND = isDev ? 200 : 20 // DoS threshold
+// NOTE: The true rate-limit enforcement lives in rate-limit.ts (token bucket
+// per endpoint). This MAX_REQUESTS_PER_SECOND only exists as a very coarse
+// DoS shield — it must stay well above normal SPA fan-out (a dashboard page
+// can easily fire 20+ parallel requests on hydration).
+const MAX_REQUESTS_PER_SECOND = isDev ? 200 : 150
 const RECORD_CLEANUP_INTERVAL = 5 * 60 * 1000 // 5 minutes
 
 // Clean up old records periodically
