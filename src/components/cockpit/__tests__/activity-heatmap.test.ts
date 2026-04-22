@@ -32,7 +32,13 @@ describe('mockHeatmapData', () => {
 
   it('contiene dias recientes (dentro del rango esperado)', () => {
     const data = mockHeatmapData(1)
-    const today = new Date().toISOString().slice(0, 10)
-    expect(data.some((d) => d.date === today)).toBe(true)
+    // mockHeatmapData anchors on local midnight (not UTC now), then serializes
+    // to UTC ISO. Mimic that here so the test is stable in any timezone,
+    // including when the host is in a timezone that has already rolled over
+    // to the next UTC day (e.g. Peru at 22:00 local).
+    const anchor = new Date()
+    anchor.setHours(0, 0, 0, 0)
+    const todayLocal = anchor.toISOString().slice(0, 10)
+    expect(data.some((d) => d.date === todayLocal)).toBe(true)
   })
 })

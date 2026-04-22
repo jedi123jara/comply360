@@ -2,19 +2,37 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
+  // Landing + auth
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/api/calculations(.*)',  // Public calculator API (no auth needed for demo)
-  '/api/health',            // Health check endpoint
-  '/denuncias(.*)',         // Public complaint form (no auth needed)
-  '/api/complaints',        // Public complaint submission
-  '/portal-empleado(.*)',   // Lookup publico del trabajador (DNI + codigo empresa)
+
+  // Marketing pages (route group `(marketing)/*` en el filesystem, URL al root)
+  '/calculadoras(.*)',       // hub + CTS / grati / multa-sunafil / etc.
+  '/planes(.*)',             // pricing page
+  '/recursos(.*)',           // blog (+ slugs)
+  '/contadores(.*)',         // landing para estudios contables
+  '/legal(.*)',               // landing legal
+  '/terminos(.*)',            // ToS
+  '/privacidad(.*)',          // privacy
+  '/diagnostico-gratis(.*)',  // Lead-capture: diagnóstico SUNAFIL público
+
+  // Public worker / external flows
+  '/denuncias(.*)',          // Public complaint form (URL por empresa)
+  '/portal-empleado(.*)',    // Lookup publico del trabajador (DNI + codigo empresa)
+  '/firmar(.*)',             // Firma biométrica por link público (mobile deep link)
+
+  // APIs de bajo privilegio o protegidas por secret
+  '/api/calculations(.*)',   // Public calculator API (no auth needed for demo)
+  '/api/cron(.*)',           // Cron jobs — protegidos internamente por Bearer CRON_SECRET
+  '/api/health',             // Health check endpoint
+  '/api/complaints',         // Public complaint submission
   '/api/portal-empleado(.*)',
-  '/api/integrations/sunat-sol/receive', // Chrome Extension endpoint (CORS preflight needs to pass)
-  '/dev(.*)',               // Dev-only UI showcase (design system)
-  '/diagnostico-gratis(.*)', // Lead-capture: diagnóstico SUNAFIL público (20 preguntas)
-  '/api/leads',             // POST leads desde /diagnostico-gratis
+  '/api/leads',              // POST leads desde /diagnostico-gratis
+  '/api/integrations/sunat-sol/receive', // Chrome Extension endpoint (CORS preflight)
+
+  // Dev-only UI showcase
+  '/dev(.*)',
 ])
 
 // NOTA: el chequeo de `onboardingCompleted` NO va aquí porque el middleware
