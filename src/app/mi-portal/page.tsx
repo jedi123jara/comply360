@@ -125,7 +125,7 @@ export default function MiPortalHomePage() {
         if (mounted) setError(e.message)
       })
       .finally(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Fin de fetch pattern; migrar a useApiQuery.
+         
         if (mounted) setLoading(false)
       })
     return () => {

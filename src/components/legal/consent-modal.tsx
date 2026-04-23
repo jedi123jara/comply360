@@ -241,11 +241,11 @@ export function ConsentGate({
       .then((r) => (r.ok ? r.json() : Promise.resolve({ accepted: false })))
       .then((data: { accepted?: boolean }) => {
         if (!mounted) return
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-then-setState pattern
+         
         setStatus(data.accepted ? 'ok' : 'needs-consent')
       })
       .catch(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-then-setState pattern
+         
         if (mounted) setStatus('ok') // fail-open para no bloquear si API falla
       })
     return () => {

@@ -128,7 +128,7 @@ class Analytics {
 
     // Dev: log to console con prefijo consistente para fácil filtrado
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
+       
       console.log(`%c[analytics] ${event}`, 'color:#047857;font-weight:bold', properties || '')
     }
 
@@ -147,7 +147,7 @@ class Analytics {
   identify(userId: string, traits?: EventProperties): void {
     if (!this.isBrowser) return
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
+       
       console.log(`%c[analytics] identify: ${userId}`, 'color:#047857', traits || '')
     }
     // Plausible no soporta identify (por diseño). Si migramos a PostHog/Mixpanel,

@@ -28,7 +28,7 @@ export function ZeroLiabilityModal() {
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem(ACK_KEY) : null
     if (stored !== ACK_VERSION) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot boot check
+       
       setVisible(true)
     }
   }, [])

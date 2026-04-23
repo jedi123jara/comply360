@@ -127,12 +127,12 @@ export function CulqiCheckoutModal({
 
     // Skip if already loaded
     if (window.Culqi) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync con SDK global ya cargado; el check no puede vivir fuera del effect.
+       
       setStatus('sdk-ready')
       return
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Estado transicional mientras el <script> SDK se carga.
+     
     setStatus('loading-sdk')
     const script = document.createElement('script')
     script.src = 'https://checkout.culqi.com/js/v4'

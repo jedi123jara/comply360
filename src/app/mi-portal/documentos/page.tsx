@@ -153,7 +153,7 @@ export default function MisDocumentosPage() {
         setError(e.message)
       })
       .finally(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch pattern.
+         
         if (mounted) setLoading(false)
       })
     return () => {

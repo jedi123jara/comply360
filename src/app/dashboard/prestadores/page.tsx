@@ -72,7 +72,7 @@ export default function PrestadoresPage() {
         if (d.pagination) setPagination(prev => ({ ...prev, ...d.pagination }))
       })
       .catch(err => console.error('Prestadores load error:', err))
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Fin de fetch pattern; migrar a useApiQuery en refactor futuro.
+       
       .finally(() => setLoading(false))
   }, [search, statusFilter, pagination.page])
 

@@ -51,7 +51,7 @@ export function TrialBanner() {
     fetch('/api/billing/status')
       .then((r) => (r.ok ? r.json() : null))
       .then((data: BillingStatus | null) => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch-then-setState; migrar a useApiQuery en refactor futuro.
+         
         setStatus(data)
         if (data) {
           const v = resolveVariant(data)

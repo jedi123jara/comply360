@@ -112,7 +112,7 @@ export default function AsistenciaPage() {
       setRecords([])
       setSummary({ present: 0, late: 0, absent: 0, onLeave: 0, total: 0 })
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fin de fetch pattern; migrar a useApiQuery.
+     
     setLoading(false)
   }, [date])
 

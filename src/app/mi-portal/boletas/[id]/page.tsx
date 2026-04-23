@@ -127,7 +127,7 @@ export default function BoletaDetailPage() {
         setBoleta(null)
       })
       .finally(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch pattern
+         
         if (mounted) setLoading(false)
       })
     return () => {
