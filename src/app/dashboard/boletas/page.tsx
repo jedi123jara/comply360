@@ -187,17 +187,17 @@ function GenerarModal({
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Periodo</label>
-            <input type="month" value={periodo} onChange={e => setPeriodo(e.target.value)} className={inputStyles} />
+            <label htmlFor="boleta-periodo" className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Periodo</label>
+            <input id="boleta-periodo" type="month" value={periodo} onChange={e => setPeriodo(e.target.value)} className={inputStyles} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Horas Extras (S/)</label>
-              <input type="number" step="0.01" min="0" value={horasExtras} onChange={e => setHorasExtras(parseFloat(e.target.value) || 0)} className={inputStyles} />
+              <label htmlFor="boleta-horas-extras" className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Horas Extras (S/)</label>
+              <input id="boleta-horas-extras" type="number" step="0.01" min="0" value={horasExtras} onChange={e => setHorasExtras(parseFloat(e.target.value) || 0)} className={inputStyles} />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Bonificaciones (S/)</label>
-              <input type="number" step="0.01" min="0" value={bonificaciones} onChange={e => setBonificaciones(parseFloat(e.target.value) || 0)} className={inputStyles} />
+              <label htmlFor="boleta-bonificaciones" className="block text-xs font-semibold uppercase tracking-wider text-[color:var(--text-tertiary)]">Bonificaciones (S/)</label>
+              <input id="boleta-bonificaciones" type="number" step="0.01" min="0" value={bonificaciones} onChange={e => setBonificaciones(parseFloat(e.target.value) || 0)} className={inputStyles} />
             </div>
           </div>
           <label className="flex items-center gap-4 cursor-pointer rounded-xl border border-white/10 bg-[color:var(--neutral-50)] px-5 py-4 hover:bg-[color:var(--neutral-100)] transition-colors">
