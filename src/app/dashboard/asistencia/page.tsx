@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
 import { AttendanceQrCard } from '@/components/attendance/attendance-qr-card'
+import { EmptyState } from '@/components/ui/empty-state'
 
 // ── Types ──────────────────────────────────────────
 interface AttendanceRecord {
@@ -330,10 +331,21 @@ export default function AsistenciaPage() {
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : filteredRecords.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-400">No hay registros para esta fecha</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="Sin registros para esta fecha"
+            description={
+              records.length === 0
+                ? 'Los trabajadores aún no registraron su asistencia con el QR del día. Cuando lo hagan, los verás acá en tiempo real.'
+                : 'Probá con otra fecha o ajustá los filtros. Tenés registros en otros días.'
+            }
+            action={
+              records.length === 0
+                ? { label: 'Ver código QR del día', href: '/dashboard/asistencia/configurar' }
+                : undefined
+            }
+            variant="light"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

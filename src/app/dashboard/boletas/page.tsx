@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
+import { EmptyState } from '@/components/ui/empty-state'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -292,10 +293,12 @@ function PayslipsDrawer({
               <span className="ml-2 text-sm text-[color:var(--text-tertiary)]">Cargando...</span>
             </div>
           ) : payslips.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="mx-auto h-10 w-10 text-[color:var(--text-secondary)] mb-3" />
-              <p className="text-sm text-[color:var(--text-tertiary)]">Sin boletas registradas</p>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="Sin boletas para este trabajador"
+              description="Registrá la primera boleta. Queda firmada digitalmente por el trabajador desde su portal y lista ante SUNAFIL."
+              variant="compact"
+            />
           ) : (
             payslips.map(p => {
               const st = STATUS_STYLES[p.status] ?? { label: p.status, dot: 'bg-gray-500', bg: 'bg-gray-500/10 text-[color:var(--text-tertiary)]' }
