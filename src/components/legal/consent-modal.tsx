@@ -82,7 +82,7 @@ export function ConsentModal({ scope, onAccept, onReject }: ConsentModalProps) {
     } finally {
       setSubmitting(false)
     }
-  }, [allChecked, submitting, scope, checkedDocs, onAccept])
+  }, [allChecked, submitting, scope, checkedDocs, onAccept, docs.length])
 
   return (
     <div

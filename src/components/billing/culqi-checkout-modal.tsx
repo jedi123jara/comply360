@@ -216,7 +216,9 @@ export function CulqiCheckoutModal({
         window.culqi = undefined
       }
     }
-  }, [open, plan.key])
+    // totalSoles is read inside handlerRef at callback time — we include it
+    // so the handler rebinds when plan/price change mid-checkout.
+  }, [open, plan.key, totalSoles])
 
   function openCulqiCheckout() {
     if (!window.Culqi || !hasKey) return
