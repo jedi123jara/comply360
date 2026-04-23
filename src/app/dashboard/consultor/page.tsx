@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Users, Building2, AlertTriangle, ShieldCheck, Plus, Trash2, ChevronRight, BarChart3, FileDown, Loader2, X, Bell, Search, RefreshCw, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { confirm } from '@/components/ui/confirm-dialog'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -180,7 +181,14 @@ export default function ConsultorPage() {
   )
 
   async function removeClient(clientOrgId: string) {
-    if (!confirm('¿Eliminar esta empresa de tu cartera?')) return
+    const ok = await confirm({
+      title: '¿Eliminar esta empresa de tu cartera?',
+      description:
+        'Perderás acceso de consultor sobre esta organización. Los datos de la empresa no se borran; el dueño conserva su cuenta.',
+      confirmLabel: 'Eliminar',
+      tone: 'danger',
+    })
+    if (!ok) return
     setRemovingId(clientOrgId)
     try {
       await fetch(`/api/consultor/${clientOrgId}`, { method: 'DELETE' })

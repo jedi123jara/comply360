@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Scale, Users, FileText, AlertTriangle, Plus, X, Edit2, Trash2, Clock, XCircle, Loader2, Calendar, Bell, ChevronDown, ChevronUp, ExternalLink, Shield, Megaphone, Gavel, UserCheck, Flame } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { confirm } from '@/components/ui/confirm-dialog'
 
 /* ===================================
    Types
@@ -393,9 +394,21 @@ export default function RelacionesColectivasPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar este registro?')) return
-    await fetch(`/api/relaciones-colectivas?id=${id}`, { method: 'DELETE' })
-    await load()
+    const ok = await confirm({
+      title: '¿Eliminar este registro?',
+      description: 'Se eliminará el registro de relaciones colectivas seleccionado. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      tone: 'danger',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/relaciones-colectivas?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('delete failed')
+      toast.success('Registro eliminado')
+      await load()
+    } catch {
+      toast.error('No se pudo eliminar. Intentá de nuevo.')
+    }
   }
 
   const openNew = () => { setEditingRecord(undefined); setShowModal(true) }

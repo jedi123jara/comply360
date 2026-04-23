@@ -105,7 +105,7 @@ export default function CalculadorasIndex() {
               'Simulacro de inspección interactivo con Acta PDF',
               'Alertas automáticas de vencimientos (CTS, grati, vacaciones, contratos)',
               'Legajo digital por trabajador con auto-verificación IA',
-              'Copilot laboral con RAG sobre +40 normas peruanas',
+              'Copilot laboral con RAG sobre +75 normas peruanas',
             ].map((f, i) => (
               <li key={i} className="flex items-start gap-2 text-sm sm:text-base">
                 <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />

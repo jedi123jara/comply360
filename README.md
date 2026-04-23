@@ -16,6 +16,7 @@ externo, no sufre multas SUNAFIL sorpresa, y opera con certeza legal en los
 |---|---|
 | [**ARCHITECTURE.md**](./ARCHITECTURE.md) | **Guía de implementación real** — lee esto antes de tocar código. Layout del repo, modelo de datos, subsistemas, flujos end-to-end, variables de entorno, deuda técnica. |
 | [CLAUDE.md](./CLAUDE.md) | Plan maestro del producto (fases F0-F4) |
+| [**VISION.md**](./VISION.md) | **Visión estratégica** — de SaaS de compliance a infraestructura laboral LATAM. 3 capas de negocio, flywheel, expansión, financials. |
 | [AGENTS.md](./AGENTS.md) | Reglas cortas para agentes de IA |
 | [DEFECTS.md](./DEFECTS.md) | Registro de bugs conocidos + soluciones recurrentes |
 
@@ -24,18 +25,18 @@ externo, no sufre multas SUNAFIL sorpresa, y opera con certeza legal en los
 ## Features principales
 
 - **13 calculadoras laborales** con base legal citada (CTS, gratificación, vacaciones, liquidación, indemnización, horas extras, multa SUNAFIL, intereses legales, etc.) — 518 tests pasando
-- **Diagnóstico SUNAFIL** con 135 preguntas en 8 áreas + score + plan de acción accionable
+- **Diagnóstico SUNAFIL** con 135 preguntas en 10 áreas + score + plan de acción accionable
 - **Simulacro de inspección SUNAFIL** interactivo con Acta de Requerimiento PDF
 - **Worker Hub** con 8 tabs (info, legajo digital, contratos, remuneraciones, vacaciones, SST, beneficios en vivo, historial)
 - **Biblioteca de plantillas de contratos** con merge fields `{{PLACEHOLDERS}}` (zero-liability, sin IA escribiendo cláusulas)
 - **Portal del trabajador** (PWA mobile-first) con **firma biométrica** (Touch ID / huella / Windows Hello — WebAuthn, Ley 27269)
 - **Cascada de onboarding** automática tras firmar contrato: entrega RIT + políticas + pide legajo + emails
 - **Auto-verificación de documentos con IA vision** (GPT-4o-mini): extrae DNI, cross-matchea contra el worker, auto-marca VERIFIED
-- **AI Copilot** persistente + asistente IA con RAG sobre +40 normas peruanas + 11 agentes especializados
+- **AI Copilot** persistente + asistente IA con RAG sobre +75 normas peruanas + 14 agentes especializados
 - **Canal de denuncias** (Ley 27942) con URL pública por empresa
 - **SST completo** (Ley 29783) — IPERC, capacitaciones, accidentes, EPP
 - **12 regímenes laborales** (GENERAL, MYPE_MICRO, MYPE_PEQUENA, AGRARIO, CONSTRUCCION_CIVIL, MINERO, PESQUERO, TEXTIL_EXPORTACION, DOMESTICO, CAS, MODALIDAD_FORMATIVA, TELETRABAJO)
-- **Push notifications** + PWA instalable + 5 cron jobs operativos
+- **Push notifications** + PWA instalable + 6 cron jobs operativos
 - **Upgrade funnel Culqi** end-to-end + multi-tenant vía Clerk
 
 ---

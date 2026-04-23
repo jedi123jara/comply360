@@ -13,7 +13,17 @@
       "Bash(ls -1 /c/Users/User/Desktop/comply360/legaliapro-platform/src/lib/agents/*.ts)",
       "Bash(grep -rh \"^\\\\s*it\\\\|^\\\\s*test\" src/**/__tests__/*.test.ts src/**/__tests__/*.test.tsx)",
       "Bash(bc)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(npx vitest *0)",
+      "Bash(npx tsc *)",
+      "Bash(npx vitest *)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(find \"C:/Users/User/Desktop/comply360/legaliapro-platform/src\" -type f \\\\\\( -name \"*.test.ts\" -o -name \"*.test.tsx\" \\\\\\) ! -path \"*/node_modules/*\" -exec wc -l {} +)",
+      "Bash(xargs -I {} sh -c 'echo {} | sed \"s|.*/api||\"')",
+      "Bash(cat vitest.config.*)",
+      "Bash(cat vite.config.*)",
+      "Bash(node *)",
+      "Bash(npx eslint *)"
     ]
   }
 }

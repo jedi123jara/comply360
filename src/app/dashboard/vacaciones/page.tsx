@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { displayWorkerName } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
+import { confirm } from '@/components/ui/confirm-dialog'
+import { toast } from 'sonner'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -730,9 +732,24 @@ export default function VacacionesPage() {
   useEffect(() => { void load() }, [])
 
   async function handleDelete(workerId: string, recordId: string) {
-    if (!confirm('¿Eliminar este registro de vacaciones?')) return
-    await fetch(`/api/workers/${workerId}/vacaciones/${recordId}`, { method: 'DELETE' })
-    void load()
+    const ok = await confirm({
+      title: '¿Eliminar este registro de vacaciones?',
+      description:
+        'Se borrará el registro del período. Podés volver a crearlo manualmente si es un error.',
+      confirmLabel: 'Eliminar registro',
+      tone: 'danger',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/workers/${workerId}/vacaciones/${recordId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('delete failed')
+      toast.success('Registro de vacaciones eliminado')
+      void load()
+    } catch {
+      toast.error('No se pudo eliminar. Intentá de nuevo.')
+    }
   }
 
   // Filtered & searched list

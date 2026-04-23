@@ -191,7 +191,7 @@ export default function PlanesPage() {
             },
             {
               q: '¿La IA realmente funciona para derecho peruano?',
-              a: 'Sí. Entrenamos nuestro copilot con +40 normas peruanas vigentes (D.Leg. 728, Ley 29783, Ley 32353, etc.), resoluciones del TFL y jurisprudencia SUNAFIL. No inventa artículos.',
+              a: 'Sí. Entrenamos nuestro copilot con +75 normas peruanas vigentes (D.Leg. 728, Ley 29783, Ley 32353, etc.), resoluciones del TFL y jurisprudencia SUNAFIL. No inventa artículos.',
             },
           ].map((item, i) => (
             <details

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { UserPlus, Crown, Mail, X, Loader2, Check, AlertCircle } from 'lucide-react'
+import { confirm } from '@/components/ui/confirm-dialog'
 
 type Admin = {
   id: string
@@ -91,7 +92,13 @@ export default function AdminsPage() {
   }
 
   async function onRevoke(targetEmail: string) {
-    if (!confirm(`¿Revocar acceso de admin a ${targetEmail}?`)) return
+    const ok = await confirm({
+      title: `¿Revocar acceso de administrador?`,
+      description: `${targetEmail} dejará de tener acceso al Founder Console. Su rol volverá a OWNER (admin de su propia organización, no de la plataforma).`,
+      confirmLabel: 'Revocar acceso',
+      tone: 'danger',
+    })
+    if (!ok) return
     setFlash(null)
     try {
       const r = await fetch(`/api/admin/admins?email=${encodeURIComponent(targetEmail)}`, {

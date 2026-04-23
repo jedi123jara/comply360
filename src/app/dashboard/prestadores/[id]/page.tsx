@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Briefcase, Mail, Phone, MapPin, Calendar, DollarSign, AlertTriangle, ShieldCheck, Receipt, Trash2, FileText, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn, displayWorkerName } from '@/lib/utils'
+import { confirm } from '@/components/ui/confirm-dialog'
 
 interface RhInvoice {
   id: string
@@ -84,7 +85,13 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
   }, [id])
 
   async function handleDelete() {
-    if (!confirm('¿Marcar este prestador como finalizado? Esta acción no elimina los registros históricos.')) return
+    const ok = await confirm({
+      title: '¿Marcar este prestador como finalizado?',
+      description: 'No se eliminan los registros históricos de recibos ni contratos. El prestador queda archivado.',
+      confirmLabel: 'Finalizar prestador',
+      tone: 'warn',
+    })
+    if (!ok) return
     setDeleting(true)
     try {
       const res = await fetch(`/api/prestadores/${id}`, { method: 'DELETE' })

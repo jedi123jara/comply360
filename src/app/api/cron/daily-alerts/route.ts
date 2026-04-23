@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { alertEmail } from '@/lib/email/templates'
 import { sendPushToOrg } from '@/lib/notifications/web-push-server'
+import { diasLaborables } from '@/lib/legal-engine/feriados-peru'
 
 // ==============================================
 // GET /api/cron/daily-alerts
@@ -233,24 +234,23 @@ export async function GET(request: NextRequest) {
     const complaintAlerts: { orgId: string; email: string | null; orgName: string; title: string; desc: string; due: string }[] = []
     for (const c of openComplaints) {
       const received = new Date(c.receivedAt)
-      const daysSince = Math.floor((now.getTime() - received.getTime()) / 86400000)
+      const calendarDaysSince = Math.floor((now.getTime() - received.getTime()) / 86400000)
+      const businessDaysSince = diasLaborables(received, now)
 
-      // 3 dias para medidas de proteccion (D.S. 014-2019-MIMP Art. 18)
-      if (c.status === 'RECEIVED' && daysSince >= 2 && daysSince <= 4) {
-        const deadline = new Date(received)
-        deadline.setDate(deadline.getDate() + 3)
+      // 3 dias HABILES para medidas de proteccion (D.S. 014-2019-MIMP Art. 18)
+      if (c.status === 'RECEIVED' && businessDaysSince >= 1 && businessDaysSince <= 4) {
         complaintAlerts.push({
           orgId: c.organization.id,
           email: c.organization.alertEmail,
           orgName: c.organization.name,
           title: `Denuncia ${c.code}: plazo de proteccion vence pronto`,
-          desc: `La denuncia ${c.code} requiere medidas de proteccion dentro de 3 dias habiles (Art. 18 D.S. 014-2019-MIMP). ${daysSince >= 3 ? 'PLAZO VENCIDO.' : `Quedan ${3 - daysSince} dia(s).`}`,
-          due: deadline.toLocaleDateString('es-PE'),
+          desc: `La denuncia ${c.code} requiere medidas de proteccion dentro de 3 dias habiles (Art. 18 D.S. 014-2019-MIMP). ${businessDaysSince >= 3 ? 'PLAZO VENCIDO.' : `Quedan ${3 - businessDaysSince} dia(s) habil(es).`}`,
+          due: new Date(received.getTime() + 5 * 86400000).toLocaleDateString('es-PE'), // ~5 calendar days ≈ 3 business days
         })
       }
 
-      // 30 dias para investigacion (Art. 20)
-      if (['INVESTIGATING', 'PROTECTION_APPLIED'].includes(c.status) && daysSince >= 25 && daysSince <= 32) {
+      // 30 dias CALENDARIO para investigacion (Art. 20)
+      if (['INVESTIGATING', 'PROTECTION_APPLIED'].includes(c.status) && calendarDaysSince >= 25 && calendarDaysSince <= 32) {
         const deadline = new Date(received)
         deadline.setDate(deadline.getDate() + 30)
         complaintAlerts.push({
@@ -258,7 +258,7 @@ export async function GET(request: NextRequest) {
           email: c.organization.alertEmail,
           orgName: c.organization.name,
           title: `Denuncia ${c.code}: plazo de investigacion vence pronto`,
-          desc: `La investigacion de ${c.code} debe completarse en 30 dias calendario (Art. 20). ${daysSince >= 30 ? 'PLAZO VENCIDO.' : `Quedan ${30 - daysSince} dia(s).`}`,
+          desc: `La investigacion de ${c.code} debe completarse en 30 dias calendario (Art. 20). ${calendarDaysSince >= 30 ? 'PLAZO VENCIDO.' : `Quedan ${30 - calendarDaysSince} dia(s).`}`,
           due: deadline.toLocaleDateString('es-PE'),
         })
       }

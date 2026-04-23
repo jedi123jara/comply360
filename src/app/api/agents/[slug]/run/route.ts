@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024 // 15 MB
 
-// Los 11 agentes IA son feature PRO (`asistente_ia`). Gateo al ingreso.
+// Los 14 agentes IA son feature PRO (`asistente_ia`). Gateo al ingreso.
 export const POST = withPlanGate('asistente_ia', async (req: NextRequest, ctx) => {
   // Extract slug from URL: /api/agents/[slug]/run
   const segments = req.nextUrl.pathname.split('/')

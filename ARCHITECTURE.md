@@ -35,10 +35,10 @@ Una empresa que la usa **no necesita contratar un estudio jurídico laboral exte
 multas SUNAFIL sorpresa, y opera con certeza legal en los 12 regímenes laborales vigentes.
 
 ### Valor diferencial
-- 13 calculadoras laborales con base legal citada (CTS, gratificación, vacaciones, liquidación, indemnización, horas extras, multas SUNAFIL, etc.) — 344+ tests
-- Diagnóstico SUNAFIL (135 preguntas en 8 áreas) con score + plan de acción
+- 13 calculadoras laborales con base legal citada (CTS, gratificación, vacaciones, liquidación, indemnización, horas extras, multas SUNAFIL, etc.) — 518 tests
+- Diagnóstico SUNAFIL (135 preguntas en 10 áreas) con score + plan de acción
 - Simulacro de inspección SUNAFIL interactivo
-- AI Review de contratos + Asistente IA con RAG sobre +40 normas peruanas
+- AI Review de contratos + Asistente IA con RAG sobre +75 normas peruanas
 - Canal de denuncias (Ley 27942)
 - SST completo (Ley 29783)
 - 12 regímenes laborales soportados (GENERAL, MYPE_MICRO, MYPE_PEQUENA, AGRARIO, CONSTRUCCION_CIVIL, MINERO, PESQUERO, TEXTIL_EXPORTACION, DOMESTICO, CAS, MODALIDAD_FORMATIVA, TELETRABAJO)
@@ -149,7 +149,7 @@ src/app/
 ├── (marketing)/               # Rutas públicas agrupadas (SEO)
 ├── sign-in/[[...sign-in]]/    # Clerk sign-in con branding emerald
 ├── sign-up/[[...sign-up]]/    # Clerk sign-up con branding emerald
-├── dashboard/                 # Producto autenticado (104 páginas)
+├── dashboard/                 # Producto autenticado (106 páginas)
 │   ├── layout.tsx             # Shell: sidebar + topbar + copilot + upgrade gate
 │   ├── page.tsx               # Cockpit narrativo (hero + momentos + radar)
 │   ├── _components/           # Sidebar + Topbar (subdir con "_" no ruta)
@@ -256,7 +256,7 @@ src/lib/
 ├── legal-engine/              # CORAZÓN — cálculos laborales
 │   ├── peru-labor.ts          # Constantes Perú 2026 (RMV 1130, UIT 5500)
 │   ├── types.ts               # Inputs/Outputs de todas las calcs
-│   ├── calculators/           # 13 calculadoras con 344+ tests
+│   ├── calculators/           # 13 calculadoras con 518 tests
 │   │   ├── cts.ts
 │   │   ├── gratificacion.ts
 │   │   ├── vacaciones.ts
@@ -302,7 +302,7 @@ src/lib/
 ├── webauthn.ts                # Ceremony biométrica cliente (Touch ID/huella/Hello)
 ├── templates/
 │   └── org-template-engine.ts # Merge fields {{PLACEHOLDERS}} para contratos propios
-├── agents/                    # 11 agentes IA especializados
+├── agents/                    # 14 agentes IA especializados
 ├── payments/
 │   └── culqi.ts               # Integración Culqi Perú (createCharge, etc.)
 ├── notifications/
@@ -454,9 +454,9 @@ ComplaintType: HOSTIGAMIENTO_SEXUAL | DISCRIMINACION | ACOSO_LABORAL | OTRO
 
 ## 5. Mapa de rutas
 
-### Dashboard — 104 páginas
+### Dashboard — 106 páginas
 
-Agrupadas en **hubs** (ver `src/lib/constants.ts` → `NAV_GROUPS`):
+Agrupadas en **hubs** (ver `src/lib/constants.ts` → `NAV_GROUPS` + `NAV_HUBS`):
 
 | Hub | Rutas principales |
 |---|---|
@@ -553,11 +553,12 @@ Endpoints críticos:
 - `src/lib/plan-features.ts` — **client-safe**: tipos + `FEATURE_MIN_PLAN`
 - `src/lib/plan-gate.ts` — **server**: `withPlanGate(feature, handler)` wrapper
 
-**Features** (15):
+**Features** (16):
 ```
 calculadoras, workers, alertas_basicas, calendario, contratos,
 diagnostico, simulacro_basico, reportes_pdf, ia_contratos,
-asistente_ia, review_ia, simulacro_completo, denuncias, sst_completo, api_access
+asistente_ia, review_ia, simulacro_completo, denuncias, sst_completo, api_access,
+gamificacion
 ```
 
 **Flujo de upgrade:**
@@ -572,7 +573,7 @@ asistente_ia, review_ia, simulacro_completo, denuncias, sst_completo, api_access
 
 **Archivos:** `src/lib/legal-engine/calculators/*.ts` — cada una tiene:
 - `calcularX(input: XInput): XResult` — función pura determinística
-- Test suite en `__tests__/` (344+ tests totales)
+- Test suite en `__tests__/` (518 tests totales)
 - Referencia a base legal en `result.baseLegal`
 - Fórmula en texto humano en `result.formula`
 
@@ -623,7 +624,7 @@ REGISTRO_INCOMPLETO
 - `src/lib/ai/action-plan.ts` — IA genera plan desde gaps de diagnóstico
 - `src/lib/ai/rag/legal-corpus.ts` + `extended-corpus.ts` — chunks indexados
 - `src/lib/ai/rag/vector-retriever.ts` — embeddings (pgvector)
-- `src/lib/agents/*` — 11 agentes especializados (prompts + tools)
+- `src/lib/agents/*` — 14 agentes especializados (prompts + tools)
 
 **Copilot drawer:**
 - Componente: `src/components/copilot/copilot-drawer.tsx`
@@ -706,7 +707,7 @@ determinística** — no hay AI escribiendo cláusulas legales. Si hay un error 
 un contrato generado, es de la empresa, no nuestro.
 
 **Archivos:**
-- `src/lib/templates/org-template-engine.ts` — motor de merge fields + catálogo de 24 placeholders estándar (worker / org / meta) + `renderTemplate(content, mappings, context, options)` + `numberToWords` (soles peruanos)
+- `src/lib/templates/org-template-engine.ts` — motor de merge fields + catálogo de 27 placeholders estándar (worker / org / meta) + `renderTemplate(content, mappings, context, options)` + `numberToWords` (soles peruanos)
 - `src/app/api/org-templates/*` — CRUD de plantillas
 - `src/app/api/org-templates/[id]/generate/route.ts` — merge + PDF jsPDF
 - `src/app/dashboard/configuracion/empresa/plantillas/*` — UI lista + editor + preview
@@ -1211,7 +1212,7 @@ NODE_ENV=development
 
 ### Unit/Integration tests (Vitest)
 - **31 archivos de test** en `src/**/__tests__/`
-- **344+ tests** solo en calculadoras (`src/lib/legal-engine/calculators/__tests__/`)
+- **518 tests** totales (calculadoras + compliance + agents + auth + pdf + sst + exports + integrations)
 - Correr: `npm test` (CI) o `npm run test:watch` (dev)
 - Coverage: `npm run test:coverage`
 
@@ -1277,11 +1278,14 @@ npm run test:e2e:ui      # playwright UI
 ```json
 {
   "crons": [
+    { "path": "/api/cron/morning-briefing", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/drip-emails", "schedule": "0 11 * * *" },
     { "path": "/api/cron/daily-alerts", "schedule": "0 13 * * *" },
     { "path": "/api/cron/weekly-digest", "schedule": "0 13 * * 1" },
-    { "path": "/api/cron/check-trials", "schedule": "0 0 * * *" },
-    { "path": "/api/cron/risk-sweep", "schedule": "0 14 * * *" },
-    { "path": "/api/cron/norm-updates", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/norm-updates", "schedule": "30 12 * * *" },
+    { "path": "/api/cron/founder-digest", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/check-trials", "schedule": "0 14 * * *" },
+    { "path": "/api/cron/risk-sweep", "schedule": "0 7 * * 1" }
   ]
 }
 ```
@@ -1339,10 +1343,12 @@ Esta sección lista pendientes conocidos para que el próximo ingeniero no se so
 - **Flag anti-fraude proactivo**: si `decision: 'mismatch'`, el verifier solo logea. Debería crear `WorkerAlert` severidad CRITICAL "Posible fraude en legajo" visible en cockpit.
 
 ### Baja prioridad
-- **Dashboard pages count**: 104 páginas en `/dashboard/*` es MUCHO. Plan maestro objetivo era reducir a ~50. Candidatos a consolidar: `/boletas`, `/vacaciones`, `/solicitudes`, `/asistencia` (absorbidas dentro de Worker profile pero las páginas top-level siguen ahí).
-- **Chrome extension** (`chrome-extension/`) — bridge SUNAT-SOL — no documentado.
+- **Dashboard pages count**: 106 páginas en `/dashboard/*` es MUCHO. Plan maestro objetivo era reducir a ~50. Candidatos a consolidar: `/boletas`, `/vacaciones`, `/solicitudes`, `/asistencia` (absorbidas dentro de Worker profile pero las páginas top-level siguen ahí).
+- **Chrome extension** (`chrome-extension/`) — bridge SUNAT-SOL — ~680 LOC funcionales, 7 archivos. Sin documentación propia.
 - **Admin dashboard** (`/admin`) — sin audit de seguridad reciente.
 - **i18n** — infra existe (ES/EN/PT) pero sólo ES está completo en copy.
+- **Workflows** (`src/lib/workflows/`) — engine.ts + triggers.ts con framework completo (5 step types, 10+ eventos predefinidos), pero sin UI, sin modelo Prisma, sin cron. Infraestructura lista para wiring.
+- **Gamificación** (`/dashboard/gamificacion`) — UI existe, modelo `GamificationEvent` en Prisma, pero la página no consume datos reales.
 
 ### Files >600 LOC a considerar extraer
 - `src/app/dashboard/terceros/page.tsx` (1,403 LOC)
@@ -1391,7 +1397,7 @@ Esta sección lista pendientes conocidos para que el próximo ingeniero no se so
 - Cada vez que **elimines deuda técnica**: remover línea de sección 14
 - Cada **6 meses**: audit completo con `find src -name "*.tsx" -o -name "*.ts" | xargs wc -l | sort -rn | head -20` para detectar archivos monstruo
 
-**Última actualización**: 2026-04-20
+**Última actualización**: 2026-04-21
 
 **Cambios principales desde inicio**:
 - Design system "Emerald Light" completo (signature visual)
@@ -1402,9 +1408,20 @@ Esta sección lista pendientes conocidos para que el próximo ingeniero no se so
 - 14 páginas migradas a PageHeader editorial
 
 **Cambios 2026-04-20 — Loop de onboarding end-to-end**:
-- **Biblioteca de plantillas** (`src/lib/templates/org-template-engine.ts` + UI `/dashboard/configuracion/empresa/plantillas`). Zero-liability: empresa sube su contrato con `{{PLACEHOLDERS}}`, sistema hace merge determinístico. Sin IA escribiendo cláusulas. 17 tipos de documento, 24 placeholders estándar.
+- **Biblioteca de plantillas** (`src/lib/templates/org-template-engine.ts` + UI `/dashboard/configuracion/empresa/plantillas`). Zero-liability: empresa sube su contrato con `{{PLACEHOLDERS}}`, sistema hace merge determinístico. Sin IA escribiendo cláusulas. 17 tipos de documento, 27 placeholders estándar.
 - **Cascada de onboarding** (`src/lib/onboarding/cascade.ts`): al firmar contrato → crea WorkerRequests + email + audit. Idempotente, fire-and-forget, trigger automático desde PATCH `/api/contracts/[id]` y POST `/api/mi-portal/contratos/[id]/firmar`.
 - **Firma biométrica WebAuthn** (`src/lib/webauthn.ts` + `/mi-portal/contratos/[id]`): Touch ID / huella / Windows Hello con graceful fallback a SIMPLE. Validez Ley 27269.
 - **Auto-verificación con IA vision** (`src/lib/ai/document-verifier.ts`): GPT-4o-mini valida tipo + extrae datos + cross-match contra worker. Policy: auto-verified / needs-review / mismatch / wrong-type. Badge "IA ✨" en tab-legajo. Plan gate PRO (`review_ia`).
 - **PWA del trabajador** ya cableado: `/mi-portal` mobile-first con bottom nav, firma biométrica de boletas y contratos, upload real a Supabase Storage (antes era placeholder).
 - **Persistencia sin migraciones**: todo lo nuevo reutiliza modelos existentes — `OrgDocument` con JSON en `description` (plantillas), `WorkerRequest` con tag `[doc:x]` (cascade), `AuditLog` como source of truth de firmas y verificaciones IA.
+
+**Cambios 2026-04-21 — Auditoría de precisión documental**:
+- Corregido conteo de tests: 344+ → **518** (verificado con `vitest run`)
+- Corregido conteo de agentes IA: 11 → **14**
+- Corregido áreas diagnóstico: 8 → **10**
+- Corregido placeholders: 24 → **27**
+- Corregido features plan gate: 15 → **16** (agregado `gamificacion`)
+- Corregido páginas dashboard: 104 → **106**
+- Corregido RAG corpus: +40 → **+75** normas en legal-corpus.ts
+- Sincronizado cron jobs con vercel.json real (6 crons: morning-briefing, drip-emails, daily-alerts, weekly-digest, norm-updates, founder-digest)
+- Documentados en deuda técnica: workflows framework, gamificación UI, chrome extension (~680 LOC)

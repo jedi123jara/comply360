@@ -81,7 +81,7 @@ const FEATURE_COPY: Partial<Record<PlanFeature, { title: string; pitch: string }
   },
   asistente_ia: {
     title: 'Asistente IA laboral peruano',
-    pitch: 'RAG sobre +40 normas peruanas + 500 resoluciones TFL. Cita base legal exacta en cada respuesta.',
+    pitch: 'RAG sobre +75 normas peruanas + 500 resoluciones TFL. Cita base legal exacta en cada respuesta.',
   },
   review_ia: {
     title: 'Revisión IA de contratos',

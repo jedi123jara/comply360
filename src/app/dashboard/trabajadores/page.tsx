@@ -32,6 +32,8 @@ import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { KpiCard, KpiGrid } from '@/components/comply360/kpi-card'
 import { PremiumEmptyState } from '@/components/comply360/premium-empty-state'
+import { confirm } from '@/components/ui/confirm-dialog'
+import { toast } from 'sonner'
 
 interface WorkerStats {
   byStatus: { ACTIVE: number; ON_LEAVE: number; SUSPENDED: number; TERMINATED: number }
@@ -677,11 +679,26 @@ export default function TrabajadoresPage() {
                           <button
                             onClick={async (e) => {
                               e.stopPropagation()
-                              if (!confirm(`¿Eliminar a ${displayWorkerName(worker.firstName, worker.lastName)}? Esta accion no se puede deshacer.`)) return
+                              const fullName = displayWorkerName(worker.firstName, worker.lastName)
+                              const ok = await confirm({
+                                title: `¿Eliminar a ${fullName}?`,
+                                description:
+                                  'Se borrará el trabajador junto con sus documentos, vacaciones, contratos y alertas asociadas. Esta acción no se puede deshacer.',
+                                confirmLabel: 'Eliminar trabajador',
+                                tone: 'danger',
+                              })
+                              if (!ok) return
                               try {
                                 const res = await fetch(`/api/workers/${worker.id}`, { method: 'DELETE' })
-                                if (res.ok) setWorkers(prev => prev.filter(w => w.id !== worker.id))
-                              } catch { /* silent */ }
+                                if (res.ok) {
+                                  setWorkers((prev) => prev.filter((w) => w.id !== worker.id))
+                                  toast.success(`${fullName} eliminado`)
+                                } else {
+                                  toast.error('No se pudo eliminar. Intentá de nuevo.')
+                                }
+                              } catch {
+                                toast.error('No se pudo eliminar. Revisá tu conexión.')
+                              }
                             }}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                             title="Eliminar"

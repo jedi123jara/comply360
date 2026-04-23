@@ -7,23 +7,24 @@ import { sendEmail } from '@/lib/email'
 // Cron diario: downgrade orgs con trial PRO expirado
 // =============================================
 export async function GET(req: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret — must be set; if missing, refuse all requests
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret) {
-    const authHeader = req.headers.get('authorization')
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 })
+  }
+  const authHeader = req.headers.get('authorization')
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const now = new Date()
 
-    // Find orgs with expired trial
+    // Find orgs with expired trial — only target paid/trial plans
     const expiredTrials = await prisma.organization.findMany({
       where: {
         planExpiresAt: { lt: now },
-        plan: { not: 'STARTER' },
+        plan: { in: ['EMPRESA', 'PRO'] },
       },
       include: {
         subscription: true,
@@ -37,11 +38,11 @@ export async function GET(req: NextRequest) {
       const trialSub = org.subscription
       if (!trialSub || trialSub.status !== 'TRIALING') continue
 
-      // Downgrade org to STARTER
+      // Downgrade org to FREE (not STARTER — STARTER has paid features)
       await prisma.organization.update({
         where: { id: org.id },
         data: {
-          plan: 'STARTER',
+          plan: 'FREE',
           planExpiresAt: null,
         },
       })

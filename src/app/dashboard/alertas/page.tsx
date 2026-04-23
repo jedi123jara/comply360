@@ -30,6 +30,7 @@ import {
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { KpiCard as PremiumKpi, KpiGrid } from '@/components/comply360/kpi-card'
 import { PremiumEmptyState } from '@/components/comply360/premium-empty-state'
+import { toast } from 'sonner'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -669,9 +670,13 @@ export default function AlertasPage() {
     }
   }
 
-  const handleRemind = (id: string, days: number) => {
-    // In production: would schedule a reminder via API
-    console.log(`Reminder set for alert ${id} in ${days} days`)
+  const handleRemind = (_id: string, days: number) => {
+    // Feature planned: schedule reminder via cron + push notification.
+    // Hasta que esté wireado al backend, damos feedback honesto en lugar de
+    // un silent no-op que deja al usuario sin saber qué pasó.
+    toast.info(`Recordatorio en ${days} día${days > 1 ? 's' : ''} — disponible pronto`, {
+      description: 'Estamos integrando recordatorios con nuestro sistema de notificaciones.',
+    })
   }
 
   const handleViewDetail = (id: string) => {
@@ -688,8 +693,13 @@ export default function AlertasPage() {
   }
 
   const handleAddRule = () => {
-    // In production: open a modal
-    console.log('Add custom rule')
+    // Reglas custom están planeadas en el roadmap de alertas. Hasta entonces,
+    // los usuarios pueden configurar las 12 reglas built-in desde esta misma
+    // página (toggle). Damos feedback claro en lugar de un no-op silencioso.
+    toast.info('Reglas personalizadas — disponible pronto', {
+      description:
+        'Mientras tanto, podés activar o desactivar las 12 reglas estándar desde la sección "Reglas automáticas" debajo.',
+    })
   }
 
   const [regenerating, setRegenerating] = useState(false)

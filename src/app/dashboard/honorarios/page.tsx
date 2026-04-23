@@ -8,6 +8,7 @@ import {
   Clock, Receipt, Search, ExternalLink, Info, Percent,
 } from 'lucide-react'
 import { displayWorkerName, workerInitials } from '@/lib/utils'
+import { confirm } from '@/components/ui/confirm-dialog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -517,7 +518,13 @@ export default function HonorariosPage() {
   }
 
   async function handleDelete(providerId: string, invoiceId: string) {
-    if (!confirm('Eliminar este recibo?')) return
+    const ok = await confirm({
+      title: '¿Eliminar este recibo?',
+      description: 'Se borrará el registro del recibo por honorarios. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      tone: 'danger',
+    })
+    if (!ok) return
     await fetch(`/api/prestadores/${providerId}/recibos/${invoiceId}`, { method: 'DELETE' })
     void load()
   }

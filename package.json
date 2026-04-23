@@ -18,6 +18,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "preflight": "node scripts/preflight/check.mjs",
+    "test:super": "vitest run && node scripts/preflight/super-test.mjs",
+    "test:full": "vitest run && playwright test && node scripts/preflight/super-test.mjs",
     "seed:demo": "tsx scripts/seed-demo-empresas.ts"
   },
   "prisma": {

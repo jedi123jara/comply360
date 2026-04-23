@@ -64,14 +64,16 @@ COMPLY360 PERU es la primera plataforma SaaS de compliance laboral integral del 
 
 ## 3. ESTADO ACTUAL DEL PROYECTO
 
-> **Snapshot 2026-04-20**: Fases F0-F2 esencialmente completas. F3 ~60%. F4 ~30% arrancada.
+> **Snapshot 2026-04-21**: Fases F0-F2 esencialmente completas. F3 ~60%. F4 ~40% (E-Learning y Crawler mas avanzados de lo previsto).
 > Ademas se incorporaron **3 vetas no planificadas** (portal del trabajador PWA + firma biometrica,
 > biblioteca de plantillas zero-liability, auto-verify de docs con IA vision) que resuelven
 > fricciones reales y desbloquearon nuevo valor. Ver secciones **Fase 1.5**, **Fase 2.5** y **Fase 3.5**.
 >
 > Para la foto tecnica viva (archivos, modelos, flujos end-to-end), ver [ARCHITECTURE.md](./ARCHITECTURE.md).
+>
+> **Auditoria 2026-04-21**: se verificaron todos los conteos numericos contra el codebase real. Tests: 518 (vitest run). Agentes IA: 14. Areas diagnostico: 10. Placeholders: 27. Features plan gate: 16. Paginas dashboard: 106. Normas RAG: 75+. Crons: 6.
 
-### 3.1 Lo que FUNCIONA (verificado, 2026-04-20)
+### 3.1 Lo que FUNCIONA (verificado, 2026-04-21)
 
 **Core legal (F0 + F1.5 + F1.6)**
 | Componente | Ubicacion | Estado |
@@ -85,7 +87,7 @@ COMPLY360 PERU es la primera plataforma SaaS de compliance laboral integral del 
 | Componente | Ubicacion | Estado |
 |-----------|-----------|--------|
 | Auth Clerk + roles | `src/lib/auth.ts`, `src/lib/api-auth.ts`, `src/proxy.ts` | FUNCIONAL - OWNER/ADMIN/MEMBER/VIEWER/WORKER/SUPER_ADMIN |
-| Plan gating | `src/lib/plan-gate.ts`, `plan-features.ts` | FUNCIONAL - 15 features, 4 planes, upgrade funnel Culqi |
+| Plan gating | `src/lib/plan-gate.ts`, `plan-features.ts` | FUNCIONAL - 16 features, 4 planes, upgrade funnel Culqi |
 | Onboarding wizard | `/dashboard/onboarding` | FUNCIONAL (necesita audit visual) |
 
 **Workers + Legajo (F1)**
@@ -110,16 +112,16 @@ COMPLY360 PERU es la primera plataforma SaaS de compliance laboral integral del 
 |-----------|-----------|--------|
 | AI Provider multi-proveedor | `src/lib/ai/provider.ts` | FUNCIONAL - OpenAI/Ollama/Deepseek/Groq |
 | Copilot drawer + streaming | `src/components/copilot/` + `src/lib/ai/chat-engine.ts` | COMPLETO - SSE + context injection por ruta |
-| RAG sobre +40 normas | `src/lib/ai/rag/` + `legal-corpus.ts` | FUNCIONAL - retriever BM25 + vector-retriever (pgvector pendiente indexado) |
+| RAG sobre +75 normas | `src/lib/ai/rag/` + `legal-corpus.ts` | FUNCIONAL - retriever BM25 + vector-retriever (pgvector pendiente indexado) |
 | AI Review de contratos | `src/lib/ai/contract-review.ts` | FUNCIONAL |
-| 11 Agentes especializados | `src/lib/agents/` | COMPLETO |
+| 14 Agentes especializados | `src/lib/agents/` | COMPLETO |
 | Auto-verify documentos (IA vision) | `src/lib/ai/document-verifier.ts` | COMPLETO - ver Fase 3.5 |
 
 **SST + Denuncias (F3)**
 | Componente | Ubicacion | Estado |
 |-----------|-----------|--------|
 | Hub SST | `/dashboard/sst/` + `SstRecord` | COMPLETO - politicas, IPERC, accidentes, EMO, EPP, capacitaciones |
-| Generadores SST (9) | `src/lib/generators/` | COMPLETO - politica-sst, hostigamiento, cuadro-categorias, acta-comite, plan-anual, iperc, induccion, registro-accidentes, reglamento-interno, mapa-riesgos, capacitacion-sst, entrega-epp, declaracion-jurada, horario-cartel, sintesis-legislacion |
+| Generadores SST (15) | `src/lib/generators/` | COMPLETO - politica-sst, hostigamiento, cuadro-categorias, acta-comite, plan-anual, iperc, induccion, registro-accidentes, reglamento-interno, mapa-riesgos, capacitacion-sst, entrega-epp, declaracion-jurada, horario-cartel, sintesis-legislacion |
 | Canal denuncias (Ley 27942) | `/denuncias/[slug]` publica + `/dashboard/denuncias` | COMPLETO |
 
 **Portal del Trabajador (F1.5 — NUEVO)**
@@ -136,7 +138,7 @@ COMPLY360 PERU es la primera plataforma SaaS de compliance laboral integral del 
 | PWA instalable | `public/manifest.webmanifest` + `public/sw.js` + `register-sw.tsx` | COMPLETO |
 | Push notifications (VAPID) | `src/lib/notifications/web-push-server.ts` | COMPLETO |
 | Email Resend (6 templates) | `src/lib/email/` | COMPLETO - welcome, alert, digest, complaint, password reset, worker onboarding |
-| 5 crons operativos | `vercel.json` | FUNCIONAL - daily-alerts, weekly-digest, check-trials, risk-sweep, norm-updates |
+| 8 crons operativos | `vercel.json` | FUNCIONAL - morning-briefing, drip-emails, daily-alerts, weekly-digest, norm-updates, founder-digest, check-trials, risk-sweep |
 
 ### 3.2 Lo que es STUB/PLACEHOLDER (necesita implementacion real)
 
@@ -149,17 +151,19 @@ COMPLY360 PERU es la primera plataforma SaaS de compliance laboral integral del 
 | Cron `check-trials` | No probado contra org con trial expirado real | MEDIA |
 | End-to-end signup → pago | Nunca corrido completo con usuario real | ALTA |
 
-### 3.3 Lo que NO EXISTE (por construir)
+### 3.3 Lo que FALTA por completar
 
-| Modulo del Plan Maestro | Fase objetivo |
-|------------------------|---------------|
-| E-Learning (cursos + evaluaciones + certificados QR) | F4.1 |
-| Crawler normativo (scraping El Peruano/SUNAFIL) | F4.2 |
-| Integraciones T-REGISTRO / PLAME / RENIEC firma digital | F4.3 |
-| Reportes avanzados PDF con `@react-pdf/renderer` | F3.3 (parcial) |
-| Marketplace de abogados | F4.4 |
-| Flag anti-fraude proactivo en auto-verify | F3.5 extension |
-| Auto-detección de `expiresAt` por IA | F3.5 extension |
+| Modulo del Plan Maestro | Fase objetivo | Estado real |
+|------------------------|---------------|-------------|
+| E-Learning (cursos + evaluaciones + certificados QR) | F4.1 | 🟡 Modelos Prisma + rutas + UI existen. Falta: generacion QR de certificados |
+| Crawler normativo (scraping El Peruano/SUNAFIL) | F4.2 | 🟡 `src/lib/crawler/` tiene fetcher RSS + classifier IA funcionales. Falta: conectar a cron pipeline |
+| Integraciones T-REGISTRO / PLAME / RENIEC firma digital | F4.3 | ⏳ No existe |
+| Reportes avanzados PDF con `@react-pdf/renderer` | F3.3 (parcial) | ⏳ @react-pdf/renderer no instalado. jsPDF cubre lo basico |
+| Marketplace de abogados | F4.4 | ⏳ No existe |
+| Flag anti-fraude proactivo en auto-verify | F3.5 extension | ⏳ No existe |
+| Auto-detección de `expiresAt` por IA | F3.5 extension | ⏳ No existe |
+| Workflows automatizados | F4+ | 🟡 Framework en `src/lib/workflows/` (engine + triggers), sin UI ni DB |
+| Gamificacion con datos reales | F4+ | 🟡 UI + modelo GamificationEvent existen, sin wiring |
 
 > **Nota**: para ver cambios especificos desde que este documento empezo, revisar el changelog en [ARCHITECTURE.md §14](./ARCHITECTURE.md#14-deuda-tecnica-conocida) y la seccion de "Mantenimiento" al final del mismo.
 
@@ -698,7 +702,7 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 #### F2.1 — Diagnostico SUNAFIL con Score (Modulo 5) ✅
 
 - [x] Crear base de preguntas de compliance en `src/lib/compliance/questions/`
-  - **135 preguntas** agrupadas en 8 areas (superamos las 120 planificadas)
+  - **135 preguntas** agrupadas en 10 areas (superamos las 120 planificadas)
   - 20 preguntas para diagnostico express
   - Cada pregunta con texto, area, base_legal, multa_asociada, peso, logica condicional
 - [x] Logica condicional (régimen, tamaño org, sector)
@@ -718,7 +722,7 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 #### F2.3 — IA Laboral Peruana (Modulo 9) ✅
 
 - [x] Arquitectura RAG (wrapper multi-proveedor: OpenAI / Ollama / Deepseek / Groq)
-- [x] Indexar corpus legal: +40 normas + resoluciones TFL en `src/lib/ai/rag/legal-corpus.ts` y `extended-corpus.ts`
+- [x] Indexar corpus legal: +75 normas + resoluciones TFL en `src/lib/ai/rag/legal-corpus.ts` y `extended-corpus.ts`
 - [x] **Copilot drawer persistente** (reemplazo evolutivo de `/dashboard/asistente-ia` como pagina aislada):
   - Chat con historial por conversacion
   - Streaming SSE
@@ -726,7 +730,7 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
   - Shortcut global `Cmd+I` / `Ctrl+I`
 - [x] API route `/api/ai-chat` con streaming + context injection
 - [x] AI Review de contratos con scoring de riesgo + clausulas peligrosas (`src/lib/ai/contract-review.ts`)
-- [x] **11 agentes especializados** en `src/lib/agents/` (review, generacion, plan de accion, inspector SUNAFIL, etc.)
+- [x] **14 agentes especializados** en `src/lib/agents/` (review, generacion, plan de accion, inspector SUNAFIL, OCR, payslip-auditor, risk-monitor, etc.)
 - [ ] **Pendiente**: pipeline automatico de indexado pgvector (el vector-retriever existe pero la ingesta inicial es manual)
 
 **Criterio de completitud Fase 2**: Una empresa puede correr un diagnostico completo, simular una inspeccion SUNAFIL interactiva, consultar al asistente IA sobre cualquier tema laboral peruano, y recibir revision inteligente de contratos. ESTO JUSTIFICA EL PLAN PRO A S/399/mes.
@@ -748,7 +752,7 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 #### F2.5.1 — Motor de merge fields ✅
 - [x] Lib `src/lib/templates/org-template-engine.ts` con:
   - Schema `contract_template_v1` (metadata JSON serializada)
-  - Catalogo de 24 placeholders estandar (worker.firstName, worker.dni, worker.sueldoEnLetras, org.ruc, meta.today, etc.)
+  - Catalogo de 27 placeholders estandar (worker.firstName, worker.dni, worker.sueldoEnLetras, org.ruc, meta.today, etc.)
   - `detectPlaceholders(content)` — regex `/\{\{\s*([A-Z_][A-Z0-9_]*)\s*\}\}/g`
   - `renderTemplate(content, mappings, context, options)` — sustitucion pura
   - `numberToWords` (soles peruanos para `SUELDO_LETRAS`)
@@ -903,9 +907,9 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 | M6: Simulacro SUNAFIL | F2.2 | ALTA | ✅ DONE |
 | M7: SST Completo | F3.1 (+ 15 generadores) | MEDIA | ✅ DONE |
 | M8: Canal Denuncias | F3.2 | MEDIA | ✅ DONE (triaje IA + stats anuales pendientes) |
-| M9: IA Laboral | F2.3 (RAG + 11 agentes + copilot) | ALTA | ✅ DONE (pgvector indexing pendiente) |
-| M10: E-Learning | F4.1 | BAJA | ⏳ PENDIENTE |
-| M11: Actualizaciones Normativas | F4.2 | BAJA | ⏳ PENDIENTE |
+| M9: IA Laboral | F2.3 (RAG + 14 agentes + copilot) | ALTA | ✅ DONE (pgvector indexing pendiente) |
+| M10: E-Learning | F4.1 | BAJA | 🟡 90% (modelos + rutas + UI existen, falta QR certificados) |
+| M11: Actualizaciones Normativas | F4.2 | BAJA | 🟡 PARCIAL (fetcher RSS + classifier IA existen, no conectados a cron) |
 | M12: Reportes y Auditoria | F3.3 | MEDIA | 🟡 PARCIAL (rutas existen, templates @react-pdf/renderer pendientes) |
 | **M13: Portal del Trabajador + Firma biometrica** | **F1.5 (nuevo)** | **ALTA** | **✅ DONE** |
 | **M14: Biblioteca de plantillas propias** | **F2.5 (nuevo)** | **ALTA** | **✅ DONE** |
