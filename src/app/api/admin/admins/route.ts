@@ -35,24 +35,6 @@ function normEmail(raw: unknown): string | null {
   return e
 }
 
-// Busca el último título asignado a un user vía AuditLog.
-async function titleForEmail(email: string): Promise<AdminTitle | null> {
-  const log = await prisma.auditLog.findFirst({
-    where: {
-      action: { in: ['ADMIN_PROMOTED', 'ADMIN_PENDING'] },
-      entityType: 'User',
-    },
-    orderBy: { createdAt: 'desc' },
-    select: { metadataJson: true, entityId: true },
-    // Buscamos por email contenido en metadataJson o en entityId (para pending)
-    // pero Prisma no permite where sobre Json fácilmente: traemos N recientes
-    // y filtramos manualmente en el caller.
-  })
-  const meta = (log?.metadataJson as Record<string, unknown>) ?? {}
-  const t = typeof meta.title === 'string' ? meta.title : null
-  return (VALID_TITLES as readonly string[]).includes(t ?? '') ? (t as AdminTitle) : null
-}
-
 export const GET = withSuperAdmin(async () => {
   // 1. Usuarios con rol SUPER_ADMIN
   const admins = await prisma.user.findMany({

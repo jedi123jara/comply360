@@ -2,19 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback } from 'react'
-import {
-  ArrowRight,
-  Check,
-  Users,
-  TrendingUp,
-  Shield,
-  Layers,
-  DollarSign,
-  Building2,
-  Sparkles,
-  FileText,
-  ChevronRight,
-} from 'lucide-react'
+import { ArrowRight, Check, Shield, Sparkles, ChevronRight } from 'lucide-react'
 import { track } from '@/lib/analytics'
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '51999999999'

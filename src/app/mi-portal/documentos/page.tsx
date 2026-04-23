@@ -13,7 +13,6 @@ import {
   FolderOpen,
   Shield,
   Heart,
-  Wallet,
   LogOut as DepartureIcon,
 } from 'lucide-react'
 

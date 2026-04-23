@@ -1,9 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
-  Clock,
   LogIn,
   LogOut,
   CheckCircle2,
@@ -49,7 +48,6 @@ export default function MiPortalAsistenciaPage() {
   const [resultMessage, setResultMessage] = useState<string | null>(null)
   const [resultStatus, setResultStatus] = useState<'PRESENT' | 'LATE' | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [manualCode, setManualCode] = useState('')
   const [manualToken, setManualToken] = useState('')
   const [history, setHistory] = useState<AttendanceHistory[]>([])
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -146,7 +144,6 @@ export default function MiPortalAsistenciaPage() {
       }
       void submitClock(trimmed)
       setManualToken('')
-      setManualCode('')
     },
     [manualToken, submitClock],
   )

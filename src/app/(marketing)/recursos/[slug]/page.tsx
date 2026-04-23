@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronLeft, Clock, Shield, ArrowRight, AlertTriangle, Info, CheckCircle2 } from 'lucide-react'
+import { ChevronLeft, Clock, ArrowRight, AlertTriangle, Info, CheckCircle2 } from 'lucide-react'
 import { ARTICLES, getArticleBySlug, getAllSlugs, type BlogBlock } from '@/lib/blog/articles'
 
 export function generateStaticParams() {
