@@ -720,11 +720,15 @@ export default function CesePage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Error al iniciar proceso')
+        throw new Error(err.error ?? 'No se pudo iniciar el proceso de cese')
       }
       await loadCese()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'No pudimos iniciar el proceso de cese. Revisá la conexión e intentá de nuevo.',
+      )
     } finally {
       setActionLoading(false)
     }
@@ -742,11 +746,15 @@ export default function CesePage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Error')
+        throw new Error(err.error ?? 'No se pudo avanzar de etapa')
       }
       await loadCese()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'No pudimos avanzar la etapa. Intentá en unos segundos.',
+      )
     } finally {
       setActionLoading(false)
     }
@@ -768,11 +776,15 @@ export default function CesePage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Error')
+        throw new Error(err.error ?? 'No se pudo guardar la liquidación')
       }
       await loadCese()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'No pudimos guardar la liquidación. Intentá en unos segundos.',
+      )
     } finally {
       setActionLoading(false)
     }
@@ -783,7 +795,11 @@ export default function CesePage() {
     setActionLoading(true)
     try {
       const res = await fetch(`/api/workers/${workerId}/liquidacion`)
-      if (!res.ok) throw new Error('Error al calcular')
+      if (!res.ok) {
+        throw new Error(
+          'No pudimos calcular la liquidación. Asegurate de que el trabajador tenga fecha de cese y motivo registrados.',
+        )
+      }
       const data = await res.json()
       const r = data.result
       setLiquidacionData({
@@ -794,7 +810,11 @@ export default function CesePage() {
         totalLiquidacion: r.totalBruto,
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al calcular liquidacion')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'No pudimos calcular la liquidación. Revisá los datos del trabajador.',
+      )
     } finally {
       setActionLoading(false)
     }
@@ -812,11 +832,15 @@ export default function CesePage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Error')
+        throw new Error(err.error ?? 'No se pudo completar el cese')
       }
       await loadCese()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'No pudimos completar el cese. Intentá de nuevo en unos segundos.',
+      )
     } finally {
       setActionLoading(false)
     }
@@ -837,13 +861,17 @@ export default function CesePage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Error')
+        throw new Error(err.error ?? 'No se pudo anular el cese')
       }
       setShowAnular(false)
       setMotivoAnulacion('')
       await loadCese()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error')
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'No pudimos anular. Intentá de nuevo.',
+      )
     } finally {
       setActionLoading(false)
     }

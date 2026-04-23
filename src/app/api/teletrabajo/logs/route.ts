@@ -48,7 +48,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     return NextResponse.json({ log }, { status: 201 })
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Error' },
+      { error: e instanceof Error ? e.message : 'No se pudo guardar el log de teletrabajo' },
       { status: 400 }
     )
   }

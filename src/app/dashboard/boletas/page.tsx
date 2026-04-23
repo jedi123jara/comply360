@@ -175,7 +175,7 @@ function GenerarModal({
               <span className="text-[color:var(--text-tertiary)]">DNI {worker.dni}</span>
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors">
+          <button type="button" onClick={onClose} aria-label="Cerrar modal" className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -281,7 +281,7 @@ function PayslipsDrawer({
               {displayName(worker.firstName, worker.lastName)} · DNI {worker.dni}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors">
+          <button type="button" onClick={onClose} aria-label="Cerrar modal" className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
             <X className="h-5 w-5" />
           </button>
         </div>

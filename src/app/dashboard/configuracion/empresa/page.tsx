@@ -193,7 +193,12 @@ function FeedbackBanner({ feedback, onDismiss }: { feedback: FeedbackState; onDi
         : <AlertCircle className="w-4 h-4 flex-shrink-0" />
       }
       <span className="flex-1">{feedback.message}</span>
-      <button onClick={onDismiss} className="opacity-60 hover:opacity-100 transition-opacity">
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Cerrar mensaje"
+        className="opacity-60 hover:opacity-100 transition-opacity rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      >
         <X className="w-4 h-4" />
       </button>
     </div>

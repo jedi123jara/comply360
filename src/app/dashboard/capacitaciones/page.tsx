@@ -593,7 +593,12 @@ export default function CapacitacionesPage() {
               className="w-full rounded-lg border border-[color:var(--border-default)] bg-white py-2 pl-9 pr-3 text-sm text-white text-[color:var(--text-emerald-700)] placeholder-gray-400 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
                 <X className="h-3.5 w-3.5 text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)]" />
               </button>
             )}
