@@ -102,8 +102,13 @@ export default function TrabajadoresPage() {
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
+  // Error state: si el fetch falla, mostramos un banner con retry en vez de
+  // quedar con la tabla vacía pareciendo que no hay trabajadores.
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
   const fetchWorkers = useCallback(() => {
     setLoading(true)
+    setFetchError(null)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (statusFilter) params.set('status', statusFilter)
@@ -115,12 +120,24 @@ export default function TrabajadoresPage() {
     params.set('sortDir', sortDir)
 
     fetch(`/api/workers?${params}`)
-      .then(res => res.json())
-      .then(d => {
-        setWorkers(d.data ?? [])
-        if (d.pagination) setPagination(prev => ({ ...prev, ...d.pagination }))
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`No se pudo cargar la lista (HTTP ${res.status})`)
+        }
+        return res.json()
       })
-      .catch(err => console.error('Workers load error:', err))
+      .then((d) => {
+        setWorkers(d.data ?? [])
+        if (d.pagination) setPagination((prev) => ({ ...prev, ...d.pagination }))
+      })
+      .catch((err: Error) => {
+        console.error('Workers load error:', err)
+        setFetchError(
+          err.message ||
+            'No pudimos cargar los trabajadores. Revisá tu conexión o intentá recargar.',
+        )
+        setWorkers([])
+      })
       .finally(() => setLoading(false))
   }, [search, statusFilter, regimenFilter, departmentFilter, pagination.page, sortBy, sortDir])
 
@@ -529,12 +546,35 @@ export default function TrabajadoresPage() {
         </div>
       )}
 
+      {/* Error banner — se muestra cuando la API falla. Ofrece reintento
+           inmediato sin tener que refrescar toda la página. */}
+      {fetchError && !loading && (
+        <div className="rounded-xl bg-red-50 ring-1 ring-red-200 p-4 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+              <path fillRule="evenodd" clipRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-900">No pudimos cargar los trabajadores</p>
+            <p className="text-sm text-red-700 mt-0.5">{fetchError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={fetchWorkers}
+            className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-white ring-1 ring-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center min-h-[300px]">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
-      ) : workers.length === 0 ? (
+      ) : workers.length === 0 && !fetchError ? (
         <PremiumEmptyState
           icon={Users}
           variant="invite"
