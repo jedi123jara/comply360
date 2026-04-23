@@ -18,6 +18,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -336,8 +337,8 @@ export function OnboardingWizard() {
       // Auto-activar trial PRO 14 días sin tarjeta (best-effort, no bloquea si falla).
       // Si ya usó trial antes (409), seguirá con STARTER — no es crítico.
       fetch('/api/trial/start', { method: 'POST' })
-        .then(() => console.log('[onboarding] trial PRO auto-activated'))
-        .catch(() => console.log('[onboarding] trial activation skipped'))
+        .then(() => logger.debug('[onboarding] trial PRO auto-activated'))
+        .catch(() => logger.debug('[onboarding] trial activation skipped'))
 
       // Dar tiempo a que el usuario vea el estado "¡listo!" y luego redirigir
       // al dashboard. Evita que se quede con la página en blanco.
