@@ -86,7 +86,7 @@ export function deriveSeverity(deadline: string | null | undefined): ActionSever
 /**
  * Formatea el deadline en texto humano relativo.
  */
-function formatDeadline(deadline: string, severity: ActionSeverity): string {
+function formatDeadline(deadline: string, _severity: ActionSeverity): string {
   const now = Date.now()
   const due = new Date(deadline).getTime()
   const diffMs = due - now

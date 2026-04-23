@@ -214,8 +214,7 @@ export default function MiPortalHomePage() {
   if (loading) return <LoadingSkeleton />
   if (error || !data) return <ErrorState message={error} />
 
-  const { worker, stats, ultimaBoleta, proximasCapacitaciones } = data
-  const fullName = `${worker.firstName} ${worker.lastName}`.trim()
+  const { worker, ultimaBoleta, proximasCapacitaciones } = data
 
   return (
     <div className="space-y-7">
