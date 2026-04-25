@@ -51,7 +51,7 @@ export default function CTSCalculatorPage() {
       <CalcHero
         eyebrow="Calculadora laboral — Perú 2026"
         title="Calcula tu CTS gratis, sin registro"
-        description="Compensación por Tiempo de Servicios — actualizado con D.S. 001-97-TR. Ingresa los datos y obtenés el monto del depósito al instante."
+        description="Compensación por Tiempo de Servicios — actualizado con D.S. 001-97-TR. Ingresa los datos y obtienes el monto del depósito al instante."
         icon={<Wallet className="w-6 h-6" />}
       />
 
@@ -137,7 +137,7 @@ export default function CTSCalculatorPage() {
               </CalcCard>
 
               <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4 text-xs text-slate-600">
-                <strong className="text-slate-800 block mb-1">Recordá:</strong>
+                <strong className="text-slate-800 block mb-1">Recuerda:</strong>
                 El depósito debe hacerse <strong>antes del 15 de mayo</strong> (semestre
                 noviembre–abril) y <strong>antes del 15 de noviembre</strong> (semestre mayo–octubre).
                 Depósitos tardíos generan intereses legales.
@@ -146,7 +146,7 @@ export default function CTSCalculatorPage() {
           ) : (
             <CalcCard>
               <p className="text-sm text-slate-500">
-                Completá los datos de la izquierda para ver el cálculo.
+                Completa los datos de la izquierda para ver el cálculo.
               </p>
             </CalcCard>
           )}

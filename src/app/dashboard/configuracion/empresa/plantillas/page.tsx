@@ -193,8 +193,8 @@ export default function PlantillasPage() {
           variant="invite"
           icon={FileText}
           eyebrow="Primera plantilla"
-          title="Pega tu contrato y <em>marcá los campos variables</em>."
-          subtitle="Empezá cargando el contrato indefinido que ya usás. Marcá los datos del trabajador con {{LLAVES}} y el sistema los completará por ti cada vez que lo generes."
+          title="Pega tu contrato y <em>marca los campos variables</em>."
+          subtitle="Empieza cargando el contrato indefinido que ya usas. Marca los datos del trabajador con {{LLAVES}} y el sistema los completará por ti cada vez que lo generes."
           hints={[
             { icon: Layers, text: 'Detección automática de placeholders' },
             { icon: PenLine, text: 'Editor con vista previa' },

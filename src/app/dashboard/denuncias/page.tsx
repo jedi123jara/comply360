@@ -19,6 +19,20 @@ interface TimelineEntry {
   createdAt: string
 }
 
+type ComplaintSeverity = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA'
+type ComplaintUrgency = 'BAJA' | 'MEDIA' | 'ALTA' | 'INMEDIATA'
+
+interface TriagePayload {
+  ok: boolean
+  severity?: ComplaintSeverity
+  urgency?: ComplaintUrgency
+  summary?: string
+  redFlags?: string[]
+  suggestedProtectionMeasures?: string[]
+  reason?: string
+  error?: string
+}
+
 interface Complaint {
   id: string
   code: string
@@ -34,6 +48,24 @@ interface Complaint {
   receivedAt: string
   resolvedAt: string | null
   timeline: TimelineEntry[]
+  severityAi: ComplaintSeverity | null
+  urgencyAi: ComplaintUrgency | null
+  triagedAt: string | null
+  triageJson: TriagePayload | null
+}
+
+const SEVERITY_STYLE: Record<ComplaintSeverity, string> = {
+  CRITICA: 'bg-red-600 text-white',
+  ALTA: 'bg-orange-500 text-white',
+  MEDIA: 'bg-amber-400 text-amber-950',
+  BAJA: 'bg-slate-200 text-slate-700',
+}
+
+const URGENCY_STYLE: Record<ComplaintUrgency, string> = {
+  INMEDIATA: 'bg-red-100 text-red-800 ring-1 ring-red-300',
+  ALTA: 'bg-orange-100 text-orange-800 ring-1 ring-orange-300',
+  MEDIA: 'bg-blue-100 text-blue-800 ring-1 ring-blue-300',
+  BAJA: 'bg-slate-100 text-slate-700 ring-1 ring-slate-300',
 }
 
 const TYPE_LABELS: Record<ComplaintType, string> = {
@@ -245,11 +277,27 @@ export default function DenunciasPage() {
                       {complaint.type === 'HOSTIGAMIENTO_SEXUAL' ? <UserX className="h-5 w-5 text-red-400" /> : <Scale className="h-5 w-5 text-orange-400" />}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-white">{complaint.code}</p>
                         <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', statusConf.color)}>
                           {statusConf.label}
                         </span>
+                        {complaint.severityAi && (
+                          <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', SEVERITY_STYLE[complaint.severityAi])}>
+                            {complaint.severityAi}
+                          </span>
+                        )}
+                        {complaint.urgencyAi && complaint.urgencyAi !== 'BAJA' && (
+                          <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', URGENCY_STYLE[complaint.urgencyAi])}>
+                            ⚡ {complaint.urgencyAi}
+                          </span>
+                        )}
+                        {!complaint.triagedAt && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] text-indigo-700">
+                            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                            Analizando con IA…
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-[color:var(--text-tertiary)]">
                         {TYPE_LABELS[complaint.type]}
@@ -283,6 +331,42 @@ export default function DenunciasPage() {
 
                 {isExpanded && (
                   <div className="border-t border-[color:var(--border-default)] px-4 py-4 space-y-4">
+                    {/* Recomendaciones IA */}
+                    {complaint.triageJson?.ok && complaint.triageJson.summary && (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                        <h4 className="text-xs font-semibold uppercase text-emerald-800 flex items-center gap-1 mb-2">
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          Análisis IA
+                        </h4>
+                        <p className="text-sm text-slate-700 mb-2">{complaint.triageJson.summary}</p>
+                        {complaint.triageJson.redFlags && complaint.triageJson.redFlags.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-[11px] font-semibold text-red-700 uppercase">Red flags detectados</p>
+                            <ul className="mt-1 ml-4 list-disc text-xs text-red-900 space-y-0.5">
+                              {complaint.triageJson.redFlags.map((f, i) => (
+                                <li key={i}>{f}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {complaint.triageJson.suggestedProtectionMeasures && complaint.triageJson.suggestedProtectionMeasures.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-[11px] font-semibold text-emerald-800 uppercase">Medidas de protección sugeridas</p>
+                            <ul className="mt-1 ml-4 list-disc text-xs text-emerald-900 space-y-0.5">
+                              {complaint.triageJson.suggestedProtectionMeasures.map((m, i) => (
+                                <li key={i}>{m}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {complaint.triagedAt && complaint.triageJson && !complaint.triageJson.ok && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                        <ShieldAlert className="inline h-3.5 w-3.5 mr-1" />
+                        Triaje IA no disponible ({complaint.triageJson.reason ?? 'error'}). Clasifique manualmente.
+                      </div>
+                    )}
                     {/* Deadline tracker */}
                     {deadlineMap[complaint.id] && (
                       <div>

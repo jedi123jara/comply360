@@ -91,24 +91,83 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       receivedAt,
     })
 
-    // ---- Procesar eventos ----
-    switch (type) {
-      case 'charge.success':
-        await handleChargeSuccess(data)
-        break
-
-      case 'charge.failed':
-        await handleChargeFailed(data)
-        break
-
-      case 'subscription.cancelled':
-        await handleSubscriptionCancelled(data)
-        break
-
-      default:
-        console.log(`[Culqi Webhook] Evento no manejado: ${type}`)
-        // No es DLQ: es evento válido que no procesamos (ej: charge.refunded en el futuro)
+    // ---- Idempotencia: dedupe por (provider, externalId) ----
+    // Culqi reenvía cuando recibimos timeout o respondemos 5xx. Sin esta
+    // guardia, cada retry de `charge.success` extiende `currentPeriodEnd` un
+    // mes adicional, regalando plan al cliente.
+    if (!data.id) {
+      console.warn('[Culqi Webhook] payload sin data.id — no se puede deduplicar')
+      return NextResponse.json({ error: 'Payload sin id' }, { status: 400 })
     }
+
+    const existing = await prisma.webhookEvent.findUnique({
+      where: { provider_externalId: { provider: 'culqi', externalId: data.id } },
+    })
+
+    if (existing && existing.processedAt) {
+      console.log(
+        `[Culqi Webhook] Evento ${type} (id=${data.id}) ya procesado el ${existing.processedAt.toISOString()} — ignorando.`,
+      )
+      return NextResponse.json({
+        received: true,
+        duplicated: true,
+        previouslyProcessedAt: existing.processedAt,
+      })
+    }
+
+    // Crea (o reusa) el registro como RECEIVED. Solo procesamos hacia adelante.
+    const webhookEvent = await prisma.webhookEvent.upsert({
+      where: { provider_externalId: { provider: 'culqi', externalId: data.id } },
+      create: {
+        provider: 'culqi',
+        externalId: data.id,
+        eventType: type,
+        payload: payload as object,
+        status: 'RECEIVED',
+      },
+      update: { eventType: type, payload: payload as object },
+    })
+
+    // ---- Procesar eventos ----
+    let handlerError: unknown = null
+    try {
+      switch (type) {
+        case 'charge.success':
+          await handleChargeSuccess(data)
+          break
+
+        case 'charge.failed':
+          await handleChargeFailed(data)
+          break
+
+        case 'subscription.cancelled':
+          await handleSubscriptionCancelled(data)
+          break
+
+        default:
+          console.log(`[Culqi Webhook] Evento no manejado: ${type}`)
+          // No es DLQ: es evento válido que no procesamos (ej: charge.refunded en el futuro)
+      }
+    } catch (err) {
+      handlerError = err
+    }
+
+    // ---- Marcar como procesado / fallido ----
+    if (handlerError) {
+      await prisma.webhookEvent.update({
+        where: { id: webhookEvent.id },
+        data: {
+          status: 'FAILED',
+          error: handlerError instanceof Error ? handlerError.message.slice(0, 500) : String(handlerError).slice(0, 500),
+        },
+      })
+      throw handlerError
+    }
+
+    await prisma.webhookEvent.update({
+      where: { id: webhookEvent.id },
+      data: { status: 'PROCESSED', processedAt: new Date() },
+    })
 
     return NextResponse.json({ received: true })
   } catch (error) {

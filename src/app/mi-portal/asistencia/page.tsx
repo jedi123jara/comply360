@@ -139,7 +139,7 @@ export default function MiPortalAsistenciaPage() {
       e.preventDefault()
       const trimmed = manualToken.trim()
       if (!trimmed) {
-        toast.error('Pegá el token del QR o pedile al admin el QR')
+        toast.error('Pega el token del QR o pídele al admin el QR')
         return
       }
       void submitClock(trimmed)
@@ -344,21 +344,21 @@ export default function MiPortalAsistenciaPage() {
           {/* Input manual fallback */}
           <details className="rounded-2xl border border-[color:var(--border-default)] bg-white">
             <summary className="cursor-pointer p-4 font-semibold text-sm text-[color:var(--text-primary)]">
-              ¿No tenés cámara? Ingresá el código manual
+              ¿No tienes cámara? Ingresa el código manual
             </summary>
             <form onSubmit={handleManualSubmit} className="px-4 pb-4 space-y-3">
               <p className="text-xs text-[color:var(--text-secondary)]">
-                Pedile a tu supervisor el <strong>link completo</strong> del QR (aparece debajo del código). Pegalo acá:
+                Pídele a tu supervisor el <strong>link completo</strong> del QR (aparece debajo del código). Pegalo acá:
               </p>
               <input
                 type="text"
                 value={manualToken}
                 onChange={(e) => setManualToken(e.target.value)}
-                placeholder="Pegá el link completo del QR aquí"
+                placeholder="Pega el link completo del QR aquí"
                 className="w-full rounded-xl border border-[color:var(--border-default)] bg-white px-3 py-2.5 text-xs outline-none focus:border-emerald-400 font-mono"
               />
               <p className="text-[11px] text-[color:var(--text-tertiary)]">
-                El código corto de 6 caracteres por sí solo NO sirve — necesitás el link completo. Pedile al admin que te comparta por WhatsApp.
+                El código corto de 6 caracteres por sí solo NO sirve — necesitás el link completo. Pídele al admin que te comparta por WhatsApp.
               </p>
               <button
                 type="submit"

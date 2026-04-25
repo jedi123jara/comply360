@@ -28,7 +28,7 @@ export interface CulqiPlan {
  * Sincronizado con `src/lib/constants.ts` PLANS. Actualizar juntos.
  *
  * ENTERPRISE NO está acá: es contact-sales con pricing customizado + contrato anual.
- * Si querés facturar un Enterprise estándar, copiar PRO y subir precio a 129900 centimos.
+ * Si quieres facturar un Enterprise estándar, copiar PRO y subir precio a 129900 centimos.
  */
 // ENTERPRISE excluido porque es contact-sales (no Culqi-charged). Ver /dashboard/planes que redirige a WhatsApp
 export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan> = {

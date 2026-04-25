@@ -4,9 +4,16 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, Building2, Users, Briefcase, FileText, Calendar,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft,
+  Briefcase,
+  Calendar,
+  FileText,
+  Flag,
+  ShieldAlert,
+  Users,
 } from 'lucide-react'
+import { fmtN, Monogram } from '@/components/admin/primitives'
 
 interface OrgDetail {
   id: string
@@ -45,6 +52,14 @@ interface OrgDetail {
   }>
 }
 
+function planBadge(plan: string): string {
+  const p = plan.toUpperCase()
+  if (p === 'ENTERPRISE' || p === 'PRO') return 'a-badge-gold'
+  if (p === 'EMPRESA') return 'a-badge-cyan'
+  if (p === 'STARTER') return 'a-badge-emerald'
+  return 'a-badge-neutral'
+}
+
 export default function EmpresaDetailPage() {
   const params = useParams()
   const id = params?.id as string
@@ -74,11 +89,8 @@ export default function EmpresaDetailPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        if (res.status === 422) {
-          setPlanError(data.error)
-        } else {
-          setPlanError('No se pudo actualizar el plan')
-        }
+        if (res.status === 422) setPlanError(data.error)
+        else setPlanError('No se pudo actualizar el plan')
         return
       }
       setOrg({ ...org, plan: data.plan })
@@ -90,155 +102,463 @@ export default function EmpresaDetailPage() {
     }
   }
 
-  if (loading) return <div className="h-96 bg-slate-100 animate-pulse rounded-xl" />
-  if (!org) return <div className="text-slate-500">Empresa no encontrada</div>
+  if (loading) {
+    return (
+      <div
+        style={{
+          height: 360,
+          background: 'var(--neutral-100)',
+          borderRadius: 12,
+          animation: 'pulseEmerald 2s infinite',
+        }}
+      />
+    )
+  }
+  if (!org) {
+    return (
+      <div
+        style={{
+          padding: 48,
+          textAlign: 'center',
+          color: 'var(--text-tertiary)',
+        }}
+      >
+        Empresa no encontrada.
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
+    <>
       <Link
         href="/admin/empresas"
-        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+        className="a-btn a-btn-ghost a-btn-sm"
+        style={{ marginBottom: 14, display: 'inline-flex' }}
       >
-        <ArrowLeft className="w-4 h-4" /> Volver a empresas
+        <ArrowLeft size={12} /> Volver a empresas
       </Link>
 
       {/* Hero */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2">
-              <Building2 className="w-6 h-6 text-blue-600" />
-              <h2 className="text-2xl font-bold text-slate-900">{org.name}</h2>
+      <div className="a-card" style={{ marginBottom: 18 }}>
+        <div className="a-card-pad-lg">
+          <div
+            style={{
+              display: 'flex',
+              gap: 18,
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 0, flex: 1 }}>
+              <Monogram name={org.name} size={48} />
+              <div style={{ minWidth: 0 }}>
+                <h1
+                  style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    margin: 0,
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {org.name}
+                </h1>
+                {org.razonSocial && (
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--text-secondary)',
+                      margin: '4px 0 0',
+                    }}
+                  >
+                    {org.razonSocial}
+                  </p>
+                )}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px 16px',
+                    marginTop: 8,
+                    fontSize: 11.5,
+                    color: 'var(--text-tertiary)',
+                  }}
+                >
+                  {org.ruc && (
+                    <span>
+                      RUC:{' '}
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-geist-mono), monospace',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {org.ruc}
+                      </span>
+                    </span>
+                  )}
+                  {org.sector && <span>Sector: {org.sector}</span>}
+                  {org.sizeRange && <span>Tamaño: {org.sizeRange}</span>}
+                  {org.regimenPrincipal && <span>Régimen: {org.regimenPrincipal}</span>}
+                  <span>
+                    Alta:{' '}
+                    {new Date(org.createdAt).toLocaleDateString('es-PE', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              </div>
             </div>
-            {org.razonSocial && (
-              <p className="text-sm text-slate-600 mt-1">{org.razonSocial}</p>
-            )}
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-slate-500">
-              {org.ruc && <span>RUC: <span className="font-mono">{org.ruc}</span></span>}
-              {org.sector && <span>Sector: {org.sector}</span>}
-              {org.sizeRange && <span>Tamaño: {org.sizeRange}</span>}
-              <span>Registro: {new Date(org.createdAt).toLocaleDateString('es-PE')}</span>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+              <span className={`a-badge ${planBadge(org.plan)}`} style={{ fontSize: 12, padding: '4px 10px' }}>
+                Plan actual: {org.plan}
+              </span>
+
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={org.plan}
+                  onChange={(e) => {
+                    setPendingPlan(e.target.value)
+                    setPlanError(null)
+                  }}
+                  disabled={actionLoading}
+                  className="a-input"
+                  style={{ fontWeight: 600, width: 200 }}
+                  aria-label="Cambiar plan"
+                >
+                  <option value="FREE">FREE</option>
+                  <option value="STARTER">STARTER</option>
+                  <option value="EMPRESA">EMPRESA</option>
+                  <option value="PRO">PRO</option>
+                </select>
+
+                {pendingPlan && pendingPlan !== org.plan && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: 300,
+                      background: '#fff',
+                      border: '1px solid var(--border-amber)',
+                      borderRadius: 12,
+                      boxShadow: 'var(--shadow-card-lift)',
+                      padding: 14,
+                      zIndex: 10,
+                      fontSize: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: 'var(--amber-700)',
+                        marginBottom: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <AlertTriangle size={11} /> Confirmar cambio de plan
+                    </div>
+                    <p
+                      style={{
+                        color: 'var(--text-secondary)',
+                        marginBottom: 10,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Cambiar de{' '}
+                      <b style={{ color: 'var(--text-primary)' }}>{org.plan}</b> a{' '}
+                      <b style={{ color: 'var(--text-primary)' }}>{pendingPlan}</b>.
+                      {['FREE', 'STARTER'].includes(pendingPlan) &&
+                        !['FREE', 'STARTER'].includes(org.plan) && (
+                          <>
+                            {' '}
+                            El downgrade se aplica de inmediato. Verifica que los trabajadores
+                            activos estén dentro del nuevo límite.
+                          </>
+                        )}
+                    </p>
+                    {planError && (
+                      <p
+                        style={{
+                          color: 'var(--crimson-600)',
+                          fontSize: 11.5,
+                          marginBottom: 8,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {planError}
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => handlePlanChange(pendingPlan)}
+                        disabled={actionLoading}
+                        className="a-btn a-btn-primary a-btn-sm"
+                        style={{ flex: 1 }}
+                      >
+                        {actionLoading ? 'Guardando…' : 'Confirmar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingPlan(null)
+                          setPlanError(null)
+                        }}
+                        disabled={actionLoading}
+                        className="a-btn a-btn-secondary a-btn-sm"
+                        style={{ flex: 1 }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <select
-              value={org.plan}
-              onChange={(e) => { setPendingPlan(e.target.value); setPlanError(null) }}
-              disabled={actionLoading}
-              className="border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
-            >
-              <option value="FREE">FREE</option>
-              <option value="STARTER">STARTER</option>
-              <option value="EMPRESA">EMPRESA</option>
-              <option value="PRO">PRO</option>
-            </select>
-            {pendingPlan && pendingPlan !== org.plan && (
-              <div className="bg-white border border-amber-300 rounded-xl p-4 shadow-lg z-10 w-72 text-sm">
-                <p className="font-semibold text-amber-800 mb-1">⚠ Confirmar cambio de plan</p>
-                <p className="text-slate-600 mb-3">
-                  Cambiar de <span className="font-bold text-slate-900">{org.plan}</span> a{' '}
-                  <span className="font-bold text-slate-900">{pendingPlan}</span>.{' '}
-                  {(['FREE', 'STARTER'].includes(pendingPlan) && !['FREE', 'STARTER'].includes(org.plan)) &&
-                    'El downgrade se aplica de inmediato. Verifique que los trabajadores activos estén dentro del nuevo límite.'}
-                </p>
-                {planError && (
-                  <p className="text-red-600 text-xs mb-2 font-medium">{planError}</p>
-                )}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handlePlanChange(pendingPlan)}
-                    disabled={actionLoading}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50 transition-colors"
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="a-grid-4" style={{ marginBottom: 18 }}>
+        <div className="a-kpi">
+          <div className="a-kpi-label">
+            <Users size={11} /> Usuarios
+          </div>
+          <div className="a-kpi-value">{fmtN(org.stats.users)}</div>
+          <div className="a-kpi-foot">Admins + workers con cuenta</div>
+        </div>
+        <div className="a-kpi">
+          <div className="a-kpi-label">
+            <Briefcase size={11} /> Trabajadores
+          </div>
+          <div className="a-kpi-value">{fmtN(org.stats.workers)}</div>
+          <div className="a-kpi-foot">Registrados en planilla</div>
+        </div>
+        <div className="a-kpi">
+          <div className="a-kpi-label">
+            <FileText size={11} /> Contratos
+          </div>
+          <div className="a-kpi-value">{fmtN(org.stats.contracts)}</div>
+          <div className="a-kpi-foot">{fmtN(org.stats.payslips)} boletas emitidas</div>
+        </div>
+        <div className="a-kpi">
+          <div className="a-kpi-label">
+            <ShieldAlert size={11} /> Diagnósticos
+          </div>
+          <div className="a-kpi-value">{fmtN(org.stats.diagnostics)}</div>
+          <div className="a-kpi-foot">
+            {org.stats.complaints > 0
+              ? `${fmtN(org.stats.complaints)} denuncias abiertas`
+              : 'Sin denuncias'}
+          </div>
+        </div>
+      </div>
+
+      <div className="a-grid-2-1" style={{ marginBottom: 18 }}>
+        {/* Suscripción */}
+        <div className="a-card">
+          <div className="a-head">
+            <div>
+              <div className="a-head-title">
+                <Calendar size={14} style={{ color: 'var(--emerald-600)' }} /> Suscripción
+              </div>
+              <div className="a-head-sub">Plan + ciclo de facturación</div>
+            </div>
+          </div>
+          <div className="a-card-pad">
+            {org.subscription ? (
+              <div className="a-grid-3">
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      color: 'var(--text-tertiary)',
+                      fontWeight: 600,
+                    }}
                   >
-                    {actionLoading ? 'Guardando...' : 'Confirmar'}
-                  </button>
-                  <button
-                    onClick={() => { setPendingPlan(null); setPlanError(null) }}
-                    disabled={actionLoading}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-1.5 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
+                    Estado
+                  </div>
+                  <div style={{ marginTop: 4 }}>
+                    <span className={`a-badge ${org.subscription.status.toLowerCase() === 'active' ? 'a-badge-emerald' : 'a-badge-amber'}`}>
+                      {org.subscription.status}
+                    </span>
+                  </div>
                 </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      color: 'var(--text-tertiary)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Periodo actual
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--text-primary)',
+                      marginTop: 4,
+                      fontFamily: 'var(--font-geist-mono), monospace',
+                    }}
+                  >
+                    {new Date(org.subscription.currentPeriodStart).toLocaleDateString('es-PE', {
+                      day: '2-digit',
+                      month: 'short',
+                    })}{' '}
+                    →{' '}
+                    {new Date(org.subscription.currentPeriodEnd).toLocaleDateString('es-PE', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      color: 'var(--text-tertiary)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Onboarding
+                  </div>
+                  <div style={{ marginTop: 4 }}>
+                    <span
+                      className={`a-badge ${org.onboardingCompleted ? 'a-badge-emerald' : 'a-badge-amber'}`}
+                    >
+                      {org.onboardingCompleted ? 'Completo' : 'Pendiente'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>
+                Sin suscripción activa · Plan {org.plan}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div className="a-card">
+          <div className="a-head">
+            <div>
+              <div className="a-head-title">Señales</div>
+              <div className="a-head-sub">Eventos destacados</div>
+            </div>
+          </div>
+          <div className="a-card-pad" style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Audit logs totales</span>
+              <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontWeight: 600 }}>
+                {fmtN(org.stats.auditLogs)}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Email de alertas</span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-geist-mono), monospace',
+                  color: 'var(--text-primary)',
+                  fontSize: 11.5,
+                }}
+              >
+                {org.alertEmail ?? '—'}
+              </span>
+            </div>
+            {org.stats.complaints > 0 && (
+              <div
+                style={{
+                  marginTop: 4,
+                  padding: '8px 10px',
+                  background: 'var(--crimson-50)',
+                  border: '1px solid var(--border-crimson)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: 'var(--crimson-700)',
+                  display: 'flex',
+                  gap: 6,
+                  alignItems: 'center',
+                }}
+              >
+                <Flag size={12} /> {fmtN(org.stats.complaints)} denuncias requieren atención
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatTile icon={Users} label="Usuarios" value={org.stats.users} />
-        <StatTile icon={Briefcase} label="Trabajadores" value={org.stats.workers} />
-        <StatTile icon={FileText} label="Contratos" value={org.stats.contracts} />
-        <StatTile icon={FileText} label="Boletas" value={org.stats.payslips} />
-        <StatTile icon={AlertTriangle} label="Diagnosticos" value={org.stats.diagnostics} />
-        <StatTile icon={AlertTriangle} label="Denuncias" value={org.stats.complaints} />
-      </div>
-
-      {/* Suscripción */}
-      {org.subscription && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h3 className="font-semibold text-slate-900 mb-3">Suscripción</h3>
-          <div className="grid sm:grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-slate-500">Estado</p>
-              <p className="font-medium text-slate-900 mt-1">{org.subscription.status}</p>
+      {/* Usuarios */}
+      <div className="a-card">
+        <div className="a-head">
+          <div>
+            <div className="a-head-title">
+              Usuarios de la organización{' '}
+              <span className="a-tab-count">{fmtN(org.stats.users)}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-500">Periodo actual</p>
-              <p className="font-medium text-slate-900 mt-1 flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {new Date(org.subscription.currentPeriodStart).toLocaleDateString('es-PE')} –{' '}
-                {new Date(org.subscription.currentPeriodEnd).toLocaleDateString('es-PE')}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500">Onboarding</p>
-              <p className="font-medium text-slate-900 mt-1">
-                {org.onboardingCompleted ? '✓ Completo' : '⚠ Pendiente'}
-              </p>
-            </div>
+            <div className="a-head-sub">Miembros con acceso al dashboard</div>
           </div>
         </div>
-      )}
-
-      {/* Usuarios */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-slate-900">Usuarios de la organización</h3>
-          <span className="text-xs text-slate-500">{org.stats.users} total</span>
-        </div>
         {org.recentUsers.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin usuarios registrados.</p>
+          <div style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: 13 }}>
+            Sin usuarios registrados.
+          </div>
         ) : (
-          <ul className="divide-y divide-slate-100">
-            {org.recentUsers.map((u) => (
-              <li key={u.id} className="py-2 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {u.firstName} {u.lastName}
-                  </p>
-                  <p className="text-xs text-slate-500">{u.email}</p>
-                </div>
-                <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
-                  {u.role}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <table className="a-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th style={{ textAlign: 'right' }}>Alta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {org.recentUsers.map((u) => {
+                const name =
+                  [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email.split('@')[0]
+                return (
+                  <tr key={u.id}>
+                    <td className="primary">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Monogram name={name} size={26} />
+                        {name}
+                      </div>
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{u.email}</td>
+                    <td>
+                      <span className="a-badge a-badge-neutral">{u.role}</span>
+                    </td>
+                    <td className="num" style={{ color: 'var(--text-tertiary)' }}>
+                      {new Date(u.createdAt).toLocaleDateString('es-PE', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         )}
       </div>
-    </div>
-  )
-}
-
-function StatTile({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number }) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-      <Icon className="w-4 h-4 text-slate-400 mx-auto mb-1" />
-      <p className="text-xl font-bold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
-    </div>
+    </>
   )
 }

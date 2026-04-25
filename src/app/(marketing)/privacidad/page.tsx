@@ -102,11 +102,11 @@ export default function PrivacidadPage() {
       </p>
 
       <h2>6. Derechos del titular (Ley 29733 Art. 22)</h2>
-      <p>Tenés derecho a:</p>
+      <p>Tienes derecho a:</p>
       <ul>
         <li>
-          <strong>Acceder</strong> a tus datos personales. Usá el endpoint{' '}
-          <code>/api/user/export-my-data</code> desde tu perfil o escribinos.
+          <strong>Acceder</strong> a tus datos personales. Usa el endpoint{' '}
+          <code>/api/user/export-my-data</code> desde tu perfil o escríbenos.
         </li>
         <li>
           <strong>Rectificar</strong> datos inexactos o incompletos.
@@ -124,7 +124,7 @@ export default function PrivacidadPage() {
         </li>
       </ul>
       <p>
-        Para ejercer estos derechos, escribinos a{' '}
+        Para ejercer estos derechos, escríbenos a{' '}
         <a href="mailto:datos@comply360.pe">datos@comply360.pe</a>. Responderemos en un
         plazo máximo de 20 días hábiles.
       </p>

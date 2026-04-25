@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ClipboardList, Plus, Calendar, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { PageHeader, EmptyState, ErrorState, Chip, ListSkeleton } from '@/components/mi-portal'
+import { formatShortDate } from '@/lib/format/peruvian'
 
 interface RequestItem {
   id: string
@@ -32,82 +34,102 @@ const TYPE_LABEL: Record<string, string> = {
   OTRO: 'Otro',
 }
 
-const STATUS_INFO: Record<string, { label: string; class: string; icon: typeof Clock }> = {
-  PENDIENTE: { label: 'Pendiente', class: 'bg-amber-100 text-amber-700', icon: Clock },
-  EN_REVISION: { label: 'En revisión', class: 'bg-blue-100 text-blue-700', icon: Clock },
-  APROBADA: { label: 'Aprobada', class: 'bg-green-100 text-green-700', icon: CheckCircle2 },
-  RECHAZADA: { label: 'Rechazada', class: 'bg-red-100 text-red-700', icon: XCircle },
-  CANCELADA: { label: 'Cancelada', class: 'bg-slate-100 text-slate-600', icon: XCircle },
+type Variant = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
+
+const STATUS_INFO: Record<string, { label: string; variant: Variant; icon: typeof Clock }> = {
+  PENDIENTE: { label: 'Pendiente', variant: 'warning', icon: Clock },
+  EN_REVISION: { label: 'En revisión', variant: 'info', icon: Clock },
+  APROBADA: { label: 'Aprobada', variant: 'success', icon: CheckCircle2 },
+  RECHAZADA: { label: 'Rechazada', variant: 'danger', icon: XCircle },
+  CANCELADA: { label: 'Cancelada', variant: 'neutral', icon: XCircle },
 }
 
 export default function SolicitudesPage() {
   const [items, setItems] = useState<RequestItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/mi-portal/solicitudes')
-      .then((r) => r.json())
-      .then((d) => setItems(d.requests || []))
-      .finally(() => setLoading(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/mi-portal/solicitudes', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setItems(data.requests || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de red')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  if (loading) return <div className="h-96 bg-slate-100 animate-pulse rounded-xl" />
+  useEffect(() => { load() }, [load])
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Mis Solicitudes</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Gestiona vacaciones, permisos, certificados y otros tramites.
-          </p>
-        </div>
-        <Link
-          href="/mi-portal/solicitudes/nueva"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nueva solicitud
-        </Link>
-      </div>
-
-      {items.length === 0 ? (
-        <div className="bg-[#141824] border border-slate-200 rounded-xl p-12 text-center">
-          <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">No has hecho solicitudes todavia.</p>
+    <div className="space-y-5">
+      <PageHeader
+        title="Mis solicitudes"
+        subtitle="Gestiona vacaciones, permisos, certificados y otros trámites."
+        action={
           <Link
             href="/mi-portal/solicitudes/nueva"
-            className="inline-block mt-4 text-blue-600 hover:underline text-sm font-medium"
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg min-h-[44px] transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           >
-            Crear tu primera solicitud
+            <Plus className="w-4 h-4" />
+            Nueva
           </Link>
-        </div>
-      ) : (
+        }
+      />
+
+      {loading && <ListSkeleton rows={4} />}
+
+      {error && !loading && (
+        <ErrorState title="No se pudieron cargar las solicitudes" message={error} onRetry={load} />
+      )}
+
+      {!loading && !error && items.length === 0 && (
+        <EmptyState
+          icon={<ClipboardList className="w-6 h-6" />}
+          title="Aún no tienes solicitudes"
+          description="Pide vacaciones, permisos o certificados desde acá. La respuesta de RRHH llega por este mismo canal."
+          action={
+            <Link
+              href="/mi-portal/solicitudes/nueva"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg min-h-[44px]"
+            >
+              <Plus className="w-4 h-4" />
+              Crear tu primera solicitud
+            </Link>
+          }
+        />
+      )}
+
+      {!loading && !error && items.length > 0 && (
         <ul className="space-y-3">
           {items.map((req) => {
-            const status = STATUS_INFO[req.status] || STATUS_INFO.PENDIENTE
+            const status = STATUS_INFO[req.status] ?? STATUS_INFO.PENDIENTE
             const StatusIcon = status.icon
             return (
               <li
                 key={req.id}
-                className="bg-[#141824] border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow"
+                className="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <ClipboardList className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <ClipboardList className="w-5 h-5 text-emerald-700" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
-                        <p className="text-xs uppercase font-semibold text-blue-700">
-                          {TYPE_LABEL[req.type] || req.type}
+                        <p className="text-[11px] uppercase font-bold text-emerald-700 tracking-wide">
+                          {TYPE_LABEL[req.type] ?? req.type}
                         </p>
                         <h3 className="font-semibold text-slate-900 mt-0.5">{req.title}</h3>
                       </div>
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1 ${status.class}`}>
-                        <StatusIcon className="w-3 h-3" />
+                      <Chip variant={status.variant} icon={<StatusIcon className="w-3 h-3" />}>
                         {status.label}
-                      </span>
+                      </Chip>
                     </div>
                     {req.description && (
                       <p className="text-sm text-slate-600 mt-2">{req.description}</p>
@@ -116,17 +138,15 @@ export default function SolicitudesPage() {
                       {req.startDate && req.endDate && (
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {new Date(req.startDate).toLocaleDateString('es-PE')} – {new Date(req.endDate).toLocaleDateString('es-PE')}
-                          {req.daysRequested && ` (${req.daysRequested} dias)`}
+                          {formatShortDate(req.startDate)} – {formatShortDate(req.endDate)}
+                          {req.daysRequested ? ` (${req.daysRequested} días)` : ''}
                         </span>
                       )}
-                      <span>
-                        Solicitado: {new Date(req.createdAt).toLocaleDateString('es-PE')}
-                      </span>
+                      <span>Solicitado: {formatShortDate(req.createdAt)}</span>
                     </div>
                     {req.reviewNotes && (
-                      <div className="mt-2 bg-slate-50 border-l-2 border-blue-400 p-2 text-xs text-slate-700">
-                        <strong>Nota de RRHH:</strong> {req.reviewNotes}
+                      <div className="mt-3 bg-slate-50 border-l-2 border-emerald-500 p-2.5 text-xs text-slate-700 rounded-r">
+                        <strong className="text-slate-900">Nota de RRHH:</strong> {req.reviewNotes}
                       </div>
                     )}
                   </div>

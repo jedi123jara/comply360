@@ -272,15 +272,15 @@ function Overview({
         <p className="text-sm text-[color:var(--text-secondary)] leading-relaxed max-w-xl">
           {summary.examenesVencidos > 0 ? (
             <>
-              Tenés <strong className="text-crimson-700">{summary.examenesVencidos}</strong>{' '}
+              Tienes <strong className="text-crimson-700">{summary.examenesVencidos}</strong>{' '}
               exámenes médicos vencidos y{' '}
               <strong className="text-amber-700">{summary.ipercPendiente}</strong> IPERC
               pendientes. Resolverlos sube tu score SST ~15 puntos.
             </>
           ) : summary.ipercPendiente > 0 ? (
-            <>Tenés {summary.ipercPendiente} IPERC por completar. Priorizalos esta semana.</>
+            <>Tienes {summary.ipercPendiente} IPERC por completar. Priorizalos esta semana.</>
           ) : (
-            <>Sin observaciones críticas activas. Mantené las capacitaciones al día.</>
+            <>Sin observaciones críticas activas. Mantén las capacitaciones al día.</>
           )}
         </p>
         <div className="flex flex-wrap gap-2">

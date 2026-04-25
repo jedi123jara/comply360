@@ -160,7 +160,7 @@ export default function IaLaboralPage() {
           <p className="text-xs text-[color:var(--text-tertiary)] leading-relaxed">
             <strong className="text-[color:var(--text-secondary)]">Nota legal:</strong> la IA
             Laboral es asistencia informada en normativa peruana vigente, no reemplaza
-            asesoría jurídica formal. Para casos de alta complejidad, usá la derivación
+            asesoría jurídica formal. Para casos de alta complejidad, usa la derivación
             a abogado desde el chat. Las respuestas incluyen la base legal consultada.
           </p>
         </Card>

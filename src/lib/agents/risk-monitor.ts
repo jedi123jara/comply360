@@ -16,6 +16,7 @@
  * Cada riesgo lleva: severidad, monto de multa potencial, base legal, fix sugerido.
  */
 
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import type {
   AgentDefinition,
@@ -322,6 +323,37 @@ async function runRiskMonitor(
   }
 }
 
+// Schema Zod para validar el output del agente. Si en el futuro alguien
+// rompe el contrato (cambia tipos, agrega/quita campos), el runtime lo
+// detecta y degrada a `partial` en lugar de explotar en producción.
+const RiskFindingSchema = z.object({
+  id: z.string(),
+  categoria: z.enum(['CONTRATO', 'REMUNERACION', 'PREVISIONAL', 'VACACIONES', 'DOCUMENTO', 'SST', 'OTRO']),
+  severidad: z.enum(['CRITICO', 'ALTO', 'MEDIO', 'BAJO']),
+  titulo: z.string(),
+  descripcion: z.string(),
+  entidadAfectada: z.string().optional(),
+  multaPotencialSoles: z.number().nonnegative(),
+  baseLegal: z.string(),
+  fixSugerido: z.string(),
+  fixUrl: z.string().optional(),
+})
+
+const RiskMonitorOutputSchema = z.object({
+  scanFecha: z.string(),
+  totalTrabajadoresEvaluados: z.number().int().nonnegative(),
+  totalContratosEvaluados: z.number().int().nonnegative(),
+  findings: z.array(RiskFindingSchema),
+  exposicionTotalSoles: z.number().nonnegative(),
+  scoreRiesgo: z.number().min(0).max(100),
+  desglosePorSeveridad: z.object({
+    CRITICO: z.number().int().nonnegative(),
+    ALTO: z.number().int().nonnegative(),
+    MEDIO: z.number().int().nonnegative(),
+    BAJO: z.number().int().nonnegative(),
+  }),
+})
+
 export const riskMonitorAgent: AgentDefinition<AgentInput, RiskMonitorOutput> = {
   slug: 'risk-monitor',
   name: 'Monitor de Riesgo Proactivo',
@@ -333,4 +365,5 @@ export const riskMonitorAgent: AgentDefinition<AgentInput, RiskMonitorOutput> = 
   acceptedInputs: ['json'],
   estimatedTokens: 0, // no usa LLM
   run: runRiskMonitor,
+  outputSchema: RiskMonitorOutputSchema,
 }

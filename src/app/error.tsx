@@ -53,7 +53,7 @@ export default function GlobalError({
             </div>
 
             <p className="text-sm text-slate-600 leading-relaxed mb-4">
-              Un error inesperado interrumpió la carga. Generalmente es un hipo temporal — probá
+              Un error inesperado interrumpió la carga. Generalmente es un hipo temporal — prueba
               refrescar. Si el problema persiste, contanos qué estabas haciendo y lo revisamos.
             </p>
 

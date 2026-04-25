@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+// Las calculadoras son client-side interactivas (estado de inputs + cálculo
+// instantáneo). El SEO se mantiene porque Google igual indexa el SSR a
+// demanda, y ya tenemos canonicals + metadata específica por calculadora.
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Calculadoras Laborales Gratuitas | COMPLY360 Perú',
   description:

@@ -7,6 +7,7 @@ import type { DocCategory, DocStatus } from '@/generated/prisma/client'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
+import { emit } from '@/lib/events'
 
 // =============================================
 // GET /api/workers/[id]/documents - List worker documents
@@ -73,6 +74,9 @@ export const GET = withAuthParams<{ id: string }>(
           summary?: string
           issues?: string[]
           model?: string
+          suspicionFlags?: string[]
+          suspicionScore?: number
+          expiresAtApplied?: boolean
         } | null
         const isAiVerified = doc.verifiedBy === 'ai-v1'
 
@@ -90,6 +94,9 @@ export const GET = withAuthParams<{ id: string }>(
                 issues: meta?.issues ?? [],
                 model: meta?.model ?? null,
                 verifiedByAI: isAiVerified,
+                suspicionFlags: meta?.suspicionFlags ?? [],
+                suspicionScore: meta?.suspicionScore ?? 0,
+                expiresAtAppliedByAI: meta?.expiresAtApplied ?? false,
                 at: log.createdAt.toISOString(),
               }
             : null,
@@ -217,6 +224,16 @@ export const POST = withAuthParams<{ id: string }>(
 
     // Fire-and-forget AI auto-verification (feature PRO+, solo si hay OpenAI key)
     void triggerAutoVerifyAI(document.id, id, orgId, ctx.userId)
+
+    // Event bus
+    emit('document.uploaded', {
+      orgId,
+      userId: ctx.userId,
+      documentId: document.id,
+      workerId: id,
+      documentType: document.documentType,
+      category: document.category,
+    })
 
     return NextResponse.json(
       {

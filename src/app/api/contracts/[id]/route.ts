@@ -4,6 +4,7 @@ import { withAuthParams } from '@/lib/api-auth'
 import { logAudit } from '@/lib/audit'
 import type { AuthContext } from '@/lib/auth'
 import type { ContractStatus } from '@/generated/prisma/client'
+import { emit } from '@/lib/events'
 
 const VALID_STATUSES: ContractStatus[] = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED', 'EXPIRED', 'ARCHIVED']
 
@@ -84,6 +85,13 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
   //    worker vinculado. Fire-and-forget: no bloqueamos la respuesta al admin.
   if (body.status === 'SIGNED' && contract.status !== 'SIGNED') {
     void triggerOnboardingCascadeForContract(params.id, ctx.orgId, ctx.userId)
+    emit('contract.signed', {
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      contractId: updated.id,
+      signedAt: (updated.signedAt ?? new Date()).toISOString(),
+      contractType: updated.type ?? undefined,
+    })
   }
 
   return NextResponse.json({ data: updated })

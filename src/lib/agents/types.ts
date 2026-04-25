@@ -94,4 +94,12 @@ export interface AgentDefinition<TInput = AgentInput, TOutput = unknown> {
   estimatedTokens: number
   /** Función de ejecución principal */
   run: (input: TInput, ctx: AgentRunContext) => Promise<AgentResult<TOutput>>
+  /**
+   * Schema Zod opcional para validar `result.data`. Si falla la validación,
+   * el runtime degrada el `status` a `'partial'` y agrega un warning, en
+   * lugar de fallar la corrida entera. Permite blindar contratos de agentes
+   * sin romper los que aún no tienen schema.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  outputSchema?: { safeParse(value: unknown): { success: boolean; error?: any; data?: unknown } }
 }

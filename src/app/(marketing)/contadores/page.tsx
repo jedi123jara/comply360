@@ -81,7 +81,7 @@ export default function ContadoresLandingPage() {
               letterSpacing: '-0.025em',
             }}
           >
-            Sos contador.{' '}
+            Eres contador.{' '}
             <em className="text-emerald-700 italic">Multiplicá tu cartera</em>
             <br />
             sin contratar a nadie.
@@ -90,7 +90,7 @@ export default function ContadoresLandingPage() {
           <p className="text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl mx-auto">
             Atendé 30 empresas en Comply360 con <strong>un solo login</strong>,
             cobrá <strong>25% de comisión</strong> durante el primer año por cada
-            empresa que migre, y dejá de pelear con planillas en Excel.
+            empresa que migre, y deja de pelear con planillas en Excel.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 justify-center mb-10">
@@ -190,7 +190,7 @@ export default function ContadoresLandingPage() {
               },
               {
                 n: '4',
-                title: 'Cobrás 25% cada mes del primer año',
+                title: 'Cobras 25% cada mes del primer año',
                 desc: 'Pagamos tu comisión el día 5 de cada mes por transferencia bancaria. 25% año 1, 15% años siguientes, mientras la empresa siga activa.',
               },
             ].map((step) => (
@@ -274,7 +274,7 @@ export default function ContadoresLandingPage() {
               }}
             >
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-300 mb-2">
-                Lo que vos ganás además
+                Lo que tú ganas además
               </p>
               <div
                 className="text-3xl mb-3 text-white"
@@ -316,15 +316,15 @@ export default function ContadoresLandingPage() {
             {[
               {
                 q: '¿Quién factura a mis clientes?',
-                a: 'Comply360 factura directo a cada empresa. Vos recibís tu comisión el día 5 de cada mes por transferencia bancaria o Yape/Plin. No tenés que intermediar facturación.',
+                a: 'Comply360 factura directo a cada empresa. Tú recibes tu comisión el día 5 de cada mes por transferencia bancaria o Yape/Plin. No tienes que intermediar facturación.',
               },
               {
-                q: '¿Mis clientes saben que cobrás comisión?',
-                a: 'Depende de vos. Por defecto, Comply360 no comparte tu relación de partnership con ellos. Si querés presentarte como "tu contador asesor técnico Comply360 certificado", te damos materiales.',
+                q: '¿Mis clientes saben que cobras comisión?',
+                a: 'Depende de ti. Por defecto, Comply360 no comparte tu relación de partnership con ellos. Si quieres presentarte como "tu contador asesor técnico Comply360 certificado", te damos materiales.',
               },
               {
                 q: '¿Puedo seguir usando mi sistema actual?',
-                a: 'Sí. Comply360 es complementario. Nos enfocamos en compliance (SUNAFIL, contratos, legajo, SST, denuncias). Vos seguís haciendo la planilla mensual donde quieras — pero podés exportarla directo a Comply360 para firma biométrica + audit trail.',
+                a: 'Sí. Comply360 es complementario. Nos enfocamos en compliance (SUNAFIL, contratos, legajo, SST, denuncias). Tú sigues haciendo la planilla mensual donde quieras — pero puedes exportarla directo a Comply360 para firma biométrica + audit trail.',
               },
               {
                 q: '¿Qué pasa si una empresa cancela?',

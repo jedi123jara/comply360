@@ -15,7 +15,7 @@ export default function ReglamentoInternoPage() {
     <GeneratorShell
       type="reglamento-interno"
       title="Reglamento Interno de Trabajo (RIT)"
-      description="10 capítulos del D.S. 039-91-TR: admisión, jornada, remuneraciones, permisos, SST, derechos/deberes, disciplina, hostigamiento, cese. Variantes por régimen (General / MYPE). Obligatorio si tenés 100+ trabajadores."
+      description="10 capítulos del D.S. 039-91-TR: admisión, jornada, remuneraciones, permisos, SST, derechos/deberes, disciplina, hostigamiento, cese. Variantes por régimen (General / MYPE). Obligatorio si tienes 100+ trabajadores."
       baseLegal="D.S. 039-91-TR · D.Leg. 728 · Ley 29783 · Ley 27942"
       gravity="GRAVE"
       estimatedMinutes={20}

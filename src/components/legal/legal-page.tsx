@@ -95,12 +95,12 @@ export function LegalPage({
       <div className="border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)]">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6 text-xs text-[color:var(--text-tertiary)]">
           <p>
-            ¿Dudas o consultas sobre este documento? Escribinos a{' '}
+            ¿Dudas o consultas sobre este documento? Escríbenos a{' '}
             <a href="mailto:datos@comply360.pe" className="text-emerald-700 hover:underline">
               datos@comply360.pe
             </a>{' '}
-            · Para solicitudes de portabilidad o eliminación de datos (Ley 29733 Art. 22), usá los
-            controles de tu perfil o escribinos.
+            · Para solicitudes de portabilidad o eliminación de datos (Ley 29733 Art. 22), usa los
+            controles de tu perfil o escríbenos.
           </p>
         </div>
       </div>

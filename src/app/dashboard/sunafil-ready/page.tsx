@@ -171,7 +171,7 @@ function HeroHeader() {
     <PageHeader
       eyebrow="SUNAFIL-Ready"
       title="Tu empresa está <em>lista para inspección</em>."
-      subtitle="Catálogo oficial de 28 documentos según protocolo R.M. 199-2016-TR. Vemos qué tenés, qué te falta y cuánto podés ahorrar subsanando antes de la inspección."
+      subtitle="Catálogo oficial de 28 documentos según protocolo R.M. 199-2016-TR. Vemos qué tienes, qué te falta y cuánto puedes ahorrar subsanando antes de la inspección."
     />
   )
 }
@@ -212,7 +212,7 @@ function ScoreHero({ data }: { data: SunafilReadyPayload }) {
               {stats.faltantes + stats.vencidos + stats.parciales > 0 ? (
                 <>
                   Te faltan <strong className="text-crimson-700">{stats.faltantes}</strong>,{' '}
-                  tenés <strong className="text-amber-700">{stats.parciales}</strong> parciales y{' '}
+                  tienes <strong className="text-amber-700">{stats.parciales}</strong> parciales y{' '}
                   <strong className="text-amber-700">{stats.vencidos}</strong> vencidos.
                   {stats.noAplica > 0 ? ` (${stats.noAplica} no aplican por tu tamaño/sector.)` : ''}
                 </>

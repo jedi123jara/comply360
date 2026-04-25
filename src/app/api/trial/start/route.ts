@@ -57,7 +57,7 @@ export const POST = withRole('OWNER', async (_req, ctx: AuthContext) => {
   if (!['FREE', 'STARTER'].includes(org.plan)) {
     return NextResponse.json(
       {
-        error: `Ya tenés plan ${org.plan}. El trial está disponible solo para cuentas nuevas o FREE/STARTER.`,
+        error: `Ya tienes plan ${org.plan}. El trial está disponible solo para cuentas nuevas o FREE/STARTER.`,
         code: 'PLAN_NOT_ELIGIBLE',
         currentPlan: org.plan,
       },

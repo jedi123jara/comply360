@@ -312,10 +312,85 @@ export async function callAI(
       throw new Error(`${provider} devolvió respuesta vacía`)
     }
 
+    // Si el caller quiere telemetría, dejamos disponible la metadata por
+    // referencia. La envolvemos en un Symbol para no chocar con strings que
+    // ya almacenen "usage" como contenido legítimo.
+    const usage = data?.usage as
+      | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+      | undefined
+    if (usage) {
+      lastCallMetadata.set(messages, {
+        provider,
+        model,
+        promptTokens: usage.prompt_tokens ?? 0,
+        completionTokens: usage.completion_tokens ?? 0,
+        totalTokens: usage.total_tokens ?? 0,
+      })
+    }
+
     return content
   }
 
   throw new Error(`Límite de velocidad de ${provider}. Espera unos segundos y reintenta.`)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// callAIWithUsage — variante que devuelve content + usage para telemetría
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Metadata efímera por messages-array. WeakMap permite GC automático cuando
+ * el caller deja de referenciar el array. Sirve para no romper la firma de
+ * `callAI` — los call sites que quieran telemetría llaman `callAIWithUsage`.
+ */
+const lastCallMetadata = new WeakMap<
+  AIMessage[],
+  {
+    provider: AIProvider
+    model: string
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+>()
+
+export interface AICallUsage {
+  provider: AIProvider
+  model: string
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  latencyMs: number
+}
+
+/**
+ * Igual que `callAI` pero retorna también `usage` para telemetría.
+ * Si el provider no expone `usage` en su respuesta (Ollama puede no hacerlo),
+ * los tokens vienen en cero y el caller decide si igual loggear.
+ */
+export async function callAIWithUsage(
+  messages: AIMessage[],
+  options: AICallOptions = {},
+): Promise<{ content: string; usage: AICallUsage }> {
+  const start = Date.now()
+  const content = await callAI(messages, options)
+  const latencyMs = Date.now() - start
+  const meta = lastCallMetadata.get(messages)
+
+  const provider = meta?.provider ?? detectProvider({ provider: options.provider, feature: options.feature })
+  const model = meta?.model ?? getModelName({ provider: options.provider, feature: options.feature })
+
+  return {
+    content,
+    usage: {
+      provider,
+      model,
+      promptTokens: meta?.promptTokens ?? 0,
+      completionTokens: meta?.completionTokens ?? 0,
+      totalTokens: meta?.totalTokens ?? 0,
+      latencyMs,
+    },
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -375,7 +450,7 @@ export async function callAIWithFallback(
 
   throw (
     lastError ??
-    new Error('No hay providers de AI disponibles. Configurá OPENAI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY.')
+    new Error('No hay providers de AI disponibles. Configura OPENAI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY.')
   )
 }
 

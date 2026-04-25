@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BookOpen, Download, FileText, Calendar } from 'lucide-react'
+import { PageHeader, EmptyState, ErrorState, CardGridSkeleton } from '@/components/mi-portal'
+import { formatShortDate } from '@/lib/format/peruvian'
 
 interface OrgDocItem {
   id: string
@@ -17,9 +19,9 @@ interface OrgDocItem {
 const TYPE_LABEL: Record<string, string> = {
   RIT: 'Reglamento Interno de Trabajo',
   REGLAMENTO_SST: 'Reglamento de Seguridad y Salud',
-  POLITICA_HOSTIGAMIENTO: 'Politica prevención hostigamiento',
-  POLITICA_IGUALDAD: 'Politica igualdad salarial',
-  CODIGO_ETICA: 'Codigo de ética',
+  POLITICA_HOSTIGAMIENTO: 'Política prevención hostigamiento',
+  POLITICA_IGUALDAD: 'Política igualdad salarial',
+  CODIGO_ETICA: 'Código de ética',
   MOF: 'Manual de Organización y Funciones',
   ROF: 'Reglamento de Organización y Funciones',
   PLAN_SST: 'Plan anual de SST',
@@ -32,52 +34,72 @@ const TYPE_LABEL: Record<string, string> = {
 export default function ReglamentoPage() {
   const [docs, setDocs] = useState<OrgDocItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/mi-portal/reglamento')
-      .then((r) => r.json())
-      .then((d) => setDocs(d.documents || []))
-      .finally(() => setLoading(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/mi-portal/reglamento', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const d = await res.json()
+      setDocs(d.documents || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  if (loading) return <div className="h-96 bg-slate-100 animate-pulse rounded-xl" />
+  useEffect(() => { load() }, [load])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">RIT y Politicas de la empresa</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Documentos institucionales que toda persona trabajadora debe conocer.
-        </p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="RIT y políticas"
+        subtitle="Documentos institucionales que toda persona trabajadora debe conocer."
+        icon={<BookOpen className="w-5 h-5" />}
+      />
 
-      {docs.length === 0 ? (
-        <div className="bg-[#141824] border border-slate-200 rounded-xl p-12 text-center">
-          <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">La empresa aun no ha publicado documentos institucionales.</p>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
+      {loading && <CardGridSkeleton cards={4} />}
+
+      {error && !loading && (
+        <ErrorState title="No se pudieron cargar los documentos" message={error} onRetry={load} />
+      )}
+
+      {!loading && !error && docs.length === 0 && (
+        <EmptyState
+          icon={<BookOpen className="w-6 h-6" />}
+          title="Sin documentos publicados"
+          description="Cuando la empresa publique su Reglamento Interno, políticas o comunicados los verás acá."
+        />
+      )}
+
+      {!loading && !error && docs.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
           {docs.map((doc) => (
-            <div key={doc.id} className="bg-[#141824] border border-slate-200 rounded-xl p-5 hover:shadow-md transition-shadow">
+            <div
+              key={doc.id}
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 hover:shadow-sm transition-all"
+            >
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs uppercase font-semibold text-blue-700">
-                    {TYPE_LABEL[doc.type] || doc.type}
+                  <p className="text-[11px] uppercase font-bold text-emerald-700 tracking-wide">
+                    {TYPE_LABEL[doc.type] ?? doc.type}
                   </p>
-                  <h3 className="font-semibold text-slate-900 mt-0.5 truncate">{doc.title}</h3>
+                  <h3 className="font-semibold text-slate-900 mt-0.5 leading-tight">
+                    {doc.title}
+                  </h3>
                   {doc.description && (
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{doc.description}</p>
+                    <p className="text-xs text-slate-600 mt-1 line-clamp-2">{doc.description}</p>
                   )}
                   <div className="flex items-center gap-3 text-xs text-slate-500 mt-3">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {doc.publishedAt
-                        ? new Date(doc.publishedAt).toLocaleDateString('es-PE')
-                        : 'Sin fecha'}
+                      {formatShortDate(doc.publishedAt)}
                     </span>
                     <span>v{doc.version}</span>
                   </div>
@@ -87,7 +109,7 @@ export default function ReglamentoPage() {
                 <a
                   href={doc.fileUrl}
                   download
-                  className="mt-4 w-full bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-sm font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  className="mt-4 w-full bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-sm font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   <Download className="w-4 h-4" />
                   Descargar

@@ -32,6 +32,22 @@
     {
       "path": "/api/cron/risk-sweep",
       "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/scheduled-reports",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/workflow-resume",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/issue-seals",
+      "schedule": "0 7 1 * *"
+    },
+    {
+      "path": "/api/cron/webhook-retry",
+      "schedule": "* * * * *"
     }
   ]
 }

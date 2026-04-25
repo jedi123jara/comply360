@@ -139,7 +139,7 @@ export default function GratificacionCalculatorPage() {
           ) : (
             <CalcCard>
               <p className="text-sm text-slate-500">
-                Completá los datos de la izquierda para ver el cálculo.
+                Completa los datos de la izquierda para ver el cálculo.
               </p>
             </CalcCard>
           )}

@@ -218,7 +218,7 @@ export function generarPlanAnualSst(
 
 function buildObjetivosTabla(objetivos: ObjetivoSmart[]): string {
   if (objetivos.length === 0) {
-    return '*Sin objetivos definidos (completá al menos uno).*'
+    return '*Sin objetivos definidos (completa al menos uno).*'
   }
   return objetivos
     .map(

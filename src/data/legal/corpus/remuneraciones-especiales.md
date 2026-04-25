@@ -174,7 +174,7 @@ eficiencia y puntualidad normales, aún cuando su nivel de producción no sea su
 para alcanzar dicha suma.
 1.9. Remuneración mínima por trabajo a tiempo parcial
 Por la naturaleza del trabajo o convenio, el servidor labore menos de 4 horas diarias,
-percibirá la parte proporcional de la RMV, tomándose como base para este cálculo la
+percibirá la parte proporcional de la RMV, tomandose como base para este cálculo la
 jornada ordinaria del centro de trabajo donde presta servicios.
 A fin de establecer si un trabajador labora a tiempo parcial, se deberá dividir la jornada
 semanal del trabajador entre 6 ó 5, según corresponda la jornada ordinaria del centro
@@ -512,7 +512,7 @@ Entonces, ya que los supuestos en los que no se aplica la jornada máxima son ex
 ni aplicar la norma por analogía (artículo IV del Título Preliminar del Código Civil).
 3.1. Remuneración de los comisionistas
 Los comisionistas percibirán una remuneración equivalente a la mínima vital, siempre
-y cuando presten servicios con el carácter de exclusivos, tomándose en cuenta para
+y cuando presten servicios con el carácter de exclusivos, tomandose en cuenta para
 ello las comisiones percibidas al vencimiento de cada mes o de cada período mayor
 convenido contractualmente, debiendo el empleador completar la diferencia, en caso
 el monto obtenido resultara inferior a la RMV.

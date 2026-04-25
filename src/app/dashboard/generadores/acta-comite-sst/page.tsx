@@ -311,7 +311,7 @@ function Form({
           <p className="text-xs text-[color:var(--text-tertiary)] mt-2">
             {tipo === 'comite'
               ? 'Necesitás que los titulares del empleador y de los trabajadores sean iguales en cantidad (paridad).'
-              : 'Completá nombre y DNI del supervisor.'}
+              : 'Completa nombre y DNI del supervisor.'}
           </p>
         ) : null}
       </div>

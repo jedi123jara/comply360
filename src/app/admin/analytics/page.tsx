@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BarChart3, Users, Activity, TrendingUp } from 'lucide-react'
+import { Activity, BarChart3, Download, TrendingUp, Users } from 'lucide-react'
+import { fmtN, Monogram, Sparkline } from '@/components/admin/primitives'
 
 interface AnalyticsData {
   signupsTrend: Array<{ date: string; count: number }>
@@ -21,78 +22,176 @@ export default function AnalyticsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="h-96 bg-slate-100 animate-pulse rounded-xl" />
+  if (loading) {
+    return (
+      <div
+        style={{
+          height: 360,
+          background: 'var(--neutral-100)',
+          borderRadius: 12,
+          animation: 'pulseEmerald 2s infinite',
+        }}
+      />
+    )
+  }
   if (!data) return null
 
+  const signupsSpark = data.signupsTrend.map((d) => d.count)
+  const maxAction = Math.max(...data.topActions.map((a) => a.count), 1)
+  const maxOrg = Math.max(...data.topOrgs.map((o) => o.events), 1)
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-blue-600" />
-          Analytics de la plataforma
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Métricas de uso, engagement y crecimiento (últimos 30 días)
-        </p>
+    <>
+      <div className="a-page-head">
+        <div>
+          <div className="crumbs">Revenue · Analytics</div>
+          <h1>
+            Analytics de la <em>plataforma</em>
+          </h1>
+          <div className="sub">
+            Métricas de uso, engagement y crecimiento · últimos 30 días.
+          </div>
+        </div>
+        <div className="spacer" />
+        <div className="actions">
+          <button className="a-btn a-btn-secondary" type="button">
+            <Download size={13} /> Export
+          </button>
+        </div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3">
-        <KpiBlock label="Eventos totales" value={data.totalEvents.toString()} icon={Activity} color="blue" />
-        <KpiBlock label="Top accion" value={data.topActions[0]?.action || '—'} icon={TrendingUp} color="green" />
-        <KpiBlock label="Empresas activas" value={data.topOrgs.length.toString()} icon={Users} color="purple" />
+      <div className="a-grid-3" style={{ marginBottom: 18 }}>
+        <div className="a-kpi">
+          <div className="a-kpi-label">
+            <Activity size={11} /> Eventos totales · 30d
+          </div>
+          {signupsSpark.length > 1 && (
+            <div className="spark">
+              <Sparkline data={signupsSpark} color="#10b981" width={80} height={28} dots />
+            </div>
+          )}
+          <div className="a-kpi-value">{fmtN(data.totalEvents)}</div>
+          <div className="a-kpi-foot">Todos los audit logs agregados</div>
+        </div>
+        <div className="a-kpi">
+          <div className="a-kpi-label">
+            <TrendingUp size={11} /> Acción más frecuente
+          </div>
+          <div className="a-kpi-value" style={{ fontSize: 18 }}>
+            <code
+              style={{
+                fontFamily: 'var(--font-geist-mono), monospace',
+                fontSize: 15,
+              }}
+            >
+              {data.topActions[0]?.action ?? '—'}
+            </code>
+          </div>
+          <div className="a-kpi-foot">
+            {data.topActions[0] ? `${fmtN(data.topActions[0].count)} veces en 30d` : 'Sin data'}
+          </div>
+        </div>
+        <div className="a-kpi">
+          <div className="a-kpi-label">
+            <Users size={11} /> Empresas con actividad
+          </div>
+          <div className="a-kpi-value">{fmtN(data.topOrgs.length)}</div>
+          <div className="a-kpi-foot">Con al menos 1 evento en 30d</div>
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h3 className="font-semibold text-slate-900 mb-3">Top acciones</h3>
+      <div className="a-grid-2">
+        <div className="a-card">
+          <div className="a-head">
+            <div>
+              <div className="a-head-title">
+                <BarChart3 size={14} style={{ color: 'var(--emerald-600)' }} /> Top acciones
+              </div>
+              <div className="a-head-sub">Por frecuencia · 30d</div>
+            </div>
+          </div>
           {data.topActions.length === 0 ? (
-            <p className="text-sm text-slate-500">Sin datos.</p>
+            <div style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: 13 }}>
+              Sin datos.
+            </div>
           ) : (
-            <ul className="space-y-2">
-              {data.topActions.slice(0, 10).map((a, idx) => (
-                <li key={idx} className="flex items-center justify-between text-sm">
-                  <span className="font-mono text-slate-700">{a.action}</span>
-                  <span className="font-semibold text-slate-900">{a.count}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="a-card-pad">
+              {data.topActions.slice(0, 10).map((a) => {
+                const pct = (a.count / maxAction) * 100
+                return (
+                  <div key={a.action} className="adopt-row">
+                    <div
+                      className="name"
+                      style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 12 }}
+                    >
+                      {a.action}
+                    </div>
+                    <div className="track">
+                      <div className="fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="pct">{fmtN(a.count)}</div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h3 className="font-semibold text-slate-900 mb-3">Empresas mas activas</h3>
+        <div className="a-card">
+          <div className="a-head">
+            <div>
+              <div className="a-head-title">Empresas más activas</div>
+              <div className="a-head-sub">Por volumen de eventos · 30d</div>
+            </div>
+          </div>
           {data.topOrgs.length === 0 ? (
-            <p className="text-sm text-slate-500">Sin datos.</p>
+            <div style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: 13 }}>
+              Sin datos.
+            </div>
           ) : (
-            <ul className="space-y-2">
-              {data.topOrgs.slice(0, 10).map((o, idx) => (
-                <li key={idx} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-700">{o.orgName}</span>
-                  <span className="font-semibold text-slate-900">{o.events} eventos</span>
-                </li>
-              ))}
-            </ul>
+            <div className="a-card-pad">
+              {data.topOrgs.slice(0, 10).map((o) => {
+                const pct = (o.events / maxOrg) * 100
+                return (
+                  <div
+                    key={o.orgName}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '28px 1fr 90px',
+                      gap: 12,
+                      alignItems: 'center',
+                      padding: '8px 0',
+                    }}
+                  >
+                    <Monogram name={o.orgName} size={26} />
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: 'var(--text-primary)',
+                          fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {o.orgName}
+                      </div>
+                      <div
+                        className="track"
+                        style={{ marginTop: 4, height: 4 }}
+                      >
+                        <div className="fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                    <div className="pct">{fmtN(o.events)}</div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-const COLOR_MAP = {
-  blue: 'bg-blue-50 text-blue-700',
-  green: 'bg-green-50 text-green-700',
-  purple: 'bg-purple-50 text-purple-700',
-}
-
-function KpiBlock({ label, value, icon: Icon, color }: { label: string; value: string; icon: React.ComponentType<{ className?: string }>; color: keyof typeof COLOR_MAP }) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5">
-      <div className={`w-10 h-10 rounded-lg ${COLOR_MAP[color]} flex items-center justify-center mb-3`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="text-xl font-bold text-slate-900 mt-1">{value}</p>
-    </div>
+    </>
   )
 }

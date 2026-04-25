@@ -138,7 +138,7 @@ export const ARTICLES: BlogArticle[] = [
         type: 'callout',
         variant: 'success',
         title: 'Calculadora gratis',
-        text: 'Probá la calculadora CTS de Comply360 sin registrarte. Ingresás los datos del trabajador y te da el monto exacto + la memoria de cálculo para auditoría. Link abajo.',
+        text: 'Prueba la calculadora CTS de Comply360 sin registrarte. Ingresas los datos del trabajador y te da el monto exacto + la memoria de cálculo para auditoría. Link abajo.',
       },
     ],
     cta: { label: 'Calcular mi CTS gratis', href: '/dashboard/calculadoras' },
@@ -345,12 +345,12 @@ export const ARTICLES: BlogArticle[] = [
       {
         type: 'ol',
         items: [
-          'Revisá que tu empresa cumpla los límites de trabajadores + ventas',
-          'Ingresá a www.sunat.gob.pe con tu Clave SOL',
+          'Revisa que tu empresa cumpla los límites de trabajadores + ventas',
+          'Ingresa a www.sunat.gob.pe con tu Clave SOL',
           'Sección "Operaciones en línea" → "REMYPE"',
           'Llená el formulario con datos de la empresa + trabajadores actuales',
           'La SUNAFIL valida en 5 días hábiles',
-          'Al aprobarse, recibís constancia digital que debés conservar',
+          'Al aprobarse, recibes constancia digital que debés conservar',
         ],
       },
       {
@@ -367,7 +367,7 @@ export const ARTICLES: BlogArticle[] = [
       {
         type: 'ul',
         items: [
-          'Querés contratar personal senior (S/ 5k+/mes): valoran CTS + gratificaciones',
+          'Quieres contratar personal senior (S/ 5k+/mes): valoran CTS + gratificaciones',
           'Tu empresa crece rápido y vas a superar los límites en <12 meses',
           'Trabajás con grandes empresas que auditan a sus proveedores (compliance general es más sólido)',
           'Licitás al Estado (ventaja competitiva tener régimen robusto)',

@@ -151,7 +151,7 @@ export async function runOnboardingCascade(
     })
     if (previousAudit) {
       result.skipped = true
-      result.skipReason = `Ya ejecutada el ${previousAudit.createdAt.toISOString()}. Usá force=true para re-ejecutar.`
+      result.skipReason = `Ya ejecutada el ${previousAudit.createdAt.toISOString()}. Usa force=true para re-ejecutar.`
       return result
     }
   }
@@ -244,7 +244,7 @@ export async function runOnboardingCascade(
 
       const emailRes = await sendEmail({
         to: worker.email,
-        subject: `Bienvenido a bordo — Completá tu onboarding con ${org?.razonSocial ?? org?.name ?? ''}`,
+        subject: `Bienvenido a bordo — Completa tu onboarding con ${org?.razonSocial ?? org?.name ?? ''}`,
         html,
       })
       result.emailSent = emailRes.success

@@ -457,6 +457,155 @@ describe('verifyDocument — cross-match logic via mocked responses', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Tests — parseIsoDate helper (auto-detección de expiresAt)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('parseIsoDate', () => {
+  it('acepta formato ISO YYYY-MM-DD', async () => {
+    const { parseIsoDate } = await loadVerifier()
+    expect(parseIsoDate('2027-05-15')).toBe('2027-05-15')
+  })
+
+  it('acepta ISO con hora y recorta a fecha', async () => {
+    const { parseIsoDate } = await loadVerifier()
+    expect(parseIsoDate('2027-05-15T00:00:00Z')).toBe('2027-05-15')
+  })
+
+  it('rechaza formato DD/MM/YYYY (ambiguo)', async () => {
+    const { parseIsoDate } = await loadVerifier()
+    expect(parseIsoDate('15/05/2027')).toBe(null)
+  })
+
+  it('rechaza null, undefined, strings vacíos', async () => {
+    const { parseIsoDate } = await loadVerifier()
+    expect(parseIsoDate(null)).toBe(null)
+    expect(parseIsoDate(undefined)).toBe(null)
+    expect(parseIsoDate('')).toBe(null)
+    expect(parseIsoDate(12345)).toBe(null)
+  })
+
+  it('rechaza años fuera de rango razonable', async () => {
+    const { parseIsoDate } = await loadVerifier()
+    expect(parseIsoDate('1800-01-01')).toBe(null)
+    expect(parseIsoDate('2200-01-01')).toBe(null)
+  })
+
+  it('rechaza mes o día inválidos', async () => {
+    const { parseIsoDate } = await loadVerifier()
+    expect(parseIsoDate('2027-13-01')).toBe(null)
+    expect(parseIsoDate('2027-05-32')).toBe(null)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tests — Anti-fraude guard (suspicionScore downgrade)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('verifyDocument — anti-fraude guard', () => {
+  const originalKey = process.env.OPENAI_API_KEY
+
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = 'test-key-fake'
+  })
+
+  afterEach(() => {
+    if (originalKey !== undefined) process.env.OPENAI_API_KEY = originalKey
+    else delete process.env.OPENAI_API_KEY
+    vi.restoreAllMocks()
+  })
+
+  function mockFetchSuccess(payload: Record<string, unknown>) {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(openAIResponseBody(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+  }
+
+  it('baja auto-verified a needs-review cuando suspicionScore ≥ 0.6', async () => {
+    mockFetchSuccess(
+      makeAIPayload({
+        confidence: 0.92,
+        suspicionScore: 0.75,
+        suspicionFlags: ['fuente inconsistente en DNI', 'bordes recortados'],
+      }),
+    )
+    const { verifyDocument } = await loadVerifier()
+    const result = await verifyDocument(imageDoc(), worker)
+    expect(result.decision).toBe('needs-review')
+    expect(result.suspicionScore).toBe(0.75)
+    expect(result.suspicionFlags).toHaveLength(2)
+    expect(result.issues.some((i) => i.includes('Posible manipulación'))).toBe(true)
+  })
+
+  it('mantiene auto-verified cuando suspicionScore es bajo', async () => {
+    mockFetchSuccess(
+      makeAIPayload({
+        confidence: 0.92,
+        suspicionScore: 0.1,
+        suspicionFlags: [],
+      }),
+    )
+    const { verifyDocument } = await loadVerifier()
+    const result = await verifyDocument(imageDoc(), worker)
+    expect(result.decision).toBe('auto-verified')
+    expect(result.suspicionScore).toBe(0.1)
+  })
+
+  it('no afecta decisiones que ya eran mismatch/wrong-type', async () => {
+    mockFetchSuccess(
+      makeAIPayload({
+        confidence: 0.9,
+        suspicionScore: 0.9, // alta sospecha pero DNI distinto
+        extracted: { dni: '99999999', nombres: 'Carlos', apellidos: 'Ramirez Torres' },
+      }),
+    )
+    const { verifyDocument } = await loadVerifier()
+    const result = await verifyDocument(imageDoc(), worker)
+    expect(result.decision).toBe('mismatch')
+    expect(result.suspicionScore).toBe(0.9)
+  })
+
+  it('expone expiresAt cuando la IA lo extrae en formato ISO válido', async () => {
+    mockFetchSuccess(
+      makeAIPayload({
+        confidence: 0.92,
+        expiryDate: '2029-06-30',
+      }),
+    )
+    const { verifyDocument } = await loadVerifier()
+    const result = await verifyDocument(imageDoc(), worker)
+    expect(result.expiresAt).toBe('2029-06-30')
+  })
+
+  it('ignora expiryDate en formato no-ISO', async () => {
+    mockFetchSuccess(
+      makeAIPayload({
+        confidence: 0.92,
+        expiryDate: '30/06/2029',
+      }),
+    )
+    const { verifyDocument } = await loadVerifier()
+    const result = await verifyDocument(imageDoc(), worker)
+    expect(result.expiresAt).toBe(null)
+  })
+
+  it('clampea suspicionScore al rango [0,1]', async () => {
+    mockFetchSuccess(
+      makeAIPayload({
+        confidence: 0.9,
+        suspicionScore: 1.5, // fuera de rango
+      }),
+    )
+    const { verifyDocument } = await loadVerifier()
+    const result = await verifyDocument(imageDoc(), worker)
+    expect(result.suspicionScore).toBeLessThanOrEqual(1)
+    expect(result.suspicionScore).toBeGreaterThanOrEqual(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Tests — Type system guarantees
 // ═══════════════════════════════════════════════════════════════════════════
 

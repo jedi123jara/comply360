@@ -144,7 +144,7 @@ export function TabBeneficios({ worker }: TabBeneficiosProps) {
           Faltan datos para calcular beneficios
         </h3>
         <p className="text-sm text-[color:var(--text-tertiary)] mb-5 max-w-md mx-auto">
-          Completá el sueldo bruto y la fecha de ingreso en la pestaña Información para
+          Completa el sueldo bruto y la fecha de ingreso en la pestaña Información para
           ver CTS, gratificación, vacaciones e indemnización calculados en vivo.
         </p>
       </div>
@@ -180,7 +180,7 @@ export function TabBeneficios({ worker }: TabBeneficiosProps) {
         <p className="text-sm text-[color:var(--text-secondary)] max-w-2xl">
           Proyección en base a sueldo bruto <b>S/ {sueldo.toLocaleString('es-PE')}</b> e ingreso el{' '}
           <b>{fechaIngreso ? new Date(fechaIngreso).toLocaleDateString('es-PE') : '—'}</b>.
-          Fórmulas y base legal citadas en cada card — usá el drawer de calculadoras para
+          Fórmulas y base legal citadas en cada card — usa el drawer de calculadoras para
           escenarios alternativos.
         </p>
       </div>

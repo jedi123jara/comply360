@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { UserPlus, Crown, Mail, X, Loader2, Check, AlertCircle } from 'lucide-react'
+import { AlertCircle, Check, Loader2, Mail, UserPlus, X } from 'lucide-react'
 import { confirm } from '@/components/ui/confirm-dialog'
+import { fmtN, Monogram } from '@/components/admin/primitives'
 
 type Admin = {
   id: string
@@ -22,14 +23,14 @@ type Pending = {
 
 const TITLES = ['Founder', 'Admin', 'Developer', 'Marketing', 'Diseño', 'Ventas', 'Otro'] as const
 
-const TITLE_COLOR: Record<string, string> = {
-  Founder: 'bg-amber-100 text-amber-800 ring-amber-200',
-  Admin: 'bg-blue-100 text-blue-800 ring-blue-200',
-  Developer: 'bg-violet-100 text-violet-800 ring-violet-200',
-  Marketing: 'bg-pink-100 text-pink-800 ring-pink-200',
-  Diseño: 'bg-cyan-100 text-cyan-800 ring-cyan-200',
-  Ventas: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
-  Otro: 'bg-slate-100 text-slate-700 ring-slate-200',
+const TITLE_BADGE: Record<string, string> = {
+  Founder: 'a-badge-gold',
+  Admin: 'a-badge-cyan',
+  Developer: 'a-badge-emerald',
+  Marketing: 'a-badge-amber',
+  Diseño: 'a-badge-cyan',
+  Ventas: 'a-badge-emerald',
+  Otro: 'a-badge-neutral',
 }
 
 export default function AdminsPage() {
@@ -55,6 +56,7 @@ export default function AdminsPage() {
       setLoading(false)
     }
   }
+
   useEffect(() => {
     void refresh()
   }, [])
@@ -79,7 +81,9 @@ export default function AdminsPage() {
         type: 'success',
         msg:
           data.message ??
-          (data.pending ? `Invitación enviada a ${data.email}` : `Admin ${data.user?.email} promovido`),
+          (data.pending
+            ? `Invitación enviada a ${data.email}`
+            : `Admin ${data.user?.email} promovido`),
       })
       setEmail('')
       setTitle('Admin')
@@ -93,7 +97,7 @@ export default function AdminsPage() {
 
   async function onRevoke(targetEmail: string) {
     const ok = await confirm({
-      title: `¿Revocar acceso de administrador?`,
+      title: '¿Revocar acceso de administrador?',
       description: `${targetEmail} dejará de tener acceso al Founder Console. Su rol volverá a OWNER (admin de su propia organización, no de la plataforma).`,
       confirmLabel: 'Revocar acceso',
       tone: 'danger',
@@ -117,62 +121,99 @@ export default function AdminsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Crown className="w-6 h-6 text-amber-500" />
-          Administradores de la plataforma
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Invitá colaboradores con acceso al panel global. Todos tienen los mismos permisos; el
-          título es solo para saber quién es quién.
-        </p>
-      </header>
+    <>
+      <div className="a-page-head">
+        <div>
+          <div className="crumbs">Plataforma · Admins</div>
+          <h1>
+            Administradores <em>de la plataforma</em>
+          </h1>
+          <div className="sub">
+            Invitá colaboradores con acceso al Founder Console. Todos tienen los mismos permisos;
+            el título es solo para saber quién es quién.
+          </div>
+        </div>
+      </div>
 
       {flash && (
         <div
           role="alert"
-          className={`flex items-start gap-2 rounded-lg px-4 py-3 text-sm ${
-            flash.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
-              : 'bg-red-50 text-red-800 ring-1 ring-red-200'
-          }`}
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            borderRadius: 12,
+            padding: '12px 16px',
+            marginBottom: 18,
+            fontSize: 13,
+            background: flash.type === 'success' ? 'var(--emerald-50)' : 'var(--crimson-50)',
+            border:
+              flash.type === 'success'
+                ? '1px solid var(--border-emerald)'
+                : '1px solid var(--border-crimson)',
+            color: flash.type === 'success' ? 'var(--emerald-700)' : 'var(--crimson-700)',
+          }}
         >
           {flash.type === 'success' ? (
-            <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <Check size={14} style={{ marginTop: 2, flexShrink: 0 }} />
           ) : (
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <AlertCircle size={14} style={{ marginTop: 2, flexShrink: 0 }} />
           )}
-          <span>{flash.msg}</span>
+          <span style={{ flex: 1 }}>{flash.msg}</span>
           <button
-            className="ml-auto text-slate-400 hover:text-slate-600"
+            type="button"
             onClick={() => setFlash(null)}
             aria-label="Cerrar"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'currentColor',
+              opacity: 0.6,
+              cursor: 'pointer',
+            }}
           >
-            <X className="w-4 h-4" />
+            <X size={14} />
           </button>
         </div>
       )}
 
       {/* Invite form */}
-      <div className="rounded-xl bg-white ring-1 ring-slate-200 p-6 shadow-sm">
-        <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-          <UserPlus className="w-4 h-4" />
-          Invitar nuevo administrador
-        </h3>
-        <form onSubmit={onInvite} className="flex flex-col sm:flex-row gap-3">
+      <div className="a-card" style={{ marginBottom: 18 }}>
+        <div className="a-head">
+          <div>
+            <div className="a-head-title">
+              <UserPlus size={14} style={{ color: 'var(--emerald-600)' }} /> Invitar nuevo
+              administrador
+            </div>
+            <div className="a-head-sub">
+              Si el email ya tiene cuenta, se promueve al instante. Si no, recibe link de registro.
+            </div>
+          </div>
+        </div>
+        <form
+          onSubmit={onInvite}
+          style={{
+            padding: 18,
+            display: 'flex',
+            gap: 10,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
           <input
             type="email"
             required
             placeholder="colaborador@empresa.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            className="a-input"
+            style={{ flex: '1 1 260px', maxWidth: 480 }}
           />
           <select
             value={title}
             onChange={(e) => setTitle(e.target.value as (typeof TITLES)[number])}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            className="a-input"
+            style={{ width: 160 }}
           >
             {TITLES.map((t) => (
               <option key={t} value={t}>
@@ -180,118 +221,178 @@ export default function AdminsPage() {
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-          >
+          <button type="submit" disabled={submitting} className="a-btn a-btn-primary">
             {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 size={13} className="animate-spin" />
             ) : (
-              <Mail className="w-4 h-4" />
-            )}
-            {submitting ? 'Enviando...' : 'Invitar'}
+              <Mail size={13} />
+            )}{' '}
+            {submitting ? 'Enviando…' : 'Invitar'}
           </button>
         </form>
-        <p className="text-xs text-slate-500 mt-3">
-          Si el email ya tiene cuenta en Comply360, se promueve al instante. Si no, recibe un email
-          con link de registro y al entrar se activa automáticamente.
-        </p>
       </div>
 
-      {/* Admins list */}
-      <div className="rounded-xl bg-white ring-1 ring-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">
-            Administradores activos{' '}
-            <span className="text-slate-400 font-normal">({admins.length})</span>
-          </h3>
+      {/* Active admins */}
+      <div className="a-card" style={{ marginBottom: 18 }}>
+        <div className="a-head">
+          <div>
+            <div className="a-head-title">
+              Administradores activos{' '}
+              <span className="a-tab-count">{fmtN(admins.length)}</span>
+            </div>
+            <div className="a-head-sub">Con acceso a /admin/*</div>
+          </div>
         </div>
+
         {loading ? (
-          <div className="p-8 text-center text-sm text-slate-400 flex items-center justify-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Cargando...
+          <div
+            style={{
+              padding: 32,
+              textAlign: 'center',
+              color: 'var(--text-tertiary)',
+              fontSize: 13,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 8,
+              alignItems: 'center',
+            }}
+          >
+            <Loader2 size={14} className="animate-spin" /> Cargando…
           </div>
         ) : admins.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-400">
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
             Todavía no hay administradores. Invitá al primero arriba.
           </div>
         ) : (
-          <ul className="divide-y divide-slate-100">
-            {admins.map((a) => {
+          <div>
+            {admins.map((a, i) => {
               const name =
                 [a.firstName, a.lastName].filter(Boolean).join(' ').trim() || a.email.split('@')[0]
               return (
-                <li key={a.id} className="px-6 py-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-bold text-sm">
-                    {name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-slate-900 truncate">{name}</span>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ${TITLE_COLOR[a.title] ?? TITLE_COLOR.Otro}`}
-                      >
+                <div
+                  key={a.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '14px 18px',
+                    borderBottom:
+                      i < admins.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                  }}
+                >
+                  <Monogram name={name} size={32} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13 }}>
+                        {name}
+                      </span>
+                      <span className={`a-badge ${TITLE_BADGE[a.title] ?? 'a-badge-neutral'}`}>
                         {a.title}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 truncate">{a.email}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                      {a.email}
+                    </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => onRevoke(a.email)}
-                    className="text-xs text-slate-400 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                    className="a-btn a-btn-ghost a-btn-sm"
+                    style={{ color: 'var(--crimson-600)' }}
                   >
                     Revocar
                   </button>
-                </li>
+                </div>
               )
             })}
-          </ul>
+          </div>
         )}
       </div>
 
       {/* Pending invites */}
       {pending.length > 0 && (
-        <div className="rounded-xl bg-white ring-1 ring-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Invitaciones pendientes{' '}
-              <span className="text-slate-400 font-normal">({pending.length})</span>
-            </h3>
-            <span className="text-xs text-slate-400">
-              Se activan automáticamente al registrarse
-            </span>
+        <div className="a-card">
+          <div className="a-head">
+            <div>
+              <div className="a-head-title">
+                Invitaciones pendientes{' '}
+                <span className="a-tab-count">{fmtN(pending.length)}</span>
+              </div>
+              <div className="a-head-sub">Se activan automáticamente al registrarse</div>
+            </div>
           </div>
-          <ul className="divide-y divide-slate-100">
-            {pending.map((p) => (
-              <li key={p.logId} className="px-6 py-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                  <Mail className="w-4 h-4" />
+          <div>
+            {pending.map((p, i) => (
+              <div
+                key={p.logId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 18px',
+                  borderBottom:
+                    i < pending.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: 'var(--neutral-100)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-tertiary)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Mail size={14} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-slate-700 truncate">{p.email}</span>
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ${TITLE_COLOR[p.title] ?? TITLE_COLOR.Otro}`}
-                    >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13 }}>
+                      {p.email}
+                    </span>
+                    <span className={`a-badge ${TITLE_BADGE[p.title] ?? 'a-badge-neutral'}`}>
                       {p.title}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500">
-                    Invitado el {new Date(p.invitedAt).toLocaleDateString('es-PE')}
+                  <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                    Invitado el{' '}
+                    {new Date(p.invitedAt).toLocaleDateString('es-PE', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => onRevoke(p.email)}
-                  className="text-xs text-slate-400 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                  className="a-btn a-btn-ghost a-btn-sm"
+                  style={{ color: 'var(--crimson-600)' }}
                 >
                   Cancelar
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

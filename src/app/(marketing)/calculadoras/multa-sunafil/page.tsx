@@ -190,7 +190,7 @@ export default function MultaSunafilPage() {
             </>
           ) : (
             <CalcCard>
-              <p className="text-sm text-slate-500">Ingresá los datos para ver la multa.</p>
+              <p className="text-sm text-slate-500">Ingresa los datos para ver la multa.</p>
             </CalcCard>
           )}
         </div>

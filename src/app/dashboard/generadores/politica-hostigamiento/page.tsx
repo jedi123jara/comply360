@@ -206,7 +206,7 @@ function Form({
         </Button>
         {!valid ? (
           <p className="text-xs text-[color:var(--text-tertiary)] mt-2">
-            Completá al menos los representantes del CIHSO y 1 canal de denuncia.
+            Completa al menos los representantes del CIHSO y 1 canal de denuncia.
           </p>
         ) : null}
       </div>

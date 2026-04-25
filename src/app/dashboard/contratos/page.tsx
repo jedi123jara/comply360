@@ -293,7 +293,7 @@ export default function ContratosPage() {
           icon={FileText}
           variant="invite"
           eyebrow="Primer contrato"
-          title="Generá tu primer contrato con <em>IA</em>."
+          title="Genera tu primer contrato con <em>IA</em>."
           subtitle="Plazo fijo, indefinido, locación de servicios o MYPE. 19 cláusulas obligatorias según normativa peruana incluidas. Cada contrato queda enlazado al legajo del trabajador."
           hints={[
             { icon: Sparkles, text: 'Generación IA o desde plantilla' },

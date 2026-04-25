@@ -31,6 +31,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withWorkerAuthParams } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { verifyChallenge } from '@/lib/webauthn-server'
+import { emit } from '@/lib/events'
 
 export const runtime = 'nodejs'
 
@@ -47,6 +49,8 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (
     signatureLevel?: SignatureLevel
     userAgent?: string
     credentialId?: string
+    challengeToken?: string
+    challenge?: string
   }
   try {
     body = await req.json()
@@ -60,6 +64,29 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (
       { error: `signatureLevel inválido. Válidos: ${VALID_LEVELS.join(', ')}` },
       { status: 400 },
     )
+  }
+
+  // ── WebAuthn challenge verification (BIOMETRIC only) ──────────────────────
+  if (signatureLevel === 'BIOMETRIC') {
+    if (!body.challengeToken || !body.challenge) {
+      return NextResponse.json(
+        { error: 'challengeToken y challenge son requeridos para firma biométrica' },
+        { status: 400 },
+      )
+    }
+    const outcome = verifyChallenge({
+      token: body.challengeToken,
+      challenge: body.challenge,
+      workerId: ctx.workerId,
+      action: 'sign_contract',
+      entityId: params.id,
+    })
+    if (!outcome.valid) {
+      return NextResponse.json(
+        { error: `Challenge inválido: ${outcome.reason}` },
+        { status: 400 },
+      )
+    }
   }
 
   // ── Verificar vínculo + estado ────────────────────────────────────────────
@@ -121,6 +148,7 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (
     userAgent,
     ipAddress,
     credentialId: body.credentialId ?? null,
+    challengeVerified: signatureLevel === 'BIOMETRIC',
   }
 
   // Fusionar en formData sin pisar el resto
@@ -171,6 +199,16 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (
 
   // ── Trigger cascade (fire-and-forget) ─────────────────────────────────────
   void triggerCascade(ctx.workerId, contract.id, ctx.userId)
+
+  // Event bus: workflows y gamificación se enganchan acá
+  emit('contract.signed', {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    contractId: contract.id,
+    workerId: ctx.workerId,
+    signedAt: now.toISOString(),
+    signatureLevel,
+  })
 
   return NextResponse.json({
     data: {

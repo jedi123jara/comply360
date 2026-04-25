@@ -727,7 +727,7 @@ export default function CesePage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No pudimos iniciar el proceso de cese. Revisá la conexión e intentá de nuevo.',
+          : 'No pudimos iniciar el proceso de cese. Revisa la conexión e intentá de nuevo.',
       )
     } finally {
       setActionLoading(false)
@@ -813,7 +813,7 @@ export default function CesePage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No pudimos calcular la liquidación. Revisá los datos del trabajador.',
+          : 'No pudimos calcular la liquidación. Revisa los datos del trabajador.',
       )
     } finally {
       setActionLoading(false)

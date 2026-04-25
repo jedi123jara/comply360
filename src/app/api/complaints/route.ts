@@ -6,6 +6,8 @@ import { rateLimit } from '@/lib/rate-limit'
 import { sendEmail } from '@/lib/email/client'
 import { complaintNotification } from '@/lib/email/templates'
 import type { ComplaintType, ComplaintStatus } from '@/generated/prisma/client'
+import { emit } from '@/lib/events'
+import { triageComplaint } from '@/lib/ai/complaint-triage'
 
 // ---------------------------------------------------------------------------
 // Rate limiter: 5 req/min per IP for public complaint submissions
@@ -212,7 +214,21 @@ export async function POST(request: NextRequest) {
       console.error('[email] Error sending complaint notification:', emailErr)
     }
 
-    return NextResponse.json({ complaint, code })
+    // Event bus: workflows se enganchan a complaint.received
+    emit('complaint.received', {
+      orgId,
+      complaintId: complaint.id,
+      type: complaint.type,
+      anonymous: complaint.isAnonymous,
+      receivedAt: complaint.receivedAt.toISOString(),
+    })
+
+    // Triaje IA fire-and-forget. Toma ~5-15s → no bloqueamos la respuesta.
+    // Al terminar emite `complaint.triaged` para que workflows reaccionen
+    // a severidad específica.
+    void runTriageAsync(complaint.id, orgId, type, description, accusedPosition)
+
+    return NextResponse.json({ complaint, code, triageStatus: 'PENDING' })
   } catch (error) {
     console.error('Complaints POST error:', error)
     return NextResponse.json(
@@ -264,3 +280,53 @@ export const PUT = withAuth(async (req) => {
     return NextResponse.json({ error: 'Failed to update complaint' }, { status: 500 })
   }
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Triaje IA fire-and-forget
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Ejecuta el triaje IA en background tras crear una denuncia.
+ *
+ *  - Nunca bloquea el response del POST (fire-and-forget con void)
+ *  - Persiste el resultado en `Complaint.severityAi/urgencyAi/triageJson`
+ *  - Si falla, deja `triagedAt` con fecha + `triageJson.error` para debug;
+ *    el admin ve "Triaje no disponible, clasifique manualmente" en la UI
+ *  - Al terminar exitoso emite `complaint.triaged` para que workflows
+ *    enganchados por severidad reaccionen
+ */
+async function runTriageAsync(
+  complaintId: string,
+  orgId: string,
+  type: ComplaintType,
+  description: string,
+  accusedPosition: string | null | undefined,
+): Promise<void> {
+  try {
+    const result = await triageComplaint({ type, description, accusedPosition: accusedPosition ?? null })
+
+    await prisma.complaint.update({
+      where: { id: complaintId },
+      data: {
+        severityAi: result.ok ? result.severity : null,
+        urgencyAi: result.ok ? result.urgency : null,
+        triageJson: JSON.parse(JSON.stringify(result)),
+        triagedAt: new Date(),
+      },
+    })
+
+    if (result.ok) {
+      emit('complaint.triaged', {
+        orgId,
+        complaintId,
+        severity: result.severity,
+        urgency: result.urgency,
+      })
+    }
+  } catch (err) {
+    console.error('[complaints] triage async failed', {
+      complaintId,
+      err: err instanceof Error ? err.message : String(err),
+    })
+  }
+}

@@ -39,7 +39,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   if (!isValidScope(scope)) {
     return NextResponse.json(
-      { error: 'scope inválido. Usá org | worker' },
+      { error: 'scope inválido. Usa org | worker' },
       { status: 400 },
     )
   }
@@ -84,7 +84,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   if (!isValidScope(body.scope ?? null)) {
     return NextResponse.json(
-      { error: 'scope inválido. Usá org | worker' },
+      { error: 'scope inválido. Usa org | worker' },
       { status: 400 },
     )
   }

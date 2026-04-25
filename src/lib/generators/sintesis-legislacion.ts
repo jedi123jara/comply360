@@ -44,7 +44,7 @@ export function generarSintesisLegislacion(
       id: 'remuneraciones',
       numbering: 'II',
       title: 'Remuneraciones',
-      content: `- **Remuneración Mínima Vital (RMV):** S/ ${rmv.toLocaleString('es-PE')} mensuales.\n- **Asignación Familiar:** S/ ${asig.toLocaleString('es-PE')} (10% RMV), si tenés hijos menores de 18 años o hasta 24 años si estudian (Ley 25129).\n- **Boleta de pago:** entregada dentro de 3 días hábiles de realizado el pago (D.S. 001-98-TR).\n- **Descuentos máximos:** 60% de la remuneración neta (D.S. 003-97-TR).`,
+      content: `- **Remuneración Mínima Vital (RMV):** S/ ${rmv.toLocaleString('es-PE')} mensuales.\n- **Asignación Familiar:** S/ ${asig.toLocaleString('es-PE')} (10% RMV), si tienes hijos menores de 18 años o hasta 24 años si estudian (Ley 25129).\n- **Boleta de pago:** entregada dentro de 3 días hábiles de realizado el pago (D.S. 001-98-TR).\n- **Descuentos máximos:** 60% de la remuneración neta (D.S. 003-97-TR).`,
       baseLegal: 'D.S. 003-97-TR · Ley 25129',
     },
     {
@@ -145,7 +145,7 @@ function buildBeneficios(
   if (regimen === 'MYPE_PEQUENA') {
     return `- **Vacaciones:** 15 días calendario al año.\n- **CTS:** medio sueldo al año (15 rem. diarias por año).\n- **Gratificaciones:** medio sueldo en julio y diciembre.\n- **EsSalud:** 9%.\n- **Indemnización despido arbitrario:** 20 remuneraciones diarias por año (tope 120 rem.).`
   }
-  return `- **Vacaciones:** 30 días calendario al año.\n- **CTS:** depósitos en mayo y noviembre. Cálculo: rem. mensual × meses trabajados / 12.\n- **Gratificaciones:** 1 sueldo en julio y 1 en diciembre + bonificación extraordinaria del 9% (Ley 30334).\n- **EsSalud:** 9% a cargo del empleador.\n- **Utilidades:** 5-10% de la renta si la empresa genera rentas de tercera categoría y tiene 20+ trabajadores (D.Leg. 892).\n- **Seguro Vida Ley:** desde los 4 años de servicio (D.Leg. 688).\n- **Asignación familiar:** S/ ${Math.round(rmv * 0.10).toLocaleString('es-PE')}/mes si tenés hijos menores o estudiantes (Ley 25129).\n- **Indemnización despido arbitrario:** 1.5 sueldos por año (tope 12 sueldos) — D.S. 003-97-TR.`
+  return `- **Vacaciones:** 30 días calendario al año.\n- **CTS:** depósitos en mayo y noviembre. Cálculo: rem. mensual × meses trabajados / 12.\n- **Gratificaciones:** 1 sueldo en julio y 1 en diciembre + bonificación extraordinaria del 9% (Ley 30334).\n- **EsSalud:** 9% a cargo del empleador.\n- **Utilidades:** 5-10% de la renta si la empresa genera rentas de tercera categoría y tiene 20+ trabajadores (D.Leg. 892).\n- **Seguro Vida Ley:** desde los 4 años de servicio (D.Leg. 688).\n- **Asignación familiar:** S/ ${Math.round(rmv * 0.10).toLocaleString('es-PE')}/mes si tienes hijos menores o estudiantes (Ley 25129).\n- **Indemnización despido arbitrario:** 1.5 sueldos por año (tope 12 sueldos) — D.S. 003-97-TR.`
 }
 
 function buildMarkdown(org: GeneratorOrgContext, anio: number, sections: GeneratedSection[]): string {

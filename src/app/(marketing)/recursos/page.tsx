@@ -107,10 +107,10 @@ export default function RecursosPage() {
             className="text-3xl mb-3"
             style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em' }}
           >
-            ¿Querés pasar de leer a hacer?
+            ¿Quieres pasar de leer a hacer?
           </h3>
           <p className="text-emerald-100 mb-5 max-w-xl mx-auto">
-            Probá el diagnóstico SUNAFIL gratis y sabé en 10 minutos cuánto podrías
+            Prueba el diagnóstico SUNAFIL gratis y sabé en 10 minutos cuánto podrías
             pagar en multas si te visitan mañana.
           </p>
           <Link

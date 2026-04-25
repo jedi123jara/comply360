@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle2, AlertTriangle, Upload, FileText, Sparkles } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, Upload, FileText, Sparkles, ShieldAlert, CalendarCheck } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,12 @@ export interface LegajoDoc {
     confidence?: number | null
     summary?: string | null
     issues?: string[]
+    /** Banderas de posible manipulación detectadas por la IA. */
+    suspicionFlags?: string[]
+    /** Score 0-1 de sospecha. ≥0.6 muestra badge rojo. */
+    suspicionScore?: number
+    /** true si la IA auto-seteó la fecha de vencimiento del documento. */
+    expiresAtAppliedByAI?: boolean
   } | null
 }
 
@@ -213,15 +219,47 @@ export function TabLegajo({
                             </span>
                           </Tooltip>
                         ) : null}
+                        {(d.aiVerification?.suspicionScore ?? 0) >= 0.6 ? (
+                          <Tooltip
+                            content={
+                              <div className="max-w-xs space-y-1 text-left">
+                                <p className="font-semibold">Posible manipulación digital</p>
+                                <p className="text-[11px] opacity-80">
+                                  Sospecha IA: {Math.round((d.aiVerification?.suspicionScore ?? 0) * 100)}%
+                                </p>
+                                {d.aiVerification?.suspicionFlags && d.aiVerification.suspicionFlags.length > 0 ? (
+                                  <ul className="mt-1 ml-3 list-disc space-y-0.5 text-[11px]">
+                                    {d.aiVerification.suspicionFlags.slice(0, 4).map((flag, i) => (
+                                      <li key={i}>{flag}</li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                                <p className="text-[10px] opacity-70 mt-1">
+                                  Revisión manual recomendada antes de aprobar.
+                                </p>
+                              </div>
+                            }
+                          >
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-red-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                              <ShieldAlert className="h-2.5 w-2.5" />
+                              Sospechoso
+                            </span>
+                          </Tooltip>
+                        ) : null}
                       </p>
                       {d.expiresAt ? (
-                        <p className="text-[11px] text-[color:var(--text-tertiary)]">
+                        <p className="text-[11px] text-[color:var(--text-tertiary)] flex items-center gap-1">
                           Vence{' '}
                           {new Intl.DateTimeFormat('es-PE', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
                           }).format(new Date(d.expiresAt))}
+                          {d.aiVerification?.expiresAtAppliedByAI ? (
+                            <Tooltip content={<span className="text-[11px]">Fecha auto-detectada por IA</span>}>
+                              <CalendarCheck className="h-3 w-3 text-emerald-600" />
+                            </Tooltip>
+                          ) : null}
                         </p>
                       ) : null}
                     </div>

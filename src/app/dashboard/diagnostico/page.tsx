@@ -115,7 +115,7 @@ export default function DiagnosticoPage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No se pudo guardar el diagnóstico. Revisá tu conexión.'
+          : 'No se pudo guardar el diagnóstico. Revisa tu conexión.'
       )
       setSubmitting(false)
     }
@@ -206,7 +206,7 @@ function IntroCover({
         </h1>
         <p className="text-lg text-[color:var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
           Una serie de preguntas guiadas sobre 10 áreas clave de fiscalización SUNAFIL.
-          Al terminar recibís un score por área, multa estimada y un plan priorizado de
+          Al terminar recibes un score por área, multa estimada y un plan priorizado de
           acción persistido en tu cuenta.
         </p>
       </div>

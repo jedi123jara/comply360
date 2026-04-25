@@ -337,8 +337,8 @@ export function morningBriefingEmail(payload: MorningBriefingPayload): string {
     ${ctaButton(criticalAlertsOpen > 0 ? 'Resolver alertas' : 'Ir al dashboard', criticalAlertsOpen > 0 ? alertsUrl : dashboardUrl)}
 
     <p style="margin:18px 0 0;color:#94a3b8;font-size:11px;line-height:1.5;">
-      Recibís este briefing porque tenés un plan activo en COMPLY360. Para desactivar los mails diarios,
-      ajustá tus preferencias en configuracion/notificaciones.
+      Recibes este briefing porque tienes un plan activo en COMPLY360. Para desactivar los mails diarios,
+      ajusta tus preferencias en configuracion/notificaciones.
     </p>
   `)
 }

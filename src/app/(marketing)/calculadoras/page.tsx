@@ -53,7 +53,7 @@ export default function CalculadorasIndex() {
         </h1>
         <p className="mt-4 text-lg text-slate-600">
           Las mismas calculadoras que usamos en Comply360 para las planillas de +50 empresas peruanas —
-          disponibles gratis para vos. Actualizadas con RMV S/ 1,130 y UIT S/ 5,500 (2026).
+          disponibles gratis para ti. Actualizadas con RMV S/ 1,130 y UIT S/ 5,500 (2026).
         </p>
       </section>
 

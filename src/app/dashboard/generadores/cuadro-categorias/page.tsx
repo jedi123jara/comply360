@@ -290,7 +290,7 @@ function Form({
         </Button>
         {!canSubmit ? (
           <p className="text-xs text-[color:var(--text-tertiary)] mt-2">
-            Completá al menos 1 puesto con nombre, funciones y salarios válidos (máx ≥ mín).
+            Completa al menos 1 puesto con nombre, funciones y salarios válidos (máx ≥ mín).
           </p>
         ) : null}
       </div>

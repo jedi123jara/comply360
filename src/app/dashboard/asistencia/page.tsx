@@ -337,7 +337,7 @@ export default function AsistenciaPage() {
             description={
               records.length === 0
                 ? 'Los trabajadores aún no registraron su asistencia con el QR del día. Cuando lo hagan, los verás acá en tiempo real.'
-                : 'Probá con otra fecha o ajustá los filtros. Tenés registros en otros días.'
+                : 'Prueba con otra fecha o ajusta los filtros. Tienes registros en otros días.'
             }
             action={
               records.length === 0

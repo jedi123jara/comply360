@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
+import { emit } from '@/lib/events'
 
 // GET /api/courses/[id]/exam — Get exam questions for a course
 export const GET = withAuthParams<{ id: string }>(async (_req, _ctx, params) => {
@@ -86,6 +87,7 @@ export const POST = withAuthParams<{ id: string }>(async (req, ctx, params) => {
         const year = new Date().getFullYear()
         const count = await prisma.certificate.count({ where: { orgId } })
         const code = `CERT-${year}-${String(count + 1).padStart(5, '0')}`
+        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.comply360.pe').replace(/\/$/, '')
 
         const certificate = await prisma.certificate.create({
           data: {
@@ -98,13 +100,24 @@ export const POST = withAuthParams<{ id: string }>(async (req, ctx, params) => {
             courseCategory: course.category,
             score,
             expiresAt: course.category === 'SST' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
-            qrData: `https://comply360.pe/verify/${code}`,
+            qrData: `${baseUrl}/verify/${code}`,
           },
         })
 
         await prisma.enrollment.update({
           where: { id: enrollment.id },
           data: { certificateId: certificate.id },
+        })
+
+        // Event bus: workflows se enganchan a training.completed
+        emit('training.completed', {
+          orgId,
+          userId: ctx.userId,
+          enrollmentId: enrollment.id,
+          workerId,
+          courseId,
+          courseCategory: course.category,
+          score,
         })
 
         return NextResponse.json({

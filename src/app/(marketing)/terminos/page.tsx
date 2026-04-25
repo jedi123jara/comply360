@@ -11,14 +11,14 @@ export default function TerminosPage() {
   return (
     <LegalPage
       title="Términos y Condiciones de Servicio"
-      subtitle="El acuerdo legal entre vos, tu empresa y Comply360."
+      subtitle="El acuerdo legal entre tú, tu empresa y Comply360."
       lastUpdated="20 de abril de 2026"
       legalBasis={['Código Civil Perú', 'Ley 28493', 'Ley 29733', 'Ley 27269']}
     >
       <h2>1. Aceptación del servicio</h2>
       <p>
-        Al registrar una cuenta en COMPLY360, aceptás estos Términos y Condiciones y
-        nuestra <a href="/privacidad">Política de Privacidad</a>, y confirmás tener
+        Al registrar una cuenta en COMPLY360, aceptas estos Términos y Condiciones y
+        nuestra <a href="/privacidad">Política de Privacidad</a>, y confirmas tener
         autoridad suficiente para firmar en representación de tu empresa.
       </p>
 
@@ -46,7 +46,7 @@ export default function TerminosPage() {
       </p>
       <ul>
         <li>
-          Las <strong>plantillas de contratos</strong> que vos subís a la plataforma con
+          Las <strong>plantillas de contratos</strong> que tú subes a la plataforma con
           placeholders son responsabilidad exclusiva de tu empresa y tu asesor legal.
           Comply360 actúa como motor de sustitución determinística, sin auditar ni
           certificar el contenido jurídico.
@@ -57,7 +57,7 @@ export default function TerminosPage() {
         </li>
         <li>
           El <strong>diagnóstico SUNAFIL</strong> refleja riesgos estimados basados en
-          información que vos proveés. No sustituye el criterio profesional de un abogado
+          información que tú provees. No sustituye el criterio profesional de un abogado
           laboralista.
         </li>
         <li>
@@ -140,7 +140,7 @@ export default function TerminosPage() {
       <h2>11. Cancelación y devolución</h2>
       <ul>
         <li>
-          Podés cancelar tu suscripción en cualquier momento desde{' '}
+          Puedes cancelar tu suscripción en cualquier momento desde{' '}
           <code>/dashboard/planes</code> o escribiendo a{' '}
           <a href="mailto:soporte@comply360.pe">soporte@comply360.pe</a>.
         </li>

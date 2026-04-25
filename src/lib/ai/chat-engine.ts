@@ -9,9 +9,10 @@
  *  3. Inyecta el contexto normativo antes de las messages del usuario
  *  4. Genera la respuesta con el LLM (o fallback simulado)
  */
-import { callAI, detectProvider, getModelName } from './provider'
+import { callAIWithUsage, detectProvider, getModelName } from './provider'
 import { retrieveRelevantLaw, formatRetrievedContext, type RetrievalResult } from './rag/retriever'
 import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
+import { recordAiUsage } from './usage'
 
 export type { RetrievalResult }
 
@@ -93,6 +94,7 @@ export interface ChatResponseWithCitations {
 export async function generateChatResponse(
   messages: ChatMessage[],
   orgContext: OrgContext,
+  meta?: { orgId?: string | null; userId?: string | null; feature?: string },
 ): Promise<ChatResponseWithCitations> {
   // ── 1. RAG híbrido: vector (si embeddings existen) + keyword fallback ──
   // El retriever v2 intenta embedding con OpenAI; si falla usa el corpus unificado
@@ -129,10 +131,36 @@ export async function generateChatResponse(
   const allMessages = [...systemMessages, ...messages]
 
   try {
-    const content = await callAI(allMessages, { temperature: 0.4, maxTokens: 2000 })
+    const { content, usage } = await callAIWithUsage(allMessages, {
+      temperature: 0.4,
+      maxTokens: 2000,
+    })
+
+    // Telemetría — fire-and-forget (no bloquea la respuesta al usuario)
+    void recordAiUsage({
+      orgId: meta?.orgId,
+      userId: meta?.userId,
+      feature: meta?.feature ?? 'chat',
+      provider: usage.provider,
+      model: usage.model,
+      promptTokens: usage.promptTokens,
+      completionTokens: usage.completionTokens,
+      latencyMs: usage.latencyMs,
+    })
+
     return { content, citations, ragChunksUsed: ragResults.length, simulated: false }
   } catch (error) {
     console.error('AI chat error:', error)
+    // Registrar el fallo también — útil para alertar si un provider está caído
+    void recordAiUsage({
+      orgId: meta?.orgId,
+      userId: meta?.userId,
+      feature: meta?.feature ?? 'chat',
+      provider: detectProvider(),
+      model: getModelName(),
+      success: false,
+      errorMessage: error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200),
+    })
     // Fallback al modo simulado si el LLM no está disponible
     const content = generateSimulatedResponse(lastUserMessage, orgContext)
     return { content, citations, ragChunksUsed: ragResults.length, simulated: true }

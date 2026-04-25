@@ -3,6 +3,7 @@ import { generateOrgAlerts, generateWorkerAlerts } from '@/lib/alerts/alert-engi
 import { withAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import type { AuthContext } from '@/lib/auth'
+import { emit } from '@/lib/events'
 
 // =============================================
 // GET /api/workers/alerts - List worker alerts for the org
@@ -107,6 +108,19 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
         : ctx.userId ?? 'system',
     },
   })
+
+  // Event bus: workflows pueden engancharse a alert.resolved, gamification
+  // suma puntos al admin que resuelve.
+  if (alert.resolvedAt === null) {
+    emit('alert.resolved', {
+      orgId,
+      userId: ctx.userId,
+      alertId: updated.id,
+      workerId: updated.workerId ?? undefined,
+      severity: updated.severity ?? undefined,
+      type: updated.type ?? undefined,
+    })
+  }
 
   return NextResponse.json({ data: { id: updated.id, resolvedAt: updated.resolvedAt?.toISOString() } })
 })

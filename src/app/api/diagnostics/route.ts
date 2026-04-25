@@ -7,6 +7,7 @@ import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
 import type { QuestionAnswer } from '@/lib/compliance/diagnostic-scorer'
 import type { DiagnosticType } from '@/generated/prisma/client'
 import { actionPlanToTaskInputs, spawnTasksFromActionPlan } from '@/lib/compliance/task-spawner'
+import { emit } from '@/lib/events'
 
 // =============================================
 // GET /api/diagnostics — List diagnostics + get questions
@@ -164,6 +165,15 @@ export const POST = withPlanGate('diagnostico', async (req, ctx) => {
     } catch (e) {
       console.error('[Diagnostics] task spawn failed:', e)
     }
+
+    // Event bus: workflows se enganchan a diagnostic.completed
+    emit('diagnostic.completed', {
+      orgId,
+      userId: ctx.userId,
+      diagnosticId: diagnostic.id,
+      type: diagnostic.type,
+      scoreGlobal: diagnostic.scoreGlobal,
+    })
 
     return NextResponse.json({
       diagnosticId: diagnostic.id,

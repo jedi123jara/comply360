@@ -17,7 +17,7 @@ export default function FirmaElectronicaPage() {
     >
       <h2>1. Qué es una &quot;firma electrónica&quot; en Comply360</h2>
       <p>
-        Cuando firmás un contrato o boleta desde el portal del trabajador, usamos{' '}
+        Cuando firmas un contrato o boleta desde el portal del trabajador, usamos{' '}
         <strong>WebAuthn</strong> — el estándar abierto para autenticación biométrica
         del navegador. En la práctica, tu dispositivo (iPhone, Android, Windows, Mac)
         valida tu identidad localmente con:
@@ -93,7 +93,7 @@ export default function FirmaElectronicaPage() {
         </li>
         <li>
           <strong>Trámites ante entidades públicas</strong>: algunos requieren firma
-          digital certificada (RENIEC). Para esos casos, tenés que imprimir + firmar en
+          digital certificada (RENIEC). Para esos casos, tienes que imprimir + firmar en
           papel, o esperar la integración RENIEC en Comply360.
         </li>
       </ul>

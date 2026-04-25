@@ -18,9 +18,12 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "preflight": "node scripts/preflight/check.mjs",
+    "preflight:voseo": "node scripts/preflight/check-voseo.mjs",
+    "preflight:multitenant": "node scripts/preflight/check-multitenant.mjs",
     "test:super": "vitest run && node scripts/preflight/super-test.mjs",
     "test:full": "vitest run && playwright test && node scripts/preflight/super-test.mjs",
-    "seed:demo": "tsx scripts/seed-demo-empresas.ts"
+    "seed:demo": "tsx scripts/seed-demo-empresas.ts",
+    "ingest:rag": "node scripts/ingest/embed-corpus.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -38,7 +41,10 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-pdf/renderer": "^4.5.1",
     "@sentry/nextjs": "^10.47.0",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.0",
     "@supabase/supabase-js": "^2.49.8",
     "@tanstack/react-query": "^5.96.2",
     "@tanstack/react-query-devtools": "^5.96.2",

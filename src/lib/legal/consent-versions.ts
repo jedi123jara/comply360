@@ -66,7 +66,7 @@ export const CONSENT_COPY = {
     subtitle:
       'Para activar tu cuenta necesitamos que revises y aceptes los siguientes documentos legales.',
     legalNote:
-      'Al aceptar, confirmás que leíste los documentos y que tenés autoridad para firmar en representación de tu empresa. Esta aceptación queda registrada con fecha, IP y dispositivo, conforme a la Ley 29733.',
+      'Al aceptar, confirmas que leíste los documentos y que tienes autoridad para firmar en representación de tu empresa. Esta aceptación queda registrada con fecha, IP y dispositivo, conforme a la Ley 29733.',
     confirmLabel: 'Acepto y continuar',
   },
   worker: {
@@ -74,7 +74,7 @@ export const CONSENT_COPY = {
     subtitle:
       'Tu empleador activó tu acceso a Comply360. Necesitamos tu autorización expresa para tratar tus datos personales y sensibles según la Ley N° 29733.',
     legalNote:
-      'Podés retirar esta autorización en cualquier momento desde tu perfil o escribiendo a datos@comply360.pe. Tus datos biométricos (huella/rostro) NO salen de tu dispositivo — sólo registramos la prueba criptográfica de tu firma.',
+      'Puedes retirar esta autorización en cualquier momento desde tu perfil o escribiendo a datos@comply360.pe. Tus datos biométricos (huella/rostro) NO salen de tu dispositivo — sólo registramos la prueba criptográfica de tu firma.',
     confirmLabel: 'Autorizo el tratamiento de mis datos',
   },
 } as const

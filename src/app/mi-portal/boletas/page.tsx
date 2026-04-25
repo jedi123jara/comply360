@@ -11,6 +11,7 @@ import {
   Clock,
   Fingerprint,
 } from 'lucide-react'
+import { CTSProjectionCard, SalaryChart } from '@/components/mi-portal'
 
 /**
  * /mi-portal/boletas — Lista de boletas de pago (Emerald Light, mobile-first).
@@ -150,6 +151,12 @@ export default function BoletasPage() {
         </p>
       </header>
 
+      {/* ─── Evolución del sueldo ─────────────────────────────────────── */}
+      <SalaryChart />
+
+      {/* ─── CTS proyectada ───────────────────────────────────────────── */}
+      <CTSProjectionCard />
+
       {/* ─── Empty ───────────────────────────────────────────────────── */}
       {boletas.length === 0 ? (
         <div
@@ -191,7 +198,7 @@ export default function BoletasPage() {
         <Fingerprint className="h-4 w-4 text-emerald-700 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-[color:var(--text-secondary)] leading-relaxed">
           <b className="text-[color:var(--text-primary)]">Firma con huella digital</b>.
-          Cuando firmás una boleta, la biometría de tu dispositivo queda registrada
+          Cuando firmas una boleta, la biometría de tu dispositivo queda registrada
           como prueba de recepción. Base legal: D.S. 001-98-TR Art. 19 + Ley 27269.
         </p>
       </div>
@@ -277,7 +284,7 @@ function PayslipCard({ boleta }: { boleta: PayslipItem }) {
         {isPending ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700">
             <Fingerprint className="h-3.5 w-3.5" />
-            Firmá con huella
+            Firma con huella
           </span>
         ) : boleta.acceptedAt ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700">

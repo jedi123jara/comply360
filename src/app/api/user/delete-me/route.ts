@@ -158,7 +158,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       success: true,
       scope: 'admin',
       message:
-        'Tu solicitud de eliminación ha sido registrada. Nuestro equipo te contactará en <48h para procesarla. Si sos el OWNER de una organización con trabajadores activos, te guiaremos en la migración o cancelación del servicio.',
+        'Tu solicitud de eliminación ha sido registrada. Nuestro equipo te contactará en <48h para procesarla. Si eres el OWNER de una organización con trabajadores activos, te guiaremos en la migración o cancelación del servicio.',
       ticketId: `DEL-${ctx.userId.slice(0, 8)}-${Date.now()}`,
     })
   } catch (err) {

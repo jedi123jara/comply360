@@ -105,13 +105,13 @@ export default function MiPortalContratosPage() {
           dangerouslySetInnerHTML={{
             __html:
               pending.length > 0
-                ? `Tenés <em style="color:var(--emerald-700);font-style:italic;">${pending.length} contrato${pending.length === 1 ? '' : 's'}</em> pendiente${pending.length === 1 ? '' : 's'} de firma.`
+                ? `Tienes <em style="color:var(--emerald-700);font-style:italic;">${pending.length} contrato${pending.length === 1 ? '' : 's'}</em> pendiente${pending.length === 1 ? '' : 's'} de firma.`
                 : 'Al día con tus <em style="color:var(--emerald-700);font-style:italic;">contratos</em>.',
           }}
         />
         <p className="text-sm text-[color:var(--text-secondary)]">
           {pending.length > 0
-            ? 'Leé el contenido y firmá con tu huella o Face ID. La firma biométrica tiene validez legal entre partes.'
+            ? 'Lee el contenido y firma con tu huella o Face ID. La firma biométrica tiene validez legal entre partes.'
             : 'Cuando tu empleador te envíe un nuevo contrato, aparecerá acá para firmar.'}
         </p>
       </header>
@@ -142,7 +142,7 @@ export default function MiPortalContratosPage() {
       {pending.length > 0 ? (
         <Section
           title="Esperan tu firma"
-          subtitle="Firmá para continuar con tu onboarding en la empresa."
+          subtitle="Firma para continuar con tu onboarding en la empresa."
           accent="amber"
         >
           {pending.map((c) => (
@@ -346,7 +346,7 @@ function StatusPill({ contract }: { contract: ContractItem }) {
   if (contract.pendingToSign) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-900 ring-1 ring-amber-300">
-        <Clock className="h-3 w-3" /> Firmá ya
+        <Clock className="h-3 w-3" /> Firma ya
       </span>
     )
   }

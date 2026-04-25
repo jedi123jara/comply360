@@ -248,7 +248,7 @@ export default function PlantillaEditorPage({
               </p>
               <p className="mt-1 text-xs text-amber-800">
                 Al generar el documento, estos campos quedarán como “____________”.
-                Mapéalos en el panel derecho o usá “Auto-mapear” para asignarlos desde el catálogo.
+                Mapéalos en el panel derecho o usa “Auto-mapear” para asignarlos desde el catálogo.
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {unmapped.map((p) => (
@@ -293,7 +293,7 @@ export default function PlantillaEditorPage({
 
           <Card
             title="Contenido"
-            subtitle={`Usá {{MAYÚSCULAS_CON_GUIÓN_BAJO}} para placeholders.  ${content.length} caracteres.`}
+            subtitle={`Usa {{MAYÚSCULAS_CON_GUIÓN_BAJO}} para placeholders.  ${content.length} caracteres.`}
           >
             <textarea
               value={content}

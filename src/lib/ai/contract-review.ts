@@ -3,13 +3,18 @@
 // Análisis normativo profundo por tipo de contrato
 // Normativa: D.Leg. 728, Ley 29783, Ley 27942, Ley 29733, Ley 30709
 // =============================================
-import { callAI } from './provider'
+import { callAIWithUsage } from './provider'
 import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
+import { recordAiUsage } from './usage'
+import { redactPii } from './pii-redactor'
 
 export interface ContractReviewInput {
   contractHtml: string
   contractType: string
   templateId?: string
+  /** Para telemetría de costos AI — pasarlos cuando estén disponibles */
+  orgId?: string | null
+  userId?: string | null
 }
 
 export interface ContractReviewResult {
@@ -96,11 +101,24 @@ Responde SIEMPRE en JSON válido. Respuestas en español peruano.`
 function buildPrompt(input: ContractReviewInput): string {
   const tipoLabel = input.contractType.replace(/_/g, ' ')
 
+  // Redactamos PII antes de mandar al LLM. El análisis legal sigue siendo
+  // válido sobre placeholders ([DNI_1], [RUC_1], [WORKER_1], etc.) — el
+  // modelo razona sobre estructura/cláusulas, no sobre los valores literales.
+  // Reduce blast radius bajo Ley 29733.
+  const cleanText = stripHtml(input.contractHtml)
+  const { redacted } = redactPii(cleanText)
+  const redactedSlice = redacted.slice(0, 12000)
+
   return `Analiza este contrato de tipo "${tipoLabel}" contra la normativa laboral peruana vigente.
+
+NOTA: Identificadores personales (DNIs, RUCs, emails, teléfonos, nombres) fueron
+reemplazados por placeholders tipo [DNI_1], [RUC_1], [EMAIL_1], [WORKER_1] para
+preservar privacidad. Tu análisis debe centrarse en cláusulas, obligaciones y
+estructura legal — los placeholders están bien donde aparecen.
 
 TEXTO DEL CONTRATO:
 ---
-${stripHtml(input.contractHtml).slice(0, 12000)}
+${redactedSlice}
 ---
 
 Responde con este JSON exacto:
@@ -248,11 +266,22 @@ export async function reviewContract(input: ContractReviewInput): Promise<Contra
       { role: 'user' as const, content: prompt },
     ]
 
-    const content = await callAI(messages, {
+    const { content, usage } = await callAIWithUsage(messages, {
       temperature: 0.2,
       maxTokens: 5000,
       jsonMode: true,
       feature: 'contract-review',
+    })
+
+    void recordAiUsage({
+      orgId: input.orgId,
+      userId: input.userId,
+      feature: 'contract-review',
+      provider: usage.provider,
+      model: usage.model,
+      promptTokens: usage.promptTokens,
+      completionTokens: usage.completionTokens,
+      latencyMs: usage.latencyMs,
     })
 
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ||

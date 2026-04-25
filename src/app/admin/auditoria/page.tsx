@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ShieldCheck, Search, User, Building2, Calendar } from 'lucide-react'
+import { Building2, Calendar, Download, Search, ShieldCheck, User } from 'lucide-react'
+import { fmtN } from '@/components/admin/primitives'
 
 interface AuditEvent {
   id: string
@@ -31,82 +32,177 @@ export default function AuditoriaPage() {
     const q = search.toLowerCase()
     return (
       e.action.toLowerCase().includes(q) ||
-      e.organization?.name.toLowerCase().includes(q) ||
-      e.user?.email.toLowerCase().includes(q)
+      (e.organization?.name.toLowerCase().includes(q) ?? false) ||
+      (e.user?.email.toLowerCase().includes(q) ?? false)
     )
   })
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-blue-600" />
-          Auditoría global
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Registro inmutable de todas las acciones críticas en la plataforma
-        </p>
+    <>
+      <div className="a-page-head">
+        <div>
+          <div className="crumbs">Plataforma · Auditoría</div>
+          <h1>
+            Log <em>inmutable</em>
+          </h1>
+          <div className="sub">
+            Registro de todas las acciones críticas en la plataforma — signup, upgrades,
+            impersonations, resoluciones de denuncias, borrados.
+          </div>
+        </div>
+        <div className="spacer" />
+        <div className="actions">
+          <button className="a-btn a-btn-secondary" type="button">
+            <Download size={13} /> Export
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          alignItems: 'center',
+          marginBottom: 14,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ flex: 1, position: 'relative', minWidth: 260, maxWidth: 480 }}>
+          <Search
+            size={13}
+            style={{ position: 'absolute', left: 10, top: 10, color: 'var(--text-tertiary)' }}
+          />
           <input
             type="text"
-            placeholder="Buscar por accion, empresa o usuario..."
+            placeholder="Buscar por acción, empresa o email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="a-input"
+            style={{ paddingLeft: 32 }}
           />
         </div>
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+          {fmtN(filtered.length)} eventos · últimos 100
+        </span>
       </div>
 
       {loading ? (
-        <div className="h-96 bg-slate-100 animate-pulse rounded-xl" />
+        <div
+          style={{
+            height: 360,
+            background: 'var(--neutral-100)',
+            borderRadius: 12,
+            animation: 'pulseEmerald 2s infinite',
+          }}
+        />
       ) : filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
-          <ShieldCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">Sin eventos de auditoría.</p>
+        <div className="a-card" style={{ padding: 48, textAlign: 'center' }}>
+          <ShieldCheck
+            size={40}
+            style={{ color: 'var(--neutral-300)', margin: '0 auto 10px', display: 'block' }}
+          />
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Sin eventos de auditoría.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <ul className="divide-y divide-slate-100">
-            {filtered.map((e) => (
-              <li key={e.id} className="p-4 hover:bg-slate-50">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-mono text-sm font-semibold text-slate-900">{e.action}</p>
-                    {e.entityType && (
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {e.entityType}{e.entityId && ` · ${e.entityId.slice(0, 8)}…`}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500 mt-2">
-                      {e.organization && (
-                        <span className="flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
-                          {e.organization.name}
-                        </span>
-                      )}
-                      {e.user && (
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {e.user.email}
-                        </span>
-                      )}
-                      {e.ipAddress && <span>IP: {e.ipAddress}</span>}
-                    </div>
-                  </div>
-                  <span className="text-xs text-slate-400 whitespace-nowrap flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(e.createdAt).toLocaleString('es-PE')}
+        <div className="a-card" style={{ padding: 0 }}>
+          {filtered.map((e, i) => (
+            <div
+              key={e.id}
+              style={{
+                padding: '14px 18px',
+                borderBottom:
+                  i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                display: 'flex',
+                gap: 16,
+                alignItems: 'flex-start',
+                transition: 'background .15s',
+              }}
+              onMouseEnter={(ev) => (ev.currentTarget.style.background = 'var(--neutral-50)')}
+              onMouseLeave={(ev) => (ev.currentTarget.style.background = 'transparent')}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <code
+                  style={{
+                    fontFamily: 'var(--font-geist-mono), monospace',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: 'var(--emerald-700)',
+                    background: 'var(--emerald-50)',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    display: 'inline-block',
+                  }}
+                >
+                  {e.action}
+                </code>
+                {e.entityType && (
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      fontSize: 11,
+                      color: 'var(--text-tertiary)',
+                      fontFamily: 'var(--font-geist-mono), monospace',
+                    }}
+                  >
+                    {e.entityType}
+                    {e.entityId && ` · ${e.entityId.slice(0, 8)}…`}
                   </span>
+                )}
+
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px 16px',
+                    fontSize: 11.5,
+                    color: 'var(--text-tertiary)',
+                    marginTop: 8,
+                  }}
+                >
+                  {e.organization && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Building2 size={11} /> {e.organization.name}
+                    </span>
+                  )}
+                  {e.user && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <User size={11} /> {e.user.email}
+                    </span>
+                  )}
+                  {e.ipAddress && (
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-geist-mono), monospace',
+                      }}
+                    >
+                      IP: {e.ipAddress}
+                    </span>
+                  )}
                 </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+
+              <span
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-tertiary)',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontFamily: 'var(--font-geist-mono), monospace',
+                  flexShrink: 0,
+                }}
+              >
+                <Calendar size={11} />
+                {new Date(e.createdAt).toLocaleString('es-PE', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })}
+              </span>
+            </div>
+          ))}
         </div>
       )}
-    </div>
+    </>
   )
 }

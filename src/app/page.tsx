@@ -886,7 +886,7 @@ export default function LandingPage() {
                 initBg: 'from-violet-500 to-violet-600',
               },
               {
-                quote: 'Antes usábamos Excel para todo. Ahora todo está automatizado y sin errores. El simulacro SUNAFIL nos salvó de una multa importante.',
+                quote: 'Antes usabamos Excel para todo. Ahora todo está automatizado y sin errores. El simulacro SUNAFIL nos salvó de una multa importante.',
                 name: 'Ana Castillo',
                 title: 'Gerente Legal',
                 company: 'Tech Solutions Perú',

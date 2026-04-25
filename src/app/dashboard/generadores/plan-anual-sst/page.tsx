@@ -309,7 +309,7 @@ function Form({
         </Button>
         {!canSubmit ? (
           <p className="text-xs text-[color:var(--text-tertiary)] mt-2">
-            Completá diagnóstico, responsable, presupuesto, 1+ objetivo con meta, y 4+ capacitaciones con tema.
+            Completa diagnóstico, responsable, presupuesto, 1+ objetivo con meta, y 4+ capacitaciones con tema.
           </p>
         ) : null}
       </div>

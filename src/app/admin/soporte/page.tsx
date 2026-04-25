@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { LifeBuoy, Loader2, Mail, Calendar, Building2, AlertCircle } from 'lucide-react'
+import { AlertCircle, Building2, Calendar, LifeBuoy, Loader2, Mail } from 'lucide-react'
+import { fmtN } from '@/components/admin/primitives'
 
 type Ticket = {
   id: string
@@ -15,11 +16,11 @@ type Ticket = {
   org: { id: string; name: string; plan: string } | null
 }
 
-const PRIORITY_COLORS: Record<string, string> = {
-  critica: 'bg-red-100 text-red-800 ring-red-200',
-  alta: 'bg-orange-100 text-orange-800 ring-orange-200',
-  media: 'bg-blue-100 text-blue-800 ring-blue-200',
-  baja: 'bg-slate-100 text-slate-700 ring-slate-200',
+const PRIORITY_BADGE: Record<string, string> = {
+  critica: 'a-badge-crimson',
+  alta: 'a-badge-amber',
+  media: 'a-badge-cyan',
+  baja: 'a-badge-neutral',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -58,142 +59,254 @@ export default function SoportePage() {
   }, [])
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <LifeBuoy className="w-6 h-6 text-blue-600" />
-          Tickets de soporte
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Solicitudes de ayuda de usuarios de todas las empresas, ordenadas por más reciente.
-        </p>
-      </header>
+    <>
+      <div className="a-page-head">
+        <div>
+          <div className="crumbs">Plataforma · Soporte</div>
+          <h1>
+            Tickets <em>abiertos</em>
+          </h1>
+          <div className="sub">
+            Solicitudes de ayuda de empresas de toda la plataforma, ordenadas por más reciente.
+          </div>
+        </div>
+      </div>
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white ring-1 ring-slate-200 rounded-xl p-4">
-            <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
-              Total
-            </div>
-            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalOpen}</div>
+        <div className="a-grid-4" style={{ marginBottom: 18 }}>
+          <div className="a-kpi">
+            <div className="a-kpi-label">Total abiertos</div>
+            <div className="a-kpi-value">{fmtN(stats.totalOpen)}</div>
+            <div className="a-kpi-foot">Cola activa</div>
           </div>
-          {(['critica', 'alta', 'media'] as const).map((p) => (
-            <div key={p} className="bg-white ring-1 ring-slate-200 rounded-xl p-4">
-              <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </div>
-              <div className="text-2xl font-bold text-slate-900 mt-1">
-                {stats.byPriority[p] ?? 0}
-              </div>
+          <div className="a-kpi">
+            <div className="a-kpi-label">Prioridad crítica</div>
+            <div
+              className="a-kpi-value"
+              style={{ color: (stats.byPriority.critica ?? 0) > 0 ? 'var(--crimson-600)' : 'var(--text-primary)' }}
+            >
+              {fmtN(stats.byPriority.critica ?? 0)}
             </div>
-          ))}
+            <div className="a-kpi-foot">SLA 2h</div>
+          </div>
+          <div className="a-kpi">
+            <div className="a-kpi-label">Prioridad alta</div>
+            <div className="a-kpi-value">{fmtN(stats.byPriority.alta ?? 0)}</div>
+            <div className="a-kpi-foot">SLA 24h</div>
+          </div>
+          <div className="a-kpi">
+            <div className="a-kpi-label">Prioridad media</div>
+            <div className="a-kpi-value">{fmtN(stats.byPriority.media ?? 0)}</div>
+            <div className="a-kpi-foot">SLA 72h</div>
+          </div>
         </div>
       )}
 
-      {/* Loading */}
       {loading && (
-        <div className="text-center py-12 text-slate-400 flex items-center justify-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" /> Cargando tickets…
+        <div
+          style={{
+            padding: 48,
+            textAlign: 'center',
+            color: 'var(--text-tertiary)',
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Loader2 size={14} className="animate-spin" /> Cargando tickets…
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && tickets.length === 0 && (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
-          <LifeBuoy className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-700 font-semibold">Sin tickets todavía</p>
-          <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-            Cuando un usuario envíe un ticket desde su dashboard, aparecerá acá. Los tickets con
-            prioridad alta o crítica también te llegan por email.
+        <div className="a-card" style={{ padding: 48, textAlign: 'center' }}>
+          <LifeBuoy
+            size={40}
+            style={{ color: 'var(--neutral-300)', margin: '0 auto 12px', display: 'block' }}
+          />
+          <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 14 }}>
+            Sin tickets abiertos
+          </p>
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: 13,
+              marginTop: 6,
+              maxWidth: 440,
+              margin: '6px auto 0',
+            }}
+          >
+            Cuando un usuario envíe un ticket desde su dashboard, aparecerá acá. Los tickets
+            con prioridad alta o crítica también te llegan por email.
           </p>
         </div>
       )}
 
-      {/* List */}
       {!loading && tickets.length > 0 && (
-        <div className="bg-white ring-1 ring-slate-200 rounded-xl overflow-hidden">
-          <ul className="divide-y divide-slate-100">
-            {tickets.map((t) => {
-              const isOpen = expanded === t.id
-              return (
-                <li key={t.id}>
-                  <button
-                    onClick={() => setExpanded(isOpen ? null : t.id)}
-                    className="w-full px-5 py-4 text-left hover:bg-slate-50 transition-colors"
+        <div className="a-card" style={{ padding: 0 }}>
+          {tickets.map((t, i) => {
+            const isOpen = expanded === t.id
+            return (
+              <div
+                key={t.id}
+                style={{
+                  borderBottom: i < tickets.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isOpen ? null : t.id)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '14px 18px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'background .15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--neutral-50)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      flexWrap: 'wrap',
+                    }}
                   >
-                    <div className="flex items-start gap-3 flex-wrap">
+                    <span className={`a-badge ${PRIORITY_BADGE[t.priority] ?? 'a-badge-neutral'}`}>
+                      {t.priority}
+                    </span>
+                    <span className="a-badge a-badge-neutral">
+                      {CATEGORY_LABELS[t.category] ?? t.category}
+                    </span>
+                    <span className="term-chip">{t.code}</span>
+                    <div
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: 11,
+                        color: 'var(--text-tertiary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                      }}
+                    >
+                      <Calendar size={11} />
+                      {new Date(t.createdAt).toLocaleString('es-PE', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      marginTop: 8,
+                    }}
+                  >
+                    {t.subject}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      marginTop: 6,
+                      fontSize: 11.5,
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    {t.reporter && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <Mail size={11} /> {t.reporter.email}
+                      </span>
+                    )}
+                    {t.org && (
                       <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ring-1 ${
-                          PRIORITY_COLORS[t.priority] ?? PRIORITY_COLORS.media
-                        }`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
                       >
-                        {t.priority}
+                        <Building2 size={11} /> {t.org.name} ·{' '}
+                        <span style={{ fontWeight: 600 }}>{t.org.plan}</span>
                       </span>
-                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 ring-1 ring-slate-200 rounded-full px-2 py-0.5">
-                        {CATEGORY_LABELS[t.category] ?? t.category}
-                      </span>
-                      <span className="text-xs font-mono text-slate-400">{t.code}</span>
-                      <div className="ml-auto text-xs text-slate-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(t.createdAt).toLocaleString('es-PE', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        })}
-                      </div>
-                    </div>
-                    <div className="font-semibold text-slate-900 mt-1.5 line-clamp-1">
-                      {t.subject}
-                    </div>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                      {t.reporter && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> {t.reporter.email}
-                        </span>
-                      )}
-                      {t.org && (
-                        <span className="flex items-center gap-1">
-                          <Building2 className="w-3 h-3" /> {t.org.name}{' '}
-                          <span className="text-slate-300">·</span>{' '}
-                          <span className="font-medium">{t.org.plan}</span>
-                        </span>
-                      )}
-                    </div>
-                  </button>
+                    )}
+                  </div>
+                </button>
 
-                  {isOpen && (
-                    <div className="px-5 pb-5 bg-slate-50/50 border-t border-slate-100">
-                      <div className="pt-4 text-sm text-slate-700 whitespace-pre-wrap">
-                        {t.description}
-                      </div>
-                      {t.reporter?.email && (
-                        <a
-                          href={`mailto:${t.reporter.email}?subject=Re:%20${encodeURIComponent(t.subject)}%20(${t.code})`}
-                          className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-semibold transition-colors"
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                          Responder por email
-                        </a>
-                      )}
+                {isOpen && (
+                  <div
+                    style={{
+                      padding: '18px 22px 22px',
+                      background: 'var(--neutral-50)',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: 'var(--text-primary)',
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {t.description}
                     </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+                    {t.reporter?.email && (
+                      <a
+                        href={`mailto:${t.reporter.email}?subject=Re:%20${encodeURIComponent(t.subject)}%20(${t.code})`}
+                        className="a-btn a-btn-primary a-btn-sm"
+                        style={{ marginTop: 14, display: 'inline-flex' }}
+                      >
+                        <Mail size={12} /> Responder por email
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
-      <div className="rounded-xl bg-blue-50/50 ring-1 ring-blue-200/60 p-4 flex items-start gap-2.5 text-xs text-blue-900">
-        <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+      <div
+        style={{
+          marginTop: 18,
+          borderRadius: 12,
+          background: 'var(--cyan-50)',
+          border: '1px solid rgba(6, 182, 212, 0.25)',
+          padding: '12px 16px',
+          display: 'flex',
+          gap: 10,
+          alignItems: 'flex-start',
+          fontSize: 12,
+          color: 'var(--cyan-600)',
+        }}
+      >
+        <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
         <div>
-          Los tickets se crean desde el formulario en{' '}
-          <code className="text-blue-700 bg-white/60 rounded px-1">
+          Los tickets se crean desde{' '}
+          <code
+            style={{
+              fontFamily: 'var(--font-geist-mono), monospace',
+              background: 'rgba(255, 255, 255, 0.6)',
+              padding: '1px 5px',
+              borderRadius: 3,
+            }}
+          >
             /dashboard/configuracion/soporte
           </code>{' '}
-          dentro del app de cada usuario. Esta vista lista todos en tiempo real.
+          dentro de cada empresa. Esta vista lista todos en tiempo real.
         </div>
       </div>
-    </div>
+    </>
   )
 }

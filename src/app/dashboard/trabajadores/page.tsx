@@ -134,7 +134,7 @@ export default function TrabajadoresPage() {
         console.error('Workers load error:', err)
         setFetchError(
           err.message ||
-            'No pudimos cargar los trabajadores. Revisá tu conexión o intentá recargar.',
+            'No pudimos cargar los trabajadores. Revisa tu conexión o intentá recargar.',
         )
         setWorkers([])
       })
@@ -579,8 +579,8 @@ export default function TrabajadoresPage() {
           icon={Users}
           variant="invite"
           eyebrow="Primer paso"
-          title="Empezá protegiendo a tu <em>primer trabajador</em>."
-          subtitle="Registrá a un trabajador y desbloqueás cálculos automáticos de CTS, gratificación, alertas por vencimientos, y su legajo digital con 28 documentos obligatorios."
+          title="Empieza protegiendo a tu <em>primer trabajador</em>."
+          subtitle="Registra a un trabajador y desbloqueás cálculos automáticos de CTS, gratificación, alertas por vencimientos, y su legajo digital con 28 documentos obligatorios."
           hints={[
             { icon: BarChart2, text: 'Score de compliance automático' },
             { icon: Calendar, text: 'Alertas de CTS, vacaciones y SCTR' },
@@ -737,7 +737,7 @@ export default function TrabajadoresPage() {
                                   toast.error('No se pudo eliminar. Intentá de nuevo.')
                                 }
                               } catch {
-                                toast.error('No se pudo eliminar. Revisá tu conexión.')
+                                toast.error('No se pudo eliminar. Revisa tu conexión.')
                               }
                             }}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"

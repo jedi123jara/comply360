@@ -11,7 +11,7 @@ import { Sparkles, ArrowRight } from 'lucide-react'
  * experiencia orientada a **primera acción**. Tres variants:
  *
  *  - `celebrate`   — "¡Todo bajo control!" (emerald hero)
- *  - `invite`      — "Empezá acá" (ambar warm, onboarding first action)
+ *  - `invite`      — "Empieza acá" (ambar warm, onboarding first action)
  *  - `discover`    — "Desbloqueá esta función" (emerald con gradient)
  *
  * Todas las variantes incluyen:
@@ -57,7 +57,7 @@ export interface PremiumEmptyStateProps {
     href?: string
     onClick?: () => void
   }
-  /** Texto footer educativo opcional (ej: "¿Dudas? Mirá la guía"). */
+  /** Texto footer educativo opcional (ej: "¿Dudas? Mira la guía"). */
   helpLink?: {
     label: string
     href: string

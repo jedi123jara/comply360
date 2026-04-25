@@ -178,7 +178,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     doc.setFontSize(6.5)
     doc.setTextColor(150, 150, 150)
     doc.text(
-      'Documento generado por COMPLY360. Revisá el contenido con tu asesor legal antes de firmar y distribuir. Este documento es un borrador estructurado en base a la normativa peruana vigente; la responsabilidad final de su adecuación al caso concreto recae en la organización.',
+      'Documento generado por COMPLY360. Revisa el contenido con tu asesor legal antes de firmar y distribuir. Este documento es un borrador estructurado en base a la normativa peruana vigente; la responsabilidad final de su adecuación al caso concreto recae en la organización.',
       14, y, { maxWidth: 180 },
     )
 

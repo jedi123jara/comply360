@@ -88,7 +88,7 @@ function Cover({ onStart }: { onStart: () => void }) {
           <Clock className="h-4 w-4 text-[color:var(--text-tertiary)] shrink-0" />
           <span className="text-sm text-[color:var(--text-secondary)]">
             Duración estimada: <strong className="text-[color:var(--text-primary)]">10–15 minutos</strong>.
-            Podés pausar y continuar después.
+            Puedes pausar y continuar después.
           </span>
         </div>
       </Card>

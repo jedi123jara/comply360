@@ -106,7 +106,7 @@ function IntroCover({
         </h1>
         <p className="text-lg text-[color:var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
           Una serie de preguntas guiadas que cubren las 8 áreas que SUNAFIL revisa. Al
-          terminar recibís un score por área, multa estimada y un plan priorizado de acción.
+          terminar recibes un score por área, multa estimada y un plan priorizado de acción.
         </p>
       </div>
 
@@ -114,7 +114,7 @@ function IntroCover({
         <StepIcon
           icon={FileText}
           title="Respondé"
-          description="Sí / No / Parcial. Podés subir evidencia cuando aplique."
+          description="Sí / No / Parcial. Puedes subir evidencia cuando aplique."
         />
         <StepIcon
           icon={Sparkles}

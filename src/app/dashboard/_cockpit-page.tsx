@@ -298,7 +298,7 @@ export default function CockpitPage() {
           variant="closed"
           label="Lo que cerraste"
           title={buildClosedTitle(data)}
-          description="Revisá el detalle de alertas resueltas y contratos renovados."
+          description="Revisa el detalle de alertas resueltas y contratos renovados."
           icon={ShieldCheck}
           href="/dashboard/alertas"
           cta="Ver alertas"
@@ -399,7 +399,7 @@ function PlaceholderRadar({ totalWorkers }: { totalWorkers: number }) {
         </p>
         <p className="text-xs text-[color:var(--text-tertiary)] mt-1 max-w-xs">
           {totalWorkers === 0
-            ? 'Registrá trabajadores y corré un diagnóstico para empezar a comparar con tu sector.'
+            ? 'Registra trabajadores y corré un diagnóstico para empezar a comparar con tu sector.'
             : 'El benchmark se actualizará tras el próximo diagnóstico mensual.'}
         </p>
       </div>

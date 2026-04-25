@@ -132,7 +132,7 @@ que convencer.
 #### Scroll hacia abajo
 - **Sección "El problema"**: Trauma post-SUNAFIL cuantificado. "Una multa promedio en construcción civil = S/ 142,000. Evitala por S/ 129/mes."
 - **Sección "Cómo funciona"**: 3 pasos visuales (Diagnóstico → Plan de acción → Cumplimiento).
-- **Sección "Qué incluye"**: Grid de 6-8 features con íconos. Sin explicaciones largas — que cliqueen si quieren detalle.
+- **Sección "Qué incluye"**: Grid de 6-8 features con íconos. Sin explicaciones largas — que hagan clic si quieren detalle.
 - **Testimonios**: 3-4 clientes reales con foto, nombre, cargo, empresa, quote.
 - **Comparación**: Tabla "Comply360 vs Excel vs Abogado externo" (ahorro anual calculado).
 - **FAQ**: 6-8 preguntas típicas del mercado peruano.
@@ -161,7 +161,7 @@ encuentra nuestra calculadora.
   - Número grande del monto (ej: "S/ 2,349.17").
   - Breakdown con fórmula paso a paso.
   - Base legal citada al pie.
-- **CTA contextual**: "¿Querés el análisis completo de tu empresa? Registrate gratis → calculás TODOS los workers a la vez, guardás histórico, recibís alertas."
+- **CTA contextual**: "¿Quieres el análisis completo de tu empresa? Regístrate gratis → calculas TODOS los workers a la vez, guardas histórico, recibes alertas."
 
 #### Lo que NO debería pasar
 - El CTA de signup tapando el resultado.
@@ -171,7 +171,7 @@ encuentra nuestra calculadora.
 ### 3.3. `/planes` — Pricing page
 
 #### Qué ve
-- Hero "Un precio simple. Pagás lo que usás."
+- Hero "Un precio simple. Pagas lo que usas."
 - Subhero cuantificado: "Un abogado te cobra S/ 3K-8K/mes por llevarte la planilla. Nosotros S/ 299."
 - 4 cards de planes (STARTER / EMPRESA / PRO / ENTERPRISE) con EMPRESA destacado.
 - Cada card: precio grande, tagline, 5-8 features con checks, CTA.
@@ -189,7 +189,7 @@ encuentra nuestra calculadora.
 
 #### Después del demo ideal
 - Botón "Comparar planes lado a lado" abre una tabla detallada con scroll horizontal en móvil.
-- ROI calculator: "Si evitás 1 multa al año, pagás Comply360 por los próximos 24 años".
+- ROI calculator: "Si evitas 1 multa al año, pagas Comply360 por los próximos 24 años".
 
 ### 3.4. `/diagnostico-gratis` — Lead magnet principal
 
@@ -197,13 +197,13 @@ encuentra nuestra calculadora.
 preview útil, y convertirlo en signup.
 
 #### Flujo
-1. **Landing**: "Descubrí en 3 minutos qué tan expuesto estás a una multa SUNAFIL".
+1. **Landing**: "Descubre en 3 minutos qué tan expuesto estás a una multa SUNAFIL".
 2. **20 preguntas tipo Typeform**: una por pantalla, progress bar, botón "Siguiente" (Enter para avanzar).
 3. **Resultado parcial gratis**:
    - Score (ej: "Tu score: 58/100").
    - "Riesgo de multa estimado: S/ 45,000–S/ 180,000".
    - Las 3 brechas más graves (solo nombres, sin detalle).
-4. **CTA de conversión**: "Registrate gratis para ver tu reporte completo — 135 preguntas, plan de acción priorizado, simulacro de inspección".
+4. **CTA de conversión**: "Regístrate gratis para ver tu reporte completo — 135 preguntas, plan de acción priorizado, simulacro de inspección".
 5. El email del visitante queda registrado en `Lead` para seguimiento.
 
 ### 3.5. `/recursos` — Blog SEO
@@ -219,7 +219,7 @@ preview útil, y convertirlo en signup.
 
 - Copy distinto: no vende al empleador, vende al CONTADOR.
 - Headline: "Cobra más a tus clientes con compliance digital — sin aumentar tu trabajo".
-- Cards con el CASO: "Hoy llevás 25 empresas en Excel. Mañana con Comply360: 1 dashboard, alertas automáticas, diagnóstico en clicks."
+- Cards con el CASO: "Hoy llevas 25 empresas en Excel. Mañana con Comply360: 1 dashboard, alertas automáticas, diagnóstico en clics."
 - Pricing especial (S/ 79-119/empresa según volumen).
 - CTA: "Ser Consultor Partner" (abre flow específico con demo personalizado).
 
@@ -238,7 +238,7 @@ preview útil, y convertirlo en signup.
   - ✓ 28 documentos obligatorios pre-cargados
   - ✓ Calendario fiscal peruano automático
 - Form Clerk: email + password, o "Continuar con Google".
-- Legal footer: "Al continuar aceptás nuestros términos y privacidad".
+- Legal footer: "Al continuar aceptas nuestros términos y privacidad".
 
 #### Lo que pasa detrás
 - Clerk crea el usuario.
@@ -265,12 +265,12 @@ preview útil, y convertirlo en signup.
 **Paso 2 — Régimen laboral principal**
 - Radio cards grandes con los 12 regímenes.
 - Por cada uno: descripción corta + "ver detalle" popover con beneficios clave.
-- Recomendación sutil: "El sistema elige automáticamente según tu sector, pero podés cambiarlo".
+- Recomendación sutil: "El sistema elige automáticamente según tu sector, pero puedes cambiarlo".
 
 **Paso 3 — Configuración de alertas**
 - Email del responsable RRHH (default: email del signup, editable).
 - Checkboxes: "Alertarme sobre CTS / gratificación / vacaciones / contratos / SST".
-- "¿Querés notificaciones push en tu celular?" (pide permiso del browser).
+- "¿Quieres notificaciones push en tu celular?" (pide permiso del browser).
 
 **Paso 4 — Confirmación**
 - Resumen visual (como un card con los datos).
@@ -280,8 +280,8 @@ preview útil, y convertirlo en signup.
 - Redirect al `/dashboard` (cockpit).
 - **Tour guiado de 4 pasos** la primera vez (tipo Intro.js):
   1. "Este es tu score de compliance — hoy 0 porque no cargaste workers".
-  2. "Acá verás alertas críticas que salen automáticamente".
-  3. "Acá podés hacer el diagnóstico completo en 20 min".
+  2. "Aquí verás alertas críticas que salen automáticamente".
+  3. "Aquí puedes hacer el diagnóstico completo en 20 min".
   4. "Y este es tu Copilot IA — preguntale cualquier cosa (Cmd+I)".
 - Un botón "Omitir" siempre visible.
 
@@ -527,7 +527,7 @@ externalizando una empresa, admin de planilla. Desktop 80% del tiempo.
 #### Qué debería sentirse
 - **Narrativa**: el cockpit "habla" al admin en lenguaje natural. No "Query A devolvió X resultados".
 - **Prioridad cristalina**: las 2 cosas más importantes de hoy están visibles sin hacer scroll.
-- **El ring es ansiolítico**: verde grande = tranquilidad. Rojo = "acá viene el dolor".
+- **El ring es ansiolítico**: verde grande = tranquilidad. Rojo = "aquí viene el dolor".
 - **Quick actions siempre accesibles**: desde el cockpit puedo llegar en 1 click a: agregar worker, resolver alerta, generar contrato, hacer diagnóstico, chatear con IA.
 
 #### Empty state (empresa recién creada, 0 workers)
@@ -674,7 +674,7 @@ Esta es **LA página más usada del producto**. Tiene que ser perfecta.
 #### Click en alerta → detalle
 - Qué pasó, por qué salió la alerta, qué hacer.
 - Base legal citada.
-- Sugerencia del copilot: "Podés resolverlo generando este contrato → [Generar]".
+- Sugerencia del copilot: "Puedes resolverlo generando este contrato → [Generar]".
 
 #### Filtros
 - Por worker, régimen, tipo, severidad, fecha.
@@ -699,7 +699,7 @@ Esta es **LA página más usada del producto**. Tiene que ser perfecta.
 #### Experiencia immersive
 - "Te vamos a simular una inspección SUNAFIL. Vas a ver qué documentos te pedirían."
 - UI tipo chat con "Inspector Virtual".
-- Cada documento: lo tenés / no lo tenés / lo tenés vencido.
+- Cada documento: lo tienes / no lo tienes / lo tienes vencido.
 - Al final: Acta de Requerimiento PDF lista para archivo.
 
 ### 6.8. `/dashboard/contratos`
@@ -956,10 +956,10 @@ Selector arriba del drawer:
 
 ### 10.2. Tone & voice
 
-- **Tuteo**, no usted. "Juan, tenés una boleta pendiente".
+- **Tuteo peruano**, no usted ni voseo. "Juan, tienes una boleta pendiente".
 - **Asunto cortos y concretos**: `[URGENTE] Contrato de Juan Pérez vence el 15 de mayo`.
 - **Cuerpos breves** (máx 4 párrafos + CTA).
-- **Branded**: logo, color primary emerald, footer con "Podés gestionar tus notificaciones en [settings]".
+- **Branded**: logo, color primary emerald, footer con "Puedes gestionar tus notificaciones en [settings]".
 - **Unsubscribe obvio** en cada email no crítico.
 
 ### 10.3. Frecuencia
@@ -975,7 +975,7 @@ Selector arriba del drawer:
 
 ### 11.1. Instalación
 
-- El primer hint "Instalá Comply360 en tu celular" aparece después de 3 visitas.
+- El primer hint "Instala Comply360 en tu celular" aparece después de 3 visitas.
 - Es dismissible pero reaparece si no lo hizo en 2 semanas.
 - En iOS Safari: instrucciones visuales ("Toca compartir → Añadir a pantalla de inicio").
 - En Android Chrome: botón directo "Instalar app".
@@ -990,7 +990,7 @@ Selector arriba del drawer:
 ### 11.3. Push notifications
 
 - Permiso se pide DESPUÉS del primer uso exitoso, no al abrir.
-- Mensaje contextual: "¿Querés recibir notificaciones cuando te llegue una nueva boleta o documento pendiente?".
+- Mensaje contextual: "¿Quieres recibir notificaciones cuando te llegue una nueva boleta o documento pendiente?".
 - Si dice no, no se vuelve a preguntar en 30 días.
 
 ---
@@ -1007,15 +1007,15 @@ Selector arriba del drawer:
 ### 12.2. Error 500 — Algo se rompió
 
 - Card centrada con ícono en red.
-- Copy honesto: "Un error inesperado interrumpió la carga. Refrescá, y si el problema persiste, contanos."
+- Copy honesto: "Un error inesperado interrumpió la carga. Refresca la página y, si el problema persiste, cuéntanos."
 - Error code visible (digest) para soporte.
 - 3 CTAs: Reintentar · Volver al inicio · Reportar por email.
 
 ### 12.3. Offline (PWA)
 
 - Icon de wifi tachado.
-- "Estás sin conexión. Comply360 necesita internet para sincronizar, pero no perdés nada de lo que hiciste."
-- Tip: "Si instalaste la PWA, podés ver boletas cacheadas en `/mi-portal`".
+- "Estás sin conexión. Comply360 necesita internet para sincronizar, pero no pierdes nada de lo que hiciste."
+- Tip: "Si instalaste la PWA, puedes ver boletas cacheadas en `/mi-portal`".
 
 ### 12.4. Maintenance (planeado)
 
@@ -1036,7 +1036,7 @@ Selector arriba del drawer:
 
 - Nunca pantalla en blanco.
 - Skeleton matchea el shape del contenido final.
-- Máximo 2s de skeleton — si supera, mostrar "Tardamos más de lo normal, revisá tu conexión".
+- Máximo 2s de skeleton — si supera, mostrar "Tardamos más de lo normal, revisa tu conexión".
 
 ---
 
@@ -1071,7 +1071,7 @@ Selector arriba del drawer:
 ## Epílogo
 
 Este documento es aspiracional. Al día de escribirlo (2026-04-22), el producto
-cubre ~70% de lo descrito acá. El 30% restante es:
+cubre ~70% de lo descrito aquí. El 30% restante es:
 
 - Diseño visual más pulido en algunas pantallas (consistency)
 - "Mi Vida Laboral" como producto standalone (Capa 2)

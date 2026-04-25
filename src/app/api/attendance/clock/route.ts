@@ -34,7 +34,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
 
   if (!body.token || typeof body.token !== 'string') {
     return NextResponse.json(
-      { error: 'Token QR requerido. Pedile a tu supervisor el QR de hoy.' },
+      { error: 'Token QR requerido. Pídele a tu supervisor el QR de hoy.' },
       { status: 400 },
     )
   }
@@ -44,7 +44,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   if (!payload) {
     return NextResponse.json(
       {
-        error: 'Token QR expirado o inválido. Pedile a tu supervisor que genere uno nuevo.',
+        error: 'Token QR expirado o inválido. Pídele a tu supervisor que genere uno nuevo.',
         code: 'TOKEN_EXPIRED',
       },
       { status: 401 },
@@ -100,7 +100,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
     if (existingToday && !existingToday.clockOut) {
       return NextResponse.json(
         {
-          error: 'Ya marcaste entrada hoy. Si querés marcar salida, usá el botón correspondiente.',
+          error: 'Ya marcaste entrada hoy. Si quieres marcar salida, usa el botón correspondiente.',
           code: 'ALREADY_CLOCKED_IN',
           attendance: toJson(existingToday),
         },
@@ -160,7 +160,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   if (!existingToday) {
     return NextResponse.json(
       {
-        error: 'No tenés entrada registrada hoy. Marcá entrada primero.',
+        error: 'No tienes entrada registrada hoy. Marca entrada primero.',
         code: 'NO_CLOCK_IN',
       },
       { status: 409 },

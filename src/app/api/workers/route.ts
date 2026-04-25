@@ -5,6 +5,7 @@ import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { checkWorkerLimit } from '@/lib/plan-gate'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
+import { emit } from '@/lib/events'
 
 // Valid sort columns and their Prisma field names
 const SORT_FIELDS: Record<string, string> = {
@@ -298,6 +299,16 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   // Fire-and-forget compliance score recalculation
   syncComplianceScore(orgId).catch(() => {})
+
+  // Event bus: notifica workflows, gamificación, etc.
+  emit('worker.created', {
+    orgId,
+    userId: ctx.userId,
+    workerId: worker.id,
+    workerName: `${worker.firstName} ${worker.lastName}`,
+    position: worker.position ?? undefined,
+    regimenLaboral: worker.regimenLaboral,
+  })
 
   return NextResponse.json({ data: worker }, { status: 201 })
 })

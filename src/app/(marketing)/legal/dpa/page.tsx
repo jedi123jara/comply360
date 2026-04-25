@@ -18,7 +18,7 @@ export default function DpaPage() {
       <p>
         <strong>Versión descargable en PDF</strong>: disponible en{' '}
         <a href="/api/legal/dpa-pdf">/api/legal/dpa-pdf</a> (pendiente de generar).
-        Para firmar una versión personalizada con tu empresa, escribinos a{' '}
+        Para firmar una versión personalizada con tu empresa, escríbenos a{' '}
         <a href="mailto:legal@comply360.pe">legal@comply360.pe</a>.
       </p>
 

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { GraduationCap, Award, Clock, CheckCircle2, PlayCircle } from 'lucide-react'
+import { PageHeader, EmptyState, ErrorState, Chip, CardGridSkeleton } from '@/components/mi-portal'
 
 interface EnrollmentItem {
   id: string
@@ -18,46 +19,69 @@ interface EnrollmentItem {
   certificateCode: string | null
 }
 
-const STATUS_INFO: Record<string, { label: string; class: string }> = {
-  NOT_STARTED: { label: 'Sin iniciar', class: 'bg-slate-100 text-slate-700' },
-  IN_PROGRESS: { label: 'En curso', class: 'bg-blue-100 text-blue-700' },
-  EXAM_PENDING: { label: 'Examen pendiente', class: 'bg-amber-100 text-amber-700' },
-  PASSED: { label: 'Aprobado', class: 'bg-green-100 text-green-700' },
-  FAILED: { label: 'Reprobado', class: 'bg-red-100 text-red-700' },
+type Variant = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
+
+const STATUS_INFO: Record<string, { label: string; variant: Variant }> = {
+  NOT_STARTED: { label: 'Sin iniciar', variant: 'neutral' },
+  IN_PROGRESS: { label: 'En curso', variant: 'info' },
+  EXAM_PENDING: { label: 'Examen pendiente', variant: 'warning' },
+  PASSED: { label: 'Aprobado', variant: 'success' },
+  FAILED: { label: 'Reprobado', variant: 'danger' },
 }
 
 export default function CapacitacionesPage() {
   const [items, setItems] = useState<EnrollmentItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/mi-portal/capacitaciones')
-      .then((r) => r.json())
-      .then((d) => setItems(d.enrollments || []))
-      .finally(() => setLoading(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/mi-portal/capacitaciones', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const d = await res.json()
+      setItems(d.enrollments || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  if (loading) return <div className="h-96 bg-slate-100 animate-pulse rounded-xl" />
+  useEffect(() => { load() }, [load])
 
   const pendientes = items.filter((i) => i.status !== 'PASSED')
   const completadas = items.filter((i) => i.status === 'PASSED')
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Mis Capacitaciones</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Cursos asignados por la empresa. Algunos son obligatorios por ley (Ley 29783, Ley 27942).
-        </p>
-      </div>
+      <PageHeader
+        title="Mis capacitaciones"
+        subtitle="Cursos asignados por la empresa. Algunos son obligatorios por ley (Ley 29783, Ley 27942)."
+        icon={<GraduationCap className="w-5 h-5" />}
+      />
 
-      {/* Pendientes */}
-      {pendientes.length > 0 && (
+      {loading && <CardGridSkeleton cards={4} />}
+
+      {error && !loading && (
+        <ErrorState title="No se pudieron cargar las capacitaciones" message={error} onRetry={load} />
+      )}
+
+      {!loading && !error && items.length === 0 && (
+        <EmptyState
+          icon={<GraduationCap className="w-6 h-6" />}
+          title="No tienes capacitaciones asignadas"
+          description="Cuando RRHH asigne un curso te va a llegar una notificación acá."
+        />
+      )}
+
+      {!loading && !error && pendientes.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
+          <h2 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide">
             Pendientes ({pendientes.length})
-          </h3>
-          <div className="grid sm:grid-cols-2 gap-4">
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
             {pendientes.map((item) => (
               <CourseCard key={item.id} item={item} />
             ))}
@@ -65,47 +89,43 @@ export default function CapacitacionesPage() {
         </section>
       )}
 
-      {/* Completadas */}
-      {completadas.length > 0 && (
+      {!loading && !error && completadas.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
+          <h2 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide">
             Completadas ({completadas.length})
-          </h3>
-          <div className="grid sm:grid-cols-2 gap-4">
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
             {completadas.map((item) => (
               <CourseCard key={item.id} item={item} />
             ))}
           </div>
         </section>
       )}
-
-      {items.length === 0 && (
-        <div className="bg-[#141824] border border-slate-200 rounded-xl p-12 text-center">
-          <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">No tienes capacitaciones asignadas.</p>
-        </div>
-      )}
     </div>
   )
 }
 
 function CourseCard({ item }: { item: EnrollmentItem }) {
-  const status = STATUS_INFO[item.status] || STATUS_INFO.NOT_STARTED
+  const status = STATUS_INFO[item.status] ?? STATUS_INFO.NOT_STARTED
+  const href =
+    item.status === 'PASSED'
+      ? `/mi-portal/capacitaciones/${item.id}/certificado`
+      : `/mi-portal/capacitaciones/${item.id}`
 
   return (
     <Link
-      href={`/mi-portal/capacitaciones/${item.id}`}
-      className="bg-[#141824] border border-slate-200 rounded-xl p-5 hover:shadow-md hover:border-blue-300 transition-all block"
+      href={href}
+      className="bg-white border border-slate-200 rounded-xl p-5 hover:border-emerald-400 hover:shadow-sm transition-all block focus-visible:ring-2 focus-visible:ring-emerald-500"
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-          <GraduationCap className="w-5 h-5 text-purple-600" />
+        <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+          <GraduationCap className="w-5 h-5 text-emerald-700" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase font-semibold text-purple-700">
+          <p className="text-[11px] uppercase font-bold text-emerald-700 tracking-wide">
             {item.courseCategory}
           </p>
-          <h3 className="font-semibold text-slate-900 mt-0.5">{item.courseTitle}</h3>
+          <h3 className="font-semibold text-slate-900 mt-0.5 leading-tight">{item.courseTitle}</h3>
         </div>
       </div>
 
@@ -114,16 +134,14 @@ function CourseCard({ item }: { item: EnrollmentItem }) {
           <Clock className="w-3 h-3" />
           {item.durationMin} min
         </span>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${status.class}`}>
-          {status.label}
-        </span>
+        <Chip variant={status.variant}>{status.label}</Chip>
       </div>
 
       {item.status === 'IN_PROGRESS' && (
         <div className="mb-3">
-          <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 transition-all"
+              className="h-full bg-emerald-600 transition-all"
               style={{ width: `${item.progress}%` }}
             />
           </div>
@@ -132,23 +150,24 @@ function CourseCard({ item }: { item: EnrollmentItem }) {
       )}
 
       {item.status === 'PASSED' && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-2 flex items-center gap-2">
-          <Award className="w-4 h-4 text-green-700" />
-          <span className="text-xs text-green-800">
-            Certificado obtenido — Nota: {item.examScore}/100
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 flex items-center gap-2">
+          <Award className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+          <span className="text-xs text-emerald-900 font-semibold flex-1">
+            Ver certificado · Nota {item.examScore}/100
           </span>
+          <span className="text-[10px] text-emerald-700">→</span>
         </div>
       )}
 
       {item.status === 'NOT_STARTED' && (
-        <div className="flex items-center gap-2 text-xs text-blue-700 font-medium">
+        <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
           <PlayCircle className="w-4 h-4" />
           Iniciar curso
         </div>
       )}
 
       {item.status === 'EXAM_PENDING' && (
-        <div className="flex items-center gap-2 text-xs text-amber-700 font-medium">
+        <div className="flex items-center gap-2 text-xs text-amber-700 font-semibold">
           <CheckCircle2 className="w-4 h-4" />
           Rendir examen
         </div>

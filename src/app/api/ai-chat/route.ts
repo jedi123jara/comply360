@@ -48,7 +48,11 @@ export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
       openAlerts,
     }
 
-    const { content, citations, ragChunksUsed, simulated } = await generateChatResponse(messages, orgContext)
+    const { content, citations, ragChunksUsed, simulated } = await generateChatResponse(
+      messages,
+      orgContext,
+      { orgId, userId: ctx.userId, feature: 'chat' },
+    )
 
     return NextResponse.json({
       message: {

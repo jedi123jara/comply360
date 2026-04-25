@@ -23,7 +23,13 @@
       "Bash(cat vitest.config.*)",
       "Bash(cat vite.config.*)",
       "Bash(node *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(curl -sL \"https://platform.openai.com/docs/guides/pdf-files\" -A \"Mozilla/5.0\")",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:cookbook.openai.com)",
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(npm install *)"
     ]
   }
 }

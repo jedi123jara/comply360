@@ -121,11 +121,14 @@ export default function ContratoDetailPage() {
 
     track('biometric_ceremony_started', { contractId: contract.id })
 
-    // Step 1: biometric ceremony
+    // Step 1: biometric ceremony (con challenge server-side anti-replay)
     setSigningStep('ceremony')
     let ceremony: BiometricCeremonyResult
     try {
-      ceremony = await tryBiometricCeremony()
+      ceremony = await tryBiometricCeremony({
+        action: 'sign_contract',
+        entityId: contract.id,
+      })
     } catch {
       ceremony = { verified: false, reason: 'error' }
     }
@@ -135,7 +138,7 @@ export default function ContratoDetailPage() {
     const hardwareAvailable = biometricAvailable ?? (await hasBiometricHardware())
     if (hardwareAvailable && !ceremony.verified && ceremony.reason === 'user-cancelled') {
       track('biometric_ceremony_failed', { reason: 'user-cancelled' })
-      setSignError('Firma cancelada. Podés volver a intentarlo.')
+      setSignError('Firma cancelada. Puedes volver a intentarlo.')
       setSigningStep('error')
       return
     }
@@ -158,6 +161,8 @@ export default function ContratoDetailPage() {
           signatureLevel,
           userAgent: ceremony.userAgent ?? navigator.userAgent,
           credentialId: ceremony.credentialId ?? null,
+          challengeToken: ceremony.challengeToken,
+          challenge: ceremony.challenge,
         }),
       })
       const body = (await res.json().catch(() => ({}))) as {
@@ -281,7 +286,7 @@ export default function ContratoDetailPage() {
             Contenido
           </h2>
           <span className="text-[10px] font-medium uppercase tracking-wider text-[color:var(--text-tertiary)]">
-            Leé con calma
+            Lee con calma
           </span>
         </div>
         <article
@@ -310,10 +315,10 @@ export default function ContratoDetailPage() {
                 className="text-lg text-[color:var(--text-primary)]"
                 style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
               >
-                Firmá este contrato
+                Firma este contrato
               </h3>
               <p className="mt-0.5 text-xs text-[color:var(--text-secondary)]">
-                Usá tu huella, Face ID o Windows Hello. La firma queda registrada con tu dispositivo
+                Usa tu huella, Face ID o Windows Hello. La firma queda registrada con tu dispositivo
                 y fecha, cumpliendo con la Ley 27269.
               </p>
             </div>
@@ -335,10 +340,10 @@ export default function ContratoDetailPage() {
           <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] leading-relaxed text-amber-900">
             <AlertTriangle className="mr-1 inline h-3 w-3" />
             <strong>Sobre la validez de tu firma:</strong> Tu firma biométrica es una <em>firma
-            electrónica fuerte</em> según la Ley N° 27269 — válida entre vos y tu empleador y
+            electrónica fuerte</em> según la Ley N° 27269 — válida entre tú y tu empleador y
             reconocida ante la TFL de SUNAFIL. <strong>No equivale</strong> a la firma digital
             certificada RENIEC con Time Stamping, que se exige para algunos trámites ante entidades
-            públicas. Al firmar, confirmás que el dispositivo es tuyo y que autorizás el uso de
+            públicas. Al firmar, confirmas que el dispositivo es tuyo y que autorizas el uso de
             tus datos biométricos para verificar tu identidad.
           </div>
 

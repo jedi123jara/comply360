@@ -1,839 +1,572 @@
 'use client'
 
-import { useState } from 'react'
+/**
+ * /dashboard/workflows — MVP del módulo de Workflows.
+ *
+ * Funcionalidad:
+ *  - Lista los workflows de la organización (activos + inactivos)
+ *  - Permite crear uno nuevo desde un template prefabricado
+ *  - Activar/desactivar con un toggle
+ *  - Eliminar con confirmación
+ *  - Ejecutar manualmente (útil para pruebas)
+ *  - Ver historial reciente de runs por workflow
+ *
+ * Fuera del MVP: editor visual libre, drag-and-drop, triggers automáticos
+ * por evento. El engine (src/lib/workflows/engine.ts) ya los soporta a nivel
+ * código, solo falta el wiring con eventos reales.
+ */
+
+import { useCallback, useEffect, useState } from 'react'
 import {
-  Workflow, Plus, Play, Pause, ChevronRight, Clock, Bell,
-  FileText, Users, Shield, Zap, Settings, Check, ArrowRight,
-  RotateCw, X, AlertTriangle, BookOpen, CalendarClock,
-  CheckCircle2, XCircle, Timer, ChevronDown, ChevronUp,
-  TrendingUp, Activity,
+  Workflow as WorkflowIcon,
+  Play,
+  Trash2,
+  Plus,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Pause,
+  AlertTriangle,
+  X,
 } from 'lucide-react'
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
+// ─── Types ────────────────────────────────────────────────────────────────
 
-type StepType = 'trigger' | 'action' | 'condition' | 'notification'
-
-interface WorkflowStep {
-  id: number
-  icon: keyof typeof stepIcons
-  action: string
-  config: string
-  delay?: string
-  type: StepType
-}
-
-interface ExecutionLog {
+interface WorkflowDef {
   id: string
-  workflowName: string
-  triggeredAt: string
-  status: 'success' | 'failed' | 'in_progress'
-  duration: string
-  details: string
+  name: string
+  description: string
+  triggerId: string
+  active: boolean
+  version: number
+  steps: Array<{ id: string; name: string; type: string; order: number }>
+  createdAt: string
+  updatedAt: string
 }
 
 interface WorkflowTemplate {
   id: string
   name: string
-  emoji: string
   description: string
-  flowSummary: string
-  icon: keyof typeof stepIcons
-  trigger: string
-  triggerDetail: string
-  steps: WorkflowStep[]
-  active: boolean
-  executions: number
-  successRate: number
-  lastRun?: string
-  nextRun?: string
+  category: 'contratos' | 'onboarding' | 'compliance' | 'sst'
+  params: Array<{
+    key: string
+    label: string
+    type: 'email' | 'number' | 'text'
+    default?: string | number
+    required?: boolean
+  }>
 }
 
-/* ------------------------------------------------------------------ */
-/*  Icon map                                                           */
-/* ------------------------------------------------------------------ */
-
-const stepIcons = {
-  bell: Bell,
-  fileText: FileText,
-  users: Users,
-  shield: Shield,
-  zap: Zap,
-  clock: Clock,
-  check: Check,
-  settings: Settings,
-  workflow: Workflow,
-  play: Play,
-  bookOpen: BookOpen,
-  alertTriangle: AlertTriangle,
-  rotateCw: RotateCw,
-  calendarClock: CalendarClock,
-  activity: Activity,
+interface WorkflowRun {
+  id: string
+  workflowId: string
+  status: string
+  startedAt: string
+  completedAt: string | null
+  error: string | null
+  triggeredBy: string | null
+  workflow?: { name: string }
 }
 
-function StepIcon({ name, className }: { name: keyof typeof stepIcons; className?: string }) {
-  const Icon = stepIcons[name]
-  return <Icon className={className} />
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+const STATUS_STYLE: Record<string, { bg: string; text: string; icon: React.ComponentType<{ className?: string }> }> = {
+  COMPLETED: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: CheckCircle2 },
+  FAILED: { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle },
+  RUNNING: { bg: 'bg-blue-100', text: 'text-blue-700', icon: Loader2 },
+  WAITING_APPROVAL: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Pause },
+  PAUSED: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Pause },
+  CANCELLED: { bg: 'bg-slate-100', text: 'text-slate-700', icon: X },
+  PENDING: { bg: 'bg-slate-100', text: 'text-slate-700', icon: Clock },
 }
 
-const stepTypeLabels: Record<StepType, string> = {
-  trigger: 'Trigger',
-  action: 'Acci\u00f3n',
-  condition: 'Condici\u00f3n',
-  notification: 'Notificaci\u00f3n',
+const CATEGORY_LABEL: Record<WorkflowTemplate['category'], string> = {
+  contratos: 'Contratos',
+  onboarding: 'Onboarding',
+  compliance: 'Compliance',
+  sst: 'SST',
 }
 
-const stepTypeColors: Record<StepType, { bg: string; text: string; border: string; dot: string }> = {
-  trigger: {
-    bg: 'bg-amber-900/20',
-    text: 'text-amber-700',
-    border: 'border-amber-600',
-    dot: 'bg-amber-500',
-  },
-  action: {
-    bg: 'bg-blue-900/20',
-    text: 'text-emerald-600',
-    border: 'border-blue-600',
-    dot: 'bg-blue-500',
-  },
-  condition: {
-    bg: 'bg-purple-900/20',
-    text: 'text-purple-300',
-    border: 'border-purple-600',
-    dot: 'bg-purple-500',
-  },
-  notification: {
-    bg: 'bg-emerald-900/20',
-    text: 'text-emerald-700',
-    border: 'border-emerald-600',
-    dot: 'bg-emerald-500',
-  },
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString('es-PE', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
-/* ------------------------------------------------------------------ */
-/*  Seed data                                                          */
-/* ------------------------------------------------------------------ */
-
-const initialTemplates: WorkflowTemplate[] = [
-  {
-    id: 'contrato-vencer',
-    name: 'Contrato por Vencer',
-    emoji: '\ud83d\udcc4',
-    description: 'Cuando un contrato vence en 30 d\u00edas \u2192 Notificar a RRHH \u2192 Generar nuevo contrato \u2192 Enviar a firma',
-    flowSummary: 'Vencimiento \u2192 Notificaci\u00f3n \u2192 Generaci\u00f3n \u2192 Firma',
-    icon: 'fileText',
-    trigger: 'Temporal',
-    triggerDetail: '30 d\u00edas antes del vencimiento',
-    steps: [
-      { id: 1, icon: 'clock', action: 'Contrato vence en 30 d\u00edas', config: 'Monitoreo autom\u00e1tico de fechas', delay: 'Inicio', type: 'trigger' },
-      { id: 2, icon: 'bell', action: 'Notificar a RRHH', config: 'Email + notificaci\u00f3n en plataforma', delay: 'Inmediato', type: 'notification' },
-      { id: 3, icon: 'fileText', action: 'Generar nuevo contrato', config: 'Usar plantilla vigente con datos actualizados', delay: '1 d\u00eda', type: 'action' },
-      { id: 4, icon: 'check', action: 'Enviar a firma', config: 'Firma digital del trabajador y empleador', delay: '2 d\u00edas', type: 'action' },
-    ],
-    active: true,
-    executions: 47,
-    successRate: 96,
-    lastRun: '2026-04-03',
-    nextRun: '2026-04-08 09:00',
-  },
-  {
-    id: 'alerta-cts',
-    name: 'Alerta de CTS',
-    emoji: '\u23f0',
-    description: '15 d\u00edas antes de mayo/noviembre \u2192 Calcular CTS pendiente \u2192 Notificar a contabilidad',
-    flowSummary: 'Calendario \u2192 C\u00e1lculo \u2192 Notificaci\u00f3n',
-    icon: 'calendarClock',
-    trigger: 'Temporal',
-    triggerDetail: '15 d\u00edas antes de mayo y noviembre',
-    steps: [
-      { id: 1, icon: 'calendarClock', action: '15 d\u00edas antes de mayo/noviembre', config: 'Calendario laboral peruano', delay: 'Inicio', type: 'trigger' },
-      { id: 2, icon: 'activity', action: 'Calcular CTS pendiente', config: 'Base: remuneraci\u00f3n computable + 1/6 gratificaci\u00f3n', delay: 'Inmediato', type: 'action' },
-      { id: 3, icon: 'check', action: 'Verificar datos de cuenta', config: 'Validar entidad depositaria de cada trabajador', delay: '1 d\u00eda', type: 'condition' },
-      { id: 4, icon: 'bell', action: 'Notificar a contabilidad', config: 'Reporte con montos y cuentas bancarias', delay: 'Inmediato', type: 'notification' },
-    ],
-    active: true,
-    executions: 18,
-    successRate: 100,
-    lastRun: '2026-04-01',
-    nextRun: '2026-04-16 08:00',
-  },
-  {
-    id: 'trabajador-nuevo',
-    name: 'Nuevo Trabajador',
-    emoji: '\ud83d\udc77',
-    description: 'Al registrar trabajador \u2192 Verificar DNI en RENIEC \u2192 Crear expediente \u2192 Asignar capacitaciones obligatorias',
-    flowSummary: 'Registro \u2192 Verificaci\u00f3n \u2192 Expediente \u2192 Capacitaci\u00f3n',
-    icon: 'users',
-    trigger: 'Evento',
-    triggerDetail: 'Alta de trabajador en el sistema',
-    steps: [
-      { id: 1, icon: 'users', action: 'Registrar trabajador', config: 'Formulario de alta completado', delay: 'Inicio', type: 'trigger' },
-      { id: 2, icon: 'shield', action: 'Verificar DNI en RENIEC', config: 'Consulta API RENIEC - validar identidad', delay: 'Inmediato', type: 'condition' },
-      { id: 3, icon: 'fileText', action: 'Crear expediente digital', config: 'Legajo con documentos obligatorios', delay: '1 d\u00eda', type: 'action' },
-      { id: 4, icon: 'bookOpen', action: 'Asignar capacitaciones obligatorias', config: 'SST + Hostigamiento + LSST + Inducci\u00f3n', delay: '1 d\u00eda', type: 'action' },
-    ],
-    active: true,
-    executions: 23,
-    successRate: 91,
-    lastRun: '2026-04-04',
-    nextRun: 'Bajo demanda',
-  },
-  {
-    id: 'capacitacion-vencida',
-    name: 'Capacitaci\u00f3n Vencida',
-    emoji: '\ud83c\udf93',
-    description: 'Cuando certificado vence \u2192 Notificar al trabajador \u2192 Re-inscribir en curso \u2192 Alertar si no completa en 15 d\u00edas',
-    flowSummary: 'Vencimiento \u2192 Notificaci\u00f3n \u2192 Re-inscripci\u00f3n \u2192 Escalamiento',
-    icon: 'bookOpen',
-    trigger: 'Temporal',
-    triggerDetail: 'Certificado de capacitaci\u00f3n vencido',
-    steps: [
-      { id: 1, icon: 'clock', action: 'Certificado vencido detectado', config: 'Monitoreo diario de fechas de vigencia', delay: 'Inicio', type: 'trigger' },
-      { id: 2, icon: 'bell', action: 'Notificar al trabajador', config: 'Email + SMS con enlace al curso', delay: 'Inmediato', type: 'notification' },
-      { id: 3, icon: 'bookOpen', action: 'Re-inscribir en curso', config: 'Inscripci\u00f3n autom\u00e1tica en siguiente sesi\u00f3n', delay: '1 d\u00eda', type: 'action' },
-      { id: 4, icon: 'alertTriangle', action: 'Alertar si no completa en 15 d\u00edas', config: 'Escalamiento a jefatura directa y RRHH', delay: '15 d\u00edas', type: 'condition' },
-    ],
-    active: true,
-    executions: 36,
-    successRate: 89,
-    lastRun: '2026-04-05',
-    nextRun: '2026-04-07 06:00',
-  },
-  {
-    id: 'reporte-mensual',
-    name: 'Reporte Mensual',
-    emoji: '\ud83d\udcca',
-    description: 'D\u00eda 1 de cada mes \u2192 Generar reporte de cumplimiento \u2192 Enviar por email a gerencia',
-    flowSummary: 'Calendario \u2192 Generaci\u00f3n \u2192 Env\u00edo',
-    icon: 'fileText',
-    trigger: 'Temporal',
-    triggerDetail: 'D\u00eda 1 de cada mes a las 07:00',
-    steps: [
-      { id: 1, icon: 'calendarClock', action: 'D\u00eda 1 de cada mes', config: 'Cron: 0 7 1 * *', delay: 'Inicio', type: 'trigger' },
-      { id: 2, icon: 'activity', action: 'Recopilar m\u00e9tricas de cumplimiento', config: 'Score general, por \u00e1rea y por m\u00f3dulo', delay: 'Inmediato', type: 'action' },
-      { id: 3, icon: 'fileText', action: 'Generar reporte PDF', config: 'Plantilla ejecutiva con gr\u00e1ficos', delay: '30 min', type: 'action' },
-      { id: 4, icon: 'bell', action: 'Enviar por email a gerencia', config: 'Gerencia General + Directores de \u00e1rea', delay: 'Inmediato', type: 'notification' },
-    ],
-    active: true,
-    executions: 12,
-    successRate: 100,
-    lastRun: '2026-04-01',
-    nextRun: '2026-05-01 07:00',
-  },
-  {
-    id: 'denuncia-recibida',
-    name: 'Denuncia Recibida',
-    emoji: '\u26a0\ufe0f',
-    description: 'Al recibir denuncia \u2192 Asignar investigador \u2192 Crear timeline \u2192 Notificar comit\u00e9',
-    flowSummary: 'Denuncia \u2192 Asignaci\u00f3n \u2192 Timeline \u2192 Comit\u00e9',
-    icon: 'alertTriangle',
-    trigger: 'Evento',
-    triggerDetail: 'Nueva denuncia registrada en el canal',
-    steps: [
-      { id: 1, icon: 'alertTriangle', action: 'Recibir denuncia', config: 'Canal de denuncias interno o externo', delay: 'Inicio', type: 'trigger' },
-      { id: 2, icon: 'users', action: 'Asignar investigador', config: 'Comit\u00e9 de Intervenci\u00f3n frente al Hostigamiento', delay: 'Inmediato', type: 'action' },
-      { id: 3, icon: 'clock', action: 'Crear timeline de investigaci\u00f3n', config: '30 d\u00edas calendario seg\u00fan Ley 27942', delay: 'Inmediato', type: 'action' },
-      { id: 4, icon: 'bell', action: 'Notificar al comit\u00e9', config: 'Email confidencial a miembros del comit\u00e9', delay: 'Inmediato', type: 'notification' },
-    ],
-    active: false,
-    executions: 8,
-    successRate: 100,
-    lastRun: '2026-02-20',
-    nextRun: 'Bajo demanda',
-  },
-]
-
-const initialExecutionLogs: ExecutionLog[] = [
-  { id: 'ex1', workflowName: 'Capacitaci\u00f3n Vencida', triggeredAt: '2026-04-05 14:32', status: 'success', duration: '2m 14s', details: 'Certificado de SST vencido para Carlos M. \u2014 Re-inscrito en curso del 12/04. Notificaci\u00f3n enviada.' },
-  { id: 'ex2', workflowName: 'Contrato por Vencer', triggeredAt: '2026-04-05 09:00', status: 'success', duration: '1m 45s', details: 'Contrato de Ana P. vence el 05/05. Borrador generado y enviado a RRHH para revisi\u00f3n.' },
-  { id: 'ex3', workflowName: 'Nuevo Trabajador', triggeredAt: '2026-04-04 16:20', status: 'failed', duration: '0m 32s', details: 'Error en verificaci\u00f3n RENIEC: servicio no disponible. Se reintenta en 1 hora.' },
-  { id: 'ex4', workflowName: 'Reporte Mensual', triggeredAt: '2026-04-01 07:00', status: 'success', duration: '5m 10s', details: 'Reporte de marzo generado. Score general: 94/100. Enviado a 5 destinatarios.' },
-  { id: 'ex5', workflowName: 'Alerta de CTS', triggeredAt: '2026-04-01 08:00', status: 'success', duration: '3m 22s', details: 'CTS de mayo calculada para 48 trabajadores. Total: S/ 127,450.00. Notificado a contabilidad.' },
-  { id: 'ex6', workflowName: 'Contrato por Vencer', triggeredAt: '2026-03-30 09:00', status: 'in_progress', duration: '---', details: 'Contrato de Luis R. \u2014 Borrador generado, pendiente firma del gerente.' },
-  { id: 'ex7', workflowName: 'Denuncia Recibida', triggeredAt: '2026-02-20 11:15', status: 'success', duration: '1m 08s', details: 'Denuncia an\u00f3nima asignada a Dra. G\u00f3mez. Timeline creado. Comit\u00e9 notificado.' },
-  { id: 'ex8', workflowName: 'Capacitaci\u00f3n Vencida', triggeredAt: '2026-03-28 06:00', status: 'failed', duration: '0m 18s', details: 'No se pudo re-inscribir: curso completo. Escalado a RRHH para programar sesi\u00f3n adicional.' },
-]
-
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
+// ─── Main Page ────────────────────────────────────────────────────────────
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<WorkflowTemplate[]>(initialTemplates)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newTrigger, setNewTrigger] = useState('')
-  const [newDescription, setNewDescription] = useState('')
-  const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'templates' | 'logs'>('templates')
+  const [workflows, setWorkflows] = useState<WorkflowDef[]>([])
+  const [templates, setTemplates] = useState<WorkflowTemplate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null)
 
-  const selected = workflows.find((w) => w.id === selectedId) ?? null
-  const activeCount = workflows.filter((w) => w.active).length
-  const totalExecs = workflows.reduce((s, w) => s + w.executions, 0)
-  const successCount = initialExecutionLogs.filter((l) => l.status === 'success').length
-  const failedCount = initialExecutionLogs.filter((l) => l.status === 'failed').length
-
-  // Find next upcoming run
-  const nextRunWorkflow = workflows
-    .filter((w) => w.active && w.nextRun && w.nextRun !== 'Bajo demanda')
-    .sort((a, b) => (a.nextRun! > b.nextRun! ? 1 : -1))[0]
-
-  function toggleActive(id: string) {
-    setWorkflows((prev) => prev.map((w) => (w.id === id ? { ...w, active: !w.active } : w)))
-  }
-
-  function handleCreate() {
-    if (!newName.trim()) return
-    const custom: WorkflowTemplate = {
-      id: `custom-${Date.now()}`,
-      name: newName,
-      emoji: '\u2699\ufe0f',
-      description: newDescription || 'Workflow personalizado',
-      flowSummary: 'Personalizado',
-      icon: 'settings',
-      trigger: 'Personalizado',
-      triggerDetail: newTrigger || 'Definido por el usuario',
-      steps: [
-        { id: 1, icon: 'zap', action: 'Paso inicial', config: 'Configurar acci\u00f3n', delay: 'Inicio', type: 'trigger' },
-        { id: 2, icon: 'bell', action: 'Notificar', config: 'Seleccionar destinatarios', delay: 'Inmediato', type: 'notification' },
-      ],
-      active: false,
-      executions: 0,
-      successRate: 0,
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/workflows', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      const body = (await res.json()) as { workflows: WorkflowDef[]; templates: WorkflowTemplate[] }
+      setWorkflows(body.workflows)
+      setTemplates(body.templates)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setLoading(false)
     }
-    setWorkflows((prev) => [...prev, custom])
-    setShowCreateModal(false)
-    setNewName('')
-    setNewTrigger('')
-    setNewDescription('')
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function toggleActive(id: string, active: boolean) {
+    const res = await fetch(`/api/workflows/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active }),
+    })
+    if (res.ok) await load()
   }
 
-  /* ================================================================ */
-  /*  DETAIL VIEW                                                      */
-  /* ================================================================ */
-  if (selected) {
-    return (
-      <div className="space-y-6">
-        {/* Back + header */}
-        <button
-          onClick={() => setSelectedId(null)}
-          className="flex items-center gap-1 text-sm text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)] transition-colors"
-        >
-          <ChevronRight className="h-4 w-4 rotate-180" /> Volver a workflows
-        </button>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`rounded-xl p-3 text-2xl ${selected.active ? 'bg-emerald-900/40' : 'bg-[color:var(--neutral-100)] bg-gray-800'}`}>
-              <span>{selected.emoji}</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">{selected.name}</h1>
-              <p className="text-sm text-[color:var(--text-tertiary)] max-w-xl">{selected.description}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => toggleActive(selected.id)}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
-              selected.active
-                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                : 'bg-gray-200 text-[color:var(--text-secondary)] hover:bg-gray-700 text-[color:var(--text-secondary)] hover:bg-gray-600'
-            }`}
-          >
-            {selected.active ? <><Pause className="h-4 w-4" /> Desactivar</> : <><Play className="h-4 w-4" /> Activar</>}
-          </button>
-        </div>
-
-        {/* Info cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Trigger', value: selected.triggerDetail, icon: <Zap className="h-5 w-5 text-amber-500" /> },
-            { label: 'Ejecuciones', value: String(selected.executions), icon: <RotateCw className="h-5 w-5 text-blue-500" /> },
-            { label: 'Tasa de \u00e9xito', value: `${selected.successRate}%`, icon: <TrendingUp className="h-5 w-5 text-emerald-500" /> },
-            { label: 'Pr\u00f3xima ejecuci\u00f3n', value: selected.nextRun ?? 'No programada', icon: <CalendarClock className="h-5 w-5 text-purple-500" /> },
-          ].map((c) => (
-            <div key={c.label} className="rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-4 flex items-center gap-3">
-              <div className="rounded-lg bg-[color:var(--neutral-100)] bg-gray-800 p-2.5">{c.icon}</div>
-              <div>
-                <p className="text-xs text-[color:var(--text-tertiary)]">{c.label}</p>
-                <p className="text-sm font-semibold text-white">{c.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Visual step flow - horizontal node-based */}
-        <div className="rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-6">
-          <h2 className="text-lg font-semibold text-white mb-2">Flujo Visual</h2>
-          <p className="text-xs text-[color:var(--text-tertiary)] mb-6">{selected.flowSummary}</p>
-
-          {/* Horizontal flow for desktop */}
-          <div className="hidden md:flex items-start justify-center gap-0 overflow-x-auto pb-4">
-            {selected.steps.map((step, idx) => {
-              const colors = stepTypeColors[step.type]
-              return (
-                <div key={step.id} className="flex items-start">
-                  {/* Node */}
-                  <div className="flex flex-col items-center" style={{ minWidth: 160 }}>
-                    <div className={`relative w-full rounded-xl border-2 ${colors.border} ${colors.bg} p-4`}>
-                      {/* Type badge */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
-                          {stepTypeLabels[step.type]}
-                        </span>
-                        <span className="text-[10px] text-[color:var(--text-tertiary)] font-mono">#{step.id}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <StepIcon name={step.icon} className={`h-4 w-4 shrink-0 ${colors.text}`} />
-                        <span className="text-xs font-semibold text-white leading-tight">{step.action}</span>
-                      </div>
-                      <p className="text-[11px] text-[color:var(--text-tertiary)] leading-snug">{step.config}</p>
-                      {step.delay && (
-                        <div className="mt-2 flex items-center gap-1">
-                          <Timer className="h-3 w-3 text-[color:var(--text-tertiary)]" />
-                          <span className="text-[10px] text-[color:var(--text-tertiary)]">{step.delay}</span>
-                        </div>
-                      )}
-                      {/* Status indicator */}
-                      {selected.active && (
-                        <div className="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white border-gray-900" />
-                      )}
-                    </div>
-                  </div>
-                  {/* Arrow connector */}
-                  {idx < selected.steps.length - 1 && (
-                    <div className="flex items-center self-center pt-2 px-1">
-                      <div className={`w-6 h-0.5 ${selected.active ? 'bg-emerald-600' : 'bg-gray-600'}`} />
-                      <ArrowRight className={`h-4 w-4 -ml-1 ${selected.active ? 'text-emerald-600' : 'text-gray-600'}`} />
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Vertical flow for mobile */}
-          <div className="md:hidden space-y-0">
-            {selected.steps.map((step, idx) => {
-              const colors = stepTypeColors[step.type]
-              return (
-                <div key={step.id}>
-                  <div className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className={`z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${colors.border} ${colors.bg}`}>
-                        <StepIcon name={step.icon} className={`h-5 w-5 ${colors.text}`} />
-                      </div>
-                      {idx < selected.steps.length - 1 && (
-                        <div className={`w-0.5 grow ${selected.active ? 'bg-emerald-700' : 'bg-gray-700'}`} />
-                      )}
-                    </div>
-                    <div className="pb-6 pt-1 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${colors.bg} ${colors.text}`}>
-                          {stepTypeLabels[step.type]}
-                        </span>
-                        {step.delay && (
-                          <span className="rounded-full bg-[color:var(--neutral-100)] bg-gray-800 px-2 py-0.5 text-xs text-[color:var(--text-tertiary)]">
-                            {step.delay}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm font-semibold text-white">{step.action}</p>
-                      <p className="mt-0.5 text-xs text-[color:var(--text-tertiary)]">{step.config}</p>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Execution history */}
-        <div className="rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Historial de Ejecuciones</h2>
-          <div className="divide-y divide-gray-100 divide-gray-800">
-            {initialExecutionLogs
-              .filter((l) => l.workflowName === selected.name)
-              .map((log) => (
-                <div key={log.id} className="py-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {log.status === 'success' && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                      {log.status === 'failed' && <XCircle className="h-4 w-4 text-red-500" />}
-                      {log.status === 'in_progress' && <Timer className="h-4 w-4 text-amber-500 animate-pulse" />}
-                      <span className="text-sm text-[color:var(--text-secondary)]">{log.triggeredAt}</span>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        log.status === 'success' ? 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600' :
-                        log.status === 'failed' ? 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' :
-                        'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400'
-                      }`}>
-                        {log.status === 'success' ? 'Exitoso' : log.status === 'failed' ? 'Fallido' : 'En progreso'}
-                      </span>
-                    </div>
-                    <span className="text-xs text-[color:var(--text-tertiary)] font-mono">{log.duration}</span>
-                  </div>
-                  <p className="mt-1.5 ml-7 text-xs text-[color:var(--text-tertiary)]">{log.details}</p>
-                </div>
-              ))}
-            {initialExecutionLogs.filter((l) => l.workflowName === selected.name).length === 0 && (
-              <p className="py-4 text-sm text-[color:var(--text-tertiary)] text-center">Sin ejecuciones registradas</p>
-            )}
-          </div>
-        </div>
-      </div>
-    )
+  async function removeWorkflow(id: string, name: string) {
+    if (!confirm(`¿Eliminar el workflow "${name}"? Se perderá su historial de ejecuciones.`)) return
+    const res = await fetch(`/api/workflows/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      if (selectedWorkflowId === id) setSelectedWorkflowId(null)
+      await load()
+    }
   }
 
-  /* ================================================================ */
-  /*  MAIN LIST VIEW                                                   */
-  /* ================================================================ */
+  const selected = workflows.find((w) => w.id === selectedWorkflowId) ?? null
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-6xl">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Workflow className="h-7 w-7 text-indigo-400" />
-            Automatizaci&oacute;n de Workflows
-          </h1>
-          <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
-            Workflow builder visual con templates pre-configurados para cumplimiento laboral.
+          <h1 className="text-2xl font-bold text-slate-900">Workflows</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Automatiza tareas de compliance: alertas, recordatorios, onboarding. Los disparadores
+            automáticos están en versión MVP; por ahora puedes ejecutar manualmente cada workflow.
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20"
+          onClick={() => setCreating(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
         >
-          <Plus className="h-4 w-4" /> Crear Workflow
+          <Plus className="w-4 h-4" />
+          Nuevo workflow
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="flex items-center gap-4 rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-5">
-          <div className="rounded-lg p-2.5 bg-emerald-900/20">
-            <Play className="h-5 w-5 text-emerald-500" />
-          </div>
+      {loading && (
+        <div className="py-16 text-center">
+          <Loader2 className="w-6 h-6 animate-spin inline-block text-slate-400" />
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-2xl font-bold text-white">{activeCount}</p>
-            <p className="text-xs text-[color:var(--text-tertiary)]">Workflows activos</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-5">
-          <div className="rounded-lg p-2.5 bg-blue-900/20">
-            <RotateCw className="h-5 w-5 text-blue-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-white">{totalExecs}</p>
-            <p className="text-xs text-[color:var(--text-tertiary)]">Ejecuciones este mes</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-5">
-          <div className="rounded-lg p-2.5 bg-amber-900/20">
-            <Activity className="h-5 w-5 text-amber-500" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-emerald-600">{successCount}</span>
-              <span className="text-sm text-[color:var(--text-tertiary)]">/</span>
-              <span className="text-2xl font-bold text-red-400">{failedCount}</span>
-            </div>
-            <p className="text-xs text-[color:var(--text-tertiary)]">Exitosos vs Fallidos</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-5">
-          <div className="rounded-lg p-2.5 bg-purple-900/20">
-            <CalendarClock className="h-5 w-5 text-purple-500" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white">
-              {nextRunWorkflow ? nextRunWorkflow.nextRun : 'N/A'}
-            </p>
-            <p className="text-xs text-[color:var(--text-tertiary)]">
-              Pr&oacute;xima ejecuci&oacute;n{nextRunWorkflow ? ` (${nextRunWorkflow.name})` : ''}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-lg bg-[color:var(--neutral-100)] bg-gray-800 p-1 w-fit">
-        <button
-          onClick={() => setActiveTab('templates')}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'templates'
-              ? 'bg-white bg-gray-900 text-white shadow-sm'
-              : 'text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)]'
-          }`}
-        >
-          Templates Pre-configurados
-        </button>
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'logs'
-              ? 'bg-white bg-gray-900 text-white shadow-sm'
-              : 'text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)]'
-          }`}
-        >
-          Log de Ejecuciones
-        </button>
-      </div>
-
-      {/* Templates tab */}
-      {activeTab === 'templates' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {workflows.map((wf) => (
-            <div
-              key={wf.id}
-              className="group relative rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 p-5 hover:shadow-lg hover:border-indigo-300 hover:border-indigo-700 transition-all cursor-pointer"
-              onClick={() => setSelectedId(wf.id)}
-            >
-              {/* Active/Inactive toggle */}
-              <div className="absolute top-4 right-4">
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleActive(wf.id) }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    wf.active ? 'bg-emerald-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                      wf.active ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Emoji + title */}
-              <div className="flex items-start gap-3 mb-3">
-                <div className="rounded-lg bg-indigo-900/30 p-2.5 text-xl leading-none flex items-center justify-center">
-                  <span>{wf.emoji}</span>
-                </div>
-                <div className="pr-14 flex-1">
-                  <h3 className="font-semibold text-white">{wf.name}</h3>
-                  <p className="mt-1 text-xs text-[color:var(--text-tertiary)] leading-relaxed">{wf.description}</p>
-                </div>
-              </div>
-
-              {/* Visual mini-flow */}
-              <div className="flex items-center gap-1 mb-3 overflow-hidden">
-                {wf.steps.map((step, idx) => {
-                  const colors = stepTypeColors[step.type]
-                  return (
-                    <div key={step.id} className="flex items-center">
-                      <div className={`flex items-center gap-1 rounded-md px-2 py-1 ${colors.bg}`} title={step.action}>
-                        <StepIcon name={step.icon} className={`h-3 w-3 ${colors.text}`} />
-                        <span className={`text-[10px] font-medium ${colors.text} hidden sm:inline truncate max-w-[60px]`}>
-                          {stepTypeLabels[step.type]}
-                        </span>
-                      </div>
-                      {idx < wf.steps.length - 1 && (
-                        <ArrowRight className="h-3 w-3 text-gray-600 mx-0.5 shrink-0" />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Meta */}
-              <div className="flex items-center gap-3 text-xs text-[color:var(--text-tertiary)] mb-3">
-                <span className="flex items-center gap-1"><Zap className="h-3.5 w-3.5" /> {wf.trigger}</span>
-                <span className="flex items-center gap-1"><ArrowRight className="h-3.5 w-3.5" /> {wf.steps.length} pasos</span>
-                <span className="flex items-center gap-1"><RotateCw className="h-3.5 w-3.5" /> {wf.executions} ejecuciones</span>
-              </div>
-
-              {/* Success rate bar */}
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-[color:var(--neutral-100)] bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      wf.successRate >= 95 ? 'bg-emerald-500' : wf.successRate >= 80 ? 'bg-amber-500' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${wf.successRate}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-[color:var(--text-tertiary)] font-mono w-8 text-right">{wf.successRate}%</span>
-              </div>
-
-              {/* Status label */}
-              <div className="mt-3 flex items-center justify-between">
-                <span className={`inline-flex items-center gap-1 text-xs font-medium ${
-                  wf.active ? 'text-emerald-600' : 'text-[color:var(--text-tertiary)]'
-                }`}>
-                  {wf.active && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                  {wf.active ? 'Activo' : 'Inactivo'}
-                </span>
-                <span className="flex items-center gap-1 text-xs text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Ver detalle <ChevronRight className="h-3 w-3" />
-                </span>
-              </div>
-            </div>
-          ))}
-
-          {/* Create custom card */}
-          <div
-            onClick={() => setShowCreateModal(true)}
-            className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/10 border-gray-600 bg-white bg-gray-900 p-8 hover:border-indigo-400 hover:border-indigo-500 hover:bg-indigo-900/10 transition-all cursor-pointer min-h-[260px]"
-          >
-            <div className="rounded-full bg-indigo-900/30 p-3">
-              <Plus className="h-6 w-6 text-indigo-400" />
-            </div>
-            <div className="text-center">
-              <p className="font-semibold text-white">Crear Workflow Personalizado</p>
-              <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">Dise&ntilde;a un flujo a medida para tu empresa</p>
-            </div>
+            <p className="font-semibold text-red-900">Error al cargar workflows</p>
+            <p className="text-sm text-red-800 mt-1">{error}</p>
+            <button onClick={load} className="mt-3 text-xs font-medium text-red-700 hover:text-red-900">
+              Reintentar →
+            </button>
           </div>
         </div>
       )}
 
-      {/* Execution log tab */}
-      {activeTab === 'logs' && (
-        <div className="rounded-xl border border-[color:var(--border-default)] border-gray-700 bg-white bg-gray-900 overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-12 gap-2 px-6 py-3 bg-[color:var(--neutral-50)] bg-gray-800/50 border-b border-[color:var(--border-default)] border-gray-700 text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider">
-            <div className="col-span-1"></div>
-            <div className="col-span-3">Workflow</div>
-            <div className="col-span-3">Ejecutado</div>
-            <div className="col-span-2">Estado</div>
-            <div className="col-span-2">Duraci&oacute;n</div>
-            <div className="col-span-1"></div>
-          </div>
-          {/* Rows */}
-          <div className="divide-y divide-gray-100 divide-gray-800">
-            {initialExecutionLogs.map((log) => (
-              <div key={log.id}>
-                <div
-                  className="grid grid-cols-12 gap-2 px-6 py-4 items-center hover:bg-[color:var(--neutral-50)] hover:bg-gray-800/30 cursor-pointer transition-colors"
-                  onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                >
-                  <div className="col-span-1 flex justify-center">
-                    {log.status === 'success' && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
-                    {log.status === 'failed' && <XCircle className="h-5 w-5 text-red-500" />}
-                    {log.status === 'in_progress' && <Timer className="h-5 w-5 text-amber-500 animate-pulse" />}
-                  </div>
-                  <div className="col-span-3">
-                    <span className="text-sm font-medium text-white">{log.workflowName}</span>
-                  </div>
-                  <div className="col-span-3">
-                    <span className="text-sm text-[color:var(--text-secondary)]">{log.triggeredAt}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
-                      log.status === 'success' ? 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600' :
-                      log.status === 'failed' ? 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' :
-                      'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400'
-                    }`}>
-                      {log.status === 'success' ? 'Exitoso' : log.status === 'failed' ? 'Fallido' : 'En progreso'}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-sm text-[color:var(--text-tertiary)] font-mono">{log.duration}</span>
-                  </div>
-                  <div className="col-span-1 flex justify-end">
-                    {expandedLogId === log.id
-                      ? <ChevronUp className="h-4 w-4 text-[color:var(--text-tertiary)]" />
-                      : <ChevronDown className="h-4 w-4 text-[color:var(--text-tertiary)]" />
-                    }
-                  </div>
+      {!loading && !error && workflows.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+          <WorkflowIcon className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-sm text-slate-500">
+            No tienes workflows activos todavía. Elige un template para empezar.
+          </p>
+          <button
+            onClick={() => setCreating(true)}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+          >
+            <Plus className="w-4 h-4" />
+            Crear el primero
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && workflows.length > 0 && (
+        <div className="grid md:grid-cols-[1fr_2fr] gap-6">
+          {/* Lista */}
+          <div className="space-y-2">
+            {workflows.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => setSelectedWorkflowId(w.id)}
+                className={`w-full text-left rounded-lg border p-3 transition ${
+                  selectedWorkflowId === w.id
+                    ? 'border-emerald-600 bg-emerald-50'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <span className="font-semibold text-slate-900 text-sm leading-tight">
+                    {w.name}
+                  </span>
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      w.active
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {w.active ? 'ACTIVO' : 'PAUSADO'}
+                  </span>
                 </div>
-                {/* Expanded details */}
-                {expandedLogId === log.id && (
-                  <div className="px-6 pb-4">
-                    <div className="ml-8 rounded-lg bg-[color:var(--neutral-50)] bg-gray-800/50 border border-[color:var(--border-default)] border-gray-700 p-4">
-                      <p className="text-sm text-[color:var(--text-secondary)]">{log.details}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                <p className="text-xs text-slate-500 line-clamp-2">{w.description}</p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {w.steps.length} paso{w.steps.length === 1 ? '' : 's'} · v{w.version}
+                </p>
+              </button>
             ))}
           </div>
-        </div>
-      )}
 
-      {/* Create modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white bg-gray-900 border border-[color:var(--border-default)] border-gray-700 shadow-2xl">
-            {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-[color:var(--border-default)] border-gray-700 px-6 py-4">
-              <h2 className="text-lg font-semibold text-white">Nuevo Workflow Personalizado</h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:text-gray-600 hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-secondary)] hover:bg-gray-800 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Modal body */}
-            <div className="space-y-4 px-6 py-5">
-              <div>
-                <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1.5">
-                  Nombre del workflow *
-                </label>
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ej: Revisi&oacute;n mensual de planillas"
-                  className="w-full rounded-lg border border-white/10 border-gray-600 bg-white bg-gray-800 px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                />
+          {/* Detalle */}
+          <div>
+            {selected ? (
+              <WorkflowDetail
+                workflow={selected}
+                onToggle={() => toggleActive(selected.id, !selected.active)}
+                onDelete={() => removeWorkflow(selected.id, selected.name)}
+                onReload={load}
+              />
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 p-12 text-center text-sm text-slate-500">
+                Selecciona un workflow de la lista para ver sus pasos e historial.
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1.5">
-                  Trigger (disparador)
-                </label>
-                <input
-                  value={newTrigger}
-                  onChange={(e) => setNewTrigger(e.target.value)}
-                  placeholder="Ej: Cada fin de mes, Al registrar incidencia..."
-                  className="w-full rounded-lg border border-white/10 border-gray-600 bg-white bg-gray-800 px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1.5">
-                  Descripci&oacute;n
-                </label>
-                <textarea
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Describe el objetivo de este workflow..."
-                  className="w-full rounded-lg border border-white/10 border-gray-600 bg-white bg-gray-800 px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none"
-                />
-              </div>
-              <div className="rounded-lg bg-indigo-900/20 border border-indigo-800 p-3">
-                <p className="text-xs text-indigo-400">
-                  <strong>Nota:</strong> Despu&eacute;s de crear el workflow, podr&aacute;s configurar los pasos detallados en el editor visual.
-                </p>
-              </div>
-            </div>
-
-            {/* Modal footer */}
-            <div className="flex items-center justify-end gap-3 border-t border-[color:var(--border-default)] border-gray-700 px-6 py-4">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)] hover:bg-gray-800 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={!newName.trim()}
-                className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Crear Workflow
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}
+
+      {creating && (
+        <CreateModal
+          templates={templates}
+          onClose={() => setCreating(false)}
+          onCreated={async () => {
+            setCreating(false)
+            await load()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── WorkflowDetail ────────────────────────────────────────────────────────
+
+function WorkflowDetail({
+  workflow,
+  onToggle,
+  onDelete,
+  onReload,
+}: {
+  workflow: WorkflowDef
+  onToggle: () => void
+  onDelete: () => void
+  onReload: () => Promise<void>
+}) {
+  const [runs, setRuns] = useState<WorkflowRun[]>([])
+  const [runsLoading, setRunsLoading] = useState(true)
+  const [running, setRunning] = useState(false)
+
+  const loadRuns = useCallback(async () => {
+    setRunsLoading(true)
+    try {
+      const res = await fetch(`/api/workflows/${workflow.id}`, { cache: 'no-store' })
+      if (res.ok) {
+        const body = (await res.json()) as { runs: WorkflowRun[] }
+        setRuns(body.runs)
+      }
+    } finally {
+      setRunsLoading(false)
+    }
+  }, [workflow.id])
+
+  useEffect(() => {
+    loadRuns()
+  }, [loadRuns])
+
+  async function handleRun() {
+    setRunning(true)
+    try {
+      const res = await fetch(`/api/workflows/${workflow.id}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ triggerData: {} }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(body.error ?? 'Error al ejecutar')
+        return
+      }
+      await Promise.all([loadRuns(), onReload()])
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">{workflow.name}</h2>
+            <p className="text-sm text-slate-600 mt-1">{workflow.description}</p>
+            <p className="text-xs text-slate-400 mt-2">
+              Trigger: <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">{workflow.triggerId}</code>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onToggle}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border ${
+                workflow.active
+                  ? 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                  : 'border-emerald-600 text-emerald-700 hover:bg-emerald-50'
+              }`}
+            >
+              {workflow.active ? 'Pausar' : 'Activar'}
+            </button>
+            <button
+              onClick={handleRun}
+              disabled={running || !workflow.active}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              Ejecutar
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1.5 rounded-lg border border-red-200 text-red-700 hover:bg-red-50"
+              aria-label="Eliminar"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <p className="text-xs font-semibold uppercase text-slate-500 tracking-wide mb-2">
+            Pasos ({workflow.steps.length})
+          </p>
+          <ol className="space-y-2">
+            {workflow.steps.map((s, i) => (
+              <li key={s.id} className="flex items-center gap-3 text-sm">
+                <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                  {i + 1}
+                </span>
+                <span className="text-slate-700">{s.name}</span>
+                <span className="ml-auto text-[11px] font-mono text-slate-400">{s.type}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {/* Historial */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-900">Historial de ejecuciones</h3>
+          <span className="text-xs text-slate-500">{runs.length} recientes</span>
+        </div>
+        {runsLoading ? (
+          <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+        ) : runs.length === 0 ? (
+          <p className="text-sm text-slate-500">Sin ejecuciones todavía. Usa el botón Ejecutar.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {runs.map((run) => {
+              const s = STATUS_STYLE[run.status] ?? STATUS_STYLE.PENDING
+              const Icon = s.icon
+              return (
+                <li key={run.id} className="py-2.5 flex items-start gap-3 text-sm">
+                  <div className={`px-2 py-0.5 rounded text-[11px] font-semibold ${s.bg} ${s.text} flex items-center gap-1 flex-shrink-0`}>
+                    <Icon className="w-3 h-3" />
+                    {run.status}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-slate-700">
+                      {formatDate(run.startedAt)}
+                      {run.triggeredBy && (
+                        <span className="text-slate-400"> · por {run.triggeredBy}</span>
+                      )}
+                    </p>
+                    {run.error && (
+                      <p className="text-xs text-red-700 mt-0.5">{run.error}</p>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── CreateModal ───────────────────────────────────────────────────────────
+
+function CreateModal({
+  templates,
+  onClose,
+  onCreated,
+}: {
+  templates: WorkflowTemplate[]
+  onClose: () => void
+  onCreated: () => Promise<void>
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [params, setParams] = useState<Record<string, string | number>>({})
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const template = templates.find((t) => t.id === selectedId)
+
+  async function handleCreate() {
+    if (!template) return
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: template.id, params }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `Error ${res.status}`)
+      await onCreated()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">Nuevo workflow</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-slate-100">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {!template ? (
+            <>
+              <p className="text-sm text-slate-600">
+                Elige un template para empezar. Puedes activar o pausar el workflow después.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedId(t.id)}
+                    className="text-left rounded-lg border border-slate-200 p-4 hover:border-emerald-500 hover:bg-emerald-50 transition"
+                  >
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wide">
+                      {CATEGORY_LABEL[t.category]}
+                    </span>
+                    <h3 className="font-semibold text-slate-900 mt-1">{t.name}</h3>
+                    <p className="text-xs text-slate-500 mt-1">{t.description}</p>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedId(null)
+                    setParams({})
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-700"
+                >
+                  ← Cambiar template
+                </button>
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900">{template.name}</h3>
+                <p className="text-sm text-slate-600 mt-1">{template.description}</p>
+              </div>
+              <div className="space-y-3 pt-2">
+                {template.params.map((p) => (
+                  <label key={p.key} className="block">
+                    <span className="text-xs font-semibold text-slate-700">
+                      {p.label}
+                      {p.required && <span className="text-red-600 ml-1">*</span>}
+                    </span>
+                    <input
+                      type={p.type === 'number' ? 'number' : p.type === 'email' ? 'email' : 'text'}
+                      value={
+                        params[p.key] !== undefined
+                          ? String(params[p.key])
+                          : p.default !== undefined
+                            ? String(p.default)
+                            : ''
+                      }
+                      onChange={(e) =>
+                        setParams((prev) => ({
+                          ...prev,
+                          [p.key]:
+                            p.type === 'number' ? Number(e.target.value) : e.target.value,
+                        }))
+                      }
+                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </label>
+                ))}
+              </div>
+
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreate}
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Crear workflow
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

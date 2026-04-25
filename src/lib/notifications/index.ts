@@ -11,6 +11,11 @@
  */
 
 import { randomUUID } from 'crypto'
+import {
+  isWhatsAppConfigured,
+  sendText as waSendText,
+  sendTemplate as waSendTemplate,
+} from './whatsapp-business'
 
 // =============================================
 // TYPES
@@ -82,11 +87,20 @@ export class ConsoleNotificationProvider implements NotificationProvider {
 // WEB PUSH (stub, requiere VAPID)
 // =============================================
 
-export class WebPushStubProvider implements NotificationProvider {
+/**
+ * Provider real de Web Push (VAPID + `web-push` package).
+ *
+ * Usa `sendPushToUser` de `web-push-server.ts` que ya tiene cargado el
+ * dynamic import + manejo de fallas. El `payload.recipient` es el
+ * `User.id` para que el helper pueda buscar la `pushSubscription` en DB.
+ *
+ * El nombre `WebPushStubProvider` se mantiene como alias para no romper
+ * imports legacy.
+ */
+export class WebPushProvider implements NotificationProvider {
   readonly channel = 'web-push' as const
-  readonly name = 'Web Push (VAPID stub)'
+  readonly name = 'Web Push (VAPID)'
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async send(payload: NotificationPayload): Promise<NotificationDelivery> {
     if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
       return {
@@ -95,7 +109,39 @@ export class WebPushStubProvider implements NotificationProvider {
         error: 'VAPID_PUBLIC_KEY y VAPID_PRIVATE_KEY no configurados',
       }
     }
-    // TODO: integración real con `web-push` package
+
+    // Import dinámico para no crear un ciclo de módulos a nivel top.
+    const { sendPushToUser } = await import('./web-push-server')
+
+    const userId = payload.recipient
+    if (!userId) {
+      return {
+        channel: 'web-push',
+        success: false,
+        error: 'payload.recipient (userId) requerido',
+      }
+    }
+
+    const sevRaw = payload.metadata?.severity
+    const sev =
+      typeof sevRaw === 'string'
+        ? (sevRaw.toUpperCase() as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW')
+        : undefined
+    const ok = await sendPushToUser(userId, {
+      title: payload.title,
+      body: payload.body,
+      url: payload.actionUrl,
+      severity: sev && ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(sev) ? sev : undefined,
+    })
+
+    if (!ok) {
+      return {
+        channel: 'web-push',
+        success: false,
+        error: 'sin suscripción activa o VAPID falló',
+      }
+    }
+
     return {
       channel: 'web-push',
       success: true,
@@ -105,47 +151,115 @@ export class WebPushStubProvider implements NotificationProvider {
   }
 }
 
+// Alias legacy
+export { WebPushProvider as WebPushStubProvider }
+
 // =============================================
-// WHATSAPP BUSINESS (stub)
+// WHATSAPP BUSINESS (real — Meta Cloud API)
 // =============================================
 
-export class WhatsAppStubProvider implements NotificationProvider {
+/**
+ * Envía por WhatsApp Business usando el cliente en `whatsapp-business.ts`.
+ *
+ * Estrategia de envío:
+ *  - Si `metadata.waTemplate` está presente (nombre del template aprobado por
+ *    Meta), usa template — única forma de iniciar conversación (alertas).
+ *    Las variables del body se arman con `payload.title + payload.body`.
+ *  - Sin template → texto libre (requiere ventana de 24h abierta).
+ *
+ * El número de teléfono destino viene en `payload.recipient` (admite
+ * variantes de formato, el cliente normaliza a E.164).
+ */
+export class WhatsAppBusinessProvider implements NotificationProvider {
   readonly channel = 'whatsapp' as const
-  readonly name = 'WhatsApp Business (stub)'
+  readonly name = 'WhatsApp Business (Meta Cloud API)'
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async send(payload: NotificationPayload): Promise<NotificationDelivery> {
-    const token = process.env.WHATSAPP_BUSINESS_TOKEN
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID
-    if (!token || !phoneId) {
+    if (!isWhatsAppConfigured()) {
       return {
         channel: 'whatsapp',
         success: false,
         error: 'WHATSAPP_BUSINESS_TOKEN y WHATSAPP_PHONE_NUMBER_ID no configurados',
       }
     }
-    // TODO: llamada real a Graph API
-    // POST https://graph.facebook.com/v18.0/{phoneId}/messages
+
+    const templateName =
+      typeof payload.metadata?.waTemplate === 'string'
+        ? (payload.metadata.waTemplate as string)
+        : undefined
+
+    const result = templateName
+      ? await waSendTemplate(payload.recipient, {
+          name: templateName,
+          language:
+            typeof payload.metadata?.waLanguage === 'string'
+              ? (payload.metadata.waLanguage as string)
+              : 'es',
+          bodyParams: [payload.title, payload.body].filter(Boolean),
+          buttonUrlParam: payload.actionUrl,
+        })
+      : await waSendText(payload.recipient, `*${payload.title}*\n\n${payload.body}${payload.actionUrl ? `\n\n${payload.actionUrl}` : ''}`)
+
+    if (result.ok) {
+      return {
+        channel: 'whatsapp',
+        success: true,
+        deliveredAt: new Date().toISOString(),
+        providerMessageId: result.messageId ?? `wa-${randomUUID()}`,
+      }
+    }
+
     return {
       channel: 'whatsapp',
-      success: true,
-      deliveredAt: new Date().toISOString(),
-      providerMessageId: `wa-${randomUUID()}`,
+      success: false,
+      error: result.error ?? result.reason ?? 'error desconocido',
     }
   }
 }
+
+// Alias legacy — código antiguo que importa el nombre Stub sigue funcionando,
+// pero redirige al provider real.
+export { WhatsAppBusinessProvider as WhatsAppStubProvider }
 
 // =============================================
 // EMAIL (genérico)
 // =============================================
 
-export class EmailStubProvider implements NotificationProvider {
+/**
+ * Provider real de Email (Resend).
+ *
+ * Usa `sendEmail` de `lib/email/client.ts` que tiene fallback dev (console
+ * log si falta `RESEND_API_KEY`). El `payload.recipient` es la dirección
+ * email destino. Si `payload.body` parece HTML, se envía tal cual; si no,
+ * lo envolvemos en un layout básico.
+ *
+ * El nombre `EmailStubProvider` se mantiene como alias.
+ */
+export class EmailProvider implements NotificationProvider {
   readonly channel = 'email' as const
-  readonly name = 'Email (stub)'
+  readonly name = 'Email (Resend)'
 
   async send(payload: NotificationPayload): Promise<NotificationDelivery> {
-    // TODO: integrar con Resend/Postmark/SES
-    console.log(`[email] to=${payload.recipient} subject="${payload.title}" body="${payload.body}"`)
+    const { sendEmail } = await import('@/lib/email/client')
+
+    const html = looksLikeHtml(payload.body)
+      ? payload.body
+      : wrapAsHtml(payload.title, payload.body, payload.actionUrl)
+
+    const sent = await sendEmail({
+      to: payload.recipient,
+      subject: payload.title,
+      html,
+    })
+
+    if (!sent) {
+      return {
+        channel: 'email',
+        success: false,
+        error: 'sendEmail devolvió false (Resend rechazó o sin API key configurada)',
+      }
+    }
+
     return {
       channel: 'email',
       success: true,
@@ -153,6 +267,41 @@ export class EmailStubProvider implements NotificationProvider {
       providerMessageId: `email-${randomUUID()}`,
     }
   }
+}
+
+// Alias legacy
+export { EmailProvider as EmailStubProvider }
+
+function looksLikeHtml(s: string | undefined | null): boolean {
+  if (!s) return false
+  return /<\/?[a-z][\s\S]*>/i.test(s)
+}
+
+function wrapAsHtml(title: string, body: string, actionUrl?: string): string {
+  const safeTitle = escapeHtml(title)
+  const safeBody = escapeHtml(body).replace(/\n/g, '<br>')
+  const cta = actionUrl
+    ? `<p><a href="${escapeAttr(actionUrl)}" style="display:inline-block;padding:10px 20px;background:#059669;color:#fff;text-decoration:none;border-radius:6px;">Ver detalles</a></p>`
+    : ''
+  return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#1e293b;max-width:600px;margin:0 auto;padding:24px;">
+    <h2 style="color:#0f172a;">${safeTitle}</h2>
+    <p>${safeBody}</p>
+    ${cta}
+    <hr style="border:0;border-top:1px solid #e2e8f0;margin-top:32px;">
+    <p style="font-size:11px;color:#64748b;">Este mensaje fue enviado por COMPLY360. Si no esperabas recibirlo, contáctanos en datos@comply360.pe.</p>
+  </body></html>`
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+function escapeAttr(s: string): string {
+  return s.replace(/"/g, '&quot;')
 }
 
 // =============================================
@@ -163,9 +312,9 @@ const providers = new Map<NotificationChannel, NotificationProvider>()
 
 // Defaults
 providers.set('console', new ConsoleNotificationProvider())
-providers.set('web-push', new WebPushStubProvider())
-providers.set('whatsapp', new WhatsAppStubProvider())
-providers.set('email', new EmailStubProvider())
+providers.set('web-push', new WebPushProvider())
+providers.set('whatsapp', new WhatsAppBusinessProvider())
+providers.set('email', new EmailProvider())
 
 export function registerProvider(provider: NotificationProvider): void {
   providers.set(provider.channel, provider)

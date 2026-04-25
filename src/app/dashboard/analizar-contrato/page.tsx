@@ -1259,7 +1259,7 @@ function AIFailedNotice({
         </p>
         <p className="mt-0.5 text-xs text-amber-200/80">
           Probablemente timeout del LLM o falta de API key. El análisis por reglas arriba sigue
-          siendo confiable. Podés reintentar manualmente.
+          siendo confiable. Puedes reintentar manualmente.
         </p>
         {error ? <p className="mt-1 text-xs text-red-300">{error}</p> : null}
       </div>

@@ -327,7 +327,7 @@ function CalculatorGrid({ onPick }: { onPick: (k: CalculatorKey) => void }) {
 
       <Card padding="md" variant="outline">
         <p className="text-xs text-[color:var(--text-secondary)]">
-          ¿Querés la versión completa con pre-fill desde trabajadores, guardado
+          ¿Quieres la versión completa con pre-fill desde trabajadores, guardado
           automático e histórico? Abrí{' '}
           <Link href="/dashboard/calculadoras" className="text-emerald-600 hover:underline">
             /dashboard/calculadoras

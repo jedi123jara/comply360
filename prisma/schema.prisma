@@ -27,8 +27,8 @@ model Organization {
   regimenTributario   String?   @map("regimen_tributario") // RER, RMT, RG, RUS
   alertEmail          String?   @map("alert_email")
   phone               String?
-  address             String?   // direccion fiscal
-  city                String?   // departamento
+  address             String? // direccion fiscal
+  city                String? // departamento
   province            String?
   district            String?
   // Representante Legal
@@ -42,25 +42,25 @@ model Organization {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  users            User[]
-  workers          Worker[]
-  contracts        Contract[]
-  calculations     Calculation[]
-  orgAlerts        OrgAlert[]
-  auditLogs        AuditLog[]
-  subscription     Subscription?
-  diagnostics      ComplianceDiagnostic[]
-  complianceTasks  ComplianceTask[]
-  complaints       Complaint[]
-  invitations      Invitation[]
-  payslips         Payslip[]
-  workerRequests   WorkerRequest[]
-  documents        OrgDocument[]
-  serviceProviders ServiceProvider[]
-  rhInvoices       RhInvoice[]
-  inspecciones     InspeccionEnVivo[]
-  ownedClients     ConsultorClient[] @relation("ConsultorOwner")
-  managedBy        ConsultorClient[] @relation("ConsultorManaged")
+  users                  User[]
+  workers                Worker[]
+  contracts              Contract[]
+  calculations           Calculation[]
+  orgAlerts              OrgAlert[]
+  auditLogs              AuditLog[]
+  subscription           Subscription?
+  diagnostics            ComplianceDiagnostic[]
+  complianceTasks        ComplianceTask[]
+  complaints             Complaint[]
+  invitations            Invitation[]
+  payslips               Payslip[]
+  workerRequests         WorkerRequest[]
+  documents              OrgDocument[]
+  serviceProviders       ServiceProvider[]
+  rhInvoices             RhInvoice[]
+  inspecciones           InspeccionEnVivo[]
+  ownedClients           ConsultorClient[]       @relation("ConsultorOwner")
+  managedBy              ConsultorClient[]       @relation("ConsultorManaged")
   integrationCredentials IntegrationCredential[]
 
   @@map("organizations")
@@ -70,8 +70,8 @@ model Organization {
 model IntegrationCredential {
   id              String    @id @default(cuid())
   orgId           String    @map("org_id")
-  provider        String    // "sunat_sol", "sunat_api", etc.
-  label           String?   // "SUNAT RUC 20505897867"
+  provider        String // "sunat_sol", "sunat_api", etc.
+  label           String? // "SUNAT RUC 20505897867"
   encryptedConfig String    @map("encrypted_config") @db.Text // JSON encriptado con AES-256-GCM
   isActive        Boolean   @default(true) @map("is_active")
   lastTestedAt    DateTime? @map("last_tested_at")
@@ -80,7 +80,7 @@ model IntegrationCredential {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  organization    Organization @relation(fields: [orgId], references: [id])
+  organization Organization @relation(fields: [orgId], references: [id])
 
   @@unique([orgId, provider])
   @@map("integration_credentials")
@@ -95,29 +95,29 @@ enum Plan {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique @map("clerk_id")
-  orgId     String?  @map("org_id")
-  email     String   @unique
-  firstName String?  @map("first_name")
-  lastName  String?  @map("last_name")
-  role      UserRole @default(MEMBER)
-  avatarUrl String?  @map("avatar_url")
+  id               String    @id @default(cuid())
+  clerkId          String    @unique @map("clerk_id")
+  orgId            String?   @map("org_id")
+  email            String    @unique
+  firstName        String?   @map("first_name")
+  lastName         String?   @map("last_name")
+  role             UserRole  @default(MEMBER)
+  avatarUrl        String?   @map("avatar_url")
   // Web Push subscription (Fase D). JSON con { endpoint, keys.p256dh, keys.auth }.
-  pushSubscription Json? @map("push_subscription")
+  pushSubscription Json?     @map("push_subscription")
   // Gamificación — Fase D Sprint 5
   streakCurrent    Int       @default(0) @map("streak_current")
   streakLongest    Int       @default(0) @map("streak_longest")
   streakLastAt     DateTime? @map("streak_last_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  organization   Organization?   @relation(fields: [orgId], references: [id])
-  worker         Worker? // Si el User tiene rol WORKER, su perfil de trabajador
-  contracts      Contract[]      @relation("CreatedBy")
-  calculations   Calculation[]
-  auditLogs      AuditLog[]
-  workerRequests WorkerRequest[] @relation("RequestReviewer")
+  organization       Organization?       @relation(fields: [orgId], references: [id])
+  worker             Worker? // Si el User tiene rol WORKER, su perfil de trabajador
+  contracts          Contract[]          @relation("CreatedBy")
+  calculations       Calculation[]
+  auditLogs          AuditLog[]
+  workerRequests     WorkerRequest[]     @relation("RequestReviewer")
   gamificationEvents GamificationEvent[]
 
   @@map("users")
@@ -125,13 +125,13 @@ model User {
 
 // Gamificación — eventos que suman puntos y desbloquean logros
 model GamificationEvent {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  orgId     String?  @map("org_id")
+  id        String                @id @default(cuid())
+  userId    String                @map("user_id")
+  orgId     String?               @map("org_id")
   type      GamificationEventType
-  points    Int      @default(0)
+  points    Int                   @default(0)
   metadata  Json?
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime              @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -382,6 +382,7 @@ enum WorkerAlertType {
   VACACIONES_DOBLE_PERIODO
   DOCUMENTO_FALTANTE
   DOCUMENTO_VENCIDO
+  DOCUMENTO_SOSPECHOSO  // IA visión detectó posible manipulación
   EXAMEN_MEDICO_VENCIDO
   CAPACITACION_PENDIENTE
   AFP_EN_MORA
@@ -682,28 +683,28 @@ model ComplianceDiagnostic {
 //
 // F2.1 del plan maestro: "Boton 'Generar Plan de Accion' que crea tareas en el sistema".
 model ComplianceTask {
-  id            String                @id @default(cuid())
-  orgId         String                @map("org_id")
-  diagnosticId  String?               @map("diagnostic_id") // null si creada manualmente
+  id            String               @id @default(cuid())
+  orgId         String               @map("org_id")
+  diagnosticId  String?              @map("diagnostic_id") // null si creada manualmente
   // Origen dentro del diagnostico (questionId del scorer o solicitudId del simulacro)
-  sourceId      String?               @map("source_id")
-  area          String                // area_key: "sst", "contratos_registro", etc.
-  priority      Int                   @default(0) // 1 = mas urgente
-  title         String                // accion corta: "Implementar IPERC firmado"
-  description   String?               @db.Text // accion completa + contexto
-  baseLegal     String?               @map("base_legal") // "Ley 29783, Art. 57"
-  gravedad      InfracGravedad        @default(LEVE)
-  multaEvitable Decimal?              @map("multa_evitable") @db.Decimal(12, 2)
-  plazoSugerido String?               @map("plazo_sugerido") // "Inmediato (7 dias)"
-  dueDate       DateTime?             @map("due_date")
-  assignedTo    String?               @map("assigned_to") // userId del responsable
-  status        ComplianceTaskStatus  @default(PENDING)
-  evidenceUrl   String?               @map("evidence_url")
-  notes         String?               @db.Text
-  completedAt   DateTime?             @map("completed_at")
-  completedBy   String?               @map("completed_by") // userId
-  createdAt     DateTime              @default(now()) @map("created_at")
-  updatedAt     DateTime              @updatedAt @map("updated_at")
+  sourceId      String?              @map("source_id")
+  area          String // area_key: "sst", "contratos_registro", etc.
+  priority      Int                  @default(0) // 1 = mas urgente
+  title         String // accion corta: "Implementar IPERC firmado"
+  description   String?              @db.Text // accion completa + contexto
+  baseLegal     String?              @map("base_legal") // "Ley 29783, Art. 57"
+  gravedad      InfracGravedad       @default(LEVE)
+  multaEvitable Decimal?             @map("multa_evitable") @db.Decimal(12, 2)
+  plazoSugerido String?              @map("plazo_sugerido") // "Inmediato (7 dias)"
+  dueDate       DateTime?            @map("due_date")
+  assignedTo    String?              @map("assigned_to") // userId del responsable
+  status        ComplianceTaskStatus @default(PENDING)
+  evidenceUrl   String?              @map("evidence_url")
+  notes         String?              @db.Text
+  completedAt   DateTime?            @map("completed_at")
+  completedBy   String?              @map("completed_by") // userId
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
 
   organization Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
   diagnostic   ComplianceDiagnostic? @relation(fields: [diagnosticId], references: [id], onDelete: SetNull)
@@ -715,10 +716,10 @@ model ComplianceTask {
 }
 
 enum ComplianceTaskStatus {
-  PENDING      // Creada, sin asignar
-  IN_PROGRESS  // En proceso de subsanacion
-  COMPLETED    // Resuelta con evidencia
-  DISMISSED    // Descartada (ej. NA para este caso)
+  PENDING // Creada, sin asignar
+  IN_PROGRESS // En proceso de subsanacion
+  COMPLETED // Resuelta con evidencia
+  DISMISSED // Descartada (ej. NA para este caso)
 }
 
 enum InfracGravedad {
@@ -817,6 +818,15 @@ model Complaint {
   protectionMeasures Json?           @map("protection_measures")
   receivedAt         DateTime        @default(now()) @map("received_at")
   resolvedAt         DateTime?       @map("resolved_at")
+  // Triaje IA (Fase γ) — la IA clasifica severidad/urgencia al recibir la
+  // denuncia y sugiere medidas de protección. Ver `src/lib/ai/complaint-triage.ts`.
+  // `severityAi` y `urgencyAi` se promueven a columnas para índice + WHERE.
+  // El payload rico (summary, redFlags, medidas sugeridas, model) vive en triageJson.
+  severityAi         ComplaintSeverity? @map("severity_ai")
+  urgencyAi          ComplaintUrgency?  @map("urgency_ai")
+  triageJson         Json?              @map("triage_json")
+  triagedAt          DateTime?          @map("triaged_at")
+  triageVersion      Int                @default(1) @map("triage_version")
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")
 
@@ -824,6 +834,7 @@ model Complaint {
   timeline     ComplaintTimeline[]
 
   @@index([orgId, status])
+  @@index([orgId, severityAi])
   @@map("complaints")
 }
 
@@ -832,6 +843,20 @@ enum ComplaintType {
   DISCRIMINACION
   ACOSO_LABORAL
   OTRO
+}
+
+enum ComplaintSeverity {
+  BAJA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum ComplaintUrgency {
+  BAJA
+  MEDIA
+  ALTA
+  INMEDIATA
 }
 
 enum ComplaintStatus {
@@ -1056,8 +1081,8 @@ enum NormSource {
 
 enum NormStatus {
   PENDING_REVIEW // detectada por el crawler, pendiente de revision del equipo dev
-  APPROVED       // aprobada y visible para los clientes
-  REJECTED       // descartada (duplicado, irrelevante, error del scraper)
+  APPROVED // aprobada y visible para los clientes
+  REJECTED // descartada (duplicado, irrelevante, error del scraper)
 }
 
 // =============================================
@@ -1065,37 +1090,37 @@ enum NormStatus {
 // =============================================
 
 model CeseRecord {
-  id                    String      @id @default(cuid())
-  orgId                 String      @map("org_id")
-  workerId              String      @unique @map("worker_id")
+  id       String @id @default(cuid())
+  orgId    String @map("org_id")
+  workerId String @unique @map("worker_id")
 
   // Tipo y causa
-  tipoCese              TipoCese    @map("tipo_cese")
-  causaDetalle          String?     @map("causa_detalle") @db.Text
+  tipoCese     TipoCese @map("tipo_cese")
+  causaDetalle String?  @map("causa_detalle") @db.Text
 
   // Fechas del proceso
-  fechaInicioProceso    DateTime    @map("fecha_inicio_proceso")
-  fechaCese             DateTime    @map("fecha_cese")
-  fechaCartaPreaviso    DateTime?   @map("fecha_carta_preaviso")
-  fechaLimiteDescargos  DateTime?   @map("fecha_limite_descargos")
-  fechaCartaDespido     DateTime?   @map("fecha_carta_despido")
-  fechaPagoLiquidacion  DateTime?   @map("fecha_pago_liquidacion")
+  fechaInicioProceso   DateTime  @map("fecha_inicio_proceso")
+  fechaCese            DateTime  @map("fecha_cese")
+  fechaCartaPreaviso   DateTime? @map("fecha_carta_preaviso")
+  fechaLimiteDescargos DateTime? @map("fecha_limite_descargos")
+  fechaCartaDespido    DateTime? @map("fecha_carta_despido")
+  fechaPagoLiquidacion DateTime? @map("fecha_pago_liquidacion")
 
   // Montos de liquidación
-  sueldoBruto           Decimal     @map("sueldo_bruto") @db.Decimal(10, 2)
-  ctsMonto              Decimal     @default(0) @map("cts_monto") @db.Decimal(10, 2)
-  vacacionesMonto       Decimal     @default(0) @map("vacaciones_monto") @db.Decimal(10, 2)
-  gratificacionMonto    Decimal     @default(0) @map("gratificacion_monto") @db.Decimal(10, 2)
-  indemnizacionMonto    Decimal     @default(0) @map("indemnizacion_monto") @db.Decimal(10, 2)
-  totalLiquidacion      Decimal     @default(0) @map("total_liquidacion") @db.Decimal(10, 2)
-  detalleJson           Json?       @map("detalle_json")
+  sueldoBruto        Decimal @map("sueldo_bruto") @db.Decimal(10, 2)
+  ctsMonto           Decimal @default(0) @map("cts_monto") @db.Decimal(10, 2)
+  vacacionesMonto    Decimal @default(0) @map("vacaciones_monto") @db.Decimal(10, 2)
+  gratificacionMonto Decimal @default(0) @map("gratificacion_monto") @db.Decimal(10, 2)
+  indemnizacionMonto Decimal @default(0) @map("indemnizacion_monto") @db.Decimal(10, 2)
+  totalLiquidacion   Decimal @default(0) @map("total_liquidacion") @db.Decimal(10, 2)
+  detalleJson        Json?   @map("detalle_json")
 
   // Estado del proceso
-  etapa                 EtapaCese   @default(INICIADO)
-  observaciones         String?     @db.Text
+  etapa         EtapaCese @default(INICIADO)
+  observaciones String?   @db.Text
 
-  createdAt             DateTime    @default(now()) @map("created_at")
-  updatedAt             DateTime    @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   worker Worker @relation(fields: [workerId], references: [id])
 
@@ -1104,15 +1129,15 @@ model CeseRecord {
 }
 
 enum TipoCese {
-  RENUNCIA_VOLUNTARIA       // Trabajador renuncia — Art. 18 D.S. 003-97-TR
-  DESPIDO_CAUSA_JUSTA       // Falta grave — Art. 22-25 D.Leg. 728
-  DESPIDO_ARBITRARIO        // Sin causa justa — indemnización obligatoria
-  MUTUO_DISENSO             // Acuerdo ambas partes — Art. 19 D.S. 003-97-TR
-  TERMINO_CONTRATO          // Fin de contrato a plazo fijo
-  NO_RENOVACION             // No renovación de contrato temporal
-  FALLECIMIENTO             // Art. 16.a D.S. 003-97-TR
-  JUBILACION                // Art. 16.f D.S. 003-97-TR
-  PERIODO_PRUEBA            // Dentro del período de prueba — Art. 10
+  RENUNCIA_VOLUNTARIA // Trabajador renuncia — Art. 18 D.S. 003-97-TR
+  DESPIDO_CAUSA_JUSTA // Falta grave — Art. 22-25 D.Leg. 728
+  DESPIDO_ARBITRARIO // Sin causa justa — indemnización obligatoria
+  MUTUO_DISENSO // Acuerdo ambas partes — Art. 19 D.S. 003-97-TR
+  TERMINO_CONTRATO // Fin de contrato a plazo fijo
+  NO_RENOVACION // No renovación de contrato temporal
+  FALLECIMIENTO // Art. 16.a D.S. 003-97-TR
+  JUBILACION // Art. 16.f D.S. 003-97-TR
+  PERIODO_PRUEBA // Dentro del período de prueba — Art. 10
 }
 
 enum EtapaCese {
@@ -1396,44 +1421,44 @@ enum OrgDocType {
 // Riesgo principal: DESNATURALIZACION (reclasificacion a 5ta por SUNAFIL si hay subordinacion).
 
 model ServiceProvider {
-  id             String  @id @default(cuid())
-  orgId          String  @map("org_id")
+  id                     String                @id @default(cuid())
+  orgId                  String                @map("org_id")
   // Identificacion
-  documentType   String  @default("DNI") @map("document_type") // DNI, CE, RUC, PASAPORTE
-  documentNumber String  @map("document_number")
-  ruc            String? // RUC del prestador (obligatorio para emitir RH electronico)
-  firstName      String  @map("first_name")
-  lastName       String  @map("last_name")
-  email          String?
-  phone          String?
-  address        String?
-  profession     String? // Profesion/especialidad (ej: Contador, Ingeniero, Diseñador)
+  documentType           String                @default("DNI") @map("document_type") // DNI, CE, RUC, PASAPORTE
+  documentNumber         String                @map("document_number")
+  ruc                    String? // RUC del prestador (obligatorio para emitir RH electronico)
+  firstName              String                @map("first_name")
+  lastName               String                @map("last_name")
+  email                  String?
+  phone                  String?
+  address                String?
+  profession             String? // Profesion/especialidad (ej: Contador, Ingeniero, Diseñador)
   // Servicio contratado
-  servicioDescripcion String    @map("servicio_descripcion") // Descripcion breve del servicio
-  area                String? // Area de la empresa donde presta servicio
-  startDate           DateTime  @map("start_date") // Inicio del servicio
-  endDate             DateTime? @map("end_date") // Fin previsto (si hay)
-  monthlyAmount       Decimal   @map("monthly_amount") @db.Decimal(10, 2) // Monto mensual acordado
-  currency            String    @default("PEN")
-  paymentFrequency    String    @default("MONTHLY") @map("payment_frequency") // MONTHLY, BIWEEKLY, PROJECT, HOURLY
+  servicioDescripcion    String                @map("servicio_descripcion") // Descripcion breve del servicio
+  area                   String? // Area de la empresa donde presta servicio
+  startDate              DateTime              @map("start_date") // Inicio del servicio
+  endDate                DateTime?             @map("end_date") // Fin previsto (si hay)
+  monthlyAmount          Decimal               @map("monthly_amount") @db.Decimal(10, 2) // Monto mensual acordado
+  currency               String                @default("PEN")
+  paymentFrequency       String                @default("MONTHLY") @map("payment_frequency") // MONTHLY, BIWEEKLY, PROJECT, HOURLY
   // Retencion de 4ta categoria
-  hasSuspensionRetencion Boolean   @default(false) @map("has_suspension_retencion") // Constancia vigente de SUNAT
-  suspensionExpiryDate   DateTime? @map("suspension_expiry_date") // Vence cada 31 de diciembre
+  hasSuspensionRetencion Boolean               @default(false) @map("has_suspension_retencion") // Constancia vigente de SUNAT
+  suspensionExpiryDate   DateTime?             @map("suspension_expiry_date") // Vence cada 31 de diciembre
   // Analisis de riesgo de desnaturalizacion (indicadores laborales)
-  hasFixedSchedule      Boolean @default(false) @map("has_fixed_schedule") // Horario fijo impuesto
-  hasExclusivity        Boolean @default(false) @map("has_exclusivity") // Exclusividad con la empresa
-  worksOnPremises       Boolean @default(false) @map("works_on_premises") // Trabaja dentro de las instalaciones
-  usesCompanyTools      Boolean @default(false) @map("uses_company_tools") // Usa equipos/herramientas de la empresa
-  reportsToSupervisor   Boolean @default(false) @map("reports_to_supervisor") // Tiene jefe directo
-  receivesOrders        Boolean @default(false) @map("receives_orders") // Recibe ordenes directas
-  desnaturalizacionRisk Int     @default(0) @map("desnaturalizacion_risk") // 0-100 calculado desde los flags
+  hasFixedSchedule       Boolean               @default(false) @map("has_fixed_schedule") // Horario fijo impuesto
+  hasExclusivity         Boolean               @default(false) @map("has_exclusivity") // Exclusividad con la empresa
+  worksOnPremises        Boolean               @default(false) @map("works_on_premises") // Trabaja dentro de las instalaciones
+  usesCompanyTools       Boolean               @default(false) @map("uses_company_tools") // Usa equipos/herramientas de la empresa
+  reportsToSupervisor    Boolean               @default(false) @map("reports_to_supervisor") // Tiene jefe directo
+  receivesOrders         Boolean               @default(false) @map("receives_orders") // Recibe ordenes directas
+  desnaturalizacionRisk  Int                   @default(0) @map("desnaturalizacion_risk") // 0-100 calculado desde los flags
   // Documentacion
-  contractFileUrl String? @map("contract_file_url") // PDF del contrato de locacion de servicios
+  contractFileUrl        String?               @map("contract_file_url") // PDF del contrato de locacion de servicios
   // Estado
-  status    ServiceProviderStatus @default(ACTIVE)
-  notes     String?
-  createdAt DateTime              @default(now()) @map("created_at")
-  updatedAt DateTime              @updatedAt @map("updated_at")
+  status                 ServiceProviderStatus @default(ACTIVE)
+  notes                  String?
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [orgId], references: [id])
   rhInvoices   RhInvoice[]
@@ -1512,7 +1537,7 @@ model ConsultorClient {
 model InspeccionEnVivo {
   id              String    @id @default(cuid())
   orgId           String    @map("org_id")
-  tipo            String    // PREVENTIVA, POR_DENUNCIA, PROGRAMA_SECTORIAL
+  tipo            String // PREVENTIVA, POR_DENUNCIA, PROGRAMA_SECTORIAL
   status          String    @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED
   inspectorName   String?   @map("inspector_name")
   inspectorDNI    String?   @map("inspector_dni")
@@ -1588,3 +1613,348 @@ model SunatQueryCache {
   @@map("sunat_query_cache")
 }
 
+// =============================================
+// WORKFLOWS (FASE 4 — automatización compliance)
+// =============================================
+// Persistencia del motor definido en src/lib/workflows/engine.ts.
+// Los pasos viven en `stepsJson` como JSON (shape: WorkflowStep[]) para
+// evitar una explosión de tablas. Los templates prefabricados se usan
+// para la creación; el editor visual libre queda fuera del MVP.
+
+model Workflow {
+  id          String   @id @default(cuid())
+  orgId       String   @map("org_id")
+  name        String
+  description String?
+  version     Int      @default(1)
+  active      Boolean  @default(true)
+  triggerId   String   @map("trigger_id") // ID del trigger (ver triggers.ts)
+  stepsJson   Json     @map("steps_json") // WorkflowStep[] serializado
+  metadata    Json?
+  createdBy   String?  @map("created_by") // email del creador
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  runs WorkflowRun[]
+
+  @@index([orgId, active])
+  @@index([orgId, createdAt])
+  @@map("workflows")
+}
+
+// =============================================
+// SCHEDULED REPORTS (FASE δ — envío automático)
+// =============================================
+// Permite al admin configurar "enviame el Reporte Ejecutivo de Compliance
+// cada primer lunes del mes a rrhh@empresa.com". Un cron endpoint corre
+// cada 5 min, lista los activos, y para los que matchean la expresión cron
+// actual (timezone Lima via matchesCron refactorizado), genera PDF/XLSX y
+// envía email.
+//
+// Decisión: sin `nextRunAt` — ambiguo con TZ y requiere parser cron completo.
+// La UI calcula el próximo disparo client-side con `cron-parser`.
+
+model ScheduledReport {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  reportType     String   @map("report_type") // 'compliance-ejecutivo' | 'sst-anual' | 'workers' | ...
+  cronExpression String   @map("cron_expression") // ej "0 8 1 * *"
+  recipients     String[] // emails destinatarios
+  format         String // 'PDF' | 'XLSX' | 'BOTH'
+  params         Json? // filtros por tipo (year, department, regime)
+  active         Boolean  @default(true)
+  lastRunAt      DateTime? @map("last_run_at")
+  lastRunStatus  String?   @map("last_run_status") // 'SUCCESS' | 'FAILED'
+  lastRunError   String?   @map("last_run_error") @db.Text
+  createdBy      String?  @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([orgId, active])
+  @@map("scheduled_reports")
+}
+
+model WorkflowRun {
+  id               String    @id @default(cuid())
+  workflowId       String    @map("workflow_id")
+  orgId            String    @map("org_id")
+  status           String // 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'WAITING_APPROVAL' | 'CANCELLED'
+  triggerData      Json      @map("trigger_data")
+  stepResultsJson  Json      @map("step_results_json") // StepResult[]
+  context          Json?
+  currentStepIndex Int       @default(0) @map("current_step_index")
+  startedAt        DateTime  @default(now()) @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+  error            String?
+  triggeredBy      String?   @map("triggered_by") // email o 'cron' o 'event:...'
+  /**
+   * Hash sha256 determinístico para deduplicar runs disparados por el event
+   * bus cuando hay retries HTTP concurrentes. Null para runs manuales.
+   * Ver `src/lib/events/handlers/workflow-handler.ts` → `computeIdempotencyKey`.
+   */
+  idempotencyKey   String?   @unique @map("idempotency_key")
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, startedAt])
+  @@index([orgId, startedAt])
+  @@index([orgId, status])
+  @@map("workflow_runs")
+}
+
+/**
+ * Suscripciones de webhooks salientes (API pública v1).
+ *
+ * Cliente B2B configura un endpoint propio + lista de eventos a recibir.
+ * Cuando el event bus interno emite un `DomainEvent`, el handler de webhook
+ * dispatch busca subs activas matching y crea filas `WebhookDelivery` que
+ * el cron `webhook-retry` procesa con HMAC + backoff exponencial.
+ *
+ * Patrón de seguridad:
+ *   - HMAC-SHA256 sobre el body, header `X-Comply360-Signature`
+ *   - Replay protection con `X-Comply360-Timestamp` (ventana 5min)
+ */
+model WebhookSubscription {
+  id              String   @id @default(cuid())
+  orgId           String   @map("org_id")
+  url             String
+  events          String[] @default([])
+  /**
+   * Secret aleatorio (32 bytes hex). Comply360 lo guarda en claro porque
+   * es shared secret HMAC, NO credencial de usuario. Se exhibe UNA vez al
+   * crear la sub.
+   */
+  secret          String
+  description     String?
+  active          Boolean  @default(true)
+  lastDeliveryAt  DateTime? @map("last_delivery_at")
+  lastDeliveryStatus String? @map("last_delivery_status")
+  consecutiveFailures Int   @default(0) @map("consecutive_failures")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by")
+
+  deliveries      WebhookDelivery[]
+
+  @@index([orgId, active])
+  @@map("webhook_subscriptions")
+}
+
+/**
+ * Cada intento de entrega de un webhook saliente.
+ * El cron `webhook-retry` procesa rows en estado PENDING/FAILED con backoff
+ * exponencial (1m, 5m, 30m, 2h, 12h) hasta 5 intentos. Tras 5 fallos
+ * consecutivos en una misma sub, la sub queda `active=false`.
+ */
+model WebhookDelivery {
+  id              String   @id @default(cuid())
+  subscriptionId  String   @map("subscription_id")
+  orgId           String   @map("org_id")
+  eventName       String   @map("event_name")
+  eventId         String   @map("event_id")
+  payload         Json
+  status          String   @default("PENDING")
+  attempts        Int      @default(0)
+  lastAttemptAt   DateTime? @map("last_attempt_at")
+  nextRetryAt     DateTime? @map("next_retry_at")
+  responseStatus  Int?     @map("response_status")
+  responseBody    String?  @map("response_body")
+  error           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  completedAt     DateTime? @map("completed_at")
+
+  subscription    WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextRetryAt])
+  @@index([subscriptionId, createdAt])
+  @@index([orgId, createdAt])
+  @@map("webhook_deliveries")
+}
+
+/**
+ * Sello "Compliance-Ready" — distintivo público que la empresa exhibe en
+ * su web propia para acreditar el cumplimiento sostenido en el tiempo.
+ *
+ * Reglas de emisión (cron mensual):
+ *   - score actual ≥ 80
+ *   - score promedio últimos 90 días ≥ 80
+ *
+ * Verificación pública en `/verify/[slug]` — devuelve org info, score
+ * histórico simple, y `validUntil`. SEO-friendly + lock-in real porque la
+ * empresa publica el badge en su web (link de vuelta a Comply360).
+ *
+ * Tiers visuales:
+ *   - BRONZE: score 80-89
+ *   - SILVER: score 90-94
+ *   - GOLD:   score ≥95
+ */
+model OrgComplianceSeal {
+  id            String   @id @default(cuid())
+  orgId         String   @map("org_id")
+  slug          String   @unique
+  scoreAtIssue  Int      @map("score_at_issue")
+  scoreAvg90d   Int      @map("score_avg_90d")
+  tier          String   @default("BRONZE")
+  issuedAt      DateTime @default(now()) @map("issued_at")
+  validUntil    DateTime @map("valid_until")
+  revokedAt     DateTime? @map("revoked_at")
+  revokedReason String?   @map("revoked_reason")
+
+  @@index([orgId, issuedAt])
+  @@index([validUntil])
+  @@map("org_compliance_seals")
+}
+
+/**
+ * Bitácora idempotente de ejecuciones de crons.
+ *
+ * Cada cron registra su corrida acá con (cronName, bucket). El `bucket` es
+ * un identificador determinístico del intervalo en el que cae la corrida
+ * (por ejemplo el minuto en formato `YYYYMMDDHHmm`). El unique constraint
+ * `[cronName, bucket]` previene que dos invocaciones en el mismo bucket
+ * ejecuten el handler — usual cuando Vercel reintenta o cuando alguien
+ * dispara manualmente con `curl` mientras el cron está corriendo.
+ *
+ * Uso desde un cron:
+ *   const claim = await claimCronRun('morning-briefing')
+ *   if (!claim.acquired) return Response.json({ duplicate: true })
+ *   try { ...trabajo real... }
+ *   await completeCronRun(claim.runId, { ok: true, processed: 42 })
+ */
+model CronRun {
+  id          String    @id @default(cuid())
+  cronName    String    @map("cron_name")
+  /**
+   * Bucket determinístico del intervalo. Default = `YYYYMMDDHHmm`.
+   * Permite idempotencia natural por minuto sin requerir clock alineado.
+   */
+  bucket      String
+  status      String    @default("RUNNING") // RUNNING | COMPLETED | FAILED
+  result      Json?
+  error       String?
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@unique([cronName, bucket])
+  @@index([cronName, startedAt])
+  @@map("cron_runs")
+}
+
+/**
+ * Telemetría de uso de IA — un registro por llamada al LLM.
+ *
+ * Permite responder preguntas críticas sin pelear con logs:
+ *   - ¿Cuánto USD gasté esta semana en gpt-4o-mini para contract-review?
+ *   - ¿Qué org consume el 80% del budget?
+ *   - ¿Tengo orgs FREE quemando tokens (= bug)?
+ *   - ¿Qué feature tiene latencia p95 mala?
+ *
+ * Sin esto, escalar IA es a ciegas: cada feature nueva genera costo opaco.
+ *
+ * Persistencia es **fire-and-forget** desde el helper — si la creación
+ * falla, la llamada al LLM ya tuvo éxito y no debemos romper el flujo del
+ * usuario. Se logea el error a console.
+ */
+model AiUsage {
+  id               String   @id @default(cuid())
+  orgId            String?  @map("org_id") // null para llamadas de cron/health
+  userId           String?  @map("user_id")
+  feature          String // 'chat' | 'contract-review' | 'document-verify' | 'action-plan' | 'agents:<name>' | 'unknown'
+  provider         String // 'openai' | 'groq' | 'deepseek' | 'ollama' | 'simulated'
+  model            String
+  promptTokens     Int      @default(0) @map("prompt_tokens")
+  completionTokens Int      @default(0) @map("completion_tokens")
+  totalTokens      Int      @default(0) @map("total_tokens")
+  /**
+   * Costo estimado en USD calculado con la pricing table local.
+   * NO refleja ningún descuento de volumen ni precio enterprise — sirve
+   * como guía para alertas y presupuesto, no como factura.
+   */
+  costUsd          Decimal  @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  latencyMs        Int?     @map("latency_ms")
+  success          Boolean  @default(true)
+  errorMessage     String?  @map("error_message")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([orgId, createdAt])
+  @@index([orgId, feature, createdAt])
+  @@index([feature, createdAt])
+  @@map("ai_usage")
+}
+
+/**
+ * Credenciales WebAuthn registradas por usuarios para firma biométrica.
+ *
+ * Cada vez que un trabajador registra su huella / Face ID / Windows Hello en
+ * el portal, almacenamos la `publicKey` que el authenticator nos entrega. En
+ * cada firma posterior validamos la `assertion` contra esta clave pública
+ * usando `@simplewebauthn/server` (`verifyAuthenticationResponse`).
+ *
+ * Sin esto, la firma biométrica solo verifica el challenge JWT — no prueba
+ * que es ESE dispositivo específico el que firma. Con esto, una firma falsa
+ * desde un device distinto se rechaza criptográficamente, alcanzando la
+ * "firma electrónica fuerte" de la Ley 27269.
+ *
+ * Campos:
+ *   - credentialID: bytes del credential id devuelto por el authenticator.
+ *   - publicKey:    bytes de la clave pública (formato CBOR, COSE_Key).
+ *   - counter:      anti-cloning. Incrementa cada uso. Si baja → rechazo.
+ *   - transports:   ['internal','hybrid','usb', ...] reportado por el browser.
+ *   - aaguid:       identifier del modelo de authenticator (16 bytes hex).
+ *   - deviceType:   'singleDevice' | 'multiDevice' (passkeys sincronizables).
+ *   - backedUp:     true si la passkey está en iCloud/Google Password Manager.
+ *   - legacy:       credentials registrados antes de Sprint 1 con engine
+ *                   casero. Se aceptan en modo no estricto pero el usuario
+ *                   debe re-enrollar para obtener firma fuerte.
+ */
+model WebAuthnCredential {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  credentialID Bytes    @map("credential_id")
+  publicKey    Bytes    @map("public_key")
+  counter      BigInt   @default(0)
+  transports   String[] @default([])
+  aaguid       String?
+  deviceType   String?  @map("device_type")
+  backedUp     Boolean  @default(false) @map("backed_up")
+  nickname     String? // ej. "iPhone 15 — huella"
+  legacy       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+
+  @@unique([userId, credentialID])
+  @@index([userId])
+  @@map("webauthn_credentials")
+}
+
+/**
+ * Idempotencia de webhooks entrantes.
+ *
+ * Culqi (y otros providers en el futuro) reenvían eventos cuando el receptor
+ * tarda en responder o cae. Sin dedupe, `charge.success` reenviado puede
+ * extender el `currentPeriodEnd` de la subscription un mes extra por cada
+ * retry, regalando plan al cliente.
+ *
+ * Flow:
+ *   1. Webhook entra → `upsert { provider_externalId }` con `processedAt: null`.
+ *   2. Si `processedAt != null` → 200 OK + `{ duplicated: true }` sin reprocesar.
+ *   3. Si es nuevo → procesar handler → marcar `processedAt = now()` + `status`.
+ *
+ * Ver `src/app/api/payments/webhook/route.ts`.
+ */
+model WebhookEvent {
+  id           String    @id @default(cuid())
+  provider     String // 'culqi' | 'clerk' | 'resend' | ...
+  externalId   String    @map("external_id") // chargeId, eventId del provider
+  eventType    String?   @map("event_type") // 'charge.success', etc.
+  payload      Json
+  status       String    @default("RECEIVED") // RECEIVED | PROCESSED | FAILED | DUPLICATED
+  error        String?
+  receivedAt   DateTime  @default(now()) @map("received_at")
+  processedAt  DateTime? @map("processed_at")
+
+  @@unique([provider, externalId])
+  @@index([provider, status])
+  @@index([receivedAt])
+  @@map("webhook_events")
+}

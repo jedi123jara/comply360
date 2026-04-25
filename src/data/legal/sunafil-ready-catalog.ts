@@ -89,7 +89,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'contrato_trabajo',
     hasExpiration: true, // plazo fijo vence
     generatorSlug: 'contrato-trabajo',
-    actionHint: 'Generá contratos desde el perfil del trabajador o subilos en su legajo.',
+    actionHint: 'Genera contratos desde el perfil del trabajador o subilos en su legajo.',
   },
   {
     id: 't-registro',
@@ -136,7 +136,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'boleta_pago',
     hasExpiration: false,
     generatorSlug: 'boleta-pago',
-    actionHint: 'Generá boletas desde /dashboard/boletas por período mensual.',
+    actionHint: 'Genera boletas desde /dashboard/boletas por período mensual.',
   },
   {
     id: 'cts-deposito',
@@ -152,7 +152,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'cts_deposito',
     hasExpiration: false,
     generatorSlug: 'cts-liquidacion',
-    actionHint: 'Usá la calculadora CTS y subí la constancia del banco.',
+    actionHint: 'Usa la calculadora CTS y subí la constancia del banco.',
   },
   {
     id: 'gratificacion-pago',
@@ -185,7 +185,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     scope: 'worker',
     workerDocType: 'afp_onp_afiliacion',
     hasExpiration: false,
-    actionHint: 'Registrá CUSPP y sistema previsional en el perfil del trabajador.',
+    actionHint: 'Registra CUSPP y sistema previsional en el perfil del trabajador.',
   },
   {
     id: 'essalud-registro',
@@ -218,7 +218,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     orgDocType: 'OTRO', // el módulo /dashboard/asistencia guarda esto
     hasExpiration: false,
     generatorSlug: 'asistencia-export',
-    actionHint: 'Exportá el registro desde /dashboard/asistencia como PDF.',
+    actionHint: 'Exporta el registro desde /dashboard/asistencia como PDF.',
   },
   {
     id: 'horario-trabajo',
@@ -233,7 +233,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     scope: 'exhibited',
     hasExpiration: false,
     generatorSlug: 'horario-trabajo-cartel',
-    actionHint: 'Generá el cartel de horario exhibible desde el generador.',
+    actionHint: 'Genera el cartel de horario exhibible desde el generador.',
   },
 
   /* ── V. VACACIONES ─────────────────────────────────────────────────── */
@@ -251,7 +251,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'vacaciones_goce',
     hasExpiration: false,
     generatorSlug: 'vacaciones-export',
-    actionHint: 'Exportá el registro de vacaciones desde /dashboard/vacaciones.',
+    actionHint: 'Exporta el registro de vacaciones desde /dashboard/vacaciones.',
   },
 
   /* ── VI. SST (el bloque más auditado) ──────────────────────────────── */
@@ -269,7 +269,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     orgDocType: 'REGLAMENTO_SST',
     hasExpiration: false,
     generatorSlug: 'politica-sst',
-    actionHint: 'Generá la Política SST con el wizard IA — incluye los 8 elementos obligatorios.',
+    actionHint: 'Genera la Política SST con el wizard IA — incluye los 8 elementos obligatorios.',
   },
   {
     id: 'iperc',
@@ -286,7 +286,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     hasExpiration: true,
     expirationMonths: 12, // se revisa al menos anualmente
     generatorSlug: 'iperc',
-    actionHint: 'Generá la matriz IPERC por puesto con nuestra biblioteca de peligros sectoriales.',
+    actionHint: 'Genera la matriz IPERC por puesto con nuestra biblioteca de peligros sectoriales.',
   },
   {
     id: 'plan-anual-sst',
@@ -303,7 +303,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     hasExpiration: true,
     expirationMonths: 12,
     generatorSlug: 'plan-anual-sst',
-    actionHint: 'Generá el Plan Anual SST con asistente + diagnóstico + objetivos SMART.',
+    actionHint: 'Genera el Plan Anual SST con asistente + diagnóstico + objetivos SMART.',
   },
   {
     id: 'comite-sst',
@@ -319,7 +319,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     orgDocType: 'OTRO', // SstRecord type=ACTA_COMITE
     hasExpiration: false,
     generatorSlug: 'acta-comite-sst',
-    actionHint: 'Generá el acta de designación según cantidad de trabajadores.',
+    actionHint: 'Genera el acta de designación según cantidad de trabajadores.',
   },
   {
     id: 'capacitacion-sst',
@@ -337,7 +337,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     hasExpiration: true,
     expirationMonths: 12,
     generatorSlug: 'capacitacion-sst',
-    actionHint: 'Registrá las 4 capacitaciones anuales y subí asistencias.',
+    actionHint: 'Registra las 4 capacitaciones anuales y subí asistencias.',
   },
   {
     id: 'examen-medico-ingreso',
@@ -369,7 +369,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'entrega_epp',
     hasExpiration: false,
     generatorSlug: 'entrega-epp',
-    actionHint: 'Generá las actas de entrega de EPP por trabajador.',
+    actionHint: 'Genera las actas de entrega de EPP por trabajador.',
   },
   {
     id: 'induccion-sst',
@@ -385,7 +385,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'induccion_sst',
     hasExpiration: false,
     generatorSlug: 'induccion-sst',
-    actionHint: 'Usá el template de inducción SST y subí la constancia firmada.',
+    actionHint: 'Usa el template de inducción SST y subí la constancia firmada.',
   },
   {
     id: 'mapa-riesgos',
@@ -401,7 +401,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     hasExpiration: true,
     expirationMonths: 12,
     generatorSlug: 'mapa-riesgos',
-    actionHint: 'Generá el mapa de riesgos con señalética imprimible.',
+    actionHint: 'Genera el mapa de riesgos con señalética imprimible.',
   },
   {
     id: 'registro-accidentes',
@@ -417,7 +417,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     orgDocType: 'OTRO', // SstRecord type=ACCIDENTE/INCIDENTE
     hasExpiration: false,
     generatorSlug: 'registro-accidentes',
-    actionHint: 'Registrá accidentes e incidentes con notificación automática 24h.',
+    actionHint: 'Registra accidentes e incidentes con notificación automática 24h.',
   },
 
   /* ── VII. POLÍTICAS OBLIGATORIAS ───────────────────────────────────── */
@@ -435,7 +435,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     orgDocType: 'POLITICA_HOSTIGAMIENTO',
     hasExpiration: false,
     generatorSlug: 'politica-hostigamiento',
-    actionHint: 'Generá la política con IA conforme D.S. 014-2019-MIMP.',
+    actionHint: 'Genera la política con IA conforme D.S. 014-2019-MIMP.',
   },
   {
     id: 'cuadro-categorias',
@@ -451,7 +451,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     orgDocType: 'POLITICA_IGUALDAD',
     hasExpiration: false,
     generatorSlug: 'cuadro-categorias',
-    actionHint: 'Generá el cuadro con las 4 dimensiones de Ley 30709.',
+    actionHint: 'Genera el cuadro con las 4 dimensiones de Ley 30709.',
   },
 
   /* ── VIII. DOCUMENTOS COMPLEMENTARIOS ──────────────────────────────── */
@@ -507,7 +507,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'declaracion_jurada',
     hasExpiration: false,
     generatorSlug: 'declaracion-jurada',
-    actionHint: 'Generá el formato y firmalo con el trabajador al ingreso.',
+    actionHint: 'Genera el formato y firmalo con el trabajador al ingreso.',
   },
   {
     id: 'sintesis-legislacion',
@@ -544,7 +544,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
       description: 'Obligatorio para empresas con 100 o más trabajadores.',
     },
     generatorSlug: 'reglamento-interno',
-    actionHint: 'Generá el RIT con los 9 capítulos obligatorios + registro MTPE.',
+    actionHint: 'Genera el RIT con los 9 capítulos obligatorios + registro MTPE.',
   },
 ]
 

@@ -735,7 +735,7 @@ export default function VacacionesPage() {
     const ok = await confirm({
       title: '¿Eliminar este registro de vacaciones?',
       description:
-        'Se borrará el registro del período. Podés volver a crearlo manualmente si es un error.',
+        'Se borrará el registro del período. Puedes volver a crearlo manualmente si es un error.',
       confirmLabel: 'Eliminar registro',
       tone: 'danger',
     })

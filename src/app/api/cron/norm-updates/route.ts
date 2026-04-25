@@ -20,6 +20,7 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { fetchNewNorms } from '@/lib/crawler/norm-fetcher'
 import { classifyNorm } from '@/lib/crawler/norm-classifier'
+import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
 import type { NormSource, NormCategory, ImpactLevel, RegimenLaboral } from '@/generated/prisma/client'
 
 export async function GET(request: NextRequest) {
@@ -33,6 +34,13 @@ export async function GET(request: NextRequest) {
   }
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Idempotencia: bucket de 60 min, el cron corre 1×/día así que un retry
+  // dentro de la misma hora se descarta (ej: Vercel reintenta al timeout).
+  const claim = await claimCronRun('norm-updates', { bucketMinutes: 60 })
+  if (!claim.acquired) {
+    return NextResponse.json({ ok: true, duplicate: true, reason: claim.reason, bucket: claim.bucket })
   }
 
   const startedAt = new Date()
@@ -52,6 +60,7 @@ export async function GET(request: NextRequest) {
 
     if (rawNorms.length === 0) {
       console.log('[norm-updates cron] No new norms found')
+      await completeCronRun(claim.runId, { fetched: 0, saved: 0 })
       return NextResponse.json({ fetched: 0, saved: 0, durationMs: Date.now() - startedAt.getTime() })
     }
 
@@ -166,6 +175,12 @@ export async function GET(request: NextRequest) {
     const durationMs = Date.now() - startedAt.getTime()
     console.log(`[norm-updates cron] Done — ${saved}/${rawNorms.length} saved in ${durationMs}ms`)
 
+    await completeCronRun(claim.runId, {
+      fetched: rawNorms.length,
+      saved,
+      durationMs,
+    })
+
     return NextResponse.json({
       fetched: rawNorms.length,
       saved,
@@ -174,6 +189,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('[norm-updates cron] Fatal error:', error)
+    await failCronRun(claim.runId, error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

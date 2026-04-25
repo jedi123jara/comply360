@@ -34,10 +34,10 @@ export default function PrivacidadTrabajadorPage() {
         <li>Comunicaciones internas contigo sobre temas laborales.</li>
       </ul>
 
-      <h2>3. Datos que Comply360 NO guarda de vos</h2>
+      <h2>3. Datos que Comply360 NO guarda de ti</h2>
       <ul>
         <li>
-          <strong>Tu huella dactilar, rostro, iris</strong>. Cuando firmás con biometría,
+          <strong>Tu huella dactilar, rostro, iris</strong>. Cuando firmas con biometría,
           el procesamiento es 100% local en tu dispositivo. Ver{' '}
           <a href="/legal/firma-electronica">/legal/firma-electronica</a>.
         </li>
@@ -58,7 +58,7 @@ export default function PrivacidadTrabajadorPage() {
           documentos, solicitudes. Es quien te contrata y tiene derecho por ley laboral.
         </li>
         <li>
-          <strong>Vos</strong>: desde <code>/mi-portal/perfil</code> y usando{' '}
+          <strong>Tú mismo</strong>: desde <code>/mi-portal/perfil</code> y usando{' '}
           <code>/api/user/export-my-data</code>.
         </li>
         <li>
@@ -70,26 +70,26 @@ export default function PrivacidadTrabajadorPage() {
 
       <h2>5. Denuncias anónimas</h2>
       <p>
-        El canal de denuncias (Ley 27942) permite modo anónimo. Si elegís anonimato, tu
+        El canal de denuncias (Ley 27942) permite modo anónimo. Si eliges anonimato, tu
         identidad no se revela al empleador — solo al Comité de Intervención cuando es
         legalmente obligatorio para procesar la denuncia.
       </p>
 
       <h2>6. Tus derechos</h2>
-      <p>Conforme a la Ley 29733 Art. 22, tenés derecho a:</p>
+      <p>Conforme a la Ley 29733 Art. 22, tienes derecho a:</p>
       <ul>
         <li>
-          <strong>Acceder</strong>: ver qué datos tiene tu empleador sobre vos.
+          <strong>Acceder</strong>: ver qué datos tiene tu empleador sobre ti.
         </li>
         <li>
-          <strong>Rectificar</strong>: corregir datos inexactos (pedile a RRHH o escribinos).
+          <strong>Rectificar</strong>: corregir datos inexactos (pídeselo a RRHH o escríbenos).
         </li>
         <li>
           <strong>Portabilidad</strong>: descargar un archivo JSON con todo desde{' '}
           <code>GET /api/user/export-my-data</code>.
         </li>
         <li>
-          <strong>Anonimización</strong>: al cesar la relación laboral, podés pedir
+          <strong>Anonimización</strong>: al cesar la relación laboral, puedes pedir
           anonimización vía <code>POST /api/user/delete-me</code>. Los documentos
           firmados se mantienen en forma anonimizada (obligación legal del empleador).
         </li>
@@ -97,18 +97,18 @@ export default function PrivacidadTrabajadorPage() {
 
       <h2>7. Tu contacto directo con nosotros</h2>
       <p>
-        Si tenés dudas o inquietudes sobre el tratamiento de tus datos:
+        Si tienes dudas o inquietudes sobre el tratamiento de tus datos:
       </p>
       <ul>
         <li>
-          Primero hablá con tu empleador (responsable directo).
+          Primero habla con tu empleador (responsable directo).
         </li>
         <li>
-          Si no respondés o no estás conforme, escribinos a{' '}
+          Si no responde o no estás conforme, escríbenos a{' '}
           <a href="mailto:datos@comply360.pe">datos@comply360.pe</a>.
         </li>
         <li>
-          Como último recurso, podés denunciar ante la Autoridad Nacional de Protección
+          Como último recurso, puedes denunciar ante la Autoridad Nacional de Protección
           de Datos Personales (ANPD — MINJUS).
         </li>
       </ul>

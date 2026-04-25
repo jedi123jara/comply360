@@ -135,7 +135,7 @@ export function ScoreNarrative({
             </>
           ) : (
             <>
-              No detectamos brechas críticas activas. Mantené el ritmo y
+              No detectamos brechas críticas activas. Mantén el ritmo y
               revisamos tu cockpit cada mañana.
             </>
           )}

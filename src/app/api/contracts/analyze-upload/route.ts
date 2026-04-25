@@ -170,7 +170,7 @@ export const POST = withAuth(async (req: NextRequest) => {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     // ?deep=true → corre también la capa IA (reviewContract) por cada contrato.
-    // Default: true (experiencia premium). Para desactivar pasá deep=false.
+    // Default: true (experiencia premium). Para desactivar pasa deep=false.
     const url = new URL(req.url)
     const deepParam = url.searchParams.get('deep')
     const deepMode = deepParam === null ? true : deepParam !== 'false' && deepParam !== '0'

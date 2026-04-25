@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { WifiOff, RefreshCw, Home } from 'lucide-react'
 import { BRAND } from '@/lib/brand'
+import { ReloadButton } from '@/components/ui/reload-button'
 
 export const metadata = {
   title: 'Sin conexión',
@@ -41,20 +42,14 @@ export default function OfflinePage() {
           </h1>
           <p className="text-sm text-slate-600 leading-relaxed mb-6">
             Comply360 necesita internet para sincronizar tus datos. Cuando vuelvas a estar online,
-            todo se actualiza automáticamente — no perdés nada de lo que hiciste.
+            todo se actualiza automáticamente — no pierdes nada de lo que hiciste.
           </p>
 
           <div className="flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined') window.location.reload()
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-            >
+            <ReloadButton className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
               <RefreshCw className="w-4 h-4" />
               Reintentar
-            </button>
+            </ReloadButton>
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 rounded-xl bg-white ring-1 ring-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm px-4 py-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
@@ -65,7 +60,7 @@ export default function OfflinePage() {
           </div>
 
           <p className="mt-8 text-xs text-slate-400">
-            Tip: si instalaste Comply360 en tu celular, podés usar el portal del trabajador
+            Tip: si instalaste Comply360 en tu celular, puedes usar el portal del trabajador
             offline para ver boletas ya descargadas.
           </p>
         </div>

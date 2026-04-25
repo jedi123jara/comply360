@@ -98,7 +98,7 @@ const stage1: DripStage = {
       </p>
       ${ctaButton('Ver mi diagnóstico completo', `${APP_URL}/sign-up`)}
       <p style="margin:14px 0 0;color:#64748b;font-size:12px;line-height:1.5;">
-        14 días de prueba sin tarjeta. Cancelás cuando quieras.
+        14 días de prueba sin tarjeta. Cancelas cuando quieras.
       </p>
     `)
   },
@@ -129,11 +129,11 @@ const stage2: DripStage = {
         Con nuestro plan de acción, <strong>subsanaron 12 hallazgos en 45 días</strong> y el resto en 90. Cuando llegó la inspección SUNAFIL real en diciembre, la multa fue de S/0.
       </p>
       <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
-        ${company} está expuesta a lo mismo. La buena noticia: se arregla si empezás ahora.
+        ${company} está expuesta a lo mismo. La buena noticia: se arregla si empiezas ahora.
       </p>
       ${ctaButton('Probar 14 días gratis', `${APP_URL}/sign-up`)}
       <p style="margin:14px 0 0;color:#64748b;font-size:12px;line-height:1.5;">
-        Esto NO es un testimonio genérico. Si querés que te ponga en contacto con el cliente real, respondé este mail y coordinamos.
+        Esto NO es un testimonio genérico. Si quieres que te ponga en contacto con el cliente real, respondé este mail y coordinamos.
       </p>
     `)
   },
@@ -198,7 +198,7 @@ const stage4: DripStage = {
       </p>
       <ul style="margin:0 0 14px;padding-left:20px;color:#334155;font-size:14px;line-height:1.8;">
         <li>Diagnóstico SUNAFIL 135 preguntas (calcula tu multa potencial real)</li>
-        <li>Simulacro de inspección interactivo (sabés qué van a pedir antes de que lleguen)</li>
+        <li>Simulacro de inspección interactivo (sabes qué van a pedir antes de que lleguen)</li>
         <li>Biblioteca de plantillas con merge automático</li>
         <li>Reportes ejecutivos PDF</li>
         <li>Hasta 100 trabajadores</li>
@@ -226,17 +226,17 @@ const stage5: DripStage = {
       </p>
       <ol style="margin:0 0 14px;padding-left:20px;color:#334155;font-size:14px;line-height:1.8;">
         <li>
-          <strong>Contratás abogado laboralista</strong>. Costo típico S/2,000-5,000 por revisión inicial + S/500/mes ongoing.
+          <strong>Contratas abogado laboralista</strong>. Costo típico S/2,000-5,000 por revisión inicial + S/500/mes ongoing.
         </li>
         <li>
-          <strong>Usás Comply360</strong>. S/129-299/mes. Revisión inicial la hacés vos con el diagnóstico 135 preguntas.
+          <strong>Usas Comply360</strong>. S/129-299/mes. Revisión inicial la haces tú con el diagnóstico 135 preguntas.
         </li>
         <li>
-          <strong>No hacés nada</strong>. SUNAFIL aumentó fiscalizaciones 30% en 2026.
+          <strong>No haces nada</strong>. SUNAFIL aumentó fiscalizaciones 30% en 2026.
         </li>
       </ol>
       <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
-        Si elegís la opción 2, los <strong>14 días de prueba gratis</strong> cubren todo — incluso el diagnóstico completo. Si no te gusta, cancelás y no pasa nada.
+        Si eliges la opción 2, los <strong>14 días de prueba gratis</strong> cubren todo — incluso el diagnóstico completo. Si no te gusta, cancelas y no pasa nada.
       </p>
       <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
         Si no, gracias igual. Espero que tu operación esté en orden.

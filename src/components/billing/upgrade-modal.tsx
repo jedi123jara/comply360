@@ -73,7 +73,7 @@ const FEATURE_COPY: Partial<Record<PlanFeature, { title: string; pitch: string }
   },
   reportes_pdf: {
     title: 'Reportes ejecutivos en PDF',
-    pitch: 'Exportá reportes de compliance, nómina, SST y auditoría con tu logo corporativo.',
+    pitch: 'Exporta reportes de compliance, nómina, SST y auditoría con tu logo corporativo.',
   },
   ia_contratos: {
     title: 'Generación de contratos con IA',

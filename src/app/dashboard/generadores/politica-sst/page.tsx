@@ -97,7 +97,7 @@ function PoliticaSstForm({
           className="w-full rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
         />
         <p className="text-[11px] text-[color:var(--text-tertiary)] mt-1">
-          Usá una descripción corta; aparecerá en el Elemento 1 de la política.
+          Usa una descripción corta; aparecerá en el Elemento 1 de la política.
         </p>
       </Field>
 

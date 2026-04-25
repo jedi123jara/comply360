@@ -296,7 +296,7 @@ function PayslipsDrawer({
             <EmptyState
               icon={FileText}
               title="Sin boletas para este trabajador"
-              description="Registrá la primera boleta. Queda firmada digitalmente por el trabajador desde su portal y lista ante SUNAFIL."
+              description="Registra la primera boleta. Queda firmada digitalmente por el trabajador desde su portal y lista ante SUNAFIL."
               variant="compact"
             />
           ) : (

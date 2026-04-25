@@ -484,7 +484,7 @@ function EmptyPanel({ filter }: { filter: string }) {
       </CardTitle>
       <CardDescription className="mt-2 max-w-md mx-auto">
         Al correr un diagnóstico o simulacro se generan tareas priorizadas
-        automáticamente. Empezá por{' '}
+        automáticamente. Empieza por{' '}
         <a href="/dashboard/diagnostico" className="font-semibold text-emerald-700 hover:underline">
           /diagnóstico
         </a>{' '}

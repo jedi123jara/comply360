@@ -66,7 +66,7 @@ export function LegalBasis({ citations }: { citations: string[] }) {
 }
 
 export function SignupCTA({
-  title = '¿Querés el análisis completo de tu empresa?',
+  title = '¿Quieres el análisis completo de tu empresa?',
   subtitle = 'Regístrate gratis y desbloqueá el diagnóstico SUNAFIL de 135 preguntas, alertas automáticas y más de 13 calculadoras vinculadas a tu planilla.',
 }: {
   title?: string

@@ -6,7 +6,7 @@ import { withPlanGate } from '@/lib/plan-gate'
 // =============================================
 // POST /api/ai-review - Review a contract with AI (PRO only — feature `review_ia`)
 // =============================================
-export const POST = withPlanGate('review_ia', async (request) => {
+export const POST = withPlanGate('review_ia', async (request, ctx) => {
   try {
     const body = await request.json()
     const { contractHtml, contractType, templateId } = body
@@ -22,6 +22,8 @@ export const POST = withPlanGate('review_ia', async (request) => {
       contractHtml,
       contractType,
       templateId,
+      orgId: ctx.orgId,
+      userId: ctx.userId,
     })
 
     return NextResponse.json({

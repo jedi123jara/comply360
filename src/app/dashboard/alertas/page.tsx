@@ -86,6 +86,7 @@ const WORKER_ALERT_CATEGORY: Record<string, string> = {
   VACACIONES_DOBLE_PERIODO: 'VACACIONES',
   DOCUMENTO_FALTANTE: 'DOCUMENTOS',
   DOCUMENTO_VENCIDO: 'DOCUMENTOS',
+  DOCUMENTO_SOSPECHOSO: 'DOCUMENTOS',
   EXAMEN_MEDICO_VENCIDO: 'SST',
   CAPACITACION_PENDIENTE: 'SST',
   AFP_EN_MORA: 'LABORAL',
@@ -698,7 +699,7 @@ export default function AlertasPage() {
     // página (toggle). Damos feedback claro en lugar de un no-op silencioso.
     toast.info('Reglas personalizadas — disponible pronto', {
       description:
-        'Mientras tanto, podés activar o desactivar las 12 reglas estándar desde la sección "Reglas automáticas" debajo.',
+        'Mientras tanto, puedes activar o desactivar las 12 reglas estándar desde la sección "Reglas automáticas" debajo.',
     })
   }
 
@@ -1034,7 +1035,7 @@ export default function AlertasPage() {
                   icon={Filter}
                   variant="invite"
                   title="No hay resultados para estos <em>filtros</em>."
-                  subtitle="Ajustá los filtros o ampliá la búsqueda para ver más alertas."
+                  subtitle="Ajusta los filtros o ampliá la búsqueda para ver más alertas."
                   cta={{
                     label: 'Limpiar filtros',
                     onClick: () => {

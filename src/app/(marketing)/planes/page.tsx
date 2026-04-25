@@ -7,7 +7,7 @@ type PlanKey = 'FREE' | 'STARTER' | 'EMPRESA' | 'PRO' | 'ENTERPRISE'
 const ORDER: PlanKey[] = ['STARTER', 'EMPRESA', 'PRO', 'ENTERPRISE']
 
 const PLAN_META: Record<PlanKey, { icon: typeof Building2; tagline: string; color: string }> = {
-  FREE: { icon: Star, tagline: 'Probá las calculadoras', color: 'slate' },
+  FREE: { icon: Star, tagline: 'Prueba las calculadoras', color: 'slate' },
   STARTER: {
     icon: Building2,
     tagline: 'Ideal para MYPE de hasta 20 trabajadores',
@@ -38,10 +38,10 @@ export default function PlanesPage() {
       <section className="text-center max-w-3xl mx-auto mb-14">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium ring-1 ring-emerald-200 mb-5">
           <Sparkles className="w-3 h-3" />
-          Precios en soles peruanos · IGV incluido · cancelás cuando quieras
+          Precios en soles peruanos · IGV incluido · cancelas cuando quieras
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight">
-          Un precio simple. <span className="text-emerald-600">Pagás lo que usás.</span>
+          Un precio simple. <span className="text-emerald-600">Pagas lo que usas.</span>
         </h1>
         <p className="mt-5 text-lg text-slate-600">
           Un abogado laboralista te cobra S/ 3,000–8,000 por llevarte la planilla mensual. Nosotros
@@ -142,7 +142,7 @@ export default function PlanesPage() {
           {
             title: '14 días de prueba sin tarjeta',
             body:
-              'Los planes Starter y Empresa arrancan con 14 días gratis. Sin poner tu tarjeta. Cancelás con un click si no te sirve.',
+              'Los planes Starter y Empresa arrancan con 14 días gratis. Sin poner tu tarjeta. Cancelas con un click si no te sirve.',
           },
           {
             title: 'Migración gratuita',
@@ -171,11 +171,11 @@ export default function PlanesPage() {
           {[
             {
               q: '¿Puedo cambiar de plan más adelante?',
-              a: 'Sí. Podés subir o bajar de plan con un click desde tu dashboard. El cambio se aplica al próximo ciclo y se prorratea el saldo.',
+              a: 'Sí. Puedes subir o bajar de plan con un click desde tu dashboard. El cambio se aplica al próximo ciclo y se prorratea el saldo.',
             },
             {
               q: '¿Incluye IGV?',
-              a: 'Sí, los precios mostrados ya incluyen el 18% de IGV. Recibís factura electrónica formal mensual.',
+              a: 'Sí, los precios mostrados ya incluyen el 18% de IGV. Recibes factura electrónica formal mensual.',
             },
             {
               q: '¿Puedo llevar las planillas de mis clientes si soy contador?',
@@ -183,7 +183,7 @@ export default function PlanesPage() {
             },
             {
               q: '¿Qué pasa con mis datos si cancelo?',
-              a: 'Podés exportar todos tus datos en Excel/PDF en cualquier momento. Al cancelar, retenemos tu info 90 días por si querés volver; luego la borramos salvo que pidas retención extendida.',
+              a: 'Puedes exportar todos tus datos en Excel/PDF en cualquier momento. Al cancelar, retenemos tu info 90 días por si quieres volver; luego la borramos salvo que pidas retención extendida.',
             },
             {
               q: '¿Necesito instalar algo?',
@@ -212,7 +212,7 @@ export default function PlanesPage() {
 
       <section className="mt-16 rounded-3xl bg-slate-900 p-8 sm:p-12 text-center text-white">
         <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-          ¿Todavía no sabés si tu empresa necesita compliance?
+          ¿Todavía no sabes si tu empresa necesita compliance?
         </h2>
         <p className="text-slate-300 max-w-xl mx-auto mb-6">
           Hacé nuestro diagnóstico express gratis (2 min, 20 preguntas) y obtené un estimado de

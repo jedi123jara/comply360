@@ -11,7 +11,7 @@ export default function AutorizacionDatosSensiblesPage() {
   return (
     <LegalPage
       title="Autorización de tratamiento de datos sensibles"
-      subtitle="Qué datos te pedimos, para qué los usamos, y cómo podés revocarlos."
+      subtitle="Qué datos te pedimos, para qué los usamos, y cómo puedes revocarlos."
       lastUpdated="20 de abril de 2026"
       legalBasis={['Ley 29733 Art. 5, 13, 14', 'D.S. 003-2013-JUS']}
     >
@@ -37,7 +37,7 @@ export default function AutorizacionDatosSensiblesPage() {
 
       <h3>2.1. Datos biométricos (firma electrónica)</h3>
       <p>
-        Cuando firmás boletas o contratos con tu huella, rostro o PIN desde tu
+        Cuando firmas boletas o contratos con tu huella, rostro o PIN desde tu
         dispositivo, <strong>Comply360 no recibe ni almacena la biometría</strong>. El
         sensor de tu dispositivo valida localmente y le envía a Comply360 solo una prueba
         criptográfica. Registramos el ID del credential + IP + userAgent + timestamp.
@@ -53,13 +53,13 @@ export default function AutorizacionDatosSensiblesPage() {
 
       <h3>2.3. Datos de denuncias (canal Ley 27942)</h3>
       <p>
-        Si usás el canal de denuncias anónimo o nominado por hostigamiento sexual o
+        Si usas el canal de denuncias anónimo o nominado por hostigamiento sexual o
         similares, esos datos reciben tratamiento especial reservado, visible solo al
         Comité de Intervención designado por la empresa.
       </p>
 
       <h2>3. Autorización que te pedimos</h2>
-      <p>Al aceptar esta autorización, consentís:</p>
+      <p>Al aceptar esta autorización, consientes:</p>
       <ul>
         <li>
           Que Comply360 trate tus datos personales (DNI, nombres, cargo, remuneración,
@@ -82,14 +82,14 @@ export default function AutorizacionDatosSensiblesPage() {
 
       <h2>4. Revocación de la autorización</h2>
       <p>
-        Podés revocar esta autorización en cualquier momento:
+        Puedes revocar esta autorización en cualquier momento:
       </p>
       <ul>
         <li>
           Desde tu perfil en <code>/mi-portal/perfil</code> (sección &quot;Privacidad&quot;).
         </li>
         <li>
-          Escribinos a{' '}
+          Escríbenos a{' '}
           <a href="mailto:datos@comply360.pe">datos@comply360.pe</a> con el asunto
           &quot;Revocación de autorización&quot;.
         </li>
@@ -102,7 +102,7 @@ export default function AutorizacionDatosSensiblesPage() {
 
       <h2>5. Consecuencias de no autorizar</h2>
       <p>
-        Si no autorizás el tratamiento, no podrás usar las funcionalidades del portal
+        Si no autorizas el tratamiento, no podrás usar las funcionalidades del portal
         del trabajador (firmar digitalmente, subir documentos, etc.). Tu empleador
         deberá gestionarte por canales tradicionales (papel, email), manteniéndose
         vigente tu relación laboral.
@@ -110,9 +110,9 @@ export default function AutorizacionDatosSensiblesPage() {
 
       <h2>6. Tus derechos (Art. 22 Ley 29733)</h2>
       <p>
-        Como titular de tus datos tenés derecho a acceso, rectificación, cancelación,
+        Como titular de tus datos tienes derecho a acceso, rectificación, cancelación,
         oposición y portabilidad. Ver detalle en{' '}
-        <a href="/privacidad">Política de Privacidad §6</a>. Usá{' '}
+        <a href="/privacidad">Política de Privacidad §6</a>. Usa{' '}
         <code>/api/user/export-my-data</code> para descargar tus datos o{' '}
         <code>/api/user/delete-me</code> para solicitar anonimización.
       </p>
@@ -120,7 +120,7 @@ export default function AutorizacionDatosSensiblesPage() {
       <h2>7. Contacto</h2>
       <p>
         Dudas o reclamos:{' '}
-        <a href="mailto:datos@comply360.pe">datos@comply360.pe</a>. También podés acudir
+        <a href="mailto:datos@comply360.pe">datos@comply360.pe</a>. También puedes acudir
         directamente ante la Autoridad Nacional de Protección de Datos Personales (ANPD
         — MINJUS).
       </p>

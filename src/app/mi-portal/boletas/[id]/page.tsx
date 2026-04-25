@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react'
+import { tryBiometricCeremony as runCeremony } from '@/lib/webauthn'
 
 /**
  * /mi-portal/boletas/[id] — Detalle de boleta + firma biométrica (Sprint 1 Fase 1).
@@ -69,39 +70,6 @@ function formatPeriodo(periodo: string): string {
   return `${months[parseInt(month, 10) - 1] ?? month} ${year}`
 }
 
-/**
- * Intenta usar WebAuthn para una ceremony biométrica.
- * Retorna true si el usuario completó la verificación biométrica,
- * false si no es soportado o el usuario canceló.
- */
-async function tryBiometricCeremony(): Promise<boolean> {
-  if (typeof window === 'undefined') return false
-  if (!window.PublicKeyCredential) return false
-  try {
-    const available = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-    if (!available) return false
-
-    // Challenge aleatorio — en Sprint 2 esto se firma server-side + se valida
-    const challenge = new Uint8Array(32)
-    crypto.getRandomValues(challenge)
-
-    const cred = await navigator.credentials.get({
-      publicKey: {
-        challenge: challenge.buffer,
-        timeout: 60000,
-        userVerification: 'required',
-      },
-      mediation: 'optional',
-    } as CredentialRequestOptions)
-
-    // Si llegó acá sin excepción → el usuario completó la verificación
-    return cred !== null
-  } catch {
-    // User canceló, no hay credential enrollada, u otro error — fallback a simple
-    return false
-  }
-}
-
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function BoletaDetailPage() {
@@ -140,8 +108,11 @@ export default function BoletaDetailPage() {
     setSignError(null)
     setSigningState('biometric')
     try {
-      // Step 1: biometric ceremony (WebAuthn)
-      const biometricVerified = await tryBiometricCeremony()
+      // Step 1: biometric ceremony (WebAuthn) con challenge server-side
+      const ceremony = await runCeremony({
+        action: 'sign_payslip',
+        entityId: id,
+      })
 
       // Step 2: POST al backend con el resultado
       setSigningState('submitting')
@@ -149,8 +120,11 @@ export default function BoletaDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          signatureLevel: biometricVerified ? 'BIOMETRIC' : 'SIMPLE',
-          userAgent: navigator.userAgent,
+          signatureLevel: ceremony.verified ? 'BIOMETRIC' : 'SIMPLE',
+          userAgent: ceremony.userAgent ?? navigator.userAgent,
+          credentialId: ceremony.credentialId ?? null,
+          challengeToken: ceremony.challengeToken,
+          challenge: ceremony.challenge,
         }),
       })
       if (!res.ok) {
@@ -553,7 +527,7 @@ function BiometricCeremonyModal({
               : state === 'error'
                 ? error || 'Intentá nuevamente en unos segundos.'
                 : state === 'biometric'
-                  ? 'Seguí las instrucciones de tu dispositivo para confirmar con huella, rostro o PIN.'
+                  ? 'Sigue las instrucciones de tu dispositivo para confirmar con huella, rostro o PIN.'
                   : state === 'submitting'
                     ? 'Firmando en el sistema...'
                     : 'Confirmá la recepción de tu boleta con tu huella. La firma queda auditada legalmente (D.S. 001-98-TR).'}

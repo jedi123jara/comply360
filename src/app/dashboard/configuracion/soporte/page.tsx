@@ -109,7 +109,7 @@ export default function SoportePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!subject.trim() || !description.trim()) {
-      setTicketError('Completá asunto y descripción.')
+      setTicketError('Completa asunto y descripción.')
       return
     }
     setSubmitting(true)

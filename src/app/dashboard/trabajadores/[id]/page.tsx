@@ -147,7 +147,7 @@ export default function WorkerProfilePage() {
           <AlertTriangle className="h-8 w-8 text-crimson-700" />
           <h2 className="text-lg font-bold">No se pudo cargar el trabajador</h2>
           <p className="text-sm text-[color:var(--text-secondary)]">
-            {error ?? 'Verificá tu conexión y volvé a intentar.'}
+            {error ?? 'Verifica tu conexión y vuelve a intentar.'}
           </p>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => router.back()}>

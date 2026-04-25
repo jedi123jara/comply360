@@ -65,6 +65,23 @@ export interface VerificationResult {
   model?: string
   /** Si ocurrió un error técnico, el mensaje. */
   errorMessage?: string
+  /**
+   * Fecha de vencimiento extraída del documento (ISO YYYY-MM-DD).
+   * Solo se setea si el docType la tiene naturalmente (DNI, examen médico,
+   * SCTR, AFP, etc.) y la IA pudo leerla con alta confianza.
+   */
+  expiresAt?: string | null
+  /**
+   * Señales de manipulación detectadas por la IA. Array vacío = limpio.
+   * Ejemplos: "fuente inconsistente en el DNI", "bordes de texto recortados",
+   * "color de fondo alterado en zona del nombre".
+   */
+  suspicionFlags?: string[]
+  /**
+   * Score agregado 0-1 de sospecha. <0.3 = limpio, 0.3-0.6 = revisar,
+   * ≥0.6 = probablemente manipulado (UI muestra badge rojo).
+   */
+  suspicionScore?: number
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -80,49 +97,58 @@ interface DocPromptConfig {
   instructions: string
   /** Campos que DEBEN cruzar con datos del worker (si el worker los tiene). */
   crossMatch: Array<'dni' | 'firstName' | 'lastName' | 'fullName' | 'birthDate'>
+  /**
+   * Si el documento tiene fecha de vencimiento natural (DNI, examen médico,
+   * SCTR, AFP). La IA va a buscarla específicamente y la devolvemos como
+   * `expiresAt` ISO para auto-setear `WorkerDocument.expiresAt`.
+   */
+  hasExpiry?: boolean
 }
 
 const DOC_PROMPTS: Record<string, DocPromptConfig> = {
   dni_copia: {
     label: 'DNI peruano',
-    expectedFields: ['dni', 'nombres', 'apellidos', 'fechaNacimiento', 'sexo'],
+    expectedFields: ['dni', 'nombres', 'apellidos', 'fechaNacimiento', 'sexo', 'fechaEmision', 'fechaVencimiento'],
     instructions:
-      'Debe ser un DNI peruano (Documento Nacional de Identidad) — tiene 8 dígitos. Verificá que sea legible. Leé ambos lados si están visibles.',
+      'Debe ser un DNI peruano (Documento Nacional de Identidad) — tiene 8 dígitos. Verifica que sea legible. Lee ambos lados si están visibles. El DNI tiene fecha de vencimiento impresa en el reverso.',
     crossMatch: ['dni', 'firstName', 'lastName'],
+    hasExpiry: true,
   },
   cv: {
     label: 'Curriculum Vitae',
     expectedFields: ['nombreCompleto', 'experienciaLaboral', 'formacion'],
     instructions:
-      'Debe ser un CV / hoja de vida profesional. Verificá que contenga al menos nombre + experiencia o formación.',
+      'Debe ser un CV / hoja de vida profesional. Verifica que contenga al menos nombre + experiencia o formación.',
     crossMatch: ['fullName'],
   },
   declaracion_jurada: {
     label: 'Declaración jurada de domicilio',
     expectedFields: ['nombreCompleto', 'dni', 'direccion', 'fecha'],
     instructions:
-      'Debe ser una declaración jurada donde una persona declara su domicilio. Verificá nombre, DNI y dirección.',
+      'Debe ser una declaración jurada donde una persona declara su domicilio. Verifica nombre, DNI y dirección.',
     crossMatch: ['dni', 'fullName'],
   },
   examen_medico_ingreso: {
     label: 'Examen médico de ingreso',
-    expectedFields: ['nombreCompleto', 'dni', 'fechaExamen', 'institucion', 'aptitud'],
+    expectedFields: ['nombreCompleto', 'dni', 'fechaExamen', 'fechaVencimiento', 'institucion', 'aptitud'],
     instructions:
-      'Debe ser un certificado de aptitud médica laboral (preocupacional). Verificá nombre del trabajador y que se declare aptitud para el puesto.',
+      'Debe ser un certificado de aptitud médica laboral (preocupacional). Verifica nombre del trabajador y que se declare aptitud para el puesto. Los EMO son válidos 2 años; si no se ve fecha de vencimiento explícita, calculá fechaExamen + 2 años.',
     crossMatch: ['fullName', 'dni'],
+    hasExpiry: true,
   },
   examen_medico_periodico: {
     label: 'Examen médico periódico',
-    expectedFields: ['nombreCompleto', 'dni', 'fechaExamen', 'aptitud'],
+    expectedFields: ['nombreCompleto', 'dni', 'fechaExamen', 'fechaVencimiento', 'aptitud'],
     instructions:
-      'Debe ser un certificado médico ocupacional periódico. Verificá identidad y vigencia.',
+      'Debe ser un certificado médico ocupacional periódico. Verifica identidad y vigencia. Vigencia típica: 2 años desde fechaExamen.',
     crossMatch: ['fullName', 'dni'],
+    hasExpiry: true,
   },
   afp_onp_afiliacion: {
     label: 'Afiliación AFP u ONP',
     expectedFields: ['nombreCompleto', 'dni', 'cuspp', 'afp', 'fechaAfiliacion'],
     instructions:
-      'Debe ser un comprobante de afiliación al sistema previsional (AFP o ONP). Aceptá constancia de Habitat, Integra, Prima, Profuturo, ONP.',
+      'Debe ser un comprobante de afiliación al sistema previsional (AFP o ONP). Acepta constancia de Habitat, Integra, Prima, Profuturo, ONP.',
     crossMatch: ['fullName', 'dni'],
   },
 }
@@ -132,7 +158,7 @@ const DEFAULT_PROMPT: DocPromptConfig = {
   label: 'documento',
   expectedFields: ['nombreCompleto', 'dni'],
   instructions:
-    'Verificá que el documento sea legible y contenga información identificable (nombre y/o DNI del trabajador).',
+    'Verifica que el documento sea legible y contenga información identificable (nombre y/o DNI del trabajador).',
   crossMatch: ['fullName', 'dni'],
 }
 
@@ -167,11 +193,13 @@ export async function verifyDocument(
     }
   }
 
-  // ── Ruta PDF: extraer texto con pdf-parse y usar GPT-4o text ─────────────
-  // Evitamos el costoso render PDF→imagen (pdfjs-dist requiere canvas nativo).
-  // Si el PDF es texto-extraíble funciona 1000× mejor (y más barato) que vision.
-  // Si es scan de imagen sin OCR, pdf-parse devuelve texto vacío y devolvemos
-  // `unsupported` con mensaje útil sugiriendo al worker que suba foto.
+  // ── Ruta PDF: 2 niveles, barato → caro ───────────────────────────────────
+  //  1. Fast-path: pdf-parse extrae texto y lo mandamos a GPT-4o-mini text-only
+  //     (digital PDFs / contratos / declaraciones con texto extraíble)
+  //  2. Fallback: si el texto es <30 chars (PDF escaneado sin OCR), mandamos
+  //     el PDF directo a GPT-4o-mini con `type: "file"` + base64 data URL —
+  //     el modelo hace OCR nativo sobre la imagen renderizada.
+  //  No usamos pdfjs-dist (requiere canvas nativo, headache en Vercel).
   if (supportsPdf && !supportsImage) {
     return await verifyPdfDocument(document, worker)
   }
@@ -273,14 +301,46 @@ export async function verifyDocument(
     }
   }
 
+  // Downgrade anti-fraude: si hay señales claras (score ≥ 0.6), bajamos
+  // auto-verified a needs-review. El admin decide al ver los flags.
+  const finalDecision = applyAntiFraudeGuard(decision, parsed.suspicionScore, parsed.suspicionFlags, issues)
+
   return {
-    decision,
+    decision: finalDecision,
     confidence: aiConfidence,
     extracted: parsed.extracted,
     issues,
-    summary,
+    summary: finalDecision === 'needs-review' && decision === 'auto-verified'
+      ? `${summary} (marcado para revisión por posible manipulación)`
+      : summary,
     model: 'gpt-4o-mini',
+    expiresAt: parsed.expiryDate,
+    suspicionFlags: parsed.suspicionFlags,
+    suspicionScore: parsed.suspicionScore,
   }
+}
+
+/**
+ * Aplica la regla de downgrade anti-fraude: si la IA marcó alta sospecha,
+ * rebajamos cualquier auto-verified a needs-review para intervención humana.
+ * No tocamos otras decisiones — si ya era mismatch/wrong-type/etc queda igual.
+ */
+function applyAntiFraudeGuard(
+  decision: VerificationDecision,
+  suspicionScore: number,
+  suspicionFlags: string[],
+  issues: string[],
+): VerificationDecision {
+  const SUSPICION_THRESHOLD = 0.6
+  if (decision !== 'auto-verified') return decision
+  if (suspicionScore < SUSPICION_THRESHOLD) return decision
+
+  // Propagar las banderas a issues para que el admin las vea
+  for (const flag of suspicionFlags) {
+    const msg = `Posible manipulación: ${flag}`
+    if (!issues.includes(msg)) issues.push(msg)
+  }
+  return 'needs-review'
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -288,7 +348,12 @@ export async function verifyDocument(
 // ═══════════════════════════════════════════════════════════════════════════
 
 function buildSystemPrompt(config: DocPromptConfig): string {
-  return `Sos un verificador de documentos del legajo laboral peruano. Tu rol es analizar la imagen de un documento y responder estrictamente en JSON.
+  const expirySection = config.hasExpiry
+    ? `
+- expiryDate: fecha de vencimiento del documento en ISO "YYYY-MM-DD", o null si no se ve. Para ${config.label}, buscá la fecha de vencimiento o caducidad impresa. Si el documento menciona vigencia relativa (ej: "válido por 2 años"), calculá la fecha partiendo de la emisión.`
+    : ''
+
+  return `Eres un verificador de documentos del legajo laboral peruano. Tu rol es analizar la imagen de un documento y responder estrictamente en JSON.
 
 Contexto legal: estás ayudando a una empresa peruana a validar documentos subidos por sus trabajadores según el legajo digital obligatorio (D.S. 003-97-TR).
 
@@ -306,15 +371,34 @@ Respondé SIEMPRE con este JSON exacto, sin texto adicional:
     "campo1": "valor o null",
     ...
   },
-  "issues": ["issue 1", "issue 2"]
+  "issues": ["issue 1", "issue 2"],
+  "expiryDate": "YYYY-MM-DD" | null,
+  "suspicionFlags": ["bandera 1", ...],
+  "suspicionScore": number
 }
 
 Reglas:
 - isCorrectType: true si la imagen es un ${config.label}, false si es otra cosa
-- isLegible: true si podés leer el contenido, false si está borroso/cortado
+- isLegible: true si puedes leer el contenido, false si está borroso/cortado
 - confidence: tu certeza de 0 a 1 sobre la identificación correcta del documento
-- extracted: objeto plano con los campos que pudiste leer. Usá null si no se ve
-- issues: lista de problemas detectados (ej: "documento vencido", "dato borroso", "foto rotada")
+- extracted: objeto plano con los campos que pudiste leer. Usa null si no se ve
+- issues: lista de problemas detectados (ej: "documento vencido", "dato borroso", "foto rotada")${expirySection}
+
+Detección anti-fraude (obligatoria):
+- suspicionFlags: lista de banderas de posible manipulación digital. Ejemplos válidos:
+  · "texto con fuente inconsistente en [campo]"
+  · "bordes del texto con compresión distinta al fondo"
+  · "color del fondo alterado en zona del [campo]"
+  · "alineación del texto distinta al resto del documento"
+  · "número de documento con artefactos de edición"
+  · "sombras o iluminación inconsistente en el documento"
+  Si no detectás ninguna señal, devolvé array vacío []. No inventes banderas.
+- suspicionScore: score agregado de 0 a 1.
+  · 0.0-0.2: documento probablemente auténtico
+  · 0.3-0.5: zonas sospechosas pero puede ser artefacto de compresión/foto
+  · 0.6-0.8: señales claras de edición digital
+  · 0.9-1.0: documento casi con certeza manipulado
+  No seas paranoico: artefactos de compresión JPEG o iluminación no uniforme NO son fraude.
 
 Si el documento no es del tipo esperado, devolvé isCorrectType=false pero igual intentá extracción para diagnóstico.`
 }
@@ -324,12 +408,12 @@ function buildUserPrompt(
   worker: WorkerIdentity,
   fullName: string,
 ): string {
-  return `Analizá este ${config.label} para el trabajador:
+  return `Analiza este ${config.label} para el trabajador:
 - Nombre: ${fullName}
 - DNI: ${worker.dni}
 ${worker.position ? `- Cargo: ${worker.position}` : ''}
 
-Verificá que:
+Verifica que:
 1. El documento es efectivamente un ${config.label}
 2. Los datos coinciden con el trabajador (cuando aplique)
 3. El documento está vigente y legible
@@ -452,6 +536,9 @@ interface ParsedResponse {
   confidence: number
   extracted: Record<string, string | null>
   issues: string[]
+  expiryDate: string | null
+  suspicionFlags: string[]
+  suspicionScore: number
 }
 
 /**
@@ -530,10 +617,42 @@ function parseVerificationResponse(raw: string): ParsedResponse | null {
           ? (parsed.extracted as Record<string, string | null>)
           : {},
       issues: Array.isArray(parsed.issues) ? (parsed.issues as string[]) : [],
+      expiryDate: parseIsoDate(parsed.expiryDate),
+      suspicionFlags: Array.isArray(parsed.suspicionFlags)
+        ? (parsed.suspicionFlags as unknown[]).filter((x): x is string => typeof x === 'string' && x.length > 0)
+        : [],
+      suspicionScore:
+        typeof parsed.suspicionScore === 'number'
+          ? Math.max(0, Math.min(1, parsed.suspicionScore))
+          : typeof parsed.suspicionScore === 'string'
+            ? Math.max(0, Math.min(1, parseFloat(parsed.suspicionScore) || 0))
+            : 0,
     }
   } catch {
     return null
   }
+}
+
+/**
+ * Acepta "YYYY-MM-DD" o null. Rechaza formatos ambiguos (DD/MM/YYYY) para
+ * evitar falsos positivos — el prompt pide ISO explícitamente.
+ */
+export function parseIsoDate(raw: unknown): string | null {
+  if (typeof raw !== 'string' || raw.length < 10) return null
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return null
+  const [, y, m, d] = match
+  const year = parseInt(y, 10)
+  const month = parseInt(m, 10)
+  const day = parseInt(d, 10)
+  if (year < 1900 || year > 2100) return null
+  if (month < 1 || month > 12) return null
+  if (day < 1 || day > 31) return null
+  // Normalizamos con zona UTC para evitar drift
+  const iso = `${y}-${m}-${d}`
+  const date = new Date(`${iso}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return null
+  return iso
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -582,7 +701,11 @@ async function verifyPdfDocument(
   }
 
   // ── Extraer texto (pdf-parse v2 API: PDFParse class + getText()) ─────────
-  let extractedText: string
+  // Si la extracción falla (binario corrupto, password, módulo no disponible,
+  // estructura PDF inusual), caemos al fallback de vision nativa en lugar de
+  // devolver `error` — el modelo puede leer el PDF directo aunque pdf-parse
+  // se rinda. Antes esto retornaba error y el doc quedaba sin verificar.
+  let extractedText = ''
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
     const { PDFParse } = require('pdf-parse') as any
@@ -591,28 +714,17 @@ async function verifyPdfDocument(
       .replace(/\n*-- \d+ of \d+ --\n*/g, '\n\n') // markers de página v2
       .trim()
   } catch (err) {
-    return {
-      decision: 'error',
-      confidence: 0,
-      extracted: {},
-      issues: ['Error al parsear PDF'],
-      summary: 'No se pudo extraer texto del PDF.',
-      errorMessage: err instanceof Error ? err.message : String(err),
-    }
+    console.warn('[document-verifier] pdf-parse failed, falling back to vision:',
+      err instanceof Error ? err.message : err)
+    // No devolvemos error — la siguiente comprobación (`extractedText.length < 30`)
+    // captura este caso y dispara verifyPdfWithVision.
   }
 
-  // PDF scaneado sin OCR → texto vacío. Fallback: pedir que suba foto.
+  // PDF scaneado sin OCR (o pdf-parse falló) → texto insuficiente. Fallback:
+  // GPT-4o-mini vision nativa recibe el PDF directo como `type: 'file'` y
+  // hace OCR + análisis en una sola llamada.
   if (extractedText.length < 30) {
-    return {
-      decision: 'unsupported',
-      confidence: 0,
-      extracted: {},
-      issues: [
-        'El PDF no contiene texto extraíble (probablemente escaneo de imagen sin OCR)',
-      ],
-      summary:
-        'Este PDF es un escaneo. Para auto-verificarlo, subí una foto clara del documento (JPG/PNG).',
-    }
+    return await verifyPdfWithVision(pdfBuffer, document, worker)
   }
 
   // ── Armar prompt text-only ───────────────────────────────────────────────
@@ -620,7 +732,7 @@ async function verifyPdfDocument(
   const workerFullName = `${worker.firstName} ${worker.lastName}`.trim()
 
   const systemPrompt = buildSystemPrompt(config)
-  const userPrompt = `Analizá este ${config.label} para el trabajador:
+  const userPrompt = `Analiza este ${config.label} para el trabajador:
 - Nombre: ${workerFullName}
 - DNI: ${worker.dni}
 ${worker.position ? `- Cargo: ${worker.position}` : ''}
@@ -695,13 +807,20 @@ Respondé con el JSON especificado. No agregues explicaciones fuera del JSON.`
     }
   }
 
+  const finalDecision = applyAntiFraudeGuard(decision, parsed.suspicionScore, parsed.suspicionFlags, issues)
+
   return {
-    decision,
+    decision: finalDecision,
     confidence: aiConfidence,
     extracted: parsed.extracted,
     issues,
-    summary,
+    summary: finalDecision === 'needs-review' && decision === 'auto-verified'
+      ? `${summary} (marcado para revisión por posible manipulación)`
+      : summary,
     model: 'gpt-4o-mini-text',
+    expiresAt: parsed.expiryDate,
+    suspicionFlags: parsed.suspicionFlags,
+    suspicionScore: parsed.suspicionScore,
   }
 }
 
@@ -741,6 +860,167 @@ async function callAITextOnly(messages: AIMessage[]): Promise<string> {
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
     throw new Error(`OpenAI ${res.status}: ${errText.slice(0, 200)}`)
+  }
+
+  const body = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>
+  }
+  const content = body.choices?.[0]?.message?.content
+  if (!content) throw new Error('Respuesta OpenAI sin content')
+  return content
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PDF scanned-document verification — GPT-4o-mini nativo con type:'file'
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Límite conservador para evitar pedidos gigantes (OpenAI acepta hasta 50MB,
+// pero sobre ese tamaño los tiempos y costos se disparan y un DNI/CV real
+// nunca debería pesar tanto).
+const PDF_INLINE_MAX_BYTES = 20 * 1024 * 1024
+
+async function verifyPdfWithVision(
+  pdfBuffer: Buffer,
+  document: DocumentInput,
+  worker: WorkerIdentity,
+): Promise<VerificationResult> {
+  if (pdfBuffer.length > PDF_INLINE_MAX_BYTES) {
+    return {
+      decision: 'unsupported',
+      confidence: 0,
+      extracted: {},
+      issues: [`PDF demasiado grande para auto-verificación (${Math.round(pdfBuffer.length / 1024 / 1024)}MB, máximo 20MB)`],
+      summary: 'El PDF es muy grande. Subí una versión más liviana o una foto del documento.',
+    }
+  }
+
+  const config = DOC_PROMPTS[document.documentType] ?? DEFAULT_PROMPT
+  const workerFullName = `${worker.firstName} ${worker.lastName}`.trim()
+  const systemPrompt = buildSystemPrompt(config)
+  const userPrompt = buildUserPrompt(config, worker, workerFullName)
+
+  let rawResponse: string
+  try {
+    rawResponse = await callAIWithPdfFile(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      pdfBuffer,
+    )
+  } catch (err) {
+    return {
+      decision: 'error',
+      confidence: 0,
+      extracted: {},
+      issues: ['Error en API de IA (PDF vision)'],
+      summary: 'No se pudo contactar al servicio de verificación.',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    }
+  }
+
+  const parsed = parseVerificationResponse(rawResponse)
+  if (!parsed) {
+    return {
+      decision: 'error',
+      confidence: 0,
+      extracted: {},
+      issues: ['Respuesta IA no parseable'],
+      summary: 'El sistema de verificación devolvió una respuesta inesperada.',
+      errorMessage: `Raw: ${rawResponse.slice(0, 200)}`,
+    }
+  }
+
+  const issues: string[] = []
+  const matches = crossMatchFields(parsed.extracted, worker, config.crossMatch, issues)
+  const aiConfidence = Math.max(0, Math.min(1, parsed.confidence ?? 0))
+
+  let decision: VerificationDecision
+  let summary: string
+
+  if (parsed.isCorrectType === false) {
+    decision = 'wrong-type'
+    summary = `No parece ser un ${config.label}.`
+  } else if (!parsed.isLegible) {
+    decision = 'unreadable'
+    summary = 'El documento no es suficientemente legible.'
+  } else if (!matches.allMatch && matches.hardMismatches > 0) {
+    decision = 'mismatch'
+    summary = 'Los datos del documento no coinciden con el trabajador.'
+  } else if (aiConfidence >= 0.85 && matches.allMatch) {
+    decision = 'auto-verified'
+    summary = `${config.label.charAt(0).toUpperCase() + config.label.slice(1)} validado con IA (PDF escaneado).`
+  } else {
+    decision = 'needs-review'
+    summary = 'PDF escaneado subido correctamente, pendiente de revisión manual.'
+  }
+
+  if (Array.isArray(parsed.issues)) {
+    for (const i of parsed.issues) {
+      if (typeof i === 'string' && i.length > 0 && !issues.includes(i)) {
+        issues.push(i)
+      }
+    }
+  }
+
+  const finalDecision = applyAntiFraudeGuard(decision, parsed.suspicionScore, parsed.suspicionFlags, issues)
+
+  return {
+    decision: finalDecision,
+    confidence: aiConfidence,
+    extracted: parsed.extracted,
+    issues,
+    summary: finalDecision === 'needs-review' && decision === 'auto-verified'
+      ? `${summary} (marcado para revisión por posible manipulación)`
+      : summary,
+    model: 'gpt-4o-mini-pdf',
+    expiresAt: parsed.expiryDate,
+    suspicionFlags: parsed.suspicionFlags,
+    suspicionScore: parsed.suspicionScore,
+  }
+}
+
+/**
+ * Envía un PDF como `type: 'file'` inline (base64 data URL) a GPT-4o-mini.
+ * El modelo procesa el PDF nativamente (texto + vision sobre scans).
+ */
+async function callAIWithPdfFile(messages: AIMessage[], pdfBuffer: Buffer): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY no configurada')
+
+  const base64 = pdfBuffer.toString('base64')
+  const dataUrl = `data:application/pdf;base64,${base64}`
+
+  const lastUser = messages[messages.length - 1]
+  const pdfMessages = [
+    ...messages.slice(0, -1),
+    {
+      role: lastUser.role,
+      content: [
+        { type: 'file', file: { filename: 'documento.pdf', file_data: dataUrl } },
+        { type: 'text', text: lastUser.content },
+      ],
+    },
+  ]
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: pdfMessages,
+      temperature: 0,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' },
+    }),
+  })
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '')
+    throw new Error(`OpenAI PDF ${res.status}: ${errText.slice(0, 200)}`)
   }
 
   const body = (await res.json()) as {

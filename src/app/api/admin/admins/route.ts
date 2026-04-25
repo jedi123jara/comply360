@@ -156,11 +156,11 @@ export const POST = withSuperAdmin(async (req: NextRequest, ctx) => {
       },
     })
 
-    // Email de "ahora sos admin"
+    // Email de "ahora eres admin"
     try {
       await sendEmail({
         to: email,
-        subject: 'Ahora sos administrador en COMPLY360',
+        subject: 'Ahora eres administrador en COMPLY360',
         html: adminPromotedEmail({
           name: updated.firstName ?? email,
           title,
@@ -215,7 +215,7 @@ export const DELETE = withSuperAdmin(async (req: NextRequest, ctx) => {
 
   if (ctx.email && target === ctx.email.toLowerCase()) {
     return NextResponse.json(
-      { error: 'No podés revocarte administrador a vos mismo.' },
+      { error: 'No puedes revocarte administrador a ti mismo.' },
       { status: 400 },
     )
   }
@@ -299,7 +299,7 @@ function adminInvitedEmail({
         Tendrás acceso al panel de administración global, métricas, empresas, billing y más.
       </p>
       <p style="font-size: 15px; color: #525252; line-height: 1.6; margin: 0 0 24px;">
-        Para activar tu acceso, solo tenés que registrarte con este mismo email:
+        Para activar tu acceso, solo tienes que registrarte con este mismo email:
       </p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${signupUrl}" style="display: inline-block; background: #00d084; color: white; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">
@@ -307,7 +307,7 @@ function adminInvitedEmail({
         </a>
       </div>
       <p style="font-size: 13px; color: #a0a0a0; margin-top: 32px; text-align: center;">
-        Si no esperabas esta invitación, podés ignorar este email.
+        Si no esperabas esta invitación, puedes ignorar este email.
       </p>
     </div>
   `
@@ -330,10 +330,10 @@ function adminPromotedEmail({
         </div>
       </div>
       <h1 style="font-size: 22px; color: #0a0a0f; margin: 0 0 12px; font-weight: 600;">
-        Hola ${name} — ahora sos <span style="color: #00a86b;">${title}</span> 🎉
+        Hola ${name} — ahora eres <span style="color: #00a86b;">${title}</span> 🎉
       </h1>
       <p style="font-size: 15px; color: #525252; line-height: 1.6; margin: 0 0 24px;">
-        Un administrador te promovió al panel de COMPLY360. Ya podés entrar:
+        Un administrador te promovió al panel de COMPLY360. Ya puedes entrar:
       </p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${adminUrl}" style="display: inline-block; background: #00d084; color: white; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">

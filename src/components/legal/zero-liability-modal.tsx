@@ -48,7 +48,7 @@ export function ZeroLiabilityModal() {
       }).catch(() => null)
 
       localStorage.setItem(ACK_KEY, ACK_VERSION)
-      toast.success('Entendido. Ya podés crear plantillas.')
+      toast.success('Entendido. Ya puedes crear plantillas.')
       setVisible(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
@@ -91,7 +91,7 @@ export function ZeroLiabilityModal() {
         <div className="px-6 py-5 space-y-3 text-sm leading-relaxed text-[color:var(--text-primary)]">
           <p>
             Comply360 funciona como <strong>motor de sustitución determinística</strong>:
-            vos subís tu contrato tal como te lo entregó tu abogado, marcás los campos
+            tú subes tu contrato tal como te lo entregó tu abogado, marcas los campos
             variables con <code className="rounded bg-[color:var(--neutral-100)] px-1 py-0.5 text-[11px]">{'{{VARIABLES}}'}</code>,
             y nosotros los reemplazamos con los datos de cada trabajador.
           </p>

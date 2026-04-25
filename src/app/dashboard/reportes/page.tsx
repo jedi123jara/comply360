@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
+import { ScheduledReportsPanel } from '@/components/reports/scheduled-reports-panel'
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface ReportData {
@@ -93,8 +94,39 @@ interface ScheduledReport {
   nextRun: string
 }
 
+/**
+ * IDs que usan endpoints dedicados react-pdf en vez del genérico `/api/reports/pdf`.
+ * Mapea id → URL del endpoint ejecutivo.
+ */
+const EXECUTIVE_REPORT_ENDPOINTS: Record<string, string> = {
+  'compliance-ejecutivo': '/api/reports/compliance-pdf',
+  'sst-anual': '/api/reports/sst-anual',
+}
+
 // ─── Report Catalog ───────────────────────────────────────────────────
 const REPORT_CATALOG = [
+  {
+    id: 'compliance-ejecutivo',
+    title: 'Reporte Ejecutivo de Compliance',
+    description: 'Documento ejecutivo con score global, desglose por área, métricas clave y estimación de multa. Formato profesional para directorio o auditoría.',
+    icon: FileBarChart,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-900/30',
+    borderColor: 'border-emerald-800',
+    gradientFrom: 'from-emerald-500',
+    filters: [],
+  },
+  {
+    id: 'sst-anual',
+    title: 'Informe Anual de SST (Ley 29783)',
+    description: 'Informe del Comité de SST: accidentes, incidentes, capacitaciones, exámenes médicos, EPP y avance del plan anual. Exigido por el art. 32 de la Ley 29783.',
+    icon: Heart,
+    color: 'text-red-400',
+    bg: 'bg-red-900/30',
+    borderColor: 'border-red-800',
+    gradientFrom: 'from-red-500',
+    filters: [],
+  },
   {
     id: 'planilla',
     title: 'Reporte de Planilla Mensual',
@@ -334,7 +366,19 @@ export default function ReportesPage() {
       if (formState.regime !== 'Todos') params.set('regime', formState.regime)
 
       if (formState.format === 'PDF') {
-        window.open(`/api/reports/pdf?${params}`, '_blank')
+        const executiveEndpoint = EXECUTIVE_REPORT_ENDPOINTS[reportId]
+        if (executiveEndpoint) {
+          // Los reportes ejecutivos tienen su propio endpoint (react-pdf), no
+          // aceptan los filtros genéricos — solo el año si aplica.
+          const execParams = new URLSearchParams()
+          if (reportId === 'sst-anual' && formState.startDate) {
+            execParams.set('year', String(new Date(formState.startDate).getFullYear()))
+          }
+          const qs = execParams.toString()
+          window.open(`${executiveEndpoint}${qs ? `?${qs}` : ''}`, '_blank')
+        } else {
+          window.open(`/api/reports/pdf?${params}`, '_blank')
+        }
       } else {
         // Excel / CSV export
         const exportType = reportId === 'trabajadores' ? 'workers' : reportId === 'planilla' ? 'calculations' : 'workers'
@@ -765,21 +809,7 @@ export default function ReportesPage() {
       {/* ─── Tab: Reportes Programados ──────────────────────────────── */}
       {activeTab === 'programados' && (
         <div className="space-y-6">
-          {/* "Coming soon" banner */}
-          <div className="rounded-xl border-2 border-dashed border-amber-700 bg-amber-900/10 p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-900/30">
-                <Zap className="h-5 w-5 text-amber-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-amber-700">Programacion automatica - Proximamente</h3>
-                <p className="mt-1 text-xs text-amber-400/80 leading-relaxed">
-                  Configura envios automaticos de reportes por email con frecuencia diaria, semanal o mensual.
-                  Esta funcionalidad estara disponible en la proxima actualizacion.
-                </p>
-              </div>
-            </div>
-          </div>
+          <ScheduledReportsPanel />
 
           {/* New scheduled report card */}
           <div className="rounded-xl border-2 border-dashed border-[color:var(--border-default)] bg-surface p-6 hover:border-primary transition-colors cursor-pointer group">

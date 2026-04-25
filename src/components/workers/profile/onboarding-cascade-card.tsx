@@ -131,7 +131,7 @@ export function OnboardingCascadeCard({
           >
             {isReRun
               ? `Re-enviar documentos y solicitudes a ${workerFirstName}`
-              : `Enviá los documentos de la empresa a ${workerFirstName} y pedile su legajo`}
+              : `Envía los documentos de la empresa a ${workerFirstName} y pídele su legajo`}
           </p>
           <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
             Publica RIT, políticas SST y resto de docs de la empresa en su portal, crea solicitudes

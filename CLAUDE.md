@@ -919,6 +919,31 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 
 ## 7. CONVENCIONES DE CODIGO
 
+### Idioma y tono (OBLIGATORIO en todo el producto)
+
+**Todo el copy, comentarios, mensajes de commit y respuestas al usuario van en español peruano con tuteo neutro. NUNCA voseo argentino.**
+
+El fundador es peruano y el producto es para el mercado peruano. Un "tenés que firmar" rompe credibilidad local.
+
+| NO usar (voseo) | SI usar (tuteo peruano) |
+|---|---|
+| tenés, querés, podés, sabés | tienes, quieres, puedes, sabes |
+| mirá, decime, contame, fijate | mira, dime, cuéntame, fíjate |
+| corré, hacé, abrí, dejá, andá | corre, haz, abre, deja, anda/ve |
+| ponele, dale, che | ponle, ya/listo, oye |
+| boludo, pibe, guita, laburo | (usar palabras neutras: amigo, chico, dinero, trabajo) |
+
+Aplica a:
+- Toasts, empty states, alerts, error messages
+- Emails (welcome, alert, digest, complaint, password reset, worker onboarding)
+- Copy de landing, planes, calculadoras publicas
+- Mensajes del Copilot IA
+- Labels de botones, placeholders, tooltips
+- Comentarios en codigo, commits, docs
+- Respuestas al usuario en cada sesion
+
+Peruanismos OK si encajan: "ahorita", "nomas", "chevere/bacan", "plata", "pe" (con moderacion en copy casual).
+
 ### Estructura de archivos
 ```
 src/

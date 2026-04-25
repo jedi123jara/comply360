@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { emit } from '@/lib/events'
 
 const updateSchema = z.object({
   email: z.string().email().or(z.literal('')).nullable().optional(),
@@ -68,6 +69,14 @@ export const PATCH = withWorkerAuth(async (req, ctx) => {
       metadataJson: { fields: Object.keys(parsed.data) },
     },
   }).catch(() => null)
+
+  // Event bus
+  emit('worker.profile.updated', {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    workerId: ctx.workerId,
+    fieldsChanged: Object.keys(parsed.data),
+  })
 
   return NextResponse.json({
     firstName: updated.firstName,

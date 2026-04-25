@@ -267,6 +267,37 @@ async function checkCriticalFiles() {
 
 // ─── Run ──────────────────────────────────────────────────────────────────
 
+async function checkVoseo() {
+  const { spawnSync } = await import('node:child_process')
+  const r = spawnSync(process.execPath, [join(__dirname, 'check-voseo.mjs')], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  })
+  if (r.status === 0) {
+    push('ok', 'copy', 'voseo', 'cero hits')
+  } else {
+    const lines = (r.stderr || '').trim().split('\n').slice(0, 5).join(' | ')
+    push('fail', 'copy', 'voseo', `corre 'node scripts/preflight/check-voseo.mjs --fix' — ${lines}`)
+  }
+}
+
+async function checkMultitenant() {
+  const { spawnSync } = await import('node:child_process')
+  const r = spawnSync(process.execPath, [join(__dirname, 'check-multitenant.mjs')], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  })
+  if (r.status === 0) {
+    // Extrae el conteo de "Handlers analizados" y "Queries Prisma vistas"
+    const handlers = (r.stdout || '').match(/Handlers analizados:\s+(\d+)/)?.[1] ?? '?'
+    const queries = (r.stdout || '').match(/Queries Prisma vistas:\s+(\d+)/)?.[1] ?? '?'
+    push('ok', 'security', 'multi-tenant', `${handlers} handlers, ${queries} queries, cero leaks`)
+  } else {
+    const lines = (r.stderr || '').trim().split('\n').slice(0, 8).join(' | ')
+    push('fail', 'security', 'multi-tenant', `posibles leaks de orgId — ${lines}`)
+  }
+}
+
 async function main() {
   console.log(c.cyan(c.bold('\n🛫  COMPLY360 PREFLIGHT CHECK\n')))
   await checkEnvVars()
@@ -275,6 +306,8 @@ async function main() {
   await checkJwtQrToken()
   await checkDb()
   await checkCriticalFiles()
+  await checkVoseo()
+  await checkMultitenant()
 
   // Agrupar por categoría
   const categories = {}

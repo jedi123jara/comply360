@@ -171,8 +171,8 @@ export default function MiPortalHomePage() {
         icon: GraduationCap,
         title:
           data.stats.capacitacionesPendientes === 1
-            ? 'Tenés 1 capacitación pendiente'
-            : `Tenés ${data.stats.capacitacionesPendientes} capacitaciones pendientes`,
+            ? 'Tienes 1 capacitación pendiente'
+            : `Tienes ${data.stats.capacitacionesPendientes} capacitaciones pendientes`,
         description:
           'Ley 29783 exige capacitaciones obligatorias. Completalas para mantener tu SST al día.',
         deadline: firstDeadline,
@@ -186,8 +186,8 @@ export default function MiPortalHomePage() {
         icon: Receipt,
         title:
           data.stats.boletasPendientes === 1
-            ? 'Firmá tu boleta de pago'
-            : `Firmá ${data.stats.boletasPendientes} boletas pendientes`,
+            ? 'Firma tu boleta de pago'
+            : `Firma ${data.stats.boletasPendientes} boletas pendientes`,
         description: 'Confirma la recepción con tu huella para que quede auditada.',
         severity: 'medium',
         href: '/mi-portal/boletas',
@@ -200,8 +200,8 @@ export default function MiPortalHomePage() {
         icon: ClipboardList,
         title:
           data.stats.solicitudesPendientes === 1
-            ? 'Tenés 1 solicitud en trámite'
-            : `Tenés ${data.stats.solicitudesPendientes} solicitudes en trámite`,
+            ? 'Tienes 1 solicitud en trámite'
+            : `Tienes ${data.stats.solicitudesPendientes} solicitudes en trámite`,
         description: 'Revisa el estado y próximos pasos de tus solicitudes.',
         severity: 'info',
         href: '/mi-portal/solicitudes',
@@ -360,7 +360,7 @@ export default function MiPortalHomePage() {
             Todo al día — <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>excelente</em>
           </h3>
           <p className="text-sm text-[color:var(--text-secondary)] max-w-sm mx-auto">
-            No tenés acciones pendientes. Seguí manteniendo tu información actualizada.
+            No tienes acciones pendientes. Sigue manteniendo tu información actualizada.
           </p>
         </section>
       )}

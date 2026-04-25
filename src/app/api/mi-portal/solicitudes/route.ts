@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { emit } from '@/lib/events'
 
 /**
  * Remueve tags internos como `[doc:cv]` de la descripcion antes de mostrar al
@@ -109,6 +110,16 @@ export const POST = withWorkerAuth(async (req, ctx) => {
       metadataJson: { type, title },
     },
   }).catch(() => null)
+
+  // Event bus: permite a RRHH engancharse con workflows de aprobación
+  emit('worker_request.created', {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    requestId: created.id,
+    workerId: ctx.workerId,
+    type: created.type,
+    title: created.title,
+  })
 
   return NextResponse.json({
     id: created.id,
