@@ -90,7 +90,7 @@ const CATEGORIES: SettingsCategory[] = [
     icon: Palette,
     href: '/dashboard/configuracion/personalizacion',
     disabled: true,
-    badge: 'Próximamente',
+    badge: 'Q3 2026',
   },
   {
     key: 'marca-blanca',
@@ -121,8 +121,8 @@ export default function ConfiguracionPage() {
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Configuración</h1>
-        <p className="text-gray-400 mt-1">
+        <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Configuración</h1>
+        <p className="text-[color:var(--text-secondary)] mt-1">
           Administra todos los ajustes de tu organización y cuenta.
         </p>
       </div>
@@ -144,8 +144,8 @@ export default function ConfiguracionPage() {
                 relative flex items-start gap-4 p-5 rounded-2xl border text-left
                 transition-all duration-150
                 ${isClickable
-                  ? 'bg-white border-white/[0.08] hover:border-primary/50 hover:shadow-md cursor-pointer'
-                  : 'bg-white/60 border-white/[0.08] cursor-default opacity-75'
+                  ? 'bg-white border-gray-200 hover:border-primary/50 hover:shadow-md cursor-pointer'
+                  : 'bg-white/60 border-gray-200 cursor-default opacity-75'
                 }
               `}
             >
@@ -166,7 +166,7 @@ export default function ConfiguracionPage() {
               {/* Text */}
               <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-white">
+                  <span className="text-sm font-semibold text-[color:var(--text-primary)]">
                     {category.label}
                   </span>
                   {category.badge && (
@@ -174,8 +174,8 @@ export default function ConfiguracionPage() {
                       className={`
                         text-[10px] font-bold px-2 py-0.5 rounded-full
                         ${category.badge === 'Plan Pro'
-                          ? 'bg-amber-900/30 text-amber-400 border border-amber-800'
-                          : 'bg-blue-900/30 text-emerald-600 border border-blue-800'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         }
                       `}
                     >
@@ -183,7 +183,7 @@ export default function ConfiguracionPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                <p className="text-xs text-[color:var(--text-secondary)] mt-0.5 leading-relaxed">
                   {category.description}
                 </p>
               </div>
@@ -207,8 +207,8 @@ export default function ConfiguracionPage() {
 
       {/* Info note */}
       <p className="text-xs text-slate-500">
-        Las secciones marcadas como &quot;Próximamente&quot; estarán disponibles en futuras actualizaciones.
-        Contacta a soporte si necesitas acceso anticipado.
+        Las secciones con etiqueta de fecha llegan en esa fecha estimada. Las marcadas como Plan Pro
+        se desbloquean al hacer upgrade. Contacta a soporte si necesitas acceso anticipado.
       </p>
     </div>
   )

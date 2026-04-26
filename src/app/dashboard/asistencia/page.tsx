@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import {
   Clock,
   Users,
@@ -15,6 +16,7 @@ import {
   LogIn,
   LogOut,
   Coffee,
+  Maximize2,
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
 import { AttendanceQrCard } from '@/components/attendance/attendance-qr-card'
@@ -69,7 +71,9 @@ const STATUS_CONFIG = {
   },
 }
 
-// Stable pseudo-random hash for heatmap (no Math.random() — consistent per day index)
+// Stable pseudo-random hash usado solo cuando hay datos reales del mes para
+// graficar tendencia. Cuando no hay datos, el heatmap se renderiza en gris
+// uniforme con overlay "Sin datos" — no inventamos asistencia.
 function dayHash(day: number, seed: number): number {
   const x = Math.sin(day * 9301 + seed * 49297 + 233720) * 10000
   return x - Math.floor(x)
@@ -197,14 +201,24 @@ export default function AsistenciaPage() {
             Registro de entrada y salida del personal
           </p>
         </div>
-        <button
-          onClick={handleExportCSV}
-          disabled={records.length === 0}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-white/10 border-[color:var(--border-default)] rounded-lg text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download className="w-4 h-4" />
-          Exportar CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/asistencia/kiosko"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+            title="Pantalla fullscreen para tablet de recepción"
+          >
+            <Maximize2 className="w-4 h-4" />
+            Modo kiosko
+          </Link>
+          <button
+            onClick={handleExportCSV}
+            disabled={records.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[color:var(--border-default)] rounded-lg text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="w-4 h-4" />
+            Exportar CSV
+          </button>
+        </div>
       </div>
 
       {/* Live Clock + Clock In/Out */}
@@ -233,7 +247,7 @@ export default function AsistenciaPage() {
                 <button
                   onClick={() => handleClock('clock_out')}
                   disabled={clockingIn}
-                  className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-400 rounded-lg font-medium transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-500 text-white rounded-lg font-medium transition-colors"
                 >
                   {clockingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
                   Registrar Salida
@@ -314,8 +328,8 @@ export default function AsistenciaPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
                 filter === f.key
-                  ? 'bg-gold text-black font-bold'
-                  : 'bg-[color:var(--neutral-100)] text-slate-300 hover:bg-[color:var(--neutral-200)]'
+                  ? 'bg-emerald-600 text-white font-semibold'
+                  : 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-200)]'
               )}
             >
               {f.label}
@@ -336,13 +350,8 @@ export default function AsistenciaPage() {
             title="Sin registros para esta fecha"
             description={
               records.length === 0
-                ? 'Los trabajadores aún no registraron su asistencia con el QR del día. Cuando lo hagan, los verás acá en tiempo real.'
+                ? 'Los trabajadores aún no registraron su asistencia con el QR del día. El QR está arriba en esta misma pantalla. Cuando marquen, los verás acá en tiempo real.'
                 : 'Prueba con otra fecha o ajusta los filtros. Tienes registros en otros días.'
-            }
-            action={
-              records.length === 0
-                ? { label: 'Ver código QR del día', href: '/dashboard/asistencia/configurar' }
-                : undefined
             }
             variant="light"
           />
@@ -407,29 +416,40 @@ export default function AsistenciaPage() {
       </div>
 
       {/* Monthly Heat Map */}
-      <div className="bg-white rounded-xl border border-white/[0.08] p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 relative">
+        <h3 className="text-lg font-semibold text-[color:var(--text-primary)] mb-4 flex items-center gap-2">
           <Clock className="w-5 h-5" />
           Resumen Mensual
         </h3>
-        <div className="grid grid-cols-7 gap-1">
-          {['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'].map(d => (
-            <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">
+        <div className="grid grid-cols-7 gap-1 relative">
+          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
+            <div key={d} className="text-center text-xs font-medium text-[color:var(--text-tertiary)] py-1">
               {d}
             </div>
           ))}
           {Array.from({ length: 30 }, (_, i) => {
-            // Use stable hash — same month always shows same heatmap pattern
+            // Si no hay datos del mes, heatmap completo en gris — no inventamos asistencia
+            if (summary.total === 0) {
+              return (
+                <div
+                  key={i}
+                  className="aspect-square rounded-sm bg-[color:var(--neutral-100)]"
+                  aria-hidden
+                />
+              )
+            }
+            // Solo cuando hay datos reales mostramos intensidad estable (placeholder
+            // hasta que conectemos endpoint mensual en Sprint 5)
             const intensity = dayHash(i + 1, heatmapSeed)
             const dayNum = i + 1
             const bg = intensity > 0.8
-              ? 'bg-green-600'
+              ? 'bg-emerald-600'
               : intensity > 0.6
-              ? 'bg-green-500'
+              ? 'bg-emerald-500'
               : intensity > 0.3
-              ? 'bg-green-700'
+              ? 'bg-emerald-400'
               : intensity > 0.1
-              ? 'bg-green-800'
+              ? 'bg-emerald-200'
               : 'bg-[color:var(--neutral-100)]'
             return (
               <div
@@ -439,17 +459,24 @@ export default function AsistenciaPage() {
               />
             )
           })}
+          {summary.total === 0 && !loading && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="rounded-full bg-white/95 backdrop-blur-sm border border-gray-200 px-3 py-1 text-[11px] font-medium text-[color:var(--text-secondary)] shadow-sm">
+                Sin datos aún
+              </span>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
+        <div className="flex items-center gap-4 mt-3 text-xs text-[color:var(--text-tertiary)]">
           <span>Menos</span>
           <div className="flex gap-1">
             <div className="w-3 h-3 rounded-sm bg-[color:var(--neutral-100)]" />
-            <div className="w-3 h-3 rounded-sm bg-green-800" />
-            <div className="w-3 h-3 rounded-sm bg-green-700" />
-            <div className="w-3 h-3 rounded-sm bg-green-500" />
-            <div className="w-3 h-3 rounded-sm bg-green-600" />
+            <div className="w-3 h-3 rounded-sm bg-emerald-200" />
+            <div className="w-3 h-3 rounded-sm bg-emerald-400" />
+            <div className="w-3 h-3 rounded-sm bg-emerald-500" />
+            <div className="w-3 h-3 rounded-sm bg-emerald-600" />
           </div>
-          <span>Mas</span>
+          <span>Más</span>
         </div>
       </div>
     </div>

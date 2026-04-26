@@ -49,6 +49,22 @@
   --color-cyan-400: var(--cyan-400);
   --color-cyan-500: var(--cyan-500);
 
+  /* Blue (compliance-trust / fiscal SUNAT) */
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-800: var(--blue-800);
+
+  /* Semantic intent (success/warning/danger/info/compliance-*) */
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  --color-info: var(--color-info);
+  --color-compliance-trust: var(--color-compliance-trust);
+  --color-compliance-critical: var(--color-compliance-critical);
+
   /* Neutrals */
   --color-neutral-50: var(--neutral-50);
   --color-neutral-100: var(--neutral-100);
@@ -125,9 +141,15 @@
   --radius-xl: var(--radius-xl);
   --radius-2xl: var(--radius-2xl);
 
-  /* Fonts */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Fonts
+   * Jakarta como sans principal (mejor jerarquía B2B SaaS).
+   * Fira Code como mono principal (datos, hora, currency).
+   * Geist como fallback (sigue cargado, ya tenía adopción).
+   * Instrument Serif solo para "drama moments" (hero numbers, headlines).
+   */
+  --font-sans: var(--font-jakarta), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-fira), var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
 /* =============================================================================

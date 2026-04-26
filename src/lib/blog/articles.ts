@@ -262,7 +262,7 @@ export const ARTICLES: BlogArticle[] = [
         type: 'callout',
         variant: 'success',
         title: 'Simulador gratuito',
-        text: 'Con el simulacro SUNAFIL de Comply360 corrés la inspección virtual, detectás tus hallazgos y calculás tu multa potencial exacta en 15 minutos. Incluye Acta de Requerimiento formato R.M. 199-2016-TR.',
+        text: 'Con el simulacro SUNAFIL de Comply360 corres la inspección virtual, detectas tus hallazgos y calculas tu multa potencial exacta en 15 minutos. Incluye Acta de Requerimiento formato R.M. 199-2016-TR.',
       },
     ],
     cta: { label: 'Probar simulacro SUNAFIL gratis', href: '/diagnostico-gratis' },
@@ -369,8 +369,8 @@ export const ARTICLES: BlogArticle[] = [
         items: [
           'Quieres contratar personal senior (S/ 5k+/mes): valoran CTS + gratificaciones',
           'Tu empresa crece rápido y vas a superar los límites en <12 meses',
-          'Trabajás con grandes empresas que auditan a sus proveedores (compliance general es más sólido)',
-          'Licitás al Estado (ventaja competitiva tener régimen robusto)',
+          'Trabajas con grandes empresas que auditan a sus proveedores (compliance general es más sólido)',
+          'Licitas al Estado (ventaja competitiva tener régimen robusto)',
         ],
       },
       {
@@ -380,7 +380,7 @@ export const ARTICLES: BlogArticle[] = [
       {
         type: 'callout',
         variant: 'success',
-        title: 'Calculá tu régimen óptimo',
+        title: 'Calcula tu régimen óptimo',
         text: 'Comply360 tiene una calculadora que compara el costo total anual de tener tu planilla en MYPE Micro, MYPE Pequeña o Régimen General. Te dice qué régimen te conviene y por qué.',
       },
     ],

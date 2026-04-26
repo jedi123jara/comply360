@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Planes y precios COMPLY360 — desde S/ 129/mes'
+export const alt = 'Planes y precios COMPLY360 — desde S/ 149/mes'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -94,7 +94,7 @@ export default async function Image() {
               display: 'flex',
             }}
           >
-            Desde S/ 129/mes
+            Desde S/ 149/mes
           </div>
           <div
             style={{
@@ -123,9 +123,9 @@ export default async function Image() {
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             {[
-              { label: 'Starter', price: 'S/ 129' },
-              { label: 'Empresa', price: 'S/ 299' },
-              { label: 'Pro', price: 'S/ 649' },
+              { label: 'Starter', price: 'S/ 149' },
+              { label: 'Empresa', price: 'S/ 349' },
+              { label: 'Pro', price: 'S/ 799' },
             ].map(({ label, price }) => (
               <div
                 key={label}

@@ -22,10 +22,12 @@ import {
   TrendingDown,
 } from 'lucide-react'
 import { NAV_ITEMS, resolveActiveHub } from '@/lib/constants'
+import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
 import { cn } from '@/lib/utils'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { OrgSwitcher } from './org-switcher'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -232,6 +234,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
   const { user } = useUser()
   const { signOut } = useClerk()
   const copilot = useCopilot()
+  const modKey = usePlatformModKey()
 
   const { score, delta } = useComplianceScore()
   const { days: trialDays, isTrialing } = useTrialBanner()
@@ -314,6 +317,9 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
+          {/* OrgSwitcher (oculto cuando hay 1 sola org) */}
+          <OrgSwitcher />
+
           {/* SUNAFIL sync pill (prototipo god-mode) */}
           <div
             className="c360-tb-sync hidden lg:flex"
@@ -333,7 +339,8 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
             <Search className="h-3 w-3" />
             <span>Buscar</span>
             <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] px-1 py-0.5 font-mono text-[10px]">
-              <Command className="h-2.5 w-2.5" />K
+              {modKey === '⌘' ? <Command className="h-2.5 w-2.5" /> : <span>{modKey}</span>}
+              <span>{modKey === '⌘' ? 'K' : '+K'}</span>
             </kbd>
           </button>
 

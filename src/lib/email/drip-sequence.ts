@@ -194,7 +194,7 @@ const stage4: DripStage = {
         No estás siendo paranoico. El Estado está recaudando por fiscalización y va después de las empresas chicas que no tienen abogado dedicado.
       </p>
       <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
-        <strong>Comply360 Empresa cuesta S/299/mes</strong> — menos que una hora de un abogado laboralista senior. Por ese precio:
+        <strong>Comply360 Empresa cuesta S/349/mes</strong> — menos que una hora de un abogado laboralista senior. Por ese precio:
       </p>
       <ul style="margin:0 0 14px;padding-left:20px;color:#334155;font-size:14px;line-height:1.8;">
         <li>Diagnóstico SUNAFIL 135 preguntas (calcula tu multa potencial real)</li>
@@ -229,7 +229,7 @@ const stage5: DripStage = {
           <strong>Contratas abogado laboralista</strong>. Costo típico S/2,000-5,000 por revisión inicial + S/500/mes ongoing.
         </li>
         <li>
-          <strong>Usas Comply360</strong>. S/129-299/mes. Revisión inicial la haces tú con el diagnóstico 135 preguntas.
+          <strong>Usas Comply360</strong>. S/149-349/mes. Revisión inicial la haces tú con el diagnóstico 135 preguntas.
         </li>
         <li>
           <strong>No haces nada</strong>. SUNAFIL aumentó fiscalizaciones 30% en 2026.

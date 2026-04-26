@@ -82,7 +82,7 @@ export function ComplianceTasksPanel({
               Plan de acción
             </CardTitle>
             <CardDescription>
-              Sin tareas aún — corré un diagnóstico o simulacro para generarlas.
+              Sin tareas aún — corre un diagnóstico o simulacro para generarlas.
             </CardDescription>
           </div>
         </CardHeader>

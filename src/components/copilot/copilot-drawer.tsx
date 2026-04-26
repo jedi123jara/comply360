@@ -90,7 +90,7 @@ export function CopilotDrawer() {
                 <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
               </span>
               <h2 className="text-base font-semibold tracking-tight text-[color:var(--text-primary)]">
-                Copilot laboral
+                Asistente IA
               </h2>
               <Badge variant="emerald" size="xs" dot>
                 IA Perú
@@ -195,8 +195,8 @@ function EmptyState({
             ¿En qué te ayudo?
           </h3>
           <p className="mt-1 text-xs text-[color:var(--text-secondary)] max-w-[28ch] mx-auto">
-            Conozco el contexto de esta pantalla. Elegí una sugerencia o
-            escribí lo que necesites.
+            Conozco el contexto de esta pantalla. Elige una sugerencia o
+            escribe lo que necesites.
           </p>
         </div>
       </div>

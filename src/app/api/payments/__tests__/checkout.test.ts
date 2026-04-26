@@ -147,7 +147,7 @@ describe('POST /api/payments/checkout', () => {
 
     const mockCharge = {
       id: 'chr_abc123',
-      amount: 64900,
+      amount: 79900,
       currency: 'PEN',
     }
     mockCreateCharge.mockResolvedValue(mockCharge)
@@ -163,7 +163,7 @@ describe('POST /api/payments/checkout', () => {
     expect(json.data.chargeId).toBe('chr_abc123')
     expect(json.data.plan).toBe('PRO')
     expect(json.data.planName).toBe('Pro')
-    expect(json.data.amount).toBe(649)
+    expect(json.data.amount).toBe(799)
     expect(json.data.currency).toBe('PEN')
     expect(json.data.periodStart).toBeDefined()
     expect(json.data.periodEnd).toBeDefined()
@@ -171,7 +171,7 @@ describe('POST /api/payments/checkout', () => {
     // Verify createCharge was called with correct args
     expect(mockCreateCharge).toHaveBeenCalledWith(
       'tok_live_xxx',       // token
-      64900,                // priceInCentimos for PRO
+      79900,                // priceInCentimos for PRO
       'owner@test.pe',      // ctx.email
       expect.stringContaining('Plan Pro'), // description includes plan name
       expect.objectContaining({

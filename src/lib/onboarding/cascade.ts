@@ -293,7 +293,7 @@ export async function runOnboardingCascade(
  * el documentType solicitado. Usamos un prefijo legible + tag machine-readable.
  */
 function formatRequestDescription(docType: RequiredDocType, label: string): string {
-  return `Por favor subí ${label.toLowerCase()} a tu portal en Comply360. [doc:${docType}]`
+  return `Por favor sube ${label.toLowerCase()} a tu portal en Comply360. [doc:${docType}]`
 }
 
 /** Extrae docType de descriptions creadas por esta cascada. */

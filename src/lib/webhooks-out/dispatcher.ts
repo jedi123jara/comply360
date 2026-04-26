@@ -57,8 +57,8 @@ export function signWebhookBody(secret: string, rawBody: string, timestampSec: n
  *
  * Idempotente por accidente: si el handler corre 2× para el mismo eventId
  * + subscription, se crean 2 deliveries. Eso es OK porque el cron las
- * procesa por separado y el cliente puede deduplicar con eventId. Si querés
- * evitarlo, agregá un unique([subscriptionId, eventId]) en el schema.
+ * procesa por separado y el cliente puede deduplicar con eventId. Si quieres
+ * evitarlo, agrega un unique([subscriptionId, eventId]) en el schema.
  */
 export async function enqueueDeliveriesForEvent<K extends EventName>(
   event: DomainEvent<K>,

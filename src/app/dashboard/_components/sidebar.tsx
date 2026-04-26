@@ -295,7 +295,12 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
 
       {/* ── FOOTER: ORG BADGE ─────────────────────────────────── */}
       <div className="relative border-t border-[color:var(--border-default)] p-3 bg-[color:var(--neutral-50)]">
-        <div className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 bg-white border border-[color:var(--border-subtle)] shadow-[var(--elevation-1)]">
+        <Link
+          href="/dashboard/planes"
+          aria-label={`Plan actual: ${plan}. Click para ver y mejorar tu plan.`}
+          title="Ver planes y mejorar"
+          className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 bg-white border border-[color:var(--border-subtle)] shadow-[var(--elevation-1)] hover:border-emerald-300 hover:shadow-[var(--elevation-2)] transition-all cursor-pointer"
+        >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white shadow-[0_2px_6px_rgba(16,185,129,0.3)]">
             C3
           </div>
@@ -307,7 +312,7 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
               {plan}
             </Badge>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   )

@@ -9,6 +9,7 @@ import {
   CalcCard,
   CalcHero,
   DateInput,
+  LeadCaptureCTA,
   LegalBasis,
   NumberInput,
   SignupCTA,
@@ -146,6 +147,11 @@ export default function GratificacionCalculatorPage() {
         </div>
       </div>
 
+      <LeadCaptureCTA
+        source="calc-grati"
+        title="¿Te enviamos el cálculo en PDF?"
+        subtitle="Te llega el resumen con la fórmula desglosada + 14 días gratis del simulacro SUNAFIL completo. Sin tarjeta."
+      />
       <SignupCTA />
     </>
   )

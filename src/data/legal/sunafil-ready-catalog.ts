@@ -152,7 +152,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'cts_deposito',
     hasExpiration: false,
     generatorSlug: 'cts-liquidacion',
-    actionHint: 'Usa la calculadora CTS y subí la constancia del banco.',
+    actionHint: 'Usa la calculadora CTS y sube la constancia del banco.',
   },
   {
     id: 'gratificacion-pago',
@@ -168,7 +168,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'gratificacion_pago',
     hasExpiration: false,
     generatorSlug: 'gratificacion',
-    actionHint: 'Calculá con la calculadora Gratificación y subí el comprobante.',
+    actionHint: 'Calcula con la calculadora Gratificación y sube el comprobante.',
   },
 
   /* ── III. PREVISIONAL ──────────────────────────────────────────────── */
@@ -337,7 +337,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     hasExpiration: true,
     expirationMonths: 12,
     generatorSlug: 'capacitacion-sst',
-    actionHint: 'Registra las 4 capacitaciones anuales y subí asistencias.',
+    actionHint: 'Registra las 4 capacitaciones anuales y sube asistencias.',
   },
   {
     id: 'examen-medico-ingreso',
@@ -385,7 +385,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'induccion_sst',
     hasExpiration: false,
     generatorSlug: 'induccion-sst',
-    actionHint: 'Usa el template de inducción SST y subí la constancia firmada.',
+    actionHint: 'Usa el template de inducción SST y sube la constancia firmada.',
   },
   {
     id: 'mapa-riesgos',
@@ -491,7 +491,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
       value: true,
       description: 'Aplicable si la empresa realiza actividades de riesgo (sector o puestos).',
     },
-    actionHint: 'Contratá SCTR con EsSalud/ONP o EPS privada y subí la póliza.',
+    actionHint: 'Contrata SCTR con EsSalud/ONP o EPS privada y sube la póliza.',
   },
   {
     id: 'declaracion-jurada',
@@ -522,7 +522,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     scope: 'exhibited',
     hasExpiration: false,
     generatorSlug: 'sintesis-legislacion',
-    actionHint: 'Descargá el cartel e imprímelo en A3 para exhibición.',
+    actionHint: 'Descarga el cartel e imprímelo en A3 para exhibición.',
   },
   {
     id: 'reglamento-interno',

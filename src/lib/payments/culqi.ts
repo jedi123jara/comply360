@@ -35,8 +35,8 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
   STARTER: {
     key: 'STARTER',
     name: 'Starter',
-    priceInCentimos: 12900,
-    priceDisplay: 129,
+    priceInCentimos: 14900,
+    priceDisplay: 149,
     currency: 'PEN',
     interval: 'month',
     description: 'Gestor de planilla + calculadoras. Para MYPEs que arrancan su compliance.',
@@ -53,8 +53,8 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
   EMPRESA: {
     key: 'EMPRESA',
     name: 'Empresa',
-    priceInCentimos: 29900,
-    priceDisplay: 299,
+    priceInCentimos: 34900,
+    priceDisplay: 349,
     currency: 'PEN',
     interval: 'month',
     description: 'Compliance SUNAFIL completo para pequeñas empresas.',
@@ -73,8 +73,8 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
   PRO: {
     key: 'PRO',
     name: 'Pro',
-    priceInCentimos: 64900,
-    priceDisplay: 649,
+    priceInCentimos: 79900,
+    priceDisplay: 799,
     currency: 'PEN',
     interval: 'month',
     description: 'IA + portal biométrico para medianas empresas.',

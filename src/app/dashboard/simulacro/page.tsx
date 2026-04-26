@@ -187,7 +187,7 @@ function Cover({
         <Pillar
           icon={FileText}
           title="Acta real"
-          description="Al final descargás un Acta de Requerimiento formato R.M. 199-2016-TR con multa granular."
+          description="Al final descargas un Acta de Requerimiento formato R.M. 199-2016-TR con multa granular."
         />
       </div>
 

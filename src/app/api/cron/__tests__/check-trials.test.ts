@@ -27,6 +27,12 @@ const { mockPrisma, mockSendEmail } = vi.hoisted(() => {
     subscription: {
       update: vi.fn(),
     },
+    auditLog: {
+      // Reminder día 11 nuevo: idempotencia via AuditLog. En tests por
+      // default no hay reminder previo y la creación es no-op.
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({}),
+    },
   }
   const mockSendEmail = vi.fn()
   return { mockPrisma, mockSendEmail }
@@ -207,7 +213,13 @@ describe('GET /api/cron/check-trials', () => {
 
   it('sends email to org.alertEmail on downgrade', async () => {
     const org = makeOrg({ alertEmail: 'rrhh@empresa.pe' })
-    mockPrisma.organization.findMany.mockResolvedValue([org])
+    // El cron hace 2 queries findMany: día-11 reminder (gte) y downgrade (lt).
+    // Solo queremos que la 2da retorne el org expirado.
+    mockPrisma.organization.findMany.mockImplementation((args: { where?: { planExpiresAt?: { lt?: Date; gte?: Date } } } = {}) => {
+      const where = args.where ?? {}
+      if (where.planExpiresAt?.lt) return Promise.resolve([org])
+      return Promise.resolve([])
+    })
     mockPrisma.organization.update.mockResolvedValue({})
     mockPrisma.subscription.update.mockResolvedValue({})
     mockSendEmail.mockResolvedValue({ success: true })
@@ -244,7 +256,13 @@ describe('GET /api/cron/check-trials', () => {
       makeOrg({ id: 'org-3', subscription: { id: 's3', status: 'TRIALING' }, alertEmail: null }),
       makeOrg({ id: 'org-4', subscription: null }), // no subscription
     ]
-    mockPrisma.organization.findMany.mockResolvedValue(orgs)
+    // Aislamos la query de downgrade (planExpiresAt.lt) — la query de
+    // reminder día-11 (gte) retorna vacío para no contaminar el conteo.
+    mockPrisma.organization.findMany.mockImplementation((args: { where?: { planExpiresAt?: { lt?: Date; gte?: Date } } } = {}) => {
+      const where = args.where ?? {}
+      if (where.planExpiresAt?.lt) return Promise.resolve(orgs)
+      return Promise.resolve([])
+    })
     mockPrisma.organization.update.mockResolvedValue({})
     mockPrisma.subscription.update.mockResolvedValue({})
     mockSendEmail.mockResolvedValue({ success: true })

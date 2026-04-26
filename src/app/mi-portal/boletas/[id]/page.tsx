@@ -15,6 +15,7 @@ import {
   Fingerprint,
   ShieldCheck,
   X,
+  Eye,
 } from 'lucide-react'
 import { tryBiometricCeremony as runCeremony } from '@/lib/webauthn'
 
@@ -80,6 +81,7 @@ export default function BoletaDetailPage() {
   const [signingState, setSigningState] = useState<'idle' | 'ceremony' | 'biometric' | 'submitting' | 'success' | 'error'>('idle')
   const [signError, setSignError] = useState<string | null>(null)
   const [showCeremony, setShowCeremony] = useState(false)
+  const [showPdfPreview, setShowPdfPreview] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -332,19 +334,39 @@ export default function BoletaDetailPage() {
       {/* ─── ACCIONES ────────────────────────────────────────────── */}
       <section className="flex flex-wrap gap-2.5">
         {boleta.pdfUrl ? (
-          <a
-            href={boleta.pdfUrl}
-            download
-            className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors"
-            style={{
-              background: 'white',
-              border: '0.5px solid var(--border-default)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <Download className="h-4 w-4" />
-            Descargar PDF
-          </a>
+          <>
+            <button
+              type="button"
+              onClick={() => setShowPdfPreview(p => !p)}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors"
+              style={{
+                background: showPdfPreview ? 'var(--emerald-50)' : 'white',
+                border: showPdfPreview
+                  ? '0.5px solid var(--border-emerald)'
+                  : '0.5px solid var(--border-default)',
+                color: showPdfPreview
+                  ? 'var(--emerald-700)'
+                  : 'var(--text-primary)',
+              }}
+              title="Revisa el PDF antes de firmar"
+            >
+              <Eye className="h-4 w-4" />
+              {showPdfPreview ? 'Ocultar PDF' : 'Ver PDF antes de firmar'}
+            </button>
+            <a
+              href={boleta.pdfUrl}
+              download
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors"
+              style={{
+                background: 'white',
+                border: '0.5px solid var(--border-default)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Descargar PDF
+            </a>
+          </>
         ) : null}
 
         {canSign ? (
@@ -377,6 +399,34 @@ export default function BoletaDetailPage() {
           </div>
         ) : null}
       </section>
+
+      {/* ─── Preview inline del PDF (toggle) ──────────────────────── */}
+      {showPdfPreview && boleta.pdfUrl ? (
+        <section
+          className="rounded-2xl overflow-hidden border bg-white shadow-sm"
+          style={{ border: '0.5px solid var(--border-default)' }}
+        >
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-[color:var(--neutral-50)]">
+            <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-secondary)]">
+              Vista previa de la boleta
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowPdfPreview(false)}
+              className="p-1 rounded text-[color:var(--text-tertiary)] hover:bg-white"
+              aria-label="Cerrar preview"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <iframe
+            src={boleta.pdfUrl}
+            title="Boleta PDF"
+            className="w-full"
+            style={{ height: '70vh', minHeight: 480, border: 0 }}
+          />
+        </section>
+      ) : null}
 
       {/* ─── Legal notice ────────────────────────────────────────── */}
       <div

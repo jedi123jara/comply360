@@ -26,6 +26,7 @@ export type PlanFeature =
   | 'sst_completo'
   | 'api_access'
   | 'gamificacion'
+  | 'attendance_selfie'
 
 export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
   FREE: ['calculadoras'],
@@ -65,6 +66,7 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'sst_completo',
     'api_access',
     'gamificacion',
+    'attendance_selfie',
   ],
 }
 
@@ -90,6 +92,7 @@ export const FEATURE_MIN_PLAN: Record<PlanFeature, string> = {
   denuncias: 'PRO',
   sst_completo: 'PRO',
   api_access: 'PRO',
+  attendance_selfie: 'PRO',
 }
 
 /**

@@ -47,7 +47,13 @@ export function AttendanceQrCard() {
       const res = await fetch('/api/attendance/qr-token', { cache: 'no-store' })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? `HTTP ${res.status}`)
+        const friendlyByStatus: Record<number, string> = {
+          401: 'Tu sesión expiró. Recarga la página para volver a iniciar.',
+          403: 'No tienes permisos para generar el QR de asistencia.',
+          404: 'No pudimos generar el QR. Reintenta en un momento.',
+          429: 'Estás generando QRs muy rápido. Espera unos segundos.',
+        }
+        throw new Error(err.error ?? friendlyByStatus[res.status] ?? 'No pudimos cargar el QR. Reintenta.')
       }
       const data = (await res.json()) as TokenResponse
       setToken(data)
@@ -202,9 +208,9 @@ export function AttendanceQrCard() {
               <div className="flex items-start gap-2">
                 <Smartphone className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold">Trabajador: abrí la cámara de tu celular</p>
+                  <p className="font-semibold">Trabajador: abre la cámara de tu celular</p>
                   <p className="text-[color:var(--text-secondary)]">
-                    Apuntá al QR · Tocá el link que aparece · Listo.
+                    Apunta al QR · Toca el link que aparece · Listo.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   ShieldCheck,
   Calendar,
@@ -11,8 +12,12 @@ import {
   ShieldAlert,
   Bot,
   BarChart3,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { toast } from '@/components/ui/sonner-toaster'
 import { useCopilot } from '@/providers/copilot-provider'
 import {
   ScoreNarrative,
@@ -22,7 +27,6 @@ import {
   RiskLeaderboard,
   QuickActions,
   ComplianceTasksPanel,
-  mockHeatmapData,
 } from '@/components/cockpit'
 
 // SectorRadar usa `recharts` (~102KB gzipped). Lo cargamos dinámicamente
@@ -50,6 +54,7 @@ import type {
 } from '@/components/cockpit'
 import { SkeletonStats, SkeletonCard } from '@/components/ui/skeleton'
 import { OnboardingWizard } from '@/components/dashboard/onboarding-wizard'
+import { WelcomeTour } from '@/components/dashboard/welcome-tour'
 import { HeroPanel } from '@/components/comply360/hero-panel'
 
 /**
@@ -109,10 +114,24 @@ interface ScorePayload {
 
 export default function CockpitPage() {
   const copilot = useCopilot()
+  const searchParams = useSearchParams()
   const [data, setData] = useState<DashboardPayload | null>(null)
   const [scoreData, setScoreData] = useState<ScorePayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null)
+
+  // Toast "Trial PRO activado" — se muestra UNA sola vez al venir del onboarding
+  // con `?welcome=trial`. Usamos sessionStorage para no spam al refrescar.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (searchParams?.get('welcome') !== 'trial') return
+    const KEY = 'comply360.welcomeTrialToastShown'
+    if (sessionStorage.getItem(KEY)) return
+    sessionStorage.setItem(KEY, '1')
+    toast.success('Trial PRO activado por 14 días', {
+      description: 'Explora el cockpit, agrega tu primer trabajador y dispara un diagnóstico.',
+    })
+  }, [searchParams])
 
   // Fetch dashboard + score in parallel
   useEffect(() => {
@@ -163,6 +182,23 @@ export default function CockpitPage() {
   const expiringCount = data?.stats?.expiringCount ?? 0
   const criticalAlerts = data?.stats?.criticalAlerts ?? 0
   const multaPotencial = data?.stats?.multaPotencial ?? 0
+
+  // Estado "primera vez": cuenta nueva, sin trabajadores ni señales de actividad.
+  // El cockpit normal asume score 72 por defecto y dispara narrativa de "zona crítica",
+  // lo cual asusta sin razón a usuarios recién registrados. Mostramos un banner
+  // bienvenida que reemplaza ese mensaje y guía a los 3 primeros pasos útiles.
+  const isFirstTime =
+    !loading && totalWorkers === 0 && criticalAlerts === 0 && expiringCount === 0
+
+  // Estado "onboarding intermedio": ya tiene trabajadores pero todavía no
+  // corrió el diagnóstico. Heurística: score viene null/0 desde la API.
+  // Le mostramos un banner amber "siguiente paso: corre tu diagnóstico" en
+  // lugar del welcome (que ya no aplica) ni del cockpit estándar (que genera
+  // ansiedad si no hay datos de compliance).
+  const hasDiagnosticData =
+    typeof scoreData?.scoreGlobal === 'number' && scoreData.scoreGlobal > 0
+  const isOnboardingMidway =
+    !loading && !isFirstTime && totalWorkers > 0 && !hasDiagnosticData
 
   const topRisk = data?.topRisk?.label ?? inferTopRisk(data?.complianceBreakdown)
   const topRiskImpact = data?.topRisk?.impact ?? 6
@@ -254,9 +290,11 @@ export default function CockpitPage() {
   }, [data, nowMs])
 
   const riskWorkers: WorkerRiskItem[] = data?.riskWorkers ?? []
+  // Sin actividad real → array vacío. ActivityHeatmap construye igual el grid
+  // 7×12 pero todas las celdas en gris (cellColor(0)). No inventamos actividad.
   const heatmap: HeatmapDay[] = data?.activityHeatmap?.length
     ? data.activityHeatmap
-    : mockHeatmapData(12)
+    : []
   const sectorRadar: RadarAxisDatum[] = data?.sectorRadar ?? []
 
   // ── UI states ──
@@ -283,6 +321,109 @@ export default function CockpitPage() {
   // ScoreNarrative sigue sirviendo como breakdown detallado por área.
   return (
     <div className="space-y-8">
+      <WelcomeTour />
+      {isOnboardingMidway && (
+        <section
+          className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-50/40 p-6 sm:p-8 shadow-sm"
+          aria-labelledby="onboarding-midway-title"
+        >
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-amber-100">
+              <ShieldAlert className="w-5 h-5 text-amber-700" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
+                Siguiente paso
+              </p>
+              <h2
+                id="onboarding-midway-title"
+                className="text-2xl font-bold text-[color:var(--text-primary)] mt-1"
+              >
+                Tienes {totalWorkers} {totalWorkers === 1 ? 'trabajador' : 'trabajadores'} pero aún sin diagnóstico.
+              </h2>
+              <p className="text-sm text-[color:var(--text-secondary)] mt-1.5 max-w-2xl">
+                Corre el diagnóstico SUNAFIL (3 min · 20 preguntas express) para conocer tu compliance score real y prevenir multas.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 mt-4">
+            <Link
+              href="/dashboard/diagnostico"
+              className="group inline-flex items-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm px-5 py-2.5 transition-colors"
+            >
+              Empezar diagnóstico express
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+            <Link
+              href="/dashboard/sunafil-ready"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-700 border border-amber-300 font-semibold text-sm px-5 py-2.5 transition-colors"
+            >
+              Ver checklist SUNAFIL
+            </Link>
+          </div>
+        </section>
+      )}
+      {isFirstTime && (
+        <section
+          className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-6 sm:p-8 shadow-sm"
+          aria-labelledby="welcome-cockpit-title"
+        >
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-emerald-100">
+              <Sparkles className="w-5 h-5 text-emerald-700" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
+                Bienvenido a Comply360
+              </p>
+              <h2
+                id="welcome-cockpit-title"
+                className="text-2xl font-bold text-[color:var(--text-primary)] mt-1"
+              >
+                Tu trial PRO arrancó. Vamos a un compliance 60+ en 5 minutos.
+              </h2>
+              <p className="text-sm text-[color:var(--text-secondary)] mt-1.5 max-w-2xl">
+                Empieza por estos tres pasos. Cada acción suma a tu score y reduce el riesgo de multa SUNAFIL.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+            <Link
+              href="/dashboard/trabajadores/nuevo"
+              className="group rounded-xl border border-emerald-300 bg-emerald-600 text-white p-4 hover:bg-emerald-700 transition-colors flex flex-col"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Paso 1</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+              <p className="text-base font-semibold mt-2">Sube tu primer trabajador</p>
+              <p className="text-xs opacity-90 mt-1">Wizard con auto-completado por DNI · 30 seg</p>
+            </Link>
+            <Link
+              href="/dashboard/trabajadores?import=excel"
+              className="group rounded-xl border border-emerald-300 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Paso 2</span>
+                <ArrowRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+              <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Importa de Excel</p>
+              <p className="text-xs text-[color:var(--text-secondary)] mt-1">Sube tu planilla completa en un clic</p>
+            </Link>
+            <Link
+              href="/dashboard/diagnostico"
+              className="group rounded-xl border border-emerald-200 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">Paso 3</span>
+                <ArrowRight className="w-4 h-4 text-[color:var(--text-tertiary)] group-hover:translate-x-0.5 transition-transform" />
+              </div>
+              <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Corre tu diagnóstico</p>
+              <p className="text-xs text-[color:var(--text-secondary)] mt-1">3 minutos · 20 preguntas SUNAFIL</p>
+            </Link>
+          </div>
+        </section>
+      )}
       <HeroPanel
         score={typeof score === 'number' ? Math.round(score) : 82}
         userFirstName={(data?.stats as { ownerFirstName?: string } | undefined)?.ownerFirstName ?? 'equipo'}
@@ -345,27 +486,45 @@ export default function CockpitPage() {
 
       <QuickActions actions={quickActions} />
 
-      <ComplianceTasksPanel
-        open={data?.complianceTasks?.open ?? 0}
-        completed={data?.complianceTasks?.completed ?? 0}
-        overdue={data?.complianceTasks?.overdue ?? 0}
-        multaEvitable={data?.complianceTasks?.multaEvitable ?? 0}
-        multaEvitada={data?.complianceTasks?.multaEvitada ?? 0}
-        top={data?.complianceTasks?.top ?? []}
-      />
+      {/* ─── BENTO GRID — Apple-style asimétrico ──────────────────────────
+       * Layout 12-col en desktop:
+       *   row 1: [Compliance tasks ........ col-span-8] [UpcomingDeadlines col-span-4]
+       *   row 2: [ActivityHeatmap col-span-7] [RiskLeaders col-span-5]
+       *   row 3: [Radar/Placeholder col-span-12]
+       * En mobile: stack vertical full width.
+       *
+       * Sprint 5 (T6.1): hover scale + soft shadows ya provenientes de
+       * <Card> y <MomentCard> via tokens (--elevation-1, --elevation-hover).
+       */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="lg:col-span-8">
+          <ComplianceTasksPanel
+            open={data?.complianceTasks?.open ?? 0}
+            completed={data?.complianceTasks?.completed ?? 0}
+            overdue={data?.complianceTasks?.overdue ?? 0}
+            multaEvitable={data?.complianceTasks?.multaEvitable ?? 0}
+            multaEvitada={data?.complianceTasks?.multaEvitada ?? 0}
+            top={data?.complianceTasks?.top ?? []}
+          />
+        </div>
+        <div className="lg:col-span-4">
+          <UpcomingDeadlines items={deadlines} />
+        </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <UpcomingDeadlines items={deadlines} />
-        <RiskLeaderboard workers={riskWorkers} />
-      </section>
+        <div className="lg:col-span-7">
+          <ActivityHeatmap data={heatmap} />
+        </div>
+        <div className="lg:col-span-5">
+          <RiskLeaderboard workers={riskWorkers} />
+        </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ActivityHeatmap data={heatmap} />
-        {sectorRadar.length > 0 ? (
-          <SectorRadar data={sectorRadar} sectorLabel="Promedio sector" />
-        ) : (
-          <PlaceholderRadar totalWorkers={totalWorkers} />
-        )}
+        <div className="lg:col-span-12">
+          {sectorRadar.length > 0 ? (
+            <SectorRadar data={sectorRadar} sectorLabel="Promedio sector" />
+          ) : (
+            <PlaceholderRadar totalWorkers={totalWorkers} />
+          )}
+        </div>
       </section>
     </div>
   )
@@ -415,7 +574,7 @@ function PlaceholderRadar({ totalWorkers }: { totalWorkers: number }) {
         </p>
         <p className="text-xs text-[color:var(--text-tertiary)] mt-1 max-w-xs">
           {totalWorkers === 0
-            ? 'Registra trabajadores y corré un diagnóstico para empezar a comparar con tu sector.'
+            ? 'Registra trabajadores y corre un diagnóstico para empezar a comparar con tu sector.'
             : 'El benchmark se actualizará tras el próximo diagnóstico mensual.'}
         </p>
       </div>

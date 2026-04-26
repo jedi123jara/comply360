@@ -52,7 +52,7 @@ export default function RecursosPage() {
             className="text-4xl lg:text-6xl text-gray-900 mb-4"
             style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.05 }}
           >
-            Todo lo que necesitás saber sobre{' '}
+            Todo lo que necesitas saber sobre{' '}
             <em className="italic text-emerald-700">compliance laboral peruano</em>.
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed max-w-2xl">

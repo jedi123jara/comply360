@@ -142,12 +142,12 @@ export default function CertificacionPage() {
       {/* Hero Section */}
       {!loading && isCertified && certificate ? (
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 p-px">
-          <div className="rounded-[15px] bg-white bg-gray-900 p-8">
+          <div className="rounded-[15px] bg-white p-8">
             <div className="flex flex-col lg:flex-row items-center gap-8">
               {/* Badge */}
               <div className="flex-shrink-0 flex flex-col items-center">
                 <div className={`relative w-48 h-48 rounded-full bg-gradient-to-br ${SEAL_COLORS[sealLevel]} flex items-center justify-center shadow-xl shadow-amber-200/40 shadow-amber-900/30`}>
-                  <div className="w-40 h-40 rounded-full bg-white bg-gray-900 flex flex-col items-center justify-center">
+                  <div className="w-40 h-40 rounded-full bg-white flex flex-col items-center justify-center">
                     <Crown className="h-10 w-10 text-amber-500 mb-1" />
                     <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
                       Nivel {SEAL_LABELS[sealLevel]}
@@ -214,7 +214,7 @@ export default function CertificacionPage() {
           </div>
         </div>
       ) : !loading ? (
-        <div className="rounded-2xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-8 text-center space-y-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center space-y-4">
           <div className="mx-auto w-20 h-20 rounded-full bg-[color:var(--neutral-100)] bg-gray-800 flex items-center justify-center">
             <Shield className="h-10 w-10 text-gray-500" />
           </div>
@@ -246,7 +246,7 @@ export default function CertificacionPage() {
 
       {/* Certification Requirements */}
       {criteria.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -306,7 +306,7 @@ export default function CertificacionPage() {
 
       {/* Certification Details */}
       {isCertified && certificate && (
-        <div className="rounded-2xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
           <h3 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
             <BadgeCheck className="h-5 w-5 text-amber-500" />
             Detalles del Certificado
@@ -350,7 +350,7 @@ export default function CertificacionPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="flex-1 rounded-lg border border-amber-800 bg-white bg-gray-900 px-4 py-2.5 font-mono text-sm text-[color:var(--text-secondary)] truncate">
+            <div className="flex-1 rounded-lg border border-amber-300 bg-white px-4 py-2.5 font-mono text-sm text-[color:var(--text-secondary)] truncate">
               {verifyUrl}
             </div>
             <button
@@ -374,7 +374,7 @@ export default function CertificacionPage() {
           {benefits.map((b) => (
             <div
               key={b.title}
-              className="rounded-2xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-5 hover:shadow-md hover:shadow-gray-800/40 transition-shadow"
+              className="rounded-2xl border border-gray-200 bg-white p-5 hover:shadow-md hover:shadow-gray-800/40 transition-shadow"
             >
               <div className="w-10 h-10 rounded-lg bg-amber-900/30 flex items-center justify-center mb-3">
                 <b.icon className="h-5 w-5 text-amber-400" />
@@ -391,7 +391,7 @@ export default function CertificacionPage() {
       </div>
 
       {/* Certification History */}
-      <div className="rounded-2xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Clock className="h-5 w-5 text-gray-500" />
           Historial de Certificaciones
@@ -400,7 +400,7 @@ export default function CertificacionPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.08] border-gray-700">
+              <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-gray-400">
                   Número
                 </th>

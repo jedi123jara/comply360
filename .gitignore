@@ -50,3 +50,10 @@ next-env.d.ts
 
 # uploaded files (local dev storage)
 /public/uploads
+
+.vercel
+
+# Python cache (skill scripts en .claude/)
+__pycache__/
+*.pyc
+*.pyo

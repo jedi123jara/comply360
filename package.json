@@ -23,7 +23,9 @@
     "test:super": "vitest run && node scripts/preflight/super-test.mjs",
     "test:full": "vitest run && playwright test && node scripts/preflight/super-test.mjs",
     "seed:demo": "tsx scripts/seed-demo-empresas.ts",
-    "ingest:rag": "node scripts/ingest/embed-corpus.mjs"
+    "ingest:rag": "node scripts/ingest/embed-corpus.mjs",
+    "lighthouse": "lhci autorun --config=./lighthouserc.json",
+    "smoke": "node scripts/preflight/smoke.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

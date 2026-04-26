@@ -279,7 +279,7 @@ export default function DrillDownAnalyticsPage() {
 
       {/* ---- Filter panel ---- */}
       {showFilters && (
-        <div className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-5">
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-white">Filtros activos</h3>
             <button onClick={() => setShowFilters(false)} className="text-gray-400 hover:text-[color:var(--text-secondary)]">
@@ -373,7 +373,7 @@ export default function DrillDownAnalyticsPage() {
         ].map((kpi) => (
           <div
             key={kpi.label}
-            className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-4"
+            className="rounded-xl border border-gray-200 bg-white p-4"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-400">{kpi.label}</span>
@@ -391,7 +391,7 @@ export default function DrillDownAnalyticsPage() {
       {/* ---- Row 1: Compliance Trends + Department Breakdown ---- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Compliance Trends */}
-        <div className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-white mb-1">
             Tendencia de Cumplimiento
           </h2>
@@ -478,7 +478,7 @@ export default function DrillDownAnalyticsPage() {
         </div>
 
         {/* Department Breakdown */}
-        <div className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-white mb-1">
             Cumplimiento por Departamento
           </h2>
@@ -517,10 +517,10 @@ export default function DrillDownAnalyticsPage() {
 
                   {/* Drill-down: worker list */}
                   {isExpanded && (
-                    <div className="mt-2 ml-5 rounded-lg bg-[color:var(--neutral-50)] bg-gray-800/50 border border-white/[0.08] border-gray-700 overflow-hidden">
+                    <div className="mt-2 ml-5 rounded-lg bg-[color:var(--neutral-50)] bg-gray-800/50 border border-gray-200 overflow-hidden">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-white/[0.08] border-gray-700">
+                          <tr className="border-b border-gray-200">
                             <th className="px-3 py-2 text-left text-gray-400 font-medium">Trabajador</th>
                             <th className="px-3 py-2 text-left text-gray-400 font-medium">Cargo</th>
                             <th className="px-3 py-2 text-center text-gray-400 font-medium">Estado</th>
@@ -550,7 +550,7 @@ export default function DrillDownAnalyticsPage() {
       {/* ---- Row 2: Risk Matrix + Top Violations ---- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Risk Matrix */}
-        <div className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
             <Target className="h-5 w-5 text-red-500" />
             Matriz de Riesgos
@@ -600,7 +600,7 @@ export default function DrillDownAnalyticsPage() {
 
           {/* Risk cell detail */}
           {selectedRiskCell && (
-            <div className="mt-4 rounded-lg bg-[color:var(--neutral-50)] bg-gray-800/50 border border-white/[0.08] border-gray-700 p-4">
+            <div className="mt-4 rounded-lg bg-[color:var(--neutral-50)] bg-gray-800/50 border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-white">
                   Prob. {selectedRiskCell.probability} / Impacto {selectedRiskCell.impact}
@@ -622,7 +622,7 @@ export default function DrillDownAnalyticsPage() {
         </div>
 
         {/* Top Violations */}
-        <div className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
             <Layers className="h-5 w-5 text-orange-500" />
             Top Incumplimientos
@@ -665,7 +665,7 @@ export default function DrillDownAnalyticsPage() {
       {/* ---- Row 3: Cost Analysis + Worker Metrics ---- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Cost Analysis */}
-        <div className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-emerald-500" />
             Analisis de Costos
@@ -685,7 +685,7 @@ export default function DrillDownAnalyticsPage() {
             </div>
           </div>
 
-          <div className="rounded-lg bg-gradient-to-r from-emerald-50 to-blue-50 from-emerald-900/10 to-blue-900/10 border border-white/[0.08] border-gray-700 p-4">
+          <div className="rounded-lg bg-gradient-to-r from-emerald-50 to-blue-50 from-emerald-900/10 to-blue-900/10 border border-gray-200 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-[color:var(--text-secondary)]">Retorno de Inversion (ROI)</span>
               <span className="text-2xl font-bold text-emerald-600">
@@ -727,7 +727,7 @@ export default function DrillDownAnalyticsPage() {
         </div>
 
         {/* Worker Metrics */}
-        <div className="rounded-xl border border-white/[0.08] border-gray-700 bg-white bg-gray-900 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
             <Users className="h-5 w-5 text-blue-500" />
             Metricas de Trabajadores
@@ -743,7 +743,7 @@ export default function DrillDownAnalyticsPage() {
               { label: 'Capacitacion Completada', value: `${trainingCompletion}%`, sub: 'del total requerido', icon: <Award className="h-4 w-4 text-amber-500" />, good: true },
               { label: 'Contratos Vigentes', value: `${Math.round(totalWorkers * 0.94)}`, sub: `de ${totalWorkers} totales`, icon: <FileText className="h-4 w-4 text-indigo-500" />, good: true },
             ].map((m) => (
-              <div key={m.label} className="rounded-lg bg-[color:var(--neutral-50)] bg-gray-800/50 border border-white/[0.08] border-gray-700 p-4">
+              <div key={m.label} className="rounded-lg bg-[color:var(--neutral-50)] bg-gray-800/50 border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-gray-400">{m.label}</span>
                   {m.icon}

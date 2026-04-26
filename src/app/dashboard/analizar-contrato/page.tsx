@@ -5,9 +5,10 @@ import {
   FileSearch, AlertTriangle, CheckCircle2, XCircle, Loader2, Scale,
   ShieldAlert, ChevronDown, ChevronUp, Gavel, ClipboardList, Info,
   Upload, FileText, File, TriangleAlert, Siren,
-  AlertOctagon, ArrowRight, RotateCcw, Sparkles,
+  AlertOctagon, ArrowRight, RotateCcw, Sparkles, Wand2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ContractFixModal } from '@/components/contracts/contract-fix-modal'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -465,6 +466,12 @@ export default function AnalizarContratoPage() {
   const [aiReview, setAiReview] = useState<AIReviewResult | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  // Contract Fix modal (Sprint 5+ T6.3 — generar versión corregida por IA)
+  const [fixModal, setFixModal] = useState<{
+    open: boolean
+    contractHtml: string
+    review: AIReviewResult | null
+  }>({ open: false, contractHtml: '', review: null })
   // Shared
   const [error, setError]       = useState<string | null>(null)
 
@@ -743,7 +750,17 @@ export default function AnalizarContratoPage() {
               <div key={r.indice} className="space-y-3">
                 <ContratoCard r={r} defaultOpen={resultado.totalContratos === 1} />
                 {r.aiReview ? (
-                  <InlineAIReview result={r.aiReview} contratoIdx={r.indice} />
+                  <InlineAIReview
+                    result={r.aiReview}
+                    contratoIdx={r.indice}
+                    onGenerateFix={(review) =>
+                      setFixModal({
+                        open: true,
+                        contractHtml: r.resumenEjecutivo, // archivo: usamos resumen como aprox
+                        review,
+                      })
+                    }
+                  />
                 ) : r.aiAttempted ? (
                   <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-2 text-xs text-amber-200 flex items-center gap-2">
                     <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
@@ -764,7 +781,16 @@ export default function AnalizarContratoPage() {
 
           {/* IA inline: del backend (deep mode) O del botón manual como fallback */}
           {(resultadoTexto.aiReview || aiReview) ? (
-            <InlineAIReview result={(resultadoTexto.aiReview ?? aiReview)!} />
+            <InlineAIReview
+              result={(resultadoTexto.aiReview ?? aiReview)!}
+              onGenerateFix={(review) =>
+                setFixModal({
+                  open: true,
+                  contractHtml: texto, // modo texto: tenemos el HTML/texto original
+                  review,
+                })
+              }
+            />
           ) : resultadoTexto.aiAttempted ? (
             <AIFailedNotice onRetry={runDeepAIReview} loading={aiLoading} error={aiError} />
           ) : (
@@ -784,6 +810,17 @@ export default function AnalizarContratoPage() {
           <TriangleAlert className="h-4 w-4 shrink-0" />
           {error}
         </div>
+      )}
+
+      {/* Modal de versión corregida — único en mercado peruano (Sprint 5+ T6.3) */}
+      {fixModal.open && fixModal.review && (
+        <ContractFixModal
+          open={fixModal.open}
+          onClose={() => setFixModal({ open: false, contractHtml: '', review: null })}
+          contractHtml={fixModal.contractHtml}
+          contractType={tipo}
+          reviewResult={fixModal.review}
+        />
       )}
 
     </div>
@@ -1090,21 +1127,44 @@ function AITile({
 }
 
 /* InlineAIReview — versión sin botón (el backend ya corrió el análisis en deep mode). */
-function InlineAIReview({ result, contratoIdx }: { result: AIReviewResult; contratoIdx?: number }) {
+function InlineAIReview({
+  result,
+  contratoIdx,
+  onGenerateFix,
+}: {
+  result: AIReviewResult
+  contratoIdx?: number
+  onGenerateFix?: (review: AIReviewResult) => void
+}) {
+  const hasRisks = result.risks?.length > 0 || result.clausulasObligatorias?.some(c => !c.presente)
   return (
     <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/30 overflow-hidden">
-      <div className="flex items-start gap-3 px-5 py-4 border-b border-emerald-800/40">
-        <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-900/50 border border-emerald-700">
-          <Sparkles className="h-4 w-4 text-emerald-300" />
+      <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-emerald-800/40">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-900/50 border border-emerald-700">
+            <Sparkles className="h-4 w-4 text-emerald-300" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-emerald-100">
+              Análisis IA profundo{contratoIdx ? ` · Contrato #${contratoIdx}` : ''}
+            </p>
+            <p className="mt-0.5 text-xs text-emerald-200/70 max-w-xl">
+              Segunda capa sobre el análisis por reglas — fundamentado en el corpus legal RAG.
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-bold text-emerald-100">
-            Análisis IA profundo{contratoIdx ? ` · Contrato #${contratoIdx}` : ''}
-          </p>
-          <p className="mt-0.5 text-xs text-emerald-200/70 max-w-xl">
-            Segunda capa sobre el análisis por reglas — fundamentado en el corpus legal RAG.
-          </p>
-        </div>
+        {/* Botón único en mercado peruano: genera versión corregida del contrato */}
+        {hasRisks && onGenerateFix && (
+          <button
+            type="button"
+            onClick={() => onGenerateFix(result)}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-3 py-2 text-xs font-bold transition-colors shadow-md"
+            title="Genera una versión del contrato con los riesgos corregidos (PRO)"
+          >
+            <Wand2 className="h-3.5 w-3.5" />
+            Generar versión corregida
+          </button>
+        )}
       </div>
       <div className="px-5 py-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

@@ -85,7 +85,7 @@ export default function NotFound() {
                 {
                   href: '/planes',
                   title: 'Planes y precios',
-                  desc: 'Desde S/ 129/mes',
+                  desc: 'Desde S/ 149/mes',
                 },
               ].map((item) => (
                 <Link

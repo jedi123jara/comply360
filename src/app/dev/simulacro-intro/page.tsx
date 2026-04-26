@@ -80,7 +80,7 @@ function Cover({ onStart }: { onStart: () => void }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Pillar icon={Shield} title="28 documentos" description="Los mismos que SUNAFIL solicita por R.M. 199-2016-TR." />
         <Pillar icon={FileCheck} title="Verificación viva" description="Busco en tu legajo real. Verde si está, rojo si falta, naranja si venció." />
-        <Pillar icon={FileText} title="Acta real" description="Al final descargás un Acta de Requerimiento formato SUNAFIL." />
+        <Pillar icon={FileText} title="Acta real" description="Al final descargas un Acta de Requerimiento formato SUNAFIL." />
       </div>
 
       <Card padding="md" variant="outline">

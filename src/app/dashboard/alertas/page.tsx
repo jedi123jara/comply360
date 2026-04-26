@@ -1035,7 +1035,7 @@ export default function AlertasPage() {
                   icon={Filter}
                   variant="invite"
                   title="No hay resultados para estos <em>filtros</em>."
-                  subtitle="Ajusta los filtros o ampliá la búsqueda para ver más alertas."
+                  subtitle="Ajusta los filtros o amplía la búsqueda para ver más alertas."
                   cta={{
                     label: 'Limpiar filtros',
                     onClick: () => {

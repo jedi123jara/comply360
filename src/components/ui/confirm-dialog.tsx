@@ -18,7 +18,7 @@
  *      })
  *      if (!ok) return
  *
- *   2) Declarativa (JSX, cuando necesitás más control):
+ *   2) Declarativa (JSX, cuando necesitas más control):
  *      <ConfirmDialog
  *        open={open}
  *        onClose={() => setOpen(false)}

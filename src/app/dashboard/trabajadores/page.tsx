@@ -580,7 +580,7 @@ export default function TrabajadoresPage() {
           variant="invite"
           eyebrow="Primer paso"
           title="Empieza protegiendo a tu <em>primer trabajador</em>."
-          subtitle="Registra a un trabajador y desbloqueás cálculos automáticos de CTS, gratificación, alertas por vencimientos, y su legajo digital con 28 documentos obligatorios."
+          subtitle="Registra a un trabajador y desbloqueas cálculos automáticos de CTS, gratificación, alertas por vencimientos, y su legajo digital con 28 documentos obligatorios."
           hints={[
             { icon: BarChart2, text: 'Score de compliance automático' },
             { icon: Calendar, text: 'Alertas de CTS, vacaciones y SCTR' },

@@ -9,6 +9,7 @@ import {
   CalcCard,
   CalcHero,
   DateInput,
+  LeadCaptureCTA,
   LegalBasis,
   NumberInput,
   SignupCTA,
@@ -153,6 +154,12 @@ export default function CTSCalculatorPage() {
         </div>
       </div>
 
+      <LeadCaptureCTA
+        source="calc-cts"
+        resultSummary={result ? { ctsDeposito: result.ctsTotal, sueldo, fechaCorte } : undefined}
+        title="¿Te enviamos el cálculo en PDF + tu calendario CTS?"
+        subtitle="Te llega el resumen del cálculo con la fórmula desglosada + 14 días gratis del simulacro SUNAFIL completo. Sin tarjeta."
+      />
       <SignupCTA />
     </>
   )

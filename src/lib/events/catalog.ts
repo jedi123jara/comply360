@@ -172,6 +172,20 @@ const workerRequestCancelledPayload = basePayload.extend({
   workerId: z.string(),
 })
 
+const workerRequestResolvedPayload = basePayload.extend({
+  requestId: z.string(),
+  workerId: z.string(),
+  type: z.string(),
+  decision: z.enum(['APPROVED', 'REJECTED']),
+  resolution: z.string().optional(),
+})
+
+const payslipPublishedPayload = basePayload.extend({
+  payslipId: z.string(),
+  workerId: z.string(),
+  periodo: z.string(),
+})
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Registry — cada entrada: schema + entityExtractor + metadata para UI
 // ═══════════════════════════════════════════════════════════════════════════
@@ -342,6 +356,20 @@ export const EVENT_CATALOG = {
     category: 'Trabajadores',
     label: 'Solicitud de trabajador cancelada',
     description: 'Se dispara cuando el trabajador cancela su propia solicitud.',
+  },
+  'worker_request.resolved': {
+    schema: workerRequestResolvedPayload,
+    entityKey: 'requestId',
+    category: 'Trabajadores',
+    label: 'Solicitud resuelta por admin',
+    description: 'Se dispara cuando admin/RRHH aprueba o rechaza una solicitud (vacaciones, permiso, etc.). Genera push al trabajador.',
+  },
+  'payslip.published': {
+    schema: payslipPublishedPayload,
+    entityKey: 'payslipId',
+    category: 'Documentos',
+    label: 'Boleta publicada',
+    description: 'Se dispara cuando admin/RRHH publica una nueva boleta para un trabajador. Genera push para que el trabajador la firme.',
   },
 } as const
 

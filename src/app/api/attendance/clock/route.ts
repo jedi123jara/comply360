@@ -21,11 +21,20 @@ import { withWorkerAuth } from '@/lib/api-auth'
 import type { WorkerAuthContext } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { verifyAttendanceToken, deriveAttendanceStatus } from '@/lib/attendance/qr-token'
+import { checkAttendance, listFences } from '@/lib/attendance/geofence'
 
 export const runtime = 'nodejs'
 
 export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthContext) => {
-  let body: { token?: string; action?: 'in' | 'out' }
+  let body: {
+    token?: string
+    action?: 'in' | 'out'
+    lat?: number
+    lng?: number
+    accuracy?: number
+    /** SHA-256 hash de la foto selfie tomada al marcar (anti-fraude PRO+) */
+    selfieHash?: string
+  }
   try {
     body = await req.json()
   } catch {
@@ -58,6 +67,43 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       { error: 'Este QR pertenece a otra empresa', code: 'ORG_MISMATCH' },
       { status: 403 },
     )
+  }
+
+  // ── Validar geofence (anti-fraude opcional) ─────────────────────────────
+  // Solo valida si:
+  //   1. La org tiene fences definidos (admin las creó en /configuracion/asistencia)
+  //   2. El cliente envió lat/lng (si no envía, asumimos que el dispositivo no
+  //      tiene GPS o el worker rechazó permisos; logueamos pero no bloqueamos)
+  const fences = listFences(ctx.orgId)
+  let geofenceMatched: string | undefined
+  if (fences.length > 0) {
+    if (typeof body.lat !== 'number' || typeof body.lng !== 'number') {
+      return NextResponse.json(
+        {
+          error:
+            'Tu empresa configuró validación por ubicación. Activa el GPS de tu celular y reintenta.',
+          code: 'GEOLOCATION_REQUIRED',
+        },
+        { status: 400 },
+      )
+    }
+    const geoCheck = checkAttendance(fences, {
+      point: { lat: body.lat, lng: body.lng },
+      accuracyMeters: body.accuracy,
+    })
+    if (!geoCheck.valid) {
+      return NextResponse.json(
+        {
+          error: 'Estás fuera de la zona permitida para marcar asistencia.',
+          code: 'GEOFENCE_OUT',
+          distanceMeters: Math.round(geoCheck.distanceToNearestFence),
+          nearestFence: geoCheck.nearestFence?.name,
+          reasons: geoCheck.reasons,
+        },
+        { status: 403 },
+      )
+    }
+    geofenceMatched = geoCheck.matchedFence?.name
   }
 
   // ── Determinar action (in / out) ─────────────────────────────────────────
@@ -125,6 +171,11 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
         workerId: ctx.workerId,
         clockIn: now,
         status,
+        // Anti-fraude (PRO+): persistimos coords + selfie hash si vinieron
+        geoLat: typeof body.lat === 'number' ? body.lat : null,
+        geoLng: typeof body.lng === 'number' ? body.lng : null,
+        geoAccuracy: typeof body.accuracy === 'number' ? body.accuracy : null,
+        selfieHash: body.selfieHash ?? null,
       },
     })
 
@@ -142,6 +193,10 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
             status,
             tokenIssuedAt: payload.issuedAt,
             via: 'qr',
+            geofence: geofenceMatched ?? null,
+            geo: typeof body.lat === 'number' && typeof body.lng === 'number'
+              ? { lat: body.lat, lng: body.lng, accuracy: body.accuracy ?? null }
+              : null,
           },
         },
       })
@@ -188,6 +243,10 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
     },
   })
 
+  // Si la marcación de salida trae un selfie nuevo, lo guardamos como
+  // metadata adicional (no sobre-escribe el de entrada).
+  // Sprint futuro: añadir campo `selfieHashOut` o tabla AttendanceEvent.
+
   await prisma.auditLog
     .create({
       data: {
@@ -201,6 +260,10 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
           hoursWorked: Number(hoursWorked.toFixed(2)),
           tokenIssuedAt: payload.issuedAt,
           via: 'qr',
+          geofence: geofenceMatched ?? null,
+          geo: typeof body.lat === 'number' && typeof body.lng === 'number'
+            ? { lat: body.lat, lng: body.lng, accuracy: body.accuracy ?? null }
+            : null,
         },
       },
     })

@@ -7,7 +7,7 @@
  * loguean a consola en desarrollo y se silencian en producción.
  *
  * **Nunca loguees PII**. Emails, DNIs, nombres, números de tarjeta, etc. NO
- * deben ir en `properties`. Usa hashes o IDs opacos si necesitás correlacionar.
+ * deben ir en `properties`. Usa hashes o IDs opacos si necesitas correlacionar.
  *
  * Uso:
  * ```ts

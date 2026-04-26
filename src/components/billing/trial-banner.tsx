@@ -159,27 +159,27 @@ function buildMessage(variant: Exclude<BannerVariant, null>, s: BillingStatus): 
       return (
         <>
           <b>Te quedan {days} días de tu trial {planName.toUpperCase()}</b>{' '}
-          · Activá tu plan ahora y evitá interrupciones en tus alertas SUNAFIL.
+          · Activa tu plan ahora y evita interrupciones en tus alertas SUNAFIL.
         </>
       )
     case 'trial-urgent':
       return (
         <>
-          <b>Tu trial expira en {days} {days === 1 ? 'día' : 'días'}</b> · Activá tu plan para
+          <b>Tu trial expira en {days} {days === 1 ? 'día' : 'días'}</b> · Activa tu plan para
           no perder acceso al diagnóstico, simulacro e IA laboral.
         </>
       )
     case 'trial-expired':
       return (
         <>
-          <b>Tu trial {planName.toUpperCase()} expiró hoy</b> · Reactivá tu plan para recuperar
+          <b>Tu trial {planName.toUpperCase()} expiró hoy</b> · Reactiva tu plan para recuperar
           acceso a todas las funciones premium.
         </>
       )
     case 'past-due':
       return (
         <>
-          <b>Problema con tu método de pago</b> · Actualizá tu tarjeta antes de que perdamos
+          <b>Problema con tu método de pago</b> · Actualiza tu tarjeta antes de que perdamos
           el cargo recurrente y tu plan se degrade.
         </>
       )

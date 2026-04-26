@@ -132,7 +132,7 @@ const DOC_PROMPTS: Record<string, DocPromptConfig> = {
     label: 'Examen médico de ingreso',
     expectedFields: ['nombreCompleto', 'dni', 'fechaExamen', 'fechaVencimiento', 'institucion', 'aptitud'],
     instructions:
-      'Debe ser un certificado de aptitud médica laboral (preocupacional). Verifica nombre del trabajador y que se declare aptitud para el puesto. Los EMO son válidos 2 años; si no se ve fecha de vencimiento explícita, calculá fechaExamen + 2 años.',
+      'Debe ser un certificado de aptitud médica laboral (preocupacional). Verifica nombre del trabajador y que se declare aptitud para el puesto. Los EMO son válidos 2 años; si no se ve fecha de vencimiento explícita, calcula fechaExamen + 2 años.',
     crossMatch: ['fullName', 'dni'],
     hasExpiry: true,
   },
@@ -350,7 +350,7 @@ function applyAntiFraudeGuard(
 function buildSystemPrompt(config: DocPromptConfig): string {
   const expirySection = config.hasExpiry
     ? `
-- expiryDate: fecha de vencimiento del documento en ISO "YYYY-MM-DD", o null si no se ve. Para ${config.label}, buscá la fecha de vencimiento o caducidad impresa. Si el documento menciona vigencia relativa (ej: "válido por 2 años"), calculá la fecha partiendo de la emisión.`
+- expiryDate: fecha de vencimiento del documento en ISO "YYYY-MM-DD", o null si no se ve. Para ${config.label}, busca la fecha de vencimiento o caducidad impresa. Si el documento menciona vigencia relativa (ej: "válido por 2 años"), calcula la fecha partiendo de la emisión.`
     : ''
 
   return `Eres un verificador de documentos del legajo laboral peruano. Tu rol es analizar la imagen de un documento y responder estrictamente en JSON.

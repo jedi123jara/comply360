@@ -208,10 +208,10 @@ function ResultPreview({
             {orgDocumentId ? (
               <>
                 Guardado en tu legajo corporativo (ID <code className="font-mono text-xs">{orgDocumentId.slice(-8)}</code>).
-                Descargá el PDF para imprimir y firmar.
+                Descarga el PDF para imprimir y firmar.
               </>
             ) : (
-              <>Descargá el PDF para imprimir y firmar.</>
+              <>Descarga el PDF para imprimir y firmar.</>
             )}
           </p>
         </div>

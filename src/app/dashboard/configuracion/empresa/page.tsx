@@ -159,10 +159,10 @@ const PLANS: PlanInfo[] = [
 // Shared styles
 // =============================================
 
-const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-white/10 border-[color:var(--border-default)] bg-white bg-[color:var(--neutral-100)] text-white placeholder-gray-400 placeholder-gray-500 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors text-sm'
+const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-[color:var(--border-default)] bg-white text-[color:var(--text-primary)] placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors text-sm'
 const labelCls = 'block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5'
-const cardCls = 'bg-white rounded-2xl border border-white/[0.08] p-6 shadow-sm'
-const sectionTitleCls = 'text-base font-bold text-white mb-5 flex items-center gap-2'
+const cardCls = 'bg-white rounded-2xl border border-gray-200 p-6 shadow-sm'
+const sectionTitleCls = 'text-base font-bold text-[color:var(--text-primary)] mb-5 flex items-center gap-2'
 
 // =============================================
 // FeedbackBanner
@@ -629,12 +629,12 @@ export default function EmpresaPage() {
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-900/30 rounded-xl">
-              <Building2 className="h-6 w-6 text-emerald-600" />
+            <div className="p-2.5 bg-emerald-50 rounded-xl">
+              <Building2 className="h-6 w-6 text-emerald-700" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Datos de Empresa</h1>
-              <p className="text-sm text-gray-400">
+              <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Datos de Empresa</h1>
+              <p className="text-sm text-[color:var(--text-secondary)]">
                 Información fiscal, tributaria y comercial de tu organización
               </p>
             </div>
@@ -1203,10 +1203,12 @@ export default function EmpresaPage() {
           ))}
         </div>
 
-        <div className="mt-5 flex items-start gap-3 p-4 bg-blue-900/20 rounded-xl border border-blue-800">
-          <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-emerald-600">
-            La gestión de pagos y cambios de plan estará disponible próximamente. Para upgrades urgentes contacta a nuestro equipo de soporte.
+        <div className="mt-5 flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+          <AlertCircle className="w-4 h-4 text-blue-700 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-blue-900">
+            La gestión de pagos y cambios de plan se hace desde la sección{' '}
+            <strong>Planes</strong> en el menú lateral. Para upgrades urgentes
+            contacta a soporte por WhatsApp.
           </p>
         </div>
       </div>

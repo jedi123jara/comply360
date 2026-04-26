@@ -329,7 +329,7 @@ export function UpgradeModal({
           {/* What you unlock */}
           <div className="mb-6">
             <p className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
-              Lo que desbloqueás
+              Lo que desbloqueas
             </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               {requiredPlanData.features.map((f) => (

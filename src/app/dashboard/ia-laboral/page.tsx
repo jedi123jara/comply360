@@ -77,7 +77,7 @@ export default function IaLaboralPage() {
         />
         <ModeCard
           title="Revisión de contratos"
-          description="Subí un contrato o abrí uno existente. Detecto cláusulas riesgosas y sugiero base legal."
+          description="Sube un contrato o abre uno existente. Detecto cláusulas riesgosas y sugiero base legal."
           icon={FileSearch}
           href="/dashboard/analizar-contrato"
           cta="Analizar contrato"

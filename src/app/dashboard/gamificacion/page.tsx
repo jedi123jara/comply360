@@ -275,7 +275,7 @@ export default function GamificacionPage() {
       />
 
       {/* ── 1. Company Compliance Score Hero ───────────────────────── */}
-      <div className="bg-white bg-gray-900 border border-[color:var(--border-default)] border-gray-800 rounded-2xl p-6 md:p-8 shadow-sm">
+      <div className="bg-white border border-[color:var(--border-default)] rounded-2xl p-6 md:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-8">
           {/* Circular Score */}
           <div className="flex flex-col items-center">
@@ -333,7 +333,7 @@ export default function GamificacionPage() {
       </div>
 
       {/* ── 2. Badges & Logros ────────────────────────────────────── */}
-      <div className="bg-white bg-gray-900 border border-[color:var(--border-default)] border-gray-800 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-[color:var(--border-default)] rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Award className="h-5 w-5 text-purple-500" />
@@ -405,7 +405,7 @@ export default function GamificacionPage() {
       </div>
 
       {/* ── 3. Leaderboard / Rankings ─────────────────────────────── */}
-      <div className="bg-white bg-gray-900 border border-[color:var(--border-default)] border-gray-800 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-[color:var(--border-default)] rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-cyan-500" />
@@ -483,7 +483,7 @@ export default function GamificacionPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Monthly Challenges */}
-        <div className="bg-white bg-gray-900 border border-[color:var(--border-default)] border-gray-800 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white border border-[color:var(--border-default)] rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Target className="h-5 w-5 text-indigo-500" />
@@ -548,7 +548,7 @@ export default function GamificacionPage() {
         </div>
 
         {/* 5. Score Timeline */}
-        <div className="bg-white bg-gray-900 border border-[color:var(--border-default)] border-gray-800 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white border border-[color:var(--border-default)] rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-5">
             <Calendar className="h-5 w-5 text-blue-500" />
             Evolución del Score
@@ -630,7 +630,7 @@ export default function GamificacionPage() {
       </div>
 
       {/* ── Points History ────────────────────────────────────────── */}
-      <div className="bg-white bg-gray-900 border border-[color:var(--border-default)] border-gray-800 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-[color:var(--border-default)] rounded-2xl p-6 shadow-sm">
         <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-5">
           <Zap className="h-5 w-5 text-amber-500" />
           Historial de Puntos Recientes

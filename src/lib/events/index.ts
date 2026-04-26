@@ -4,7 +4,7 @@
  * Exporta `emit`, `registerHandler` y los tipos. Además, auto-registra los
  * handlers built-in (workflow + gamification) la primera vez que se importa
  * este módulo. Si quieres agregar un handler adicional (ej. analytics,
- * webhooks externos), hacelo en este archivo antes del default export.
+ * webhooks externos), hazlo en este archivo antes del default export.
  *
  * Uso en endpoints:
  * ```ts

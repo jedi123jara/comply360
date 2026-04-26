@@ -75,9 +75,15 @@ interface FormData {
   // Previsional
   tipoAporte: string
   afpNombre: string
+  afpComisionTipo: string
   cuspp: string
   essaludVida: boolean
   sctr: boolean
+  sctrRiesgoNivel: string
+  // Condiciones especiales (peruanas)
+  discapacidad: boolean
+  discapacidadTipo: string
+  tipoJornada: string
 }
 
 const INITIAL: FormData = {
@@ -100,9 +106,14 @@ const INITIAL: FormData = {
   tiempoCompleto: true,
   tipoAporte: 'AFP',
   afpNombre: '',
+  afpComisionTipo: 'MIXTA',
   cuspp: '',
   essaludVida: false,
   sctr: false,
+  sctrRiesgoNivel: '',
+  discapacidad: false,
+  discapacidadTipo: '',
+  tipoJornada: 'DIURNO',
 }
 
 type Section = 'personal' | 'laboral' | 'previsional'
@@ -139,32 +150,58 @@ export default function NuevoTrabajadorPage() {
     setDniLookupMessage('')
 
     try {
-      const res = await fetch(`/api/integrations/sunat?dni=${dni}`)
+      // Endpoint RENIEC dedicado: cache 30 días + fallback A→B (apis.net.pe → apiperu.dev).
+      const res = await fetch(`/api/integrations/reniec/consulta-dni?dni=${dni}`)
       if (!res.ok) {
-        const err = await res.json()
+        const err = await res.json().catch(() => ({}))
         setDniLookupStatus('error')
+        // Si NO_TOKEN (provider sin configurar), no asustar — silenciar.
+        if (err.code === 'NO_TOKEN') {
+          setDniLookupMessage('')
+          setDniLookupStatus('idle')
+          return
+        }
         setDniLookupMessage(err.error || 'Error al consultar DNI')
         return
       }
-      const { data } = await res.json()
+      const { data, source } = (await res.json()) as {
+        data?: {
+          nombres: string
+          apellidoPaterno: string
+          apellidoMaterno: string
+          fechaNacimiento?: string | null
+          sexo?: 'M' | 'F' | null
+        }
+        source?: string
+      }
       if (data?.nombres) {
         setDniLookupStatus('success')
-        const fullName = data.nombres
-        const fullLastName = data.apellidos || `${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''}`.trim()
-        setDniLookupMessage(`Nombre encontrado en RENIEC: ${fullName} ${fullLastName}`)
-        // Only auto-fill empty fields
+        const apellidos = `${data.apellidoPaterno} ${data.apellidoMaterno}`.trim()
+        const sourceLabel = source === 'cache' ? ' (cache)' : ''
+        setDniLookupMessage(`✓ ${data.nombres} ${apellidos}${sourceLabel}`)
+        // Only auto-fill empty fields (no sobreescribir si admin escribió manual)
         setForm(prev => ({
           ...prev,
-          firstName: prev.firstName.trim() === '' ? fullName : prev.firstName,
-          lastName: prev.lastName.trim() === '' ? fullLastName : prev.lastName,
+          firstName: prev.firstName.trim() === '' ? data.nombres : prev.firstName,
+          lastName: prev.lastName.trim() === '' ? apellidos : prev.lastName,
+          birthDate:
+            prev.birthDate.trim() === '' && data.fechaNacimiento
+              ? data.fechaNacimiento
+              : prev.birthDate,
+          gender:
+            prev.gender.trim() === '' && data.sexo
+              ? data.sexo === 'M'
+                ? 'MASCULINO'
+                : 'FEMENINO'
+              : prev.gender,
         }))
       } else {
         setDniLookupStatus('error')
-        setDniLookupMessage('No se encontraron datos para este DNI')
+        setDniLookupMessage('DNI no encontrado en RENIEC')
       }
     } catch {
       setDniLookupStatus('error')
-      setDniLookupMessage('Error de conexion al consultar DNI')
+      setDniLookupMessage('Error de conexión al consultar DNI')
     }
   }, [])
 
@@ -523,25 +560,76 @@ export default function NuevoTrabajadorPage() {
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Jornada Semanal (horas)</label>
                 <input type="number" value={form.jornadaSemanal} onChange={e => update('jornadaSemanal', e.target.value)} className={inputClass('jornadaSemanal')} />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">
+                  Tipo de Jornada
+                  <span className="ml-1 text-[10px] text-[color:var(--text-tertiary)]">(afecta cálculo horas extras)</span>
+                </label>
+                <select
+                  value={form.tipoJornada}
+                  onChange={e => update('tipoJornada', e.target.value)}
+                  className={inputClass('tipoJornada')}
+                >
+                  <option value="DIURNO">Diurno (25% sobretasa horas extras)</option>
+                  <option value="NOCTURNO">Nocturno 22:00-06:00 (35% sobretasa)</option>
+                  <option value="MIXTO">Mixto (35% sobretasa parcial)</option>
+                </select>
+              </div>
               <div className="flex items-center gap-6 pt-6">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.asignacionFamiliar}
                     onChange={e => update('asignacionFamiliar', e.target.checked)}
-                    className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
                   />
-                  <span className="text-sm text-[color:var(--text-secondary)]">Asignacion Familiar</span>
+                  <span className="text-sm text-[color:var(--text-secondary)]">Asignación Familiar</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.tiempoCompleto}
                     onChange={e => update('tiempoCompleto', e.target.checked)}
-                    className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
                   />
                   <span className="text-sm text-[color:var(--text-secondary)]">Tiempo Completo</span>
                 </label>
+              </div>
+              {/* Discapacidad — Ley 29973, cuota 3% reportable a SUNAFIL */}
+              <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-[color:var(--neutral-50)] p-4">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.discapacidad}
+                    onChange={e => update('discapacidad', e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-[color:var(--text-primary)]">
+                      Persona con discapacidad
+                    </span>
+                    <span className="block text-xs text-[color:var(--text-tertiary)] mt-0.5">
+                      Ley 29973 — declarable en planilla. Empresas 50+ trabajadores cumplen cuota mínima 3%.
+                    </span>
+                  </span>
+                </label>
+                {form.discapacidad && (
+                  <div className="mt-3 ml-6">
+                    <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Tipo de discapacidad</label>
+                    <select
+                      value={form.discapacidadTipo}
+                      onChange={e => update('discapacidadTipo', e.target.value)}
+                      className={inputClass('discapacidadTipo')}
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="FISICA">Física</option>
+                      <option value="SENSORIAL">Sensorial (visual / auditiva)</option>
+                      <option value="INTELECTUAL">Intelectual</option>
+                      <option value="PSICOSOCIAL">Psicosocial</option>
+                      <option value="MULTIPLE">Múltiple</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -572,6 +660,19 @@ export default function NuevoTrabajadorPage() {
                     <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">CUSPP</label>
                     <input type="text" value={form.cuspp} onChange={e => update('cuspp', e.target.value)} placeholder="123456ABCDE12" className={inputClass('cuspp')} />
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">
+                      Tipo de Comisión AFP
+                    </label>
+                    <select
+                      value={form.afpComisionTipo}
+                      onChange={e => update('afpComisionTipo', e.target.value)}
+                      className={inputClass('afpComisionTipo')}
+                    >
+                      <option value="MIXTA">Mixta (sobre flujo + saldo)</option>
+                      <option value="FLUJO">Por flujo (solo sobre remuneración)</option>
+                    </select>
+                  </div>
                 </>
               )}
               <div className="sm:col-span-2 flex items-center gap-6 pt-2">
@@ -589,11 +690,29 @@ export default function NuevoTrabajadorPage() {
                     type="checkbox"
                     checked={form.sctr}
                     onChange={e => update('sctr', e.target.checked)}
-                    className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
                   />
-                  <span className="text-sm text-[color:var(--text-secondary)]">SCTR</span>
+                  <span className="text-sm text-[color:var(--text-secondary)]">SCTR (riesgo)</span>
                 </label>
               </div>
+              {form.sctr && (
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">
+                    Nivel de riesgo SCTR
+                    <span className="ml-1 text-[10px] text-[color:var(--text-tertiary)]">(según tabla DS 003-98-SA)</span>
+                  </label>
+                  <select
+                    value={form.sctrRiesgoNivel}
+                    onChange={e => update('sctrRiesgoNivel', e.target.value)}
+                    className={inputClass('sctrRiesgoNivel')}
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="BAJO">Bajo (administrativo, oficinas)</option>
+                    <option value="MEDIO">Medio (servicios, comercio)</option>
+                    <option value="ALTO">Alto (construcción, minería, manufactura)</option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         )}

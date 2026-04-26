@@ -11,6 +11,7 @@ import {
   BreakdownRow,
   CalcCard,
   CalcHero,
+  LeadCaptureCTA,
   LegalBasis,
   NumberInput,
   SignupCTA,
@@ -196,8 +197,13 @@ export default function MultaSunafilPage() {
         </div>
       </div>
 
+      <LeadCaptureCTA
+        source="calc-multa-sunafil"
+        title="¿Te enviamos el detalle de cómo evitar esta multa?"
+        subtitle="Te llega un PDF con las medidas de subsanación voluntaria (descuento 90%) + 14 días gratis del diagnóstico SUNAFIL completo."
+      />
       <SignupCTA
-        title="Evitá esta multa con COMPLY360"
+        title="Evita esta multa con COMPLY360"
         subtitle="Nuestro diagnóstico SUNAFIL de 135 preguntas detecta estas infracciones antes de que te inspeccionen, y te da un plan de acción priorizado. La subsanación voluntaria es 90% más barata que una multa."
       />
     </>

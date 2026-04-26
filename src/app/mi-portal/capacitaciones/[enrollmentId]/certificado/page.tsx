@@ -117,7 +117,7 @@ export default async function CertificadoPage({ params }: PageParams) {
               </div>
             )}
             <p className="text-[11px] text-slate-500 pt-2 leading-relaxed max-w-sm">
-              Escaneá el QR o entrá a <br className="sm:hidden" />
+              Escanea el QR o entra a <br className="sm:hidden" />
               <span className="font-mono text-[10px]">{verifyUrl}</span> para verificar la autenticidad.
             </p>
           </div>

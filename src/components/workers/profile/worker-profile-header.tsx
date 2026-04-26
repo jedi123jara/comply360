@@ -175,7 +175,7 @@ export function WorkerProfileHeader({ worker }: { worker: WorkerSummary }) {
                 )
               }
             >
-              Consultar Copilot
+              Consultar Asistente IA
             </Button>
             <Link
               href={`/dashboard/trabajadores/${worker.id}/cese`}

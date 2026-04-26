@@ -107,10 +107,56 @@ async function dispatchByEvent<K extends EventName>(event: DomainEvent<K>): Prom
       if (!userId) return
       await sendPushToUser(userId, {
         title: 'Tu contrato vence pronto',
-        body: `Vence en ${p.daysToExpiry} día${p.daysToExpiry === 1 ? '' : 's'}. Consultá con RRHH.`,
+        body: `Vence en ${p.daysToExpiry} día${p.daysToExpiry === 1 ? '' : 's'}. Consulta con RRHH.`,
         url: '/mi-portal/contratos',
         severity: 'HIGH',
         tag: `contract-exp-${link.workerId}`,
+      })
+      return
+    }
+
+    case 'payslip.published': {
+      // Admin publicó una boleta nueva → notificar al worker para que la firme
+      const p = event.payload as {
+        payslipId: string
+        workerId: string
+        periodo: string
+      }
+      const userId = await resolveUserIdForWorker(p.workerId)
+      if (!userId) return
+      await sendPushToUser(userId, {
+        title: 'Tu boleta está lista',
+        body: `Tu boleta de ${p.periodo} ya está disponible. Fírmala desde el portal.`,
+        url: `/mi-portal/boletas/${p.payslipId}`,
+        severity: 'MEDIUM',
+        tag: `payslip-${p.payslipId}`,
+      })
+      return
+    }
+
+    case 'worker_request.resolved': {
+      // Admin resolvió la solicitud (vacaciones, permiso, etc.) → push al worker
+      const p = event.payload as {
+        requestId: string
+        workerId: string
+        type: string
+        decision: 'APPROVED' | 'REJECTED'
+        resolution?: string
+      }
+      const userId = await resolveUserIdForWorker(p.workerId)
+      if (!userId) return
+      const isApproved = p.decision === 'APPROVED'
+      const typeLabel = p.type.toLowerCase().replaceAll('_', ' ')
+      await sendPushToUser(userId, {
+        title: isApproved ? `Solicitud de ${typeLabel} aprobada` : `Solicitud de ${typeLabel} rechazada`,
+        body:
+          p.resolution ||
+          (isApproved
+            ? 'Tu solicitud fue aprobada. Revisa los detalles en el portal.'
+            : 'Tu solicitud fue rechazada. Consulta con RRHH para más info.'),
+        url: '/mi-portal/solicitudes',
+        severity: isApproved ? 'LOW' : 'MEDIUM',
+        tag: `req-${p.requestId}`,
       })
       return
     }

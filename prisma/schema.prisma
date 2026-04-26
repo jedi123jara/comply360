@@ -210,9 +210,20 @@ model Worker {
   // Previsional
   tipoAporte         TipoAporte     @default(AFP) @map("tipo_aporte")
   afpNombre          String?        @map("afp_nombre")
+  afpComisionTipo    String?        @map("afp_comision_tipo") // "MIXTA" | "FLUJO"
   cuspp              String?
   essaludVida        Boolean        @default(false) @map("essalud_vida")
   sctr               Boolean        @default(false)
+  sctrRiesgoNivel    String?        @map("sctr_riesgo_nivel") // "BAJO" | "MEDIO" | "ALTO" — para sectores Ley 26790
+  // Condiciones especiales (peruanas)
+  // Ley 29973 — cuota 3% de personas con discapacidad. Reportable a SUNAFIL.
+  discapacidad       Boolean        @default(false)
+  discapacidadTipo   String?        @map("discapacidad_tipo") // "FISICA" | "SENSORIAL" | "INTELECTUAL" | "PSICOSOCIAL" | "MULTIPLE"
+  // Tipo de jornada — afecta cálculo de horas extras (D.Leg. 854: 25% día, 35% noche)
+  tipoJornada        String         @default("DIURNO") @map("tipo_jornada") // "DIURNO" | "NOCTURNO" | "MIXTO"
+  // PIN 4 dígitos para asistencia sin smartphone (backup del flujo QR).
+  // Generado automáticamente al onboarding del worker. Se envía por email.
+  attendancePin      String?        @map("attendance_pin") // hash bcrypt del PIN
   // Estado
   status             WorkerStatus   @default(ACTIVE)
   legajoScore        Int?           @map("legajo_score")
@@ -637,6 +648,12 @@ model Subscription {
   currentPeriodStart     DateTime           @map("current_period_start")
   currentPeriodEnd       DateTime           @map("current_period_end")
   cancelledAt            DateTime?          @map("cancelled_at")
+  // Grandfather pricing: si está seteado y > now(), el cliente conserva el
+  // precio anterior hasta esa fecha aunque hayamos subido el catálogo PLANS.
+  // Se setea automáticamente en clientes activos al deploy de un re-pricing.
+  // Snapshot del precio congelado en centavos (PEN).
+  pricingFrozenUntil     DateTime?          @map("pricing_frozen_until")
+  pricingFrozenAmount    Int?               @map("pricing_frozen_amount")
   createdAt              DateTime           @default(now()) @map("created_at")
   updatedAt              DateTime           @updatedAt @map("updated_at")
 
@@ -1230,6 +1247,27 @@ model AuditLog {
 }
 
 // =============================================
+// NPS — Net Promoter Score in-product feedback
+// =============================================
+// Modelo simple: una respuesta NPS por user. Score 0-10 (0=detractor, 9-10=promoter).
+// El comentario es opcional. Se pregunta una sola vez por user (UI bloquea repetición
+// con localStorage + check server-side via existing record).
+
+model NpsFeedback {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  userId    String   @map("user_id")
+  score     Int      // 0-10
+  comment   String?  @db.Text
+  source    String?  // "dashboard", "post-onboarding", etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId]) // un solo feedback por user
+  @@index([orgId, createdAt])
+  @@map("nps_feedback")
+}
+
+// =============================================
 // ATTENDANCE
 // =============================================
 
@@ -1242,6 +1280,14 @@ model Attendance {
   hoursWorked Decimal?         @map("hours_worked") @db.Decimal(5, 2)
   status      AttendanceStatus @default(PRESENT)
   notes       String?
+  // Anti-fraude (PRO+): geolocalización, device, selfie hash al check-in
+  geoLat      Decimal?         @map("geo_lat") @db.Decimal(10, 7)
+  geoLng      Decimal?         @map("geo_lng") @db.Decimal(10, 7)
+  geoAccuracy Decimal?         @map("geo_accuracy") @db.Decimal(8, 2)
+  // Hash SHA-256 de la foto selfie tomada al marcar (no guardamos imagen
+  // por privacidad/storage). El hash sirve como evidencia de presencia.
+  // Sprint 6+ podrá comparar contra otros hashes para detectar fotos duplicadas.
+  selfieHash  String?          @map("selfie_hash")
   createdAt   DateTime         @default(now()) @map("created_at")
 
   worker Worker @relation(fields: [workerId], references: [id])

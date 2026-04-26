@@ -12,17 +12,22 @@ export const APP_NAME = "COMPLY360" as const;
  * PLANS — fuente de verdad única de pricing.
  *
  * Sincronizado con `src/lib/payments/culqi.ts` (CULQI_PLANS) y
- * `src/app/dashboard/planes/page.tsx`. Si modificás aquí, ejecutá el
- * grep de verificación: `grep -rE "S/\s*(129|299|649|1299)" src/`
+ * `src/app/dashboard/planes/page.tsx`. Si modificas aquí, ejecuta el
+ * grep de verificación: `grep -rE "S/\s*(149|349|799|1299)" src/`
  *
- * Pricing 2026-04 (post-auditoría): subida deliberada desde S/49/149/399
- * para reflejar valor real (evitar multas SUNAFIL hasta S/289k) y sostener
- * CAC razonable en B2B. Features redistribuidas por tier estratégicamente:
+ * Pricing 2026-04-26 (Sprint 2 — tier-up): subida deliberada vs benchmark
+ * (Buk Starter ~S/199, Worki360 ~S/499). Plan Maestro V2 lo justificó:
+ * el ticket promedio del cliente B2B peruano de compliance soporta este nivel
+ * cuando la propuesta de valor es "evita multas SUNAFIL hasta S/289k".
  *
  *  • STARTER → gestor de planilla + calculadoras (valor inmediato sin compliance profundo)
  *  • EMPRESA → + diagnóstico + simulacro + plantillas merge-fields (compliance básico)
  *  • PRO     → + IA copilot + vision + portal worker biométrico + SST (compliance avanzado)
  *  • ENTERPRISE → + SLA + multi-cuenta contadores + API (canal partner + grandes empresas)
+ *
+ * Política de grandfather: clientes activos con `pricingFrozenUntil > now`
+ * conservan el precio anterior hasta esa fecha. Implementado en
+ * `Subscription.pricingFrozenUntil` (campo nullable Prisma).
  */
 export const PLANS = {
   FREE: {
@@ -44,8 +49,8 @@ export const PLANS = {
   STARTER: {
     key: "STARTER",
     name: "Starter",
-    price: 129,
-    priceInCentimos: 12900,
+    price: 149,
+    priceInCentimos: 14900,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 20,
@@ -63,8 +68,8 @@ export const PLANS = {
   EMPRESA: {
     key: "EMPRESA",
     name: "Empresa",
-    price: 299,
-    priceInCentimos: 29900,
+    price: 349,
+    priceInCentimos: 34900,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 100,
@@ -84,8 +89,8 @@ export const PLANS = {
   PRO: {
     key: "PRO",
     name: "Pro",
-    price: 649,
-    priceInCentimos: 64900,
+    price: 799,
+    priceInCentimos: 79900,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 300,
@@ -274,19 +279,22 @@ export const NAV_HUBS: readonly NavHub[] = [
     rootHref: "/dashboard/trabajadores",
     description: "Trabajadores, prestadores y terceros",
     items: [
+      // Asistencia y Vacaciones suben a las primeras posiciones porque son
+      // las acciones de uso DIARIO. Los demás (planilla, boletas, prestadores)
+      // son uso semanal/mensual y van debajo.
       { label: "Trabajadores", href: "/dashboard/trabajadores", icon: "Users" },
-      { label: "Prestadores de servicios", href: "/dashboard/prestadores", icon: "Briefcase" },
-      { label: "Terceros y contratistas", href: "/dashboard/terceros", icon: "Building2" },
-      { label: "Portal empleado", href: "/portal-empleado", icon: "UserCircle" },
-      { label: "Portal contador", href: "/dashboard/consultor", icon: "Briefcase" },
+      { label: "Asistencia", href: "/dashboard/asistencia", icon: "Clock" },
+      { label: "Vacaciones", href: "/dashboard/vacaciones", icon: "CalendarRange" },
+      { label: "Solicitudes", href: "/dashboard/solicitudes", icon: "ClipboardList" },
+      { label: "Teletrabajo", href: "/dashboard/teletrabajo", icon: "Laptop2" },
       { label: "Planilla", href: "/dashboard/planilla", icon: "FileSpreadsheet" },
       { label: "Boletas de pago", href: "/dashboard/boletas", icon: "Receipt" },
       { label: "Liquidaciones", href: "/dashboard/liquidaciones", icon: "Banknote" },
       { label: "Honorarios", href: "/dashboard/honorarios", icon: "ScrollText" },
-      { label: "Vacaciones", href: "/dashboard/vacaciones", icon: "CalendarRange" },
-      { label: "Asistencia", href: "/dashboard/asistencia", icon: "Clock" },
-      { label: "Teletrabajo", href: "/dashboard/teletrabajo", icon: "Laptop2" },
-      { label: "Solicitudes", href: "/dashboard/solicitudes", icon: "ClipboardList" },
+      { label: "Prestadores de servicios", href: "/dashboard/prestadores", icon: "Briefcase" },
+      { label: "Terceros y contratistas", href: "/dashboard/terceros", icon: "Building2" },
+      { label: "Portal empleado", href: "/portal-empleado", icon: "UserCircle" },
+      { label: "Portal contador", href: "/dashboard/consultor", icon: "Briefcase" },
     ],
   },
   {

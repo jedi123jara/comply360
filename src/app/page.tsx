@@ -407,7 +407,7 @@ export default function LandingPage() {
               El <strong>piloto automático</strong> para tus obligaciones laborales:
               135 preguntas SUNAFIL · 12 regímenes · firma biométrica del trabajador ·
               alertas 30 días antes de cualquier vencimiento. Lo que un estudio de
-              abogados cobra S/5,000/mes, por <strong>S/129</strong>.
+              abogados cobra S/5,000/mes, por <strong>S/149</strong>.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start mb-6">

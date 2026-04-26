@@ -1,13 +1,15 @@
 /**
  * CalcShell — shell compartido para todas las calculadoras públicas.
- * Provee: hero, form-wrapper con glass card, CTA de signup post-resultado.
+ * Provee: hero, form-wrapper con glass card, CTA de signup post-resultado,
+ * lead capture por email (variante withEmailCapture).
  * Cada calculadora solo inyecta su form y su render de resultado.
  */
 'use client'
 
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Loader2, Mail, ShieldCheck, Sparkles } from 'lucide-react'
 
 export function CalcHero({
   eyebrow,
@@ -65,9 +67,125 @@ export function LegalBasis({ citations }: { citations: string[] }) {
   )
 }
 
+/**
+ * LeadCaptureCTA — variante con captura de email post-cálculo.
+ * Conecta a `/api/leads` con `source` para segmentar nurturing por calculadora.
+ */
+export function LeadCaptureCTA({
+  source,
+  resultSummary,
+  title = '¿Te mandamos el resultado por email?',
+  subtitle = 'Te enviamos el cálculo + 14 días gratis del simulacro SUNAFIL completo (sin tarjeta).',
+}: {
+  source: string
+  resultSummary?: Record<string, unknown>
+  title?: string
+  subtitle?: string
+}) {
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          source,
+          resultSnapshot: resultSummary ?? null,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error ?? 'No pudimos guardar tu email. Reintenta.')
+      }
+      setSubmitted(true)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="mt-8 rounded-2xl bg-emerald-50 border border-emerald-200 p-6 sm:p-8">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-bold text-emerald-900">Listo, te llegó a {email}</h3>
+            <p className="text-sm text-emerald-800 mt-1">
+              Revisa tu bandeja en los próximos 2 minutos. Mientras tanto, ya puedes activar tu trial PRO de 14 días.
+            </p>
+            <Link
+              href="/sign-up"
+              className="mt-3 inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
+            >
+              Activar trial PRO gratis <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="mt-8 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 sm:p-8 text-white"
+    >
+      <h3 className="text-lg sm:text-xl font-bold mb-2">{title}</h3>
+      <p className="text-emerald-50 text-sm sm:text-base mb-4 max-w-2xl">{subtitle}</p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-700/60" />
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="tu@empresa.pe"
+            disabled={submitting}
+            className="w-full rounded-xl border-0 bg-white pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-white/40 outline-none disabled:opacity-60"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={submitting || !email}
+          className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-emerald-50 disabled:opacity-60 disabled:cursor-not-allowed text-emerald-700 font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Enviando...
+            </>
+          ) : (
+            <>
+              Enviarme el resultado <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-xs text-red-100">{error}</p>}
+      <p className="mt-3 text-[11px] text-emerald-100">
+        Sin spam. Solo el resultado + 1 email a los 7 días con tips de compliance.
+      </p>
+    </form>
+  )
+}
+
 export function SignupCTA({
   title = '¿Quieres el análisis completo de tu empresa?',
-  subtitle = 'Regístrate gratis y desbloqueá el diagnóstico SUNAFIL de 135 preguntas, alertas automáticas y más de 13 calculadoras vinculadas a tu planilla.',
+  subtitle = 'Regístrate gratis y desbloqueas el diagnóstico SUNAFIL de 135 preguntas, alertas automáticas y más de 13 calculadoras vinculadas a tu planilla.',
 }: {
   title?: string
   subtitle?: string
@@ -81,7 +199,7 @@ export function SignupCTA({
           href="/sign-up"
           className="inline-flex items-center gap-1.5 bg-white hover:bg-emerald-50 text-emerald-700 font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
         >
-          Registrate gratis <ArrowRight className="w-4 h-4" />
+          Regístrate gratis <ArrowRight className="w-4 h-4" />
         </Link>
         <Link
           href="/diagnostico-gratis"

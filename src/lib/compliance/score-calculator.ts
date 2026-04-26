@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { calculateSstScore, type SstAreaScore } from './sst-score'
 
 export interface ComplianceScoreResult {
   scoreGlobal: number // 0-100
@@ -16,6 +17,8 @@ export interface ComplianceScoreResult {
     weight: number
     detail: string
   }[]
+  /** Desglose detallado del score SST por área (Sprint 5+, T6.6) */
+  sstBreakdown?: SstAreaScore[]
 }
 
 const UIT = 5500 // 2026
@@ -79,8 +82,15 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
   const scoreDocumentos = Math.round(legajoAvg)
 
   // 5. SST basico (weight: 15%)
-  // legajoScore includes SST documents in its calculation
-  const scoreSst = Math.round(legajoAvg)
+  // Score real desglosado por área (T6.6) — antes era proxy de legajoAvg.
+  // Si la query SST falla, fallback a legajoAvg para no romper el score global.
+  let sstResult
+  try {
+    sstResult = await calculateSstScore(orgId)
+  } catch {
+    sstResult = null
+  }
+  const scoreSst = sstResult ? sstResult.scoreGlobal : Math.round(legajoAvg)
 
   // 6. Vacaciones sin acumulacion (weight: 15%)
   const scoreVacaciones = Math.round(((totalWorkers - workersWithAccumulatedVacations) / totalWorkers) * 100)
@@ -155,5 +165,6 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
     totalWorkers,
     multaPotencial: Math.round(multaPotencial * 100) / 100,
     breakdown,
+    sstBreakdown: sstResult?.breakdown,
   }
 }

@@ -1,11 +1,27 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { CTSCalculadora } from '@/components/calculadoras/cts-form'
-import { BulkCTSCalculadora } from '@/components/calculadoras/cts-bulk'
 import { CalculationHistory } from '@/components/calculadoras/calculation-history'
 import { User, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+// BulkCTSCalculadora carga `xlsx` (~150KB gz). Solo se usa en modo "masivo",
+// que es <5% del tráfico — lazy-load para reducir initial bundle de la
+// página individual.
+const BulkCTSCalculadora = dynamic(
+  () => import('@/components/calculadoras/cts-bulk').then(m => ({ default: m.BulkCTSCalculadora })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)]"
+        style={{ height: 400, animation: 'pulse 1.5s ease-in-out infinite' }}
+      />
+    ),
+  }
+)
 
 type Mode = 'individual' | 'masivo'
 

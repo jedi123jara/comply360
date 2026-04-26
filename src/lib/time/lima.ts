@@ -8,7 +8,7 @@
  * Uso típico:
  *  - `getLimaParts(date)` — descomponer un instante en sus campos calendario
  *    Lima (year, month, day, hour, minute, weekday). Reemplaza
- *    `date.getHours()` etc. cuando necesitás la hora LOCAL de Lima.
+ *    `date.getHours()` etc. cuando necesitas la hora LOCAL de Lima.
  *  - `startOfDayLima(date)` — instante UTC que corresponde a 00:00:00 del
  *    día calendario Lima que contiene `date`. Útil para diffs de días.
  *  - `daysBetween(a, b)` — diferencia en días de calendario Lima (no horas).

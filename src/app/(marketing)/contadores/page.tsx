@@ -175,13 +175,13 @@ export default function ContadoresLandingPage() {
             {[
               {
                 n: '1',
-                title: 'Postulás en 2 minutos',
-                desc: 'Nos escribís por WhatsApp con tu número de colegiatura CCPL + cantidad aproximada de empresas en cartera. Verificamos en 24h.',
+                title: 'Postulas en 2 minutos',
+                desc: 'Nos escribes por WhatsApp con tu número de colegiatura CCPL + cantidad aproximada de empresas en cartera. Verificamos en 24h.',
               },
               {
                 n: '2',
                 title: 'Te damos una cuenta Partner',
-                desc: 'Dashboard consolidado multi-empresa. Desde un solo login gestionás el compliance de las 30+ empresas de tu cartera. Tus clientes ven solo su data.',
+                desc: 'Dashboard consolidado multi-empresa. Desde un solo login gestionas el compliance de las 30+ empresas de tu cartera. Tus clientes ven solo su data.',
               },
               {
                 n: '3',
@@ -248,7 +248,7 @@ export default function ContadoresLandingPage() {
                 S/ 1,495
                 <span className="text-lg text-gray-500">/mes</span>
               </div>
-              <p className="text-sm text-gray-600 mb-4">20 × S/299 × 25%</p>
+              <p className="text-sm text-gray-600 mb-4">20 × S/349 × 25%</p>
               <ul className="space-y-2 text-sm">
                 {[
                   'Sin hacer horas extra',

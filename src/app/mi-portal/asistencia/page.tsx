@@ -85,11 +85,38 @@ export default function MiPortalAsistenciaPage() {
       setResultStatus(null)
       track('biometric_ceremony_started', { feature: 'attendance' })
 
+      // Capturar geolocalización (best-effort): si la org tiene geofences
+      // configuradas, el server requerirá lat/lng. Si el worker rechaza
+      // permisos o falla GPS, mandamos sin coords y el server decidirá.
+      let geo: { lat: number; lng: number; accuracy?: number } | null = null
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0,
+            })
+          })
+          geo = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          }
+        } catch {
+          // permisos denegados / timeout / sin GPS — seguimos sin coords
+        }
+      }
+
       try {
         const res = await fetch('/api/attendance/clock', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, action }),
+          body: JSON.stringify({
+            token,
+            action,
+            ...(geo ? { lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy } : {}),
+          }),
         })
         const body = (await res.json().catch(() => ({}))) as {
           success?: boolean
@@ -330,10 +357,10 @@ export default function MiPortalAsistenciaPage() {
               className="text-xl text-[color:var(--text-primary)] mb-1"
               style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
             >
-              Escaneá el QR del día
+              Escanea el QR del día
             </h2>
             <p className="text-sm text-[color:var(--text-secondary)] mb-4 max-w-sm mx-auto leading-relaxed">
-              Tu supervisor tiene un QR en el dashboard. Abrí la cámara de tu celular, apuntá al QR, y tocá el link que aparece.
+              Tu supervisor tiene un QR en el dashboard. Abre la cámara de tu celular, apunta al QR, y toca el link que aparece.
             </p>
             <div className="inline-flex items-center gap-2 text-[11px] text-[color:var(--text-tertiary)]">
               <Fingerprint className="h-3 w-3" />
@@ -348,7 +375,7 @@ export default function MiPortalAsistenciaPage() {
             </summary>
             <form onSubmit={handleManualSubmit} className="px-4 pb-4 space-y-3">
               <p className="text-xs text-[color:var(--text-secondary)]">
-                Pídele a tu supervisor el <strong>link completo</strong> del QR (aparece debajo del código). Pegalo acá:
+                Pídele a tu supervisor el <strong>link completo</strong> del QR (aparece debajo del código). Pégalo aquí:
               </p>
               <input
                 type="text"
@@ -358,7 +385,7 @@ export default function MiPortalAsistenciaPage() {
                 className="w-full rounded-xl border border-[color:var(--border-default)] bg-white px-3 py-2.5 text-xs outline-none focus:border-emerald-400 font-mono"
               />
               <p className="text-[11px] text-[color:var(--text-tertiary)]">
-                El código corto de 6 caracteres por sí solo NO sirve — necesitás el link completo. Pídele al admin que te comparta por WhatsApp.
+                El código corto de 6 caracteres por sí solo NO sirve — necesitas el link completo. Pídele al admin que te comparta por WhatsApp.
               </p>
               <button
                 type="submit"

@@ -116,19 +116,19 @@ export default function AnalyticsPage() {
   const [monthlyEmail, setMonthlyEmail] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[color:var(--neutral-50)] bg-gray-950 p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="min-h-screen bg-[color:var(--neutral-50)] p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-            <BarChart3 className="h-8 w-8 text-indigo-400" />
+          <h1 className="text-2xl md:text-3xl font-bold text-[color:var(--text-primary)] flex items-center gap-3">
+            <BarChart3 className="h-8 w-8 text-indigo-700" />
             Business Intelligence
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-[color:var(--text-secondary)] mt-1">
             Análisis avanzado de cumplimiento, ROI e insights predictivos
           </p>
         </div>
-        <div className="flex items-center bg-white bg-gray-900 border border-white/[0.08] border-gray-700 rounded-lg p-1 shadow-sm">
+        <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
           {periodOptions.map((opt) => (
             <button
               key={opt.value}
@@ -180,7 +180,7 @@ export default function AnalyticsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Compliance Score */}
-        <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Compliance Score
@@ -200,7 +200,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Multa Potencial */}
-        <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Multa Potencial
@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Documentos al Día */}
-        <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Documentos al Día
@@ -240,7 +240,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Capacitaciones */}
-        <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Capacitaciones
@@ -260,7 +260,7 @@ export default function AnalyticsPage() {
       {/* Two-column layout: Compliance Evolution + Department Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Compliance Score Evolution */}
-        <div className="lg:col-span-2 bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-lg font-semibold text-white">
@@ -300,7 +300,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Department Comparison */}
-        <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-lg font-semibold text-white">
@@ -343,7 +343,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Risk Heatmap */}
-      <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-lg font-semibold text-white">
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
                   'hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500',
                   isExpanded
                     ? 'border-indigo-500 ring-1 ring-indigo-200 ring-indigo-800'
-                    : 'border-white/[0.08] border-gray-700'
+                    : 'border-gray-200'
                 )}
               >
                 <div className={cn('absolute top-0 left-0 w-1.5 h-full rounded-l-lg', getRiskColor(area.score))} />
@@ -396,7 +396,7 @@ export default function AnalyticsPage() {
                   {area.score}%
                 </p>
                 {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-white/[0.08] border-gray-700 pl-2">
+                  <div className="mt-3 pt-3 border-t border-gray-200 pl-2">
                     <p className="text-xs text-gray-400">
                       Último diagnóstico: hace 5 días
                     </p>
@@ -415,7 +415,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Predictive Insights */}
-      <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex items-center gap-2 mb-5">
           <Brain className="h-6 w-6 text-purple-400" />
           <div>
@@ -464,7 +464,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Export Options */}
-      <div className="bg-white bg-gray-900 rounded-xl border border-white/[0.08] border-gray-800 p-5 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-white">
@@ -483,7 +483,7 @@ export default function AnalyticsPage() {
               <FileText className="h-4 w-4" />
               Exportar a Excel
             </button>
-            <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[color:var(--neutral-50)] bg-gray-800 border border-white/[0.08] border-gray-700 rounded-lg">
+            <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[color:var(--neutral-50)] bg-gray-800 border border-gray-200 rounded-lg">
               <Mail className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-[color:var(--text-secondary)]">
                 Envío mensual

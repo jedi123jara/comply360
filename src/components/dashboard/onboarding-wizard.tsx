@@ -891,7 +891,7 @@ function FichaRucUpload({ onDataExtracted }: {
       {expanded && (
         <div className="mt-3 space-y-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-3">
           <p className="text-[11px] text-[color:var(--text-secondary)] leading-relaxed">
-            Ve a <a href="https://sunat.gob.pe" target="_blank" rel="noreferrer" className="text-emerald-600 hover:text-emerald-700 font-medium">sunat.gob.pe</a> → Consulta RUC → copiá todo el texto y pegalo aquí.
+            Ve a <a href="https://sunat.gob.pe" target="_blank" rel="noreferrer" className="text-emerald-600 hover:text-emerald-700 font-medium">sunat.gob.pe</a> → Consulta RUC → copia todo el texto y pégalo aquí.
           </p>
           <textarea
             value={text}

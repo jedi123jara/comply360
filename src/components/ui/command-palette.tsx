@@ -55,6 +55,7 @@ import {
 import { NAV_HUBS, CALCULATOR_TYPES } from '@/lib/constants'
 import { useCopilot } from '@/providers/copilot-provider'
 import { cn } from '@/lib/utils'
+import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
 
 /**
  * Command Palette — cmdk-based, Obsidian skin.
@@ -204,6 +205,7 @@ export function CommandPalette({
 }) {
   const router = useRouter()
   const copilot = useCopilot()
+  const modKey = usePlatformModKey()
   const [query, setQuery] = useState('')
   const { results: searchHits, loading: searching } = useDebouncedSearch(query)
 
@@ -264,7 +266,7 @@ export function CommandPalette({
       },
       {
         id: 'qa-open-copilot',
-        label: 'Abrir Copilot IA',
+        label: 'Abrir Asistente IA',
         hint: 'Ctrl+I',
         icon: Sparkles,
         perform: () => {
@@ -372,17 +374,17 @@ export function CommandPalette({
                     className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Preguntar al Copilot
+                    Preguntar al Asistente IA
                   </button>
                 </div>
               ) : null}
 
               {/* Ask copilot — always at top when there's a query */}
               {hasQuery ? (
-                <CmdkCommand.Group heading={<GroupHeading>IA Copilot</GroupHeading>}>
+                <CmdkCommand.Group heading={<GroupHeading>Asistente IA</GroupHeading>}>
                   <PaletteRow
                     icon={Sparkles}
-                    label={`Preguntar al Copilot: "${query}"`}
+                    label={`Preguntar al Asistente IA: "${query}"`}
                     hint="Respuesta con base legal peruana"
                     accent
                     onSelect={askCopilot}
@@ -474,8 +476,9 @@ export function CommandPalette({
                 abrir
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
-                  <CommandIcon className="h-2.5 w-2.5" />K
+                <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
+                  {modKey === '⌘' ? <CommandIcon className="h-2.5 w-2.5" /> : <span>{modKey}</span>}
+                  <span>{modKey === '⌘' ? 'K' : '+K'}</span>
                 </kbd>
                 cerrar
               </span>
@@ -483,7 +486,7 @@ export function CommandPalette({
                 <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
                   ⇧↵
                 </kbd>
-                preguntar al Copilot
+                preguntar al Asistente IA
               </span>
             </div>
           </CmdkCommand>

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif, Plus_Jakarta_Sans, Fira_Code } from "next/font/google";
 import "./globals.css";
 import SafeClerkProvider from "@/components/safe-clerk-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppToaster } from "@/components/ui/sonner-toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/providers/motion-provider";
+import { I18nProvider } from "@/providers/i18n-provider";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import Script from "next/script";
@@ -19,6 +20,25 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Plus Jakarta Sans — sans principal para SaaS B2B profesional.
+// Recomendación del UI/UX Pro Max para dashboards/compliance.
+// Mejor jerarquía y legibilidad en headers que Geist (más neutra).
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+// Fira Code — mono para datos numéricos, hora, scores, currency.
+// Tabular figures por default + ligaduras desactivadas en uso UI.
+const firaCode = Fira_Code({
+  variable: "--font-fira",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 // Editorial serif — usada en hero numbers (score 88px) y headlines críticos.
@@ -83,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${firaCode.variable} ${instrumentSerif.variable} h-full antialiased`}
       style={{ colorScheme: 'light' }}
     >
       <head>
@@ -110,12 +130,14 @@ export default function RootLayout({
       </head>
       <body className="min-h-full bg-[color:var(--bg-canvas)] text-[color:var(--text-primary)]">
         <SafeClerkProvider>
-          <MotionProvider>
-            <TooltipProvider delayDuration={200} skipDelayDuration={300}>
-              <ToastProvider>{children}</ToastProvider>
-              <AppToaster />
-            </TooltipProvider>
-          </MotionProvider>
+          <I18nProvider>
+            <MotionProvider>
+              <TooltipProvider delayDuration={200} skipDelayDuration={300}>
+                <ToastProvider>{children}</ToastProvider>
+                <AppToaster />
+              </TooltipProvider>
+            </MotionProvider>
+          </I18nProvider>
         </SafeClerkProvider>
         <RegisterServiceWorker />
         <InstallPrompt />
