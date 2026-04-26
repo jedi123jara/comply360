@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Sobre la Firma Electrónica · COMPLY360',
   description:
     'Explicación del tipo de firma electrónica que usa Comply360 en el portal del trabajador, y su validez ante la Ley N° 27269 y la normativa laboral peruana.',
+  robots: { index: false, follow: false },
 }
 
 export default function FirmaElectronicaPage() {

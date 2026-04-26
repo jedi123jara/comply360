@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Privacidad del Trabajador · COMPLY360',
   description:
     'Cómo Comply360 protege los datos personales del trabajador en el portal del empleado. Qué ve el empleador, qué no, y cómo ejercer tus derechos.',
+  robots: { index: false, follow: false },
 }
 
 export default function PrivacidadTrabajadorPage() {

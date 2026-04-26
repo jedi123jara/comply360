@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Política de Uso Aceptable · COMPLY360',
   description:
     'Reglas de uso aceptable de la plataforma COMPLY360. Usos prohibidos, mecanismos de enforcement y consecuencias del incumplimiento.',
+  robots: { index: false, follow: false },
 }
 
 export default function AupPage() {

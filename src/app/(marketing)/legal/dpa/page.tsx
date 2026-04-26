@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Contrato de Tratamiento de Datos (DPA) · COMPLY360',
   description:
     'Contrato de encargado del tratamiento de datos personales entre Comply360 y la empresa cliente, conforme a la Ley N° 29733.',
+  robots: { index: false, follow: false },
 }
 
 export default function DpaPage() {

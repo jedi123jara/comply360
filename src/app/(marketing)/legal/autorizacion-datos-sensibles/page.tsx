@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Autorización de datos personales sensibles · COMPLY360',
   description:
     'Información sobre la autorización expresa que se solicita al trabajador para el tratamiento de datos sensibles conforme a la Ley N° 29733 Art. 14.',
+  robots: { index: false, follow: false },
 }
 
 export default function AutorizacionDatosSensiblesPage() {
