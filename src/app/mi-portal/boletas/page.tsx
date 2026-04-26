@@ -11,7 +11,23 @@ import {
   Clock,
   Fingerprint,
 } from 'lucide-react'
-import { CTSProjectionCard, SalaryChart } from '@/components/mi-portal'
+import dynamic from 'next/dynamic'
+import { CTSProjectionCard } from '@/components/mi-portal'
+
+// SalaryChart usa `recharts` (~102KB gzipped). Lazy-load para no inflar
+// el bundle del Portal del Trabajador, que es la primera vista en mobile.
+const SalaryChart = dynamic(
+  () => import('@/components/mi-portal').then((m) => ({ default: m.SalaryChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="rounded-xl border border-slate-200 bg-white"
+        style={{ height: 240, animation: 'pulse 1.5s ease-in-out infinite' }}
+      />
+    ),
+  },
+)
 
 /**
  * /mi-portal/boletas — Lista de boletas de pago (Emerald Light, mobile-first).

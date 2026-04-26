@@ -12,18 +12,34 @@ import {
   Bot,
   BarChart3,
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useCopilot } from '@/providers/copilot-provider'
 import {
   ScoreNarrative,
   MomentCard,
   ActivityHeatmap,
-  SectorRadar,
   UpcomingDeadlines,
   RiskLeaderboard,
   QuickActions,
   ComplianceTasksPanel,
   mockHeatmapData,
 } from '@/components/cockpit'
+
+// SectorRadar usa `recharts` (~102KB gzipped). Lo cargamos dinámicamente
+// para que no infle el bundle inicial del dashboard. ssr:false porque
+// recharts requiere DOM y el cockpit ya es client.
+const SectorRadar = dynamic(
+  () => import('@/components/cockpit').then((m) => ({ default: m.SectorRadar })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="rounded-xl border border-[color:var(--border-default)] bg-[color:var(--surface-1)]"
+        style={{ height: 320, animation: 'pulse 1.5s ease-in-out infinite' }}
+      />
+    ),
+  },
+)
 import type {
   DeadlineItem,
   WorkerRiskItem,
