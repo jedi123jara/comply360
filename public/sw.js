@@ -7,8 +7,10 @@
  *  - Offline fallback al landing del dashboard
  */
 
-const CACHE_NAME = 'comply360-v1'
-const OFFLINE_URLS = ['/', '/dashboard', '/manifest.webmanifest']
+// IMPORTANTE: bumpear la versión cuando se introducen rutas nuevas o cambia
+// el handler para invalidar caches viejas en clientes ya instalados.
+const CACHE_NAME = 'comply360-v2'
+const OFFLINE_URLS = ['/', '/offline', '/manifest.webmanifest']
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -34,11 +36,17 @@ self.addEventListener('fetch', event => {
   // Solo same-origin
   if (url.origin !== self.location.origin) return
 
-  // Nunca interceptar APIs ni autenticación
+  // Nunca interceptar APIs, autenticación, ni rutas dinámicas auth-gated.
+  // Estas SIEMPRE deben ir directo a la red — el cache las rompe porque
+  // dependen de cookies de sesión.
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/sign-in') ||
-    url.pathname.startsWith('/sign-up')
+    url.pathname.startsWith('/sign-up') ||
+    url.pathname.startsWith('/admin') ||
+    url.pathname.startsWith('/dashboard') ||
+    url.pathname.startsWith('/mi-portal') ||
+    url.pathname.startsWith('/firmar')
   ) {
     return
   }
@@ -64,7 +72,8 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  // Network-first para HTML
+  // Network-first para HTML — siempre devolver un Response válido,
+  // nunca undefined (eso causa "Failed to convert value to 'Response'").
   event.respondWith(
     fetch(req)
       .then(res => {
@@ -72,7 +81,21 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => null)
         return res
       })
-      .catch(() => caches.match(req).then(cached => cached || caches.match('/')))
+      .catch(async () => {
+        const cached = await caches.match(req)
+        if (cached) return cached
+        const offline = await caches.match('/offline')
+        if (offline) return offline
+        const home = await caches.match('/')
+        if (home) return home
+        // Último recurso: respuesta sintética para no romper la promise
+        return new Response(
+          '<!doctype html><meta charset="utf-8"><title>Sin conexión</title>' +
+            '<body style="font-family:system-ui;padding:2rem;color:#0f172a">' +
+            '<h1>Sin conexión</h1><p>Vuelve a intentar cuando recuperes internet.</p></body>',
+          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+        )
+      }),
   )
 })
 
