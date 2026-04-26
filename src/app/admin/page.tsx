@@ -52,14 +52,48 @@ export default function AdminOverviewPage() {
   const [range, setRange] = useState<'24h' | '7d' | '30d' | '90d' | 'YTD'>('30d')
 
   useEffect(() => {
-    fetch('/api/admin/overview', { cache: 'no-store' })
-      .then((r) => {
-        if (!r.ok) throw new Error('No autorizado')
-        return r.json()
-      })
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
+    let active = true
+    async function load() {
+      try {
+        const r = await fetch('/api/admin/overview', { cache: 'no-store' })
+        if (!r.ok) {
+          // Capturamos status + body para poder diagnosticar (401/403/500)
+          let detail = ''
+          try {
+            const body = await r.json()
+            detail = body?.error ? ` — ${body.error}` : ''
+          } catch {
+            try {
+              detail = ` — ${(await r.text()).slice(0, 200)}`
+            } catch {
+              detail = ''
+            }
+          }
+          const msg = `HTTP ${r.status}${detail}`
+          console.error('[admin/overview] respuesta no-OK:', msg)
+          if (active) setError(msg)
+          return
+        }
+        const json = await r.json()
+        if (!json || typeof json !== 'object' || !json.metrics) {
+          const msg = 'Respuesta del API sin shape esperado (falta `metrics`).'
+          console.error('[admin/overview] shape inválido:', json)
+          if (active) setError(msg)
+          return
+        }
+        if (active) setData(json)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error('[admin/overview] fetch falló:', e)
+        if (active) setError(msg)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      active = false
+    }
   }, [])
 
   if (loading) return <SkeletonOverview />
@@ -74,7 +108,37 @@ export default function AdminOverviewPage() {
           color: 'var(--crimson-700)',
         }}
       >
-        <p style={{ fontWeight: 600 }}>{error || 'Error al cargar la vista general'}</p>
+        <p style={{ fontWeight: 700, fontSize: 16, margin: 0 }}>
+          ⚠ No se pudo cargar el Founder Console
+        </p>
+        <p style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+          {error || 'Error al cargar la vista general (sin detalle).'}
+        </p>
+        <p style={{ marginTop: 12, fontSize: 12, opacity: 0.8, lineHeight: 1.5 }}>
+          Diagnóstico: abre DevTools (F12) → pestaña <strong>Network</strong> →
+          recarga la página → busca la petición a <code>/api/admin/overview</code>{' '}
+          y revisa <strong>Status code</strong> y <strong>Response body</strong>.
+          Pasa los detalles al equipo técnico.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined') window.location.reload()
+          }}
+          style={{
+            marginTop: 12,
+            background: 'var(--crimson-700)',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Reintentar
+        </button>
       </div>
     )
   }

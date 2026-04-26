@@ -76,12 +76,11 @@ export default function SignInPage() {
 
         {/* Clerk sign-in card */}
         <SignIn
-          /* Redirect DIRECTO al dashboard post-login. `forceRedirectUrl` tiene
-             prioridad sobre cualquier `?redirect_url=` query param del link
-             de entrada. Esto garantiza: cualquier usuario que complete sign-in
-             cae en /dashboard, sin rebotes intermedios. */
-          forceRedirectUrl="/dashboard"
-          fallbackRedirectUrl="/dashboard"
+          /* Redirect a /post-login que decide la sección según role:
+             SUPER_ADMIN → /admin, WORKER → /mi-portal, resto → /dashboard.
+             Server-side decide en una sola pasada (sin flash visual). */
+          forceRedirectUrl="/post-login"
+          fallbackRedirectUrl="/post-login"
           signUpUrl="/sign-up"
           appearance={{
             variables: {

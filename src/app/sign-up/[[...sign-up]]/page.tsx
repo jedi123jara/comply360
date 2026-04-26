@@ -70,11 +70,11 @@ export default function SignUpPage() {
         </div>
 
         <SignUp
-          /* Redirect DIRECTO al dashboard post-signup. Clerk crea el usuario,
-             luego /dashboard/layout.tsx detecta si falta onboarding y redirige
-             a /dashboard/onboarding. Una sola ronda, sin /sign-in intermedio. */
-          forceRedirectUrl="/dashboard"
-          fallbackRedirectUrl="/dashboard"
+          /* Redirect a /post-login que decide la sección según role.
+             En signup nuevo será WORKER (si llegan via invitación) o el
+             default de /dashboard. /post-login routea correcto. */
+          forceRedirectUrl="/post-login"
+          fallbackRedirectUrl="/post-login"
           signInUrl="/sign-in"
           appearance={{
             variables: {
