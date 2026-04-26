@@ -34,20 +34,20 @@
       "schedule": "0 7 * * 1"
     },
     {
-      "path": "/api/cron/scheduled-reports",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/workflow-resume",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/issue-seals",
       "schedule": "0 7 1 * *"
     },
     {
+      "path": "/api/cron/scheduled-reports",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/workflow-resume",
+      "schedule": "0 10 * * *"
+    },
+    {
       "path": "/api/cron/webhook-retry",
-      "schedule": "* * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
