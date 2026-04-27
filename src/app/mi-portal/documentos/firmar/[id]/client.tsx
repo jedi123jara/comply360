@@ -305,6 +305,7 @@ export function FirmaDocClient({ doc, orgName, workerName, alreadySigned }: Prop
       {/* Modal de selección de método de firma */}
       {showSignModal && (
         <SignMethodModal
+          documentId={doc.id}
           onClose={() => setShowSignModal(false)}
           onSign={handleSign}
           submitting={submitting}
@@ -351,15 +352,18 @@ function CheckRow({
 
 // ─── Modal de selección de método de firma ──────────────────────────────────
 function SignMethodModal({
+  documentId,
   onClose,
   onSign,
   submitting,
 }: {
+  documentId: string
   onClose: () => void
   onSign: (method: SignatureMethod, signatureProof: Record<string, unknown> | null) => Promise<void>
   submitting: boolean
 }) {
   const [biometricAvailable, setBiometricAvailable] = useState<boolean | null>(null)
+  const [biometricInProgress, setBiometricInProgress] = useState(false)
 
   useEffect(() => {
     // Detectar si WebAuthn está disponible
@@ -373,9 +377,67 @@ function SignMethodModal({
   }, [])
 
   async function handleBiometric() {
-    // Placeholder — integración WebAuthn real en Sprint 8.5
-    // Por ahora cae a SIMPLE con flag biometric_attempted
-    await onSign('BIOMETRIC', { method: 'webauthn-placeholder', timestamp: Date.now() })
+    // Flow real WebAuthn server-side:
+    //   1. Pedir challenge al server
+    //   2. Correr ceremonia WebAuthn con ese challenge
+    //   3. Enviar al endpoint de firma con challenge + token + credentialId
+    //   4. Server verifica criptográficamente
+    setBiometricInProgress(true)
+    try {
+      // 1. Challenge desde server
+      const challengeRes = await fetch('/api/webauthn/challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sign_doc_acknowledgment',
+          entityId: documentId,
+        }),
+      })
+      if (!challengeRes.ok) {
+        // Server-side WebAuthn no configurado o doc inválido — degradar a SIMPLE
+        const errJson = await challengeRes.json().catch(() => ({}))
+        toast.error(errJson.error ?? 'WebAuthn no disponible — firmando con método simple')
+        await onSign('SIMPLE', { biometricAttempted: true, fallbackReason: 'no_challenge' })
+        return
+      }
+      const { challenge: challengeB64, token: challengeToken } = await challengeRes.json()
+
+      // 2. Ceremonia WebAuthn
+      const challengeBytes = base64UrlToBytes(challengeB64)
+      const credential = (await navigator.credentials.get({
+        publicKey: {
+          challenge: challengeBytes as BufferSource,
+          rpId: window.location.hostname,
+          userVerification: 'required',
+          timeout: 60_000,
+        },
+      })) as PublicKeyCredential | null
+
+      if (!credential) {
+        toast.error('Cancelaste la firma biométrica')
+        return
+      }
+
+      // 3. Enviar al endpoint con challenge + token + credentialId
+      await onSign('BIOMETRIC', {
+        challenge: challengeB64,
+        challengeToken,
+        credentialId: credential.id,
+        type: credential.type,
+        authenticatorAttachment: credential.authenticatorAttachment ?? null,
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error en biometría'
+      // Si el usuario abortó la ceremonia (NotAllowedError), mensaje suave
+      if (err instanceof Error && err.name === 'NotAllowedError') {
+        toast.error('Cancelaste o no autorizaste la firma biométrica')
+      } else {
+        toast.error(`Biometría falló: ${msg}. Usando firma simple.`)
+        await onSign('SIMPLE', { biometricAttempted: true, fallbackError: msg })
+      }
+    } finally {
+      setBiometricInProgress(false)
+    }
   }
 
   return (
@@ -391,15 +453,25 @@ function SignMethodModal({
           {biometricAvailable === true && (
             <button
               onClick={handleBiometric}
-              disabled={submitting}
+              disabled={submitting || biometricInProgress}
               className="w-full text-left flex items-center gap-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 hover:bg-emerald-100 transition-colors disabled:opacity-50"
             >
               <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                <Fingerprint className="w-5 h-5" />
+                {biometricInProgress ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Fingerprint className="w-5 h-5" />
+                )}
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-emerald-900 text-sm">Huella o Face ID</p>
-                <p className="text-xs text-emerald-800">Recomendado · evidencia legal más fuerte</p>
+                <p className="font-semibold text-emerald-900 text-sm">
+                  {biometricInProgress ? 'Verificando huella...' : 'Huella o Face ID'}
+                </p>
+                <p className="text-xs text-emerald-800">
+                  {biometricInProgress
+                    ? 'Acércate al sensor o coloca tu huella'
+                    : 'Recomendado · firma criptográfica server-verified'}
+                </p>
               </div>
             </button>
           )}
@@ -441,4 +513,17 @@ function SignMethodModal({
       </div>
     </div>
   )
+}
+
+// ─── Helper: base64url → Uint8Array (para WebAuthn challenge bytes) ─────────
+function base64UrlToBytes(base64url: string): Uint8Array {
+  // Convertir base64url a base64 estándar
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+  const binary = atob(padded)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
 }

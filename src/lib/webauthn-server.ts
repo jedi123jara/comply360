@@ -29,8 +29,9 @@ import { randomBytes, createHash } from 'crypto'
 export type ChallengeAction =
   | 'sign_contract'
   | 'sign_payslip'
-  | 'register_credential' // enrolar nueva passkey
-  | 'auth_credential'     // ceremonia de firma con passkey ya registrada
+  | 'sign_doc_acknowledgment' // acuse de recibo de OrgDocument (Idea 1)
+  | 'register_credential'     // enrolar nueva passkey
+  | 'auth_credential'         // ceremonia de firma con passkey ya registrada
 
 export interface ChallengePayload {
   /** Worker ID que solicitó el challenge. */

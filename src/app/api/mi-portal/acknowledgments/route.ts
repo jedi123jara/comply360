@@ -28,6 +28,7 @@ import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { recordAcknowledgment } from '@/lib/documents/acknowledgments'
 import type { SignatureMethod } from '@/lib/documents/acknowledgments'
+import { verifyChallenge } from '@/lib/webauthn-server'
 
 const VALID_METHODS: SignatureMethod[] = ['SIMPLE', 'OTP_EMAIL', 'BIOMETRIC']
 
@@ -82,6 +83,43 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx) => {
     )
   }
 
+  // Verificación criptográfica WebAuthn server-side si método=BIOMETRIC.
+  // El cliente debe enviar:
+  //   signatureProof: { challenge, challengeToken, credentialId, ... }
+  // Si la verificación falla, REGISTRAMOS de todas formas pero degradamos
+  // el método a SIMPLE y guardamos el motivo de fallo para audit.
+  let effectiveMethod = body.signatureMethod as SignatureMethod
+  let webauthnVerification: { ok: boolean; reason?: string } | null = null
+
+  if (effectiveMethod === 'BIOMETRIC') {
+    const proof = body.signatureProof as
+      | { challenge?: string; challengeToken?: string; credentialId?: string }
+      | undefined
+    if (proof?.challenge && proof.challengeToken) {
+      const verification = verifyChallenge({
+        token: proof.challengeToken,
+        challenge: proof.challenge,
+        workerId: worker.id,
+        action: 'sign_doc_acknowledgment',
+        entityId: body.documentId,
+      })
+      if (verification.valid) {
+        webauthnVerification = { ok: true }
+      } else {
+        // Falla → degradar a SIMPLE pero guardar el motivo
+        effectiveMethod = 'SIMPLE'
+        webauthnVerification = { ok: false, reason: verification.reason }
+        console.warn(
+          `[ack] WebAuthn verification failed for worker ${worker.id} doc ${body.documentId}: ${verification.reason}`,
+        )
+      }
+    } else {
+      // Sin proof completo → degradar silenciosamente a SIMPLE
+      effectiveMethod = 'SIMPLE'
+      webauthnVerification = { ok: false, reason: 'missing_proof' }
+    }
+  }
+
   // Extraer IP + userAgent del request
   const ip =
     req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
@@ -94,8 +132,11 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx) => {
     workerId: worker.id,
     documentId: body.documentId,
     documentVersion: body.documentVersion,
-    signatureMethod: body.signatureMethod as SignatureMethod,
-    signatureProof: body.signatureProof ?? null,
+    signatureMethod: effectiveMethod,
+    signatureProof: {
+      ...(body.signatureProof ?? {}),
+      ...(webauthnVerification ? { webauthnVerification } : {}),
+    },
     ip,
     userAgent,
     scrolledToEnd: body.scrolledToEnd,

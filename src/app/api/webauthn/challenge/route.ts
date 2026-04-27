@@ -19,7 +19,7 @@ import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { issueChallenge, type ChallengeAction } from '@/lib/webauthn-server'
 
-const VALID_ACTIONS: ChallengeAction[] = ['sign_contract', 'sign_payslip']
+const VALID_ACTIONS: ChallengeAction[] = ['sign_contract', 'sign_payslip', 'sign_doc_acknowledgment']
 
 export const POST = withWorkerAuth(async (req, ctx) => {
   let body: { action?: string; entityId?: string }
@@ -58,6 +58,17 @@ export const POST = withWorkerAuth(async (req, ctx) => {
     })
     if (!payslip) {
       return NextResponse.json({ error: 'Boleta no encontrada' }, { status: 404 })
+    }
+  } else if (action === 'sign_doc_acknowledgment') {
+    // Verificar que el doc requiera ack y que el worker esté en scope.
+    // El scopeFilter ya se verifica en el endpoint de acknowledgment al firmar,
+    // aquí solo confirmamos que el doc existe + requiere ack.
+    const doc = await prisma.orgDocument.findFirst({
+      where: { id: entityId, orgId: ctx.orgId, acknowledgmentRequired: true },
+      select: { id: true },
+    })
+    if (!doc) {
+      return NextResponse.json({ error: 'Documento no encontrado o no requiere firma' }, { status: 404 })
     }
   }
 
