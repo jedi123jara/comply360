@@ -21,3 +21,5 @@ export type { QuickAction } from './quick-actions'
 
 export { ComplianceTasksPanel } from './compliance-tasks-panel'
 export type { ComplianceTaskTeaser, ComplianceTasksPanelProps } from './compliance-tasks-panel'
+
+export { CalendarWidget } from './calendar-widget'

@@ -24,6 +24,7 @@ import {
   MomentCard,
   ActivityHeatmap,
   UpcomingDeadlines,
+  CalendarWidget,
   RiskLeaderboard,
   QuickActions,
   ComplianceTasksPanel,
@@ -509,6 +510,11 @@ export default function CockpitPage() {
         </div>
         <div className="lg:col-span-4">
           <UpcomingDeadlines items={deadlines} />
+        </div>
+
+        {/* Idea 2 Sprint 9 — Calendar Widget agregado al bento */}
+        <div className="lg:col-span-12">
+          <CalendarWidget />
         </div>
 
         <div className="lg:col-span-7">
