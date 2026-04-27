@@ -199,7 +199,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
                   streaming: false,
                   content:
                     m.content ||
-                    'No pude responder ahora mismo. Verifica que el servicio de IA esté configurado e intenta otra vez.',
+                    '🟡 **Asistente IA en modo offline**\n\nNo pude conectar con el motor de IA. Posibles causas:\n\n• La variable `OPENAI_API_KEY` no está configurada en producción\n• Tu cuota IA mensual del plan se agotó\n• Hubo un error temporal del proveedor\n\n**Mientras tanto puedes seguir usando**: las 13 calculadoras laborales, las 75+ normas peruanas indexadas, los generadores de documentos y plantillas. Avísale al admin para que active la IA real.',
                 }
               : m
           )

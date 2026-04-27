@@ -31,6 +31,8 @@ export interface ActionPlanTask {
   impactoScore: number // puntos que sumaría al score global
   baseLegal: string
   multaEvitada?: number
+  /** Pasos concretos de implementación (3-5 items). Opcional para retro-compat. */
+  pasos?: string[]
 }
 
 export interface ActionPlan {
@@ -73,11 +75,19 @@ FORMATO DE SALIDA (JSON):
       "plazoDias": number,
       "impactoScore": number,
       "baseLegal": "string (norma específica)",
-      "multaEvitada": number (en soles, opcional)
+      "multaEvitada": number (en soles, opcional),
+      "pasos": ["string", "string", ...]   // 3-5 pasos accionables imperativos
     }
   ],
   "proyeccionIncremento": number
-}`
+}
+
+EJEMPLO DE "pasos" (concretos, ejecutables, max 80 chars cada uno):
+  ["Descargar plantilla SUNAFIL en /docs/iperc-modelo.pdf",
+   "Identificar 5 puestos de mayor riesgo del organigrama",
+   "Reunir comité SST y completar matriz IPERC",
+   "Publicar IPERC firmado en zonas comunes y archivar copia"]
+`
 
 function buildUserPrompt(input: DiagnosticInput): string {
   const areas = Object.entries(input.scoreByArea)
@@ -150,6 +160,9 @@ export async function generateActionPlan(input: DiagnosticInput): Promise<Action
       impactoScore: Math.min(Math.max(Number(t.impactoScore) || 3, 1), 25),
       baseLegal: String(t.baseLegal || 'Normativa laboral peruana'),
       multaEvitada: t.multaEvitada ? Number(t.multaEvitada) : undefined,
+      pasos: Array.isArray(t.pasos)
+        ? (t.pasos as unknown[]).map((p) => String(p)).slice(0, 6)
+        : undefined,
     }))
 
     const incrementoTotal = tareas.reduce((acc, t) => acc + t.impactoScore, 0)
@@ -178,6 +191,10 @@ export async function generateActionPlan(input: DiagnosticInput): Promise<Action
 /**
  * Plan simulado basado en heurísticas — fallback cuando la IA no responde.
  * Genera tareas según las áreas con menor score.
+ *
+ * Cada template incluye `pasos` accionables (3-5 pasos imperativos cortos)
+ * para que el usuario tenga un cronograma ejecutable real, no solo títulos
+ * genéricos. Multas calibradas con D.S. 019-2006-TR + UIT 2026 (S/ 5,500).
  */
 function generateSimulatedPlan(input: DiagnosticInput, generadoAt: string): ActionPlan {
   const sorted = Object.entries(input.scoreByArea).sort(([, a], [, b]) => a - b)
@@ -186,64 +203,130 @@ function generateSimulatedPlan(input: DiagnosticInput, generadoAt: string): Acti
   const TEMPLATES: Record<string, Omit<ActionPlanTask, 'id' | 'plazoDias' | 'impactoScore'>> = {
     contratos: {
       titulo: 'Actualizar y firmar contratos pendientes',
-      descripcion: 'Revisar todos los contratos vigentes, verificar cláusulas obligatorias y completar firmas faltantes.',
+      descripcion: 'Revisar todos los contratos vigentes, verificar cláusulas obligatorias y completar firmas faltantes — desencadena multa muy grave si SUNAFIL inspecciona y encuentra trabajadores sin contrato escrito.',
       area: 'contratos',
       responsable: 'LEGAL',
       prioridad: 'CRITICA',
-      baseLegal: 'D.S. 003-97-TR (TUO LPCL), Art. 4',
+      baseLegal: 'D.S. 003-97-TR (TUO LPCL), Art. 4 · D.Leg. 728 · Multa: 7-25 UIT (D.S. 019-2006-TR)',
       multaEvitada: 23000,
+      pasos: [
+        'Exportar lista de trabajadores activos desde Equipo > Trabajadores',
+        'En cada perfil, revisar tab Contratos y marcar los que falta firma',
+        'Generar contratos faltantes con plantillas en Contratos > Plantillas',
+        'Enviar a firma biométrica vía /mi-portal del trabajador (Ley 27269)',
+        'Archivar PDFs firmados en el legajo digital de cada trabajador',
+      ],
     },
     sst: {
-      titulo: 'Implementar sistema SST básico',
-      descripcion: 'Designar comité de SST, redactar política de seguridad y realizar el primer simulacro de evacuación.',
+      titulo: 'Implementar sistema SST básico (Ley 29783)',
+      descripcion: 'Designar comité de SST, redactar política de seguridad, completar IPERC y realizar primer simulacro. Empresa con +20 trabajadores DEBE tener Comité formal — multa muy grave si no.',
       area: 'sst',
       responsable: 'SST',
       prioridad: 'CRITICA',
-      baseLegal: 'Ley 29783, Art. 26-29',
+      baseLegal: 'Ley 29783, Art. 26-29 · R.M. 050-2013-TR · Multa: 5-26 UIT por trabajador afectado',
       multaEvitada: 87000,
+      pasos: [
+        'En Riesgo > Generadores IA, generar Política SST + Plan Anual SST',
+        'Convocar elecciones del Comité SST (proporcional al # de trabajadores)',
+        'Levantar matriz IPERC por puesto (descargable desde /dashboard/sst)',
+        'Programar primer simulacro de evacuación con registro fotográfico',
+        'Publicar política firmada en zonas comunes y archivar acta de comité',
+      ],
     },
     documentos: {
-      titulo: 'Subir documentos obligatorios faltantes',
-      descripcion: 'Cargar copias de DNI, certificados de antecedentes y exámenes médicos pre-ocupacionales pendientes.',
+      titulo: 'Completar legajos digitales con docs faltantes',
+      descripcion: 'Cargar copias de DNI, antecedentes penales/judiciales/policiales, exámenes médicos pre-ocupacionales y certificados de estudios. SUNAFIL exige el legajo completo en cada inspección.',
       area: 'documentos',
       responsable: 'RRHH',
       prioridad: 'ALTA',
-      baseLegal: 'D.S. 001-98-TR',
+      baseLegal: 'D.S. 001-98-TR · Ley 26790 (EsSalud) · Multa: 0.45-15 UIT',
       multaEvitada: 12000,
+      pasos: [
+        'Filtrar trabajadores con legajoScore < 80 en Equipo > Trabajadores',
+        'Disparar cascada de onboarding desde el perfil — mandará email pidiendo docs',
+        'El trabajador sube desde su /mi-portal y la IA Vision auto-verifica',
+        'Revisar items con badge "Revisar" y aprobar o rechazar manualmente',
+        'Archivar versión final de cada doc con fecha de vencimiento si aplica',
+      ],
     },
     planilla: {
       titulo: 'Regularizar boletas de pago electrónicas',
-      descripcion: 'Generar y entregar boletas electrónicas de los últimos 3 meses con formato SUNAT vigente.',
+      descripcion: 'Generar y entregar boletas electrónicas de los últimos 3 meses con formato SUNAT vigente, incluyendo todos los conceptos remunerativos y descuentos.',
       area: 'planilla',
       responsable: 'CONTABILIDAD',
       prioridad: 'ALTA',
-      baseLegal: 'R.M. 020-2008-TR',
+      baseLegal: 'R.M. 020-2008-TR · D.S. 015-72-TR · Multa: 0.45-7 UIT por trabajador',
       multaEvitada: 18000,
+      pasos: [
+        'En Equipo > Boletas de pago, generar las boletas pendientes de los últimos 3 meses',
+        'Verificar conceptos: básico, asignación familiar, AFP/ONP, EsSalud, renta 5ta',
+        'Firmar electrónicamente desde /dashboard y enviar a /mi-portal del trabajador',
+        'Archivar copia con sello digital en el legajo de cada trabajador',
+      ],
     },
     vencimientos: {
-      titulo: 'Renovar contratos próximos a vencer',
-      descripcion: 'Identificar contratos a plazo fijo con vencimiento en 30 días y decidir renovación o cierre.',
+      titulo: 'Renovar contratos a plazo fijo próximos a vencer',
+      descripcion: 'Identificar contratos a plazo fijo con vencimiento en 30 días, decidir renovación o cierre, y formalizar antes del fin de plazo (sino se desnaturaliza a indefinido).',
       area: 'contratos',
       responsable: 'RRHH',
       prioridad: 'ALTA',
-      baseLegal: 'D.S. 003-97-TR, Art. 16',
+      baseLegal: 'D.S. 003-97-TR, Art. 16 · Multa por desnaturalización: 5-50 UIT',
+      multaEvitada: 35000,
+      pasos: [
+        'En Calendario, filtrar alertas tipo "CONTRATO_POR_VENCER"',
+        'Para cada uno: decidir RENOVAR / CESAR / convertir a indefinido',
+        'Si renueva: generar addendum con nueva fecha desde Plantillas',
+        'Si cesa: programar liquidación + carta de cese 6 días antes',
+        'Si pasa a indefinido: generar nuevo contrato GENERAL y firmar',
+      ],
     },
     capacitaciones: {
-      titulo: 'Programar capacitaciones SST obligatorias',
-      descripcion: 'Calendarizar las 4 capacitaciones SST anuales y registrar asistencia en libro digital.',
+      titulo: 'Programar las 4 capacitaciones SST anuales',
+      descripcion: 'Calendarizar las 4 capacitaciones SST obligatorias del año, registrar asistencia en libro digital y emitir certificados con QR de verificación.',
       area: 'sst',
       responsable: 'SST',
       prioridad: 'MEDIA',
-      baseLegal: 'Ley 29783, Art. 35',
+      baseLegal: 'Ley 29783, Art. 35 · D.S. 005-2012-TR · Multa: 5-26 UIT',
       multaEvitada: 9000,
+      pasos: [
+        'En Capacitaciones, asignar las 4 capacitaciones SST a todos los trabajadores',
+        'Workers reciben email + acceden desde /mi-portal/capacitaciones',
+        'Completan con quiz mínimo 70% para aprobar',
+        'Sistema emite certificado PDF con QR de verificación pública',
+        'Archivar evidencia (lista firmada o registro digital) en SST',
+      ],
     },
     igualdad: {
-      titulo: 'Auditar brechas salariales por género',
-      descripcion: 'Aplicar el método DICR y publicar resultados conforme a la Ley 30709.',
+      titulo: 'Auditar brechas salariales por género (Ley 30709)',
+      descripcion: 'Aplicar el método de evaluación DICR (Descripción del puesto, Identificación de funciones, Categorización, Remuneración) y publicar resultados internamente.',
       area: 'igualdad',
       responsable: 'RRHH',
       prioridad: 'MEDIA',
-      baseLegal: 'Ley 30709, D.S. 002-2018-TR',
+      baseLegal: 'Ley 30709 · D.S. 002-2018-TR · Multa: 1-50 UIT',
+      multaEvitada: 27000,
+      pasos: [
+        'En Riesgo > Igualdad salarial, generar el cuadro de categorías DICR',
+        'Asignar a cada puesto su categoría y verificar coherencia',
+        'Sistema detecta automáticamente brechas > 5% entre géneros mismo nivel',
+        'Plan de cierre de brecha: ajustes salariales en próximos 6-12 meses',
+        'Publicar política de igualdad en zonas comunes + intranet',
+      ],
+    },
+    hostigamiento: {
+      titulo: 'Activar canal de denuncias de hostigamiento (Ley 27942)',
+      descripcion: 'Configurar canal interno de denuncias por hostigamiento sexual, designar Comité de Intervención y publicar la política de prevención. Obligatorio para empresas con +20 trabajadores.',
+      area: 'denuncias',
+      responsable: 'RRHH',
+      prioridad: 'ALTA',
+      baseLegal: 'Ley 27942 · D.S. 014-2019-MIMP · Multa: 5-50 UIT',
+      multaEvitada: 27500,
+      pasos: [
+        'En Riesgo > Generadores IA, generar Política de Hostigamiento Sexual',
+        'Designar 3 miembros del Comité de Intervención (paritario por género)',
+        'Activar canal público en /denuncias/{tu-empresa-slug} (URL gratuita)',
+        'Capacitar a los 3 miembros del Comité (mínimo 4 horas)',
+        'Publicar política firmada y URL del canal en zonas comunes',
+      ],
     },
   }
 
@@ -254,15 +337,31 @@ function generateSimulatedPlan(input: DiagnosticInput, generadoAt: string): Acti
     if (usedAreas.has(tplKey)) continue
     usedAreas.add(tplKey)
     const tpl = TEMPLATES[tplKey]
-    const impacto = Math.max(3, Math.min(15, 90 - score) / 6)
+    // Impacto proporcional a la brecha (score 30 → +10 pts; score 80 → +2 pts)
+    const impacto = Math.max(2, Math.min(15, Math.round((90 - score) / 6)))
     tareas.push({
       ...tpl,
       id: `task-${tareas.length + 1}`,
       plazoDias: plazoCum,
-      impactoScore: Math.round(impacto),
+      impactoScore: impacto,
     })
     plazoCum += 7
+  }
+
+  // Si quedaron menos de 5 tareas (porque el diagnostic tenía pocas areas),
+  // rellenamos con tareas de áreas no auditadas pero universalmente relevantes.
+  const FALLBACK_ORDER = ['contratos', 'sst', 'documentos', 'planilla', 'vencimientos', 'capacitaciones', 'igualdad', 'hostigamiento']
+  for (const tplKey of FALLBACK_ORDER) {
     if (tareas.length >= 6) break
+    if (usedAreas.has(tplKey)) continue
+    usedAreas.add(tplKey)
+    tareas.push({
+      ...TEMPLATES[tplKey],
+      id: `task-${tareas.length + 1}`,
+      plazoDias: plazoCum,
+      impactoScore: 4,
+    })
+    plazoCum += 7
   }
 
   const incrementoTotal = tareas.reduce((acc, t) => acc + t.impactoScore, 0)
@@ -271,9 +370,9 @@ function generateSimulatedPlan(input: DiagnosticInput, generadoAt: string): Acti
 
   return {
     generadoPor: 'simulated',
-    modelo: 'simulated',
+    modelo: 'heuristic-v2',
     generadoAt,
-    resumen: `Plan base sugerido a partir de las áreas con menor puntaje. Atiende ${tareas.length} brechas críticas para llevar el score de ${input.scoreGlobal} a ${estimadoTrasPlan}/100.`,
+    resumen: `Plan base sugerido a partir de las áreas con menor puntaje y normativa peruana vigente. Atiende ${tareas.length} brechas para llevar el score de ${input.scoreGlobal} a ${estimadoTrasPlan}/100 y evitar S/ ${multaEvitadaTotal.toLocaleString('es-PE')} en multas SUNAFIL potenciales.`,
     tareas,
     proyeccionScore: {
       actual: input.scoreGlobal,
