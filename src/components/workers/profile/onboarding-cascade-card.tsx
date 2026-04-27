@@ -1,31 +1,57 @@
 'use client'
 
-import { useState } from 'react'
-import { Send, Sparkles, CheckCircle2, Clock, RotateCw, AlertTriangle, Info, ChevronDown } from 'lucide-react'
+/**
+ * OnboardingCascadeCard — Invitar al trabajador a su portal personal.
+ *
+ * Refactor 2026-04-27: la card original decía "Cascada de onboarding" y
+ * tenía botón "Iniciar onboarding" — copy técnico que no comunicaba que la
+ * acción es ENVIAR UN EMAIL DE INVITACIÓN al trabajador.
+ *
+ * Ahora muestra estado real (consultando AuditLog vía /onboarding-status):
+ *   - no_email          → "Worker no tiene email registrado — agrega email primero"
+ *   - not_invited       → CTA primario "Enviar invitación a {nombre}"
+ *   - invited_waiting   → "Invitación enviada el X. Esperando que entre"
+ *   - logged_in_pending → "Ya entró pero falta completar legajo (X%)"
+ *   - completed         → "Trabajador con perfil completo ✓"
+ *
+ * Cada estado tiene su CTA apropiado (re-enviar, recordar, etc.).
+ */
+
+import { useEffect, useState, useCallback } from 'react'
+import {
+  Send, Sparkles, CheckCircle2, Clock, RotateCw, AlertTriangle, Mail,
+  ChevronDown, UserCheck, FileQuestion, Inbox,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/sonner-toaster'
-
-/**
- * OnboardingCascadeCard — control admin para disparar la cascada de onboarding.
- *
- * La cascada:
- *   1. Crea solicitudes (WorkerRequest) para los documentos que el trabajador
- *      debe subir (CV, DNI, examen médico, etc.)
- *   2. Envía email al trabajador con el resumen
- *   3. Registra en AuditLog
- *
- * Muestra estado en vivo, permite forzar re-envío y deshabilita opciones si el
- * worker no tiene email registrado.
- */
+import { cn } from '@/lib/utils'
 
 export interface OnboardingCascadeCardProps {
   workerId: string
   workerFirstName: string
   hasEmail: boolean
-  /** Si true, ya se ejecutó antes — el botón cambia a "re-enviar". */
+  /** @deprecated — el componente ahora consulta AuditLog directamente */
   alreadyExecuted?: boolean
-  /** Callback opcional tras ejecución exitosa (para recargar datos del perfil). */
+  /** Callback opcional tras invitación exitosa. */
   onExecuted?: () => void
+}
+
+type CascadeStatus =
+  | 'no_email'
+  | 'not_invited'
+  | 'invited_waiting'
+  | 'logged_in_pending'
+  | 'completed'
+  | 'loading'
+
+interface OnboardingStatus {
+  email: string | null
+  invitationSentAt: string | null
+  workerHasLoggedIn: boolean
+  workerLastLogin: string | null
+  legajoCompleteness: number
+  documentsRequested: number
+  status: Exclude<CascadeStatus, 'loading'>
 }
 
 interface ExecutionResult {
@@ -40,24 +66,43 @@ export function OnboardingCascadeCard({
   workerId,
   workerFirstName,
   hasEmail,
-  alreadyExecuted = false,
   onExecuted,
 }: OnboardingCascadeCardProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [status, setStatus] = useState<CascadeStatus>('loading')
+  const [statusData, setStatusData] = useState<OnboardingStatus | null>(null)
+  const [showOptions, setShowOptions] = useState(false)
   const [executing, setExecuting] = useState(false)
-  const [sendEmail, setSendEmail] = useState(hasEmail)
-  const [force, setForce] = useState(alreadyExecuted)
-  const [lastResult, setLastResult] = useState<ExecutionResult | null>(null)
+  const [sendEmail, setSendEmail] = useState(true)
+  const [forceReExecute, setForceReExecute] = useState(false)
 
-  const execute = async () => {
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/workers/${workerId}/onboarding-status`)
+      if (!res.ok) {
+        // Fallback: si el endpoint falla, asumir not_invited
+        setStatus(hasEmail ? 'not_invited' : 'no_email')
+        return
+      }
+      const data = (await res.json()) as OnboardingStatus
+      setStatusData(data)
+      setStatus(data.status)
+    } catch {
+      setStatus(hasEmail ? 'not_invited' : 'no_email')
+    }
+  }, [workerId, hasEmail])
+
+  useEffect(() => {
+    void fetchStatus()
+  }, [fetchStatus])
+
+  async function execute() {
     setExecuting(true)
-    setLastResult(null)
     try {
       const res = await fetch(`/api/workers/${workerId}/onboarding-cascade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          force,
+          force: forceReExecute,
           sendEmail: hasEmail && sendEmail,
           requestLegajo: true,
         }),
@@ -68,197 +113,343 @@ export function OnboardingCascadeCard({
         error?: string
       }
 
-      if (!res.ok) {
-        throw new Error(body.error ?? `HTTP ${res.status}`)
-      }
-
-      if (body.data) setLastResult(body.data)
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
 
       if (body.data?.skipped) {
-        toast.info(body.data.skipReason ?? 'Onboarding ya ejecutada')
+        toast.info(body.data.skipReason ?? 'Ya estaba ejecutada — usa "Re-enviar" si quieres mandar otra vez')
       } else {
-        toast.success(body.message ?? 'Onboarding disparado correctamente')
+        toast.success(`✓ Invitación enviada a ${workerFirstName}`)
         onExecuted?.()
       }
+      // Refrescar estado tras ejecución
+      await fetchStatus()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al ejecutar onboarding')
+      toast.error(err instanceof Error ? err.message : 'Error al enviar invitación')
     } finally {
       setExecuting(false)
     }
   }
 
-  const isReRun = alreadyExecuted || (lastResult != null && !lastResult.skipped)
+  // ─── Render por estado ───────────────────────────────────────────────────
+  if (status === 'loading') {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 animate-pulse">
+        <div className="h-5 w-48 bg-slate-100 rounded mb-3" />
+        <div className="h-3 w-full bg-slate-100 rounded mb-2" />
+        <div className="h-3 w-3/4 bg-slate-100 rounded" />
+      </section>
+    )
+  }
+
+  // Caso especial: sin email
+  if (status === 'no_email') {
+    return (
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-amber-900 text-sm">
+              Falta el email de {workerFirstName}
+            </h3>
+            <p className="mt-1 text-sm text-amber-800">
+              Para invitarle a su portal personal necesitas registrar su email primero.
+              Edítalo en la sección de "Datos personales" arriba.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Estados con email — header visual unificado
+  const cfg = STATUS_CONFIG[status]
+  const Icon = cfg.icon
 
   return (
     <section
-      className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/60 via-white to-white p-5 shadow-[0_1px_2px_rgba(4,120,87,0.04)]"
+      className={cn(
+        'relative overflow-hidden rounded-2xl border p-5 shadow-sm',
+        cfg.cardBg,
+        cfg.cardBorder,
+      )}
     >
       {/* Halo decorativo */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full opacity-60"
-        style={{
-          background: 'radial-gradient(circle, rgba(16,185,129,0.12), transparent 70%)',
-        }}
+        className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full opacity-50"
+        style={{ background: cfg.haloColor }}
       />
 
       <div className="relative flex items-start gap-4">
+        {/* Icon badge */}
         <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_4px_10px_rgba(4,120,87,0.25)]"
-          style={{ background: 'linear-gradient(135deg, #10b981, #047857)' }}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md"
+          style={{ background: cfg.iconBg }}
         >
-          <Sparkles className="h-5 w-5" />
+          <Icon className="h-5 w-5" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">
-              Cascada de onboarding
+          {/* Tag uppercase + badge estado */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className={cn('text-[11px] font-bold uppercase tracking-widest', cfg.tagColor)}>
+              Portal del trabajador
             </h3>
-            {isReRun ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                <CheckCircle2 className="h-3 w-3" /> Ejecutada
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
-                <Clock className="h-3 w-3" /> Pendiente
-              </span>
-            )}
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                cfg.badgeBg,
+                cfg.badgeText,
+              )}
+            >
+              {cfg.badgeIcon} {cfg.badgeLabel}
+            </span>
           </div>
+
+          {/* Title (Instrument Serif para "drama") */}
           <p
-            className="mt-1 text-lg leading-snug text-[color:var(--text-primary)]"
+            className="mt-1.5 text-lg leading-snug text-slate-900"
             style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
           >
-            {isReRun
-              ? `Re-enviar documentos y solicitudes a ${workerFirstName}`
-              : `Envía los documentos de la empresa a ${workerFirstName} y pídele su legajo`}
-          </p>
-          <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-            Publica RIT, políticas SST y resto de docs de la empresa en su portal, crea solicitudes
-            para los documentos obligatorios de su legajo y le envía un email de bienvenida.
+            {cfg.title(workerFirstName)}
           </p>
 
-          {/* Expanded options */}
-          {expanded ? (
-            <div className="mt-4 space-y-2 rounded-xl border border-[color:var(--border-default)] bg-white p-3">
-              <OptionRow
-                label="Enviar email al trabajador"
-                checked={hasEmail && sendEmail}
-                onChange={setSendEmail}
-                disabled={!hasEmail}
-                hint={hasEmail ? undefined : 'El trabajador no tiene email registrado'}
-              />
-              <OptionRow
-                label="Forzar re-ejecución"
-                checked={force}
-                onChange={setForce}
-                hint="Correrá aunque ya haya sido ejecutada antes. Útil tras agregar políticas nuevas."
-              />
-            </div>
-          ) : null}
+          {/* Description con estado real */}
+          <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+            {cfg.description({
+              workerFirstName,
+              email: statusData?.email ?? '',
+              invitationSentAt: statusData?.invitationSentAt,
+              legajoCompleteness: statusData?.legajoCompleteness ?? 0,
+              documentsRequested: statusData?.documentsRequested ?? 0,
+            })}
+          </p>
 
-          {/* Last result */}
-          {lastResult ? (
-            <div
-              className={`mt-3 rounded-xl border px-3 py-2.5 text-xs ${
-                lastResult.skipped
-                  ? 'border-amber-200 bg-amber-50 text-amber-900'
-                  : 'border-emerald-200 bg-emerald-50 text-emerald-900'
-              }`}
-            >
-              {lastResult.skipped ? (
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>{lastResult.skipReason ?? 'Ejecución omitida'}</span>
-                </div>
-              ) : (
-                <div className="grid gap-1">
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Cascada completada
-                  </div>
-                  <ul className="ml-5 list-disc space-y-0.5 text-[11px]">
-                    <li>
-                      <strong>{lastResult.documentsPublished}</strong> documento(s) de la empresa
-                      disponibles en el portal
-                    </li>
-                    <li>
-                      <strong>{lastResult.requestsCreated}</strong> solicitud(es) creada(s) para el
-                      trabajador
-                    </li>
-                    <li>
-                      Email {lastResult.emailSent ? 'enviado' : 'no enviado'}
-                    </li>
-                  </ul>
-                </div>
-              )}
+          {/* Email destinatario destacado (estado not_invited) */}
+          {status === 'not_invited' && statusData?.email && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 ring-1 ring-slate-200">
+              <Mail className="h-4 w-4 text-slate-500" />
+              <span className="text-xs text-slate-500">Se enviará a:</span>
+              <span className="text-sm font-mono font-semibold text-slate-900">{statusData.email}</span>
             </div>
-          ) : null}
+          )}
 
-          {/* Actions */}
+          {/* Opciones expandibles (re-ejecutar, etc.) */}
+          {showOptions && (
+            <div className="mt-3 space-y-2 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasEmail && sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                  disabled={!hasEmail}
+                  className="h-4 w-4 rounded text-emerald-600"
+                />
+                <span className={cn(!hasEmail && 'text-slate-400')}>
+                  Enviar email al trabajador
+                  {!hasEmail && (
+                    <span className="ml-2 text-xs text-amber-600">(no hay email)</span>
+                  )}
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={forceReExecute}
+                  onChange={(e) => setForceReExecute(e.target.checked)}
+                  className="h-4 w-4 rounded text-emerald-600"
+                />
+                <span>Forzar re-ejecución (incluso si ya estaba enviada)</span>
+              </label>
+              <p className="text-xs text-slate-500 pl-6">
+                Útil tras agregar políticas nuevas que el trabajador deba aceptar.
+              </p>
+            </div>
+          )}
+
+          {/* CTAs */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button
               onClick={execute}
               loading={executing}
               disabled={executing}
-              icon={isReRun ? <RotateCw className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+              icon={<Send className="h-3.5 w-3.5" />}
               size="sm"
+              variant={cfg.primaryButtonVariant}
             >
-              {isReRun ? 'Re-enviar onboarding' : 'Iniciar onboarding'}
+              {cfg.primaryButtonLabel(workerFirstName)}
             </Button>
+            {(status === 'invited_waiting' || status === 'logged_in_pending' || status === 'completed') && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowOptions((v) => !v)}
+                icon={
+                  <ChevronDown
+                    className={cn('h-3.5 w-3.5 transition-transform', showOptions && 'rotate-180')}
+                  />
+                }
+              >
+                {showOptions ? 'Ocultar opciones' : 'Opciones'}
+              </Button>
+            )}
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
-              onClick={() => setExpanded((v) => !v)}
-              icon={<ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />}
+              onClick={fetchStatus}
+              icon={<RotateCw className="h-3.5 w-3.5" />}
             >
-              {expanded ? 'Ocultar opciones' : 'Opciones'}
+              Refrescar
             </Button>
           </div>
 
-          {!hasEmail ? (
-            <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-amber-700">
-              <Info className="h-3 w-3" />
-              El trabajador no tiene email — igual se crean las solicitudes, pero no recibirá aviso.
-            </p>
-          ) : null}
+          {/* Mini-stats si ya se invitó */}
+          {statusData && statusData.documentsRequested > 0 && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <MiniStat
+                icon={<Inbox className="h-3.5 w-3.5" />}
+                label="Docs solicitados"
+                value={String(statusData.documentsRequested)}
+                color="indigo"
+              />
+              <MiniStat
+                icon={<FileQuestion className="h-3.5 w-3.5" />}
+                label="Legajo completo"
+                value={`${statusData.legajoCompleteness}%`}
+                color={
+                  statusData.legajoCompleteness >= 80
+                    ? 'emerald'
+                    : statusData.legajoCompleteness >= 40
+                      ? 'amber'
+                      : 'rose'
+                }
+              />
+              {statusData.workerHasLoggedIn && (
+                <MiniStat
+                  icon={<UserCheck className="h-3.5 w-3.5" />}
+                  label="Estado"
+                  value="Activo"
+                  color="emerald"
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
     </section>
   )
 }
 
-function OptionRow({
+// ─── MiniStat sub-component ──────────────────────────────────────────────────
+function MiniStat({
+  icon,
   label,
-  checked,
-  onChange,
-  disabled,
-  hint,
+  value,
+  color,
 }: {
+  icon: React.ReactNode
   label: string
-  checked: boolean
-  onChange: (v: boolean) => void
-  disabled?: boolean
-  hint?: string
+  value: string
+  color: 'indigo' | 'emerald' | 'amber' | 'rose'
 }) {
+  const colorMap = {
+    indigo: 'text-indigo-700 ring-indigo-200 bg-indigo-50',
+    emerald: 'text-emerald-700 ring-emerald-200 bg-emerald-50',
+    amber: 'text-amber-700 ring-amber-200 bg-amber-50',
+    rose: 'text-rose-700 ring-rose-200 bg-rose-50',
+  }
   return (
-    <label
-      className={`flex items-start gap-2.5 text-xs ${
-        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-      }`}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 accent-emerald-600"
-      />
-      <span className="flex-1">
-        <span className="font-medium text-[color:var(--text-primary)]">{label}</span>
-        {hint ? (
-          <span className="mt-0.5 block text-[11px] text-[color:var(--text-tertiary)]">{hint}</span>
-        ) : null}
-      </span>
-    </label>
+    <div className={cn('rounded-lg p-2 ring-1', colorMap[color])}>
+      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide opacity-80">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <p className="mt-0.5 text-sm font-bold">{value}</p>
+    </div>
   )
 }
+
+// ─── Configuración visual por estado ─────────────────────────────────────────
+function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const ms = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(ms / 60_000)
+  if (min < 1) return 'hace un instante'
+  if (min < 60) return `hace ${min} min`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `hace ${hr} h`
+  const days = Math.floor(hr / 24)
+  if (days < 30) return `hace ${days} ${days === 1 ? 'día' : 'días'}`
+  return new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const STATUS_CONFIG = {
+  not_invited: {
+    icon: Sparkles,
+    iconBg: 'linear-gradient(135deg, #10b981, #047857)',
+    haloColor: 'radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%)',
+    cardBg: 'bg-gradient-to-br from-emerald-50/60 via-white to-white',
+    cardBorder: 'border-emerald-200',
+    tagColor: 'text-emerald-700',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-800',
+    badgeIcon: <Clock className="h-3 w-3" />,
+    badgeLabel: 'Sin invitar',
+    title: (n: string) => `Invita a ${n} a su portal personal`,
+    description: () =>
+      'Le enviaremos un email con un enlace para crear su cuenta, completar sus datos personales (foto, dirección) y subir los documentos del legajo. Tú no tendrás que hacer nada — el trabajador lo hace solo desde su celular.',
+    primaryButtonLabel: (n: string) => `Enviar invitación a ${n}`,
+    primaryButtonVariant: 'default' as const,
+  },
+  invited_waiting: {
+    icon: Mail,
+    iconBg: 'linear-gradient(135deg, #6366f1, #4338ca)',
+    haloColor: 'radial-gradient(circle, rgba(99,102,241,0.15), transparent 70%)',
+    cardBg: 'bg-gradient-to-br from-indigo-50/60 via-white to-white',
+    cardBorder: 'border-indigo-200',
+    tagColor: 'text-indigo-700',
+    badgeBg: 'bg-indigo-100',
+    badgeText: 'text-indigo-800',
+    badgeIcon: <Mail className="h-3 w-3" />,
+    badgeLabel: 'Invitación enviada',
+    title: (n: string) => `Esperando que ${n} entre por primera vez`,
+    description: ({ invitationSentAt }: { invitationSentAt: string | null | undefined }) =>
+      `La invitación se envió ${relativeTime(invitationSentAt)}. El trabajador aún no abrió el link. Si pasaron varios días, considera re-enviarla o llamarle por teléfono.`,
+    primaryButtonLabel: (n: string) => `Re-enviar invitación a ${n}`,
+    primaryButtonVariant: 'secondary' as const,
+  },
+  logged_in_pending: {
+    icon: UserCheck,
+    iconBg: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    haloColor: 'radial-gradient(circle, rgba(245,158,11,0.15), transparent 70%)',
+    cardBg: 'bg-gradient-to-br from-amber-50/60 via-white to-white',
+    cardBorder: 'border-amber-200',
+    tagColor: 'text-amber-700',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-800',
+    badgeIcon: <UserCheck className="h-3 w-3" />,
+    badgeLabel: 'Ya entró — falta legajo',
+    title: (n: string) => `${n} entró pero falta completar legajo`,
+    description: ({ legajoCompleteness, documentsRequested }: { legajoCompleteness: number; documentsRequested: number }) =>
+      `Su legajo está al ${legajoCompleteness}%. Hay ${documentsRequested} documentos pendientes que ya le pedimos. Puedes recordárselo enviando otro email.`,
+    primaryButtonLabel: () => `Recordar documentos pendientes`,
+    primaryButtonVariant: 'secondary' as const,
+  },
+  completed: {
+    icon: CheckCircle2,
+    iconBg: 'linear-gradient(135deg, #10b981, #047857)',
+    haloColor: 'radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%)',
+    cardBg: 'bg-gradient-to-br from-emerald-50/60 via-white to-white',
+    cardBorder: 'border-emerald-200',
+    tagColor: 'text-emerald-700',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-800',
+    badgeIcon: <CheckCircle2 className="h-3 w-3" />,
+    badgeLabel: 'Completado',
+    title: (n: string) => `${n} tiene su perfil completo`,
+    description: () =>
+      'El trabajador entró a su portal y completó el legajo. Sigue activo gestionando sus boletas, vacaciones y solicitudes desde su /mi-portal.',
+    primaryButtonLabel: () => `Re-enviar comunicado`,
+    primaryButtonVariant: 'ghost' as const,
+  },
+} as const
