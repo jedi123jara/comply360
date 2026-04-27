@@ -154,13 +154,15 @@ export default function NuevoTrabajadorPage() {
       const res = await fetch(`/api/integrations/reniec/consulta-dni?dni=${dni}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        setDniLookupStatus('error')
-        // Si NO_TOKEN (provider sin configurar), no asustar — silenciar.
+        // Si NO_TOKEN (provider sin configurar), avisar suave en lugar de silenciar.
+        // Antes silenciábamos 100% lo que parecía un bug ("escribo DNI y no pasa nada").
+        // Ahora indicamos claramente que el auto-fill no está activo, sin asustar.
         if (err.code === 'NO_TOKEN') {
-          setDniLookupMessage('')
           setDniLookupStatus('idle')
+          setDniLookupMessage('Auto-completado de DNI no activado — escribe los datos a mano')
           return
         }
+        setDniLookupStatus('error')
         // Mensajes amigables — nunca exponer "apiperu.dev HTTP 401" o similar
         // al usuario final (eso son detalles internos del provider).
         const FRIENDLY_ERRORS: Record<string, string> = {
@@ -480,7 +482,9 @@ export default function NuevoTrabajadorPage() {
                 {dniLookupMessage && (
                   <p className={cn(
                     'text-xs mt-1',
-                    dniLookupStatus === 'success' ? 'text-green-600' : 'text-red-500'
+                    dniLookupStatus === 'success' && 'text-green-600',
+                    dniLookupStatus === 'error' && 'text-red-500',
+                    dniLookupStatus === 'idle' && 'text-slate-500',
                   )}>
                     {dniLookupMessage}
                   </p>
