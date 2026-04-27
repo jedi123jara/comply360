@@ -30,18 +30,21 @@ export interface CulqiPlan {
  * ENTERPRISE NO está acá: es contact-sales con pricing customizado + contrato anual.
  * Si quieres facturar un Enterprise estándar, copiar PRO y subir precio a 129900 centimos.
  */
-// ENTERPRISE excluido porque es contact-sales (no Culqi-charged). Ver /dashboard/planes que redirige a WhatsApp
+// FREE y ENTERPRISE excluidos:
+//  - FREE: $0, no requiere Culqi.
+//  - ENTERPRISE: contact-sales (precio negociado caso por caso). El UI
+//    redirige a WhatsApp/email para cotizar — ver /dashboard/planes.
 export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan> = {
   STARTER: {
     key: 'STARTER',
     name: 'Starter',
-    priceInCentimos: 14900,
-    priceDisplay: 149,
+    priceInCentimos: 19900,
+    priceDisplay: 199,
     currency: 'PEN',
     interval: 'month',
     description: 'Gestor de planilla + calculadoras. Para MYPEs que arrancan su compliance.',
     features: [
-      'Hasta 20 trabajadores',
+      'Hasta 20 trabajadores (S/12 por trabajador adicional)',
       'Gestor de planilla + legajo digital',
       '13 calculadoras peruanas',
       'Alertas de vencimientos',
@@ -53,14 +56,14 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
   EMPRESA: {
     key: 'EMPRESA',
     name: 'Empresa',
-    priceInCentimos: 34900,
-    priceDisplay: 349,
+    priceInCentimos: 59900,
+    priceDisplay: 599,
     currency: 'PEN',
     interval: 'month',
     description: 'Compliance SUNAFIL completo para pequeñas empresas.',
     highlighted: true,
     features: [
-      'Hasta 100 trabajadores',
+      'Hasta 100 trabajadores (S/8 por trabajador adicional)',
       'Todo del plan Starter',
       'Diagnóstico SUNAFIL 135 preguntas',
       'Simulacro de inspección básico',
@@ -73,13 +76,13 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
   PRO: {
     key: 'PRO',
     name: 'Pro',
-    priceInCentimos: 79900,
-    priceDisplay: 799,
+    priceInCentimos: 149900,
+    priceDisplay: 1499,
     currency: 'PEN',
     interval: 'month',
     description: 'IA + portal biométrico para medianas empresas.',
     features: [
-      'Hasta 300 trabajadores',
+      'Hasta 300 trabajadores (S/5 por trabajador adicional)',
       'Todo del plan Empresa',
       'Asistente IA (copilot)',
       'Auto-verificación de documentos con IA Vision',
@@ -91,6 +94,25 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
       'SST integral',
       '15 usuarios admin',
       'Soporte dedicado',
+    ],
+  },
+  BUSINESS: {
+    key: 'BUSINESS',
+    name: 'Business',
+    priceInCentimos: 399900,
+    priceDisplay: 3999,
+    currency: 'PEN',
+    interval: 'month',
+    description: 'Multi-empresa + cuota IA ampliada para empresas grandes.',
+    features: [
+      'Hasta 750 trabajadores (S/4 por trabajador adicional)',
+      'Todo del plan Pro',
+      'Multi-empresa básico (hasta 3 sucursales)',
+      'Cuota IA ampliada (5,000 consultas/mes)',
+      'Onboarding asistido',
+      'Soporte prioritario < 8h',
+      '30 usuarios admin',
+      'Reportes consolidados multi-empresa',
     ],
   },
 }

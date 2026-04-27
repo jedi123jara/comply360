@@ -27,6 +27,13 @@ export type PlanFeature =
   | 'api_access'
   | 'gamificacion'
   | 'attendance_selfie'
+  | 'multi_empresa'        // Holding básico (BUSINESS+) o ilimitado (ENTERPRISE)
+  | 'reportes_consolidados' // Reportes cross-empresa
+  | 'csm_dedicado'         // Customer Success Manager
+  | 'sla_garantizado'      // SLA 99.9% con créditos
+  | 'webhooks_salientes'   // Webhooks API
+  | 'white_label'          // Branding white-label
+  | 'integracion_planilla' // Integración con Buk, Ofisis, etc.
 
 export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
   FREE: ['calculadoras'],
@@ -68,6 +75,53 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'gamificacion',
     'attendance_selfie',
   ],
+  BUSINESS: [
+    'calculadoras',
+    'workers',
+    'alertas_basicas',
+    'calendario',
+    'contratos',
+    'diagnostico',
+    'simulacro_basico',
+    'reportes_pdf',
+    'ia_contratos',
+    'asistente_ia',
+    'review_ia',
+    'simulacro_completo',
+    'denuncias',
+    'sst_completo',
+    'api_access',
+    'gamificacion',
+    'attendance_selfie',
+    'multi_empresa',
+    'reportes_consolidados',
+  ],
+  ENTERPRISE: [
+    'calculadoras',
+    'workers',
+    'alertas_basicas',
+    'calendario',
+    'contratos',
+    'diagnostico',
+    'simulacro_basico',
+    'reportes_pdf',
+    'ia_contratos',
+    'asistente_ia',
+    'review_ia',
+    'simulacro_completo',
+    'denuncias',
+    'sst_completo',
+    'api_access',
+    'gamificacion',
+    'attendance_selfie',
+    'multi_empresa',
+    'reportes_consolidados',
+    'csm_dedicado',
+    'sla_garantizado',
+    'webhooks_salientes',
+    'white_label',
+    'integracion_planilla',
+  ],
 }
 
 /**
@@ -93,6 +147,13 @@ export const FEATURE_MIN_PLAN: Record<PlanFeature, string> = {
   sst_completo: 'PRO',
   api_access: 'PRO',
   attendance_selfie: 'PRO',
+  multi_empresa: 'BUSINESS',
+  reportes_consolidados: 'BUSINESS',
+  csm_dedicado: 'ENTERPRISE',
+  sla_garantizado: 'ENTERPRISE',
+  webhooks_salientes: 'ENTERPRISE',
+  white_label: 'ENTERPRISE',
+  integracion_planilla: 'ENTERPRISE',
 }
 
 /**

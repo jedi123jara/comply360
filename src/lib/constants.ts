@@ -29,6 +29,21 @@ export const APP_NAME = "COMPLY360" as const;
  * conservan el precio anterior hasta esa fecha. Implementado en
  * `Subscription.pricingFrozenUntil` (campo nullable Prisma).
  */
+/**
+ * Estructura de planes 2026 con per-seat overflow.
+ *
+ * Modelo híbrido: cada tier tiene precio base con N workers incluidos.
+ * Cuando el cliente excede maxWorkers debería pagar overflow per-seat
+ * (extraPerWorkerSoles) — la facturación de overflow se implementa en
+ * Sprint 8+ vía cron mensual que recomputa el monto.
+ *
+ * ENTERPRISE NO tiene precio fijo: es contact-sales (`isCustomQuote: true`).
+ * Esto evita regalar valor a empresas grandes (ej. 5,000 workers no pueden
+ * pagar el mismo flat de S/3,499 que paga uno con 1,000 workers).
+ *
+ * Política de grandfather: clientes activos con `pricingFrozenUntil > now`
+ * conservan precio anterior 12 meses. Implementado en Subscription.
+ */
 export const PLANS = {
   FREE: {
     key: "FREE",
@@ -39,24 +54,29 @@ export const PLANS = {
     interval: "month" as const,
     maxWorkers: 5,
     maxUsers: 1,
+    extraPerWorkerSoles: 0,
+    isCustomQuote: false,
     features: [
       "Hasta 5 trabajadores (demo)",
       "13 calculadoras laborales peruanas",
       "Diagnóstico gratis 10 preguntas",
-      "1 usuario",
+      "1 usuario admin",
+      "Sin tarjeta de crédito",
     ],
   },
   STARTER: {
     key: "STARTER",
     name: "Starter",
-    price: 149,
-    priceInCentimos: 14900,
+    price: 199,
+    priceInCentimos: 19900,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 20,
     maxUsers: 2,
+    extraPerWorkerSoles: 12,
+    isCustomQuote: false,
     features: [
-      "Hasta 20 trabajadores",
+      "Hasta 20 trabajadores (S/12 por trabajador adicional)",
       "Gestor de planilla + legajo digital",
       "13 calculadoras completas (CTS, gratificación, vacaciones, liquidación)",
       "Alertas normativas y de vencimientos",
@@ -68,14 +88,16 @@ export const PLANS = {
   EMPRESA: {
     key: "EMPRESA",
     name: "Empresa",
-    price: 349,
-    priceInCentimos: 34900,
+    price: 599,
+    priceInCentimos: 59900,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 100,
     maxUsers: 5,
+    extraPerWorkerSoles: 8,
+    isCustomQuote: false,
     features: [
-      "Hasta 100 trabajadores",
+      "Hasta 100 trabajadores (S/8 por trabajador adicional)",
       "Todo del plan Starter",
       "Diagnóstico SUNAFIL completo (135 preguntas)",
       "Simulacro de inspección básico",
@@ -89,14 +111,16 @@ export const PLANS = {
   PRO: {
     key: "PRO",
     name: "Pro",
-    price: 799,
-    priceInCentimos: 79900,
+    price: 1499,
+    priceInCentimos: 149900,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 300,
     maxUsers: 15,
+    extraPerWorkerSoles: 5,
+    isCustomQuote: false,
     features: [
-      "Hasta 300 trabajadores",
+      "Hasta 300 trabajadores (S/5 por trabajador adicional)",
       "Todo del plan Empresa",
       "Asistente IA laboral peruano (copilot)",
       "Auto-verificación de documentos con IA Vision",
@@ -110,27 +134,55 @@ export const PLANS = {
       "Soporte dedicado en horario laboral",
     ],
   },
+  BUSINESS: {
+    key: "BUSINESS",
+    name: "Business",
+    price: 3999,
+    priceInCentimos: 399900,
+    currency: "PEN",
+    interval: "month" as const,
+    maxWorkers: 750,
+    maxUsers: 30,
+    extraPerWorkerSoles: 4,
+    isCustomQuote: false,
+    features: [
+      "Hasta 750 trabajadores (S/4 por trabajador adicional)",
+      "Todo del plan Pro",
+      "Multi-empresa básico (hasta 3 sucursales o RUCs hermanos)",
+      "Cuota IA ampliada (5,000 consultas/mes)",
+      "Onboarding asistido (1 sesión guiada con tu equipo)",
+      "Soporte prioritario respuesta < 8h horario laboral",
+      "30 usuarios admin",
+      "Reportes consolidados multi-empresa",
+    ],
+  },
   ENTERPRISE: {
     key: "ENTERPRISE",
     name: "Enterprise",
-    price: 1299,
-    priceInCentimos: 129900,
+    // price=0 + isCustomQuote=true → UI muestra "Cotizar" en lugar de S/0.
+    // El precio real se acuerda en sales call. Negociación típica:
+    // S/15,000–60,000/mes según workers + features + SLA.
+    price: 0,
+    priceInCentimos: 0,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 999999,
     maxUsers: 999999,
+    extraPerWorkerSoles: 0,
+    isCustomQuote: true,
     features: [
-      "Trabajadores ilimitados",
-      "Todo del plan Pro",
-      "SLA 99.5% uptime garantizado",
-      "Multi-cuenta para estudios contables (companías secundarias)",
+      "Para empresas con +1,000 trabajadores u holdings",
+      "Todo del plan Business",
+      "Multi-tenant ilimitado (holdings con N empresas hermanas)",
       "API REST v1 + webhooks salientes",
+      "SLA 99.9% uptime con créditos por incumplimiento",
       "Customer Success Manager dedicado",
-      "Onboarding guiado + capacitación de equipo",
+      "Cuota IA ilimitada",
       "Data Processing Agreement (DPA) personalizado",
       "Integración con planilla externa (Buk, Ofisis, Starsoft)",
-      "Usuarios ilimitados",
+      "Branding white-label opcional",
       "Soporte 24/7 con tiempo de respuesta < 4h",
+      "Usuarios admin ilimitados",
     ],
   },
 } as const;

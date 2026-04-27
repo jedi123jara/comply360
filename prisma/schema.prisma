@@ -91,6 +91,7 @@ enum Plan {
   STARTER
   EMPRESA
   PRO
+  BUSINESS
   ENTERPRISE
 }
 

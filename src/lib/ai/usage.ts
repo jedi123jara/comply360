@@ -97,6 +97,7 @@ const MONTHLY_BUDGET_BY_PLAN: Record<string, number> = {
   STARTER: 5,
   EMPRESA: 25,
   PRO: 100,
+  BUSINESS: 250,    // Cuota IA ampliada — coherente con feature listada en plan
   ENTERPRISE: 500,
 }
 

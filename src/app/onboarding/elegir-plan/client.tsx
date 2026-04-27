@@ -22,12 +22,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Sparkles, Building2, Zap, Rocket, Star, ArrowRight, CreditCard, Clock, Loader2 } from 'lucide-react'
+import { Check, Sparkles, Building2, Zap, Rocket, Star, ArrowRight, CreditCard, Clock, Loader2, Gem, MessageCircle } from 'lucide-react'
 import { PLANS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/sonner-toaster'
 
-type PaidPlan = 'STARTER' | 'EMPRESA' | 'PRO'
+type PaidPlan = 'STARTER' | 'EMPRESA' | 'PRO' | 'BUSINESS'
 type PlanKey = 'FREE' | PaidPlan | 'ENTERPRISE'
 
 interface Props {
@@ -45,20 +45,30 @@ const PLAN_META: Record<PlanKey, {
   STARTER: { icon: Building2, tagline: 'Ideal para MYPE de hasta 20 trabajadores', cta: 'Iniciar 14 días gratis' },
   EMPRESA: { icon: Zap, tagline: 'El plan más elegido — compliance completo', cta: 'Iniciar 14 días gratis' },
   PRO: { icon: Rocket, tagline: 'Para empresas que escalan con IA', cta: 'Iniciar 14 días gratis' },
-  ENTERPRISE: { icon: Sparkles, tagline: 'Para holdings + estudios contables', cta: 'Hablar con ventas' },
+  BUSINESS: { icon: Gem, tagline: 'Multi-empresa + soporte para empresas grandes', cta: 'Iniciar 14 días gratis' },
+  ENTERPRISE: { icon: Sparkles, tagline: 'Holdings, gobierno y +1,000 trabajadores', cta: 'Solicitar cotización' },
 }
 
-const ORDER: PlanKey[] = ['FREE', 'STARTER', 'EMPRESA', 'PRO']
+const ORDER: PlanKey[] = ['FREE', 'STARTER', 'EMPRESA', 'PRO', 'BUSINESS']
+
+// WhatsApp de ventas para ENTERPRISE — mismo que /planes
+const SALES_WHATSAPP_NUMBER = '51999999999'
 
 /**
  * Recomienda el plan basado en sizeRange del onboarding.
- * Si el usuario marcó "200+", recomienda PRO porque la ventaja es la IA.
+ * Mapping:
+ *   1-10 → STARTER (MYPE)
+ *   11-100 → EMPRESA
+ *   101-300 → PRO (la IA sale a cuenta)
+ *   301-750 → BUSINESS (multi-empresa)
+ *   750+ → ENTERPRISE (custom — UX te muestra "Cotizar")
  */
 function recommendPlan(sizeRange: string | null): PlanKey {
   if (!sizeRange) return 'EMPRESA'
   if (sizeRange === '1-10') return 'STARTER'
   if (sizeRange === '11-50' || sizeRange === '51-100') return 'EMPRESA'
-  if (sizeRange === '101-200' || sizeRange === '200+') return 'PRO'
+  if (sizeRange === '101-200') return 'PRO'
+  if (sizeRange === '200+') return 'BUSINESS'
   return 'EMPRESA'
 }
 
@@ -145,8 +155,8 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
           ) : null}
         </div>
 
-        {/* Plan grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Plan grid — 5 cards (FREE | STARTER | EMPRESA ★ | PRO | BUSINESS) */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {ORDER.map((key) => {
             const plan = PLANS[key]
             const meta = PLAN_META[key]
@@ -258,18 +268,38 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
           })}
         </div>
 
-        {/* Enterprise link */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-slate-600">
-            ¿Más de 300 trabajadores o necesitas multi-empresa, API o SLA?{' '}
+        {/* Enterprise — card grande dedicada con CTA "Cotizar" */}
+        <div className="mt-8 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-6 sm:p-8 ring-1 ring-amber-500/30">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 ring-1 ring-amber-500/40">
+              <Sparkles className="h-6 w-6 text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg sm:text-xl font-bold">Enterprise</h3>
+                <span className="rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ring-1 ring-amber-500/40">
+                  Custom · Cotizar
+                </span>
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Para empresas con <strong className="text-white">+1,000 trabajadores</strong>, holdings con
+                múltiples RUCs, gobierno, banca o cualquier organización que necesite SLA garantizado,
+                API REST, multi-tenant ilimitado, Customer Success Manager dedicado y branding white-label.
+              </p>
+              <p className="text-xs text-slate-400 mt-2">
+                Te respondemos por WhatsApp en menos de 4 horas hábiles.
+              </p>
+            </div>
             <Link
-              href="https://wa.me/51999999999?text=Hola%20Comply360%2C%20me%20interesa%20el%20plan%20Enterprise"
+              href={`https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Comply360, soy ${orgName} y me interesa el plan Enterprise. Tenemos aprox ____ trabajadores.`)}`}
               target="_blank"
-              className="text-emerald-700 font-semibold underline underline-offset-2 hover:text-emerald-800"
+              className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-semibold text-sm px-5 py-3 transition-colors w-full sm:w-auto"
             >
-              Hablar con ventas <ArrowRight className="inline w-3.5 h-3.5" />
+              <MessageCircle className="w-4 h-4" />
+              Solicitar cotización
+              <ArrowRight className="w-4 h-4" />
             </Link>
-          </p>
+          </div>
         </div>
 
         {/* Trust strip */}
