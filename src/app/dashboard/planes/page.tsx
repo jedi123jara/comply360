@@ -287,18 +287,18 @@ export default function PlanesPage() {
                       }`}
                     />
                   </div>
-                  <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-                  <p className="mt-1 text-xs text-gray-500">{plan.description}</p>
+                  <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
+                  <p className="mt-1 text-xs text-slate-500">{plan.description}</p>
                 </div>
 
                 {/* Price */}
                 <div className="mb-6 text-center">
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-sm font-medium text-gray-500">{plan.currency}</span>
-                    <span className="text-4xl font-extrabold text-white">{plan.price}</span>
-                    <span className="text-sm text-gray-500">/mes</span>
+                    <span className="text-sm font-medium text-slate-500">{plan.currency}</span>
+                    <span className="text-4xl font-extrabold text-slate-900">{plan.price}</span>
+                    <span className="text-sm text-slate-500">/mes</span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-slate-500">
                     + IGV ({plan.currency} {(plan.price * IGV_RATE).toFixed(2)})
                   </p>
                 </div>
@@ -348,22 +348,22 @@ export default function PlanesPage() {
 
       {/* ---- Feature comparison table ---- */}
       <div>
-        <h2 className="mb-4 text-lg font-bold text-white">Comparacion detallada</h2>
+        <h2 className="mb-4 text-lg font-bold text-slate-900">Comparacion detallada</h2>
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.06]">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                <tr className="border-b border-slate-200">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
                     Funcionalidad
                   </th>
-                  <th className="px-4 py-4 text-center text-sm font-semibold text-white">
+                  <th className="px-4 py-4 text-center text-sm font-semibold text-slate-900">
                     Starter
                   </th>
                   <th className="px-4 py-4 text-center text-sm font-semibold text-gold">
                     Empresa
                   </th>
-                  <th className="px-4 py-4 text-center text-sm font-semibold text-white">
+                  <th className="px-4 py-4 text-center text-sm font-semibold text-slate-900">
                     Pro
                   </th>
                 </tr>
@@ -394,7 +394,7 @@ export default function PlanesPage() {
 
       {/* ---- FAQ section ---- */}
       <div>
-        <h2 className="mb-4 text-lg font-bold text-white">Preguntas frecuentes</h2>
+        <h2 className="mb-4 text-lg font-bold text-slate-900">Preguntas frecuentes</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <FaqCard
             question="Puedo cambiar de plan en cualquier momento?"
@@ -422,8 +422,8 @@ export default function PlanesPage() {
             <MessageCircle className="h-7 w-7 text-gold" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-white">Necesitas un plan personalizado?</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="text-lg font-bold text-slate-900">Necesitas un plan personalizado?</h3>
+            <p className="mt-1 text-sm text-slate-600">
               Para empresas con mas de 200 trabajadores o necesidades especificas,
               contactanos para un plan a medida.
             </p>
@@ -486,8 +486,8 @@ function FaqCard({ question, answer }: { question: string; answer: string }) {
   return (
     <Card>
       <div className="p-4">
-        <h4 className="text-sm font-bold text-white">{question}</h4>
-        <p className="mt-1 text-sm text-gray-500">{answer}</p>
+        <h4 className="text-sm font-bold text-slate-900">{question}</h4>
+        <p className="mt-1 text-sm text-slate-600">{answer}</p>
       </div>
     </Card>
   )

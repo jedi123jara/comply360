@@ -200,13 +200,17 @@ export function AIActionPlanCard({ diagnosticId }: { diagnosticId: string }) {
   if (!plan) return null
 
   // ─── Plan loaded — header + tareas + footer ─────────────────────────────
+  // Defensive: la API podría devolver tareas no-array o sin proyeccionScore
+  // (especialmente si responde el modo simulado degradado o un edge case).
+  const safeTareas = Array.isArray(plan.tareas) ? plan.tareas : []
+  const safeProyeccion = plan.proyeccionScore ?? { actual: 0, estimadoTrasPlan: 0, incremento: 0 }
   const totalCompleted = completedIds.size
-  const totalTareas = plan.tareas.length
+  const totalTareas = safeTareas.length
   const progresoPct = totalTareas > 0 ? Math.round((totalCompleted / totalTareas) * 100) : 0
-  const incrementoCompletado = plan.tareas
+  const incrementoCompletado = safeTareas
     .filter(t => completedIds.has(t.id))
-    .reduce((acc, t) => acc + t.impactoScore, 0)
-  const scoreEstimado = Math.min(100, plan.proyeccionScore.actual + incrementoCompletado)
+    .reduce((acc, t) => acc + (t.impactoScore ?? 0), 0)
+  const scoreEstimado = Math.min(100, (safeProyeccion.actual ?? 0) + incrementoCompletado)
   const isSimulated = plan.generadoPor === 'simulated'
 
   return (
@@ -271,22 +275,22 @@ export function AIActionPlanCard({ diagnosticId }: { diagnosticId: string }) {
           />
           <StatCard
             label="Score actual"
-            value={String(plan.proyeccionScore.actual)}
+            value={String(safeProyeccion.actual ?? 0)}
             suffix="/100"
             color="slate"
             icon={<TrendingUp className="h-3.5 w-3.5" />}
           />
           <StatCard
             label="Score proyectado"
-            value={String(plan.proyeccionScore.estimadoTrasPlan)}
+            value={String(safeProyeccion.estimadoTrasPlan ?? 0)}
             suffix="/100"
-            badge={`+${plan.proyeccionScore.incremento} pts`}
+            badge={`+${safeProyeccion.incremento ?? 0} pts`}
             color="emerald"
             icon={<Zap className="h-3.5 w-3.5" />}
           />
           <StatCard
             label="Multa evitada"
-            value={`S/ ${plan.multaEvitadaTotal.toLocaleString('es-PE')}`}
+            value={`S/ ${(plan.multaEvitadaTotal ?? 0).toLocaleString('es-PE')}`}
             color="emerald"
             icon={<ShieldAlert className="h-3.5 w-3.5" />}
             small
@@ -315,11 +319,12 @@ export function AIActionPlanCard({ diagnosticId }: { diagnosticId: string }) {
 
       {/* Lista de tareas */}
       <div className="space-y-3">
-        {plan.tareas.map((task, idx) => {
+        {safeTareas.map((task, idx) => {
           const done = completedIds.has(task.id)
           const expanded = expandedTask === task.id
-          const prio = PRIORIDAD_STYLE[task.prioridad]
-          const resp = RESPONSABLE_LABEL[task.responsable]
+          // Defensive: si la API devuelve prioridad/responsable inesperado, usar fallback
+          const prio = PRIORIDAD_STYLE[task.prioridad] ?? PRIORIDAD_STYLE.MEDIA
+          const resp = RESPONSABLE_LABEL[task.responsable] ?? RESPONSABLE_LABEL.RRHH
 
           return (
             <div
