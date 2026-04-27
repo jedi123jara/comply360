@@ -21,7 +21,22 @@ import { PageHeader } from '@/components/comply360/editorial-title'
 // Types
 // =============================================
 
-type EventCategory = 'feriado' | 'cts' | 'gratificacion' | 'afp' | 'tregistro' | 'contrato' | 'sst' | 'cumpleanos' | 'alerta'
+type EventCategory =
+  | 'feriado'
+  | 'cts'
+  | 'gratificacion'
+  | 'afp'
+  | 'tregistro'
+  | 'contrato'
+  | 'sst'
+  | 'cumpleanos'
+  | 'alerta'
+  // Idea 2 Sprint 9 — categorías nuevas
+  | 'aniversario'
+  | 'prueba'
+  | 'vacaciones'
+  | 'firma'
+  | 'capacitacion'
 
 interface CalendarEvent {
   id: string
@@ -100,6 +115,42 @@ const CATEGORY_STYLES: Record<EventCategory, { bg: string; text: string; border:
     dot: 'bg-red-500',
     badge: 'bg-red-500/20 text-red-400 border-red-500/30',
   },
+  // Categorías nuevas Sprint 9
+  aniversario: {
+    bg: 'bg-fuchsia-50',
+    text: 'text-fuchsia-700',
+    border: 'border-fuchsia-200',
+    dot: 'bg-fuchsia-500',
+    badge: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+  },
+  prueba: {
+    bg: 'bg-cyan-50',
+    text: 'text-cyan-700',
+    border: 'border-cyan-200',
+    dot: 'bg-cyan-500',
+    badge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  },
+  vacaciones: {
+    bg: 'bg-teal-50',
+    text: 'text-teal-700',
+    border: 'border-teal-200',
+    dot: 'bg-teal-500',
+    badge: 'bg-teal-50 text-teal-700 border-teal-200',
+  },
+  firma: {
+    bg: 'bg-violet-50',
+    text: 'text-violet-700',
+    border: 'border-violet-200',
+    dot: 'bg-violet-500',
+    badge: 'bg-violet-50 text-violet-700 border-violet-200',
+  },
+  capacitacion: {
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    border: 'border-indigo-200',
+    dot: 'bg-indigo-500',
+    badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  },
 }
 
 const CATEGORY_LABELS: Record<EventCategory, string> = {
@@ -112,6 +163,11 @@ const CATEGORY_LABELS: Record<EventCategory, string> = {
   sst: 'SST',
   cumpleanos: 'Cumpleaños',
   alerta: 'Alertas',
+  aniversario: 'Aniversarios',
+  prueba: 'Período prueba',
+  vacaciones: 'Vacaciones',
+  firma: 'Plazos firma',
+  capacitacion: 'Capacitaciones',
 }
 
 const CATEGORY_ICONS: Record<EventCategory, typeof CalendarIcon> = {
@@ -124,6 +180,11 @@ const CATEGORY_ICONS: Record<EventCategory, typeof CalendarIcon> = {
   sst: Shield,
   cumpleanos: Gift,
   alerta: Info,
+  aniversario: Gift,
+  prueba: Clock,
+  vacaciones: CalendarIcon,
+  firma: FileText,
+  capacitacion: Shield,
 }
 
 const DAYS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -237,7 +298,12 @@ export default function CalendarioPage() {
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [activeFilters, setActiveFilters] = useState<Set<EventCategory>>(
-    new Set(['feriado', 'cts', 'gratificacion', 'afp', 'tregistro', 'contrato', 'sst', 'cumpleanos', 'alerta'])
+    new Set([
+      'feriado', 'cts', 'gratificacion', 'afp', 'tregistro', 'contrato', 'sst',
+      'cumpleanos', 'alerta',
+      // Categorías nuevas Sprint 9 — todas activas por default
+      'aniversario', 'prueba', 'vacaciones', 'firma', 'capacitacion',
+    ])
   )
   const [hoveredDate, setHoveredDate] = useState<string | null>(null)
 
@@ -256,6 +322,12 @@ export default function CalendarioPage() {
           SST: 'sst',
           BIRTHDAY: 'cumpleanos',
           ALERT: 'alerta',
+          // Tipos nuevos Sprint 9 (Idea 2 Fase 1)
+          WORKER_ANNIVERSARY: 'aniversario',
+          PROBATION_END: 'prueba',
+          VACATION: 'vacaciones',
+          ACK_DEADLINE: 'firma',
+          CAPACITACION: 'capacitacion',
           // LEGAL is already in static events — skip to avoid duplicates
         }
         const mapped = (data.data ?? [])
@@ -343,12 +415,16 @@ export default function CalendarioPage() {
   // Events for selected date
   const selectedEvents = selectedDate ? (eventsByDate.get(selectedDate) || []) : []
 
-  // Upcoming events (next 5 from today)
+  // Upcoming events (next 30 days from today, hasta 15 items)
   const upcomingEvents = useMemo(() => {
+    // Calcular fecha de corte +30 días
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() + 30)
+    const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
     return filteredEvents
-      .filter((e) => e.date >= todayStr)
+      .filter((e) => e.date >= todayStr && e.date <= cutoffStr)
       .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(0, 5)
+      .slice(0, 15)
   }, [filteredEvents, todayStr])
 
   // Month events count
@@ -636,7 +712,12 @@ export default function CalendarioPage() {
           <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
             <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-4 flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-500" />
-              Próximos Eventos
+              Próximos 30 días
+              {upcomingEvents.length > 0 && (
+                <span className="ml-auto text-xs font-normal text-slate-500">
+                  {upcomingEvents.length} evento{upcomingEvents.length === 1 ? '' : 's'}
+                </span>
+              )}
             </h3>
             {upcomingEvents.length === 0 ? (
               <div className="flex flex-col items-center py-6 text-[color:var(--text-tertiary)]">
