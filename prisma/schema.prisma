@@ -56,6 +56,7 @@ model Organization {
   payslips               Payslip[]
   workerRequests         WorkerRequest[]
   documents              OrgDocument[]
+  documentAcknowledgments DocumentAcknowledgment[]
   serviceProviders       ServiceProvider[]
   rhInvoices             RhInvoice[]
   inspecciones           InspeccionEnVivo[]
@@ -241,6 +242,7 @@ model Worker {
   payslips        Payslip[]
   requests        WorkerRequest[]
   ceseRecord      CeseRecord?
+  acknowledgments DocumentAcknowledgment[]
 
   @@unique([orgId, dni])
   @@index([orgId, status])
@@ -1436,11 +1438,65 @@ model OrgDocument {
   createdAt            DateTime   @default(now()) @map("created_at")
   updatedAt            DateTime   @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [orgId], references: [id])
+  // ─── Acknowledgment system (Idea 1 — auto-notify workers) ───────────────
+  // Si true, cuando el doc se actualiza (version bump) → notifica a todos
+  // los workers activos y exige acuse de recibo con valor legal SUNAFIL.
+  acknowledgmentRequired      Boolean   @default(false) @map("ack_required")
+  // Días que el worker tiene para firmar antes de escalar al admin (null = sin deadline)
+  acknowledgmentDeadlineDays  Int?      @map("ack_deadline_days")
+  // Filtro JSON para limitar quién debe firmar (null = todos los workers activos)
+  // Ej: { "regimen": ["GENERAL", "MYPE_PEQUENA"] } excluye CAS / modalidad formativa
+  scopeFilter                 Json?     @map("scope_filter")
+  // Última vez que se envió notificación batch — para throttling (max 1/semana)
+  lastNotifiedAt              DateTime? @map("last_notified_at")
+
+  organization     Organization              @relation(fields: [orgId], references: [id])
+  acknowledgments  DocumentAcknowledgment[]
 
   @@index([orgId, type])
   @@index([orgId, isPublishedToWorkers])
   @@map("org_documents")
+}
+
+/**
+ * DocumentAcknowledgment — acuse de recibo del trabajador para una versión
+ * específica de un OrgDocument (RIT, Política SST, Política Hostigamiento, etc.).
+ *
+ * Diseñado para defensa legal SUNAFIL bajo Ley 27269 (firma electrónica):
+ *   - documentVersion garantiza trazabilidad exacta de qué texto firmó
+ *   - signatureMethod soporta SIMPLE | BIOMETRIC | OTP_EMAIL
+ *   - signatureProof guarda metadata específica del método (credentialId, etc.)
+ *   - ip + userAgent + scrolledToEnd + readingTimeMs = evidencia de lectura genuina
+ *
+ * Uno por (worker, doc, version) — si admin actualiza la versión, worker
+ * debe firmar de nuevo.
+ */
+model DocumentAcknowledgment {
+  id              String   @id @default(cuid())
+  orgId           String   @map("org_id")
+  workerId        String   @map("worker_id")
+  documentId      String   @map("document_id")
+  documentVersion Int      @map("document_version")
+  acknowledgedAt  DateTime @default(now()) @map("acknowledged_at")
+
+  // Métodos de firma (orden de fortaleza legal: SIMPLE < OTP_EMAIL < BIOMETRIC)
+  signatureMethod String   @map("signature_method")
+  signatureProof  Json?    @map("signature_proof")
+
+  // Evidencia técnica de lectura — para defensa en juicio
+  ip              String?
+  userAgent       String?  @map("user_agent")
+  scrolledToEnd   Boolean  @default(false) @map("scrolled_to_end")
+  readingTimeMs   Int?     @map("reading_time_ms")
+
+  worker          Worker      @relation(fields: [workerId], references: [id])
+  document        OrgDocument @relation(fields: [documentId], references: [id])
+  organization    Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([workerId, documentId, documentVersion])
+  @@index([orgId, documentId])
+  @@index([workerId, acknowledgedAt])
+  @@map("document_acknowledgments")
 }
 
 enum OrgDocType {
