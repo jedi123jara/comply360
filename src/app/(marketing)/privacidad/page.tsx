@@ -19,7 +19,7 @@ export default function PrivacidadPage() {
       <p>
         <strong>COMPLY360 S.A.C.</strong> (en adelante, &quot;Comply360&quot;), con domicilio
         fiscal en Lima, Perú, es el responsable del tratamiento de los datos personales
-        recolectados a través de la plataforma <a href="https://app.comply360.pe">app.comply360.pe</a>.
+        recolectados a través de la plataforma <a href="https://comply360.pe">comply360.pe</a>.
       </p>
       <p>
         Contacto del Encargado de Protección de Datos:{' '}

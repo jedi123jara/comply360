@@ -60,7 +60,7 @@ export const WEBAUTHN_STRICT_VERIFY = process.env.WEBAUTHN_STRICT_VERIFY === 'tr
  * sin port). En desarrollo localhost se permite.
  */
 function getRpConfig(): { rpName: string; rpID: string; origin: string } {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.comply360.pe'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe'
   const url = new URL(appUrl)
   return {
     rpName: 'COMPLY360',

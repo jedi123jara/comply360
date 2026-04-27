@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
         openComplaints: openComplaints as number,
         expiringSindical,
         weekDate: now.toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-        appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://app.comply360.pe',
+        appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://comply360.pe',
       })
 
       const ok = await sendEmail({

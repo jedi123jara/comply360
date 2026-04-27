@@ -140,7 +140,7 @@ describe('EmailProvider', () => {
       recipient: 'a@b.pe',
       title: 'Alerta',
       body: 'Texto plano\nsegunda línea',
-      actionUrl: 'https://app.comply360.pe/dashboard',
+      actionUrl: 'https://comply360.pe/dashboard',
     })
 
     const html = mockSendEmail.mock.calls[0][0].html as string
@@ -148,7 +148,7 @@ describe('EmailProvider', () => {
     expect(html).toContain('Alerta')
     expect(html).toContain('Texto plano')
     expect(html).toContain('segunda línea')
-    expect(html).toContain('href="https://app.comply360.pe/dashboard"')
+    expect(html).toContain('href="https://comply360.pe/dashboard"')
   })
 
   test('escapa HTML en title cuando body es texto plano (path wrap)', async () => {

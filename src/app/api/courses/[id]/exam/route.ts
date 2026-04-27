@@ -87,7 +87,7 @@ export const POST = withAuthParams<{ id: string }>(async (req, ctx, params) => {
         const year = new Date().getFullYear()
         const count = await prisma.certificate.count({ where: { orgId } })
         const code = `CERT-${year}-${String(count + 1).padStart(5, '0')}`
-        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.comply360.pe').replace(/\/$/, '')
+        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe').replace(/\/$/, '')
 
         const certificate = await prisma.certificate.create({
           data: {

@@ -36,7 +36,7 @@ export const GET = async (
     return NextResponse.json({ error: 'Certificado no encontrado' }, { status: 404 })
   }
 
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.comply360.pe').replace(/\/$/, '')
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe').replace(/\/$/, '')
   const verifyUrl = `${baseUrl}/verify/${code}`
 
   const png = await QRCode.toBuffer(verifyUrl, {

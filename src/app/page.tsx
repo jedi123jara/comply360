@@ -467,7 +467,7 @@ export default function LandingPage() {
                   <div className="flex-1 mx-4">
                     <div className="bg-white border border-gray-200 rounded-md px-3 py-1 text-xs text-gray-400 font-mono flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-green-500" />
-                      app.comply360.pe/dashboard
+                      comply360.pe/dashboard
                     </div>
                   </div>
                 </div>

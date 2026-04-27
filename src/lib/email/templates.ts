@@ -75,7 +75,7 @@ export function welcomeEmail(companyName: string): string {
       <li>Ejecutar el diagnostico de cumplimiento</li>
       <li>Configurar alertas automaticas de vencimientos</li>
     </ul>
-    ${ctaButton('Ir al Dashboard', 'https://app.comply360.pe/dashboard')}
+    ${ctaButton('Ir al Dashboard', 'https://comply360.pe/dashboard')}
     <p style="margin:0;color:#64748b;font-size:13px;">Si tiene consultas, responda a este correo o escribanos a soporte@comply360.pe.</p>
   `)
 }
@@ -98,7 +98,7 @@ export function alertEmail(alertTitle: string, alertDescription: string, dueDate
     <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.6;">
       Ingrese a la plataforma para revisar esta alerta y tomar las acciones necesarias antes de la fecha limite.
     </p>
-    ${ctaButton('Ver Alertas', 'https://app.comply360.pe/alertas')}
+    ${ctaButton('Ver Alertas', 'https://comply360.pe/alertas')}
     <p style="margin:0;color:#64748b;font-size:12px;">Puede configurar sus preferencias de notificacion en Configuracion &gt; Notificaciones.</p>
   `)
 }
@@ -141,7 +141,7 @@ export function weeklyDigest(stats: {
         </td>
       </tr>
     </table>
-    ${ctaButton('Ver Dashboard Completo', 'https://app.comply360.pe/dashboard')}
+    ${ctaButton('Ver Dashboard Completo', 'https://comply360.pe/dashboard')}
     <p style="margin:0;color:#64748b;font-size:12px;">Recibira este resumen cada lunes. Puede desactivarlo en Configuracion.</p>
   `)
 }
@@ -193,7 +193,7 @@ export function complaintNotification(complaintCode: string, complaintType: stri
     <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.6;">
       Ingrese al modulo de denuncias para revisar los detalles y asignar un responsable de investigacion.
     </p>
-    ${ctaButton('Gestionar Denuncia', 'https://app.comply360.pe/denuncias')}
+    ${ctaButton('Gestionar Denuncia', 'https://comply360.pe/denuncias')}
     <p style="margin:0;color:#64748b;font-size:12px;">Esta notificacion se envia automaticamente al correo de alertas registrado por su organizacion.</p>
   `)
 }
@@ -213,7 +213,7 @@ export interface WorkerOnboardingPayload {
 
 export function workerOnboardingEmail(payload: WorkerOnboardingPayload): string {
   const { workerName, orgName, documentsCount, pendingActions } = payload
-  const portalUrl = 'https://app.comply360.pe/mi-portal'
+  const portalUrl = 'https://comply360.pe/mi-portal'
   return layout(`
     <h2 style="margin:0 0 12px;color:${BRAND_BLUE};font-size:22px;">Bienvenido a bordo en ${orgName}</h2>
     <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6;">
@@ -274,8 +274,8 @@ export function morningBriefingEmail(payload: MorningBriefingPayload): string {
     upcomingDeadlines,
     multaEvitadaMes,
   } = payload
-  const dashboardUrl = 'https://app.comply360.pe/dashboard'
-  const alertsUrl = 'https://app.comply360.pe/dashboard/alertas'
+  const dashboardUrl = 'https://comply360.pe/dashboard'
+  const alertsUrl = 'https://comply360.pe/dashboard/alertas'
 
   const hoy = new Date().toLocaleDateString('es-PE', {
     weekday: 'long',

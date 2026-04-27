@@ -24,7 +24,7 @@ const OPENAPI = {
     license: { name: 'Proprietary' },
   },
   servers: [
-    { url: 'https://app.comply360.pe', description: 'Producción' },
+    { url: 'https://comply360.pe', description: 'Producción' },
     { url: 'http://localhost:3000', description: 'Desarrollo local' },
   ],
   security: [{ ApiKeyAuth: [] }],

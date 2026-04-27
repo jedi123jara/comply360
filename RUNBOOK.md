@@ -27,7 +27,7 @@ Entrar a `vercel.com` → proyecto `legaliapro-platform` → Settings → Enviro
 | `CLERK_SECRET_KEY` | `sk_live_...` | Clerk dashboard → API Keys (PROD) |
 | `JWT_SECRET` | 32+ caracteres random | Generar con `openssl rand -base64 32` |
 | `CRON_SECRET` | 32+ caracteres random | Generar con `openssl rand -base64 32` |
-| `NEXT_PUBLIC_APP_URL` | `https://app.comply360.pe` | Tu dominio con https |
+| `NEXT_PUBLIC_APP_URL` | `https://comply360.pe` | Tu dominio con https |
 
 **Muy recomendadas** (sin estas algunas features fallan silenciosamente):
 
@@ -80,7 +80,7 @@ Debe decir `🚀 Preflight OK`. Si dice `⛔`, corregí los `✗` que lista.
 ### 6. Apuntar dominio a Vercel (10 min)
 
 En Vercel → proyecto → Domains:
-- Agregar `app.comply360.pe`
+- Agregar `comply360.pe`
 - Vercel te da los DNS records (A + AAAA o CNAME)
 - Ponelos en tu proveedor de dominio (Haulmer/Cloudflare)
 - Esperar propagación DNS (5–30 min). Verificar en https://dnschecker.org
@@ -88,7 +88,7 @@ En Vercel → proyecto → Domains:
 ### 7. Configurar Clerk para tu dominio (10 min)
 
 Clerk dashboard → Domains → Add production domain:
-- `app.comply360.pe`
+- `comply360.pe`
 - Clerk te da un CNAME record → ponelo en tu DNS
 - Esperar verificación (5 min)
 
@@ -136,7 +136,7 @@ Si todavía no compraste, vas a necesitar:
 
 ### [0–5 min] Signup del admin
 
-1. Abrir `app.comply360.pe` en el celular o laptop de la empresa
+1. Abrir `comply360.pe` en el celular o laptop de la empresa
 2. Clic en **"Probar 14 días gratis"**
 3. Crear cuenta con el email del admin (Google SSO recomendado por velocidad)
 4. Verificar el email (llega de Clerk)

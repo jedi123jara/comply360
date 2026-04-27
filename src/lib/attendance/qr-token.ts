@@ -102,7 +102,7 @@ export function attendanceDeepLink(token: string, baseUrl?: string): string {
   const base =
     baseUrl ??
     process.env.NEXT_PUBLIC_APP_URL ??
-    'https://app.comply360.pe'
+    'https://comply360.pe'
   return `${base.replace(/\/$/, '')}/mi-portal/asistencia?t=${encodeURIComponent(token)}`
 }
 

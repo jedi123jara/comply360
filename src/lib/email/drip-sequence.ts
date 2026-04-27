@@ -14,7 +14,7 @@ import type { Lead } from '@/generated/prisma/client'
 const BRAND_BLUE = '#1e3a6e'
 const BRAND_LIGHT = '#f0f4fa'
 const CTA_BLUE = '#2563eb'
-const APP_URL = 'https://app.comply360.pe'
+const APP_URL = 'https://comply360.pe'
 
 export interface DripStage {
   /** Stage number (1-5) */

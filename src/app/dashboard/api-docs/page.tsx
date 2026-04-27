@@ -61,7 +61,7 @@ export default function ApiDocsPage() {
       <div className="rounded-2xl border border-gold-500/30 bg-gold-500/5 p-6">
         <h3 className="mb-2 font-semibold text-white">Ejemplo cURL</h3>
         <pre className="overflow-x-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-200">
-{`curl https://app.comply360.pe/api/v1/workers \\
+{`curl https://comply360.pe/api/v1/workers \\
   -H "X-API-Key: cmply_..."`}
         </pre>
       </div>

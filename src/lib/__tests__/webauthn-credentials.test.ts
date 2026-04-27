@@ -37,7 +37,7 @@ import {
   userHasStrongCredential,
 } from '../webauthn-credentials'
 
-const FAKE_RP_ID = 'app.comply360.pe'
+const FAKE_RP_ID = 'comply360.pe'
 beforeAll(() => {
   process.env.NEXT_PUBLIC_APP_URL = `https://${FAKE_RP_ID}`
 })

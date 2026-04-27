@@ -30,7 +30,7 @@ describe('Email Templates', () => {
     it('contains a CTA link to the dashboard', () => {
       const html = welcomeEmail('Test Inc')
       expect(html).toContain('Ir al Dashboard')
-      expect(html).toContain('https://app.comply360.pe/dashboard')
+      expect(html).toContain('https://comply360.pe/dashboard')
     })
   })
 
@@ -147,7 +147,7 @@ describe('Email Templates', () => {
     })
 
     it('contains a link to the worker portal', () => {
-      expect(workerOnboardingEmail(payload)).toContain('https://app.comply360.pe/mi-portal')
+      expect(workerOnboardingEmail(payload)).toContain('https://comply360.pe/mi-portal')
     })
   })
 
@@ -213,7 +213,7 @@ describe('Email Templates', () => {
         { action: 'contract.signed', count: 12 },
       ],
       narrative: ['MRR sube 10% m/m', 'Zero churn este mes'],
-      adminUrl: 'https://app.comply360.pe/admin',
+      adminUrl: 'https://comply360.pe/admin',
     }
 
     it('includes the date', () => {

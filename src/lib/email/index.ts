@@ -245,7 +245,7 @@ export async function sendPasswordResetEmail(
           <td style="padding:20px 32px;background-color:#f0f4fa;border-top:1px solid #e2e8f0;">
             <p style="margin:0;color:#64748b;font-size:12px;text-align:center;">
               &copy; ${new Date().getFullYear()} COMPLY360 — Cumplimiento laboral para Peru.<br>
-              <a href="https://app.comply360.pe/settings/notifications" style="color:#64748b;text-decoration:underline;">Gestionar preferencias de correo</a>
+              <a href="https://comply360.pe/settings/notifications" style="color:#64748b;text-decoration:underline;">Gestionar preferencias de correo</a>
             </p>
           </td>
         </tr>

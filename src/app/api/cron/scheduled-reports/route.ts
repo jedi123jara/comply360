@@ -86,7 +86,7 @@ async function runAndSendReport(reportId: string): Promise<void> {
   const report = await prisma.scheduledReport.findUnique({ where: { id: reportId } })
   if (!report || !report.active) return
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.comply360.pe').replace(/\/$/, '')
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe').replace(/\/$/, '')
 
   try {
     // Por ahora armamos un email con link a generar el reporte on-demand vs

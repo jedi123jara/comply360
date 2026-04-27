@@ -55,7 +55,7 @@ export default async function CertificadoPage({ params }: PageParams) {
   }
 
   const cert = enrollment.certificate
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.comply360.pe').replace(/\/$/, '')
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe').replace(/\/$/, '')
   const verifyUrl = `${baseUrl}/verify/${cert.code}`
   const qrUrl = `${baseUrl}/api/certificates/${cert.code}/qr`
 

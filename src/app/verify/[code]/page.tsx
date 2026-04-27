@@ -73,7 +73,7 @@ export default async function VerifyCertificatePage({ params }: PageParams) {
   })
 
   const expired = cert.expiresAt !== null && cert.expiresAt < new Date()
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.comply360.pe').replace(/\/$/, '')
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe').replace(/\/$/, '')
   const qrImageUrl = `${baseUrl}/api/certificates/${cert.code}/qr`
 
   return (
