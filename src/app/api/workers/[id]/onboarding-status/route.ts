@@ -67,8 +67,10 @@ export const GET = withAuth(async (_req, ctx) => {
   }
 
   // 3. ¿Cuántas WorkerRequest se le crearon (que aún no resolvió)?
+  // Enum WorkerRequestStatus está en español: PENDIENTE | EN_REVISION |
+  // APROBADA | RECHAZADA | CANCELADA. Las pendientes son PENDIENTE + EN_REVISION.
   const documentsRequested = await prisma.workerRequest.count({
-    where: { workerId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+    where: { workerId, status: { in: ['PENDIENTE', 'EN_REVISION'] } },
   }).catch(() => 0)
 
   return NextResponse.json({

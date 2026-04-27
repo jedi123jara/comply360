@@ -370,6 +370,19 @@ function MiniStat({
 }
 
 // ─── Configuración visual por estado ─────────────────────────────────────────
+/**
+ * Args unificados para el callback `description` de cada estado. TypeScript
+ * narrowing del Record literal exige que TODAS las funciones acepten el mismo
+ * tipo. Cada estado solo USA un subset, los demás los ignora.
+ */
+interface DescriptionArgs {
+  workerFirstName: string
+  email: string
+  invitationSentAt: string | null | undefined
+  legajoCompleteness: number
+  documentsRequested: number
+}
+
 function relativeTime(iso: string | null | undefined): string {
   if (!iso) return ''
   const ms = Date.now() - new Date(iso).getTime()
@@ -396,10 +409,10 @@ const STATUS_CONFIG = {
     badgeIcon: <Clock className="h-3 w-3" />,
     badgeLabel: 'Sin invitar',
     title: (n: string) => `Invita a ${n} a su portal personal`,
-    description: () =>
+    description: (_a: DescriptionArgs) =>
       'Le enviaremos un email con un enlace para crear su cuenta, completar sus datos personales (foto, dirección) y subir los documentos del legajo. Tú no tendrás que hacer nada — el trabajador lo hace solo desde su celular.',
     primaryButtonLabel: (n: string) => `Enviar invitación a ${n}`,
-    primaryButtonVariant: 'default' as const,
+    primaryButtonVariant: 'primary' as const,
   },
   invited_waiting: {
     icon: Mail,
@@ -413,8 +426,8 @@ const STATUS_CONFIG = {
     badgeIcon: <Mail className="h-3 w-3" />,
     badgeLabel: 'Invitación enviada',
     title: (n: string) => `Esperando que ${n} entre por primera vez`,
-    description: ({ invitationSentAt }: { invitationSentAt: string | null | undefined }) =>
-      `La invitación se envió ${relativeTime(invitationSentAt)}. El trabajador aún no abrió el link. Si pasaron varios días, considera re-enviarla o llamarle por teléfono.`,
+    description: (a: DescriptionArgs) =>
+      `La invitación se envió ${relativeTime(a.invitationSentAt)}. El trabajador aún no abrió el link. Si pasaron varios días, considera re-enviarla o llamarle por teléfono.`,
     primaryButtonLabel: (n: string) => `Re-enviar invitación a ${n}`,
     primaryButtonVariant: 'secondary' as const,
   },
@@ -430,8 +443,8 @@ const STATUS_CONFIG = {
     badgeIcon: <UserCheck className="h-3 w-3" />,
     badgeLabel: 'Ya entró — falta legajo',
     title: (n: string) => `${n} entró pero falta completar legajo`,
-    description: ({ legajoCompleteness, documentsRequested }: { legajoCompleteness: number; documentsRequested: number }) =>
-      `Su legajo está al ${legajoCompleteness}%. Hay ${documentsRequested} documentos pendientes que ya le pedimos. Puedes recordárselo enviando otro email.`,
+    description: (a: DescriptionArgs) =>
+      `Su legajo está al ${a.legajoCompleteness}%. Hay ${a.documentsRequested} documentos pendientes que ya le pedimos. Puedes recordárselo enviando otro email.`,
     primaryButtonLabel: () => `Recordar documentos pendientes`,
     primaryButtonVariant: 'secondary' as const,
   },
@@ -447,7 +460,7 @@ const STATUS_CONFIG = {
     badgeIcon: <CheckCircle2 className="h-3 w-3" />,
     badgeLabel: 'Completado',
     title: (n: string) => `${n} tiene su perfil completo`,
-    description: () =>
+    description: (_a: DescriptionArgs) =>
       'El trabajador entró a su portal y completó el legajo. Sigue activo gestionando sus boletas, vacaciones y solicitudes desde su /mi-portal.',
     primaryButtonLabel: () => `Re-enviar comunicado`,
     primaryButtonVariant: 'ghost' as const,
