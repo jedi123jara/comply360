@@ -2,12 +2,31 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
+import {
+  getWorkerAnniversaries,
+  getProbationEndDates,
+  getScheduledVacations,
+  getAckDeadlines,
+  getScheduledCapacitaciones,
+} from '@/lib/calendar/extended-sources'
 
 // =============================================
 // Types
 // =============================================
 
-type EventType = 'LEGAL' | 'CONTRACT' | 'SST' | 'BIRTHDAY' | 'ALERT'
+type EventType =
+  | 'LEGAL'
+  | 'CONTRACT'
+  | 'SST'
+  | 'BIRTHDAY'
+  | 'ALERT'
+  // Idea 2 Sprint 9 — fuentes nuevas
+  | 'WORKER_ANNIVERSARY'
+  | 'PROBATION_END'
+  | 'VACATION'
+  | 'ACK_DEADLINE'
+  | 'CAPACITACION'
+
 type EventPriority = 'critical' | 'high' | 'medium' | 'low'
 
 interface CalendarEvent {
@@ -347,6 +366,12 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       upcomingSst,
       birthdays,
       workerAlerts,
+      // Idea 2 Sprint 9 — fuentes nuevas
+      anniversaries,
+      probationEnds,
+      vacations,
+      ackDeadlines,
+      capacitaciones,
     ] = await Promise.all([
       Promise.resolve(getFixedLegalEvents(year)),
       getExpiringContracts(orgId),
@@ -354,6 +379,11 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       getUpcomingSstRecords(orgId),
       getWorkerBirthdays(orgId, year, month),
       getActiveWorkerAlerts(orgId),
+      getWorkerAnniversaries(orgId, year),
+      getProbationEndDates(orgId),
+      getScheduledVacations(orgId),
+      getAckDeadlines(orgId),
+      getScheduledCapacitaciones(orgId),
     ])
 
     let events: CalendarEvent[] = [
@@ -363,6 +393,12 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       ...upcomingSst,
       ...birthdays,
       ...workerAlerts,
+      // Convertir extended → CalendarEvent (mismo shape)
+      ...anniversaries.map(toCalendarEvent),
+      ...probationEnds.map(toCalendarEvent),
+      ...vacations.map(toCalendarEvent),
+      ...ackDeadlines.map(toCalendarEvent),
+      ...capacitaciones.map(toCalendarEvent),
     ]
 
     // Apply type filter if provided
@@ -393,3 +429,21 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     )
   }
 })
+
+/**
+ * Convierte un ExtendedCalendarEvent al shape CalendarEvent del endpoint.
+ * Los nuevos campos (entityHref, workerId, workerName) se preservan en el
+ * objeto pero el tipo público los expone como campos opcionales.
+ */
+import type { ExtendedCalendarEvent } from '@/lib/calendar/extended-sources'
+
+function toCalendarEvent(e: ExtendedCalendarEvent): CalendarEvent {
+  return {
+    id: e.id,
+    title: e.title,
+    date: e.date,
+    type: e.type as EventType,
+    priority: e.priority as EventPriority,
+    description: e.description,
+  }
+}
