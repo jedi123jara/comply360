@@ -16,10 +16,11 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import {
   FileSignature, Loader2, Download, Send, RefreshCw,
-  CheckCircle2, Clock, AlertTriangle, ArrowLeft, Mail, Search,
+  CheckCircle2, Clock, AlertTriangle, ArrowLeft, Mail, Search, Plus, X, Settings,
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { cn } from '@/lib/utils'
+import { AckConfigPanel } from '@/components/dashboard/ack-config-panel'
 
 interface DocSummary {
   id: string
@@ -70,6 +71,7 @@ export function DocumentosFirmaClient() {
   const [docs, setDocs] = useState<DocSummary[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   const fetchDocs = useCallback(async () => {
     setLoading(true)
@@ -117,14 +119,35 @@ export function DocumentosFirmaClient() {
             recibo con valor legal SUNAFIL (Ley 27269).
           </p>
         </div>
-        <button
-          onClick={fetchDocs}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refrescar
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2"
+          >
+            <Plus className="w-4 h-4" />
+            Activar firma en otro doc
+          </button>
+          <button
+            onClick={fetchDocs}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refrescar
+          </button>
+        </div>
       </div>
+
+      {/* Modal: Activar firma en doc existente */}
+      {showAddModal && (
+        <ActivateAckModal
+          onClose={() => setShowAddModal(false)}
+          onActivated={(docId) => {
+            setShowAddModal(false)
+            void fetchDocs()
+            setSelectedDocId(docId)
+          }}
+        />
+      )}
 
       {/* Loading */}
       {loading && (
@@ -270,14 +293,33 @@ function DrillDownView({ docId, onBack }: { docId: string; onBack: () => void })
   const [filter, setFilter] = useState<'all' | 'signed' | 'pending'>('all')
   const [search, setSearch] = useState('')
   const [reminding, setReminding] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [docConfig, setDocConfig] = useState<{
+    acknowledgmentRequired: boolean
+    acknowledgmentDeadlineDays: number | null
+    scopeFilter: { regimen?: string[]; departamento?: string[]; position?: string[] } | null
+    isPublishedToWorkers: boolean
+  } | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/org-documents/${docId}/acknowledgments`)
-      if (!res.ok) throw new Error('Error al cargar acuses')
-      const json = await res.json()
+      const [acksRes, docRes] = await Promise.all([
+        fetch(`/api/org-documents/${docId}/acknowledgments`),
+        fetch(`/api/org-documents/${docId}`),
+      ])
+      if (!acksRes.ok) throw new Error('Error al cargar acuses')
+      const json = await acksRes.json()
       setData(json)
+      if (docRes.ok) {
+        const docJson = await docRes.json()
+        setDocConfig({
+          acknowledgmentRequired: docJson.document.acknowledgmentRequired,
+          acknowledgmentDeadlineDays: docJson.document.acknowledgmentDeadlineDays,
+          scopeFilter: docJson.document.scopeFilter as { regimen?: string[] } | null,
+          isPublishedToWorkers: docJson.document.isPublishedToWorkers,
+        })
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al cargar')
     } finally {
@@ -370,8 +412,29 @@ function DrillDownView({ docId, onBack }: { docId: string; onBack: () => void })
             <Download className="w-3.5 h-3.5" />
             Audit PDF SUNAFIL
           </button>
+          <button
+            onClick={() => setShowSettings((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm px-4 py-2"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            {showSettings ? 'Ocultar' : 'Configuración'}
+          </button>
         </div>
       </div>
+
+      {/* Panel de configuración expandible */}
+      {showSettings && docConfig && (
+        <AckConfigPanel
+          documentId={docId}
+          documentTitle={data.docTitle}
+          initialConfig={docConfig}
+          workerCountTotal={data.summary.total}
+          onSaved={() => {
+            setShowSettings(false)
+            void fetchData()
+          }}
+        />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
@@ -491,4 +554,144 @@ function relativeTime(iso: string): string {
   const days = Math.floor(hr / 24)
   if (days < 30) return `hace ${days} ${days === 1 ? 'día' : 'días'}`
   return new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// ─── Modal: Activar firma en doc existente ──────────────────────────────────
+interface AvailableDoc {
+  id: string
+  type: string
+  title: string
+  version: number
+  isPublishedToWorkers: boolean
+  acknowledgmentRequired: boolean
+}
+
+function ActivateAckModal({
+  onClose,
+  onActivated,
+}: {
+  onClose: () => void
+  onActivated: (docId: string) => void
+}) {
+  const [docs, setDocs] = useState<AvailableDoc[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activating, setActivating] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    void fetch('/api/org-documents?excludeAck=true')
+      .then((r) => r.json())
+      .then((d) => setDocs(d.documents))
+      .catch(() => toast.error('Error al cargar documentos'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleActivate(docId: string) {
+    setActivating(docId)
+    try {
+      const res = await fetch(`/api/org-documents/${docId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          acknowledgmentRequired: true,
+          acknowledgmentDeadlineDays: 7,
+          isPublishedToWorkers: true,
+        }),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error ?? 'Error al activar')
+      }
+      toast.success('✓ Firma activada — configura el scope en el panel')
+      onActivated(docId)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al activar')
+    } finally {
+      setActivating(null)
+    }
+  }
+
+  const filtered = (docs ?? []).filter((d) =>
+    search ? d.title.toLowerCase().includes(search.toLowerCase()) : true,
+  )
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+        <div className="flex items-start justify-between p-6 border-b border-slate-200">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Activar firma en otro documento</h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Selecciona un documento existente para marcarlo como "requiere firma de los trabajadores".
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
+            <X className="w-5 h-5 text-slate-600" />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="p-4 border-b border-slate-200">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar documento por título..."
+              className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+            />
+          </div>
+        </div>
+
+        {/* Lista */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-sm text-slate-500">
+              {docs && docs.length === 0
+                ? 'No tienes documentos sin firma activada. Ve a Generadores SST para crear uno nuevo.'
+                : 'No hay coincidencias con tu búsqueda.'}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="rounded-xl border border-slate-200 p-3 flex items-center justify-between gap-3 hover:border-emerald-300 hover:bg-emerald-50/30"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm text-slate-900 truncate">{doc.title}</p>
+                      <span className="rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5">
+                        v{doc.version}
+                      </span>
+                      <span className="rounded-full bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 ring-1 ring-purple-200">
+                        {doc.type.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleActivate(doc.id)}
+                    disabled={activating !== null}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 disabled:opacity-50"
+                  >
+                    {activating === doc.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="w-3.5 h-3.5" />
+                    )}
+                    Activar firma
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
