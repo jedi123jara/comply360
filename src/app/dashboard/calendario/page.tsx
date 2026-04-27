@@ -485,27 +485,38 @@ export default function CalendarioPage() {
         subtitle="Feriados nacionales, vencimientos CTS/Gratificaciones, AFP, T-Registro, contratos y capacitaciones SST. Todas las fechas críticas en una vista."
       />
 
-      {/* Category filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {(Object.keys(CATEGORY_LABELS) as EventCategory[]).map((cat) => {
-          const Icon = CATEGORY_ICONS[cat]
-          const isActive = activeFilters.has(cat)
-          return (
-            <button
-              key={cat}
-              onClick={() => toggleFilter(cat)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200',
-                isActive
-                  ? CATEGORY_STYLES[cat].badge + ' border'
-                  : 'bg-[color:var(--neutral-50)] text-[color:var(--text-tertiary)] border-[color:var(--border-default)] hover:bg-[color:var(--neutral-100)]'
-              )}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {CATEGORY_LABELS[cat]}
-            </button>
-          )
-        })}
+      {/* Category filters + Export iCal */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {(Object.keys(CATEGORY_LABELS) as EventCategory[]).map((cat) => {
+            const Icon = CATEGORY_ICONS[cat]
+            const isActive = activeFilters.has(cat)
+            return (
+              <button
+                key={cat}
+                onClick={() => toggleFilter(cat)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200',
+                  isActive
+                    ? CATEGORY_STYLES[cat].badge + ' border'
+                    : 'bg-[color:var(--neutral-50)] text-[color:var(--text-tertiary)] border-[color:var(--border-default)] hover:bg-[color:var(--neutral-100)]'
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {CATEGORY_LABELS[cat]}
+              </button>
+            )
+          })}
+        </div>
+        <a
+          href={`/api/calendar/export.ics?year=${currentYear}`}
+          download
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2"
+          title="Descarga el calendario en formato iCal — importable a Google Calendar, Outlook, Apple Calendar"
+        >
+          <CalendarIcon className="w-3.5 h-3.5" />
+          Sincronizar con Google/Outlook
+        </a>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">

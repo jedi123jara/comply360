@@ -116,16 +116,27 @@ export function CalendarioWorkerClient() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1
-          className="text-2xl sm:text-3xl font-bold text-slate-900"
-          style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1
+            className="text-2xl sm:text-3xl font-bold text-slate-900"
+            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+          >
+            Mi <em className="text-emerald-700">calendario</em>
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Tus vacaciones, capacitaciones, plazos de firma y eventos personales.
+          </p>
+        </div>
+        <a
+          href="/api/mi-portal/calendar/export.ics"
+          download
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2"
+          title="Descarga tu calendario en formato iCal para sincronizar con Google Calendar / Outlook / Apple Calendar"
         >
-          Mi <em className="text-emerald-700">calendario</em>
-        </h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Tus vacaciones, capacitaciones, plazos de firma y eventos personales.
-        </p>
+          <CalendarIcon className="w-3.5 h-3.5" />
+          Sincronizar a mi celular
+        </a>
       </div>
 
       {/* Próximos 30 días — vista principal mobile */}
