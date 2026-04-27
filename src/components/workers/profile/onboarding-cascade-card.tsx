@@ -117,23 +117,23 @@ export function OnboardingCascadeCard({
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
 
       if (body.data?.skipped) {
-        toast.info(body.data.skipReason ?? 'Ya estaba ejecutada — usa "Re-enviar" si quieres mandar otra vez')
+        toast.info(body.data.skipReason ?? `Ya le habías enviado la invitación. Usa "Reenviar" si quieres mandarla otra vez.`)
       } else if (body.data && !body.data.emailSent && body.data.emailError) {
         // Cascada se ejecutó pero el EMAIL falló — caso típico de RESEND_API_KEY no configurado
         toast.error(
-          `⚠️ Solicitudes creadas pero el email NO se envió a ${workerFirstName}. ` +
-          `Motivo: ${body.data.emailError}`,
+          `Preparamos los documentos pero el correo NO le llegó a ${workerFirstName}. ` +
+          `Detalle: ${body.data.emailError}`,
           { duration: 8000 },
         )
         onExecuted?.()
       } else {
-        toast.success(`✓ Invitación enviada a ${workerFirstName}`)
+        toast.success(`Invitación enviada a ${workerFirstName} ✓`)
         onExecuted?.()
       }
       // Refrescar estado tras ejecución
       await fetchStatus()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al enviar invitación')
+      toast.error(err instanceof Error ? err.message : 'No pudimos enviar la invitación. Intenta de nuevo.')
     } finally {
       setExecuting(false)
     }
@@ -255,7 +255,7 @@ export function OnboardingCascadeCard({
                   className="h-4 w-4 rounded text-emerald-600"
                 />
                 <span className={cn(!hasEmail && 'text-slate-400')}>
-                  Enviar email al trabajador
+                  Avisarle por email
                   {!hasEmail && (
                     <span className="ml-2 text-xs text-amber-600">(no hay email)</span>
                   )}
@@ -268,10 +268,10 @@ export function OnboardingCascadeCard({
                   onChange={(e) => setForceReExecute(e.target.checked)}
                   className="h-4 w-4 rounded text-emerald-600"
                 />
-                <span>Forzar re-ejecución (incluso si ya estaba enviada)</span>
+                <span>Mandar de nuevo aunque ya le llegó antes</span>
               </label>
               <p className="text-xs text-slate-500 pl-6">
-                Útil tras agregar políticas nuevas que el trabajador deba aceptar.
+                Marca esta opción si agregaste documentos o políticas nuevas que necesita firmar.
               </p>
             </div>
           )}
@@ -299,7 +299,7 @@ export function OnboardingCascadeCard({
                   />
                 }
               >
-                {showOptions ? 'Ocultar opciones' : 'Opciones'}
+                {showOptions ? 'Cerrar' : 'Más opciones'}
               </Button>
             )}
             <Button
@@ -308,7 +308,7 @@ export function OnboardingCascadeCard({
               onClick={fetchStatus}
               icon={<RotateCw className="h-3.5 w-3.5" />}
             >
-              Refrescar
+              Actualizar
             </Button>
           </div>
 
@@ -434,10 +434,10 @@ const STATUS_CONFIG = {
     badgeText: 'text-indigo-800',
     badgeIcon: <Mail className="h-3 w-3" />,
     badgeLabel: 'Invitación enviada',
-    title: (n: string) => `Esperando que ${n} entre por primera vez`,
+    title: (n: string) => `${n} todavía no ha entrado al portal`,
     description: (a: DescriptionArgs) =>
-      `La invitación se envió ${relativeTime(a.invitationSentAt)}. El trabajador aún no abrió el link. Si pasaron varios días, considera re-enviarla o llamarle por teléfono.`,
-    primaryButtonLabel: (n: string) => `Re-enviar invitación a ${n}`,
+      `La invitación se envió ${relativeTime(a.invitationSentAt)} pero todavía no abre el enlace. Si ya pasaron varios días, vuelve a enviarle el correo o llámale por teléfono para recordarle.`,
+    primaryButtonLabel: (n: string) => `Reenviar invitación a ${n}`,
     primaryButtonVariant: 'secondary' as const,
   },
   logged_in_pending: {
@@ -471,7 +471,7 @@ const STATUS_CONFIG = {
     title: (n: string) => `${n} tiene su perfil completo`,
     description: (_a: DescriptionArgs) =>
       'El trabajador entró a su portal y completó el legajo. Sigue activo gestionando sus boletas, vacaciones y solicitudes desde su /mi-portal.',
-    primaryButtonLabel: () => `Re-enviar comunicado`,
+    primaryButtonLabel: () => `Reenviar comunicado`,
     primaryButtonVariant: 'ghost' as const,
   },
 } as const
