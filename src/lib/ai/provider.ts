@@ -16,7 +16,7 @@ export interface AIMessage {
   content: string
 }
 
-export type AIProvider = 'openai' | 'ollama' | 'deepseek' | 'groq' | 'simulated'
+export type AIProvider = 'openai' | 'anthropic' | 'ollama' | 'deepseek' | 'groq' | 'simulated'
 
 /** Features que pueden usar diferentes providers via env vars */
 export type AIFeature =
@@ -103,12 +103,13 @@ export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeatu
   // 1. Override directo
   if (opts?.provider) return opts.provider
 
-  // 2. Override por feature (ej: CONTRACT_REVIEW_AI_PROVIDER=openai)
+  // 2. Override por feature (ej: CONTRACT_REVIEW_AI_PROVIDER=anthropic)
   if (opts?.feature) {
     const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_AI_PROVIDER`
     const featureProvider = (process.env[envKey] || '').toLowerCase().trim()
     if (featureProvider === 'ollama') return 'ollama'
     if (featureProvider === 'openai') return 'openai'
+    if (featureProvider === 'anthropic') return 'anthropic'
     if (featureProvider === 'deepseek') return 'deepseek'
     if (featureProvider === 'groq') return 'groq'
   }
@@ -117,25 +118,30 @@ export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeatu
   const explicit = (process.env.AI_PROVIDER || '').toLowerCase().trim()
   if (explicit === 'ollama') return 'ollama'
   if (explicit === 'openai') return 'openai'
+  if (explicit === 'anthropic') return 'anthropic'
   if (explicit === 'deepseek') return 'deepseek'
   if (explicit === 'groq') return 'groq'
 
-  // 4. Auto-detect: clave de DeepSeek (más barato para SaaS)
+  // 4. Auto-detect priority por costo/calidad:
+  //    DeepSeek V4 (35x más barato que Claude Opus, calidad similar a Sonnet)
   if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
 
-  // 5. Auto-detect: clave de Groq (ultra-rápido, tier gratuito)
+  // 5. Anthropic (mejor para legal/razonamiento high-stakes)
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
+
+  // 6. Groq (ultra-rápido, tier gratuito — bueno para chat)
   if (process.env.GROQ_API_KEY) return 'groq'
 
-  // 6. Auto-detect: clave de OpenAI real (no placeholder)
+  // 7. OpenAI (vision, default histórico)
   const openaiKey = process.env.OPENAI_API_KEY || ''
   if (openaiKey && openaiKey !== 'sk-xxxxx' && openaiKey.startsWith('sk-')) {
     return 'openai'
   }
 
-  // 7. Auto-detect: Ollama configurado
+  // 8. Ollama (self-hosted, gratis pero requiere infra)
   if (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL) return 'ollama'
 
-  // 8. Default: Ollama (fallará al fetch si no está corriendo)
+  // 9. Default: Ollama (fallará al fetch si no está corriendo)
   return 'ollama'
 }
 
@@ -156,7 +162,20 @@ export function getModelName(opts?: { provider?: AIProvider; feature?: AIFeature
       const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_DEEPSEEK_MODEL`
       if (process.env[envKey]) return process.env[envKey]!
     }
+    // DeepSeek aliases auto-upgradan al modelo más reciente:
+    //   - "deepseek-chat" → V4 Flash (1M context, $0.14/M input)
+    //   - "deepseek-reasoner" → V4 Pro (mejor razonamiento, $1.74/M input)
     return process.env.DEEPSEEK_MODEL || 'deepseek-chat'
+  }
+
+  if (provider === 'anthropic') {
+    if (opts?.feature) {
+      const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_ANTHROPIC_MODEL`
+      if (process.env[envKey]) return process.env[envKey]!
+    }
+    // Default: Sonnet (mejor balance costo/calidad).
+    // Para Contract-Fix u otros high-stakes, override a Opus via env var.
+    return process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
   }
 
   if (provider === 'groq') {
@@ -202,6 +221,11 @@ export async function callAI(
   if (provider === 'openai') {
     url = 'https://api.openai.com/v1/chat/completions'
     headers['Authorization'] = `Bearer ${process.env.OPENAI_API_KEY}`
+  } else if (provider === 'anthropic') {
+    // Claude usa /v1/messages (NO /chat/completions). API distinta.
+    url = 'https://api.anthropic.com/v1/messages'
+    headers['x-api-key'] = process.env.ANTHROPIC_API_KEY ?? ''
+    headers['anthropic-version'] = '2023-06-01'
   } else if (provider === 'deepseek') {
     url = 'https://api.deepseek.com/v1/chat/completions'
     headers['Authorization'] = `Bearer ${process.env.DEEPSEEK_API_KEY}`
@@ -222,33 +246,55 @@ export async function callAI(
   const model = getModelName({ provider: providerOpt, feature })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const body: Record<string, any> = {
-    model,
-    messages,
-    temperature,
-    max_tokens: maxTokens,
-    stream: false,
-  }
+  let body: Record<string, any>
 
-  // JSON mode: OpenAI/DeepSeek/Groq usan response_format, Ollama usa format
-  if (jsonMode) {
-    if (provider === 'openai' || provider === 'deepseek' || provider === 'groq') {
-      body.response_format = { type: 'json_object' }
-    } else {
-      // Ollama
-      body.format = 'json'
-      // Qwen3 tiene modo "thinking" activado por defecto.
-      // Con thinking activo: content="" y la respuesta va en message.thinking → rompe el parser.
-      // Desactivarlo de 3 formas para compatibilidad con distintas versiones de Ollama:
-      body.think = false           // Ollama >= 0.6 (top-level)
-      body.options = { think: false } // Ollama native options
-      // Inyectar /no_think en el último mensaje del usuario como fallback universal
-      const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user')
-      if (lastUserIdx !== -1) {
-        const realIdx = messages.length - 1 - lastUserIdx
-        body.messages = messages.map((m, i) =>
-          i === realIdx ? { ...m, content: m.content + ' /no_think' } : m
-        )
+  if (provider === 'anthropic') {
+    // Anthropic Messages API: system es top-level (no en messages[]),
+    // messages[] solo acepta roles 'user' y 'assistant', y max_tokens es obligatorio.
+    const systemMessages = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n')
+    const conversation = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+    body = {
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      messages: conversation,
+      stream: false,
+    }
+    if (systemMessages) body.system = systemMessages
+    // Anthropic no tiene response_format JSON nativo. Si jsonMode, el caller
+    // debe pedir JSON en el system prompt y extractJson() limpia la respuesta.
+  } else {
+    // OpenAI / DeepSeek / Groq / Ollama — todos compatibles con shape OpenAI
+    body = {
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream: false,
+    }
+
+    if (jsonMode) {
+      if (provider === 'openai' || provider === 'deepseek' || provider === 'groq') {
+        body.response_format = { type: 'json_object' }
+      } else {
+        // Ollama
+        body.format = 'json'
+        // Qwen3 tiene modo "thinking" activado por defecto.
+        // Con thinking activo: content="" y la respuesta va en message.thinking → rompe el parser.
+        // Desactivarlo de 3 formas para compatibilidad con distintas versiones de Ollama:
+        body.think = false           // Ollama >= 0.6 (top-level)
+        body.options = { think: false } // Ollama native options
+        // Inyectar /no_think en el último mensaje del usuario como fallback universal
+        const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user')
+        if (lastUserIdx !== -1) {
+          const realIdx = messages.length - 1 - lastUserIdx
+          body.messages = messages.map((m, i) =>
+            i === realIdx ? { ...m, content: m.content + ' /no_think' } : m
+          )
+        }
       }
     }
   }
@@ -306,25 +352,46 @@ export async function callAI(
     }
 
     const data = await response.json()
-    const content: string | undefined = data?.choices?.[0]?.message?.content
+
+    // ── Extraer content según shape del provider ─────────────────────────
+    let content: string | undefined
+    if (provider === 'anthropic') {
+      // Anthropic: { content: [{ type: 'text', text: '...' }, ...], usage: {...} }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blocks = data?.content as Array<{ type?: string; text?: string }> | undefined
+      content = blocks?.filter(b => b.type === 'text').map(b => b.text ?? '').join('') || undefined
+    } else {
+      // OpenAI / DeepSeek / Groq / Ollama: { choices: [{ message: { content } }], usage: {...} }
+      content = data?.choices?.[0]?.message?.content
+    }
 
     if (!content) {
       throw new Error(`${provider} devolvió respuesta vacía`)
     }
 
-    // Si el caller quiere telemetría, dejamos disponible la metadata por
-    // referencia. La envolvemos en un Symbol para no chocar con strings que
-    // ya almacenen "usage" como contenido legítimo.
-    const usage = data?.usage as
-      | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
-      | undefined
-    if (usage) {
+    // ── Telemetría de tokens ──────────────────────────────────────────────
+    let promptTokens = 0
+    let completionTokens = 0
+    if (provider === 'anthropic') {
+      // Anthropic: usage.input_tokens / output_tokens
+      const u = data?.usage as { input_tokens?: number; output_tokens?: number } | undefined
+      promptTokens = u?.input_tokens ?? 0
+      completionTokens = u?.output_tokens ?? 0
+    } else {
+      // OpenAI shape: usage.prompt_tokens / completion_tokens / total_tokens
+      const u = data?.usage as
+        | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+        | undefined
+      promptTokens = u?.prompt_tokens ?? 0
+      completionTokens = u?.completion_tokens ?? 0
+    }
+    if (promptTokens > 0 || completionTokens > 0) {
       lastCallMetadata.set(messages, {
         provider,
         model,
-        promptTokens: usage.prompt_tokens ?? 0,
-        completionTokens: usage.completion_tokens ?? 0,
-        totalTokens: usage.total_tokens ?? 0,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
       })
     }
 
@@ -399,13 +466,20 @@ export async function callAIWithUsage(
 
 /**
  * Calcula la chain de fallback según qué providers tienen keys configuradas.
+ * Orden de preferencia (cuando el primario falla):
+ *   1. DeepSeek — más barato, calidad alta
+ *   2. Anthropic — mejor para legal high-stakes
+ *   3. OpenAI — vision + fallback histórico
+ *   4. Groq — ultra-rápido, free tier
+ *   5. Ollama — self-hosted, último recurso
  * Excluye el provider principal para evitar loop.
  */
 function getFallbackChain(primary: AIProvider): AIProvider[] {
   const candidates: AIProvider[] = []
-  if (primary !== 'groq' && process.env.GROQ_API_KEY) candidates.push('groq')
   if (primary !== 'deepseek' && process.env.DEEPSEEK_API_KEY) candidates.push('deepseek')
+  if (primary !== 'anthropic' && process.env.ANTHROPIC_API_KEY) candidates.push('anthropic')
   if (primary !== 'openai' && process.env.OPENAI_API_KEY) candidates.push('openai')
+  if (primary !== 'groq' && process.env.GROQ_API_KEY) candidates.push('groq')
   if (primary !== 'ollama' && (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL)) {
     candidates.push('ollama')
   }
@@ -450,7 +524,7 @@ export async function callAIWithFallback(
 
   throw (
     lastError ??
-    new Error('No hay providers de AI disponibles. Configura OPENAI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY.')
+    new Error('No hay providers de AI disponibles. Configura DEEPSEEK_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY / GROQ_API_KEY.')
   )
 }
 

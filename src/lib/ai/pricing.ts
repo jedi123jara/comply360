@@ -20,7 +20,7 @@ export interface ModelPricing {
   completionPer1M: number
 }
 
-type ProviderName = 'openai' | 'groq' | 'deepseek' | 'ollama' | 'simulated'
+type ProviderName = 'openai' | 'anthropic' | 'groq' | 'deepseek' | 'ollama' | 'simulated'
 
 /**
  * Tabla de pricing — match exacto por nombre de modelo. Si no encuentra,
@@ -53,9 +53,30 @@ const PRICING: Record<ProviderName, Record<string, ModelPricing>> = {
     '*': { promptPer1M: 0.5, completionPer1M: 0.7 },
   },
   deepseek: {
-    'deepseek-chat': { promptPer1M: 0.27, completionPer1M: 1.1 },
-    'deepseek-reasoner': { promptPer1M: 0.55, completionPer1M: 2.19 },
-    '*': { promptPer1M: 0.27, completionPer1M: 1.1 },
+    // V4 Flash (alias `deepseek-chat`): el más barato del mercado
+    // Cache hit es 50x más barato — recordAiUsage usa promptPer1M conservador.
+    'deepseek-chat': { promptPer1M: 0.14, completionPer1M: 0.28 },
+    'deepseek-v4': { promptPer1M: 0.14, completionPer1M: 0.28 },
+    'deepseek-v4-flash': { promptPer1M: 0.14, completionPer1M: 0.28 },
+    // V4 Pro (alias `deepseek-reasoner`): mejor razonamiento
+    // Precio normal post-promo: 1.74 / 3.48 (descuento 75% hasta 2026-05-05)
+    'deepseek-reasoner': { promptPer1M: 1.74, completionPer1M: 3.48 },
+    'deepseek-v4-pro': { promptPer1M: 1.74, completionPer1M: 3.48 },
+    '*': { promptPer1M: 0.14, completionPer1M: 0.28 },
+  },
+  anthropic: {
+    // Claude 4 Opus — el más caro pero más exacto en legal high-stakes
+    'claude-opus-4-20250514': { promptPer1M: 15, completionPer1M: 75 },
+    'claude-4-opus': { promptPer1M: 15, completionPer1M: 75 },
+    // Claude 4 Sonnet — sweet spot calidad/precio para tareas legales
+    'claude-sonnet-4-20250514': { promptPer1M: 3, completionPer1M: 15 },
+    'claude-4-sonnet': { promptPer1M: 3, completionPer1M: 15 },
+    // Claude 4 Haiku — rápido y barato (similar a gpt-4o-mini)
+    'claude-haiku-4-20250514': { promptPer1M: 0.8, completionPer1M: 4 },
+    'claude-4-haiku': { promptPer1M: 0.8, completionPer1M: 4 },
+    // Claude 3.5 Sonnet (legacy, todavía soportado)
+    'claude-3-5-sonnet-20241022': { promptPer1M: 3, completionPer1M: 15 },
+    '*': { promptPer1M: 3, completionPer1M: 15 },
   },
   ollama: {
     // Self-hosted. Costo de hardware no se contabiliza acá — las orgs que
