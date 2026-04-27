@@ -25,6 +25,7 @@ const isPublicRoute = createRouteMatcher([
   '/denuncias(.*)',          // Public complaint form (URL por empresa)
   '/portal-empleado(.*)',    // Lookup publico del trabajador (DNI + codigo empresa)
   '/firmar(.*)',             // Firma biométrica por link público (mobile deep link)
+  '/mi-portal/registrarse',  // Worker self-serve signup (sin invitación de empresa)
 
   // APIs de bajo privilegio o protegidas por secret
   '/api/calculations(.*)',   // Public calculator API (no auth needed for demo)

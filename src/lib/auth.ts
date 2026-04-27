@@ -155,6 +155,44 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       const lastName = clerkUser?.lastName
         || (process.env.NODE_ENV === 'development' ? 'User' : '')
 
+      // ─── Worker self-serve registration ───────────────────────────────
+      // Si el signup vino desde /mi-portal/registrarse, Clerk guarda en
+      // unsafeMetadata.signupAs = 'WORKER'. En ese caso NO creamos
+      // Organization y el User queda con role=WORKER + orgId=null.
+      // Cuando una empresa lo agregue después (mismo DNI/email), se
+      // auto-vincula via el endpoint /api/workers que detecta User.
+      const signupAs = clerkUser?.unsafeMetadata?.signupAs as string | undefined
+      const isWorkerSelfSignup = signupAs === 'WORKER'
+
+      if (isWorkerSelfSignup) {
+        try {
+          const seeded = await prisma.user.create({
+            data: {
+              clerkId,
+              orgId: null, // Worker libre — sin empresa todavía
+              email,
+              firstName,
+              lastName,
+              role: 'WORKER',
+            },
+            select: { id: true, clerkId: true, orgId: true, email: true, role: true },
+          })
+          console.log(
+            `[auth] Worker self-serve registrado: clerkId=${clerkId} email=${email} (sin org)`,
+          )
+          return {
+            userId: seeded.id,
+            clerkId: seeded.clerkId,
+            orgId: '', // string vacío — el caller debe verificar role antes de usar orgId
+            email: seeded.email,
+            role: seeded.role,
+          }
+        } catch (workerErr) {
+          console.error('[auth] Worker self-serve provisioning failed:', workerErr)
+          return null
+        }
+      }
+
       // Org id derivado de email para aislar tenants (cada usuario tiene su org)
       const orgId = `org-${email.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
 
