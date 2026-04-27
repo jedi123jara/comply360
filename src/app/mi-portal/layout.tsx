@@ -21,6 +21,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { ConsentGate } from '@/components/legal/consent-modal'
+import { PendingAcksBanner } from '@/components/mi-portal/pending-acks-banner'
 
 /**
  * Layout del Portal del Trabajador — Mobile-first Emerald Light.
@@ -77,6 +78,9 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="min-h-screen bg-[color:var(--bg-canvas,#ffffff)] text-[color:var(--text-primary)]">
+      {/* Banner sticky de docs pendientes — solo aparece si hay alguno */}
+      <PendingAcksBanner />
+
       {/* ────────────────────────────────────────────────────────────── */}
       {/* TOP BAR (visible siempre, sticky)                              */}
       {/* ────────────────────────────────────────────────────────────── */}
