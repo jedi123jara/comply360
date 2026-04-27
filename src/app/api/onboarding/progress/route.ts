@@ -18,6 +18,13 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
           onboardingCompleted: true,
           razonSocial: true,
           ruc: true,
+          plan: true,
+          subscription: {
+            select: {
+              status: true,
+              currentPeriodEnd: true,
+            },
+          },
         },
       }),
       prisma.worker.count({ where: { orgId } }),
@@ -25,11 +32,26 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       prisma.calculation.count({ where: { orgId } }),
     ])
 
+    // ¿El usuario necesita ir a /onboarding/elegir-plan?
+    // Sí cuando: completó wizard de empresa pero NO tiene Subscription activa/trialing
+    // y NO está en plan FREE explícito.
+    const now = new Date()
+    const hasActiveSubscription = !!(
+      org?.subscription &&
+      (org.subscription.status === 'ACTIVE' ||
+        (org.subscription.status === 'TRIALING' &&
+          org.subscription.currentPeriodEnd &&
+          org.subscription.currentPeriodEnd > now))
+    )
+    const isFreePlan = org?.plan === 'FREE'
+    const needsPlan = !!org?.onboardingCompleted && !hasActiveSubscription && !isFreePlan
+
     return NextResponse.json({
       hasOrg: org?.onboardingCompleted === true,
       hasWorker: workerCount > 0,
       hasContract: contractCount > 0,
       hasCalculation: calculationCount > 0,
+      needsPlan,
       counts: {
         workers: workerCount,
         contracts: contractCount,

@@ -39,14 +39,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname() ?? '/dashboard'
 
-  // Onboarding redirect — check if org has completed onboarding
+  // Onboarding + plan-gate redirect — verifica que la org haya:
+  //  1. Completado el wizard de datos de empresa → /dashboard/onboarding
+  //  2. Elegido un plan (trial o paid o FREE explícito) → /onboarding/elegir-plan
+  //
+  // Sin esto, el revenue leak: usuarios entraban directo al dashboard como
+  // STARTER "regalado" sin que les pidiéramos elegir/pagar nunca.
+  //
+  // Mejora futura: mover este check a Server Component con redirect() server-side.
   useEffect(() => {
     if (pathname === '/dashboard/onboarding') return
     fetch('/api/onboarding/progress')
       .then((r) => r.json())
       .then((data) => {
-        if (data && data.hasOrg === false) {
+        if (!data) return
+        if (data.hasOrg === false) {
           router.replace('/dashboard/onboarding')
+          return
+        }
+        if (data.needsPlan === true) {
+          router.replace('/onboarding/elegir-plan')
         }
       })
       .catch(() => {

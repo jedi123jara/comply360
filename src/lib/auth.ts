@@ -158,8 +158,11 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       // Org id derivado de email para aislar tenants (cada usuario tiene su org)
       const orgId = `org-${email.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
 
-      // Dev default: PRO para desbloquear features. Prod default: STARTER.
-      const defaultPlan = process.env.NODE_ENV === 'development' ? 'PRO' : 'STARTER'
+      // Dev default: PRO para desbloquear features durante desarrollo.
+      // Prod default: FREE — el usuario DEBE elegir un plan en
+      // /onboarding/elegir-plan antes de acceder al dashboard. Esto evita
+      // el revenue leak previo donde todos quedaban en STARTER "regalado".
+      const defaultPlan = process.env.NODE_ENV === 'development' ? 'PRO' : 'FREE'
 
       // Founder safelist: emails en FOUNDER_EMAILS (coma-separados) reciben
       // SUPER_ADMIN automáticamente en su primer signup. Útil para que los
