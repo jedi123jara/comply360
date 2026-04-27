@@ -406,6 +406,17 @@ export async function notifyWorkersOfDocUpdate(params: {
   return { targetsCount: targets.length, emailsSent, throttled }
 }
 
+/**
+ * Email template responsive — table-based layout para máxima compatibilidad
+ * (Outlook 2016/365 ignora flexbox y muchas styles inline).
+ *
+ * Decisiones:
+ *   - Table-based (NO div con flex) — Outlook 2016 friendly
+ *   - Inline styles solo (NO <style> head — Gmail mobile lo strip)
+ *   - max-width 560px con padding 16px en mobile
+ *   - Botón con table-cell pattern (background-color robusto)
+ *   - Plain-text fallback en buildAckEmailText abajo (lo usa Resend si pide multipart)
+ */
 function buildAckEmailHtml(opts: {
   workerName: string
   docTitle: string
@@ -414,30 +425,110 @@ function buildAckEmailHtml(opts: {
   deadlineDays: number | null
 }): string {
   const deadlineNote = opts.deadlineDays
-    ? `<p style="color: #b45309; font-size: 14px;">⏱ Tienes <strong>${opts.deadlineDays} días</strong> para revisarlo y firmarlo.</p>`
+    ? `
+        <tr>
+          <td style="padding: 12px 16px; background-color: #fffbeb; border-radius: 6px; font-size: 14px; color: #92400e; border: 1px solid #fcd34d;">
+            ⏱ Tienes <strong>${opts.deadlineDays} día${opts.deadlineDays > 1 ? 's' : ''}</strong> para revisarlo y firmarlo.
+          </td>
+        </tr>
+        <tr><td style="height: 16px; line-height: 16px; font-size: 16px;">&nbsp;</td></tr>`
     : ''
 
-  return `
-    <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-      <h1 style="color: #047857; font-size: 22px;">Hola ${opts.workerName},</h1>
-      <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-        <strong>${opts.orgName}</strong> actualizó el documento <strong>"${opts.docTitle}"</strong> (versión ${opts.docVersion}).
-      </p>
-      <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-        Como trabajador, debes leerlo y firmarlo electrónicamente. Tu firma queda
-        registrada con valor legal según la Ley 27269.
-      </p>
-      ${deadlineNote}
-      <p style="margin-top: 32px;">
-        <a href="https://comply360.pe/mi-portal/documentos"
-           style="background: #047857; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-          Leer y firmar ahora
-        </a>
-      </p>
-      <p style="color: #6b7280; font-size: 13px; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-        Si tienes preguntas, contacta directamente a recursos humanos de ${opts.orgName}.
-        Comply360 solo facilita el proceso digital.
-      </p>
-    </div>
-  `
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documento por firmar</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9fafb;">
+    <tr>
+      <td align="center" style="padding: 24px 16px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; overflow: hidden;">
+          <!-- Header brand -->
+          <tr>
+            <td style="background-color: #047857; padding: 16px 24px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="color: #ffffff; font-size: 18px; font-weight: 700;">COMPLY360</td>
+                  <td align="right" style="color: rgba(255,255,255,0.85); font-size: 12px;">📝 Acuse de recibo</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px 24px;">
+              <h1 style="margin: 0 0 16px 0; color: #047857; font-size: 22px; line-height: 1.3;">
+                Hola ${escapeHtml(opts.workerName)},
+              </h1>
+              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                <strong>${escapeHtml(opts.orgName)}</strong> actualizó el documento <strong>"${escapeHtml(opts.docTitle)}"</strong> (versión ${opts.docVersion}).
+              </p>
+              <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                Como trabajador, debes leerlo y firmarlo electrónicamente. Tu firma queda
+                registrada con valor legal según la Ley 27269.
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                ${deadlineNote}
+                <!-- CTA Button (table-cell pattern para Outlook) -->
+                <tr>
+                  <td>
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center" style="background-color: #047857; border-radius: 8px;">
+                          <a href="https://comply360.pe/mi-portal/documentos"
+                             style="display: inline-block; padding: 14px 28px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1; font-family: inherit;">
+                            Leer y firmar ahora →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer divider -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 32px; border-top: 1px solid #e5e7eb;">
+                <tr>
+                  <td style="padding-top: 16px; color: #6b7280; font-size: 13px; line-height: 1.5;">
+                    Si tienes preguntas, contacta directamente a recursos humanos de ${escapeHtml(opts.orgName)}.
+                    Comply360 solo facilita el proceso digital.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Outer footer -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; padding-top: 12px;">
+          <tr>
+            <td align="center" style="color: #9ca3af; font-size: 11px; line-height: 1.5;">
+              Recibiste este email porque ${escapeHtml(opts.orgName)} usa COMPLY360 para gestionar compliance laboral.<br>
+              <a href="https://comply360.pe" style="color: #6b7280; text-decoration: underline;">comply360.pe</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
+
+/**
+ * Escape HTML chars básicos para prevenir XSS desde nombres de docs/orgs.
+ * Mínimo viable — para emails no necesitamos sanitizer completo.
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
