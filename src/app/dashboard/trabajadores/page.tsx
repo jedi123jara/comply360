@@ -657,7 +657,7 @@ export default function TrabajadoresPage() {
                               {workerInitials(worker.firstName, worker.lastName)}
                             </span>
                           </div>
-                          <span className="text-sm font-semibold text-white group-hover:text-primary transition-colors">
+                          <span className="text-sm font-semibold text-slate-900 group-hover:text-primary transition-colors">
                             {displayWorkerName(worker.firstName, worker.lastName)}
                           </span>
                         </Link>
@@ -1039,7 +1039,7 @@ export default function TrabajadoresPage() {
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-white truncate">
+                              <p className="font-medium text-slate-900 truncate">
                                 {displayWorkerName(row.firstName, row.lastName)}
                               </p>
                               <p className="text-xs text-gray-500">

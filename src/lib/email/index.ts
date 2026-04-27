@@ -47,7 +47,22 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
   const recipients = Array.isArray(options.to) ? options.to : [options.to]
 
   if (!apiKey) {
-    console.log('[email] No RESEND_API_KEY set — logging email instead:')
+    // En PRODUCCIÓN: fallar explícitamente para que el caller sepa que el
+    // email NO se mandó. Antes devolvíamos { success: true } engañoso —
+    // los admins veían "email enviado" pero los workers nunca lo recibían.
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        `[email] BLOCKED: RESEND_API_KEY no configurado en producción. ` +
+        `Email a ${recipients.join(', ')} (subject: "${options.subject}") NO enviado. ` +
+        `Configura RESEND_API_KEY en Vercel → Settings → Environment Variables.`,
+      )
+      return {
+        success: false,
+        error: 'RESEND_API_KEY no configurado en producción. Email no enviado.',
+      }
+    }
+    // En DEV: log + success simulado (para no bloquear desarrollo local)
+    console.log('[email] No RESEND_API_KEY set (dev mode) — logging email instead:')
     console.log(`  From: ${from}`)
     console.log(`  To: ${recipients.join(', ')}`)
     console.log(`  Subject: ${options.subject}`)

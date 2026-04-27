@@ -58,6 +58,7 @@ interface ExecutionResult {
   documentsPublished: number
   requestsCreated: number
   emailSent: boolean
+  emailError?: string
   skipped: boolean
   skipReason?: string
 }
@@ -117,6 +118,14 @@ export function OnboardingCascadeCard({
 
       if (body.data?.skipped) {
         toast.info(body.data.skipReason ?? 'Ya estaba ejecutada — usa "Re-enviar" si quieres mandar otra vez')
+      } else if (body.data && !body.data.emailSent && body.data.emailError) {
+        // Cascada se ejecutó pero el EMAIL falló — caso típico de RESEND_API_KEY no configurado
+        toast.error(
+          `⚠️ Solicitudes creadas pero el email NO se envió a ${workerFirstName}. ` +
+          `Motivo: ${body.data.emailError}`,
+          { duration: 8000 },
+        )
+        onExecuted?.()
       } else {
         toast.success(`✓ Invitación enviada a ${workerFirstName}`)
         onExecuted?.()

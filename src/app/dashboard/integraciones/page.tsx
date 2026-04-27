@@ -78,7 +78,7 @@ export default function IntegracionesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Integraciones</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Integraciones</h1>
         <p className="mt-1 text-gray-500">
           Exporta datos de trabajadores en formatos compatibles con T-REGISTRO y PLAME de SUNAT.
         </p>
@@ -93,7 +93,7 @@ export default function IntegracionesPage() {
               <Database className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">T-REGISTRO</h2>
+              <h2 className="text-base font-bold text-slate-900">T-REGISTRO</h2>
               <p className="mt-1 text-xs text-gray-500">
                 Exporta los datos de tus trabajadores activos en formato compatible con el T-REGISTRO de SUNAT.
                 Incluye datos personales, laborales y previsionales.
@@ -137,7 +137,7 @@ export default function IntegracionesPage() {
               <Server className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">PLAME</h2>
+              <h2 className="text-base font-bold text-slate-900">PLAME</h2>
               <p className="mt-1 text-xs text-gray-500">
                 Genera la Planilla Mensual de Pagos en formato SUNAT. Incluye remuneraciones, aportes EsSalud, AFP/ONP y SCTR.
               </p>
@@ -199,7 +199,7 @@ export default function IntegracionesPage() {
           <div className="flex items-center gap-3">
             <CheckCircle className="h-6 w-6 text-green-500" />
             <div>
-              <h3 className="text-sm font-semibold text-white">Exportacion generada exitosamente</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Exportacion generada exitosamente</h3>
               <p className="text-xs text-gray-500">{result.filename} — {result.workers} trabajadores</p>
             </div>
             <button
@@ -215,11 +215,11 @@ export default function IntegracionesPage() {
             <div className="mt-4 grid grid-cols-3 gap-3 md:grid-cols-6">
               <div className="rounded-lg bg-[color:var(--neutral-50)] p-3 text-center">
                 <p className="text-xs text-gray-500">Trabajadores</p>
-                <p className="text-lg font-bold text-white">{result.summary.totalWorkers}</p>
+                <p className="text-lg font-bold text-slate-900">{result.summary.totalWorkers}</p>
               </div>
               <div className="rounded-lg bg-[color:var(--neutral-50)] p-3 text-center">
                 <p className="text-xs text-gray-500">Remuneraciones</p>
-                <p className="text-sm font-bold text-white">S/ {result.summary.totalRemuneraciones.toLocaleString('es-PE')}</p>
+                <p className="text-sm font-bold text-slate-900">S/ {result.summary.totalRemuneraciones.toLocaleString('es-PE')}</p>
               </div>
               <div className="rounded-lg bg-blue-50 p-3 text-center">
                 <p className="text-xs text-blue-700">EsSalud</p>
@@ -261,7 +261,7 @@ export default function IntegracionesPage() {
             <ArrowRight className="h-5 w-5 text-purple-600" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">API & Webhooks</h3>
+            <h3 className="text-base font-bold text-slate-900">API & Webhooks</h3>
             <p className="mt-1 text-xs text-gray-500">
               Proximamente: API REST para integracion con ERPs y sistemas de planilla. Webhooks para notificaciones en tiempo real de cambios normativos y alertas de compliance.
             </p>
@@ -404,7 +404,7 @@ function SunatSolSection() {
           <Key className="h-5 w-5 text-amber-400" />
         </div>
         <div className="flex-1">
-          <h2 className="text-base font-bold text-white">Conexion SUNAT SOL</h2>
+          <h2 className="text-base font-bold text-slate-900">Conexion SUNAT SOL</h2>
           <p className="mt-1 text-xs text-gray-400">
             Conecta tu cuenta SOL de SUNAT para verificar T-REGISTRO, recibir alertas y validar estado tributario.
             Las credenciales se almacenan encriptadas con AES-256-GCM.
@@ -422,7 +422,7 @@ function SunatSolSection() {
         <div className="space-y-3">
           <div className="flex items-center gap-4 rounded-lg bg-[color:var(--neutral-50)] px-4 py-3">
             <div className="flex-1">
-              <p className="text-sm font-medium text-white">RUC: {credInfo.ruc}</p>
+              <p className="text-sm font-medium text-slate-900">RUC: {credInfo.ruc}</p>
               <p className="text-xs text-gray-500">
                 {credInfo.lastTestedAt
                   ? `Ultima prueba: ${new Date(credInfo.lastTestedAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
@@ -468,12 +468,12 @@ function SunatSolSection() {
               </div>
               {syncResult.company && (
                 <div className="grid gap-2 text-xs">
-                  <div className="flex justify-between"><span className="text-gray-400">Razon Social:</span><span className="text-white font-medium">{syncResult.company.razonSocial || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Estado:</span><span className="text-white font-medium">{syncResult.company.estado || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Condicion:</span><span className="text-white font-medium">{syncResult.company.condicion || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Representante:</span><span className="text-white font-medium">{syncResult.company.representanteLegal || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Direccion:</span><span className="text-white font-medium">{syncResult.company.direccion || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Actividad:</span><span className="text-white font-medium">{syncResult.company.actividadEconomica || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Razon Social:</span><span className="text-slate-900 font-medium">{syncResult.company.razonSocial || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Estado:</span><span className="text-slate-900 font-medium">{syncResult.company.estado || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Condicion:</span><span className="text-slate-900 font-medium">{syncResult.company.condicion || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Representante:</span><span className="text-slate-900 font-medium">{syncResult.company.representanteLegal || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Direccion:</span><span className="text-slate-900 font-medium">{syncResult.company.direccion || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Actividad:</span><span className="text-slate-900 font-medium">{syncResult.company.actividadEconomica || '—'}</span></div>
                 </div>
               )}
               {syncResult.workers && (
@@ -512,17 +512,17 @@ function SunatSolSection() {
             <div>
               <label className="text-[11px] font-semibold text-gray-400 mb-1 block">RUC</label>
               <input type="text" value={ruc} onChange={e => setRuc(e.target.value)} placeholder="20505897867" maxLength={11}
-                className="w-full rounded-lg border border-white/10 bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-primary" />
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary" />
             </div>
             <div>
               <label className="text-[11px] font-semibold text-gray-400 mb-1 block">Usuario SOL</label>
               <input type="text" value={solUser} onChange={e => setSolUser(e.target.value)} placeholder="ADMIN123"
-                className="w-full rounded-lg border border-white/10 bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-primary" />
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary" />
             </div>
             <div>
               <label className="text-[11px] font-semibold text-gray-400 mb-1 block">Clave SOL</label>
               <input type="password" value={solPassword} onChange={e => setSolPassword(e.target.value)} placeholder="••••••••"
-                className="w-full rounded-lg border border-white/10 bg-[color:var(--neutral-100)] px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-primary" />
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary" />
             </div>
           </div>
           <div className="flex items-center gap-2">

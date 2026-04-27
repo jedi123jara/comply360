@@ -45,6 +45,8 @@ export interface CascadeResult {
   documentsPublished: number
   requestsCreated: number
   emailSent: boolean
+  /** Si emailSent=false, motivo concreto para mostrar al admin (ej: "RESEND_API_KEY no configurado"). */
+  emailError?: string
   skipped: boolean
   skipReason?: string
   auditLogId?: string
@@ -249,9 +251,11 @@ export async function runOnboardingCascade(
       })
       result.emailSent = emailRes.success
       if (!emailRes.success) {
+        result.emailError = emailRes.error ?? 'Unknown email error'
         console.error('[onboarding-cascade] email send failed', emailRes.error)
       }
     } catch (err) {
+      result.emailError = err instanceof Error ? err.message : String(err)
       console.error('[onboarding-cascade] email exception', err)
     }
   }
