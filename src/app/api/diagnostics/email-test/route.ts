@@ -155,11 +155,18 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
 })
 
 function getSuggestionByStatus(status: number, body: string): string {
-  if (status === 401 || status === 403) {
-    return 'API key inválida o revocada. Regenera una nueva en https://resend.com/api-keys y actualiza RESEND_API_KEY en Vercel.'
+  // Chequear "domain not verified" PRIMERO porque puede venir con 403, 422 u otros status
+  if (body.toLowerCase().includes('domain is not verified') || body.toLowerCase().includes('domain not verified')) {
+    return 'El dominio NO está verificado en Resend. Ve a https://resend.com/domains, agrega el dominio y configura los records DNS (SPF/DKIM). Mientras tanto puedes usar RESEND_FROM_EMAIL=COMPLY360 <onboarding@resend.dev> como puente temporal.'
+  }
+  if (status === 401) {
+    return 'API key inválida o revocada (401). Regenera una nueva en https://resend.com/api-keys y actualiza RESEND_API_KEY en Vercel.'
+  }
+  if (status === 403) {
+    return 'Resend rechazó la petición (403). Causas comunes: API key sin permisos, dominio no verificado en este workspace, o key pertenece a otro proyecto. Verifica en https://resend.com/api-keys y https://resend.com/domains.'
   }
   if (status === 422 && body.includes('domain')) {
-    return 'El dominio comply360.pe NO está verificado en Resend. Ve a https://resend.com/domains, agrega el dominio y configura los 3 records DNS (SPF/DKIM/DMARC).'
+    return 'El dominio NO está verificado en Resend. Ve a https://resend.com/domains, agrega el dominio y configura los records DNS (SPF/DKIM).'
   }
   if (status === 422) {
     return 'Resend rechazó el payload (422). Probablemente el "from" address no está autorizado. Verifica el dominio o usa onboarding@resend.dev temporalmente para probar.'
