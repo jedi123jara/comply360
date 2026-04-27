@@ -117,19 +117,28 @@ async function consultarVíaApisNetPe(dni: string): Promise<ReniecDniData> {
 }
 
 /**
- * Provider B: apiperu.dev (gratuito, sin token requerido).
- * Más lento y a veces inestable, pero sirve como fallback.
+ * Provider B: apiperu.dev (requiere token tras 2024 — antes era gratis).
+ * Si APIPERU_DEV_TOKEN no está configurado, lanzamos NO_TOKEN para que el
+ * fallback chain lo skip limpiamente en lugar de tirar HTTP 401 al usuario.
  */
 async function consultarVíaApiPeruDev(dni: string): Promise<ReniecDniData> {
   const token = process.env.APIPERU_DEV_TOKEN
-  const headers: Record<string, string> = { Accept: 'application/json' }
-  if (token) headers.Authorization = `Bearer ${token}`
+  if (!token) {
+    throw new ReniecError('Falta APIPERU_DEV_TOKEN env var', 'NO_TOKEN', 503)
+  }
 
   const res = await fetch(`${APIPERU_DEV_URL}/${dni}`, {
-    headers,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    },
     signal: AbortSignal.timeout(5000),
   })
 
+  if (res.status === 401 || res.status === 403) {
+    // Token inválido o cuota agotada → tratar como NO_TOKEN para fallback limpio
+    throw new ReniecError('apiperu.dev token inválido o cuota agotada', 'NO_TOKEN', 503)
+  }
   if (res.status === 404) throw new ReniecError('DNI no encontrado en RENIEC', 'NOT_FOUND', 404)
   if (res.status === 429) throw new ReniecError('Rate limit en apiperu.dev', 'RATE_LIMIT', 429)
   if (!res.ok) throw new ReniecError(`apiperu.dev HTTP ${res.status}`, 'NETWORK', 502)
@@ -182,6 +191,7 @@ export async function consultarDNI(dni: string): Promise<ReniecDniData> {
   }
 
   let lastError: ReniecError | undefined
+  let allNoToken = true
   for (const provider of [consultarVíaApisNetPe, consultarVíaApiPeruDev]) {
     try {
       const data = await provider(normalized)
@@ -191,7 +201,19 @@ export async function consultarDNI(dni: string): Promise<ReniecDniData> {
       lastError = err instanceof ReniecError ? err : new ReniecError(String(err), 'UNKNOWN', 500)
       // Si es NOT_FOUND (DNI no existe), no probamos el siguiente provider
       if (lastError.code === 'NOT_FOUND' || lastError.code === 'INVALID_DNI') throw lastError
+      // Solo marcamos "all no-token" si TODOS los providers fallaron por NO_TOKEN
+      if (lastError.code !== 'NO_TOKEN') allNoToken = false
     }
+  }
+
+  // Si todos los providers están sin token, devolvemos un error específico
+  // que el frontend silencia (NO_TOKEN). El admin debe completar manualmente.
+  if (allNoToken) {
+    throw new ReniecError(
+      'Lookup automático de DNI no disponible. Configura APIS_NET_PE_TOKEN o APIPERU_DEV_TOKEN para activarlo.',
+      'NO_TOKEN',
+      503,
+    )
   }
 
   throw lastError ?? new ReniecError('No se pudo consultar RENIEC', 'UNKNOWN', 500)

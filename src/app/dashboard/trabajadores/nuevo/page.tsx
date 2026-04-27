@@ -161,7 +161,16 @@ export default function NuevoTrabajadorPage() {
           setDniLookupStatus('idle')
           return
         }
-        setDniLookupMessage(err.error || 'Error al consultar DNI')
+        // Mensajes amigables — nunca exponer "apiperu.dev HTTP 401" o similar
+        // al usuario final (eso son detalles internos del provider).
+        const FRIENDLY_ERRORS: Record<string, string> = {
+          NOT_FOUND: 'DNI no encontrado en RENIEC',
+          INVALID_DNI: 'DNI inválido (debe ser 8 dígitos)',
+          RATE_LIMIT: 'Demasiadas consultas. Espera un momento.',
+          NETWORK: 'No se pudo consultar RENIEC ahora. Llena los datos manualmente.',
+          UNKNOWN: 'No se pudo consultar RENIEC. Llena los datos manualmente.',
+        }
+        setDniLookupMessage(FRIENDLY_ERRORS[err.code] ?? FRIENDLY_ERRORS.UNKNOWN)
         return
       }
       const { data, source } = (await res.json()) as {

@@ -232,8 +232,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { label: "Asistencia", href: "/dashboard/asistencia", icon: "Clock" },
       { label: "Teletrabajo", href: "/dashboard/teletrabajo", icon: "Laptop2" },
       { label: "Solicitudes", href: "/dashboard/solicitudes", icon: "ClipboardList" },
-      { label: "Portal Empleado", href: "/portal-empleado", icon: "UserCircle" },
-      { label: "Portal Contador", href: "/dashboard/consultor", icon: "Briefcase" },
+      // NOTA: "Portal Empleado" se removió a propósito del menú del EMPLEADOR.
+      // Cada trabajador accede a su propio portal vía email de invitación
+      // (cascada de onboarding) y abre /mi-portal con su propio login.
+      // El admin no tiene por qué entrar al portal del trabajador.
     ],
   },
 ] as const;
@@ -293,8 +295,14 @@ export const NAV_HUBS: readonly NavHub[] = [
       { label: "Honorarios", href: "/dashboard/honorarios", icon: "ScrollText" },
       { label: "Prestadores de servicios", href: "/dashboard/prestadores", icon: "Briefcase" },
       { label: "Terceros y contratistas", href: "/dashboard/terceros", icon: "Building2" },
-      { label: "Portal empleado", href: "/portal-empleado", icon: "UserCircle" },
-      { label: "Portal contador", href: "/dashboard/consultor", icon: "Briefcase" },
+      // "Portal empleado" se removió: el trabajador accede a su PROPIO portal
+      // (/mi-portal) con su login. El empleador no tiene por qué ver/usar ese
+      // portal, son experiencias separadas. La invitación se manda por email
+      // automáticamente cuando se crea el trabajador (ver onboarding cascade).
+      //
+      // "Portal contador" también removido del hub Equipo: pertenece al perfil
+      // CONSULTANT (estudios contables), no al empleador estándar. Si en el
+      // futuro se reactiva, debe ser visible solo si role==CONSULTANT.
     ],
   },
   {

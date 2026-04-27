@@ -239,4 +239,32 @@ ANALYZE=true npm run build
 
 ---
 
+## 🌐 PRÓXIMA VISIÓN: WORKER PORTAL INDEPENDIENTE (Sprint 7+)
+
+> Captado del feedback del founder 2026-04-26.
+
+**Estado actual**: el portal del trabajador (`/mi-portal`) existe (Sprint F1.5) y la cascada de onboarding ya envía email con link al worker cuando el empleador lo registra (`src/lib/onboarding/cascade.ts`). Lo que falta:
+
+### Cambios inmediatos (ya hechos)
+- ✅ Quitar "Portal Empleado" del sidebar del EMPLEADOR — son experiencias separadas, el admin no debe entrar al portal del trabajador
+- ✅ El worker recibe email + click + login + completa su perfil (sube foto, datos) — ya implementado en cascade
+
+### Visión Sprint 7-9 (worker portal "self-serve")
+1. **Auto-registro sin invitación** — landing pública `/mi-portal/registrarse` donde cualquier trabajador peruano crea su cuenta con DNI (sin estar vinculado a empresa)
+2. **Tools gratuitas para workers**:
+   - **CV builder gratis** (template + drag-and-drop, exporta PDF). Lock-in soft sin costo.
+   - **Centro de capacitación** (cursos cortos + certificados QR). Reusa los modelos `Course/Enrollment` ya existentes (Fase F4.1)
+   - **Bolsa de trabajo** — postular a empresas Comply360 que tengan `hiring=true` en su org settings
+3. **App nativa iOS/Android** — la PWA actual sirve de fundación. App nativa solo cuando lleguemos a 5,000+ workers activos (hoy es prematuro).
+
+### Por qué importa estratégicamente
+- **Network effect**: workers en plataforma → empresas obligadas a usar Comply360 para reclutar
+- **Lead source**: cada worker es un futuro empleado de empresa que paga compliance
+- **Stickiness**: worker que tiene su CV + cursos + historial laboral en Comply360 lleva la plataforma a su próximo trabajo
+
+### Riesgo
+No es trivial separar 100% las experiencias (admin / worker) sin romper compatibilidad. Hacer en Sprint 7 sin presión, con specs E2E de regresión.
+
+---
+
 *Plan vivo — actualizar trimestralmente con métricas reales.*
