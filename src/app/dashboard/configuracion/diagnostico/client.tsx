@@ -13,7 +13,7 @@
 import { useState } from 'react'
 import {
   Mail, Loader2, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp,
-  Copy, Send, UserCheck, Wrench, Sparkles, Cpu, Crown,
+  Copy, Send, UserCheck, Wrench, Sparkles, Cpu, Crown, Brain,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/sonner-toaster'
@@ -262,6 +262,9 @@ export function DiagnosticoClient() {
 
       {/* ─── Card: IA — DeepSeek ────────────────────────────────────────── */}
       <AiTestCard />
+
+      {/* ─── Card: IA — Anthropic Claude (legal high-stakes) ────────────── */}
+      <AnthropicTestCard />
 
       {/* ─── Card: Plan Override (Founders only) ────────────────────────── */}
       <PlanOverrideCard />
@@ -871,6 +874,350 @@ interface PlanOverrideResult {
   note?: string
   error?: string
   code?: string
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Card: Anthropic Claude — para legal high-stakes (contratos, diagnóstico)
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface AnthropicTestResult {
+  diagnostics?: {
+    hasKey: boolean
+    keyPrefix: string | null
+    modelRequested: string
+    timestamp: string
+    ragEnabled?: boolean
+    ragChunksFound?: number
+    ragChunkTitles?: Array<{ id: string; titulo: string; score: number }>
+  }
+  result?: {
+    success: boolean
+    httpStatus?: number
+    modelResponded?: string
+    responseId?: string | null
+    stopReason?: string | null
+    response?: string
+    error?: string
+  }
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+  }
+  pricing?: {
+    promptPer1M: number
+    completionPer1M: number
+    estimatedCostUsd: string
+    costPer1000Requests: string
+  } | null
+  latencyMs?: number
+  message?: string
+  suggestion?: string
+  anthropicApiError?: unknown
+}
+
+function AnthropicTestCard() {
+  const [prompt, setPrompt] = useState('')
+  const [model, setModel] = useState('claude-sonnet-4-20250514')
+  const [useRag, setUseRag] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<AnthropicTestResult | null>(null)
+  const [showJson, setShowJson] = useState(false)
+
+  async function runAnthropicTest() {
+    setLoading(true)
+    setResult(null)
+    setShowJson(false)
+    try {
+      const body: Record<string, string | boolean> = { model, useRag }
+      if (prompt.trim()) body.prompt = prompt.trim()
+      const res = await fetch('/api/diagnostics/anthropic-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = (await res.json()) as AnthropicTestResult
+      setResult(json)
+      if (json.result?.success) {
+        toast.success(`✓ Claude respondió en ${json.latencyMs}ms`)
+      } else {
+        toast.error('Claude NO respondió — ver detalles abajo')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error en la prueba')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function copyJson() {
+    if (!result) return
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(result, null, 2))
+      toast.success('JSON copiado al portapapeles')
+    } catch {
+      toast.error('No se pudo copiar')
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm p-6">
+      <div className="flex items-start gap-4 mb-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
+          <Brain className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold text-slate-900">IA — Anthropic Claude</h2>
+          <p className="text-sm text-slate-600 mt-0.5">
+            Para tareas legales <strong>high-stakes</strong>: generación y revisión de contratos, diagnóstico SUNAFIL avanzado,
+            plan de acción. Calidad superior a DeepSeek en redacción legal peruana, a costo más alto.
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          Modelo a probar
+        </label>
+        <select
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          disabled={loading}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:opacity-50"
+        >
+          <option value="claude-sonnet-4-20250514">claude-sonnet-4 ⭐ (recomendado · $3/M)</option>
+          <option value="claude-opus-4-20250514">claude-opus-4 (premium · $15/M)</option>
+          <option value="claude-haiku-4-20250514">claude-haiku-4 (rápido · $0.80/M)</option>
+        </select>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          Prompt de prueba (opcional — si vacío, redacta intro de contrato nocturno construcción)
+        </label>
+        <textarea
+          rows={3}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="ej. Redacta una cláusula de confidencialidad para un contrato MYPE pequeña empresa..."
+          disabled={loading}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:opacity-50 resize-none"
+        />
+      </div>
+
+      <div className="mb-4 flex items-start gap-3 rounded-lg bg-orange-50 ring-1 ring-orange-200 p-3">
+        <label className="flex items-start gap-3 cursor-pointer flex-1">
+          <input
+            type="checkbox"
+            checked={useRag}
+            onChange={(e) => setUseRag(e.target.checked)}
+            disabled={loading}
+            className="mt-0.5 h-4 w-4 rounded text-orange-600 disabled:opacity-50"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-orange-900">
+              Usar corpus legal peruano (RAG)
+            </p>
+            <p className="text-xs text-orange-700 mt-0.5">
+              Inyecta las 75+ normas peruanas indexadas. <strong>Crítico para legal high-stakes</strong> — sin RAG, Claude
+              puede inventar valores (RMV, sobre-tasas, días vacacionales).
+            </p>
+          </div>
+        </label>
+      </div>
+
+      <button
+        onClick={runAnthropicTest}
+        disabled={loading}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold text-sm px-5 py-3 transition-colors disabled:opacity-50"
+      >
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+        {loading ? 'Probando Claude...' : 'Probar respuesta legal de Claude'}
+      </button>
+
+      {result && (
+        <div className="mt-5 space-y-3">
+          <div
+            className={cn(
+              'rounded-xl p-4 ring-1',
+              result.result?.success
+                ? 'bg-emerald-50 ring-emerald-200'
+                : 'bg-rose-50 ring-rose-200',
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {result.result?.success ? (
+                <CheckCircle2 className="w-6 h-6 shrink-0 text-emerald-600 mt-0.5" />
+              ) : (
+                <XCircle className="w-6 h-6 shrink-0 text-rose-600 mt-0.5" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p
+                  className={cn(
+                    'font-bold text-base',
+                    result.result?.success ? 'text-emerald-900' : 'text-rose-900',
+                  )}
+                >
+                  {result.result?.success ? '✓ Claude respondió correctamente' : '✗ Claude NO respondió'}
+                </p>
+                {result.message && (
+                  <p className="text-sm text-emerald-800 mt-1">{result.message}</p>
+                )}
+                {result.result?.error && (
+                  <p className="text-sm text-rose-800 mt-1">{result.result.error}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {result.result?.success && result.result?.response && (
+            <div className="rounded-xl bg-orange-50 ring-1 ring-orange-200 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-orange-700" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-orange-700">
+                  Respuesta de Claude
+                  {result.diagnostics?.ragEnabled ? (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-orange-200 text-orange-900 px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+                      ✨ con RAG ({result.diagnostics.ragChunksFound ?? 0} chunks)
+                    </span>
+                  ) : (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+                      ⚠ sin corpus
+                    </span>
+                  )}
+                </h3>
+              </div>
+              <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-line">{result.result.response}</p>
+            </div>
+          )}
+
+          {result.diagnostics?.ragEnabled && (result.diagnostics.ragChunksFound ?? 0) > 0 && (
+            <details className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4">
+              <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-700">
+                ✨ Chunks legales inyectados ({result.diagnostics.ragChunksFound})
+              </summary>
+              <ul className="mt-3 space-y-1.5 text-xs">
+                {result.diagnostics.ragChunkTitles?.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-3 border-b border-slate-200 last:border-0 pb-1.5 last:pb-0">
+                    <span className="text-slate-700">{c.titulo}</span>
+                    <span className="font-mono text-[10px] text-slate-500">
+                      score {c.score.toFixed(3)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+              Diagnóstico técnico
+            </h3>
+            <dl className="space-y-1.5 text-sm">
+              <Row
+                label="ANTHROPIC_API_KEY"
+                value={
+                  result.diagnostics?.hasKey ? (
+                    <span className="text-emerald-700 font-semibold">
+                      ✓ Sí ({result.diagnostics.keyPrefix})
+                    </span>
+                  ) : (
+                    <span className="text-rose-700 font-semibold">✗ NO</span>
+                  )
+                }
+              />
+              <Row label="Modelo solicitado" value={result.diagnostics?.modelRequested ?? '—'} mono />
+              {result.result?.modelResponded && (
+                <Row label="Modelo respondió" value={result.result.modelResponded} mono />
+              )}
+              {result.latencyMs !== undefined && (
+                <Row
+                  label="Latencia"
+                  value={
+                    <span
+                      className={cn(
+                        'font-mono font-bold',
+                        result.latencyMs < 3000 ? 'text-emerald-700' :
+                        result.latencyMs < 8000 ? 'text-amber-700' :
+                        'text-rose-700',
+                      )}
+                    >
+                      {result.latencyMs}ms
+                    </span>
+                  }
+                />
+              )}
+              {result.usage && (
+                <>
+                  <Row
+                    label="Tokens (input / output / total)"
+                    value={
+                      <span className="font-mono text-xs">
+                        {result.usage.inputTokens} / {result.usage.outputTokens} /{' '}
+                        <strong>{result.usage.totalTokens}</strong>
+                      </span>
+                    }
+                  />
+                  {result.pricing && (
+                    <Row
+                      label="Costo estimado"
+                      value={
+                        <span className="font-mono text-xs">
+                          <strong>${result.pricing.estimatedCostUsd}</strong> USD
+                          <span className="text-slate-500 ml-2">
+                            (≈ ${result.pricing.costPer1000Requests}/1000 req)
+                          </span>
+                        </span>
+                      }
+                    />
+                  )}
+                </>
+              )}
+              {result.result?.stopReason && (
+                <Row label="Stop reason" value={result.result.stopReason} mono />
+              )}
+            </dl>
+          </div>
+
+          {result.suggestion && (
+            <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-amber-900">Sugerencia</p>
+                  <p className="text-sm text-amber-800 mt-1 leading-relaxed">{result.suggestion}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <button
+              onClick={() => setShowJson((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
+            >
+              {showJson ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {showJson ? 'Ocultar JSON completo' : 'Ver JSON completo (para soporte)'}
+            </button>
+            {showJson && (
+              <div className="mt-2 relative">
+                <pre className="bg-slate-900 text-slate-100 text-xs p-4 rounded-xl overflow-x-auto font-mono leading-relaxed max-h-96 overflow-y-auto">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+                <button
+                  onClick={copyJson}
+                  className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-[10px] font-semibold px-2 py-1"
+                >
+                  <Copy className="w-3 h-3" />
+                  Copiar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function PlanOverrideCard() {
