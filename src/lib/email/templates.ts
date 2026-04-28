@@ -213,7 +213,11 @@ export interface WorkerOnboardingPayload {
 
 export function workerOnboardingEmail(payload: WorkerOnboardingPayload): string {
   const { workerName, orgName, documentsCount, pendingActions } = payload
-  const portalUrl = 'https://comply360.pe/mi-portal'
+  // CRÍTICO: el link DEBE ir a /mi-portal/registrarse (no a /mi-portal directo).
+  // /mi-portal/registrarse usa <SignUp unsafeMetadata={{ signupAs: 'WORKER' }} />
+  // que marca al user como WORKER en el JIT. Si va a /mi-portal sin cuenta,
+  // Clerk redirige a /sign-up (el genérico) y crea OWNER por error.
+  const portalUrl = 'https://comply360.pe/mi-portal/registrarse'
   return layout(`
     <h2 style="margin:0 0 12px;color:${BRAND_BLUE};font-size:22px;">Bienvenido a bordo en ${orgName}</h2>
     <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6;">
