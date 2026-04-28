@@ -123,7 +123,9 @@ const VISUAL_DECORATION: Record<string, { color: string; gradient: string }> = {
   PRO:     { color: 'text-amber-400', gradient: 'from-amber-500 to-orange-600' },
 }
 
-function formatPrice(p: typeof PLANS_SOURCE.STARTER): string {
+// Tipo genérico para no caer en literal-types de TS (cada plan tiene
+// price como literal: 0/199/599/1499/etc).
+function formatPrice(p: { price: number; isCustomQuote: boolean }): string {
   if (p.isCustomQuote) return 'Cotizar'
   if (p.price === 0) return 'S/ 0/mes'
   return `S/ ${p.price}/mes`
