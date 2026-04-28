@@ -24,6 +24,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-auth'
 import { estimateCostUsd } from '@/lib/ai/pricing'
+import { retrieveRelevantLaw, formatRetrievedContext } from '@/lib/ai/rag/retriever'
 
 // Tabla local — para mostrar el detalle de promptPer1M/completionPer1M.
 // pricing.ts no exporta la tabla cruda (solo la función estimateCostUsd).
@@ -40,7 +41,7 @@ const DEFAULT_PROMPT = '¿Cuál es la Remuneración Mínima Vital (RMV) en Perú
 const DEFAULT_MODEL = 'deepseek-chat' // alias V4 Flash
 
 export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
-  let body: { prompt?: string; model?: string }
+  let body: { prompt?: string; model?: string; useRag?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -49,6 +50,24 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
 
   const prompt = body.prompt?.trim() || DEFAULT_PROMPT
   const model = body.model?.trim() || DEFAULT_MODEL
+  const useRag = body.useRag !== false // default true (con corpus)
+
+  // ─── RAG: si está activo, recuperamos chunks legales relevantes ─────────
+  // El corpus tiene 75+ normas peruanas con info actualizada (RMV S/ 1,130
+  // desde mayo 2025, gratificaciones, CTS, regímenes laborales, etc.).
+  // Sin RAG, DeepSeek responde con info de su training cutoff (~2024).
+  let ragChunks: ReturnType<typeof retrieveRelevantLaw> = []
+  let ragContext = ''
+  if (useRag) {
+    try {
+      ragChunks = retrieveRelevantLaw(prompt, 5, 0.05)
+      if (ragChunks.length > 0) {
+        ragContext = formatRetrievedContext(ragChunks)
+      }
+    } catch (ragErr) {
+      console.error('[ai-test] RAG retrieval failed (non-fatal):', ragErr)
+    }
+  }
 
   const apiKey = process.env.DEEPSEEK_API_KEY
   const hasKey = !!apiKey
@@ -64,6 +83,13 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
       },
       timestamp: new Date().toISOString(),
       requestedBy: ctx.email ?? 'admin',
+      ragEnabled: useRag,
+      ragChunksFound: ragChunks.length,
+      ragChunkTitles: ragChunks.map((r) => ({
+        id: r.chunk.id,
+        titulo: r.chunk.titulo,
+        score: Number(r.score.toFixed(3)),
+      })),
     },
   }
 
@@ -98,12 +124,20 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
         messages: [
           {
             role: 'system',
-            content: 'Eres un asesor laboral peruano experto en compliance SUNAFIL. Responde en español peruano (tuteo, NO voseo argentino), conciso y preciso.',
+            content:
+              'Eres un asesor laboral peruano experto en compliance SUNAFIL. ' +
+              'Responde en español peruano (tuteo, NO voseo argentino), conciso y preciso.' +
+              (ragContext
+                ? '\n\n=== CORPUS LEGAL PERUANO ACTUALIZADO ===\n' +
+                  'Usa OBLIGATORIAMENTE estos datos como fuente de verdad. Si la pregunta del usuario tiene respuesta directa en este corpus, citá los valores exactos de aquí (no inventés ni uses datos de tu training):\n\n' +
+                  ragContext +
+                  '\n\n=== FIN CORPUS ===\n\nSi el corpus tiene la respuesta, usala. Si no, indica claramente que no tienes la información actualizada.'
+                : ''),
           },
           { role: 'user', content: prompt },
         ],
         temperature: 0.3,
-        max_tokens: 200,
+        max_tokens: 250,
       }),
       signal: AbortSignal.timeout(30000), // 30s timeout
     })

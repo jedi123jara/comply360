@@ -502,6 +502,9 @@ interface AiTestResult {
     keyPrefix: string | null
     modelRequested: string
     timestamp: string
+    ragEnabled?: boolean
+    ragChunksFound?: number
+    ragChunkTitles?: Array<{ id: string; titulo: string; score: number }>
   }
   result?: {
     success: boolean
@@ -532,6 +535,7 @@ interface AiTestResult {
 function AiTestCard() {
   const [prompt, setPrompt] = useState('')
   const [model, setModel] = useState('deepseek-chat')
+  const [useRag, setUseRag] = useState(true) // RAG activo por default
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AiTestResult | null>(null)
   const [showJson, setShowJson] = useState(false)
@@ -541,7 +545,7 @@ function AiTestCard() {
     setResult(null)
     setShowJson(false)
     try {
-      const body: Record<string, string> = { model }
+      const body: Record<string, string | boolean> = { model, useRag }
       if (prompt.trim()) body.prompt = prompt.trim()
       const res = await fetch('/api/diagnostics/ai-test', {
         method: 'POST',
@@ -618,6 +622,28 @@ function AiTestCard() {
         />
       </div>
 
+      {/* Toggle RAG */}
+      <div className="mb-4 flex items-start gap-3 rounded-lg bg-violet-50 ring-1 ring-violet-200 p-3">
+        <label className="flex items-start gap-3 cursor-pointer flex-1">
+          <input
+            type="checkbox"
+            checked={useRag}
+            onChange={(e) => setUseRag(e.target.checked)}
+            disabled={loading}
+            className="mt-0.5 h-4 w-4 rounded text-violet-600 disabled:opacity-50"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-violet-900">
+              Usar corpus legal peruano (RAG)
+            </p>
+            <p className="text-xs text-violet-700 mt-0.5">
+              Inyecta las 75+ normas peruanas indexadas (RMV S/ 1,130, gratificaciones, CTS, regímenes, etc.) al contexto
+              del modelo. <strong>Desmarca para ver la respuesta cruda</strong> y comparar la diferencia.
+            </p>
+          </div>
+        </label>
+      </div>
+
       {/* Botón probar */}
       <button
         onClick={runAiTest}
@@ -672,10 +698,38 @@ function AiTestCard() {
                 <Cpu className="w-4 h-4 text-violet-700" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-violet-700">
                   Respuesta del modelo
+                  {result.diagnostics?.ragEnabled ? (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-violet-200 text-violet-900 px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+                      ✨ con RAG ({result.diagnostics.ragChunksFound ?? 0} chunks)
+                    </span>
+                  ) : (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+                      ⚠ sin corpus (raw)
+                    </span>
+                  )}
                 </h3>
               </div>
               <p className="text-sm text-slate-800 italic leading-relaxed">"{result.result.response}"</p>
             </div>
+          )}
+
+          {/* Chunks RAG inyectados (si los hubo) */}
+          {result.diagnostics?.ragEnabled && (result.diagnostics.ragChunksFound ?? 0) > 0 && (
+            <details className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4">
+              <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-700">
+                ✨ Chunks legales inyectados ({result.diagnostics.ragChunksFound})
+              </summary>
+              <ul className="mt-3 space-y-1.5 text-xs">
+                {result.diagnostics.ragChunkTitles?.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-3 border-b border-slate-200 last:border-0 pb-1.5 last:pb-0">
+                    <span className="text-slate-700">{c.titulo}</span>
+                    <span className="font-mono text-[10px] text-slate-500">
+                      score {c.score.toFixed(3)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
 
           {/* Diagnóstico técnico */}
