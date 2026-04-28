@@ -1,5 +1,31 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth, currentUser, clerkClient } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+
+/**
+ * Sincroniza el rol del User al publicMetadata de Clerk. Best-effort.
+ *
+ * IMPORTANTE: el middleware Edge (proxy.ts) lee el rol desde session claims
+ * (Clerk publicMetadata), no desde Prisma. Si el rol vive solo en Prisma, el
+ * middleware NO sabe que el user es WORKER → lo deja entrar a /dashboard
+ * cuando debería redirigir a /mi-portal. Este helper cierra ese gap.
+ *
+ * El cambio NO es inmediato: la session claim se refresca en próxima auth
+ * (~60s o re-login). Para uso urgente, el código que llama puede pedir
+ * `auth.protect({ refresh: true })` o forzar logout.
+ */
+async function syncRoleToClerk(clerkId: string, role: string): Promise<void> {
+  try {
+    const client = await clerkClient()
+    await client.users.updateUserMetadata(clerkId, {
+      publicMetadata: { role },
+    })
+  } catch (err) {
+    // No-fatal: el rol vive en Prisma. El middleware fallará en redirect
+    // hasta que sincronice en próximo session refresh, pero el user puede
+    // navegar a /mi-portal directamente.
+    console.error(`[auth] syncRoleToClerk failed (clerkId=${clerkId}, role=${role}):`, err)
+  }
+}
 
 export interface AuthContext {
   userId: string
@@ -177,13 +203,57 @@ export async function getAuthContext(): Promise<AuthContext | null> {
             },
             select: { id: true, clerkId: true, orgId: true, email: true, role: true },
           })
+
+          // ─── Auto-vinculación con Worker pre-existente ──────────────────
+          // Si la empresa YA agregó este trabajador antes (con su email),
+          // el Worker existe en DB con userId=null. Lo vinculamos AHORA para
+          // que /mi-portal pueda cargar su perfil sin "No se encontró un
+          // perfil de trabajador asociado". Esto cubre el caso típico:
+          //   1. Admin crea worker JOSELIN con email josy@gmail.com
+          //   2. Sistema manda invitación por email
+          //   3. JOSELIN hace click → /mi-portal/registrarse → Clerk signup
+          //   4. JIT corre AHORA → encuentra Worker.email=josy@gmail.com → vincula
+          // El User queda con orgId del primer Worker (defensa: si la persona
+          // trabaja en N empresas, le asignamos el orgId de la PRIMERA — los
+          // endpoints /mi-portal validan workerId, no orgId).
+          let resolvedOrgId = ''
+          try {
+            const matchingWorker = await prisma.worker.findFirst({
+              where: { email: email.toLowerCase(), userId: null },
+              select: { id: true, orgId: true },
+              orderBy: { createdAt: 'asc' },
+            })
+            if (matchingWorker) {
+              await prisma.worker.update({
+                where: { id: matchingWorker.id },
+                data: { userId: seeded.id },
+              })
+              // Asignar orgId al User para que getAuthContext devuelva contexto válido
+              await prisma.user.update({
+                where: { id: seeded.id },
+                data: { orgId: matchingWorker.orgId },
+              })
+              resolvedOrgId = matchingWorker.orgId
+              console.log(
+                `[auth] Auto-vinculado Worker ${matchingWorker.id} (org=${matchingWorker.orgId}) → User ${seeded.id} (email=${email})`,
+              )
+            }
+          } catch (linkErr) {
+            // No-fatal: el User existe, solo que sin Worker vinculado. El admin
+            // puede vincular manualmente desde el dashboard si esto falla.
+            console.error('[auth] Auto-vinculación Worker→User falló (no fatal):', linkErr)
+          }
+
+          // Sincronizar rol a Clerk para que el middleware Edge lo lea desde session claims
+          await syncRoleToClerk(clerkId, 'WORKER')
+
           console.log(
-            `[auth] Worker self-serve registrado: clerkId=${clerkId} email=${email} (sin org)`,
+            `[auth] Worker self-serve registrado: clerkId=${clerkId} email=${email} orgId=${resolvedOrgId || '(libre)'}`,
           )
           return {
             userId: seeded.id,
             clerkId: seeded.clerkId,
-            orgId: '', // string vacío — el caller debe verificar role antes de usar orgId
+            orgId: resolvedOrgId, // empty if no matching worker — caller debe verificar role
             email: seeded.email,
             role: seeded.role,
           }
@@ -282,6 +352,9 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         }
       }
 
+      // Sincronizar rol a Clerk publicMetadata para el middleware Edge
+      await syncRoleToClerk(clerkId, seeded.role)
+
       console.log(
         `[auth] JIT-provisioned User+Org for clerkId=${clerkId} email=${email} ` +
           `plan=${defaultPlan} role=${defaultRole}${isFounder ? ' (founder)' : ''}`,
@@ -301,7 +374,58 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   }
 
   if (!user.orgId) {
-    // User exists but has no org — might be mid-onboarding
+    // ─── Worker recovery: User existe + role=WORKER + sin orgId ─────────
+    // Caso típico: trabajador se registró antes que el fix de auto-vincular
+    // estuviera vivo (o el JIT falló en vincular). Lo recuperamos AQUÍ
+    // buscando Worker pre-existente con su email y vinculando ahora.
+    // Sin esto, /mi-portal devuelve 401/404 indefinidamente.
+    if (user.role === 'WORKER') {
+      try {
+        const matchingWorker = await prisma.worker.findFirst({
+          where: { email: user.email.toLowerCase(), userId: null },
+          select: { id: true, orgId: true },
+          orderBy: { createdAt: 'asc' },
+        })
+        if (matchingWorker) {
+          await prisma.worker.update({
+            where: { id: matchingWorker.id },
+            data: { userId: user.id },
+          })
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { orgId: matchingWorker.orgId },
+          })
+          // Sincronizar rol a Clerk (idempotente — si ya estaba, no rompe)
+          await syncRoleToClerk(user.clerkId, 'WORKER')
+          console.log(
+            `[auth] Recuperado Worker ${matchingWorker.id} (org=${matchingWorker.orgId}) → User ${user.id} (email=${user.email}) en lazy lookup`,
+          )
+          return {
+            userId: user.id,
+            clerkId: user.clerkId,
+            orgId: matchingWorker.orgId,
+            email: user.email,
+            role: user.role,
+          }
+        }
+        // No hay Worker pre-existente — el trabajador es self-serve sin empresa.
+        // Devolvemos contexto con orgId vacío. Los endpoints /mi-portal validan
+        // workerId, no orgId, así que esto es OK para flujos compatibles.
+        await syncRoleToClerk(user.clerkId, 'WORKER')
+        return {
+          userId: user.id,
+          clerkId: user.clerkId,
+          orgId: '',
+          email: user.email,
+          role: user.role,
+        }
+      } catch (recoverErr) {
+        console.error('[auth] Worker recovery failed:', recoverErr)
+        // Caemos al return null para que el portal muestre error claro
+      }
+    }
+
+    // User exists but has no org — might be mid-onboarding (path original para owner/admin)
     if (process.env.NODE_ENV === 'development') {
       try {
         // Create ISOLATED org for this user based on their email
