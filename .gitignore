@@ -1,5 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# scratch / handoff bundles (Claude Design exports, favicon trials, etc.)
+.design-temp/
+favicons_temporales/
+
 # dependencies
 /node_modules
 /.pnp

@@ -3,152 +3,102 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  Scale,
-  FileText,
-  Calculator,
-  Shield,
-  Bell,
-  Users,
-  Check,
-  ArrowRight,
-  Star,
-  Sparkles,
-  Menu,
-  X,
-  ChevronRight,
-  Zap,
-  TrendingUp,
-  Mail,
-  Phone,
-  MapPin,
-  MessageSquare,
-  BarChart3,
-  CheckCircle2,
-  Building2,
-  Layers,
-} from 'lucide-react'
-import { PLANS } from '@/lib/constants'
 import { useUser } from '@clerk/nextjs'
+import { PLANS } from '@/lib/constants'
 import { track } from '@/lib/analytics'
 
-// ─── Intersection Observer for scroll-reveal ─────────────────────────────────
-// Nota: devolvemos tuple `[ref, visible]` en lugar de objeto `{ref, visible}`
-// porque React 19 eslint-plugin-react-hooks confunde lecturas `.visible`
-// con lecturas de refs cuando el objeto también expone `.ref` ("Cannot access
-// refs during render"). La tuple elimina la ambigüedad.
-function useReveal(threshold = 0.12): readonly [React.RefObject<HTMLDivElement | null>, boolean] {
-  const ref = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect() } },
-      { threshold }
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [threshold])
-  return [ref, visible] as const
-}
+// ─── Editorial Emerald landing — handoff "lNufxUI6cGhIK99GcegiQw" ─────────────
+// Tipografía: Instrument Serif (drama) + Geist (UI) + Geist Mono (data tags).
+// Paleta: emerald-50→950 + ink slate. Spacing generoso, secciones de 120 px,
+// hero con mini-dashboard compuesto. Mobile-first responsive con grid collapse.
 
-// ─── CountUp animation ────────────────────────────────────────────────────────
-function useCountUp(target: number, duration: number, trigger: boolean) {
-  const [value, setValue] = useState(0)
-  useEffect(() => {
-    if (!trigger) return
-    const startTime = performance.now()
-    function step(now: number) {
-      const progress = Math.min((now - startTime) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setValue(eased * target)
-      if (progress < 1) requestAnimationFrame(step)
-    }
-    requestAnimationFrame(step)
-  }, [target, duration, trigger])
-  return value
-}
+// ============================================================================
+// Tokens — paleta y tipografía locales (scoped via inline styles).
+// ============================================================================
+const ink = '#0f172a'
+const ink2 = '#334155'
+const ink3 = '#64748b'
+const muted = '#94a3b8'
+const line = 'rgba(15,23,42,0.08)'
+const lineStrong = 'rgba(15,23,42,0.14)'
+const fontSerif = "var(--font-instrument-serif, 'Instrument Serif'), Georgia, serif"
+const fontSans = "var(--font-geist-sans, 'Geist'), -apple-system, BlinkMacSystemFont, system-ui, sans-serif"
+const fontMono = "var(--font-geist-mono, 'Geist Mono'), ui-monospace, 'SF Mono', monospace"
 
-// ─── Feature tabs data ────────────────────────────────────────────────────────
-const FEATURE_TABS = [
-  {
-    id: 'contratos',
-    label: 'Contratos',
-    icon: FileText,
-    heading: 'Genera contratos laborales en minutos',
-    desc: 'Crea contratos personalizados con IA a partir de una descripción simple. Plazo fijo, indefinido, locación de servicios y más. Cumplimiento garantizado con la normativa peruana vigente.',
-    bullets: [
-      '19 cláusulas obligatorias incluidas (SST, datos personales, igualdad salarial)',
-      'Generación IA o desde plantilla base',
-      'Exportación PDF y DOCX lista para firmar',
-      'Auto-guardado en el legajo del trabajador',
-    ],
-    mockupBg: 'from-blue-50 to-slate-50',
-    accent: 'text-blue-600',
-    accentBg: 'bg-blue-600',
-  },
-  {
-    id: 'calculadoras',
-    label: 'Calculadoras',
-    icon: Calculator,
-    heading: 'Cálculos exactos en segundos',
-    desc: 'CTS, gratificaciones, vacaciones, liquidaciones e indemnizaciones. Actualizados con la UIT y RMV vigentes. Sin Excel, sin errores.',
-    bullets: [
-      'CTS y gratificaciones con prorrateo automático',
-      'Liquidaciones de cese y indemnizaciones',
-      'Simulador de escenarios (tiempo completo / parcial / MYPE)',
-      'Exporta el cálculo en PDF con firma del empleador',
-    ],
-    mockupBg: 'from-amber-50 to-orange-50',
-    accent: 'text-amber-600',
-    accentBg: 'bg-amber-500',
-  },
-  {
-    id: 'alertas',
-    label: 'Alertas y Cumplimiento',
-    icon: Bell,
-    heading: 'Nunca pierdas una fecha crítica',
-    desc: 'El motor de alertas monitorea vencimientos de contratos, fechas de pago de beneficios y cambios normativos. Notificaciones automáticas al correo.',
-    bullets: [
-      'Alertas: CTS (mayo/nov), gratificaciones (julio/dic), vacaciones vencidas',
-      'Notificación de contratos por vencer con 30 y 15 días de anticipación',
-      'Score de cumplimiento por trabajador y organización',
-      'Panel SUNAFIL con simulacro de inspección laboral',
-    ],
-    mockupBg: 'from-violet-50 to-purple-50',
-    accent: 'text-violet-600',
-    accentBg: 'bg-violet-600',
-  },
-  {
-    id: 'legajo',
-    label: 'Legajo Digital',
-    icon: Users,
-    heading: 'Legajo completo y siempre ordenado',
-    desc: 'Centraliza todos los documentos laborales de cada trabajador. Importa contratos desde PDF, extrae datos automáticamente y organiza el archivo digital.',
-    bullets: [
-      'Importación masiva desde PDF con extracción IA por contrato',
-      'Score de completitud del legajo (0-100)',
-      'Documentos de ingreso, SST, previsional y cese',
-      'Portal del trabajador para consulta de sus documentos',
-    ],
-    mockupBg: 'from-emerald-50 to-teal-50',
-    accent: 'text-emerald-600',
-    accentBg: 'bg-emerald-600',
-  },
-]
+// ============================================================================
+// Module catalog — 8 módulos cubriendo el ciclo SUNAFIL completo.
+// ============================================================================
+const MODULES = [
+  { tag: 'SST', title: 'Seguridad y salud', desc: 'Comité paritario, IPERC, capacitaciones obligatorias, exámenes médicos, accidentes y reportes a SUNAFIL.', ref: 'Ley 29783 · D.S. 005-2012-TR' },
+  { tag: 'Planilla', title: 'Boletas y T-Registro', desc: 'Cálculo automático de CTS, gratificación, AFP/ONP. Integración con PLAME y firma digital de boletas.', ref: 'D.S. 001-98-TR' },
+  { tag: 'Contratos', title: 'Gestión contractual', desc: 'Plantillas legales, firmas digitales con RENIEC, vencimientos automáticos y registro electrónico ante MTPE.', ref: 'D.S. 003-97-TR' },
+  { tag: 'Hostigamiento', title: 'Canal de denuncias', desc: 'Canal anónimo encriptado, comité de intervención y plazos automáticos. Cumple Ley 27942 y Ley 31806.', ref: 'Ley 27942 · 31806' },
+  { tag: 'Asistencia', title: 'Marcaje y horarios', desc: 'Marcaje GPS, geofencing, horas extras automáticas, tardanzas y reportes laborales para inspecciones.', ref: 'D.S. 004-2006-TR' },
+  { tag: 'Capacitación', title: 'LMS integrado', desc: 'Cursos SST, hostigamiento, código de ética. Certificados con QR verificables y reportes de avance.', ref: 'Anual obligatoria' },
+  { tag: 'Diagnóstico', title: 'Score SUNAFIL', desc: 'Evaluación continua de 47 indicadores. Sabes exactamente dónde te vas a caer en una inspección.', ref: 'Tiempo real' },
+  { tag: 'Portal', title: 'Mi-portal del trabajador', desc: 'App-like para que el trabajador firme, descargue boletas, pida vacaciones y vea su ID digital. Sin papeles.', ref: 'iOS · Android · Web' },
+] as const
 
-/* ============================================================ */
-/*  PAGE                                                         */
-/* ============================================================ */
+const TESTIMONIALS = [
+  {
+    quote: 'Pasamos de tener un Excel maldito de 8,000 filas a un sistema donde todos saben qué firmar y cuándo. La inspección de SUNAFIL la pasamos sin sudar.',
+    name: 'Lucía Vargas',
+    role: 'Gerente de RRHH · Constructora Andina (240 trabajadores)',
+    initial: 'L',
+  },
+  {
+    quote: 'Recuperamos S/ 24,000 al año en multas que veníamos pagando por capacitaciones SST vencidas. En tres meses se pagó solo.',
+    name: 'Rodrigo Salas',
+    role: 'CFO · Estrella Foods Perú',
+    initial: 'R',
+  },
+  {
+    quote: 'Mis chicos en obra usan el portal desde el celular. Firman su boleta antes de irme yo. Eso no lo había logrado con ningún otro sistema.',
+    name: 'Mario Quispe',
+    role: 'Jefe de Operaciones · Servipack Logística',
+    initial: 'M',
+  },
+] as const
+
+const FAQS = [
+  {
+    q: '¿Comply360 cumple con la legislación laboral peruana?',
+    a: 'Sí. Toda la plataforma está construida sobre el marco legal peruano: Ley 29783 (SST), D.S. 003-97-TR (LPCL), Ley 27942 (hostigamiento), Ley 31806 (protección al denunciante), entre otros. Nuestro equipo legal revisa los cambios normativos cada mes y actualiza la plataforma sin costo.',
+  },
+  {
+    q: '¿Cuánto demora la implementación?',
+    a: 'Dos semanas en promedio para empresas Empresa/Pro. Migramos tu data desde Excel, planillas o tu sistema actual; configuramos roles, organigrama y políticas; y capacitamos a tu equipo. No te dejamos solo después del kickoff.',
+  },
+  {
+    q: '¿Mis datos están seguros?',
+    a: 'Datos encriptados en tránsito y en reposo, hosteados en infraestructura cloud Tier 1. Cumplimos con la Ley 29733 de Protección de Datos Personales y aplicamos buenas prácticas ISO 27001. Auditorías de seguridad periódicas.',
+  },
+  {
+    q: '¿Qué pasa si SUNAFIL me visita?',
+    a: 'Tienes el expediente listo. Cada acción en Comply360 queda con sello de tiempo, hash y huella del responsable. Generas el reporte para el inspector con un clic.',
+  },
+  {
+    q: '¿Funciona si tengo trabajadores en obra o de campo?',
+    a: 'Es para lo que está hecho. Marcaje con GPS y geofencing, app que funciona offline y sincroniza al recuperar señal, firmas con huella desde el celular. Construcción, minería, agro y logística son nuestros sectores fuertes.',
+  },
+  {
+    q: '¿Puedo migrar mis boletas históricas?',
+    a: 'Sí, sin costo extra en cualquier plan. Te subimos hasta 5 años de histórico de boletas, contratos y capacitaciones para que tengas todo el legajo digital desde el día 1.',
+  },
+  {
+    q: '¿Tienen integración con SUNAT y MTPE?',
+    a: 'Sí. Generamos PLAME automáticamente y registramos contratos electrónicamente ante MTPE. También integramos con tu ERP (SAP, Oracle) o tu sistema contable.',
+  },
+] as const
+
+// ============================================================================
+// Page component
+// ============================================================================
 export default function LandingPage() {
   const { isSignedIn } = useUser()
   const router = useRouter()
   const [roleHome, setRoleHome] = useState<'/dashboard' | '/mi-portal'>('/dashboard')
 
-  // Detectar si el usuario es WORKER → su "home" es /mi-portal, no /dashboard.
-  // Esto importa sobre todo para la PWA: si un trabajador instala Comply360
-  // y toca el ícono desde home screen, start_url="/" debe llevarlo a su portal.
   useEffect(() => {
     if (!isSignedIn) return
     let cancelled = false
@@ -158,1027 +108,1052 @@ export default function LandingPage() {
         if (cancelled || !data) return
         if (data.role === 'WORKER') {
           setRoleHome('/mi-portal')
-          // Auto-redirect: workers no deberían ver el landing comercial
           router.replace('/mi-portal')
         }
       })
       .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [isSignedIn, router])
 
   const ctaHref = isSignedIn ? roleHome : '/sign-up'
-  const handleCtaClick = (e: React.MouseEvent) => {
-    track('landing_cta_clicked', { cta: 'hero_primary', signed_in: isSignedIn ?? false })
+  const handleCtaClick = useCallback((cta: string) => (e: React.MouseEvent) => {
+    track('landing_cta_clicked', { cta, signed_in: isSignedIn ?? false })
     if (isSignedIn) { e.preventDefault(); router.push(roleHome) }
-  }
+  }, [isSignedIn, roleHome, router])
 
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState(0)
-  const [annBannerVisible, setAnnBannerVisible] = useState(true)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  const scrollTo = useCallback((id: string) => {
-    setMobileOpen(false)
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
-
-  // Reveal refs — tuples `[ref, visible]` para evitar falsos positivos de
-  // react-hooks/refs al leer .visible de un objeto que también tiene .ref.
-  const [metricsRef, metricsVisible] = useReveal()
-  const [featuresRef, featuresVisible] = useReveal()
-  const [stepsRef, stepsVisible] = useReveal()
-  const [testimonialsRef, testimonialsVisible] = useReveal()
-  const [pricingRef, pricingVisible] = useReveal()
-  const [ctaRef, ctaVisible] = useReveal()
-
-  // CountUps
-  const empresasCount = useCountUp(500, 2000, metricsVisible)
-  const calcCount = useCountUp(50000, 2000, metricsVisible)
-  const horasCount = useCountUp(20, 2000, metricsVisible)
-  const precisionCount = useCountUp(99.9, 2000, metricsVisible)
-
-  const tab = FEATURE_TABS[activeTab]
+  // 3 planes destacados de PLANS — Starter / Empresa (featured) / Pro.
+  // Mantenemos PLANS como fuente de verdad para pricing y features.
+  const featuredPlans = [PLANS.STARTER, PLANS.EMPRESA, PLANS.PRO] as const
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+    <div style={{ fontFamily: fontSans, background: '#fafbfa', color: ink }}>
+      {/* ============== NAV ============== */}
+      <Nav isSignedIn={isSignedIn} ctaHref={ctaHref} roleHome={roleHome} onCtaClick={handleCtaClick('nav_demo')} />
 
-      {/* ── Announcement bar ──────────────────────────────────────────── */}
-      {annBannerVisible && (
-        <div
-          className="text-white py-2.5 px-4 flex items-center justify-center gap-3 text-sm relative"
-          style={{
-            background: 'linear-gradient(90deg, #047857 0%, #10b981 50%, #047857 100%)',
-          }}
-        >
-          <Sparkles className="h-4 w-4 text-amber-300 flex-shrink-0" />
-          <span>
-            <strong className="font-semibold">SUNAFIL aumentó 30% las fiscalizaciones en 2026.</strong>{' '}
-            Calculá tu riesgo de multa en 10 minutos.{' '}
-            <Link
-              href="/diagnostico-gratis"
-              onClick={() => track('landing_cta_clicked', { cta: 'announcement_bar' })}
-              className="underline underline-offset-2 font-medium text-emerald-50 hover:text-white transition-colors"
-            >
-              Diagnóstico gratis →
-            </Link>
-          </span>
-          <button
-            onClick={() => setAnnBannerVisible(false)}
-            className="absolute right-4 p-1 rounded hover:bg-white/10 transition-colors"
-            aria-label="Cerrar"
+      {/* ============== HERO ============== */}
+      <Hero ctaHref={ctaHref} onCtaClick={handleCtaClick('hero_demo')} />
+
+      {/* ============== LOGO STRIP ============== */}
+      <LogoStrip />
+
+      {/* ============== PILARES ============== */}
+      <Pillars />
+
+      {/* ============== STATS DARK ============== */}
+      <StatsDark />
+
+      {/* ============== MÓDULOS ============== */}
+      <Modules />
+
+      {/* ============== TESTIMONIOS ============== */}
+      <Testimonials />
+
+      {/* ============== PRICING ============== */}
+      <Pricing
+        plans={featuredPlans}
+        ctaHref={ctaHref}
+        onCtaClick={handleCtaClick('pricing_card')}
+        isSignedIn={isSignedIn}
+      />
+
+      {/* ============== FAQ ============== */}
+      <Faq />
+
+      {/* ============== CTA FINAL ============== */}
+      <FinalCta ctaHref={ctaHref} onCtaClick={handleCtaClick('final_demo')} isSignedIn={isSignedIn} />
+
+      {/* ============== FOOTER ============== */}
+      <Footer />
+    </div>
+  )
+}
+
+// ============================================================================
+// NAV
+// ============================================================================
+function Nav({
+  isSignedIn,
+  ctaHref,
+  roleHome,
+  onCtaClick,
+}: {
+  isSignedIn: boolean | undefined
+  ctaHref: string
+  roleHome: string
+  onCtaClick: (e: React.MouseEvent) => void
+}) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  return (
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: 'rgba(250,251,250,0.85)',
+        backdropFilter: 'saturate(180%) blur(14px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(14px)',
+        borderBottom: '0.5px solid transparent',
+      }}
+    >
+      <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 sm:px-8" style={{ paddingTop: 22, paddingBottom: 22 }}>
+        <Link href="/" className="flex items-center gap-2.5" style={{ fontWeight: 600, fontSize: 17, letterSpacing: '-0.01em' }}>
+          <BrandShield size={26} />
+          <span>Comply<span style={{ color: 'var(--emerald-600)' }}>360</span></span>
+        </Link>
+
+        <nav className="hidden lg:flex items-center" style={{ gap: 32, fontSize: 14, color: ink2 }}>
+          <a href="#producto" className="hover:text-slate-900 transition-colors">Producto</a>
+          <a href="#modulos" className="hover:text-slate-900 transition-colors">Módulos</a>
+          <a href="#clientes" className="hover:text-slate-900 transition-colors">Clientes</a>
+          <a href="#precios" className="hover:text-slate-900 transition-colors">Precios</a>
+          <a href="#faq" className="hover:text-slate-900 transition-colors">FAQ</a>
+        </nav>
+
+        <div className="hidden lg:flex items-center" style={{ gap: 10 }}>
+          <Link
+            href={isSignedIn ? roleHome : '/sign-in'}
+            style={{ color: ink2, fontSize: 14, fontWeight: 500, padding: '10px 14px' }}
+            className="hover:text-slate-900 transition-colors"
           >
-            <X className="h-4 w-4" />
-          </button>
+            {isSignedIn ? (roleHome === '/mi-portal' ? 'Mi portal' : 'Mi dashboard') : 'Iniciar sesión'}
+          </Link>
+          <Link href={ctaHref} onClick={onCtaClick} className="btn-primary-editorial">
+            {isSignedIn ? 'Ir al producto' : 'Solicitar demo'}
+          </Link>
+        </div>
+
+        <button
+          className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
+          onClick={() => setMobileOpen((v) => !v)}
+          aria-label="Menu"
+        >
+          {mobileOpen ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+          )}
+        </button>
+      </div>
+
+      {mobileOpen && (
+        <div className="lg:hidden border-t" style={{ borderColor: line, background: '#fafbfa', padding: '12px 20px 20px' }}>
+          {[['Producto', '#producto'], ['Módulos', '#modulos'], ['Clientes', '#clientes'], ['Precios', '#precios'], ['FAQ', '#faq']].map(([l, h]) => (
+            <a key={h} href={h} onClick={() => setMobileOpen(false)} className="block" style={{ padding: '12px 0', fontSize: 15, color: ink2 }}>{l}</a>
+          ))}
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Link href={isSignedIn ? roleHome : '/sign-in'} className="text-center" style={{ padding: '12px', borderRadius: 10, border: `0.5px solid ${lineStrong}`, fontSize: 14, fontWeight: 500 }}>
+              {isSignedIn ? 'Ir al producto' : 'Iniciar sesión'}
+            </Link>
+            <Link href={ctaHref} onClick={onCtaClick} className="btn-primary-editorial text-center" style={{ width: '100%', justifyContent: 'center' }}>
+              {isSignedIn ? 'Ir al producto' : 'Solicitar demo'}
+            </Link>
+          </div>
         </div>
       )}
 
-      {/* ── Navbar ───────────────────────────────────────────────────── */}
-      <header
-        className={`sticky top-0 z-50 bg-white transition-all duration-200 ${
-          scrolled ? 'border-b border-gray-100 shadow-sm' : 'border-b border-transparent'
-        }`}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          {/* Logo — COMPLY360 Variant A "Sello notarial" */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition-transform group-hover:scale-105"
-              style={{
-                background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
-                boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
-              }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#fff"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
-            </div>
-            <span className="text-xl font-bold tracking-tight text-gray-900">
-              Comply<span className="text-emerald-700">360</span>
-            </span>
+      <style jsx>{`
+        :global(.btn-primary-editorial) {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: ${ink};
+          color: #fff;
+          font-weight: 500;
+          font-size: 14px;
+          padding: 10px 18px;
+          border-radius: 10px;
+          border: 0.5px solid transparent;
+          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+          white-space: nowrap;
+        }
+        :global(.btn-primary-editorial:hover) {
+          background: #1e293b;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(15,23,42,0.18);
+        }
+      `}</style>
+    </header>
+  )
+}
+
+function BrandShield({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
+      <defs>
+        <linearGradient id="navg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#34d399" />
+          <stop offset="50%" stopColor="#10b981" />
+          <stop offset="100%" stopColor="#047857" />
+        </linearGradient>
+      </defs>
+      <path d="M32 4 L54 12 V30 C54 44 44 54 32 60 C20 54 10 44 10 30 V12 Z" fill="url(#navg)" />
+      <path d="M22 32 L29 39 L43 23" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ============================================================================
+// HERO
+// ============================================================================
+function Hero({ ctaHref, onCtaClick }: { ctaHref: string; onCtaClick: (e: React.MouseEvent) => void }) {
+  return (
+    <section style={{ position: 'relative', padding: '60px 0 40px', overflow: 'hidden' }}>
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(16,185,129,0.10), transparent 70%), radial-gradient(ellipse 80% 40% at 80% 20%, rgba(52,211,153,0.06), transparent 60%)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8" style={{ position: 'relative', textAlign: 'center', paddingTop: 30 }}>
+        <Eyebrow style={{ marginBottom: 28 }}>Hecho para el Perú · SUNAFIL · MTPE</Eyebrow>
+
+        <h1
+          style={{
+            fontFamily: fontSerif,
+            fontSize: 'clamp(48px, 9vw, 116px)',
+            fontWeight: 400,
+            lineHeight: 0.95,
+            letterSpacing: '-0.035em',
+            margin: '0 0 28px',
+            color: ink,
+          }}
+        >
+          Cumplimiento laboral,<br />
+          <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>sin estrés ni multas.</em>
+        </h1>
+
+        <p style={{
+          fontSize: 'clamp(17px, 1.4vw, 20px)',
+          color: ink2,
+          lineHeight: 1.55,
+          maxWidth: '64ch',
+          margin: '0 auto',
+        }}>
+          Comply360 unifica planilla, SST, contratos, capacitaciones y el portal del trabajador en una sola plataforma — auditable, peruana y lista para SUNAFIL.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center" style={{ marginTop: 36 }}>
+          <Link href={ctaHref} onClick={onCtaClick} className="btn-lg-editorial-primary inline-flex items-center justify-center" style={{ gap: 8 }}>
+            Solicitar demo
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </Link>
-
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {[
-              ['Funciones', 'funciones'],
-              ['Cómo funciona', 'como-funciona'],
-              ['Precios', 'precios'],
-              ['Contacto', 'contacto'],
-            ].map(([label, id]) => (
-              <button
-                key={id}
-                onClick={() => scrollTo(id)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-50 transition-colors"
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-
-          {/* CTA group */}
-          <div className="hidden md:flex items-center gap-2">
-            {isSignedIn ? (
-              <Link
-                href={roleHome}
-                className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {roleHome === '/mi-portal' ? 'Mi Portal' : 'Mi Dashboard'}
-              </Link>
-            ) : (
-              <Link
-                href="/sign-in"
-                className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Iniciar sesión
-              </Link>
-            )}
-            <Link
-              href={ctaHref}
-              onClick={handleCtaClick}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition-all"
-            >
-              {isSignedIn ? (roleHome === '/mi-portal' ? 'Ir a Mi Portal' : 'Ir al Dashboard') : 'Prueba gratis'}
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {/* Mobile toggle */}
-          <button className="md:hidden p-2 rounded-lg hover:bg-gray-50" onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <a href="#producto" className="btn-lg-editorial-secondary inline-flex items-center justify-center">Ver el producto</a>
         </div>
 
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-1 shadow-lg">
-            {[['Funciones', 'funciones'], ['Cómo funciona', 'como-funciona'], ['Precios', 'precios'], ['Contacto', 'contacto']].map(([label, id]) => (
-              <button key={id} onClick={() => scrollTo(id)} className="text-left px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50">
-                {label}
-              </button>
-            ))}
-            <div className="pt-2 border-t border-gray-100 flex flex-col gap-2">
-              <Link href={isSignedIn ? roleHome : '/sign-in'} className="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 text-center">
-                {isSignedIn ? (roleHome === '/mi-portal' ? 'Mi Portal' : 'Mi Dashboard') : 'Iniciar sesión'}
-              </Link>
-              <Link href={ctaHref} onClick={handleCtaClick} className="px-4 py-3 text-sm font-semibold bg-emerald-600 text-white rounded-xl text-center">
-                {isSignedIn ? (roleHome === '/mi-portal' ? 'Ir a Mi Portal' : 'Ir al Dashboard') : 'Prueba gratis'}
-              </Link>
+        <div className="flex flex-wrap items-center justify-center" style={{ gap: 18, marginTop: 28, fontSize: 13, color: ink3 }}>
+          {['Implementación en 2 semanas', 'Soporte humano en Lima', 'Datos protegidos · Ley 29733'].map((label, i) => (
+            <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-600)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {label}
+              {i < 2 && <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, marginLeft: 18 }} />}
+            </span>
+          ))}
+        </div>
+
+        <HeroProductPreview />
+      </div>
+
+      <style jsx>{`
+        :global(.btn-lg-editorial-primary) {
+          background: ${ink};
+          color: #fff;
+          font-weight: 500;
+          font-size: 15px;
+          padding: 14px 24px;
+          border-radius: 12px;
+          border: 0.5px solid transparent;
+          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+          white-space: nowrap;
+        }
+        :global(.btn-lg-editorial-primary:hover) {
+          background: #1e293b;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(15,23,42,0.18);
+        }
+        :global(.btn-lg-editorial-secondary) {
+          background: #fff;
+          color: ${ink};
+          font-weight: 500;
+          font-size: 15px;
+          padding: 14px 24px;
+          border-radius: 12px;
+          border: 0.5px solid ${lineStrong};
+          box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+          transition: background 0.15s ease, border-color 0.15s ease;
+          white-space: nowrap;
+        }
+        :global(.btn-lg-editorial-secondary:hover) {
+          background: #fff;
+          border-color: rgba(15,23,42,0.22);
+        }
+      `}</style>
+    </section>
+  )
+}
+
+function HeroProductPreview() {
+  return (
+    <div
+      style={{
+        margin: '80px auto 0',
+        maxWidth: 1140,
+        background: '#fff',
+        borderRadius: 20,
+        border: `0.5px solid ${line}`,
+        boxShadow:
+          '0 40px 80px -20px rgba(15,23,42,0.20), 0 16px 32px -8px rgba(15,23,42,0.10), inset 0 0 0 1px rgba(255,255,255,0.7)',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      <div className="hidden md:grid" style={{ gridTemplateColumns: '240px 1fr', minHeight: 520 }}>
+        {/* Sidebar */}
+        <div style={{ background: 'linear-gradient(180deg,#fafbfa,#f4f7f5)', borderRight: '0.5px solid rgba(15,23,42,0.06)', padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 8px' }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#34d399,#047857)', display: 'grid', placeItems: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Comply<span style={{ color: '#059669' }}>360</span></div>
+          </div>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: muted, padding: '0 8px', marginTop: 8 }}>Principal</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <SidebarItem active label="Dashboard" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>} />
+            <SidebarItem label="Trabajadores" badge="247" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>} />
+            <SidebarItem label="Alertas" alertBadge={3} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>} />
+            <SidebarItem label="Diagnóstico" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>} />
+            <SidebarItem label="Calendario" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} />
+          </div>
+        </div>
+
+        {/* Main */}
+        <div style={{ padding: '22px 26px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: muted }}>Constructora Andina · Mar 2026</div>
+              <div style={{ fontFamily: fontSerif, fontSize: 28, letterSpacing: '-0.025em', marginTop: 4 }}>
+                Tu cumplimiento, <em style={{ fontStyle: 'italic', color: '#047857' }}>al día</em>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'linear-gradient(135deg,#ecfdf5,#fff)', border: '0.5px solid rgba(16,185,129,0.3)', padding: '6px 12px', borderRadius: 999 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 4px rgba(16,185,129,0.2)' }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#047857' }}>Auditable</span>
             </div>
           </div>
-        )}
-      </header>
 
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section
-        className="relative overflow-hidden pt-16 pb-8 lg:pt-24 lg:pb-0"
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
+            <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#047857" trend="↑ 8 pts vs. feb" trendColor="#10b981" />
+            <KpiCard label="Multas evitadas" value="38k" prefix="S/" trend="en últimos 12 meses" />
+            <KpiCard label="Trabajadores activos" value="247" trend="+12 este mes" />
+          </div>
+
+          <div style={{ background: 'linear-gradient(135deg,#fffbeb,#fff)', border: '0.5px solid rgba(245,158,11,0.3)', borderRadius: 12, padding: 14, display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>3 capacitaciones SST vencen en 5 días</div>
+              <div style={{ fontSize: 11.5, color: ink2, marginTop: 1 }}>Ley 29783 — afecta a 12 trabajadores en obra Ate</div>
+            </div>
+            <button style={{ padding: '6px 12px', borderRadius: 8, background: '#fff', border: '0.5px solid rgba(15,23,42,0.15)', fontSize: 11.5, fontWeight: 600 }}>Resolver</button>
+          </div>
+
+          <div style={{ background: '#fff', border: '0.5px solid rgba(15,23,42,0.08)', borderRadius: 12, padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Cumplimiento mensual</div>
+              <div style={{ fontSize: 11, color: muted, fontFamily: fontMono }}>12 últimos meses</div>
+            </div>
+            <svg width="100%" height="80" viewBox="0 0 400 80" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.25"/>
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0 60 L33 50 L66 55 L100 40 L133 45 L166 30 L200 35 L233 25 L266 20 L300 22 L333 14 L366 10 L400 8 L400 80 L0 80 Z" fill="url(#chartg)" />
+              <path d="M0 60 L33 50 L66 55 L100 40 L133 45 L166 30 L200 35 L233 25 L266 20 L300 22 L333 14 L366 10 L400 8" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="400" cy="8" r="4" fill="#fff" stroke="#10b981" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile preview — tarjeta sintética */}
+      <div className="md:hidden" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#047857" trend="↑ 8 pts" trendColor="#10b981" />
+          <KpiCard label="Multas evitadas" value="38k" prefix="S/" trend="últimos 12 meses" />
+          <KpiCard label="Trabajadores" value="247" trend="+12 este mes" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SidebarItem({ active, label, icon, badge, alertBadge }: { active?: boolean; label: string; icon: React.ReactNode; badge?: string; alertBadge?: number }) {
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 10,
+      alignItems: 'center',
+      padding: '8px 10px',
+      borderRadius: 8,
+      background: active ? 'linear-gradient(90deg,rgba(16,185,129,0.10),transparent)' : undefined,
+      color: active ? '#047857' : '#475569',
+      fontSize: 13,
+      fontWeight: active ? 600 : 400,
+    }}>
+      {icon}
+      <span style={{ textAlign: 'left', flex: 1 }}>{label}</span>
+      {badge && <span style={{ fontFamily: fontMono, fontSize: 11, color: muted }}>{badge}</span>}
+      {alertBadge && <span style={{ background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999 }}>{alertBadge}</span>}
+    </div>
+  )
+}
+
+function KpiCard({ label, value, prefix, suffix, valueColor, trend, trendColor }: { label: string; value: string; prefix?: string; suffix?: string; valueColor?: string; trend?: string; trendColor?: string }) {
+  return (
+    <div style={{ background: '#fff', border: '0.5px solid rgba(15,23,42,0.08)', borderRadius: 12, padding: 16, boxShadow: '0 1px 2px rgba(15,23,42,0.04)', textAlign: 'left' }}>
+      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: muted }}>{label}</div>
+      <div style={{ fontFamily: fontSerif, fontSize: 36, letterSpacing: '-0.03em', color: valueColor ?? ink, marginTop: 4, lineHeight: 1 }}>
+        {prefix && <span style={{ color: muted, fontSize: 18 }}>{prefix} </span>}
+        {value}
+        {suffix && <span style={{ fontSize: 18, color: muted }}>{suffix}</span>}
+      </div>
+      {trend && <div style={{ fontSize: 11, color: trendColor ?? muted, marginTop: 4, fontWeight: trendColor ? 600 : 400 }}>{trend}</div>}
+    </div>
+  )
+}
+
+// ============================================================================
+// Shared eyebrow + section head
+// ============================================================================
+function Eyebrow({ children, style, dark }: { children: React.ReactNode; style?: React.CSSProperties; dark?: boolean }) {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 12,
+      fontWeight: 600,
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      color: dark ? '#6ee7b7' : 'var(--emerald-700)',
+      fontFamily: fontSans,
+      ...style,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? '#34d399' : 'var(--emerald-500)', boxShadow: dark ? '0 0 0 4px rgba(52,211,153,0.2)' : '0 0 0 4px rgba(16,185,129,0.18)' }} />
+      {children}
+    </span>
+  )
+}
+
+function SectionHead({ eyebrow, title, lead, dark }: { eyebrow: string; title: React.ReactNode; lead?: string; dark?: boolean }) {
+  return (
+    <div style={{ textAlign: 'center', marginBottom: 72, maxWidth: 820, marginLeft: 'auto', marginRight: 'auto' }}>
+      <Eyebrow dark={dark} style={{ marginBottom: 20 }}>{eyebrow}</Eyebrow>
+      <h2 style={{
+        fontFamily: fontSerif,
+        fontSize: 'clamp(36px, 5.5vw, 72px)',
+        fontWeight: 400,
+        lineHeight: 1.02,
+        letterSpacing: '-0.03em',
+        margin: '0 0 20px',
+        color: dark ? '#fff' : ink,
+      }}>{title}</h2>
+      {lead && <p style={{ fontSize: 'clamp(17px, 1.4vw, 20px)', color: dark ? '#cbd5e1' : ink2, lineHeight: 1.55, maxWidth: '64ch', margin: '18px auto 0' }}>{lead}</p>}
+    </div>
+  )
+}
+
+// ============================================================================
+// LOGO STRIP
+// ============================================================================
+function LogoStrip() {
+  const logos: Array<[string, React.ReactNode]> = [
+    ['Andina', <svg key="andina" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M3 18l3-3 4 2 5-5 6 4"/><circle cx="9" cy="9" r="2"/></svg>],
+    ['Mitsui Perú', <svg key="mitsui" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>],
+    ['Globalpe', <svg key="global" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/></svg>],
+    ['Estrella Foods', <svg key="estrella" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 2 3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>],
+    ['Servipack', <svg key="servipack" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>],
+    ['VitalCorp', <svg key="vital" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12h4l3-9 6 18 3-9h4"/></svg>],
+  ]
+  return (
+    <section id="clientes" style={{ padding: '60px 0 40px', borderTop: `0.5px solid ${line}`, borderBottom: `0.5px solid ${line}`, background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.6))' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: muted, marginBottom: 36 }}>
+          Más de 340 empresas peruanas confían en Comply360
+        </div>
+        <div className="grid items-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 24 }}>
+          {logos.map(([name, icon]) => (
+            <div key={name} className="logo-mark" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              fontFamily: fontSerif,
+              fontSize: 22,
+              fontStyle: 'italic',
+              letterSpacing: '-0.01em',
+              color: ink3,
+              opacity: 0.75,
+              transition: 'opacity 0.2s ease',
+            }}>
+              {icon}
+              {name}
+            </div>
+          ))}
+        </div>
+      </div>
+      <style jsx>{`
+        :global(.logo-mark:hover) { opacity: 1 !important; color: ${ink} !important; }
+      `}</style>
+    </section>
+  )
+}
+
+// ============================================================================
+// PILARES
+// ============================================================================
+function Pillars() {
+  const pillars = [
+    {
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+      title: 'Auditoría siempre lista',
+      desc: 'Cada acción queda registrada con hash, IP y huella digital del trabajador. Cuando llegue SUNAFIL, ya tendrás el expediente armado.',
+      foot: 'SUNAFIL · MTPE · D.S. 010-2003-TR',
+    },
+    {
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+      title: 'Alertas que llegan a tiempo',
+      desc: 'Vencimientos de capacitaciones, contratos a término y exámenes médicos te avisan antes de que se conviertan en multa. No después.',
+      foot: '+ Email · WhatsApp · Slack',
+    },
+    {
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      title: 'Portal que el trabajador sí usa',
+      desc: 'Boletas, vacaciones, capacitaciones y firma digital desde el celular. Sin instalar apps, sin chambear con papelitos.',
+      foot: 'iOS · Android · Web',
+    },
+  ]
+  return (
+    <section id="producto" style={{ padding: '120px 0' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <SectionHead
+          eyebrow="Producto"
+          title={<>Una plataforma. <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>Todo el ciclo laboral.</em></>}
+          lead="Reemplaza Excel, archivos en Drive y los cinco sistemas que nadie quiere abrir. Comply360 conecta lo que SUNAFIL te pide con lo que tu equipo realmente hace."
+        />
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+          {pillars.map((p) => (
+            <div key={p.title} className="pillar-card" style={{
+              background: '#fff',
+              border: `0.5px solid ${line}`,
+              borderRadius: 20,
+              padding: '32px 28px',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+            }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, var(--emerald-50), #fff)',
+                border: '0.5px solid var(--emerald-200)',
+                color: 'var(--emerald-700)',
+                display: 'grid',
+                placeItems: 'center',
+                marginBottom: 22,
+              }}>{p.icon}</div>
+              <div style={{ fontFamily: fontSerif, fontSize: 26, letterSpacing: '-0.02em', lineHeight: 1.15, marginBottom: 10 }}>{p.title}</div>
+              <div style={{ fontSize: 15, color: ink2, lineHeight: 1.55, marginBottom: 18 }}>{p.desc}</div>
+              <div style={{ fontFamily: fontMono, fontSize: 11, color: muted, letterSpacing: '0.02em', paddingTop: 16, borderTop: `0.5px solid ${line}` }}>{p.foot}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <style jsx>{`
+        :global(.pillar-card:hover) {
+          transform: translateY(-2px);
+          border-color: var(--emerald-200);
+          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+        }
+      `}</style>
+    </section>
+  )
+}
+
+// ============================================================================
+// STATS DARK
+// ============================================================================
+function StatsDark() {
+  const stats: Array<[React.ReactNode, string]> = [
+    [<><em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>340+</em></>, 'empresas peruanas operando con Comply360'],
+    [<>S/ <em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>12M</em></>, 'en multas SUNAFIL evitadas en 2025'],
+    [<><em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>96<span style={{ fontSize: '0.6em' }}>%</span></em></>, 'de capacitaciones SST completadas a tiempo'],
+    [<><em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>2</em> sem</>, 'de implementación promedio, con tu data migrada'],
+  ]
+  return (
+    <section style={{ padding: '120px 0', background: 'linear-gradient(180deg, var(--emerald-950) 0%, #051f1a 100%)', color: '#e2e8f0' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <SectionHead
+          dark
+          eyebrow="Resultados"
+          title={<>Cumplir <em style={{ color: '#6ee7b7', fontStyle: 'italic' }}>se siente</em> distinto.</>}
+        />
+        <div className="grid text-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32 }}>
+          {stats.map(([num, label], i) => (
+            <div key={i}>
+              <div style={{ fontFamily: fontSerif, fontSize: 'clamp(48px, 7vw, 92px)', letterSpacing: '-0.04em', lineHeight: 0.95, color: '#fff', marginBottom: 12 }}>
+                {num}
+              </div>
+              <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.45 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ============================================================================
+// MÓDULOS
+// ============================================================================
+function Modules() {
+  return (
+    <section id="modulos" style={{ padding: '120px 0', background: 'linear-gradient(180deg, #f4f7f5, #fff)' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <SectionHead
+          eyebrow="Módulos"
+          title={<>Cubre <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>todo lo que SUNAFIL pregunta.</em></>}
+          lead="Activa solo lo que necesitas hoy. Activa el resto cuando crezcas."
+        />
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+          {MODULES.map((m) => (
+            <div key={m.title} className="module-card" style={{
+              background: '#fff',
+              border: `0.5px solid ${line}`,
+              borderRadius: 14,
+              padding: '24px 22px',
+              transition: 'all 0.2s ease',
+            }}>
+              <div style={{
+                display: 'inline-block',
+                fontFamily: fontMono,
+                fontSize: 10.5,
+                fontWeight: 500,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: 'var(--emerald-700)',
+                background: 'var(--emerald-50)',
+                border: '0.5px solid var(--emerald-200)',
+                padding: '3px 8px',
+                borderRadius: 6,
+                marginBottom: 16,
+              }}>{m.tag}</div>
+              <div style={{ fontFamily: fontSerif, fontSize: 22, letterSpacing: '-0.02em', marginBottom: 8, lineHeight: 1.15 }}>{m.title}</div>
+              <div style={{ fontSize: 13.5, color: ink2, lineHeight: 1.5, marginBottom: 16 }}>{m.desc}</div>
+              <div style={{ fontFamily: fontMono, fontSize: 10.5, color: muted, letterSpacing: '0.02em', paddingTop: 12, borderTop: `0.5px solid ${line}` }}>{m.ref}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <style jsx>{`
+        :global(.module-card:hover) {
+          border-color: var(--emerald-300);
+          background: linear-gradient(180deg, var(--emerald-50) 0%, #fff 80%);
+          transform: translateY(-2px);
+        }
+      `}</style>
+    </section>
+  )
+}
+
+// ============================================================================
+// TESTIMONIOS
+// ============================================================================
+function Testimonials() {
+  return (
+    <section style={{ padding: '120px 0' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <SectionHead
+          eyebrow="Clientes"
+          title={<>Lo que dicen <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>quienes ya cumplen.</em></>}
+        />
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+          {TESTIMONIALS.map((t) => (
+            <div key={t.name} className="tcard" style={{
+              background: '#fff',
+              border: `0.5px solid ${line}`,
+              borderRadius: 20,
+              padding: '32px 28px',
+              display: 'flex',
+              flexDirection: 'column',
+              transition: 'all 0.2s ease',
+            }}>
+              <div style={{ fontFamily: fontSerif, fontSize: 22, lineHeight: 1.35, letterSpacing: '-0.015em', color: ink, marginBottom: 28, flex: 1 }}>
+                <span style={{ fontSize: 56, lineHeight: 0, verticalAlign: '-0.18em', color: 'var(--emerald-300)', marginRight: 4 }}>&ldquo;</span>
+                {t.quote}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 20, borderTop: `0.5px solid ${line}` }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--emerald-300), var(--emerald-700))', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: fontSerif, fontSize: 18, fontStyle: 'italic', flexShrink: 0 }}>
+                  {t.initial}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: ink }}>{t.name}</div>
+                  <div style={{ fontSize: 12.5, color: ink3, marginTop: 2 }}>{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <style jsx>{`
+        :global(.tcard:hover) {
+          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+          transform: translateY(-2px);
+        }
+      `}</style>
+    </section>
+  )
+}
+
+// ============================================================================
+// PRICING
+// ============================================================================
+type PlanCard = (typeof PLANS)[keyof typeof PLANS]
+
+function Pricing({
+  plans,
+  ctaHref,
+  onCtaClick,
+  isSignedIn,
+}: {
+  plans: readonly PlanCard[]
+  ctaHref: string
+  onCtaClick: (e: React.MouseEvent) => void
+  isSignedIn: boolean | undefined
+}) {
+  return (
+    <section id="precios" style={{ padding: '120px 0', background: 'linear-gradient(180deg, #f4f7f5, #fff)' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <SectionHead
+          eyebrow="Precios"
+          title={<>Empieza pequeño. <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>Crece tranquilo.</em></>}
+          lead="Precios en soles, sin sorpresas. Todos los planes incluyen soporte humano en Lima e implementación."
+        />
+        <div className="grid items-stretch" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, maxWidth: 1100, margin: '0 auto' }}>
+          {plans.map((plan) => {
+            const featured = plan.key === 'EMPRESA'
+            return <PricingCard key={plan.key} plan={plan} featured={featured} ctaHref={ctaHref} onCtaClick={onCtaClick} isSignedIn={isSignedIn} />
+          })}
+        </div>
+        <p style={{ textAlign: 'center', fontSize: 13, color: muted, marginTop: 28 }}>
+          ¿Necesitas más? <Link href="#cta" style={{ color: 'var(--emerald-700)', fontWeight: 600 }}>Conversemos sobre Enterprise</Link> · empresas con +750 trabajadores u holdings.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+function PricingCard({
+  plan,
+  featured,
+  ctaHref,
+  onCtaClick,
+  isSignedIn,
+}: {
+  plan: PlanCard
+  featured: boolean
+  ctaHref: string
+  onCtaClick: (e: React.MouseEvent) => void
+  isSignedIn: boolean | undefined
+}) {
+  return (
+    <div style={{
+      background: featured ? 'linear-gradient(180deg, var(--emerald-950), #051f1a)' : '#fff',
+      color: featured ? '#e2e8f0' : ink,
+      border: featured ? '0.5px solid var(--emerald-700)' : `0.5px solid ${line}`,
+      borderRadius: 20,
+      padding: '36px 30px',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+      boxShadow: featured ? '0 8px 24px -4px rgba(16,185,129,0.25), 0 24px 48px -8px rgba(4,78,55,0.40)' : undefined,
+      transform: featured ? 'translateY(-8px)' : undefined,
+    }}>
+      {featured && (
+        <div style={{
+          position: 'absolute',
+          top: -12,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--emerald-400)',
+          color: 'var(--emerald-950)',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          padding: '5px 12px',
+          borderRadius: 999,
+          fontFamily: fontSans,
+        }}>Más popular</div>
+      )}
+      <div style={{
+        fontFamily: fontMono,
+        fontSize: 12,
+        fontWeight: 500,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        color: featured ? 'var(--emerald-300)' : ink3,
+        marginBottom: 18,
+      }}>{plan.name}</div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, fontFamily: fontSerif, marginBottom: 16 }}>
+        {plan.isCustomQuote ? (
+          <span style={{ fontSize: 42, letterSpacing: '-0.04em', lineHeight: 1, color: featured ? '#fff' : ink }}>A medida</span>
+        ) : (
+          <>
+            <span style={{ fontSize: 22, color: featured ? 'var(--emerald-300)' : ink3 }}>S/</span>
+            <span style={{ fontSize: 64, letterSpacing: '-0.04em', lineHeight: 1, color: featured ? '#fff' : ink }}>{plan.price.toLocaleString('es-PE')}</span>
+            <span style={{ fontFamily: fontSans, fontSize: 14, color: featured ? 'var(--emerald-300)' : ink3, marginLeft: 6 }}>/ mes</span>
+          </>
+        )}
+      </div>
+
+      <div style={{ fontSize: 14, lineHeight: 1.5, color: featured ? '#cbd5e1' : ink2, marginBottom: 28 }}>
+        {plan.key === 'STARTER' && 'Para PYMEs hasta 20 trabajadores que recién están ordenando su cumplimiento.'}
+        {plan.key === 'EMPRESA' && 'Para empresas en crecimiento que quieren cubrir todo el cumplimiento sin contratar más gente.'}
+        {plan.key === 'PRO' && 'Para empresas medianas con equipos en obra/campo, IA legal y portal del trabajador con firma biométrica.'}
+      </div>
+
+      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+        {plan.features.slice(0, 6).map((f: string) => (
+          <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: featured ? '#e2e8f0' : ink2, lineHeight: 1.45 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={featured ? 'var(--emerald-300)' : 'var(--emerald-600)'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Link
+        href={ctaHref}
+        onClick={onCtaClick}
         style={{
-          background:
-            'linear-gradient(rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.97) 100%), linear-gradient(135deg, #ecfdf5 0%, #f8fafc 55%, #fefce8 100%)',
+          width: '100%',
+          textAlign: 'center',
+          padding: '14px 24px',
+          borderRadius: 12,
+          fontSize: 15,
+          fontWeight: 500,
+          background: featured ? 'var(--emerald-400)' : ink,
+          color: featured ? 'var(--emerald-950)' : '#fff',
+          boxShadow: '0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04)',
+          transition: 'transform 0.15s ease, background 0.15s ease',
         }}
       >
-        {/* Subtle grid */}
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
-            backgroundSize: '64px 64px',
-            maskImage: 'radial-gradient(90% 70% at 50% 30%, #000 0%, transparent 80%)',
-            WebkitMaskImage: 'radial-gradient(90% 70% at 50% 30%, #000 0%, transparent 80%)',
-          }}
+        {isSignedIn ? 'Ir al producto' : featured ? 'Solicitar demo' : 'Empezar'}
+      </Link>
+    </div>
+  )
+}
+
+// ============================================================================
+// FAQ
+// ============================================================================
+function Faq() {
+  return (
+    <section id="faq" style={{ padding: '120px 0' }}>
+      <div className="mx-auto max-w-[820px] px-5 sm:px-8">
+        <SectionHead
+          eyebrow="Preguntas frecuentes"
+          title={<>Lo que <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>todos preguntan.</em></>}
         />
-        {/* Emerald halo pulsante */}
-        <div
-          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full blur-3xl"
-          style={{
-            background: 'radial-gradient(circle, rgba(16,185,129,0.22), transparent 70%)',
-            animation: 'c360-breathe 6s ease-in-out infinite',
-          }}
-        />
-        <div className="absolute top-60 -left-20 w-[400px] h-[400px] rounded-full bg-amber-100/50 blur-3xl" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {FAQS.map((f, i) => (
+            <FaqItem key={f.q} q={f.q} a={f.a} defaultOpen={i === 0} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-          {/* Text column */}
-          <div className="flex-1 text-center lg:text-left max-w-xl mx-auto lg:mx-0">
-            {/* Badge — eyebrow editorial con número fuerte */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 mb-7">
-              <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-amber-800">
-                Multa SUNAFIL máxima: S/ 289,000
-              </span>
-            </div>
+function FaqItem({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(!!defaultOpen)
+  return (
+    <div style={{ borderTop: `0.5px solid ${line}`, padding: '24px 0' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          all: 'unset',
+          cursor: 'pointer',
+          display: 'flex',
+          width: '100%',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontFamily: fontSerif,
+          fontSize: 'clamp(18px, 2vw, 24px)',
+          letterSpacing: '-0.02em',
+          lineHeight: 1.25,
+          color: ink,
+          textAlign: 'left',
+        }}
+      >
+        <span>{q}</span>
+        <span style={{ width: 18, height: 18, marginLeft: 24, flexShrink: 0, color: 'var(--emerald-500)', display: 'inline-flex', transition: 'transform 0.2s ease' }}>
+          {open ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          )}
+        </span>
+      </button>
+      {open && (
+        <div style={{ paddingTop: 16, fontSize: 16, color: ink2, lineHeight: 1.6, maxWidth: '70ch' }}>{a}</div>
+      )}
+    </div>
+  )
+}
 
-            <h1
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontWeight: 400,
-                fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-                lineHeight: 1.05,
-                letterSpacing: '-0.025em',
-                color: 'var(--text-emerald-700)',
-                marginBottom: 24,
-              }}
-              dangerouslySetInnerHTML={{
-                __html:
-                  'Evita <em style="color: var(--emerald-700); font-style: italic">multas SUNAFIL</em> sin contratar un abogado.',
-              }}
-            />
-
-            <p className="text-lg text-gray-600 leading-relaxed mb-8">
-              El <strong>piloto automático</strong> para tus obligaciones laborales:
-              135 preguntas SUNAFIL · 12 regímenes · firma biométrica del trabajador ·
-              alertas 30 días antes de cualquier vencimiento. Lo que un estudio de
-              abogados cobra S/5,000/mes, por <strong>S/149</strong>.
+// ============================================================================
+// FINAL CTA
+// ============================================================================
+function FinalCta({ ctaHref, onCtaClick, isSignedIn }: { ctaHref: string; onCtaClick: (e: React.MouseEvent) => void; isSignedIn: boolean | undefined }) {
+  return (
+    <section id="cta" style={{ padding: '120px 0' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, var(--emerald-950) 0%, #042820 50%, #051f1a 100%)',
+          borderRadius: 28,
+          padding: 'clamp(60px, 8vw, 100px) clamp(28px, 4vw, 60px)',
+          textAlign: 'center',
+          overflow: 'hidden',
+        }}>
+          <div aria-hidden style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(52,211,153,0.20), transparent 70%), radial-gradient(ellipse 50% 60% at 100% 100%, rgba(16,185,129,0.15), transparent 70%), radial-gradient(ellipse 50% 60% at 0% 100%, rgba(110,231,183,0.10), transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{ position: 'relative' }}>
+            <Eyebrow dark>Da el primer paso</Eyebrow>
+            <h2 style={{
+              fontFamily: fontSerif,
+              fontSize: 'clamp(36px, 5.5vw, 72px)',
+              fontWeight: 400,
+              lineHeight: 1.02,
+              letterSpacing: '-0.03em',
+              color: '#fff',
+              marginTop: 14,
+              marginBottom: 20,
+            }}>
+              Cumplir <em style={{ color: 'var(--emerald-300)', fontStyle: 'italic' }}>nunca fue</em><br />tan simple.
+            </h2>
+            <p style={{ fontSize: 'clamp(17px, 1.4vw, 19px)', color: '#cbd5e1', maxWidth: '56ch', margin: '0 auto 36px', lineHeight: 1.55 }}>
+              Agenda una demo de 30 minutos. Te mostramos exactamente cómo Comply360 se vería en tu empresa. Sin compromiso, sin tarjeta.
             </p>
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start mb-6">
-              <Link
-                href="/diagnostico-gratis"
-                onClick={() => track('landing_cta_clicked', { cta: 'hero_diagnostic' })}
-                className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 text-white font-semibold text-base transition-all hover:bg-emerald-700 w-full sm:w-auto justify-center"
-                style={{
-                  boxShadow: '0 10px 30px -8px rgba(4,120,87,0.45), inset 0 1px 0 rgba(255,255,255,0.12)',
-                }}
-              >
-                <Shield className="h-5 w-5" />
-                Calcular mi riesgo de multa (gratis)
-              </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href={ctaHref}
-                onClick={handleCtaClick}
-                className="group inline-flex items-center gap-2 px-6 py-4 rounded-xl border border-emerald-200 bg-white text-emerald-700 font-semibold text-sm hover:border-emerald-500 hover:bg-emerald-50 transition-all"
-              >
-                {isSignedIn ? 'Ir al Dashboard' : 'Probar 14 días gratis'}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-
-            {/* Trust indicators con mini-métricas */}
-            <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 justify-center lg:justify-start text-xs text-gray-500 mb-3">
-              <li className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                10 minutos · sin tarjeta
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                Conforme Ley 29733
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                Cancela cuando quieras
-              </li>
-            </ul>
-            <p className="text-xs text-gray-400">
-              Base legal: D.S. 019-2006-TR + UIT 2026 (S/5,500). Multa máxima 52.53 UIT por infracción muy grave.
-            </p>
-          </div>
-
-          {/* Product screenshot — browser frame */}
-          <div className="flex-1 w-full max-w-2xl lg:max-w-none hidden lg:block">
-            <div className="relative">
-              {/* Browser chrome */}
-              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-gray-900/15 border border-gray-200/80 ring-1 ring-gray-900/5">
-                {/* Browser bar */}
-                <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-                  <div className="flex gap-1.5">
-                    <div className="h-3 w-3 rounded-full bg-red-400" />
-                    <div className="h-3 w-3 rounded-full bg-yellow-400" />
-                    <div className="h-3 w-3 rounded-full bg-green-400" />
-                  </div>
-                  <div className="flex-1 mx-4">
-                    <div className="bg-white border border-gray-200 rounded-md px-3 py-1 text-xs text-gray-400 font-mono flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500" />
-                      comply360.pe/dashboard
-                    </div>
-                  </div>
-                </div>
-                {/* Dashboard mockup */}
-                <div className="bg-slate-950 p-5 space-y-4">
-                  {/* Top row */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: 'Contratos activos', val: '47', icon: FileText, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-                      { label: 'Score cumplimiento', val: '94/100', icon: Shield, color: 'text-green-400', bg: 'bg-green-400/10' },
-                      { label: 'Alertas pendientes', val: '3', icon: Bell, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-                    ].map(({ label, val, icon: Icon, color, bg }) => (
-                      <div key={label} className="rounded-xl bg-white/5 border border-white/8 p-4">
-                        <div className={`inline-flex p-2 rounded-lg ${bg} mb-2`}>
-                          <Icon className={`h-4 w-4 ${color}`} />
-                        </div>
-                        <div className="text-xl font-bold text-white">{val}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">{label}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Middle row */}
-                  <div className="rounded-xl bg-white/5 border border-white/8 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-slate-200">Trabajadores activos</span>
-                      <span className="text-xs text-slate-400">Mayo 2026</span>
-                    </div>
-                    <div className="flex items-end gap-1 h-16">
-                      {[40, 65, 55, 80, 70, 90, 75, 95, 85, 100, 88, 92].map((h, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 rounded-sm bg-gradient-to-t from-emerald-600 to-emerald-300 opacity-70"
-                          style={{ height: `${h}%` }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Alert row */}
-                  <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
-                    <span className="text-sm text-green-300">Todos los contratos cumplen la normativa SUNAFIL vigente</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating cards */}
-              <div className="absolute -left-8 top-1/3 p-4 rounded-2xl bg-white border border-gray-100 shadow-xl shadow-gray-900/10 animate-float hidden xl:block">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400">CTS calculada</div>
-                    <div className="text-base font-bold text-gray-900">S/ 4,800</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute -right-6 bottom-16 p-4 rounded-2xl bg-white border border-gray-100 shadow-xl shadow-gray-900/10 animate-float-delay hidden xl:block">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
-                    <Sparkles className="h-4 w-4 text-violet-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400">IA generó contrato</div>
-                    <div className="text-sm font-bold text-gray-900">en 8 segundos</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom curve */}
-        <div className="relative mt-16 lg:mt-0">
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-        </div>
-      </section>
-
-      {/* ── Trust logos ──────────────────────────────────────────────── */}
-      <section className="py-14 bg-white border-b border-gray-100">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">
-            Empresas y estudios jurídicos que confían en COMPLY360
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-            {['Grupo Andino', 'Paz & Asociados', 'Tech Solutions', 'BCP Asesores', 'Sierra Alta Mining', 'Red Corporativa SAC'].map((name) => (
-              <span key={name} className="text-lg font-bold text-gray-200 hover:text-gray-300 transition-colors select-none">
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Metrics ──────────────────────────────────────────────────── */}
-      <section className="py-20 bg-white">
-        <div
-          ref={metricsRef}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${metricsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-            {[
-              { value: empresasCount, suffix: '+', label: 'Empresas activas', desc: 'en toda la región' },
-              { value: calcCount, suffix: '+', label: 'Cálculos realizados', desc: 'con precisión garantizada' },
-              { value: horasCount, suffix: 'h', label: 'Horas ahorradas', desc: 'por semana por empresa' },
-              { value: precisionCount, suffix: '%', label: 'Precisión', desc: 'en cálculos laborales' },
-            ].map(({ value, suffix, label, desc }, i) => (
-              <div key={label} className={`text-center transition-all duration-700 delay-${i * 100}`}>
-                <div className="text-4xl lg:text-5xl font-extrabold text-emerald-700 tracking-tight mb-1">
-                  {value >= 1000
-                    ? `${Math.round(value / 1000).toLocaleString('es-PE')}k`
-                    : value >= 100
-                    ? Math.round(value).toLocaleString('es-PE')
-                    : value.toFixed(value % 1 !== 0 ? 1 : 0)}
-                  <span className="text-amber-500">{suffix}</span>
-                </div>
-                <div className="text-base font-semibold text-gray-800 mb-0.5">{label}</div>
-                <div className="text-sm text-gray-400">{desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features (tabbed) ─────────────────────────────────────────── */}
-      <section id="funciones" className="py-24 bg-gray-50/60">
-        <div
-          ref={featuresRef}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${featuresVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          {/* Header */}
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
-              Módulos de la plataforma
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-              Todo lo que tu equipo necesita,{' '}
-              <span className="text-emerald-700">en un solo lugar</span>
-            </h2>
-            <p className="text-lg text-gray-500 leading-relaxed">
-              Cada módulo está diseñado por abogados laboralistas peruanos
-              para cubrir el ciclo completo de cumplimiento laboral.
-            </p>
-          </div>
-
-          {/* Tab strip */}
-          <div className="flex flex-wrap justify-center gap-2 mb-10">
-            {FEATURE_TABS.map((t, i) => {
-              const Icon = t.icon
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(i)}
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    activeTab === i
-                      ? 'bg-white text-gray-900 shadow-md border border-gray-200'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${activeTab === i ? t.accent : 'text-gray-400'}`} />
-                  {t.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Tab content */}
-          <div className="rounded-3xl bg-white border border-gray-100 shadow-xl shadow-gray-900/5 overflow-hidden">
-            <div className="grid lg:grid-cols-2 gap-0">
-              {/* Text side */}
-              <div className="p-10 lg:p-14 flex flex-col justify-center">
-                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${tab.accentBg} text-white mb-6 shadow-lg`}>
-                  <tab.icon className="h-6 w-6" />
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight mb-4">
-                  {tab.heading}
-                </h3>
-                <p className="text-gray-500 leading-relaxed mb-8">{tab.desc}</p>
-                <ul className="space-y-3 mb-10">
-                  {tab.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-3">
-                      <div className={`flex-shrink-0 mt-0.5 h-5 w-5 rounded-full ${tab.accentBg} flex items-center justify-center`}>
-                        <Check className="h-3 w-3 text-white" />
-                      </div>
-                      <span className="text-sm text-gray-600 leading-relaxed">{b}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={ctaHref}
-                  onClick={handleCtaClick}
-                  className={`self-start inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white ${tab.accentBg} shadow-lg transition-all hover:opacity-90`}
-                >
-                  Probar este módulo
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-
-              {/* Visual side */}
-              <div className={`bg-gradient-to-br ${tab.mockupBg} p-10 lg:p-14 flex items-center justify-center min-h-[360px]`}>
-                <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-100 shadow-xl p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-700">{tab.label}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Activo</span>
-                  </div>
-                  {/* Mock content rows */}
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-lg ${tab.accentBg} opacity-20`} />
-                      <div className="flex-1 space-y-1.5">
-                        <div className={`h-2.5 rounded-full bg-gray-100`} style={{ width: `${70 - i * 10}%` }} />
-                        <div className="h-2 rounded-full bg-gray-50" style={{ width: `${50 - i * 5}%` }} />
-                      </div>
-                      <div className="h-5 w-12 rounded-full bg-gray-50" />
-                    </div>
-                  ))}
-                  <div className={`rounded-xl ${tab.accentBg} opacity-10 h-10`} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Cómo funciona ────────────────────────────────────────────── */}
-      <section id="como-funciona" className="py-24 bg-white">
-        <div
-          ref={stepsRef}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${stepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
-              Cómo funciona
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-              Empieza a cumplir en{' '}
-              <span className="text-emerald-800">3 pasos simples</span>
-            </h2>
-            <p className="text-lg text-gray-500">
-              Sin configuraciones complejas. En menos de 10 minutos tu organización
-              está operando con cumplimiento total.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connector lines */}
-            <div className="hidden md:block absolute top-12 left-1/3 right-1/3 h-px bg-gradient-to-r from-emerald-600/20 via-emerald-600/40 to-emerald-600/20" />
-
-            {[
-              {
-                step: '01',
-                icon: Building2,
-                title: 'Registra tu empresa',
-                desc: 'Completa el onboarding con los datos de tu organización: RUC, régimen laboral y datos del representante legal. Tarda menos de 5 minutos.',
-                color: 'bg-blue-600',
-                light: 'bg-blue-50',
-                textColor: 'text-blue-600',
-              },
-              {
-                step: '02',
-                icon: Users,
-                title: 'Agrega tus trabajadores',
-                desc: 'Importa desde Excel o registra manualmente. Puedes también subir un PDF con múltiples contratos y la IA extrae los datos automáticamente.',
-                color: 'bg-emerald-600',
-                light: 'bg-emerald-50',
-                textColor: 'text-emerald-700',
-              },
-              {
-                step: '03',
-                icon: Shield,
-                title: 'Gestiona y cumple',
-                desc: 'Genera contratos, calcula beneficios, recibe alertas de vencimientos y mantén el legajo digital siempre completo y listo para SUNAFIL.',
-                color: 'bg-amber-500',
-                light: 'bg-amber-50',
-                textColor: 'text-amber-700',
-              },
-            ].map(({ step, icon: Icon, title, desc, color, light, textColor }, i) => (
-              <div
-                key={step}
-                className="relative flex flex-col items-center text-center p-8 rounded-3xl border border-gray-100 bg-white hover:shadow-xl hover:shadow-gray-900/5 transition-all duration-300"
-                style={{ transitionDelay: `${i * 100}ms` }}
-              >
-                {/* Step number */}
-                <div className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl ${color} text-white text-xl font-extrabold mb-5 shadow-lg`}>
-                  {step}
-                </div>
-                <div className={`inline-flex p-3 rounded-xl ${light} mb-4`}>
-                  <Icon className={`h-6 w-6 ${textColor}`} />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link
-              href={ctaHref}
-              onClick={handleCtaClick}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 text-white font-semibold text-base shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all"
-            >
-              Empezar ahora
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Why COMPLY360 ───────────────────────────────────────────── */}
-      <section className="py-24 bg-gray-50/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
-              Por qué elegirnos
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight">
-              Diseñado para la realidad{' '}
-              <span className="text-emerald-700">peruana</span>
-            </h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Scale,
-                title: 'Normativa peruana actualizada',
-                desc: 'D.Leg. 728, Ley 29783 (SST), Ley 27942 (hostigamiento), Ley 29733 (datos personales) y Ley 30709 (igualdad salarial) integradas.',
-                color: 'text-blue-600',
-                bg: 'bg-blue-50',
-              },
-              {
-                icon: Zap,
-                title: 'IA entrenada en derecho laboral',
-                desc: 'El generador de contratos usa modelos de lenguaje especializados con el corpus legal peruano completo. No es solo una plantilla.',
-                color: 'text-violet-600',
-                bg: 'bg-violet-50',
-              },
-              {
-                icon: Shield,
-                title: 'Preparado para SUNAFIL',
-                desc: 'Simulacro de inspección laboral con 120 preguntas. Detecta vulnerabilidades antes que el inspector y genera el plan de acción.',
-                color: 'text-emerald-600',
-                bg: 'bg-emerald-50',
-              },
-              {
-                icon: BarChart3,
-                title: 'Score de cumplimiento en tiempo real',
-                desc: 'Cada trabajador y la organización tienen un score 0-100. Sabes exactamente qué falta y cómo mejorar.',
-                color: 'text-amber-600',
-                bg: 'bg-amber-50',
-              },
-              {
-                icon: Layers,
-                title: 'Legajo digital completo',
-                desc: 'Contratos, DNI, AFP, seguro vida, SST y más. Legajo de ingreso, vigente y de cese organizados automáticamente.',
-                color: 'text-rose-600',
-                bg: 'bg-rose-50',
-              },
-              {
-                icon: MessageSquare,
-                title: 'Asesor IA 24/7',
-                desc: 'Chat legal entrenado en derecho laboral peruano. Consulta dudas sobre beneficios, despidos, periodo de prueba o régimen MYPE.',
-                color: 'text-cyan-600',
-                bg: 'bg-cyan-50',
-              },
-            ].map(({ icon: Icon, title, desc, color, bg }) => (
-              <div
-                key={title}
-                className="group p-7 rounded-2xl bg-white border border-gray-100 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-300 hover:-translate-y-0.5"
-              >
-                <div className={`inline-flex p-3 rounded-xl ${bg} mb-4`}>
-                  <Icon className={`h-6 w-6 ${color}`} />
-                </div>
-                <h3 className="text-base font-bold text-gray-900 mb-2">{title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ─────────────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div
-          ref={testimonialsRef}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${testimonialsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
-              Testimonios
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight">
-              Lo que dicen quienes{' '}
-              <span className="text-emerald-800">ya lo usan</span>
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                quote: 'COMPLY360 nos ahorró 20 horas semanales en gestión de contratos. La generación con IA es increíble — cada cláusula está perfectamente redactada.',
-                name: 'María Torres',
-                title: 'Jefa de RRHH',
-                company: 'Grupo Andino S.A.C.',
-                rating: 5,
-                initial: 'M',
-                initBg: 'from-blue-500 to-blue-600',
-              },
-              {
-                quote: 'Las calculadoras son exactas y las alertas normativas nos mantienen al día. Es indispensable para cualquier estudio jurídico que maneje planillas.',
-                name: 'Jorge Ramírez',
-                title: 'Abogado Senior',
-                company: 'Estudio Paz & Asociados',
-                rating: 5,
-                initial: 'J',
-                initBg: 'from-violet-500 to-violet-600',
-              },
-              {
-                quote: 'Antes usabamos Excel para todo. Ahora todo está automatizado y sin errores. El simulacro SUNAFIL nos salvó de una multa importante.',
-                name: 'Ana Castillo',
-                title: 'Gerente Legal',
-                company: 'Tech Solutions Perú',
-                rating: 5,
-                initial: 'A',
-                initBg: 'from-emerald-500 to-emerald-600',
-              },
-            ].map(({ quote, name, title, company, rating, initial, initBg }, i) => (
-              <div
-                key={name}
-                className="flex flex-col p-8 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-xl hover:shadow-gray-900/5 hover:border-gray-200 transition-all duration-300"
-                style={{ transitionDelay: `${i * 100}ms` }}
-              >
-                {/* Stars */}
-                <div className="flex gap-1 mb-5">
-                  {Array.from({ length: rating }).map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-500" />
-                  ))}
-                </div>
-                <blockquote className="flex-1 text-gray-700 leading-relaxed text-sm mb-6">
-                  &ldquo;{quote}&rdquo;
-                </blockquote>
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                  <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${initBg} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                    {initial}
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">{name}</div>
-                    <div className="text-xs text-gray-500">{title} · {company}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ──────────────────────────────────────────────────── */}
-      <section id="precios" className="py-24 bg-gray-50/60">
-        <div
-          ref={pricingRef}
-          className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${pricingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200 mb-4">
-              Precios
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-              Planes para cada{' '}
-              <span className="text-emerald-700">tamaño de empresa</span>
-            </h2>
-            <p className="text-lg text-gray-500">
-              Sin letras pequeñas. Todo incluido desde el primer día.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
-            {(Object.values(PLANS) as Array<{ key: string; name: string; price: number; features: readonly string[] }>).map((plan) => {
-              const isPopular = plan.key === 'EMPRESA'
-              return (
-                <div
-                  key={plan.key}
-                  className={`relative flex flex-col rounded-2xl p-8 transition-all duration-300 ${
-                    isPopular
-                      ? 'bg-emerald-600 text-white shadow-2xl shadow-emerald-600/25 scale-[1.02] z-10'
-                      : 'bg-white border border-gray-200 hover:shadow-xl hover:shadow-gray-900/5'
-                  }`}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold uppercase tracking-wide shadow-md">
-                      Más popular
-                    </div>
-                  )}
-                  <div className="mb-6">
-                    <h3 className={`text-lg font-bold mb-2 ${isPopular ? 'text-white' : 'text-gray-900'}`}>
-                      {plan.name}
-                    </h3>
-                    <div className="flex items-baseline gap-1">
-                      <span className={`text-sm ${isPopular ? 'text-white/60' : 'text-gray-400'}`}>S/</span>
-                      <span className={`text-4xl font-extrabold ${isPopular ? 'text-white' : 'text-gray-900'}`}>{plan.price}</span>
-                      <span className={`text-sm ${isPopular ? 'text-white/60' : 'text-gray-400'}`}>/mes</span>
-                    </div>
-                  </div>
-
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((feat) => (
-                      <li key={feat} className="flex items-start gap-2.5">
-                        <Check className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isPopular ? 'text-amber-200' : 'text-emerald-700'}`} />
-                        <span className={`text-sm ${isPopular ? 'text-white/80' : 'text-gray-600'}`}>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link
-                    href={ctaHref}
-                    onClick={handleCtaClick}
-                    className={`block w-full text-center py-3.5 rounded-xl font-semibold text-sm transition-all ${
-                      isPopular
-                        ? 'bg-white text-emerald-700 hover:bg-gray-50 shadow-lg'
-                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-600/20'
-                    }`}
-                  >
-                    {isSignedIn ? 'Ir al Dashboard' : 'Comenzar gratis'}
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-
-          <p className="text-center text-sm text-gray-400 mt-10">
-            Todos los planes incluyen 14 días de prueba gratuita. Sin tarjeta de crédito.
-          </p>
-        </div>
-      </section>
-
-      {/* ── CTA final ────────────────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div
-          ref={ctaRef}
-          className={`mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 transition-all duration-700 ${ctaVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          <div className="relative overflow-hidden rounded-3xl p-12 sm:p-16 text-center shadow-2xl shadow-emerald-600/25" style={{ background: 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)' }}>
-            {/* Decorative */}
-            <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-amber-300/20 blur-3xl" />
-            <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-white/5 blur-2xl" />
-
-            <div className="relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 mb-6">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                <span className="text-sm font-medium text-white/90">14 días gratis, sin riesgo</span>
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
-                Empieza a cumplir la normativa{' '}
-                <span className="text-amber-200">desde hoy</span>
-              </h2>
-              <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
-                Únete a cientos de empresas y estudios jurídicos peruanos
-                que ya gestionan su planilla sin miedo a SUNAFIL.
-              </p>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  const form = e.currentTarget
-                  const emailInput = form.elements.namedItem('email') as HTMLInputElement
-                  const email = emailInput?.value?.trim()
-                  if (isSignedIn) router.push(roleHome)
-                  else if (email) router.push(`/sign-up?email=${encodeURIComponent(email)}`)
-                  else router.push('/sign-up')
+                onClick={onCtaClick}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  background: 'var(--emerald-400)',
+                  color: 'var(--emerald-950)',
+                  fontWeight: 600,
+                  fontSize: 15,
+                  padding: '14px 24px',
+                  borderRadius: 12,
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 8px 24px -4px rgba(16,185,129,0.45)',
                 }}
-                className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-5"
               >
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="tu@empresa.pe"
-                  autoComplete="email"
-                  className="flex-1 px-5 py-3.5 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold/50 backdrop-blur-sm"
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-3.5 rounded-xl bg-amber-500 text-white font-semibold shadow-lg shadow-amber-500/30 hover:bg-amber-400 hover:shadow-amber-500/50 transition-all whitespace-nowrap"
-                >
-                  {isSignedIn ? 'Ir al Dashboard' : 'Comenzar gratis'}
-                </button>
-              </form>
-              <p className="text-xs text-white/35">
-                Sin tarjeta de crédito · Cancela cuando quieras · Soporte en español
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer id="contacto" className="bg-gray-950 text-gray-400 pt-16 pb-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-            {/* Brand — footer */}
-            <div className="lg:col-span-2">
-              <Link href="/" className="inline-flex items-center gap-2.5 mb-5">
-                <div
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
-                  style={{
-                    background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
-                    boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
-                  }}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#fff"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                </div>
-                <span className="text-lg font-bold text-white">
-                  Comply<span className="text-emerald-400">360</span>
-                </span>
+                {isSignedIn ? 'Ir al producto' : 'Solicitar demo gratis'}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               </Link>
-              <p className="text-sm leading-relaxed max-w-xs mb-6 text-gray-500">
-                La plataforma de cumplimiento laboral inteligente para empresas
-                y estudios jurídicos peruanos.
-              </p>
-              <div className="space-y-2 text-sm">
-                <a href="mailto:legaliproperu@gmail.com" className="flex items-center gap-2 hover:text-white transition-colors">
-                  <Mail className="h-4 w-4" /> legaliproperu@gmail.com
-                </a>
-                <a href="tel:+51916275643" className="flex items-center gap-2 hover:text-white transition-colors">
-                  <Phone className="h-4 w-4" /> +51 916 275 643
-                </a>
-                <span className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" /> Lima, Perú
-                </span>
-              </div>
-            </div>
-
-            {[
-              {
-                heading: 'Producto',
-                links: [
-                  { label: 'Generador de Contratos', href: '#' },
-                  { label: 'Calculadoras Laborales', href: '#' },
-                  { label: 'Alertas Normativas', href: '#' },
-                  { label: 'Legajo Digital', href: '#' },
-                  { label: 'Asesor IA', href: '#' },
-                ],
-              },
-              {
-                heading: 'Empresa',
-                links: [
-                  { label: 'Nosotros', href: '#' },
-                  { label: 'Blog', href: '#' },
-                  { label: 'Carreras', href: '#' },
-                  { label: 'Soporte', href: '#' },
-                  { label: 'Contacto', href: '#contacto' },
-                ],
-              },
-              {
-                heading: 'Legal',
-                links: [
-                  { label: 'Términos de Servicio', href: '/terminos' },
-                  { label: 'Privacidad', href: '/privacidad' },
-                  { label: 'Cookies', href: '#' },
-                  { label: 'Protección de Datos', href: '/privacidad' },
-                ],
-              },
-            ].map(({ heading, links }) => (
-              <div key={heading}>
-                <h4 className="text-xs font-semibold text-white uppercase tracking-widest mb-4">{heading}</h4>
-                <ul className="space-y-2.5 text-sm">
-                  {links.map((item) => (
-                    <li key={item.label}>
-                      <Link href={item.href} className="hover:text-white transition-colors">{item.label}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-gray-600">
-              &copy; 2026 COMPLY360. Todos los derechos reservados.
-            </p>
-            <div className="flex items-center gap-3">
-              {[
-                { label: 'in', title: 'LinkedIn' },
-                { label: 'tw', title: 'Twitter' },
-                { label: 'fb', title: 'Facebook' },
-              ].map(({ label, title }) => (
-                <a
-                  key={title}
-                  href="#"
-                  aria-label={title}
-                  className="h-8 w-8 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400 hover:text-white transition-colors"
-                >
-                  {label}
-                </a>
-              ))}
+              <a href="#contacto" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                background: 'rgba(255,255,255,0.08)',
+                color: '#fff',
+                fontWeight: 500,
+                fontSize: 15,
+                padding: '14px 24px',
+                borderRadius: 12,
+                border: '0.5px solid rgba(255,255,255,0.18)',
+                backdropFilter: 'blur(10px)',
+                whiteSpace: 'nowrap',
+              }}>Hablar con ventas</a>
             </div>
           </div>
         </div>
-      </footer>
-    </div>
+      </div>
+    </section>
+  )
+}
+
+// ============================================================================
+// FOOTER
+// ============================================================================
+function Footer() {
+  const cols: Array<[string, Array<[string, string]>]> = [
+    ['Producto', [['Módulos', '#modulos'], ['Portal del trabajador', '/mi-portal'], ['Score SUNAFIL', '/diagnostico-gratis'], ['Calculadoras', '/calculadoras'], ['Precios', '#precios']]],
+    ['Empresa', [['Sobre nosotros', '#'], ['Clientes', '#clientes'], ['Blog', '#'], ['Trabaja con nosotros', '#'], ['Contacto', '#contacto']]],
+    ['Recursos', [['Centro de ayuda', '#'], ['Guía SUNAFIL 2026', '#'], ['Plantillas legales', '#'], ['Webinars', '#'], ['API docs', '#']]],
+    ['Legal', [['Términos', '/terminos'], ['Privacidad', '/privacidad'], ['Cookies', '#'], ['Seguridad', '#']]],
+  ]
+  return (
+    <footer id="contacto" style={{ background: '#fff', borderTop: `0.5px solid ${line}`, padding: '80px 0 32px' }}>
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 48, marginBottom: 64 }}>
+          <div style={{ gridColumn: 'span 1', minWidth: 220 }}>
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 17, marginBottom: 16 }}>
+              <BrandShield size={22} />
+              <span>Comply<span style={{ color: '#34d399' }}>360</span></span>
+            </Link>
+            <p style={{ fontSize: 14, color: ink3, lineHeight: 1.55, maxWidth: '32ch', margin: 0 }}>
+              La plataforma de cumplimiento laboral hecha para empresas peruanas. Lima · Perú.
+            </p>
+          </div>
+          {cols.map(([heading, items]) => (
+            <div key={heading}>
+              <div style={{ fontFamily: fontMono, fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: muted, marginBottom: 20 }}>{heading}</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {items.map(([label, href]) => (
+                  <li key={label}>
+                    <Link href={href} style={{ fontSize: 14, color: ink2, transition: 'color 0.15s ease' }} className="footer-link">{label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 32, borderTop: `0.5px solid ${line}`, fontSize: 13, color: muted, fontFamily: fontMono, flexWrap: 'wrap', gap: 12 }}>
+          <div>© {new Date().getFullYear()} Comply360 SAC · Lima, Perú</div>
+          <div style={{ display: 'flex', gap: 24 }}>
+            <Link href="/terminos" className="footer-link">Términos</Link>
+            <Link href="/privacidad" className="footer-link">Privacidad</Link>
+            <a href="#" className="footer-link">Cookies</a>
+          </div>
+        </div>
+      </div>
+      <style jsx>{`
+        :global(.footer-link:hover) { color: var(--emerald-700) !important; }
+      `}</style>
+    </footer>
   )
 }
