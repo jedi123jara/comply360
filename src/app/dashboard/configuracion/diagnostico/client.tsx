@@ -13,7 +13,7 @@
 import { useState } from 'react'
 import {
   Mail, Loader2, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp,
-  Copy, Send, UserCheck, Wrench, Sparkles, Cpu,
+  Copy, Send, UserCheck, Wrench, Sparkles, Cpu, Crown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/sonner-toaster'
@@ -262,6 +262,9 @@ export function DiagnosticoClient() {
 
       {/* ─── Card: IA — DeepSeek ────────────────────────────────────────── */}
       <AiTestCard />
+
+      {/* ─── Card: Plan Override (Founders only) ────────────────────────── */}
+      <PlanOverrideCard />
 
       {/* Footer info */}
       <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4 text-xs text-slate-600 leading-relaxed">
@@ -842,6 +845,196 @@ function AiTestCard() {
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Card: Plan Override (Founders only — backend valida)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ALL_PLANS = ['FREE', 'STARTER', 'EMPRESA', 'PRO', 'BUSINESS', 'ENTERPRISE'] as const
+
+interface PlanOverrideResult {
+  ok?: boolean
+  message?: string
+  org?: {
+    id: string
+    name: string
+    oldPlan: string
+    newPlan: string
+    newExpiresAt: string | null
+    ownerEmail: string
+  }
+  note?: string
+  error?: string
+  code?: string
+}
+
+function PlanOverrideCard() {
+  const [email, setEmail] = useState('')
+  const [plan, setPlan] = useState<string>('PRO')
+  const [expiresInDays, setExpiresInDays] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<PlanOverrideResult | null>(null)
+
+  async function applyPlan() {
+    if (!email.trim()) {
+      toast.error('Ingresa el email del owner/admin')
+      return
+    }
+    setLoading(true)
+    setResult(null)
+    try {
+      const body: Record<string, string | number> = {
+        email: email.trim(),
+        plan,
+      }
+      const days = parseInt(expiresInDays, 10)
+      if (!isNaN(days) && days > 0) {
+        body.expiresInDays = days
+      }
+      const res = await fetch('/api/admin/set-org-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = (await res.json()) as PlanOverrideResult
+      setResult(json)
+      if (json.ok) {
+        toast.success(json.message ?? 'Plan actualizado')
+      } else {
+        toast.error(json.error ?? 'No se pudo actualizar')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al cambiar plan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm p-6">
+      <div className="flex items-start gap-4 mb-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+          <Crown className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold text-slate-900">
+            Cambiar plan de organización
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[10px] font-bold">
+              FOUNDERS ONLY
+            </span>
+          </h2>
+          <p className="text-sm text-slate-600 mt-0.5">
+            Cambia el plan de cualquier organización (por email del owner/admin) sin pasar por Culqi.
+            Útil para testing, comping a clientes VIP, demos, o promociones. El backend valida que seas SUPER_ADMIN
+            o estés en <code className="bg-slate-100 px-1 rounded text-xs">FOUNDER_EMAILS</code>.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4 mb-4">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            Email del owner/admin de la org
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ej. inveraduaneras@gmail.com"
+            disabled={loading}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:opacity-50 font-mono"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Plan nuevo
+            </label>
+            <select
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              disabled={loading}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:opacity-50"
+            >
+              {ALL_PLANS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Expira en N días (opcional)
+            </label>
+            <input
+              type="number"
+              value={expiresInDays}
+              onChange={(e) => setExpiresInDays(e.target.value)}
+              placeholder="ej. 30 (vacío = ilimitado)"
+              disabled={loading}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:opacity-50"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={applyPlan}
+        disabled={loading}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm px-5 py-3 transition-colors disabled:opacity-50"
+      >
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crown className="w-4 h-4" />}
+        {loading ? 'Aplicando...' : `Cambiar plan a ${plan}`}
+      </button>
+
+      {result && (
+        <div className="mt-5 space-y-3">
+          {result.ok ? (
+            <div className="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-6 h-6 shrink-0 text-emerald-600 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base text-emerald-900">{result.message}</p>
+                  {result.org && (
+                    <dl className="mt-3 space-y-1 text-sm">
+                      <Row label="Organización" value={result.org.name} />
+                      <Row label="Plan anterior" value={result.org.oldPlan} mono />
+                      <Row label="Plan nuevo" value={
+                        <span className="font-mono font-bold text-emerald-700">{result.org.newPlan}</span>
+                      } />
+                      {result.org.newExpiresAt && (
+                        <Row label="Expira" value={new Date(result.org.newExpiresAt).toLocaleString('es-PE')} />
+                      )}
+                      <Row label="Owner email" value={result.org.ownerEmail} mono />
+                    </dl>
+                  )}
+                  {result.note && (
+                    <p className="text-xs text-emerald-800 mt-3 italic">{result.note}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-rose-50 ring-1 ring-rose-200 p-4">
+              <div className="flex items-start gap-3">
+                <XCircle className="w-6 h-6 shrink-0 text-rose-600 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base text-rose-900">No se pudo cambiar el plan</p>
+                  <p className="text-sm text-rose-800 mt-1">{result.error}</p>
+                  {result.code === 'NOT_FOUNDER' && (
+                    <p className="text-xs text-rose-700 mt-2">
+                      Configura tu email en la env var <code className="bg-rose-100 px-1 rounded">FOUNDER_EMAILS</code> en Vercel y redeploy.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
