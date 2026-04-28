@@ -189,12 +189,20 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     data: { userId: user.id },
   })
 
-  // Si el User no tiene orgId, asignárselo (auto-completa el flujo de recuperación)
-  if (!user.orgId) {
+  // CRÍTICO: SIEMPRE actualizar User.orgId al orgId del Worker.
+  // Antes solo lo hacía si user.orgId era null. Pero si el User se registró
+  // mal (ej. sign-up genérico) tiene orgId='org-xxx-dummy' (org dummy del
+  // JIT) y endpoints /api/mi-portal/* buscan Worker en esa org dummy → 404.
+  // El orgId correcto es siempre el del Worker pre-existente que la empresa
+  // creó. Overwrite intencional (el admin tomó decisión consciente).
+  let orgIdChanged = false
+  let oldOrgId: string | null = user.orgId
+  if (user.orgId !== worker.orgId) {
     await prisma.user.update({
       where: { id: user.id },
       data: { orgId: worker.orgId },
     })
+    orgIdChanged = true
   }
 
   // Si el User no tiene role=WORKER, promoverlo (overwrite intencional —
@@ -206,6 +214,30 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
       data: { role: 'WORKER' },
     })
     rolePromoted = true
+  }
+
+  // Limpiar org dummy huérfana: si User estaba en una org dummy que se
+  // creó automáticamente cuando se registró mal (formato 'org-xxx-gmail-com'
+  // con onboardingCompleted=false), y ya no tiene Users vinculados, eliminar
+  // la org dummy para no dejar basura en DB.
+  let dummyOrgCleaned = false
+  if (orgIdChanged && oldOrgId && oldOrgId.startsWith('org-') && oldOrgId.includes('-')) {
+    try {
+      const remainingUsers = await prisma.user.count({ where: { orgId: oldOrgId } })
+      if (remainingUsers === 0) {
+        const oldOrg = await prisma.organization.findUnique({
+          where: { id: oldOrgId },
+          select: { onboardingCompleted: true, name: true },
+        })
+        if (oldOrg && !oldOrg.onboardingCompleted) {
+          await prisma.organization.delete({ where: { id: oldOrgId } })
+          dummyOrgCleaned = true
+          console.log(`[worker-link/fix] Org dummy eliminada: ${oldOrgId}`)
+        }
+      }
+    } catch (cleanupErr) {
+      console.error('[worker-link/fix] dummy org cleanup failed (non-fatal):', cleanupErr)
+    }
   }
 
   // CRÍTICO: sincronizar el rol a Clerk publicMetadata. Sin esto, el
@@ -230,8 +262,12 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     workerId: worker.id,
     userId: user.id,
     rolePromoted,
-    note: rolePromoted
-      ? 'El User tenía rol distinto (probablemente OWNER por registro mal). Cambiado a WORKER en Prisma + Clerk publicMetadata. CRÍTICO: el worker DEBE cerrar sesión completamente y volver a iniciar — sin re-login, su token JWT sigue cacheando role=OWNER y el middleware lo redirige a /dashboard.'
+    orgIdChanged,
+    oldOrgId: orgIdChanged ? oldOrgId : null,
+    newOrgId: orgIdChanged ? worker.orgId : null,
+    dummyOrgCleaned,
+    note: (rolePromoted || orgIdChanged)
+      ? 'El User tenía role=' + (rolePromoted ? 'OWNER y/o ' : '') + 'orgId distintos (probablemente por registro mal). Corregidos en Prisma + Clerk publicMetadata. CRÍTICO: el worker DEBE cerrar sesión completamente y volver a iniciar — sin re-login, su JWT sigue cacheando los valores viejos.'
       : 'Pídele que cierre sesión y vuelva a iniciar para refrescar la sesión de Clerk.',
   })
 })
