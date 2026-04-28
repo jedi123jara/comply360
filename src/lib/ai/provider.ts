@@ -232,9 +232,11 @@ export function getModelName(opts?: { provider?: AIProvider; feature?: AIFeature
       const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_ANTHROPIC_MODEL`
       if (process.env[envKey]) return process.env[envKey]!
     }
-    // Default: Sonnet (mejor balance costo/calidad).
-    // Para Contract-Fix u otros high-stakes, override a Opus via env var.
-    return process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
+    // Default: claude-3-5-sonnet — modelo estable disponible para TODAS las
+    // cuentas (incluyendo "Acceso de evaluación"). Excelente para legal high-
+    // stakes. Para Claude 4 (Sonnet 4 / Opus 4) override via env var
+    // ANTHROPIC_MODEL — pero requiere saldo cargado, no funciona en eval.
+    return process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022'
   }
 
   if (provider === 'groq') {

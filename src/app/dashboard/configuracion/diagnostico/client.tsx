@@ -918,7 +918,7 @@ interface AnthropicTestResult {
 
 function AnthropicTestCard() {
   const [prompt, setPrompt] = useState('')
-  const [model, setModel] = useState('claude-sonnet-4-20250514')
+  const [model, setModel] = useState('claude-3-5-sonnet-20241022')
   const [useRag, setUseRag] = useState(true)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AnthropicTestResult | null>(null)
@@ -985,9 +985,17 @@ function AnthropicTestCard() {
           disabled={loading}
           className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:opacity-50"
         >
-          <option value="claude-sonnet-4-20250514">claude-sonnet-4 ⭐ (recomendado · $3/M)</option>
-          <option value="claude-opus-4-20250514">claude-opus-4 (premium · $15/M)</option>
-          <option value="claude-haiku-4-20250514">claude-haiku-4 (rápido · $0.80/M)</option>
+          <optgroup label="Claude 3.5 (estable, plan eval OK)">
+            <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet ⭐ (recomendado · $3/M)</option>
+            <option value="claude-3-5-haiku-20241022">claude-3-5-haiku (rápido · $0.80/M)</option>
+            <option value="claude-3-opus-20240229">claude-3-opus (premium · $15/M)</option>
+            <option value="claude-3-haiku-20240307">claude-3-haiku (más barato · $0.25/M)</option>
+          </optgroup>
+          <optgroup label="Claude 4 (requiere saldo cargado, no eval)">
+            <option value="claude-sonnet-4-20250514">claude-sonnet-4 ($3/M)</option>
+            <option value="claude-opus-4-20250514">claude-opus-4 ($15/M)</option>
+            <option value="claude-haiku-4-20250514">claude-haiku-4 ($0.80/M)</option>
+          </optgroup>
         </select>
       </div>
 

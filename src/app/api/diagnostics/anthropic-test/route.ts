@@ -29,9 +29,19 @@ import { retrieveRelevantLaw, formatRetrievedContext } from '@/lib/ai/rag/retrie
 
 const DEFAULT_PROMPT =
   'Genera un párrafo introductorio para un contrato de trabajo a plazo indeterminado bajo el régimen general (D.Leg. 728), para Juan Pérez, salario S/ 2,500, jornada nocturna en construcción civil. Incluye el sobre-tasa nocturna correcta. Sé conciso (máximo 100 palabras).'
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514'
+// Default: el modelo estable más usado al 2026. Disponible incluso en eval.
+// Si el admin quiere Claude 4 (Sonnet/Opus) puede selectorlo en el dropdown,
+// pero requiere cuenta con saldo cargado (no solo evaluación).
+const DEFAULT_MODEL = 'claude-3-5-sonnet-20241022'
 
 const ANTHROPIC_PRICING_DISPLAY: Record<string, { promptPer1M: number; completionPer1M: number }> = {
+  // Claude 3.5 — estable, disponible en plan eval (recomendado)
+  'claude-3-5-sonnet-20241022': { promptPer1M: 3, completionPer1M: 15 },
+  'claude-3-5-sonnet-20240620': { promptPer1M: 3, completionPer1M: 15 },
+  'claude-3-5-haiku-20241022': { promptPer1M: 0.8, completionPer1M: 4 },
+  'claude-3-opus-20240229': { promptPer1M: 15, completionPer1M: 75 },
+  'claude-3-haiku-20240307': { promptPer1M: 0.25, completionPer1M: 1.25 },
+  // Claude 4 — premium, requiere saldo cargado (no solo eval)
   'claude-sonnet-4-20250514': { promptPer1M: 3, completionPer1M: 15 },
   'claude-4-sonnet': { promptPer1M: 3, completionPer1M: 15 },
   'claude-opus-4-20250514': { promptPer1M: 15, completionPer1M: 75 },
@@ -264,7 +274,10 @@ function getSuggestionByStatus(status: number, body: string): string {
     return 'Anthropic temporalmente no disponible (503). Reintenta en 1-5 min. Revisa https://status.anthropic.com'
   }
   if (status === 400 && body.toLowerCase().includes('model')) {
-    return 'Modelo solicitado no existe o no está disponible para tu cuenta. Revisa el ID del modelo (ej. claude-sonnet-4-20250514).'
+    return 'Modelo no disponible para tu cuenta. Si estás en plan "Acceso de evaluación", probá con claude-3-5-sonnet-20241022 (estable y disponible para todos). Los modelos Claude 4 requieren saldo cargado en https://console.anthropic.com/settings/billing'
+  }
+  if (status === 400) {
+    return `Anthropic rechazó el request (400). Causa típica: modelo no existe, prompt mal formado, o cuenta sin permisos. Detalle del error: ${body.slice(0, 200)}. Probá con claude-3-5-sonnet-20241022 que está disponible para todos los planes.`
   }
   return `Anthropic devolvió ${status}. Revisa los logs en https://console.anthropic.com/dashboard para detalles.`
 }
