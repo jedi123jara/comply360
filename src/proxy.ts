@@ -87,7 +87,10 @@ const securityHeaders = {
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  // camera + geolocation: permitidos solo en el mismo origen (self) — necesario
+  // para QR scanner del worker portal y geofencing de asistencia. Microfono
+  // sigue bloqueado (no lo usamos en ningún flujo).
+  'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(self)',
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
   'Content-Security-Policy': cspDirectives.join('; '),
 }
