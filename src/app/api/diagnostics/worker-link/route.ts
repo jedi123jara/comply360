@@ -171,7 +171,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
 
   const user = await prisma.user.findFirst({
     where: { email: { equals: worker.email, mode: 'insensitive' } },
-    select: { id: true, role: true, orgId: true },
+    select: { id: true, role: true, orgId: true, clerkId: true },
   })
 
   if (!user) {
@@ -208,6 +208,22 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     rolePromoted = true
   }
 
+  // CRÍTICO: sincronizar el rol a Clerk publicMetadata. Sin esto, el
+  // middleware Edge sigue leyendo el role viejo (OWNER) desde session
+  // claims y redirige al worker a /dashboard. El cambio en Prisma solo
+  // afecta queries server-side, NO al middleware.
+  try {
+    const { clerkClient } = await import('@clerk/nextjs/server')
+    const client = await clerkClient()
+    await client.users.updateUserMetadata(user.clerkId, {
+      publicMetadata: { role: 'WORKER' },
+    })
+  } catch (clerkErr) {
+    console.error('[worker-link/fix] syncRoleToClerk failed:', clerkErr)
+    // No-fatal: el cambio en Prisma sigue valiendo. El worker debe re-loguear
+    // (token refresh) para que el middleware lea el nuevo rol.
+  }
+
   return NextResponse.json({
     ok: true,
     message: 'Vínculo creado',
@@ -215,7 +231,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     userId: user.id,
     rolePromoted,
     note: rolePromoted
-      ? 'El User tenía un rol distinto (probablemente OWNER). Lo cambiamos a WORKER. Pídele que cierre sesión y vuelva a iniciar para que el cambio surta efecto.'
+      ? 'El User tenía rol distinto (probablemente OWNER por registro mal). Cambiado a WORKER en Prisma + Clerk publicMetadata. CRÍTICO: el worker DEBE cerrar sesión completamente y volver a iniciar — sin re-login, su token JWT sigue cacheando role=OWNER y el middleware lo redirige a /dashboard.'
       : 'Pídele que cierre sesión y vuelva a iniciar para refrescar la sesión de Clerk.',
   })
 })
