@@ -340,10 +340,36 @@ export function withWorkerAuth(
 
       // Resolver el Worker vinculado al User
       const { prisma } = await import('@/lib/prisma')
-      const worker = await prisma.worker.findUnique({
+      let worker = await prisma.worker.findUnique({
         where: { userId: authCtx.userId },
         select: { id: true, orgId: true, status: true },
       })
+
+      // Self-healing: si no hay Worker vinculado por userId, intentar buscar
+      // por email match (caso típico: worker se registró antes que el JIT
+      // self-link estuviera activo, o el orden de eventos rompió el vínculo).
+      // Esto evita que TODOS los endpoints /api/mi-portal/* fallen con 404
+      // en cascada cuando el vínculo está pendiente.
+      if (!worker && authCtx.email) {
+        const orphan = await prisma.worker.findFirst({
+          where: { email: { equals: authCtx.email, mode: 'insensitive' }, userId: null },
+          select: { id: true, orgId: true, status: true },
+          orderBy: { createdAt: 'asc' },
+        })
+        if (orphan) {
+          await prisma.worker.update({
+            where: { id: orphan.id },
+            data: { userId: authCtx.userId },
+          })
+          // Si el User no tenía orgId, asignárselo del Worker
+          await prisma.user.update({
+            where: { id: authCtx.userId },
+            data: { orgId: orphan.orgId },
+          }).catch(() => { /* best-effort */ })
+          worker = orphan
+          console.log(`[withWorkerAuth] Auto-vinculado Worker ${orphan.id} → User ${authCtx.userId} (lazy)`)
+        }
+      }
 
       if (!worker) {
         return NextResponse.json(
@@ -405,10 +431,31 @@ export function withWorkerAuthParams<P extends Record<string, string>>(
       if (!rl.success && rl.response) return rl.response
 
       const { prisma } = await import('@/lib/prisma')
-      const worker = await prisma.worker.findUnique({
+      let worker = await prisma.worker.findUnique({
         where: { userId: authCtx.userId },
         select: { id: true, orgId: true, status: true },
       })
+
+      // Self-healing: idéntico a withWorkerAuth (ver razón ahí)
+      if (!worker && authCtx.email) {
+        const orphan = await prisma.worker.findFirst({
+          where: { email: { equals: authCtx.email, mode: 'insensitive' }, userId: null },
+          select: { id: true, orgId: true, status: true },
+          orderBy: { createdAt: 'asc' },
+        })
+        if (orphan) {
+          await prisma.worker.update({
+            where: { id: orphan.id },
+            data: { userId: authCtx.userId },
+          })
+          await prisma.user.update({
+            where: { id: authCtx.userId },
+            data: { orgId: orphan.orgId },
+          }).catch(() => { /* best-effort */ })
+          worker = orphan
+          console.log(`[withWorkerAuthParams] Auto-vinculado Worker ${orphan.id} → User ${authCtx.userId} (lazy)`)
+        }
+      }
 
       if (!worker) {
         return NextResponse.json(

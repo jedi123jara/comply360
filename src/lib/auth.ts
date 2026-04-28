@@ -219,7 +219,9 @@ export async function getAuthContext(): Promise<AuthContext | null> {
           let resolvedOrgId = ''
           try {
             const matchingWorker = await prisma.worker.findFirst({
-              where: { email: email.toLowerCase(), userId: null },
+              // mode: 'insensitive' para que matchee aunque el admin haya
+              // guardado el email con mayúsculas distintas (Josy@Gmail vs josy@gmail)
+              where: { email: { equals: email, mode: 'insensitive' }, userId: null },
               select: { id: true, orgId: true },
               orderBy: { createdAt: 'asc' },
             })
@@ -382,7 +384,8 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     if (user.role === 'WORKER') {
       try {
         const matchingWorker = await prisma.worker.findFirst({
-          where: { email: user.email.toLowerCase(), userId: null },
+          // mode: 'insensitive' por si el email del Worker fue ingresado con caps distintos
+          where: { email: { equals: user.email, mode: 'insensitive' }, userId: null },
           select: { id: true, orgId: true },
           orderBy: { createdAt: 'asc' },
         })
