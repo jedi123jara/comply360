@@ -13,7 +13,7 @@
 import { useState } from 'react'
 import {
   Mail, Loader2, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp,
-  Copy, Send,
+  Copy, Send, UserCheck, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/sonner-toaster'
@@ -257,15 +257,225 @@ export function DiagnosticoClient() {
         )}
       </div>
 
+      {/* ─── Card: Vínculo de Worker ────────────────────────────────────── */}
+      <WorkerLinkCard />
+
       {/* Footer info */}
       <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4 text-xs text-slate-600 leading-relaxed">
         <p className="font-semibold text-slate-900 mb-1">¿Cómo funciona?</p>
         <p>
-          Esta página llama al endpoint <code className="bg-white px-1 rounded">/api/diagnostics/email-test</code>{' '}
-          que intenta enviar un email a través de Resend y devuelve el resultado completo. Sirve para
-          identificar si el problema está en la configuración de la env var, en Resend, o en otra parte.
+          Esta página llama a los endpoints de diagnóstico (<code className="bg-white px-1 rounded">/api/diagnostics/*</code>)
+          que verifican el estado real de cada integración y devuelven el resultado completo. Sirve para
+          identificar exactamente dónde está el problema sin tocar logs ni console.
         </p>
       </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Card: diagnóstico de vínculo Worker ↔ User
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface WorkerLinkResult {
+  worker?: {
+    id: string
+    dni: string
+    fullName: string
+    emailRegistered: string | null
+    userIdLinked: string | null
+    status: string
+  }
+  linkedUser?: { id: string; email: string; role: string; clerkId: string } | null
+  usersFoundByEmail?: Array<{ id: string; email: string; role: string; clerkId: string; orgId: string | null }>
+  otherWorkersWithSameEmail?: Array<{ id: string; firstName: string; lastName: string }>
+  diagnosis?: string
+  suggestion?: string
+  error?: string
+  ok?: boolean
+  message?: string
+  rolePromoted?: boolean
+  note?: string
+}
+
+function WorkerLinkCard() {
+  const [workerId, setWorkerId] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [fixing, setFixing] = useState(false)
+  const [result, setResult] = useState<WorkerLinkResult | null>(null)
+  const [showJson, setShowJson] = useState(false)
+
+  async function diagnose() {
+    if (!workerId.trim()) {
+      toast.error('Ingresa el ID del worker')
+      return
+    }
+    setLoading(true)
+    setResult(null)
+    setShowJson(false)
+    try {
+      const res = await fetch(`/api/diagnostics/worker-link?workerId=${encodeURIComponent(workerId.trim())}`)
+      const json = (await res.json()) as WorkerLinkResult
+      setResult(json)
+      if (json.error) toast.error(json.error)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error en diagnóstico')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function forceFix() {
+    if (!workerId.trim()) return
+    setFixing(true)
+    try {
+      const res = await fetch(`/api/diagnostics/worker-link?workerId=${encodeURIComponent(workerId.trim())}`, {
+        method: 'POST',
+      })
+      const json = (await res.json()) as WorkerLinkResult
+      if (json.ok) {
+        toast.success(json.message ?? 'Vínculo creado')
+        // Re-diagnosticar para ver el nuevo estado
+        await diagnose()
+      } else {
+        toast.error(json.error ?? 'No se pudo forzar el vínculo')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al forzar vínculo')
+    } finally {
+      setFixing(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm p-6">
+      <div className="flex items-start gap-4 mb-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+          <UserCheck className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold text-slate-900">Vínculo Worker ↔ Cuenta</h2>
+          <p className="text-sm text-slate-600 mt-0.5">
+            Si un trabajador entra al portal y ve "No se pudo cargar tu información" o "Este portal es solo para trabajadores",
+            usa esto para diagnosticar el problema. Necesitas el ID del trabajador (lo ves en la URL de su perfil).
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          ID del trabajador (de la URL de su perfil, ej. cmogbxglz000004l4cvovspu2)
+        </label>
+        <input
+          type="text"
+          value={workerId}
+          onChange={(e) => setWorkerId(e.target.value)}
+          placeholder="cmogbxglz..."
+          disabled={loading || fixing}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 font-mono"
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={diagnose}
+          disabled={loading || fixing}
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm px-5 py-3 transition-colors disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
+          {loading ? 'Diagnosticando...' : 'Diagnosticar vínculo'}
+        </button>
+        {result?.worker && !result.linkedUser && (
+          <button
+            onClick={forceFix}
+            disabled={loading || fixing}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm px-5 py-3 transition-colors disabled:opacity-50"
+          >
+            {fixing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+            Forzar vínculo
+          </button>
+        )}
+      </div>
+
+      {result && (
+        <div className="mt-5 space-y-3">
+          {/* Diagnóstico humano */}
+          {result.diagnosis && (
+            <div
+              className={cn(
+                'rounded-xl p-4 ring-1',
+                result.diagnosis.startsWith('✅') ? 'bg-emerald-50 ring-emerald-200' :
+                result.diagnosis.startsWith('⚠️') ? 'bg-amber-50 ring-amber-200' :
+                'bg-rose-50 ring-rose-200',
+              )}
+            >
+              <p className={cn(
+                'font-bold text-base',
+                result.diagnosis.startsWith('✅') ? 'text-emerald-900' :
+                result.diagnosis.startsWith('⚠️') ? 'text-amber-900' :
+                'text-rose-900',
+              )}>
+                {result.diagnosis}
+              </p>
+              {result.suggestion && (
+                <p className="text-sm mt-2 text-slate-700">{result.suggestion}</p>
+              )}
+            </div>
+          )}
+
+          {/* Datos del worker */}
+          {result.worker && (
+            <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+                Datos del trabajador (lo que tú ingresaste)
+              </h3>
+              <dl className="space-y-1.5 text-sm">
+                <Row label="Nombre" value={result.worker.fullName} />
+                <Row label="DNI" value={result.worker.dni} mono />
+                <Row label="Email registrado" value={result.worker.emailRegistered ?? '(sin email)'} mono />
+                <Row label="userId vinculado" value={result.worker.userIdLinked ?? '❌ NULL (no vinculado)'} mono />
+                <Row label="Estado" value={result.worker.status} />
+              </dl>
+            </div>
+          )}
+
+          {/* Users encontrados por email */}
+          {result.usersFoundByEmail && result.usersFoundByEmail.length > 0 && (
+            <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+                Cuentas registradas con ese email
+              </h3>
+              {result.usersFoundByEmail.map((u) => (
+                <div key={u.id} className="text-sm border-b border-slate-200 last:border-0 py-2">
+                  <p><strong>Email:</strong> <span className="font-mono text-xs">{u.email}</span></p>
+                  <p><strong>Rol:</strong> <span className={cn(
+                    'font-semibold',
+                    u.role === 'WORKER' ? 'text-emerald-700' : 'text-amber-700',
+                  )}>{u.role}</span></p>
+                  <p><strong>Clerk ID:</strong> <span className="font-mono text-xs">{u.clerkId.slice(0, 16)}...</span></p>
+                  <p><strong>Org:</strong> <span className="font-mono text-xs">{u.orgId ?? '(libre)'}</span></p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* JSON expandible */}
+          <div>
+            <button
+              onClick={() => setShowJson((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
+            >
+              {showJson ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {showJson ? 'Ocultar JSON completo' : 'Ver JSON completo (para soporte)'}
+            </button>
+            {showJson && (
+              <pre className="mt-2 bg-slate-900 text-slate-100 text-xs p-4 rounded-xl overflow-x-auto font-mono leading-relaxed max-h-96 overflow-y-auto">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
