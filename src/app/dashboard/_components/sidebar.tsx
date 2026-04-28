@@ -178,17 +178,38 @@ export type { PlanBadgeVariant }
 
 function useOrgPlan(): string {
   const [plan, setPlan] = useState<string>('STARTER')
+
   useEffect(() => {
-    fetch('/api/org/profile')
-      .then((r) => r.json())
-      .then((d) => {
+    let mounted = true
+
+    async function fetchPlan() {
+      try {
+        // cache: 'no-store' fuerza al browser a NO usar response cacheada.
+        // Crítico: cuando el founder cambia el plan via /diagnostico, el
+        // sidebar debe reflejar el nuevo plan SIN requerir hard refresh.
+        const r = await fetch('/api/org/profile', { cache: 'no-store' })
+        if (!r.ok) return
+        const d = await r.json()
         const p = d?.data?.plan ?? d?.plan
-        if (typeof p === 'string') setPlan(p)
-      })
-      .catch(() => {
+        if (mounted && typeof p === 'string') setPlan(p)
+      } catch {
         /* ignore */
-      })
+      }
+    }
+
+    void fetchPlan()
+
+    // Re-fetch cuando la ventana gana focus (típico flujo: founder cambia
+    // plan en otra pestaña → vuelve a esta → debe ver el plan actualizado).
+    const onFocus = () => void fetchPlan()
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      mounted = false
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
+
   return plan
 }
 

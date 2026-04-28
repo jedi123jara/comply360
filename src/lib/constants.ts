@@ -44,6 +44,26 @@ export const APP_NAME = "COMPLY360" as const;
  * Política de grandfather: clientes activos con `pricingFrozenUntil > now`
  * conservan precio anterior 12 meses. Implementado en Subscription.
  */
+
+/**
+ * Descuento promocional de lanzamiento.
+ * El precio "real" en PLANS es el precio FINAL que paga el cliente.
+ * El "precio original" mostrado tachado se calcula como
+ * `price / (1 - LAUNCH_DISCOUNT_PERCENT/100)`.
+ *
+ * Cambiar a 0 cuando termine la promoción de lanzamiento.
+ */
+export const LAUNCH_DISCOUNT_PERCENT = 50
+
+/**
+ * Calcula el precio "original" (antes del descuento) a partir del precio actual.
+ * Ej. precio actual S/199 + 50% descuento → precio original S/398.
+ */
+export function getOriginalPrice(currentPrice: number, discountPercent = LAUNCH_DISCOUNT_PERCENT): number {
+  if (discountPercent === 0 || discountPercent >= 100) return currentPrice
+  return Math.round(currentPrice / (1 - discountPercent / 100))
+}
+
 export const PLANS = {
   FREE: {
     key: "FREE",

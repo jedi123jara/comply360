@@ -57,22 +57,32 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         ? `${owner.firstName || ''} ${owner.lastName || ''}`.trim()
         : null
 
-    return NextResponse.json({
-      org: {
-        id: org.id,
-        name: org.name,
-        ruc: org.ruc,
-        razonSocial: org.razonSocial || org.name,
-        sector: org.sector,
-        sizeRange: org.sizeRange,
-        logoUrl: org.logoUrl,
-        plan: org.plan,
-        regimenPrincipal: org.regimenPrincipal,
+    return NextResponse.json(
+      {
+        org: {
+          id: org.id,
+          name: org.name,
+          ruc: org.ruc,
+          razonSocial: org.razonSocial || org.name,
+          sector: org.sector,
+          sizeRange: org.sizeRange,
+          logoUrl: org.logoUrl,
+          plan: org.plan,
+          regimenPrincipal: org.regimenPrincipal,
+        },
+        representanteLegal,
+        representanteEmail: owner?.email || null,
+        alertEmail: org.alertEmail,
       },
-      representanteLegal,
-      representanteEmail: owner?.email || null,
-      alertEmail: org.alertEmail,
-    })
+      {
+        headers: {
+          // Crítico: NO cachear en CDN ni browser. El plan puede cambiar en
+          // tiempo real (founder cambia via /diagnostico) y el sidebar/UI
+          // debe reflejarlo sin requerir hard refresh.
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      },
+    )
   } catch (error) {
     console.error('Error fetching org profile:', error)
     return NextResponse.json(

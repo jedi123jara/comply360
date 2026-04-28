@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Building2, Save, Loader2, CheckCircle2, AlertCircle, XCircle, Upload, X, Crown, Sparkles, Users, ChevronLeft, User, Phone, Mail, MapPin, FileText, Search, Landmark, ShieldAlert, Briefcase, MapPinned } from 'lucide-react'
 import Link from 'next/link'
+import { PLANS as PLANS_SOURCE, LAUNCH_DISCOUNT_PERCENT } from '@/lib/constants'
 
 // =============================================
 // Types
@@ -112,48 +113,36 @@ const DEPARTAMENTOS = [
   'Tumbes', 'Ucayali',
 ]
 
-const PLANS: PlanInfo[] = [
-  {
-    key: 'FREE',
-    name: 'Free',
-    price: 'S/ 0/mes',
-    color: 'text-slate-300',
-    gradient: 'from-gray-500 to-gray-600',
-    workersLimit: 'Hasta 5',
-    usersLimit: '1 usuario',
-    features: ['Calculadoras básicas (CTS, Gratificación)', 'Hasta 5 trabajadores', '1 usuario', 'Alertas normativas limitadas'],
-  },
-  {
-    key: 'STARTER',
-    name: 'Starter',
-    price: 'S/ 79/mes',
-    color: 'text-emerald-600',
-    gradient: 'from-blue-500 to-blue-600',
-    workersLimit: 'Hasta 25',
-    usersLimit: '3 usuarios',
-    features: ['Todas las calculadoras laborales', 'Hasta 25 trabajadores', '3 usuarios', 'Alertas normativas completas', 'Generación de contratos básica'],
-  },
-  {
-    key: 'EMPRESA',
-    name: 'Empresa',
-    price: 'S/ 149/mes',
-    color: 'text-indigo-400',
-    gradient: 'from-indigo-500 to-purple-600',
-    workersLimit: 'Hasta 100',
-    usersLimit: '10 usuarios',
-    features: ['Todo lo de Starter', 'Hasta 100 trabajadores', '10 usuarios', 'Contratos con IA avanzada', 'Diagnóstico de cumplimiento', 'Canal de denuncias', 'E-Learning básico'],
-  },
-  {
-    key: 'PRO',
-    name: 'Pro',
-    price: 'S/ 249/mes',
-    color: 'text-amber-400',
-    gradient: 'from-amber-500 to-orange-600',
-    workersLimit: 'Ilimitados',
-    usersLimit: 'Ilimitados',
-    features: ['Todo lo de Empresa', 'Trabajadores ilimitados', 'Usuarios ilimitados', 'API 10,000 llamadas/mes', 'Simulacros SUNAFIL', 'Reportes avanzados'],
-  },
-]
+// Single source of truth: PLANS_SOURCE viene de lib/constants.ts
+// Aquí solo añadimos los aspectos visuales (color, gradient) que son
+// específicos de esta vista. Precios + límites + features vienen del source.
+const VISUAL_DECORATION: Record<string, { color: string; gradient: string }> = {
+  FREE:    { color: 'text-slate-300', gradient: 'from-gray-500 to-gray-600' },
+  STARTER: { color: 'text-emerald-600', gradient: 'from-blue-500 to-blue-600' },
+  EMPRESA: { color: 'text-indigo-400', gradient: 'from-indigo-500 to-purple-600' },
+  PRO:     { color: 'text-amber-400', gradient: 'from-amber-500 to-orange-600' },
+}
+
+function formatPrice(p: typeof PLANS_SOURCE.STARTER): string {
+  if (p.isCustomQuote) return 'Cotizar'
+  if (p.price === 0) return 'S/ 0/mes'
+  return `S/ ${p.price}/mes`
+}
+
+const PLANS: PlanInfo[] = ['FREE', 'STARTER', 'EMPRESA', 'PRO'].map((key) => {
+  const p = PLANS_SOURCE[key as keyof typeof PLANS_SOURCE]
+  const deco = VISUAL_DECORATION[key]
+  return {
+    key,
+    name: p.name,
+    price: formatPrice(p),
+    color: deco.color,
+    gradient: deco.gradient,
+    workersLimit: p.maxWorkers >= 999999 ? 'Ilimitados' : `Hasta ${p.maxWorkers}`,
+    usersLimit: p.maxUsers >= 999999 ? 'Ilimitados' : `${p.maxUsers} ${p.maxUsers === 1 ? 'usuario' : 'usuarios'}`,
+    features: p.features.slice(0, 6), // primeras 6 features para no saturar el card
+  }
+})
 
 // =============================================
 // Shared styles
@@ -362,7 +351,7 @@ export default function EmpresaPage() {
     representante: {
       nombre: '',
       dni: '',
-      cargo: 'Gerente General',
+      cargo: '',
     },
     contador: {
       nombre: '',
@@ -444,7 +433,7 @@ export default function EmpresaPage() {
           representante: {
             nombre: org.repNombre ?? '',
             dni:    org.repDni    ?? '',
-            cargo:  org.repCargo  ?? 'Gerente General',
+            cargo:  org.repCargo  ?? '',
           },
           contador: {
             nombre: org.contNombre ?? '',
@@ -918,7 +907,7 @@ export default function EmpresaPage() {
                   type="text"
                   value={form.representante.nombre}
                   onChange={e => setForm(prev => ({ ...prev, representante: { ...prev.representante, nombre: e.target.value } }))}
-                  placeholder="Carlos Mendoza Ríos"
+                  placeholder="Nombre y apellidos del representante legal"
                   className={inputCls}
                 />
               </div>
@@ -928,7 +917,7 @@ export default function EmpresaPage() {
                   type="text"
                   value={form.representante.dni}
                   onChange={e => setForm(prev => ({ ...prev, representante: { ...prev.representante, dni: e.target.value.replace(/\D/g, '').slice(0, 8) } }))}
-                  placeholder="45678912"
+                  placeholder="8 dígitos"
                   maxLength={8}
                   className={`${inputCls} font-mono`}
                 />
@@ -939,7 +928,7 @@ export default function EmpresaPage() {
                   type="text"
                   value={form.representante.cargo}
                   onChange={e => setForm(prev => ({ ...prev, representante: { ...prev.representante, cargo: e.target.value } }))}
-                  placeholder="Gerente General"
+                  placeholder="Ej. Gerente General, Apoderado"
                   className={inputCls}
                 />
               </div>
@@ -959,7 +948,7 @@ export default function EmpresaPage() {
                   type="text"
                   value={form.contador.nombre}
                   onChange={e => setForm(prev => ({ ...prev, contador: { ...prev.contador, nombre: e.target.value } }))}
-                  placeholder="Ana García López"
+                  placeholder="Nombre del contador (opcional)"
                   className={inputCls}
                 />
               </div>
@@ -969,7 +958,7 @@ export default function EmpresaPage() {
                   type="text"
                   value={form.contador.cpc}
                   onChange={e => setForm(prev => ({ ...prev, contador: { ...prev.contador, cpc: e.target.value } }))}
-                  placeholder="CPC 12345"
+                  placeholder="N° de matrícula CPC"
                   className={inputCls}
                 />
               </div>

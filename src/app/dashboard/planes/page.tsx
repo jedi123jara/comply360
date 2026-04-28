@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { CulqiCheckoutModal } from '@/components/billing/culqi-checkout-modal'
-import { PLANS as PLANS_CANONICAL } from '@/lib/constants'
+import { PLANS as PLANS_CANONICAL, LAUNCH_DISCOUNT_PERCENT, getOriginalPrice } from '@/lib/constants'
 
 // =============================================
 // Types
@@ -291,8 +291,19 @@ export default function PlanesPage() {
                   <p className="mt-1 text-xs text-slate-500">{plan.description}</p>
                 </div>
 
-                {/* Price */}
+                {/* Price con descuento de lanzamiento */}
                 <div className="mb-6 text-center">
+                  {/* Precio original tachado (solo si hay descuento + plan no es FREE/Enterprise) */}
+                  {LAUNCH_DISCOUNT_PERCENT > 0 && plan.price > 0 && (
+                    <div className="flex items-baseline justify-center gap-2 mb-1">
+                      <span className="text-sm text-slate-400 line-through font-medium">
+                        {plan.currency} {getOriginalPrice(plan.price)}
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-rose-100 text-rose-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                        -{LAUNCH_DISCOUNT_PERCENT}% lanzamiento
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-sm font-medium text-slate-500">{plan.currency}</span>
                     <span className="text-4xl font-extrabold text-slate-900">{plan.price}</span>
