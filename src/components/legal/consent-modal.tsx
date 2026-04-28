@@ -238,14 +238,22 @@ export function ConsentGate({
   useEffect(() => {
     let mounted = true
     fetch(`/api/consent?scope=${scope}`, { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : Promise.resolve({ accepted: false })))
-      .then((data: { accepted?: boolean }) => {
+      .then(async (r) => {
         if (!mounted) return
-         
+        // CRÍTICO: si el endpoint retorna 401 (no autenticado) o 404 (sin
+        // Worker vinculado), NO mostrar el modal — fail-open. Antes el
+        // código trataba 401/404 como "necesita consent" y mostraba el
+        // modal a usuarios sin sesión que llegaban por PWA cacheada,
+        // confundiéndolos. El modal de consent solo tiene sentido si el
+        // user está autenticado y el endpoint responde con accepted=false.
+        if (!r.ok) {
+          setStatus('ok') // fail-open: no bloquear render
+          return
+        }
+        const data = (await r.json()) as { accepted?: boolean }
         setStatus(data.accepted ? 'ok' : 'needs-consent')
       })
       .catch(() => {
-         
         if (mounted) setStatus('ok') // fail-open para no bloquear si API falla
       })
     return () => {
