@@ -48,7 +48,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   //
   // Mejora futura: mover este check a Server Component con redirect() server-side.
   useEffect(() => {
-    if (pathname === '/dashboard/onboarding') return
+    // Whitelist de rutas que SIEMPRE deben ser accesibles incluso si
+    // hasOrg=false o needsPlan=true. Sin esto, /dashboard/configuracion/
+    // diagnostico (donde está el card de Cambiar plan + diagnostico de
+    // bugs) queda bloqueado en chicken-and-egg cuando algo del onboarding
+    // está mal — el founder NO puede acceder a la herramienta para resolverlo.
+    const ALWAYS_ALLOWED = [
+      '/dashboard/onboarding',
+      '/dashboard/configuracion/diagnostico',
+    ]
+    if (ALWAYS_ALLOWED.some((path) => pathname.startsWith(path))) return
+
     fetch('/api/onboarding/progress')
       .then((r) => r.json())
       .then((data) => {

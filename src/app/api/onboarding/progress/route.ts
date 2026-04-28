@@ -33,8 +33,17 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     ])
 
     // ¿El usuario necesita ir a /onboarding/elegir-plan?
-    // Sí cuando: completó wizard de empresa pero NO tiene Subscription activa/trialing
-    // y NO está en plan FREE explícito.
+    // Sí SOLO cuando: completó wizard de empresa pero su org NO tiene plan
+    // asignado (null/undefined) Y no tiene Subscription activa.
+    //
+    // Bug previo: STARTER se consideraba 'needs plan' porque no tenía
+    // Subscription record, lo que rebotaba a TODAS las cuentas STARTER al
+    // onboarding cada vez que abrían el dashboard. Catch-22 imposible de
+    // escapar para el admin.
+    //
+    // Ahora: solo si plan es null/undefined (caso edge real de mid-onboarding)
+    // o si la subscription expiró (downgrade pendiente). Si tiene cualquier
+    // plan asignado (FREE/STARTER/EMPRESA/PRO/...), no se considera 'needs plan'.
     const now = new Date()
     const hasActiveSubscription = !!(
       org?.subscription &&
@@ -43,8 +52,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
           org.subscription.currentPeriodEnd &&
           org.subscription.currentPeriodEnd > now))
     )
-    const isFreePlan = org?.plan === 'FREE'
-    const needsPlan = !!org?.onboardingCompleted && !hasActiveSubscription && !isFreePlan
+    const hasAnyPlan = !!org?.plan // FREE/STARTER/EMPRESA/PRO/BUSINESS/ENTERPRISE
+    const needsPlan = !!org?.onboardingCompleted && !hasAnyPlan && !hasActiveSubscription
 
     return NextResponse.json({
       hasOrg: org?.onboardingCompleted === true,
