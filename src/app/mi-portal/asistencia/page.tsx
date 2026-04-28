@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { track } from '@/lib/analytics'
+import { QrScanner } from '@/components/attendance/qr-scanner'
 
 /**
  * /mi-portal/asistencia — vista del trabajador.
@@ -51,6 +52,7 @@ export default function MiPortalAsistenciaPage() {
   const [manualToken, setManualToken] = useState('')
   const [history, setHistory] = useState<AttendanceHistory[]>([])
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [scannerOpen, setScannerOpen] = useState(false)
   const processedTokenRef = useRef<string | null>(null)
 
   // Reloj en vivo
@@ -343,7 +345,7 @@ export default function MiPortalAsistenciaPage() {
             </section>
           ) : null}
 
-          {/* CTA escanear */}
+          {/* CTA escanear — abre cámara DENTRO de la PWA */}
           <section
             className="rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 p-6 text-center"
           >
@@ -360,13 +362,32 @@ export default function MiPortalAsistenciaPage() {
               Escanea el QR del día
             </h2>
             <p className="text-sm text-[color:var(--text-secondary)] mb-4 max-w-sm mx-auto leading-relaxed">
-              Tu supervisor tiene un QR en el dashboard. Abre la cámara de tu celular, apunta al QR, y toca el link que aparece.
+              Pulsa el botón y apunta tu cámara al QR que tu supervisor tiene en pantalla. Marcamos automáticamente al detectar.
             </p>
-            <div className="inline-flex items-center gap-2 text-[11px] text-[color:var(--text-tertiary)]">
+            <button
+              type="button"
+              onClick={() => setScannerOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-base px-6 py-3 shadow-md transition-colors mb-4"
+            >
+              <ScanLine className="h-5 w-5" />
+              Abrir escáner
+            </button>
+            <div className="flex items-center justify-center gap-2 text-[11px] text-[color:var(--text-tertiary)]">
               <Fingerprint className="h-3 w-3" />
               Todas las marcaciones quedan auditadas con fecha, hora e IP.
             </div>
           </section>
+
+          {/* Scanner overlay (fullscreen) */}
+          {scannerOpen && (
+            <QrScanner
+              onScan={(token) => {
+                setScannerOpen(false)
+                void submitClock(token)
+              }}
+              onClose={() => setScannerOpen(false)}
+            />
+          )}
 
           {/* Input manual fallback */}
           <details className="rounded-2xl border border-[color:var(--border-default)] bg-white">
