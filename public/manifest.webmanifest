@@ -2,7 +2,7 @@
   "name": "Comply360 — Compliance laboral peruano",
   "short_name": "Comply360",
   "description": "El copiloto de cumplimiento laboral peruano. Para empresas y sus trabajadores.",
-  "start_url": "/",
+  "start_url": "/post-login?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
