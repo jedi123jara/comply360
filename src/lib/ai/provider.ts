@@ -99,11 +99,39 @@ function getGroqKeyCount(): number {
  * 3. AI_PROVIDER global
  * 4. Auto-detect por keys disponibles
  */
+/**
+ * Features que son LEGAL HIGH-STAKES — requieren máxima calidad.
+ * Cuando ANTHROPIC_API_KEY está configurada, estas features usan Claude por
+ * default (mejor en redacción/análisis legal peruano que DeepSeek).
+ *
+ * Si quieres forzar otro provider para alguna de estas, override via env:
+ *   CONTRACT_REVIEW_AI_PROVIDER=deepseek    (vuelve a DeepSeek)
+ *   CONTRACT_GEN_AI_PROVIDER=openai         (usa GPT-4o)
+ */
+const LEGAL_HIGH_STAKES_FEATURES: AIFeature[] = [
+  'contract-review',
+  'contract-gen',
+  'action-plan',
+  'pliego-analysis',
+]
+
+/**
+ * Features de chat / conversación general — priorizan costo bajo + velocidad.
+ * Usan DeepSeek V4 Flash por default (3¢ por 1000 chats).
+ */
+const CHAT_FEATURES: AIFeature[] = ['chat', 'worker-chat']
+
+/**
+ * Features de embeddings (RAG vectorial) — solo OpenAI por ahora.
+ * DeepSeek/Anthropic/Groq no exponen embeddings competitivos.
+ */
+const EMBEDDING_FEATURES: AIFeature[] = ['rag-embed']
+
 export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeature }): AIProvider {
   // 1. Override directo
   if (opts?.provider) return opts.provider
 
-  // 2. Override por feature (ej: CONTRACT_REVIEW_AI_PROVIDER=anthropic)
+  // 2. Override por feature via env var (ej: CONTRACT_REVIEW_AI_PROVIDER=anthropic)
   if (opts?.feature) {
     const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_AI_PROVIDER`
     const featureProvider = (process.env[envKey] || '').toLowerCase().trim()
@@ -122,26 +150,57 @@ export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeatu
   if (explicit === 'deepseek') return 'deepseek'
   if (explicit === 'groq') return 'groq'
 
-  // 4. Auto-detect priority por costo/calidad:
+  // 4. ─── Defaults inteligentes por tipo de feature ──────────────────────
+  //
+  // Si el repo tiene VARIAS keys configuradas, ruteamos automáticamente:
+  //   - Legal high-stakes  → Anthropic (calidad legal superior)
+  //   - Chat / conversación → DeepSeek (3¢ / 1000 requests)
+  //   - Embeddings RAG     → OpenAI (text-embedding-3-small)
+  //
+  // Sin sobrecargar al admin con configurar 5+ env vars.
+  if (opts?.feature) {
+    // Legal high-stakes → Anthropic > DeepSeek > OpenAI
+    if (LEGAL_HIGH_STAKES_FEATURES.includes(opts.feature)) {
+      if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
+      if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
+      const openaiKey = process.env.OPENAI_API_KEY || ''
+      if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
+    }
+    // Chat → DeepSeek > Groq > Anthropic > OpenAI
+    if (CHAT_FEATURES.includes(opts.feature)) {
+      if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
+      if (process.env.GROQ_API_KEY) return 'groq'
+      if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
+      const openaiKey = process.env.OPENAI_API_KEY || ''
+      if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
+    }
+    // Embeddings → OpenAI obligatorio (DeepSeek/Anthropic no lo soportan bien)
+    if (EMBEDDING_FEATURES.includes(opts.feature)) {
+      const openaiKey = process.env.OPENAI_API_KEY || ''
+      if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
+    }
+  }
+
+  // 5. Auto-detect global priority por costo/calidad (sin feature):
   //    DeepSeek V4 (35x más barato que Claude Opus, calidad similar a Sonnet)
   if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
 
-  // 5. Anthropic (mejor para legal/razonamiento high-stakes)
+  // 6. Anthropic (mejor para legal/razonamiento high-stakes)
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
 
-  // 6. Groq (ultra-rápido, tier gratuito — bueno para chat)
+  // 7. Groq (ultra-rápido, tier gratuito — bueno para chat)
   if (process.env.GROQ_API_KEY) return 'groq'
 
-  // 7. OpenAI (vision, default histórico)
+  // 8. OpenAI (vision, default histórico)
   const openaiKey = process.env.OPENAI_API_KEY || ''
   if (openaiKey && openaiKey !== 'sk-xxxxx' && openaiKey.startsWith('sk-')) {
     return 'openai'
   }
 
-  // 8. Ollama (self-hosted, gratis pero requiere infra)
+  // 9. Ollama (self-hosted, gratis pero requiere infra)
   if (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL) return 'ollama'
 
-  // 9. Default: Ollama (fallará al fetch si no está corriendo)
+  // 10. Default: Ollama (fallará al fetch si no está corriendo)
   return 'ollama'
 }
 
