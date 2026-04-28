@@ -18,22 +18,31 @@ import {
   ShieldCheck,
   ChevronRight,
   Sparkles,
+  PartyPopper,
 } from 'lucide-react'
 import { PendingActionCard } from '@/components/comply360/pending-action-card'
 import { EnableNotifications } from '@/components/pwa/enable-notifications'
+import { DigitalIdCard } from '@/components/mi-portal/digital-id-card'
+import { ConfettiCard } from '@/components/mi-portal/confetti-card'
+import { SectionHead } from '@/components/mi-portal/section-head'
 
 /**
- * /mi-portal — Home del Portal del Trabajador (Emerald Light, mobile-first).
+ * /mi-portal — Home del Portal del Trabajador.
  *
- * Secciones (ordenadas por impacto):
- *  1. Hero editorial con saludo personalizado + chip de organización
- *  2. Alerta push (banner opt-in si no está subscrito)
- *  3. Acciones pendientes (PendingActionCard con deadline por severity)
- *  4. Resumen financiero (KPI strip: última boleta, CTS proyectada, días libres)
- *  5. Próximas capacitaciones (hasta 3, con fecha tope)
- *  6. Atajos rápidos (6 actions comunes)
+ * Diseño aplicado del handoff Claude Design 2026-04-28 (portal-worker/index.html):
+ * Aesthetic "Emerald Light editorial" — Geist + Instrument Serif.
  *
- * Reusa el endpoint `/api/mi-portal/resumen` ya existente (no altera contrato API).
+ * Secciones (mobile-first, scroll vertical):
+ *  1. Hero greet — emerald gradient, name italic, DNI pill + streak pill
+ *  2. Push opt-in banner (conditional)
+ *  3. Acciones pendientes (PendingActionCard con accent-bar por severity)
+ *  4. Mi credencial — DigitalIdCard (tarjeta ID estilo "credencial física" oscura)
+ *  5. Mi resumen — KPI grid 2x2 con Instrument Serif para los valores
+ *  6. Próximas capacitaciones — list-card minimal
+ *  7. Atajos rápidos — grid 2x3 con icon tiles emerald
+ *  8. ConfettiCard milestone — aniversario / cumpleaños / capacitación cerrada
+ *
+ * Reusa el endpoint `/api/mi-portal/resumen` ya existente.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,23 +82,12 @@ function greet(): string {
 }
 
 function formatPeriodo(periodo: string): string {
-  // `periodo` viene como "2026-04" o similar
   const parts = periodo.split('-')
   if (parts.length < 2) return periodo
   const [year, month] = parts
   const months = [
-    'enero',
-    'febrero',
-    'marzo',
-    'abril',
-    'mayo',
-    'junio',
-    'julio',
-    'agosto',
-    'septiembre',
-    'octubre',
-    'noviembre',
-    'diciembre',
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
   ]
   const m = parseInt(month, 10) - 1
   return `${months[m] ?? month} ${year}`
@@ -100,6 +98,28 @@ function fmtSoles(v: string | number | null | undefined): string {
   const n = typeof v === 'string' ? parseFloat(v) : v
   if (!isFinite(n)) return '—'
   return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/**
+ * Calcula años + meses transcurridos desde fechaIngreso.
+ * Devuelve aniversario formateado si está cerca (<30 días) — sino null.
+ */
+function aniversarioProximo(fechaIngresoIso: string): { years: number; daysUntil: number } | null {
+  try {
+    const ingreso = new Date(fechaIngresoIso)
+    const today = new Date()
+    const nextAnniversary = new Date(today.getFullYear(), ingreso.getMonth(), ingreso.getDate())
+    if (nextAnniversary < today) {
+      nextAnniversary.setFullYear(today.getFullYear() + 1)
+    }
+    const daysUntil = Math.ceil((nextAnniversary.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+    if (daysUntil > 30 || daysUntil < 0) return null
+    const years = nextAnniversary.getFullYear() - ingreso.getFullYear()
+    if (years < 1) return null
+    return { years, daysUntil }
+  } catch {
+    return null
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,7 +145,6 @@ export default function MiPortalHomePage() {
         if (mounted) setError(e.message)
       })
       .finally(() => {
-         
         if (mounted) setLoading(false)
       })
     return () => {
@@ -135,7 +154,6 @@ export default function MiPortalHomePage() {
 
   /**
    * Genera la lista de acciones pendientes dinámicamente según los `stats`.
-   * Prioriza por severity + orden: docs > capacitaciones > solicitudes > boletas.
    */
   const pendingActions = useMemo(() => {
     if (!data) return []
@@ -157,14 +175,13 @@ export default function MiPortalHomePage() {
           data.stats.documentosFaltantes === 1
             ? 'Sube 1 documento faltante'
             : `Sube ${data.stats.documentosFaltantes} documentos faltantes`,
-        description: 'Tu legajo está incompleto. Completalo para cumplir con el registro laboral.',
+        description: 'Tu legajo está incompleto. Complétalo para cumplir con el registro laboral.',
         severity: data.stats.documentosFaltantes > 5 ? 'high' : 'medium',
         href: '/mi-portal/documentos',
       })
     }
 
     if (data.stats.capacitacionesPendientes > 0) {
-      // Usa el deadline de la primera capacitación si está disponible
       const firstDeadline = data.proximasCapacitaciones[0]?.deadline ?? null
       actions.push({
         id: 'capac',
@@ -174,7 +191,7 @@ export default function MiPortalHomePage() {
             ? 'Tienes 1 capacitación pendiente'
             : `Tienes ${data.stats.capacitacionesPendientes} capacitaciones pendientes`,
         description:
-          'Ley 29783 exige capacitaciones obligatorias. Completalas para mantener tu SST al día.',
+          'Ley 29783 exige capacitaciones obligatorias. Complétalas para mantener tu SST al día.',
         deadline: firstDeadline,
         href: '/mi-portal/capacitaciones',
       })
@@ -215,6 +232,10 @@ export default function MiPortalHomePage() {
   if (error || !data) return <ErrorState message={error} />
 
   const { worker, ultimaBoleta, proximasCapacitaciones } = data
+  const aniv = aniversarioProximo(worker.fechaIngreso)
+  const initial = worker.firstName.charAt(0).toUpperCase()
+  const fullName = `${worker.firstName} ${worker.lastName}`.trim()
+  const idCardCode = `C360-${worker.dni.slice(-4)}`
 
   return (
     <div className="space-y-7">
@@ -259,61 +280,83 @@ export default function MiPortalHomePage() {
               letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
             }}
-            dangerouslySetInnerHTML={{
-              __html: `Hola, <em style="color: var(--emerald-700); font-style: italic">${worker.firstName}</em>.`,
-            }}
-          />
+          >
+            Hola, <em style={{ color: '#047857', fontStyle: 'italic' }}>{worker.firstName}</em>.
+          </h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-[color:var(--text-secondary)]">
-            {worker.position ? (
+            {worker.position && (
               <span className="inline-flex items-center gap-1.5">
                 <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
                 {worker.position}
               </span>
-            ) : null}
+            )}
             <span className="inline-flex items-center gap-1.5">
               <Building2 className="h-3.5 w-3.5 text-emerald-600" />
               {worker.organization.name}
             </span>
           </div>
 
-          {/* DNI pill subtle */}
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
-               style={{
-                 background: 'rgba(255,255,255,0.7)',
-                 backdropFilter: 'blur(8px)',
-                 border: '0.5px solid var(--border-subtle)',
-               }}>
-            <span className="text-[color:var(--text-tertiary)] font-medium">DNI</span>
-            <span className="font-mono font-bold tracking-wider text-[color:var(--text-primary)]">
-              {worker.dni}
-            </span>
+          {/* Pills row: DNI + (opcional) racha de asistencia */}
+          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
+              style={{
+                background: 'rgba(255,255,255,0.7)',
+                backdropFilter: 'blur(8px)',
+                border: '0.5px solid var(--border-subtle)',
+              }}
+            >
+              <span
+                className="font-medium"
+                style={{
+                  color: 'var(--text-tertiary)',
+                  fontSize: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                DNI
+              </span>
+              <span
+                className="font-bold tracking-wider text-[color:var(--text-primary)]"
+                style={{ fontFamily: 'var(--font-mono)' }}
+              >
+                {worker.dni}
+              </span>
+            </div>
+
+            {/* Streak pill — placeholder hasta que /api/mi-portal/resumen exponga la racha real */}
+            {/*
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold"
+              style={{
+                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                border: '0.5px solid rgba(217,119,6,0.25)',
+                color: '#b45309',
+              }}
+            >
+              <Flame className="h-3 w-3" />
+              <span>12 días puntual</span>
+            </div>
+            */}
           </div>
         </div>
       </section>
 
-      {/* ─── 2. Push opt-in banner (conditional inside component) ──────── */}
+      {/* ─── 2. Push opt-in banner (conditional) ───────────────────────── */}
       <EnableNotifications variant="inline" />
 
       {/* ─── 3. Acciones pendientes ────────────────────────────────────── */}
       {pendingActions.length > 0 ? (
         <section>
-          <div className="flex items-baseline justify-between mb-3 px-1">
-            <h2
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 20,
-                fontWeight: 400,
-                letterSpacing: '-0.015em',
-                color: 'var(--text-primary)',
-              }}
-            >
-              Necesitan tu atención
-            </h2>
-            <span className="text-xs font-semibold text-[color:var(--text-tertiary)]">
-              {pendingActions.length} pendientes
-            </span>
-          </div>
+          <SectionHead
+            title="Necesitan tu"
+            emPart="atención"
+            link={{
+              label: `${pendingActions.length} ${pendingActions.length === 1 ? 'pendiente' : 'pendientes'}`,
+            }}
+          />
           <div className="space-y-2.5">
             {pendingActions.map((a) => (
               <PendingActionCard
@@ -350,14 +393,14 @@ export default function MiPortalHomePage() {
           <h3
             style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: 400,
               color: 'var(--text-primary)',
               lineHeight: 1.2,
               marginBottom: 4,
             }}
           >
-            Todo al día — <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>excelente</em>
+            Todo al día — <em style={{ color: '#047857', fontStyle: 'italic' }}>excelente</em>
           </h3>
           <p className="text-sm text-[color:var(--text-secondary)] max-w-sm mx-auto">
             No tienes acciones pendientes. Sigue manteniendo tu información actualizada.
@@ -365,57 +408,60 @@ export default function MiPortalHomePage() {
         </section>
       )}
 
-      {/* ─── 4. Resumen financiero ─────────────────────────────────────── */}
+      {/* ─── 4. Mi credencial (DigitalIdCard) ──────────────────────────── */}
       <section>
-        <div className="flex items-baseline justify-between mb-3 px-1">
-          <h2
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 20,
-              fontWeight: 400,
-              letterSpacing: '-0.015em',
-              color: 'var(--text-primary)',
-            }}
-          >
-            Mi resumen
-          </h2>
-          <Link
-            href="/mi-portal/perfil"
-            className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
-          >
-            Ver detalle <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
+        <SectionHead
+          title="Mi"
+          emPart="credencial"
+          link={{ label: 'Compartir', href: '/mi-portal/perfil' }}
+        />
+        <DigitalIdCard
+          name={fullName}
+          position={worker.position}
+          dni={worker.dni}
+          code={idCardCode}
+          org={worker.organization.name}
+          initial={initial}
+        />
+      </section>
+
+      {/* ─── 5. Resumen financiero (KPI grid) ──────────────────────────── */}
+      <section>
+        <SectionHead
+          title="Mi"
+          emPart="resumen"
+          link={{ label: 'Ver detalle', href: '/mi-portal/perfil' }}
+        />
         <div
           style={{
             display: 'grid',
-            gap: 10,
+            gap: 8,
             gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           }}
         >
-          <InfoTile
+          <KpiTile
             icon={Wallet}
             label="Última boleta"
             value={ultimaBoleta ? `S/ ${fmtSoles(ultimaBoleta.netoPagar)}` : '—'}
             sub={ultimaBoleta ? formatPeriodo(ultimaBoleta.periodo) : 'Sin emisiones'}
             href="/mi-portal/boletas"
-            variant="accent"
+            accent
           />
-          <InfoTile
+          <KpiTile
             icon={PiggyBank}
             label="CTS estimada"
             value="—"
             sub="Próximo corte 15 may"
             href="/mi-portal/perfil"
           />
-          <InfoTile
+          <KpiTile
             icon={Plane}
             label="Vacaciones"
             value="20 días"
             sub="Pendientes de goce"
             href="/mi-portal/solicitudes"
           />
-          <InfoTile
+          <KpiTile
             icon={Calendar}
             label="Días trabajados"
             value="18/22"
@@ -425,28 +471,14 @@ export default function MiPortalHomePage() {
         </div>
       </section>
 
-      {/* ─── 5. Próximas capacitaciones (si hay) ────────────────────────── */}
-      {proximasCapacitaciones.length > 0 ? (
+      {/* ─── 6. Próximas capacitaciones ────────────────────────────────── */}
+      {proximasCapacitaciones.length > 0 && (
         <section>
-          <div className="flex items-baseline justify-between mb-3 px-1">
-            <h2
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 20,
-                fontWeight: 400,
-                letterSpacing: '-0.015em',
-                color: 'var(--text-primary)',
-              }}
-            >
-              Próximas capacitaciones
-            </h2>
-            <Link
-              href="/mi-portal/capacitaciones"
-              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
-            >
-              Ver todas <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
+          <SectionHead
+            title="Próximas"
+            emPart="capacitaciones"
+            link={{ label: 'Ver todas', href: '/mi-portal/capacitaciones' }}
+          />
           <div
             className="rounded-2xl overflow-hidden"
             style={{ background: 'white', border: '0.5px solid var(--border-default)' }}
@@ -455,7 +487,7 @@ export default function MiPortalHomePage() {
               {proximasCapacitaciones.slice(0, 3).map((c) => (
                 <li key={c.id}>
                   <Link
-                    href={`/mi-portal/capacitaciones`}
+                    href="/mi-portal/capacitaciones"
                     className="flex items-center gap-3 px-4 py-3 hover:bg-[color:var(--neutral-50)] transition-colors"
                   >
                     <div
@@ -463,8 +495,8 @@ export default function MiPortalHomePage() {
                       style={{
                         width: 36,
                         height: 36,
-                        background: 'var(--emerald-50)',
-                        color: 'var(--emerald-700)',
+                        background: '#ecfdf5',
+                        color: '#047857',
                       }}
                     >
                       <GraduationCap className="h-4 w-4" />
@@ -473,12 +505,12 @@ export default function MiPortalHomePage() {
                       <p className="text-sm font-medium text-[color:var(--text-primary)] truncate">
                         {c.title}
                       </p>
-                      {c.deadline ? (
+                      {c.deadline && (
                         <p className="mt-0.5 text-[11px] text-[color:var(--text-tertiary)] inline-flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           Hasta {new Date(c.deadline).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}
                         </p>
-                      ) : null}
+                      )}
                     </div>
                     <ChevronRight className="h-4 w-4 text-[color:var(--text-tertiary)]" />
                   </Link>
@@ -487,113 +519,105 @@ export default function MiPortalHomePage() {
             </ul>
           </div>
         </section>
-      ) : null}
+      )}
 
-      {/* ─── 6. Atajos rápidos ──────────────────────────────────────────── */}
+      {/* ─── 7. Atajos rápidos (grid) ──────────────────────────────────── */}
       <section>
-        <div className="flex items-baseline justify-between mb-3 px-1">
-          <h2
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 20,
-              fontWeight: 400,
-              letterSpacing: '-0.015em',
-              color: 'var(--text-primary)',
-            }}
-          >
-            Atajos rápidos
-          </h2>
-        </div>
+        <SectionHead title="Atajos" emPart="rápidos" link={null} />
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
-          <QuickAction
-            href="/mi-portal/solicitudes/nueva"
-            icon={Plane}
-            label="Solicitar vacaciones"
-          />
-          <QuickAction
-            href="/mi-portal/solicitudes/nueva"
-            icon={FileText}
-            label="Pedir constancia"
-          />
-          <QuickAction
-            href="/mi-portal/documentos/subir"
-            icon={Upload}
-            label="Subir documento"
-          />
-          <QuickAction
-            href="/mi-portal/perfil"
-            icon={Briefcase}
-            label="Actualizar datos"
-          />
-          <QuickAction
-            href="/mi-portal/reglamento"
-            icon={ShieldCheck}
-            label="Ver el RIT"
-          />
-          <QuickAction
-            href="/mi-portal/denuncias"
-            icon={Sparkles}
-            label="Reportar incidente"
-          />
+          <QuickAction href="/mi-portal/solicitudes/nueva" icon={Plane} label="Solicitar vacaciones" />
+          <QuickAction href="/mi-portal/solicitudes/nueva" icon={FileText} label="Pedir constancia" />
+          <QuickAction href="/mi-portal/documentos" icon={Upload} label="Subir documento" />
+          <QuickAction href="/mi-portal/perfil" icon={Briefcase} label="Actualizar datos" />
+          <QuickAction href="/mi-portal/reglamento" icon={ShieldCheck} label="Ver el RIT" />
+          <QuickAction href="/mi-portal/denuncias" icon={Sparkles} label="Reportar incidente" />
         </div>
       </section>
+
+      {/* ─── 8. Confetti milestone (aniversario) ────────────────────────── */}
+      {aniv && (
+        <ConfettiCard
+          icon={PartyPopper}
+          eyebrow="Aniversario"
+          title={`¡${aniv.years} ${aniv.years === 1 ? 'año' : 'años'}, chamba dura!`}
+          titleEmText="chamba dura"
+          sub={
+            aniv.daysUntil === 0
+              ? 'Tu aniversario es HOY. Te toca día de descanso opcional.'
+              : `Tu aniversario es en ${aniv.daysUntil} ${aniv.daysUntil === 1 ? 'día' : 'días'}. Te toca día de descanso opcional.`
+          }
+        />
+      )}
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Sub-components
+//  Sub-components inline
 // ─────────────────────────────────────────────────────────────────────────────
 
-function InfoTile({
+function KpiTile({
   icon: Icon,
   label,
   value,
   sub,
   href,
-  variant = 'default',
+  accent,
 }: {
   icon: typeof Wallet
   label: string
   value: string
   sub: string
   href: string
-  variant?: 'default' | 'accent'
+  accent?: boolean
 }) {
-  const isAccent = variant === 'accent'
   return (
     <Link
       href={href}
-      className="group block rounded-xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-lift,0_8px_16px_-4px_rgba(15,23,42,0.08))]"
+      className="group block rounded-xl p-3.5 transition-all hover:-translate-y-0.5"
       style={{
-        background: isAccent
-          ? 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0))'
+        background: accent
+          ? 'linear-gradient(135deg, rgba(16,185,129,0.06), white)'
           : 'white',
-        border: isAccent
+        border: accent
           ? '0.5px solid rgba(16,185,129,0.22)'
           : '0.5px solid var(--border-default)',
+        boxShadow:
+          '0 1px 2px rgba(15,23,42,0.05), 0 2px 4px rgba(15,23,42,0.04), 0 0 0 0.5px rgba(15,23,42,0.05)',
       }}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="h-3.5 w-3.5" style={{ color: 'var(--emerald-600)' }} />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Icon className="h-3 w-3" style={{ color: '#059669' }} />
+        <span
+          className="font-bold uppercase"
+          style={{
+            fontSize: 10,
+            letterSpacing: '0.1em',
+            color: 'var(--text-tertiary)',
+          }}
+        >
           {label}
         </span>
       </div>
       <div
         style={{
           fontFamily: 'var(--font-serif)',
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: 400,
           color: 'var(--text-primary)',
-          letterSpacing: '-0.015em',
-          lineHeight: 1.1,
+          letterSpacing: '-0.02em',
+          lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
         }}
       >
         {value}
       </div>
-      <p className="mt-1 text-[11px] text-[color:var(--text-tertiary)]">{sub}</p>
+      <p
+        className="mt-1.5"
+        style={{ fontSize: 11, color: 'var(--text-tertiary)' }}
+      >
+        {sub}
+      </p>
     </Link>
   )
 }
@@ -610,24 +634,31 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="group flex flex-col items-start gap-2 rounded-xl p-3.5 transition-all hover:border-emerald-500/60 hover:bg-emerald-50/50"
+      className="group flex flex-col items-start gap-2 rounded-xl p-3 transition-all hover:-translate-y-0.5"
       style={{
         background: 'white',
         border: '0.5px solid var(--border-default)',
       }}
     >
       <div
-        className="flex items-center justify-center rounded-lg transition-colors"
+        className="flex items-center justify-center rounded-lg transition-colors group-hover:scale-105"
         style={{
           width: 32,
           height: 32,
-          background: 'var(--emerald-50)',
-          color: 'var(--emerald-700)',
+          background: '#ecfdf5',
+          color: '#047857',
         }}
       >
         <Icon className="h-4 w-4" />
       </div>
-      <span className="text-xs font-semibold text-[color:var(--text-primary)] leading-tight">
+      <span
+        className="leading-tight"
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: 'var(--text-primary)',
+        }}
+      >
         {label}
       </span>
     </Link>
@@ -647,10 +678,11 @@ function LoadingSkeleton() {
           <div key={i} className="rounded-2xl h-24 bg-[color:var(--neutral-100)]" />
         ))}
       </div>
+      <div className="rounded-2xl h-52 bg-slate-900/10" />
       <div
         style={{
           display: 'grid',
-          gap: 10,
+          gap: 8,
           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
         }}
       >
@@ -673,7 +705,7 @@ function ErrorState({ message }: { message: string | null }) {
         <div>
           <h3 className="font-bold text-red-900">No pudimos cargar tu información</h3>
           <p className="text-sm text-red-800 mt-1">
-            {message || 'Contactá al área de RRHH si el problema persiste.'}
+            {message || 'Contacta al área de RRHH si el problema persiste.'}
           </p>
           <button
             type="button"
