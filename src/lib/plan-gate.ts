@@ -120,6 +120,20 @@ export function withPlanGate(
   handler: (req: NextRequest, ctx: AuthContext) => Promise<NextResponse>,
 ) {
   return withAuth(async (req: NextRequest, ctx: AuthContext) => {
+    // Founder bypass: SUPER_ADMIN y emails en FOUNDER_EMAILS pueden usar
+    // todas las features sin pagar plan. Útil para que el dueño pruebe
+    // PRO/ENTERPRISE features con su cuenta de admin sin cambiar de plan.
+    if (ctx.role === 'SUPER_ADMIN') {
+      return handler(req, ctx)
+    }
+    const founderEmails = (process.env.FOUNDER_EMAILS ?? process.env.FOUNDER_EMAIL ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+    if (founderEmails.includes(ctx.email.toLowerCase())) {
+      return handler(req, ctx)
+    }
+
     // Fetch org plan
     const org = await prisma.organization.findUnique({
       where: { id: ctx.orgId },

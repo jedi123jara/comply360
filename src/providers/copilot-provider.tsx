@@ -145,7 +145,39 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
           }),
         })
 
-        if (!res.ok) throw new Error(`Chat API returned ${res.status}`)
+        // Si el server retorna error con JSON (plan gate, quota, etc),
+        // mostrar el mensaje específico en lugar del genérico "modo offline".
+        if (!res.ok) {
+          let bodyMsg = ''
+          let upgradeUrl = ''
+          try {
+            const errBody = (await res.json()) as {
+              error?: string
+              message?: string
+              code?: string
+              upgradeUrl?: string
+              requiredPlan?: string
+            }
+            bodyMsg = errBody.message ?? errBody.error ?? ''
+            upgradeUrl = errBody.upgradeUrl ?? ''
+            if (errBody.code === 'AI_QUOTA_EXCEEDED') {
+              throw new Error(
+                `📊 **Cuota IA del mes agotada**\n\n${bodyMsg}\n\n${upgradeUrl ? `[Mejora tu plan →](${upgradeUrl})` : ''}`,
+              )
+            }
+            if (res.status === 402 || res.status === 403 || errBody.requiredPlan) {
+              throw new Error(
+                `🔒 **El Asistente IA requiere plan ${errBody.requiredPlan ?? 'PRO'}**\n\nTu plan actual no incluye consultas al Asistente IA.\n\n**Mientras tanto puedes**: usar las 13 calculadoras laborales, las 75+ normas peruanas indexadas, y todos los generadores de documentos.\n\n${upgradeUrl ? `[Ver planes y precios →](${upgradeUrl})` : '[Ver planes →](/dashboard/planes)'}`,
+              )
+            }
+          } catch (innerErr) {
+            if (innerErr instanceof Error && innerErr.message.startsWith('🔒') || (innerErr instanceof Error && innerErr.message.startsWith('📊'))) {
+              throw innerErr
+            }
+            // Si no se pudo parsear JSON, caer al genérico
+          }
+          throw new Error(`HTTP ${res.status}${bodyMsg ? ` — ${bodyMsg}` : ''}`)
+        }
 
         const contentType = res.headers.get('content-type') ?? ''
         const appendToLast = (chunk: string) => {
@@ -190,7 +222,12 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m))
         )
-      } catch {
+      } catch (err) {
+        // Si el error es uno de los esperados (plan gate, quota), mostrar
+        // su mensaje específico. Si no, mensaje genérico actualizado.
+        const errMsg = err instanceof Error ? err.message : String(err)
+        const isSpecific = errMsg.startsWith('🔒') || errMsg.startsWith('📊')
+
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
@@ -199,7 +236,9 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
                   streaming: false,
                   content:
                     m.content ||
-                    '🟡 **Asistente IA en modo offline**\n\nNo pude conectar con el motor de IA. Posibles causas:\n\n• La variable `OPENAI_API_KEY` no está configurada en producción\n• Tu cuota IA mensual del plan se agotó\n• Hubo un error temporal del proveedor\n\n**Mientras tanto puedes seguir usando**: las 13 calculadoras laborales, las 75+ normas peruanas indexadas, los generadores de documentos y plantillas. Avísale al admin para que active la IA real.',
+                    (isSpecific
+                      ? errMsg
+                      : '🟡 **Asistente IA temporalmente no disponible**\n\nNo pude conectar con el motor de IA. Posibles causas:\n\n• Tu cuota IA mensual del plan se agotó\n• Hubo un error temporal del proveedor\n• Tu plan no incluye Asistente IA\n\n**Mientras tanto puedes seguir usando**: las 13 calculadoras laborales, las 75+ normas peruanas indexadas, los generadores de documentos y plantillas.\n\n[Diagnosticar IA →](/dashboard/configuracion/diagnostico)'),
                 }
               : m
           )
