@@ -12,6 +12,9 @@ import {
   RotateCw,
   Fingerprint,
   History,
+  MessageSquare,
+  X,
+  Send,
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { track } from '@/lib/analytics'
@@ -54,6 +57,11 @@ export default function MiPortalAsistenciaPage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [scannerOpen, setScannerOpen] = useState(false)
   const processedTokenRef = useRef<string | null>(null)
+
+  // Modal para que el worker reporte justificación de su tardanza/ausencia de hoy
+  const [justifyOpen, setJustifyOpen] = useState(false)
+  const [justifyReason, setJustifyReason] = useState('')
+  const [justifySubmitting, setJustifySubmitting] = useState(false)
 
   // Reloj en vivo
   useEffect(() => {
@@ -322,6 +330,17 @@ export default function MiPortalAsistenciaPage() {
                       <CheckCircle2 className="h-3 w-3" /> A tiempo
                     </span>
                   )}
+                  {/* Acceso rápido a justificación: solo cuando hay tardanza/ausencia hoy */}
+                  {(today.status === 'LATE' || today.status === 'ABSENT') && (
+                    <button
+                      type="button"
+                      onClick={() => { setJustifyReason(''); setJustifyOpen(true) }}
+                      className="mt-2 inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      Reportar justificación
+                    </button>
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -418,6 +437,100 @@ export default function MiPortalAsistenciaPage() {
           </details>
         </>
       ) : null}
+
+      {/* Modal: Reportar justificación */}
+      {justifyOpen && today && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--border-default)]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <MessageSquare className="w-4 h-4 text-amber-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Reportar justificación</h3>
+                  <p className="text-xs text-gray-500">
+                    Tardanza del {new Date(today.clockIn).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setJustifyOpen(false)}
+                className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Cuéntanos qué pasó
+                </label>
+                <textarea
+                  value={justifyReason}
+                  onChange={(e) => setJustifyReason(e.target.value)}
+                  placeholder="Ej: Llegué tarde por una cita médica de emergencia. Tengo constancia del centro de salud."
+                  rows={5}
+                  maxLength={500}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm resize-none"
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {justifyReason.length}/500 caracteres. Tu admin va a revisar y aprobar.
+                </p>
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <Fingerprint className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-emerald-900">
+                  Tu justificación queda registrada con fecha y hora — sirve como evidencia ante SUNAFIL.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button
+                type="button"
+                onClick={() => setJustifyOpen(false)}
+                className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (justifyReason.trim().length < 3) {
+                    toast.error('El motivo necesita al menos 3 caracteres')
+                    return
+                  }
+                  setJustifySubmitting(true)
+                  try {
+                    const res = await fetch(`/api/attendance/${today.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ op: 'justify', reason: justifyReason.trim() }),
+                    })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok) throw new Error(data.error || 'No se pudo enviar')
+                    toast.success('¡Justificación enviada! Tu admin la va a revisar.')
+                    setJustifyOpen(false)
+                    setJustifyReason('')
+                    void loadHistory()
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Error al enviar')
+                  } finally {
+                    setJustifySubmitting(false)
+                  }
+                }}
+                disabled={justifySubmitting || justifyReason.trim().length < 3}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {justifySubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                Enviar justificación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Historial últimas 7 */}
       {history.length > 0 && state === 'idle' ? (
