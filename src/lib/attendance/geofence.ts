@@ -187,25 +187,152 @@ export function checkAttendance(
 }
 
 // =============================================
-// STORE (in-memory provisional)
+// STORE — persistente en Postgres (Fase 4)
+//
+// Antes era un Map<orgId, Geofence[]> en memoria del proceso Node, lo que
+// rompía en Vercel multi-instance y se perdía en cada rolling deploy.
+// Ahora vive en la tabla `geofences`. Cache simple TTL 30s para evitar
+// query por cada fichado.
 // =============================================
 
-const fencesStore = new Map<string, Geofence[]>() // key: orgId
+import { prisma } from '@/lib/prisma'
 
-export function listFences(orgId: string): Geofence[] {
-  return fencesStore.get(orgId) || []
+interface CacheEntry {
+  fences: Geofence[]
+  expiresAt: number
+}
+const cache = new Map<string, CacheEntry>()
+const CACHE_TTL_MS = 30_000
+
+function rowToFence(row: {
+  id: string
+  name: string
+  type: 'CIRCLE' | 'POLYGON'
+  centerLat: { toString(): string } | null
+  centerLng: { toString(): string } | null
+  radiusMeters: number | null
+  vertices: unknown
+  locationId: string | null
+}): Geofence | null {
+  if (row.type === 'CIRCLE') {
+    if (row.centerLat == null || row.centerLng == null || row.radiusMeters == null) return null
+    return {
+      id: row.id,
+      name: row.name,
+      type: 'circle',
+      center: { lat: Number(row.centerLat.toString()), lng: Number(row.centerLng.toString()) },
+      radiusMeters: row.radiusMeters,
+      ...(row.locationId ? { locationId: row.locationId } : {}),
+    }
+  }
+  // POLYGON
+  const verts = Array.isArray(row.vertices) ? row.vertices : []
+  const vertices: GeoPoint[] = []
+  for (const v of verts) {
+    if (typeof v === 'object' && v !== null) {
+      const obj = v as Record<string, unknown>
+      const lat = Number(obj.lat)
+      const lng = Number(obj.lng)
+      if (Number.isFinite(lat) && Number.isFinite(lng)) vertices.push({ lat, lng })
+    }
+  }
+  if (vertices.length < 3) return null
+  return {
+    id: row.id,
+    name: row.name,
+    type: 'polygon',
+    vertices,
+    ...(row.locationId ? { locationId: row.locationId } : {}),
+  }
 }
 
-export function addFence(orgId: string, fence: Geofence): Geofence {
-  const list = fencesStore.get(orgId) || []
-  list.push(fence)
-  fencesStore.set(orgId, list)
-  return fence
+/** Lista las geofences activas de la org. Usa cache TTL 30s. */
+export async function listFences(orgId: string): Promise<Geofence[]> {
+  const now = Date.now()
+  const cached = cache.get(orgId)
+  if (cached && cached.expiresAt > now) return cached.fences
+
+  const rows = await prisma.geofence.findMany({
+    where: { orgId, isActive: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  const fences = rows
+    .map(r => rowToFence({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      centerLat: r.centerLat,
+      centerLng: r.centerLng,
+      radiusMeters: r.radiusMeters,
+      vertices: r.vertices,
+      locationId: r.locationId,
+    }))
+    .filter((f): f is Geofence => f !== null)
+
+  cache.set(orgId, { fences, expiresAt: now + CACHE_TTL_MS })
+  return fences
 }
 
-export function removeFence(orgId: string, id: string): boolean {
-  const list = fencesStore.get(orgId) || []
-  const next = list.filter(f => f.id !== id)
-  fencesStore.set(orgId, next)
-  return next.length !== list.length
+/** Invalida el cache de una org. Llamar tras crear/editar/eliminar. */
+export function invalidateFencesCache(orgId: string): void {
+  cache.delete(orgId)
+}
+
+/** Crea una geofence persistente. Devuelve la creada. */
+export async function addFence(orgId: string, fence: Geofence): Promise<Geofence> {
+  const created = await prisma.geofence.create({
+    data: {
+      orgId,
+      name: fence.name,
+      type: fence.type === 'circle' ? 'CIRCLE' : 'POLYGON',
+      centerLat: fence.type === 'circle' ? fence.center.lat : null,
+      centerLng: fence.type === 'circle' ? fence.center.lng : null,
+      radiusMeters: fence.type === 'circle' ? fence.radiusMeters : null,
+      vertices: fence.type === 'polygon' ? (fence.vertices as unknown as object) : undefined,
+      locationId: fence.locationId ?? null,
+    },
+  })
+  invalidateFencesCache(orgId)
+  return { ...fence, id: created.id }
+}
+
+/** Elimina (hard delete) una geofence. */
+export async function removeFence(orgId: string, id: string): Promise<boolean> {
+  const result = await prisma.geofence.deleteMany({
+    where: { id, orgId },
+  })
+  invalidateFencesCache(orgId)
+  return result.count > 0
+}
+
+/** Actualiza una geofence existente (parcial). */
+export async function updateFence(
+  orgId: string,
+  id: string,
+  patch: Partial<Geofence> & { isActive?: boolean },
+): Promise<boolean> {
+  const data: Record<string, unknown> = {}
+  if (patch.name) data.name = patch.name
+  if (patch.locationId !== undefined) data.locationId = patch.locationId
+  if ('isActive' in patch) data.isActive = patch.isActive
+  if (patch.type === 'circle' && patch.center) {
+    data.type = 'CIRCLE'
+    data.centerLat = patch.center.lat
+    data.centerLng = patch.center.lng
+    if (patch.radiusMeters != null) data.radiusMeters = patch.radiusMeters
+    data.vertices = null
+  }
+  if (patch.type === 'polygon' && patch.vertices) {
+    data.type = 'POLYGON'
+    data.vertices = patch.vertices as unknown as object
+    data.centerLat = null
+    data.centerLng = null
+    data.radiusMeters = null
+  }
+  const result = await prisma.geofence.updateMany({
+    where: { id, orgId },
+    data,
+  })
+  invalidateFencesCache(orgId)
+  return result.count > 0
 }

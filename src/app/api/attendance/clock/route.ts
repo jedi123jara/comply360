@@ -25,6 +25,7 @@ import { checkAttendance, listFences } from '@/lib/attendance/geofence'
 import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
 import { calculateOvertime } from '@/lib/attendance/overtime'
 import { serializeAttendanceNotes, type AttendanceMetadata } from '@/lib/attendance/notes'
+import { logAttempt, extractRequestMetadata } from '@/lib/attendance/log-attempt'
 
 export const runtime = 'nodejs'
 
@@ -50,7 +51,21 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
   }
 
+  // Metadata HTTP para audit trail (Fase 4)
+  const reqMeta = extractRequestMetadata(req)
+  const geoForLog = typeof body.lat === 'number' && typeof body.lng === 'number'
+    ? { lat: body.lat, lng: body.lng, accuracy: body.accuracy }
+    : undefined
+
   if (!body.token || typeof body.token !== 'string') {
+    void logAttempt({
+      orgId: ctx.orgId,
+      workerId: ctx.workerId,
+      result: 'TOKEN_INVALID',
+      reason: 'Token ausente en el body',
+      via: 'qr',
+      ...reqMeta,
+    })
     return NextResponse.json(
       { error: 'Token QR requerido. Pídele a tu supervisor el QR de hoy.' },
       { status: 400 },
@@ -60,6 +75,15 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   // ── Validar token ────────────────────────────────────────────────────────
   const payload = verifyAttendanceToken(body.token)
   if (!payload) {
+    void logAttempt({
+      orgId: ctx.orgId,
+      workerId: ctx.workerId,
+      result: 'TOKEN_EXPIRED',
+      reason: 'Token JWT expirado o firma inválida',
+      via: 'qr',
+      geo: geoForLog,
+      ...reqMeta,
+    })
     return NextResponse.json(
       {
         error: 'Token QR expirado o inválido. Pídele a tu supervisor que genere uno nuevo.',
@@ -72,6 +96,15 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   // Validar que el orgId del token coincida con el orgId del worker
   // (defensa en profundidad contra QRs de otra empresa)
   if (payload.orgId !== ctx.orgId) {
+    void logAttempt({
+      orgId: ctx.orgId,
+      workerId: ctx.workerId,
+      result: 'ORG_MISMATCH',
+      reason: `Token de org ${payload.orgId} usado por worker de org ${ctx.orgId}`,
+      via: 'qr',
+      geo: geoForLog,
+      ...reqMeta,
+    })
     return NextResponse.json(
       { error: 'Este QR pertenece a otra empresa', code: 'ORG_MISMATCH' },
       { status: 403 },
@@ -83,10 +116,18 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   //   1. La org tiene fences definidos (admin las creó en /configuracion/asistencia)
   //   2. El cliente envió lat/lng (si no envía, asumimos que el dispositivo no
   //      tiene GPS o el worker rechazó permisos; logueamos pero no bloqueamos)
-  const fences = listFences(ctx.orgId)
+  const fences = await listFences(ctx.orgId)
   let geofenceMatched: string | undefined
   if (fences.length > 0) {
     if (typeof body.lat !== 'number' || typeof body.lng !== 'number') {
+      void logAttempt({
+        orgId: ctx.orgId,
+        workerId: ctx.workerId,
+        result: 'GEOLOCATION_REQUIRED',
+        reason: 'Org tiene geofences configuradas pero el cliente no envió coords',
+        via: 'qr',
+        ...reqMeta,
+      })
       return NextResponse.json(
         {
           error:
@@ -106,6 +147,15 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       // la UI muestre el modal de "fuera de zona" — esto es el flujo nuevo
       // de Fase 2.
       if (reason.length < 3) {
+        void logAttempt({
+          orgId: ctx.orgId,
+          workerId: ctx.workerId,
+          result: 'GEOFENCE_OUT',
+          reason: `Fuera de zona, ~${Math.round(geoCheck.distanceToNearestFence)}m de ${geoCheck.nearestFence?.name ?? 'zona'}`,
+          via: 'qr',
+          geo: geoForLog,
+          ...reqMeta,
+        })
         return NextResponse.json(
           {
             error: 'Estás fuera de la zona permitida. Si tienes un motivo válido (cita médica, reunión cliente, home office), repórtalo y registramos tu marcación con justificación pendiente de aprobación.',
@@ -261,6 +311,17 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       })
       .catch(() => null)
 
+    void logAttempt({
+      orgId: ctx.orgId,
+      workerId: ctx.workerId,
+      result: 'SUCCESS',
+      reason: `clock-in ${status}`,
+      via: 'qr',
+      geo: geoForLog,
+      ...reqMeta,
+      metadata: { attendanceId: created.id, action: 'in' },
+    })
+
     return NextResponse.json({
       success: true,
       action: 'in',
@@ -338,6 +399,17 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       },
     })
     .catch(() => null)
+
+  void logAttempt({
+    orgId: ctx.orgId,
+    workerId: ctx.workerId,
+    result: 'SUCCESS',
+    reason: `clock-out ${hoursWorked.toFixed(1)}h${overtime.isOvertime ? ` +${overtime.overtimeMinutes}min` : ''}`,
+    via: 'qr',
+    geo: geoForLog,
+    ...reqMeta,
+    metadata: { attendanceId: updated.id, action: 'out', hoursWorked, overtime: overtime.isOvertime },
+  })
 
   return NextResponse.json({
     success: true,
