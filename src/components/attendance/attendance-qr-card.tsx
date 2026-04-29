@@ -58,13 +58,21 @@ export function AttendanceQrCard() {
       const data = (await res.json()) as TokenResponse
       setToken(data)
 
-      // Generar QR
+      // Generar QR optimizado para detección rápida (2026-04-29):
+      //  - Negro puro: contraste 21:1 (vs ~6:1 con emerald-900) → cámaras detectan
+      //    al instante. El verde se mantiene en el resto del card para identidad
+      //    de marca, solo el QR mismo va clásico.
+      //  - errorCorrection 'H': tolera hasta 30% de daño/oclusión (vs 15% con 'M').
+      //    Importante para QRs en pantallas con reflejos o impresos.
+      //  - margin 4: "quiet zone" más amplia ayuda a los detectores a encontrar
+      //    los corner-finder patterns sin pelear con elementos cercanos.
+      //  - scale 12: más resolución → enfoque más nítido a distancia.
       const qr = await QRCode.toDataURL(data.deepLink, {
-        errorCorrectionLevel: 'M',
-        margin: 2,
-        scale: 10,
+        errorCorrectionLevel: 'H',
+        margin: 4,
+        scale: 12,
         color: {
-          dark: '#065f46', // emerald-900
+          dark: '#000000',
           light: '#ffffff',
         },
       })
@@ -139,6 +147,18 @@ export function AttendanceQrCard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Countdown pill — fuera del QR para no tapar módulos del corner-finder */}
+            {token && !loading ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-800"
+                title="El QR se regenera automáticamente"
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {countdownSeconds > 60
+                  ? `Renueva en ${Math.floor(countdownSeconds / 60)}m`
+                  : `Renueva en ${countdownSeconds}s`}
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={fetchToken}
@@ -186,18 +206,9 @@ export function AttendanceQrCard() {
               // eslint-disable-next-line @next/next/no-img-element -- data URL from QRCode.toDataURL
               <img src={qrDataUrl} alt="QR de asistencia" className="w-full h-full" />
             )}
-
-            {/* Countdown pill */}
-            {token && !loading ? (
-              <span
-                className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow"
-                title="El QR se regenera automáticamente"
-              >
-                {countdownSeconds > 60
-                  ? `${Math.floor(countdownSeconds / 60)}m`
-                  : `${countdownSeconds}s`}
-              </span>
-            ) : null}
+            {/* (Countdown pill movido al header del card para no obstruir
+                los corner-finder patterns del QR — antes "4m" en absolute
+                top-right podía romper la detección.) */}
           </div>
 
           {/* Instrucciones + short code */}
