@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuth, hasMinRole } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import type { WorkerStatus, RegimenLaboral, TipoCese } from '@/generated/prisma/client'
+import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
 
 const VALID_STATUSES: WorkerStatus[] = ['ACTIVE', 'ON_LEAVE', 'SUSPENDED', 'TERMINATED']
 
@@ -26,11 +27,22 @@ const MAX_BATCH = 200
  * Acciones masivas sobre trabajadores. Body siempre incluye:
  *   { ids: string[]; action: string; ...campos según action }
  *
- * Acciones soportadas (Fase 1 — Bulk CRUD):
+ * Acciones soportadas:
+ *
+ * Fase 1 — Bulk CRUD:
  *   - change-status: { status: WorkerStatus }
  *   - change-department: { department: string | null }
  *   - change-regimen: { regimenLaboral: RegimenLaboral }
  *   - terminate-bulk: { tipoCese: TipoCese; fechaCese: ISODate; motivoCese: string }
+ *
+ * Fase 2 — Operaciones laborales recurrentes:
+ *   - enroll-course: { courseId: string }                          → crea Enrollment por worker
+ *   - bulk-generate-payslips: { periodo: 'YYYY-MM'; incluirGratificacion?: boolean }
+ *                                                                  → crea Payslip por worker (idempotente por @@unique[workerId, periodo])
+ *   - register-capacitacion: { title: string; topic?: string; fechaCapacitacion: ISODate;
+ *                              instructor?: string; horas: number } → crea SstRecord tipo CAPACITACION
+ *   - register-entrega-epp: { epps: string[]; fechaEntrega: ISODate; serie?: string }
+ *                                                                  → crea SstRecord tipo ENTREGA_EPP
  *
  * Todas las acciones excepto change-status excluyen workers ya TERMINATED.
  * Se reportan los workers saltados con razón en `skipped[]`.
@@ -203,6 +215,315 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       }
 
       return NextResponse.json({ updated, skipped, action, tipoCese, fechaCese: fechaCese })
+    }
+
+    case 'enroll-course': {
+      const { courseId } = body as { courseId?: string }
+      if (!courseId || typeof courseId !== 'string') {
+        return NextResponse.json({ error: 'courseId requerido' }, { status: 400 })
+      }
+
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { id: true, title: true, isActive: true },
+      })
+      if (!course || !course.isActive) {
+        return NextResponse.json({ error: 'Curso no encontrado o inactivo' }, { status: 404 })
+      }
+
+      // Workers eligibles (no cesados, de la org)
+      const eligibles = await prisma.worker.findMany({
+        where: { id: { in: ids }, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+        select: { id: true, firstName: true, lastName: true },
+      })
+      const eligibleIds = new Set(eligibles.map(w => w.id))
+
+      // Workers ya inscritos en este curso
+      const existing = eligibles.length > 0
+        ? await prisma.enrollment.findMany({
+            where: { courseId, workerId: { in: eligibles.map(w => w.id) }, orgId: ctx.orgId },
+            select: { workerId: true },
+          })
+        : []
+      const idsAlreadyEnrolled = new Set(existing.map(e => e.workerId).filter(Boolean) as string[])
+
+      const skipped: { id: string; reason: string }[] = []
+      ids.forEach(id => {
+        if (!eligibleIds.has(id)) skipped.push({ id, reason: 'Trabajador cesado o no encontrado' })
+        else if (idsAlreadyEnrolled.has(id)) skipped.push({ id, reason: `Ya inscrito en "${course.title}"` })
+      })
+
+      const toEnroll = eligibles.filter(w => !idsAlreadyEnrolled.has(w.id))
+      if (toEnroll.length > 0) {
+        await prisma.enrollment.createMany({
+          data: toEnroll.map(w => ({
+            orgId: ctx.orgId,
+            workerId: w.id,
+            workerName: `${w.firstName} ${w.lastName}`,
+            courseId: course.id,
+            status: 'NOT_STARTED' as const,
+            progress: 0,
+          })),
+          skipDuplicates: true,
+        })
+      }
+
+      return NextResponse.json({
+        updated: toEnroll.length,
+        skipped,
+        action,
+        courseId: course.id,
+        courseTitle: course.title,
+      })
+    }
+
+    case 'bulk-generate-payslips': {
+      const { periodo, incluirGratificacion } = body as {
+        periodo?: string
+        incluirGratificacion?: boolean
+      }
+      if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
+        return NextResponse.json({ error: 'periodo requiere formato YYYY-MM' }, { status: 400 })
+      }
+
+      // Workers con todos los campos que necesita calcularBoleta
+      const eligibles = await prisma.worker.findMany({
+        where: {
+          id: { in: ids },
+          orgId: ctx.orgId,
+          status: { not: 'TERMINATED' },
+          sueldoBruto: { gt: 0 },
+        },
+        select: {
+          id: true,
+          sueldoBruto: true,
+          asignacionFamiliar: true,
+          tipoAporte: true,
+          afpNombre: true,
+          sctr: true,
+          regimenLaboral: true,
+        },
+      })
+      const eligibleIds = new Set(eligibles.map(w => w.id))
+
+      // Workers que ya tienen boleta para este periodo (idempotencia)
+      const existing = eligibles.length > 0
+        ? await prisma.payslip.findMany({
+            where: {
+              workerId: { in: eligibles.map(w => w.id) },
+              orgId: ctx.orgId,
+              periodo,
+            },
+            select: { workerId: true },
+          })
+        : []
+      const idsConBoleta = new Set(existing.map(p => p.workerId))
+
+      // Acumulado de renta 5ta del año en curso por worker (1 query, no N+1)
+      const year = periodo.split('-')[0]
+      const prevPayslips = eligibles.length > 0
+        ? await prisma.payslip.findMany({
+            where: {
+              workerId: { in: eligibles.map(w => w.id) },
+              orgId: ctx.orgId,
+              periodo: { startsWith: year, lt: periodo },
+            },
+            select: { workerId: true, rentaQuintaCat: true },
+          })
+        : []
+      const acumuladoRenta = new Map<string, number>()
+      prevPayslips.forEach(p => {
+        const prev = acumuladoRenta.get(p.workerId) ?? 0
+        acumuladoRenta.set(p.workerId, prev + Number(p.rentaQuintaCat ?? 0))
+      })
+
+      const skipped: { id: string; reason: string }[] = []
+      ids.forEach(id => {
+        if (!eligibleIds.has(id)) {
+          skipped.push({ id, reason: 'Trabajador cesado, sin sueldo o no encontrado' })
+        } else if (idsConBoleta.has(id)) {
+          skipped.push({ id, reason: `Ya tiene boleta para ${periodo}` })
+        }
+      })
+
+      const mes = parseInt(periodo.split('-')[1] ?? '0', 10)
+      const incluirGrati = incluirGratificacion ?? (mes === 7 || mes === 12)
+
+      const toGenerate = eligibles.filter(w => !idsConBoleta.has(w.id))
+      let generated = 0
+
+      // Sin transaction global — cada Payslip independiente. Si falla calcularBoleta
+      // para uno (datos malos), los demás siguen.
+      for (const w of toGenerate) {
+        try {
+          const input: BoletaInput = {
+            sueldoBruto: Number(w.sueldoBruto),
+            asignacionFamiliar: w.asignacionFamiliar,
+            tipoAporte: w.tipoAporte as 'AFP' | 'ONP' | 'SIN_APORTE',
+            afpNombre: w.afpNombre ?? undefined,
+            sctr: w.sctr,
+            regimenLaboral: w.regimenLaboral,
+            horasExtras: 0,
+            bonificaciones: 0,
+            incluirGratificacion: incluirGrati,
+            mes,
+            retencionRentaAcumulada: acumuladoRenta.get(w.id) ?? 0,
+          }
+          const result = calcularBoleta(input)
+
+          await prisma.payslip.create({
+            data: {
+              orgId: ctx.orgId,
+              workerId: w.id,
+              periodo,
+              fechaEmision: new Date(),
+              sueldoBruto: result.sueldoBruto,
+              asignacionFamiliar: result.asignacionFamiliar || null,
+              horasExtras: result.horasExtras || null,
+              bonificaciones: result.bonificaciones || null,
+              totalIngresos: result.totalIngresos,
+              aporteAfpOnp: result.aporteAfpOnp || null,
+              rentaQuintaCat: result.rentaQuintaCat || null,
+              otrosDescuentos: null,
+              totalDescuentos: result.totalDescuentos,
+              netoPagar: result.netoPagar,
+              essalud: result.essalud || null,
+              detalleJson: result.detalleJson,
+              status: 'EMITIDA',
+            },
+          })
+          generated++
+        } catch (err) {
+          skipped.push({
+            id: w.id,
+            reason: `Error en cálculo: ${err instanceof Error ? err.message : 'desconocido'}`,
+          })
+        }
+      }
+
+      return NextResponse.json({ updated: generated, skipped, action, periodo })
+    }
+
+    case 'register-capacitacion': {
+      const { title, topic, fechaCapacitacion, instructor, horas } = body as {
+        title?: string
+        topic?: string
+        fechaCapacitacion?: string
+        instructor?: string
+        horas?: number
+      }
+      if (!title || title.trim().length < 3) {
+        return NextResponse.json({ error: 'title requerido (mín 3 caracteres)' }, { status: 400 })
+      }
+      if (!fechaCapacitacion || isNaN(new Date(fechaCapacitacion).getTime())) {
+        return NextResponse.json({ error: 'fechaCapacitacion inválida' }, { status: 400 })
+      }
+      const horasNum = Number(horas)
+      if (!horasNum || horasNum <= 0 || horasNum > 200) {
+        return NextResponse.json({ error: 'horas debe ser un número entre 1 y 200' }, { status: 400 })
+      }
+
+      const eligibles = await prisma.worker.findMany({
+        where: { id: { in: ids }, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+        select: { id: true, firstName: true, lastName: true, dni: true },
+      })
+      const eligibleIds = new Set(eligibles.map(w => w.id))
+      const skipped = ids
+        .filter(id => !eligibleIds.has(id))
+        .map(id => ({ id, reason: 'Trabajador cesado o no encontrado' }))
+
+      if (eligibles.length === 0) {
+        return NextResponse.json({ updated: 0, skipped, action }, { status: 200 })
+      }
+
+      // 1 SstRecord consolidado con la lista de participantes en data
+      const record = await prisma.sstRecord.create({
+        data: {
+          orgId: ctx.orgId,
+          type: 'CAPACITACION',
+          title: title.trim(),
+          description: topic ? `Tema: ${topic}` : null,
+          data: {
+            topic: topic ?? null,
+            instructor: instructor ?? null,
+            horas: horasNum,
+            participantes: eligibles.map(w => ({
+              workerId: w.id,
+              dni: w.dni,
+              name: `${w.firstName} ${w.lastName}`,
+            })),
+          },
+          dueDate: new Date(fechaCapacitacion),
+          completedAt: new Date(fechaCapacitacion),
+          status: 'COMPLETED',
+        },
+      })
+
+      return NextResponse.json({
+        updated: eligibles.length,
+        skipped,
+        action,
+        sstRecordId: record.id,
+      })
+    }
+
+    case 'register-entrega-epp': {
+      const { epps, fechaEntrega, serie } = body as {
+        epps?: string[]
+        fechaEntrega?: string
+        serie?: string
+      }
+      if (!Array.isArray(epps) || epps.length === 0) {
+        return NextResponse.json({ error: 'epps requiere al menos un EPP' }, { status: 400 })
+      }
+      const eppsClean = epps.map(e => String(e).trim()).filter(Boolean)
+      if (eppsClean.length === 0) {
+        return NextResponse.json({ error: 'epps no puede estar vacío' }, { status: 400 })
+      }
+      if (!fechaEntrega || isNaN(new Date(fechaEntrega).getTime())) {
+        return NextResponse.json({ error: 'fechaEntrega inválida' }, { status: 400 })
+      }
+
+      const eligibles = await prisma.worker.findMany({
+        where: { id: { in: ids }, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+        select: { id: true, firstName: true, lastName: true, dni: true },
+      })
+      const eligibleIds = new Set(eligibles.map(w => w.id))
+      const skipped = ids
+        .filter(id => !eligibleIds.has(id))
+        .map(id => ({ id, reason: 'Trabajador cesado o no encontrado' }))
+
+      if (eligibles.length === 0) {
+        return NextResponse.json({ updated: 0, skipped, action }, { status: 200 })
+      }
+
+      const record = await prisma.sstRecord.create({
+        data: {
+          orgId: ctx.orgId,
+          type: 'ENTREGA_EPP',
+          title: `Entrega de EPP — ${new Date(fechaEntrega).toLocaleDateString('es-PE')}`,
+          description: serie ? `Serie/Lote: ${serie}` : null,
+          data: {
+            epps: eppsClean,
+            serie: serie ?? null,
+            participantes: eligibles.map(w => ({
+              workerId: w.id,
+              dni: w.dni,
+              name: `${w.firstName} ${w.lastName}`,
+            })),
+          },
+          dueDate: new Date(fechaEntrega),
+          completedAt: new Date(fechaEntrega),
+          status: 'COMPLETED',
+        },
+      })
+
+      return NextResponse.json({
+        updated: eligibles.length,
+        skipped,
+        action,
+        sstRecordId: record.id,
+      })
     }
 
     default:
