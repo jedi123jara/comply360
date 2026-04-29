@@ -37,6 +37,9 @@ interface CompanyForm {
   distrito: string
   representante: RepresentanteLegal
   contador: ContadorResponsable
+  /** Total de trabajadores declarado por el empleador (incluye no registrados).
+   *  Si > workers en plataforma, COMPLY360 detecta brecha como subdeclaración. */
+  totalWorkersDeclared: string | number
 }
 
 type RucStatus = 'idle' | 'loading' | 'verified' | 'error'
@@ -361,7 +364,7 @@ export default function EmpresaPage() {
       email: '',
     },
     // Detección de subdeclaración: total declarado por el empleador
-    totalWorkersDeclared: '' as string | number,
+    totalWorkersDeclared: '',
   })
 
   // SUNAT advanced data
