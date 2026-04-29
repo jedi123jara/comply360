@@ -39,6 +39,12 @@ export interface BoletaInput {
 
   // Horas extras pendientes (para mostrar en detalle)
   horasExtrasPendientes?: number // cantidad de horas (para detalleJson)
+
+  // Descuento por tardanzas/ausencias no justificadas (Fase 4 — Asistencia × Nómina).
+  // Se calcula en /api/workers/[id]/payslips antes de invocar calcularBoleta
+  // usando calculateLateDeduction() de src/lib/attendance/late-deduction.ts
+  descuentoTardanzasMonto?: number
+  descuentoTardanzasMinutos?: number // informativo para detalleJson
 }
 
 export interface BoletaLineaIngreso {
@@ -74,6 +80,7 @@ export interface BoletaResult {
   seguroInvalidez: number
   comisionAfp: number
   rentaQuintaCat: number
+  descuentoTardanzas: number  // Tardanzas/ausencias no justificadas (Fase 4)
 
   // Aportes empleador (informativos)
   essalud: number
@@ -114,6 +121,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     incluirGratificacion = false,
     mes,
     retencionRentaAcumulada = 0,
+    descuentoTardanzasMonto = 0,
   } = input
 
   const uitAnual = PERU_LABOR.UIT
@@ -188,8 +196,11 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
   const rentaQuintaCat = rentaResult.retencionMesActual
 
   // ── 6. Total descuentos ─────────────────────────────────────────────────────
+  // Incluye descuento por tardanzas/ausencias no justificadas (Fase 4 — el monto
+  // se calcula afuera con calculateLateDeduction y se pasa via input).
+  const descuentoTardanzas = Math.max(0, round(descuentoTardanzasMonto))
   const totalDescuentos = round(
-    aportes.totalDescuentoTrabajador + rentaQuintaCat
+    aportes.totalDescuentoTrabajador + rentaQuintaCat + descuentoTardanzas
   )
 
   // ── 7. Neto a pagar ─────────────────────────────────────────────────────────
@@ -267,6 +278,16 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
       porcentaje: 'Escala progresiva',
     })
   }
+  if (descuentoTardanzas > 0) {
+    const minutosInfo = input.descuentoTardanzasMinutos
+    descuentos.push({
+      concepto: minutosInfo
+        ? `Tardanzas/ausencias no justificadas (${minutosInfo} min)`
+        : 'Tardanzas/ausencias no justificadas',
+      monto: descuentoTardanzas,
+      porcentaje: 'Proporcional a jornada',
+    })
+  }
 
   // ── detalleJson para guardar en DB ──────────────────────────────────────────
   const detalleJson: Record<string, number | string | null> = {
@@ -281,6 +302,8 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     seguroInvalidez: aportes.seguroInvalidez,
     comisionAfp: aportes.comisionAfp,
     rentaQuintaCat,
+    descuentoTardanzas,
+    descuentoTardanzasMinutos: input.descuentoTardanzasMinutos ?? 0,
     totalDescuentos,
     netoPagar,
     essalud: aportes.essalud,
@@ -309,6 +332,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     seguroInvalidez: aportes.seguroInvalidez,
     comisionAfp: aportes.comisionAfp,
     rentaQuintaCat,
+    descuentoTardanzas,
     essalud: aportes.essalud,
     sctr: aportes.sctr,
     costoTotalEmpleador,

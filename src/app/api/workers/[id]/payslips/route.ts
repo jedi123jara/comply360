@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
+import { calculateLateDeduction } from '@/lib/attendance/late-deduction'
 
 // =============================================
 // GET /api/workers/[id]/payslips — list payslips for a worker
@@ -129,6 +130,29 @@ export const POST = withAuthParams<{ id: string }>(async (
   const [, mmStr] = periodo.split('-')
   const mes = parseInt(mmStr, 10)
 
+  // Descuento por tardanzas/ausencias no justificadas del periodo (Fase 4)
+  // Si el worker no tiene horario configurado (campos null pre-migration),
+  // calculateLateDeduction usa los defaults: 8:00 con 15 min tolerancia.
+  let descuentoTardanzasMonto = 0
+  let descuentoTardanzasMinutos = 0
+  try {
+    const lateDeduction = await calculateLateDeduction({
+      workerId,
+      orgId,
+      periodo,
+      jornadaSemanal: worker.jornadaSemanal ?? 48,
+      sueldoBruto: Number(worker.sueldoBruto),
+      expectedClockInHour: worker.expectedClockInHour ?? 8,
+      expectedClockInMinute: worker.expectedClockInMinute ?? 0,
+      lateToleranceMinutes: worker.lateToleranceMinutes ?? 15,
+    })
+    descuentoTardanzasMonto = lateDeduction.descuentoMonto
+    descuentoTardanzasMinutos = lateDeduction.minutosTardanzaNoJustificada
+  } catch (err) {
+    console.error('[payslips/POST] late deduction calc failed', err)
+    // Si falla, generamos la boleta sin descuento (más seguro que bloquear)
+  }
+
   const boletaInput: BoletaInput = {
     sueldoBruto: Number(worker.sueldoBruto),
     asignacionFamiliar: worker.asignacionFamiliar,
@@ -141,6 +165,8 @@ export const POST = withAuthParams<{ id: string }>(async (
     incluirGratificacion: incluirGratificacion ?? (mes === 7 || mes === 12),
     mes,
     retencionRentaAcumulada: retencionAcumulada,
+    descuentoTardanzasMonto,
+    descuentoTardanzasMinutos,
   }
 
   const result = calcularBoleta(boletaInput)
@@ -159,7 +185,9 @@ export const POST = withAuthParams<{ id: string }>(async (
       totalIngresos: result.totalIngresos,
       aporteAfpOnp: result.aporteAfpOnp || null,
       rentaQuintaCat: result.rentaQuintaCat || null,
-      otrosDescuentos: null,
+      // Descuento por tardanzas/ausencias no justificadas (Fase 4) — usa el
+      // campo otrosDescuentos del schema Payslip que ya existía sin uso.
+      otrosDescuentos: result.descuentoTardanzas > 0 ? result.descuentoTardanzas : null,
       totalDescuentos: result.totalDescuentos,
       netoPagar: result.netoPagar,
       essalud: result.essalud || null,
