@@ -424,6 +424,9 @@ enum WorkerAlertType {
   CAPACITACION_PENDIENTE
   AFP_EN_MORA
   REGISTRO_INCOMPLETO
+  // Patrones de asistencia detectados por scan periódico (Fase 3)
+  TARDANZAS_CRONICAS    // 5+ tardanzas en 15 días sin justificar
+  AUSENTISMO_CRONICO    // 3+ ausencias sin justificar en el mes
 }
 
 enum AlertSeverity {

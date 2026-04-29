@@ -28,6 +28,7 @@ import {
   X,
   Send,
   Zap,
+  BarChart2,
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
 import { AttendanceQrCard } from '@/components/attendance/attendance-qr-card'
@@ -171,6 +172,66 @@ export default function AsistenciaPage() {
   const [justifyModal, setJustifyModal] = useState<AttendanceRecord | null>(null)
   const [justifyReason, setJustifyReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+
+  // Fase 3: PDF Libro Digital + scan de patrones
+  const [pdfReportOpen, setPdfReportOpen] = useState(false)
+  const [pdfWorkers, setPdfWorkers] = useState<{ id: string; name: string }[]>([])
+  const [pdfWorkerId, setPdfWorkerId] = useState<string>('')
+  const [pdfStart, setPdfStart] = useState<string>(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
+  })
+  const [pdfEnd, setPdfEnd] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [scanningPatterns, setScanningPatterns] = useState(false)
+
+  // Cargar lista de workers cuando se abre el modal de PDF (lazy)
+  useEffect(() => {
+    if (!pdfReportOpen || pdfWorkers.length > 0) return
+    fetch('/api/workers?limit=200&status=ACTIVE')
+      .then(r => r.json())
+      .then((d: { data?: { id: string; firstName: string; lastName: string }[] }) => {
+        const list = (d.data ?? []).map(w => ({
+          id: w.id,
+          name: `${w.lastName}, ${w.firstName}`,
+        }))
+        setPdfWorkers(list)
+        if (list[0]) setPdfWorkerId(prev => prev || list[0].id)
+      })
+      .catch(() => toast.error('No pudimos cargar los trabajadores'))
+  }, [pdfReportOpen, pdfWorkers.length])
+
+  const downloadPdfReport = () => {
+    if (!pdfWorkerId || !pdfStart || !pdfEnd) {
+      toast.error('Selecciona trabajador y período')
+      return
+    }
+    const url = `/api/attendance/report?format=pdf&workerId=${pdfWorkerId}&startDate=${pdfStart}&endDate=${pdfEnd}`
+    window.open(url, '_blank')
+    setPdfReportOpen(false)
+  }
+
+  const runAttendancePatternsScan = async () => {
+    setScanningPatterns(true)
+    const tid = 'patterns-scan'
+    toast.loading('Escaneando patrones de asistencia...', { id: tid })
+    try {
+      const res = await fetch('/api/attendance/alerts/scan', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo escanear')
+      if (data.alertsCreated === 0) {
+        toast.success(`${data.workersScanned} trabajadores escaneados — sin patrones críticos`, { id: tid })
+      } else {
+        toast.success(
+          `${data.alertsCreated} ${data.alertsCreated === 1 ? 'alerta nueva creada' : 'alertas nuevas creadas'}`,
+          { id: tid, description: `${data.workersScanned} trabajadores escaneados. Revísalas en /dashboard/alertas.` },
+        )
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error en scan', { id: tid })
+    } finally {
+      setScanningPatterns(false)
+    }
+  }
 
   // Live clock
   useEffect(() => {
@@ -361,8 +422,8 @@ export default function AsistenciaPage() {
                   <ChevronDown className="w-3.5 h-3.5 opacity-60" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[260px]">
-                <DropdownMenuLabel>Exportar día actual</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="min-w-[280px]">
+                <DropdownMenuLabel>Día actual</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={handleExportCSV} disabled={records.length === 0}>
                   <Download className="w-4 h-4 text-emerald-600" />
                   <div className="flex flex-col">
@@ -370,13 +431,54 @@ export default function AsistenciaPage() {
                     <span className="text-[11px] text-[color:var(--text-tertiary)]">Datos de la fecha mostrada</span>
                   </div>
                 </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>Próximamente</DropdownMenuLabel>
-                <DropdownMenuItem disabled>
-                  <FileText className="w-4 h-4 text-[color:var(--text-tertiary)]" />
+                <DropdownMenuLabel>Mes en curso</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    window.open(`/api/export?type=attendance-monthly&format=xlsx`, '_blank')
+                  }}
+                >
+                  <Calendar className="w-4 h-4 text-emerald-600" />
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-[color:var(--text-tertiary)]">Libro Digital PDF</span>
-                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Formato R.M. 037-2024-TR (Fase 3)</span>
+                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Asistencia mensual (Excel)</span>
+                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Un row por marcación del mes</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    window.open(`/api/export?type=attendance-summary&format=xlsx`, '_blank')
+                  }}
+                >
+                  <BarChart2 className="w-4 h-4 text-emerald-600" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Resumen por trabajador</span>
+                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Totales del período: días, horas, justificaciones</span>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>SUNAFIL</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={() => setPdfReportOpen(true)}
+                >
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Libro Digital PDF</span>
+                    <span className="text-[11px] text-[color:var(--text-tertiary)]">R.M. 037-2024-TR Anexo 1 — por trabajador</span>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Análisis de patrones</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={runAttendancePatternsScan}
+                  disabled={scanningPatterns}
+                >
+                  <ShieldAlert className="w-4 h-4 text-amber-600" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Escanear tardanzas/ausentismo</span>
+                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Crea alertas de patrones críticos</span>
                   </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -902,6 +1004,99 @@ export default function AsistenciaPage() {
                   approveModal.mode === 'approve' ? <ShieldCheck className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />
                 )}
                 {approveModal.mode === 'approve' ? 'Aprobar' : 'Rechazar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Generar Libro Digital PDF (Fase 3 — R.M. 037-2024-TR) */}
+      {pdfReportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--border-default)]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Libro Digital de Asistencia</h3>
+                  <p className="text-[11px] text-gray-500">R.M. 037-2024-TR · Anexo 1</p>
+                </div>
+              </div>
+              <button onClick={() => setPdfReportOpen(false)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-5 py-5 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Trabajador
+                </label>
+                {pdfWorkers.length === 0 ? (
+                  <div className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Cargando trabajadores...
+                  </div>
+                ) : (
+                  <select
+                    value={pdfWorkerId}
+                    onChange={(e) => setPdfWorkerId(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                    autoFocus
+                  >
+                    {pdfWorkers.map(w => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Desde
+                  </label>
+                  <input
+                    type="date"
+                    value={pdfStart}
+                    onChange={(e) => setPdfStart(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Hasta
+                  </label>
+                  <input
+                    type="date"
+                    value={pdfEnd}
+                    onChange={(e) => setPdfEnd(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <ShieldCheck className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-700">
+                  Genera el Libro Digital del trabajador con todas sus marcaciones,
+                  tardanzas, justificaciones y horas extras del período. Listo para
+                  imprimir o enviar a SUNAFIL en una inspección.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button
+                onClick={() => setPdfReportOpen(false)}
+                className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={downloadPdfReport}
+                disabled={!pdfWorkerId || !pdfStart || !pdfEnd}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                Descargar PDF
               </button>
             </div>
           </div>
