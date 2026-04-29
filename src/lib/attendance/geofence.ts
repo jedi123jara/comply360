@@ -246,16 +246,37 @@ function rowToFence(row: {
   }
 }
 
-/** Lista las geofences activas de la org. Usa cache TTL 30s. */
+/** Lista las geofences activas de la org. Usa cache TTL 30s.
+ *
+ * Defensivo: si la tabla `geofences` no existe (migration de Fase 4.1 no
+ * aplicada en prod), devuelve [] sin crashear. La org operará SIN validación
+ * de geofence — comportamiento idéntico al de cuando no hay zonas configuradas. */
 export async function listFences(orgId: string): Promise<Geofence[]> {
   const now = Date.now()
   const cached = cache.get(orgId)
   if (cached && cached.expiresAt > now) return cached.fences
 
-  const rows = await prisma.geofence.findMany({
-    where: { orgId, isActive: true },
-    orderBy: { createdAt: 'asc' },
-  })
+  let rows: Array<{
+    id: string
+    name: string
+    type: 'CIRCLE' | 'POLYGON'
+    centerLat: { toString(): string } | null
+    centerLng: { toString(): string } | null
+    radiusMeters: number | null
+    vertices: unknown
+    locationId: string | null
+  }> = []
+  try {
+    rows = await prisma.geofence.findMany({
+      where: { orgId, isActive: true },
+      orderBy: { createdAt: 'asc' },
+    })
+  } catch (err) {
+    // Migration no aplicada → operar sin geofences (comportamiento legacy)
+    console.warn('[geofence] tabla geofences no disponible, operando sin validación de zona', err instanceof Error ? err.message : err)
+    cache.set(orgId, { fences: [], expiresAt: now + CACHE_TTL_MS })
+    return []
+  }
   const fences = rows
     .map(r => rowToFence({
       id: r.id,
