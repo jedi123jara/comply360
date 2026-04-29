@@ -76,7 +76,7 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     }
 
     // Worker count, compliance score, and payroll stats
-    const [totalWorkers, workerAgg, recentCriticalAlerts] = await Promise.all([
+    const [totalWorkers, workerAgg, recentCriticalAlerts, orgMeta, workersAtRiskIds] = await Promise.all([
       prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } }),
       prisma.worker.aggregate({
         where: { orgId, status: 'ACTIVE' },
@@ -98,7 +98,34 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
           worker: { select: { id: true, firstName: true, lastName: true } },
         },
       }),
+      // Para calcular `diasSinMulta` REAL (no score × 2 fake)
+      prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { createdAt: true, name: true },
+      }),
+      // Para calcular `trabajadoresProtegidos` REAL: total - en_riesgo
+      // Worker en riesgo = tiene alerta CRITICAL o HIGH activa, o legajoScore < 60
+      prisma.worker.findMany({
+        where: {
+          orgId,
+          status: { not: 'TERMINATED' },
+          OR: [
+            { legajoScore: { lt: 60 } },
+            { alerts: { some: { resolvedAt: null, severity: { in: ['CRITICAL', 'HIGH'] } } } },
+          ],
+        },
+        select: { id: true },
+      }),
     ])
+    const workersAtRiskCount = workersAtRiskIds.length
+    const workersBlindados = Math.max(0, totalWorkers - workersAtRiskCount)
+    // Días desde creación de la org (proxy honesto para "días sin multa real")
+    // Si en el futuro registramos multas reales, cambiar a "días desde última multa".
+    const orgCreatedAt = orgMeta?.createdAt ?? new Date()
+    const diasDesdeCreacion = Math.max(
+      0,
+      Math.floor((Date.now() - orgCreatedAt.getTime()) / (1000 * 60 * 60 * 24)),
+    )
 
     let complianceScore = null
     try {
@@ -425,6 +452,10 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         multaPotencial: complianceScore?.multaPotencial ?? null,
         avgLegajoScore: workerAgg._avg.legajoScore ? Math.round(Number(workerAgg._avg.legajoScore)) : null,
         totalPlanilla: workerAgg._sum.sueldoBruto ? Number(workerAgg._sum.sueldoBruto) : 0,
+        // Honestos — no más score × 2 ni totalWorkers como "blindados"
+        workersAtRisk: workersAtRiskCount,
+        workersProtected: workersBlindados,
+        daysSinceOrgCreated: diasDesdeCreacion,
       },
       complianceTasks: {
         open: tasksOpen,

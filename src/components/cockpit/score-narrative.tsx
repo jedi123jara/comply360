@@ -107,8 +107,9 @@ export function ScoreNarrative({
             </>
           ) : (
             <>
-              Compliance <span style={{ color }}>en zona crítica</span>.
-              Prioridad esta semana.
+              Tu compliance tiene{' '}
+              <span style={{ color }}>brechas importantes</span>.
+              Vamos a resolverlas paso a paso.
             </>
           )}
         </h1>

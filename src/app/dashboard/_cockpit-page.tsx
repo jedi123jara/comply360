@@ -183,6 +183,9 @@ export default function CockpitPage() {
   const expiringCount = data?.stats?.expiringCount ?? 0
   const criticalAlerts = data?.stats?.criticalAlerts ?? 0
   const multaPotencial = data?.stats?.multaPotencial ?? 0
+  // Datos REALES del endpoint (no más score × 2 ni totalWorkers como "blindados")
+  const workersProtected = (data?.stats as { workersProtected?: number } | undefined)?.workersProtected ?? totalWorkers
+  const daysSinceOrgCreated = (data?.stats as { daysSinceOrgCreated?: number } | undefined)?.daysSinceOrgCreated ?? 0
 
   // Estado "primera vez": cuenta nueva, sin trabajadores ni señales de actividad.
   // El cockpit normal asume score 72 por defecto y dispara narrativa de "zona crítica",
@@ -454,8 +457,8 @@ export default function CockpitPage() {
           (data?.complianceTasks?.multaEvitada as number | undefined) ?? multaPotencial ?? 0
         }
         alertasCriticas={criticalAlerts}
-        trabajadoresProtegidos={totalWorkers}
-        diasSinMulta={Math.min(365, Math.max(0, (data?.stats?.complianceScore ?? 82) * 2))}
+        trabajadoresProtegidos={workersProtected}
+        diasSinMulta={daysSinceOrgCreated}
         onReviewAlerts={() => window.location.assign('/dashboard/alertas')}
         onOpenDiagnostic={() => window.location.assign('/dashboard/diagnostico')}
         onAskAssistant={() => copilot.open()}
