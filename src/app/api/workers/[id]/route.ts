@@ -109,6 +109,44 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
   if ('fechaIngreso' in body) updateData.fechaIngreso = new Date(body.fechaIngreso)
   if ('fechaCese' in body) updateData.fechaCese = body.fechaCese ? new Date(body.fechaCese) : null
 
+  // Horario laboral pactado (Fase 1.2). Cada campo se valida individualmente
+  // y solo se actualiza si fue enviado.
+  const scheduleIntFields: { field: string; min: number; max: number; label: string }[] = [
+    { field: 'expectedClockInHour', min: 0, max: 23, label: 'Hora de entrada' },
+    { field: 'expectedClockInMinute', min: 0, max: 59, label: 'Minuto de entrada' },
+    { field: 'expectedClockOutHour', min: 0, max: 23, label: 'Hora de salida' },
+    { field: 'expectedClockOutMinute', min: 0, max: 59, label: 'Minuto de salida' },
+    { field: 'lateToleranceMinutes', min: 0, max: 120, label: 'Tolerancia' },
+  ]
+  for (const { field, min, max, label } of scheduleIntFields) {
+    if (field in body) {
+      const v = Number(body[field])
+      if (!Number.isInteger(v) || v < min || v > max) {
+        return NextResponse.json(
+          { error: `${label} debe ser un entero entre ${min} y ${max}` },
+          { status: 400 },
+        )
+      }
+      updateData[field] = v
+    }
+  }
+  // Validación cruzada: entrada < salida si se tocó alguno
+  const tocaSchedule = scheduleIntFields.some(({ field }) => field in body)
+  if (tocaSchedule) {
+    const newInHour = (updateData.expectedClockInHour as number | undefined) ?? existing.expectedClockInHour
+    const newInMinute = (updateData.expectedClockInMinute as number | undefined) ?? existing.expectedClockInMinute
+    const newOutHour = (updateData.expectedClockOutHour as number | undefined) ?? existing.expectedClockOutHour
+    const newOutMinute = (updateData.expectedClockOutMinute as number | undefined) ?? existing.expectedClockOutMinute
+    const inMin = newInHour * 60 + newInMinute
+    const outMin = newOutHour * 60 + newOutMinute
+    if (outMin <= inMin) {
+      return NextResponse.json(
+        { error: 'La hora de salida debe ser posterior a la de entrada' },
+        { status: 400 },
+      )
+    }
+  }
+
   const worker = await prisma.worker.update({
     where: { id },
     data: updateData,

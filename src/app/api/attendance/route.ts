@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { parseAttendanceNotes, deriveJustificationState } from '@/lib/attendance/notes'
+import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
 
 /**
  * GET /api/attendance?date=YYYY-MM-DD
@@ -110,10 +111,18 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     resolvedWorkerId = workerLinked.id
   }
 
-  // Verificar que el worker pertenece a la org (defense in depth)
+  // Verificar que el worker pertenece a la org (defense in depth) y cargar
+  // el horario pactado para usar en deriveAttendanceStatus.
   const worker = await prisma.worker.findFirst({
     where: { id: resolvedWorkerId, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
-    select: { id: true, firstName: true, lastName: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      expectedClockInHour: true,
+      expectedClockInMinute: true,
+      lateToleranceMinutes: true,
+    },
   })
 
   if (!worker) {
@@ -140,9 +149,13 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
       return NextResponse.json({ error: 'Ya existe una entrada activa para hoy sin salida registrada.' }, { status: 409 })
     }
 
-    // Calcular estado: LATE si llega después de las 9:00
-    const horaEntrada = now.getHours()
-    const status = horaEntrada >= 9 ? 'LATE' : 'PRESENT'
+    // Calcular estado usando el horario pactado del worker (Fase 1.2):
+    // dentro de la tolerancia → PRESENT, fuera → LATE.
+    const status = deriveAttendanceStatusFromSchedule(now, {
+      expectedClockInHour: worker.expectedClockInHour,
+      expectedClockInMinute: worker.expectedClockInMinute,
+      lateToleranceMinutes: worker.lateToleranceMinutes,
+    })
 
     const record = await prisma.attendance.create({
       data: {

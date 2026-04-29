@@ -118,6 +118,69 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       return NextResponse.json({ updated: result.count, skipped, action, department: dept })
     }
 
+    case 'set-schedule': {
+      const {
+        expectedClockInHour,
+        expectedClockInMinute,
+        expectedClockOutHour,
+        expectedClockOutMinute,
+        lateToleranceMinutes,
+      } = body as {
+        expectedClockInHour?: number
+        expectedClockInMinute?: number
+        expectedClockOutHour?: number
+        expectedClockOutMinute?: number
+        lateToleranceMinutes?: number
+      }
+      const fields: { name: string; value: unknown; min: number; max: number; label: string }[] = [
+        { name: 'expectedClockInHour', value: expectedClockInHour, min: 0, max: 23, label: 'Hora entrada' },
+        { name: 'expectedClockInMinute', value: expectedClockInMinute, min: 0, max: 59, label: 'Minuto entrada' },
+        { name: 'expectedClockOutHour', value: expectedClockOutHour, min: 0, max: 23, label: 'Hora salida' },
+        { name: 'expectedClockOutMinute', value: expectedClockOutMinute, min: 0, max: 59, label: 'Minuto salida' },
+        { name: 'lateToleranceMinutes', value: lateToleranceMinutes, min: 0, max: 120, label: 'Tolerancia' },
+      ]
+      const data: Record<string, number> = {}
+      for (const f of fields) {
+        const n = Number(f.value)
+        if (!Number.isInteger(n) || n < f.min || n > f.max) {
+          return NextResponse.json(
+            { error: `${f.label} debe ser un entero entre ${f.min} y ${f.max}` },
+            { status: 400 },
+          )
+        }
+        data[f.name] = n
+      }
+      // Validación cruzada: salida > entrada
+      const inMin = data.expectedClockInHour * 60 + data.expectedClockInMinute
+      const outMin = data.expectedClockOutHour * 60 + data.expectedClockOutMinute
+      if (outMin <= inMin) {
+        return NextResponse.json(
+          { error: 'La hora de salida debe ser posterior a la de entrada' },
+          { status: 400 },
+        )
+      }
+
+      const eligibles = await prisma.worker.findMany({
+        where: { id: { in: ids }, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+        select: { id: true },
+      })
+      const eligibleIds = new Set(eligibles.map(w => w.id))
+      const skipped = ids
+        .filter(id => !eligibleIds.has(id))
+        .map(id => ({ id, reason: 'Trabajador cesado o no encontrado' }))
+
+      const result = await prisma.worker.updateMany({
+        where: { id: { in: [...eligibleIds] }, orgId: ctx.orgId },
+        data,
+      })
+      return NextResponse.json({
+        updated: result.count,
+        skipped,
+        action,
+        schedule: data,
+      })
+    }
+
     case 'change-regimen': {
       const { regimenLaboral } = body as { regimenLaboral?: string }
       if (!regimenLaboral || !VALID_REGIMENES.includes(regimenLaboral as RegimenLaboral)) {
