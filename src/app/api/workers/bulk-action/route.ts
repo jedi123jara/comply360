@@ -4,6 +4,7 @@ import { withAuth, hasMinRole } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import type { WorkerStatus, RegimenLaboral, TipoCese } from '@/generated/prisma/client'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
+import { calculateLateDeduction } from '@/lib/attendance/late-deduction'
 import { calcularLiquidacion } from '@/lib/legal-engine/calculators/liquidacion'
 import type { LiquidacionInput, MotivoCese } from '@/lib/legal-engine/types'
 
@@ -380,6 +381,10 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
           afpNombre: true,
           sctr: true,
           regimenLaboral: true,
+          jornadaSemanal: true,
+          expectedClockInHour: true,
+          expectedClockInMinute: true,
+          lateToleranceMinutes: true,
         },
       })
       const eligibleIds = new Set(eligibles.map(w => w.id))
@@ -434,6 +439,25 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       // para uno (datos malos), los demás siguen.
       for (const w of toGenerate) {
         try {
+          // Descuento por tardanzas/ausencias del periodo (Fase 4). Si falla,
+          // generamos sin descuento — más seguro que bloquear toda la tanda.
+          let descuentoTardanzasMonto = 0
+          let descuentoTardanzasMinutos = 0
+          try {
+            const ld = await calculateLateDeduction({
+              workerId: w.id,
+              orgId: ctx.orgId,
+              periodo,
+              jornadaSemanal: w.jornadaSemanal ?? 48,
+              sueldoBruto: Number(w.sueldoBruto),
+              expectedClockInHour: w.expectedClockInHour ?? 8,
+              expectedClockInMinute: w.expectedClockInMinute ?? 0,
+              lateToleranceMinutes: w.lateToleranceMinutes ?? 15,
+            })
+            descuentoTardanzasMonto = ld.descuentoMonto
+            descuentoTardanzasMinutos = ld.minutosTardanzaNoJustificada
+          } catch {/* swallow — boleta se genera sin descuento */}
+
           const input: BoletaInput = {
             sueldoBruto: Number(w.sueldoBruto),
             asignacionFamiliar: w.asignacionFamiliar,
@@ -446,6 +470,8 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
             incluirGratificacion: incluirGrati,
             mes,
             retencionRentaAcumulada: acumuladoRenta.get(w.id) ?? 0,
+            descuentoTardanzasMonto,
+            descuentoTardanzasMinutos,
           }
           const result = calcularBoleta(input)
 
@@ -462,7 +488,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
               totalIngresos: result.totalIngresos,
               aporteAfpOnp: result.aporteAfpOnp || null,
               rentaQuintaCat: result.rentaQuintaCat || null,
-              otrosDescuentos: null,
+              otrosDescuentos: result.descuentoTardanzas > 0 ? result.descuentoTardanzas : null,
               totalDescuentos: result.totalDescuentos,
               netoPagar: result.netoPagar,
               essalud: result.essalud || null,
