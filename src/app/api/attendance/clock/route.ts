@@ -248,17 +248,24 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       )
     }
 
-    // Cargar el horario pactado del worker (Fase 1.2). Si no tiene
-    // configurado o la migration aún no se aplicó, usa los defaults
-    // (8:00 con 15 min tolerancia).
-    const workerSchedule = await prisma.worker.findUnique({
-      where: { id: ctx.workerId },
-      select: {
-        expectedClockInHour: true,
-        expectedClockInMinute: true,
-        lateToleranceMinutes: true,
-      },
-    })
+    // Cargar el horario pactado del worker (Fase 1.2). Defensivo contra
+    // migration no aplicada: si las columnas no existen aún en la DB de
+    // prod (despliegue intermedio), usamos defaults SIN crashear.
+    let workerSchedule: { expectedClockInHour: number; expectedClockInMinute: number; lateToleranceMinutes: number } | null = null
+    try {
+      workerSchedule = await prisma.worker.findUnique({
+        where: { id: ctx.workerId },
+        select: {
+          expectedClockInHour: true,
+          expectedClockInMinute: true,
+          lateToleranceMinutes: true,
+        },
+      })
+    } catch (err) {
+      // Migration de horarios no aplicada → usa defaults
+      console.warn('[clock] schedule columns missing, using defaults', err instanceof Error ? err.message : err)
+      workerSchedule = null
+    }
     // Si el token trae graceMinutes explícito (admin lo overrideó al generar
     // QR), gana sobre el del worker. Sino, usamos el del worker.
     const scheduleForCheck = workerSchedule
@@ -271,22 +278,34 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       : null
     const status = deriveAttendanceStatusFromSchedule(now, scheduleForCheck)
     const oobNotes = buildOutOfBoundsNotes()
-    const created = await prisma.attendance.create({
-      data: {
-        orgId: ctx.orgId,
-        workerId: ctx.workerId,
-        clockIn: now,
-        status,
-        // Anti-fraude (PRO+): persistimos coords + selfie hash si vinieron
-        geoLat: typeof body.lat === 'number' ? body.lat : null,
-        geoLng: typeof body.lng === 'number' ? body.lng : null,
-        geoAccuracy: typeof body.accuracy === 'number' ? body.accuracy : null,
-        selfieHash: body.selfieHash ?? null,
-        // Si fichó fuera de zona con motivo válido, queda con justification
-        // pendiente de aprobación admin (Fase 2).
-        notes: oobNotes,
-      },
-    })
+    let created
+    try {
+      created = await prisma.attendance.create({
+        data: {
+          orgId: ctx.orgId,
+          workerId: ctx.workerId,
+          clockIn: now,
+          status,
+          // Anti-fraude (PRO+): persistimos coords + selfie hash si vinieron
+          geoLat: typeof body.lat === 'number' ? body.lat : null,
+          geoLng: typeof body.lng === 'number' ? body.lng : null,
+          geoAccuracy: typeof body.accuracy === 'number' ? body.accuracy : null,
+          selfieHash: body.selfieHash ?? null,
+          // Si fichó fuera de zona con motivo válido, queda con justification
+          // pendiente de aprobación admin (Fase 2).
+          notes: oobNotes,
+        },
+      })
+    } catch (err) {
+      console.error('[clock] attendance.create failed', err instanceof Error ? err.message : err)
+      return NextResponse.json(
+        {
+          error: 'No se pudo registrar la marcación. Si el problema persiste, avisa a tu admin que aplique las migraciones de la base de datos.',
+          code: 'DB_ERROR',
+        },
+        { status: 500 },
+      )
+    }
 
     // Audit log de la marcación
     await prisma.auditLog
@@ -364,15 +383,38 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   })
   const overtime = calculateOvertime(hoursWorked, workerJornada?.jornadaSemanal ?? 48)
 
-  const updated = await prisma.attendance.update({
-    where: { id: existingToday.id },
-    data: {
-      clockOut: now,
-      hoursWorked,
-      isOvertime: overtime.isOvertime,
-      overtimeMinutes: overtime.isOvertime ? overtime.overtimeMinutes : null,
-    },
-  })
+  // Defensivo: si las columnas isOvertime/overtimeMinutes no existen aún
+  // en la DB (migration de Fase 1.3 no aplicada), reintentamos sin esos
+  // campos en lugar de crashear.
+  let updated
+  try {
+    updated = await prisma.attendance.update({
+      where: { id: existingToday.id },
+      data: {
+        clockOut: now,
+        hoursWorked,
+        isOvertime: overtime.isOvertime,
+        overtimeMinutes: overtime.isOvertime ? overtime.overtimeMinutes : null,
+      },
+    })
+  } catch (err) {
+    console.warn('[clock] overtime columns missing, retrying without', err instanceof Error ? err.message : err)
+    try {
+      updated = await prisma.attendance.update({
+        where: { id: existingToday.id },
+        data: { clockOut: now, hoursWorked },
+      })
+    } catch (err2) {
+      console.error('[clock] attendance.update failed', err2 instanceof Error ? err2.message : err2)
+      return NextResponse.json(
+        {
+          error: 'No se pudo registrar la salida. Si persiste, avisa a tu admin que aplique las migraciones.',
+          code: 'DB_ERROR',
+        },
+        { status: 500 },
+      )
+    }
+  }
 
   // Si la marcación de salida trae un selfie nuevo, lo guardamos como
   // metadata adicional (no sobre-escribe el de entrada).
