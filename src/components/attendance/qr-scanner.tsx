@@ -21,7 +21,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { Camera, X, AlertTriangle } from 'lucide-react'
+import { Camera, X, AlertTriangle, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface QrScannerProps {
   onScan: (token: string) => void
@@ -291,23 +292,36 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
           </div>
         ) : (
           <div className="relative w-full max-w-md aspect-square">
-            {/* CAMINO NATIVO: video element directo */}
-            {usingNative && (
-              <video
-                ref={videoRef}
-                playsInline
-                muted
-                autoPlay
-                className="w-full h-full object-cover rounded-2xl bg-black"
-              />
-            )}
+            {/* CAMINO NATIVO: video element SIEMPRE en el DOM (oculto si no
+                se usa). Antes era condicional pero el render de React no
+                era sincrónico — al hacer videoRef.current.srcObject=stream
+                el elemento aún no existía → cámara no se mostraba.
+                Ahora siempre existe, solo cambia visibility según usingNative. */}
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              autoPlay
+              className={cn(
+                'w-full h-full object-cover rounded-2xl bg-black absolute inset-0',
+                usingNative === true ? 'block' : 'hidden',
+              )}
+            />
 
             {/* CAMINO FALLBACK: container para html5-qrcode */}
-            {usingNative === false && (
-              <div
-                id={SCANNER_FALLBACK_ID}
-                className="w-full h-full rounded-2xl overflow-hidden bg-black"
-              />
+            <div
+              id={SCANNER_FALLBACK_ID}
+              className={cn(
+                'w-full h-full rounded-2xl overflow-hidden bg-black absolute inset-0',
+                usingNative === false ? 'block' : 'hidden',
+              )}
+            />
+
+            {/* Placeholder mientras decide ruta (init) */}
+            {usingNative === null && !error && (
+              <div className="w-full h-full flex items-center justify-center bg-black rounded-2xl">
+                <Loader2 className="h-10 w-10 animate-spin text-white/60" />
+              </div>
             )}
 
             {/* Frame guide con corners animados */}
