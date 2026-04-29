@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { generateAttendanceReportPDF } from '@/lib/attendance/report-pdf'
 
 /**
- * GET /api/attendance/report — Attendance summary report
- * Query params: startDate, endDate, department
+ * GET /api/attendance/report — Reporte de asistencia
+ *
+ * Modos según query params:
+ *   - format=pdf + workerId + startDate + endDate
+ *     → Libro Digital de Asistencia (R.M. 037-2024-TR Anexo 1) en PDF
+ *   - default JSON (summary por trabajador) + startDate + endDate (+ department)
  */
 export async function GET(req: NextRequest) {
   const { orgId } = await auth()
@@ -14,12 +19,83 @@ export async function GET(req: NextRequest) {
   const startDate = url.searchParams.get('startDate')
   const endDate = url.searchParams.get('endDate')
   const department = url.searchParams.get('department')
+  const format = url.searchParams.get('format')
+  const workerId = url.searchParams.get('workerId')
 
   if (!startDate || !endDate) {
     return NextResponse.json(
       { error: 'startDate y endDate son requeridos (YYYY-MM-DD)' },
       { status: 400 }
     )
+  }
+
+  // ── Modo PDF: Libro Digital R.M. 037-2024-TR ──────────────────────
+  if (format === 'pdf') {
+    if (!workerId) {
+      return NextResponse.json(
+        { error: 'workerId es requerido cuando format=pdf' },
+        { status: 400 },
+      )
+    }
+    try {
+      const start = new Date(`${startDate}T00:00:00.000Z`)
+      const end = new Date(`${endDate}T23:59:59.999Z`)
+
+      const [org, worker, records] = await Promise.all([
+        prisma.organization.findUnique({
+          where: { id: orgId },
+          select: { name: true, razonSocial: true, ruc: true },
+        }),
+        prisma.worker.findFirst({
+          where: { id: workerId, orgId },
+          select: {
+            firstName: true, lastName: true, dni: true, position: true,
+            department: true, fechaIngreso: true,
+            expectedClockInHour: true, expectedClockInMinute: true,
+            expectedClockOutHour: true, expectedClockOutMinute: true,
+            lateToleranceMinutes: true,
+          },
+        }),
+        prisma.attendance.findMany({
+          where: { orgId, workerId, clockIn: { gte: start, lte: end } },
+          select: {
+            clockIn: true, clockOut: true, status: true, hoursWorked: true,
+            isOvertime: true, overtimeMinutes: true, notes: true,
+          },
+          orderBy: { clockIn: 'asc' },
+        }),
+      ])
+      if (!org) return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 })
+      if (!worker) return NextResponse.json({ error: 'Trabajador no encontrado en esta organización' }, { status: 404 })
+
+      const buffer = await generateAttendanceReportPDF({
+        org,
+        worker,
+        periodStart: start,
+        periodEnd: end,
+        records: records.map(r => ({
+          clockIn: r.clockIn,
+          clockOut: r.clockOut,
+          status: r.status,
+          hoursWorked: r.hoursWorked != null ? Number(r.hoursWorked) : null,
+          isOvertime: r.isOvertime,
+          overtimeMinutes: r.overtimeMinutes,
+          notes: r.notes,
+        })),
+      })
+
+      const filename = `libro-asistencia_${worker.lastName}_${startDate}_${endDate}.pdf`
+      return new NextResponse(buffer as ArrayBuffer, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store',
+        },
+      })
+    } catch (error) {
+      console.error('[attendance/report PDF] Error:', error)
+      return NextResponse.json({ error: 'No se pudo generar el PDF' }, { status: 500 })
+    }
   }
 
   try {

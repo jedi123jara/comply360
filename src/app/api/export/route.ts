@@ -5,11 +5,15 @@ import type { AuthContext } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
 /**
- * GET /api/export?type=workers|calculations|diagnostics|contracts|alerts|legajo-inventory&format=xlsx|csv
- * Downloads an Excel or CSV file with org data.
+ * GET /api/export?type=...&format=xlsx|csv
  *
- * Para legajo-inventory: usar `?ids=` (CSV de worker IDs) para filtrar a una selección.
- * Genera un row por documento con info del worker — útil para auditorías SUNAFIL.
+ * Tipos soportados:
+ *   - workers, calculations, diagnostics, contracts, alerts: estándar
+ *   - legajo-inventory: un row por WorkerDocument (auditoría)
+ *   - attendance-monthly: un row por (worker × día) en el rango ?startDate=&endDate=
+ *   - attendance-summary: un row por worker con totales del rango
+ *
+ * Para los attendance-* el rango defaultea al mes en curso si no se pasa.
  */
 export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
@@ -233,6 +237,135 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     filename = `alertas_${new Date().toISOString().split('T')[0]}`
   }
 
+  else if (type === 'attendance-monthly' || type === 'attendance-summary') {
+    // Rango: ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD; default = mes en curso
+    const sd = searchParams.get('startDate')
+    const ed = searchParams.get('endDate')
+    const now = new Date()
+    const defaultStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const defaultEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    const start = sd ? new Date(`${sd}T00:00:00.000Z`) : defaultStart
+    const end = ed ? new Date(`${ed}T23:59:59.999Z`) : defaultEnd
+
+    const records = await prisma.attendance.findMany({
+      where: {
+        orgId,
+        clockIn: { gte: start, lte: end },
+        ...(ids ? { workerId: { in: ids.split(',') } } : {}),
+      },
+      orderBy: [{ workerId: 'asc' }, { clockIn: 'asc' }],
+      select: {
+        clockIn: true, clockOut: true, status: true, hoursWorked: true,
+        isOvertime: true, overtimeMinutes: true, notes: true,
+        worker: {
+          select: { firstName: true, lastName: true, dni: true, department: true, position: true },
+        },
+      },
+    })
+
+    if (type === 'attendance-monthly') {
+      // Un row por marcación
+      rows = records.map(r => {
+        // Parse de notes JSON para extraer estado de justificación (mismo formato Fase 1.1)
+        let justState = '—'
+        let justReason = ''
+        try {
+          const trimmed = r.notes?.trim() ?? ''
+          if (trimmed.startsWith('{')) {
+            const parsed = JSON.parse(trimmed) as { j?: { reason?: string }; a?: { approved?: boolean; comment?: string } }
+            if (parsed.j) {
+              justReason = String(parsed.j.reason ?? '')
+              justState = parsed.a
+                ? (parsed.a.approved ? 'Aprobada' : 'Rechazada')
+                : 'Pendiente'
+            }
+          }
+        } catch {/* noop */}
+
+        return {
+          'DNI': r.worker.dni ?? '',
+          'Apellidos': r.worker.lastName,
+          'Nombres': r.worker.firstName,
+          'Cargo': r.worker.position ?? '',
+          'Area': r.worker.department ?? '',
+          'Fecha': r.clockIn.toLocaleDateString('es-PE'),
+          'Entrada': r.clockIn.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+          'Salida': r.clockOut ? r.clockOut.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '',
+          'Horas': r.hoursWorked ? Number(r.hoursWorked).toFixed(2) : '',
+          'Estado': r.status,
+          'Horas Extras (min)': r.overtimeMinutes ?? '',
+          'Justificacion': justState,
+          'Motivo': justReason,
+        }
+      })
+      sheetName = 'Asistencia Mensual'
+      filename = `asistencia-mensual_${start.toISOString().slice(0, 10)}_${end.toISOString().slice(0, 10)}`
+    } else {
+      // attendance-summary: un row por trabajador con totales
+      const byWorker = new Map<string, {
+        dni: string
+        nombre: string
+        area: string
+        cargo: string
+        diasPresente: number
+        diasTardanza: number
+        diasAusente: number
+        diasPermiso: number
+        horasTotales: number
+        horasExtrasMin: number
+        justPendientes: number
+        justAprobadas: number
+      }>()
+      for (const r of records) {
+        const key = `${r.worker.dni ?? ''}|${r.worker.lastName}|${r.worker.firstName}`
+        const existing = byWorker.get(key) ?? {
+          dni: r.worker.dni ?? '',
+          nombre: `${r.worker.lastName}, ${r.worker.firstName}`,
+          area: r.worker.department ?? '',
+          cargo: r.worker.position ?? '',
+          diasPresente: 0, diasTardanza: 0, diasAusente: 0, diasPermiso: 0,
+          horasTotales: 0, horasExtrasMin: 0,
+          justPendientes: 0, justAprobadas: 0,
+        }
+        if (r.status === 'PRESENT') existing.diasPresente++
+        if (r.status === 'LATE') existing.diasTardanza++
+        if (r.status === 'ABSENT') existing.diasAusente++
+        if (r.status === 'ON_LEAVE') existing.diasPermiso++
+        if (r.hoursWorked) existing.horasTotales += Number(r.hoursWorked)
+        if (r.overtimeMinutes) existing.horasExtrasMin += r.overtimeMinutes
+
+        try {
+          const trimmed = r.notes?.trim() ?? ''
+          if (trimmed.startsWith('{')) {
+            const parsed = JSON.parse(trimmed) as { j?: unknown; a?: { approved?: boolean } }
+            if (parsed.j) {
+              if (parsed.a?.approved === true) existing.justAprobadas++
+              else if (!parsed.a) existing.justPendientes++
+            }
+          }
+        } catch {/* noop */}
+
+        byWorker.set(key, existing)
+      }
+      rows = Array.from(byWorker.values()).map(w => ({
+        'DNI': w.dni,
+        'Trabajador': w.nombre,
+        'Cargo': w.cargo,
+        'Area': w.area,
+        'Dias Presente': w.diasPresente,
+        'Dias Tardanza': w.diasTardanza,
+        'Dias Ausente': w.diasAusente,
+        'Dias Permiso': w.diasPermiso,
+        'Horas Totales': w.horasTotales.toFixed(1),
+        'Horas Extras (min)': w.horasExtrasMin,
+        'Justif. Pendientes': w.justPendientes,
+        'Justif. Aprobadas': w.justAprobadas,
+      }))
+      sheetName = 'Resumen Asistencia'
+      filename = `asistencia-resumen_${start.toISOString().slice(0, 10)}_${end.toISOString().slice(0, 10)}`
+    }
+  }
+
   else if (type === 'legajo-inventory') {
     // Inventario de WorkerDocuments — un row por doc con datos del worker al lado.
     // Útil para auditorías SUNAFIL: el inspector pivota por DNI o por categoría.
@@ -297,7 +430,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   }
 
   else {
-    return NextResponse.json({ error: `Tipo no reconocido: ${type}. Use workers, calculations, diagnostics, contracts, alerts o legajo-inventory.` }, { status: 400 })
+    return NextResponse.json({ error: `Tipo no reconocido: ${type}. Use workers, calculations, diagnostics, contracts, alerts, legajo-inventory, attendance-monthly o attendance-summary.` }, { status: 400 })
   }
 
   // Build workbook
