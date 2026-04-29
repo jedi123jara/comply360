@@ -38,6 +38,9 @@ import {
   FilePlus2,
   Ban,
   Scale,
+  BookOpen,
+  GraduationCap,
+  HardHat,
 } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
@@ -342,8 +345,12 @@ export default function TrabajadoresPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkAction, setBulkAction] = useState<string>('')
   const [bulkLoading, setBulkLoading] = useState(false)
-  // Modal de acciones masivas que requieren input adicional (Fase 1)
-  const [bulkModal, setBulkModal] = useState<'department' | 'regimen' | 'terminate' | null>(null)
+  // Modal de acciones masivas que requieren input adicional (Fase 1 + Fase 2)
+  type BulkModalKind =
+    | 'department' | 'regimen' | 'terminate'
+    | 'enroll-course' | 'generate-payslips' | 'capacitacion' | 'entrega-epp'
+    | null
+  const [bulkModal, setBulkModal] = useState<BulkModalKind>(null)
   const [bulkDeptInput, setBulkDeptInput] = useState('')
   const [bulkRegimenInput, setBulkRegimenInput] = useState<string>('GENERAL')
   const [bulkTerminateForm, setBulkTerminateForm] = useState({
@@ -351,6 +358,49 @@ export default function TrabajadoresPage() {
     fechaCese: new Date().toISOString().split('T')[0] ?? '',
     motivoCese: '',
   })
+
+  // Fase 2 — Operaciones laborales recurrentes
+  type CourseLite = { id: string; title: string; category: string; isObligatory: boolean }
+  const [coursesList, setCoursesList] = useState<CourseLite[]>([])
+  const [coursesLoading, setCoursesLoading] = useState(false)
+  const [bulkCourseId, setBulkCourseId] = useState<string>('')
+  const [bulkPayslipForm, setBulkPayslipForm] = useState({
+    periodo: new Date().toISOString().slice(0, 7), // 'YYYY-MM'
+    incluirGratificacion: false,
+  })
+  const [bulkCapacitacionForm, setBulkCapacitacionForm] = useState({
+    title: '',
+    topic: '',
+    fechaCapacitacion: new Date().toISOString().split('T')[0] ?? '',
+    instructor: '',
+    horas: 2,
+  })
+  const [bulkEppForm, setBulkEppForm] = useState({
+    eppsRaw: '', // textarea con un EPP por línea
+    fechaEntrega: new Date().toISOString().split('T')[0] ?? '',
+    serie: '',
+  })
+
+  // Lazy-load del catálogo de cursos cuando se abre el modal de "Asignar curso"
+  useEffect(() => {
+    if (bulkModal !== 'enroll-course') return
+    if (coursesList.length > 0) return
+    setCoursesLoading(true)
+    fetch('/api/courses')
+      .then(r => r.json())
+      .then((d: { courses?: { id: string; title: string; category: string; isObligatory: boolean; isActive: boolean }[] }) => {
+        const active = (d.courses ?? []).filter(c => c.isActive)
+        setCoursesList(active.map(c => ({
+          id: c.id,
+          title: c.title,
+          category: c.category,
+          isObligatory: c.isObligatory,
+        })))
+        if (active[0]) setBulkCourseId(prev => prev || active[0].id)
+      })
+      .catch(() => toast.error('No pudimos cargar el catálogo de cursos'))
+      .finally(() => setCoursesLoading(false))
+  }, [bulkModal, coursesList.length])
 
   const allSelected = workers.length > 0 && workers.every(w => selected.has(w.id))
   const someSelected = selected.size > 0
@@ -1152,6 +1202,62 @@ export default function TrabajadoresPage() {
               ))}
 
               <DropdownMenuSeparator />
+              <DropdownMenuLabel>Compliance / SST</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => { setBulkCourseId(coursesList[0]?.id ?? ''); setBulkModal('enroll-course') }}>
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Asignar curso</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Inscribir al grupo en un curso obligatorio</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => {
+                setBulkCapacitacionForm({
+                  title: '',
+                  topic: '',
+                  fechaCapacitacion: new Date().toISOString().split('T')[0] ?? '',
+                  instructor: '',
+                  horas: 2,
+                })
+                setBulkModal('capacitacion')
+              }}>
+                <GraduationCap className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Registrar capacitación</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Asistencia grupal — suma al score SST</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => {
+                setBulkEppForm({
+                  eppsRaw: '',
+                  fechaEntrega: new Date().toISOString().split('T')[0] ?? '',
+                  serie: '',
+                })
+                setBulkModal('entrega-epp')
+              }}>
+                <HardHat className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Entrega de EPP</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Cascos, lentes, guantes — Ley 29783</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Nómina</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => {
+                setBulkPayslipForm({
+                  periodo: new Date().toISOString().slice(0, 7),
+                  incluirGratificacion: false,
+                })
+                setBulkModal('generate-payslips')
+              }}>
+                <Wallet className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Generar boletas masivas</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Una boleta por trabajador para el periodo</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
               <DropdownMenuLabel>Exportar</DropdownMenuLabel>
               <DropdownMenuItem onSelect={handleBulkExport}>
                 <Download className="w-4 h-4 text-emerald-600" />
@@ -1430,6 +1536,360 @@ export default function TrabajadoresPage() {
               >
                 {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                 Terminar {selected.size}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Asignar curso (Fase 2 — Compliance/SST) */}
+      {bulkModal === 'enroll-course' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Asignar curso</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'} seleccionados
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Curso a asignar
+                </label>
+                {coursesLoading ? (
+                  <div className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Cargando catálogo...
+                  </div>
+                ) : coursesList.length === 0 ? (
+                  <p className="text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+                    No hay cursos activos en el catálogo. Crea o activa al menos uno desde <strong>/dashboard/elearning</strong>.
+                  </p>
+                ) : (
+                  <select
+                    value={bulkCourseId}
+                    onChange={(e) => setBulkCourseId(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                    autoFocus
+                  >
+                    {coursesList.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}{c.isObligatory ? ' • Obligatorio' : ''} — {c.category}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                  Los trabajadores ya inscritos en este curso o cesados se omiten automáticamente.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleBulkAction('enroll-course', { courseId: bulkCourseId })}
+                disabled={bulkLoading || !bulkCourseId || coursesLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookOpen className="w-3.5 h-3.5" />}
+                Inscribir a {selected.size}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Generar boletas masivas (Fase 2 — Nómina) */}
+      {bulkModal === 'generate-payslips' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Generar boletas masivas</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'} seleccionados
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Periodo
+                </label>
+                <input
+                  type="month"
+                  value={bulkPayslipForm.periodo}
+                  onChange={(e) => setBulkPayslipForm(f => ({ ...f, periodo: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  autoFocus
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={bulkPayslipForm.incluirGratificacion}
+                  onChange={(e) => setBulkPayslipForm(f => ({ ...f, incluirGratificacion: e.target.checked }))}
+                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30"
+                />
+                <span className="text-sm text-slate-700">
+                  Incluir gratificación (auto-detectada en julio y diciembre)
+                </span>
+              </label>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-700">
+                  Se omiten trabajadores cesados, sin sueldo o que ya tienen boleta para este periodo. La renta de 5ta usa el acumulado del año en curso.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleBulkAction('bulk-generate-payslips', {
+                  periodo: bulkPayslipForm.periodo,
+                  incluirGratificacion: bulkPayslipForm.incluirGratificacion,
+                })}
+                disabled={
+                  bulkLoading ||
+                  !bulkPayslipForm.periodo ||
+                  !/^\d{4}-\d{2}$/.test(bulkPayslipForm.periodo)
+                }
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wallet className="w-3.5 h-3.5" />}
+                Generar para {selected.size}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Registrar capacitación (Fase 2 — SST) */}
+      {bulkModal === 'capacitacion' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Registrar capacitación</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'asistente' : 'asistentes'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Título
+                </label>
+                <input
+                  type="text"
+                  value={bulkCapacitacionForm.title}
+                  onChange={(e) => setBulkCapacitacionForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Ej: Capacitación SST en altura"
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Tema (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={bulkCapacitacionForm.topic}
+                  onChange={(e) => setBulkCapacitacionForm(f => ({ ...f, topic: e.target.value }))}
+                  placeholder="Ej: Trabajos en altura > 1.80m, arnés y línea de vida"
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Fecha
+                  </label>
+                  <input
+                    type="date"
+                    value={bulkCapacitacionForm.fechaCapacitacion}
+                    onChange={(e) => setBulkCapacitacionForm(f => ({ ...f, fechaCapacitacion: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Horas
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={bulkCapacitacionForm.horas}
+                    onChange={(e) => setBulkCapacitacionForm(f => ({ ...f, horas: Number(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Instructor (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={bulkCapacitacionForm.instructor}
+                  onChange={(e) => setBulkCapacitacionForm(f => ({ ...f, instructor: e.target.value }))}
+                  placeholder="Nombre o empresa que dictó la capacitación"
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleBulkAction('register-capacitacion', {
+                  title: bulkCapacitacionForm.title,
+                  topic: bulkCapacitacionForm.topic || undefined,
+                  fechaCapacitacion: bulkCapacitacionForm.fechaCapacitacion,
+                  instructor: bulkCapacitacionForm.instructor || undefined,
+                  horas: bulkCapacitacionForm.horas,
+                })}
+                disabled={
+                  bulkLoading ||
+                  bulkCapacitacionForm.title.trim().length < 3 ||
+                  !bulkCapacitacionForm.fechaCapacitacion ||
+                  !bulkCapacitacionForm.horas
+                }
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                Registrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Entrega de EPP (Fase 2 — SST) */}
+      {bulkModal === 'entrega-epp' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <HardHat className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Entrega de EPP</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  EPP entregados (uno por línea)
+                </label>
+                <textarea
+                  value={bulkEppForm.eppsRaw}
+                  onChange={(e) => setBulkEppForm(f => ({ ...f, eppsRaw: e.target.value }))}
+                  placeholder={'Casco de seguridad clase A\nLentes de seguridad transparentes\nBotas dieléctricas\nGuantes de cuero'}
+                  rows={5}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm resize-none"
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Fecha de entrega
+                  </label>
+                  <input
+                    type="date"
+                    value={bulkEppForm.fechaEntrega}
+                    onChange={(e) => setBulkEppForm(f => ({ ...f, fechaEntrega: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Lote / Serie
+                  </label>
+                  <input
+                    type="text"
+                    value={bulkEppForm.serie}
+                    onChange={(e) => setBulkEppForm(f => ({ ...f, serie: e.target.value }))}
+                    placeholder="Opcional"
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-700">
+                  Se crea un registro SST tipo <strong>ENTREGA_EPP</strong> con la lista de trabajadores como participantes — válido como evidencia ante SUNAFIL (Ley 29783, art. 60).
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const epps = bulkEppForm.eppsRaw
+                    .split('\n')
+                    .map(l => l.trim())
+                    .filter(Boolean)
+                  handleBulkAction('register-entrega-epp', {
+                    epps,
+                    fechaEntrega: bulkEppForm.fechaEntrega,
+                    serie: bulkEppForm.serie || undefined,
+                  })
+                }}
+                disabled={
+                  bulkLoading ||
+                  bulkEppForm.eppsRaw.trim().length === 0 ||
+                  !bulkEppForm.fechaEntrega
+                }
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                Registrar entrega
               </button>
             </div>
           </div>
