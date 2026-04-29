@@ -39,6 +39,13 @@ model Organization {
   contNombre          String?   @map("cont_nombre")
   contCpc             String?   @map("cont_cpc")
   contEmail           String?   @map("cont_email")
+  // ─── Detección de subdeclaración (anti-informalidad) ─────────────────
+  // Total de trabajadores que el empleador DECLARA que tiene en total
+  // (incluyendo no registrados aún en COMPLY360). Si > workers registrados
+  // → brecha = trabajadores fuera de planilla → multa SUNAFIL Art. 24.5
+  // D.S. 019-2006-TR. El sistema lo detecta y alerta.
+  totalWorkersDeclared    Int?      @map("total_workers_declared")
+  totalWorkersDeclaredAt  DateTime? @map("total_workers_declared_at")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 

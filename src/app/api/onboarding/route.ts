@@ -35,6 +35,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         contNombre: true,
         contCpc: true,
         contEmail: true,
+        totalWorkersDeclared: true,
+        totalWorkersDeclaredAt: true,
         plan: true,
         onboardingCompleted: true,
       },
@@ -79,6 +81,8 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       contNombre,
       contCpc,
       contEmail,
+      // Detección de subdeclaración (anti-informalidad)
+      totalWorkersDeclared,
     } = body
 
     if (!razonSocial?.trim()) {
@@ -119,6 +123,15 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       contNombre: contNombre?.trim() || null,
       contCpc: contCpc?.trim() || null,
       contEmail: contEmail?.trim() || null,
+      // Total de trabajadores declarados por el empleador (incluye los no
+      // registrados en COMPLY360). Si > workers registrados → brecha
+      // detectada por el cockpit como riesgo de subdeclaración.
+      ...(totalWorkersDeclared !== undefined && totalWorkersDeclared !== null && totalWorkersDeclared !== ''
+        ? {
+            totalWorkersDeclared: Math.max(0, parseInt(String(totalWorkersDeclared), 10) || 0),
+            totalWorkersDeclaredAt: new Date(),
+          }
+        : {}),
       onboardingCompleted: true,
     }
 

@@ -360,6 +360,8 @@ export default function EmpresaPage() {
       cpc: '',
       email: '',
     },
+    // Detección de subdeclaración: total declarado por el empleador
+    totalWorkersDeclared: '' as string | number,
   })
 
   // SUNAT advanced data
@@ -442,6 +444,7 @@ export default function EmpresaPage() {
             cpc:    org.contCpc    ?? '',
             email:  org.contEmail  ?? '',
           },
+          totalWorkersDeclared: org.totalWorkersDeclared ?? '',
         }))
         if (org.logoUrl) setLogoPreview(org.logoUrl)
         // If RUC was already saved, mark as verified
@@ -581,6 +584,7 @@ export default function EmpresaPage() {
           contNombre:        form.contador.nombre.trim() || null,
           contCpc:           form.contador.cpc.trim() || null,
           contEmail:         form.contador.email.trim() || null,
+          totalWorkersDeclared: form.totalWorkersDeclared === '' ? null : Number(form.totalWorkersDeclared),
         }),
       })
 
@@ -783,6 +787,28 @@ export default function EmpresaPage() {
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
+          </div>
+
+          {/* Total de trabajadores declarado por el empleador (anti-subdeclaración) */}
+          <div className="md:col-span-2">
+            <label className={labelCls}>
+              <Users className="inline w-3.5 h-3.5 mr-1" />
+              Total de trabajadores en tu empresa
+              <span className="text-rose-600 ml-1">*</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={form.totalWorkersDeclared}
+              onChange={e => updateField('totalWorkersDeclared', e.target.value)}
+              placeholder="Ej. 12"
+              className={`${inputCls} font-mono`}
+            />
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              <strong>Cuántos trabajadores tienes en TOTAL</strong> (incluyendo los que aún no registras en COMPLY360).
+              Si declaras 12 pero solo tienes 3 registrados, COMPLY360 te alerta para evitar subdeclaración a SUNAFIL
+              (Art. 24.5 D.S. 019-2006-TR — infracción muy grave).
+            </p>
           </div>
 
           {/* Email de alertas */}

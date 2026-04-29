@@ -100,11 +100,15 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       }),
       // Para calcular `diasSinMulta` REAL (no score × 2 fake)
       // + nombre real del owner para saludo personalizado en Hero
+      // + totalWorkersDeclared para detección de subdeclaración (Art. 24.5
+      //   D.S. 019-2006-TR — multa muy grave por trabajadores fuera planilla)
       prisma.organization.findUnique({
         where: { id: orgId },
         select: {
           createdAt: true,
           name: true,
+          totalWorkersDeclared: true,
+          totalWorkersDeclaredAt: true,
           users: {
             where: { role: 'OWNER' },
             select: { firstName: true, lastName: true },
@@ -138,6 +142,13 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     // Nombre real del owner para saludo personalizado en HeroPanel
     const owner = orgMeta?.users?.[0]
     const ownerFirstName = owner?.firstName ?? null
+
+    // Detección de subdeclaración: trabajadores declarados vs registrados
+    const totalWorkersDeclared = orgMeta?.totalWorkersDeclared ?? null
+    const subdeclarationGap =
+      totalWorkersDeclared !== null
+        ? Math.max(0, totalWorkersDeclared - totalWorkers)
+        : null
 
     let complianceScore = null
     try {
@@ -471,6 +482,9 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         // Saludo personalizado en HeroPanel ("Buenos días, Amado" en lugar de "equipo")
         ownerFirstName,
         orgName: orgMeta?.name ?? null,
+        // Detección subdeclaración (anti-informalidad)
+        totalWorkersDeclared,
+        subdeclarationGap, // null = no declarado, 0 = sin brecha, >0 = trabajadores fuera de planilla
       },
       complianceTasks: {
         open: tasksOpen,

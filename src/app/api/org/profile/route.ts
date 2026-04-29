@@ -35,6 +35,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
           regimenPrincipal: true,
           alertEmail: true,
           razonSocial: true,
+          totalWorkersDeclared: true, // ← detección subdeclaración
+          totalWorkersDeclaredAt: true,
         },
       }),
       prisma.user.findFirst({
@@ -69,6 +71,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
           logoUrl: org.logoUrl,
           plan: org.plan,
           regimenPrincipal: org.regimenPrincipal,
+          totalWorkersDeclared: org.totalWorkersDeclared,
+          totalWorkersDeclaredAt: org.totalWorkersDeclaredAt,
         },
         representanteLegal,
         representanteEmail: owner?.email || null,
@@ -110,6 +114,7 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       repCargo,
       phone,
       address,
+      totalWorkersDeclared, // ← NUEVO: detección de subdeclaración
       // notificationPrefs is UI-only (toggles/frequency) — stored client-side for now
     } = body
 
@@ -125,6 +130,13 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     if (repCargo !== undefined) updateData.repCargo = repCargo || null
     if (phone !== undefined) updateData.phone = phone || null
     if (address !== undefined) updateData.address = address || null
+    if (totalWorkersDeclared !== undefined) {
+      const n = parseInt(String(totalWorkersDeclared), 10)
+      if (!isNaN(n) && n >= 0) {
+        updateData.totalWorkersDeclared = n
+        updateData.totalWorkersDeclaredAt = new Date()
+      }
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ ok: true, message: 'No changes' })

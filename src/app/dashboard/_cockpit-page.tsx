@@ -186,6 +186,9 @@ export default function CockpitPage() {
   // Datos REALES del endpoint (no más score × 2 ni totalWorkers como "blindados")
   const workersProtected = (data?.stats as { workersProtected?: number } | undefined)?.workersProtected ?? totalWorkers
   const daysSinceOrgCreated = (data?.stats as { daysSinceOrgCreated?: number } | undefined)?.daysSinceOrgCreated ?? 0
+  // Detección de subdeclaración (anti-informalidad)
+  const totalWorkersDeclared = (data?.stats as { totalWorkersDeclared?: number | null } | undefined)?.totalWorkersDeclared ?? null
+  const subdeclarationGap = (data?.stats as { subdeclarationGap?: number | null } | undefined)?.subdeclarationGap ?? null
 
   // Estado "primera vez": cuenta nueva, sin trabajadores ni señales de actividad.
   // El cockpit normal asume score 72 por defecto y dispara narrativa de "zona crítica",
@@ -445,6 +448,51 @@ export default function CockpitPage() {
             </p>
           </section>
         </>
+      )}
+
+      {/* ALERTA SUBDECLARACIÓN — visible siempre que haya brecha detectada */}
+      {subdeclarationGap !== null && subdeclarationGap > 0 && (
+        <section
+          className="rounded-2xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 via-white to-rose-50/40 p-6 shadow-sm"
+          aria-labelledby="subdeclaration-alert-title"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-2.5 rounded-xl bg-rose-100 shrink-0">
+              <AlertTriangle className="w-6 h-6 text-rose-700" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-rose-700 mb-1">
+                Detección de informalidad
+              </p>
+              <h2
+                id="subdeclaration-alert-title"
+                className="text-xl sm:text-2xl font-bold text-[color:var(--text-primary)]"
+              >
+                Declaraste {totalWorkersDeclared} trabajadores pero solo {totalWorkers} están registrados.
+              </h2>
+              <p className="text-sm text-rose-900 mt-2 max-w-2xl">
+                Tienes <strong>{subdeclarationGap} {subdeclarationGap === 1 ? 'trabajador' : 'trabajadores'} fuera de planilla</strong>.
+                SUNAFIL multa la subdeclaración con hasta <strong>S/ {(5500 * 9.55 * subdeclarationGap).toLocaleString('es-PE')}</strong>{' '}
+                (Art. 24.5 D.S. 019-2006-TR, infracción muy grave).
+              </p>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Link
+                  href="/dashboard/trabajadores/nuevo"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm px-5 py-2.5 transition-colors"
+                >
+                  Registrar trabajadores faltantes
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/dashboard/configuracion/empresa"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-semibold text-sm px-5 py-2.5 transition-colors"
+                >
+                  Corregir total declarado
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* HeroPanel + ScoreNarrative + bento solo si NO es primera vez */}
