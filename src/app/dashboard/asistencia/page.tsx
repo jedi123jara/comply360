@@ -484,6 +484,14 @@ export default function AsistenciaPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <Link
+              href="/dashboard/asistencia/seguridad"
+              className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-500/60 transition-colors"
+              title="Auditoría de intentos de fichado (anti-fraude)"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Seguridad
+            </Link>
+            <Link
               href="/dashboard/asistencia/kiosko"
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors"
               style={{ boxShadow: '0 1px 2px rgba(4,120,87,0.18), inset 0 1px 0 rgba(255,255,255,0.12)' }}
