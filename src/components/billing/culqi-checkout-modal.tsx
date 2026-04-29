@@ -325,7 +325,7 @@ export function CulqiCheckoutModal({
             Plan <em style={{ fontStyle: 'italic', color: '#d1fae5' }}>{plan.name}</em>
           </h2>
           <p className="text-emerald-50 text-sm">
-            Suscripción mensual renovable. Cancelá cuando quieras.
+            Suscripción mensual renovable. Cancela cuando quieras.
           </p>
         </div>
 

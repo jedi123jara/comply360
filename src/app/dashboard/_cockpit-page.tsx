@@ -365,66 +365,87 @@ export default function CockpitPage() {
         </section>
       )}
       {isFirstTime && (
-        <section
-          className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-6 sm:p-8 shadow-sm"
-          aria-labelledby="welcome-cockpit-title"
-        >
-          <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-emerald-100">
-              <Sparkles className="w-5 h-5 text-emerald-700" />
+        <>
+          <section
+            className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-6 sm:p-8 shadow-sm"
+            aria-labelledby="welcome-cockpit-title"
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 rounded-xl bg-emerald-100">
+                <Sparkles className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
+                  Bienvenido a Comply360
+                </p>
+                <h2
+                  id="welcome-cockpit-title"
+                  className="text-2xl font-bold text-[color:var(--text-primary)] mt-1"
+                >
+                  Tu cuenta está lista. Vamos a un compliance 60+ en 5 minutos.
+                </h2>
+                <p className="text-sm text-[color:var(--text-secondary)] mt-1.5 max-w-2xl">
+                  Empieza por estos tres pasos. Cada acción suma a tu score y reduce el riesgo de multa SUNAFIL.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-                Bienvenido a Comply360
-              </p>
-              <h2
-                id="welcome-cockpit-title"
-                className="text-2xl font-bold text-[color:var(--text-primary)] mt-1"
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+              <Link
+                href="/dashboard/trabajadores/nuevo"
+                className="group rounded-xl border border-emerald-300 bg-emerald-600 text-white p-4 hover:bg-emerald-700 transition-colors flex flex-col"
               >
-                Tu trial PRO arrancó. Vamos a un compliance 60+ en 5 minutos.
-              </h2>
-              <p className="text-sm text-[color:var(--text-secondary)] mt-1.5 max-w-2xl">
-                Empieza por estos tres pasos. Cada acción suma a tu score y reduce el riesgo de multa SUNAFIL.
-              </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Paso 1</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+                <p className="text-base font-semibold mt-2">Sube tu primer trabajador</p>
+                <p className="text-xs opacity-90 mt-1">Wizard con auto-completado por DNI · 30 seg</p>
+              </Link>
+              <Link
+                href="/dashboard/trabajadores?import=excel"
+                className="group rounded-xl border border-emerald-300 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Paso 2</span>
+                  <ArrowRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+                <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Importa de Excel</p>
+                <p className="text-xs text-[color:var(--text-secondary)] mt-1">Sube tu planilla completa en un clic</p>
+              </Link>
+              <Link
+                href="/dashboard/diagnostico"
+                className="group rounded-xl border border-emerald-200 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">Paso 3</span>
+                  <ArrowRight className="w-4 h-4 text-[color:var(--text-tertiary)] group-hover:translate-x-0.5 transition-transform" />
+                </div>
+                <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Corre tu diagnóstico</p>
+                <p className="text-xs text-[color:var(--text-secondary)] mt-1">3 minutos · 20 preguntas SUNAFIL</p>
+              </Link>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
-            <Link
-              href="/dashboard/trabajadores/nuevo"
-              className="group rounded-xl border border-emerald-300 bg-emerald-600 text-white p-4 hover:bg-emerald-700 transition-colors flex flex-col"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Paso 1</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-              <p className="text-base font-semibold mt-2">Sube tu primer trabajador</p>
-              <p className="text-xs opacity-90 mt-1">Wizard con auto-completado por DNI · 30 seg</p>
-            </Link>
-            <Link
-              href="/dashboard/trabajadores?import=excel"
-              className="group rounded-xl border border-emerald-300 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Paso 2</span>
-                <ArrowRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-              <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Importa de Excel</p>
-              <p className="text-xs text-[color:var(--text-secondary)] mt-1">Sube tu planilla completa en un clic</p>
-            </Link>
-            <Link
-              href="/dashboard/diagnostico"
-              className="group rounded-xl border border-emerald-200 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">Paso 3</span>
-                <ArrowRight className="w-4 h-4 text-[color:var(--text-tertiary)] group-hover:translate-x-0.5 transition-transform" />
-              </div>
-              <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Corre tu diagnóstico</p>
-              <p className="text-xs text-[color:var(--text-secondary)] mt-1">3 minutos · 20 preguntas SUNAFIL</p>
-            </Link>
-          </div>
-        </section>
+          </section>
+
+          {/* Quick actions útiles incluso para usuario nuevo (calculadoras, asistente IA) */}
+          <QuickActions actions={quickActions} />
+
+          {/* Hint a futuro: cuando agregues tu primer trabajador, aquí aparecerán
+              tu Compliance Score, alertas activas, vencimientos próximos y más. */}
+          <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/40 p-8 text-center">
+            <ShieldCheck className="w-8 h-8 mx-auto text-slate-400 mb-3" />
+            <p className="text-sm font-semibold text-[color:var(--text-primary)] mb-1">
+              Tu Compliance Score aparecerá aquí
+            </p>
+            <p className="text-xs text-[color:var(--text-tertiary)] max-w-md mx-auto">
+              Cuando agregues tu primer trabajador, calcularemos tu score real (0-100) según el régimen laboral,
+              documentos del legajo y vencimientos próximos. Sin score inventado.
+            </p>
+          </section>
+        </>
       )}
+
+      {/* HeroPanel + ScoreNarrative + bento solo si NO es primera vez */}
+      {!isFirstTime && (<>
       <HeroPanel
         score={typeof score === 'number' ? Math.round(score) : 82}
         userFirstName={(data?.stats as { ownerFirstName?: string } | undefined)?.ownerFirstName ?? 'equipo'}
@@ -532,6 +553,7 @@ export default function CockpitPage() {
           )}
         </div>
       </section>
+      </>)}
     </div>
   )
 }
