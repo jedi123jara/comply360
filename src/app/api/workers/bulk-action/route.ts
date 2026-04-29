@@ -4,6 +4,8 @@ import { withAuth, hasMinRole } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import type { WorkerStatus, RegimenLaboral, TipoCese } from '@/generated/prisma/client'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
+import { calcularLiquidacion } from '@/lib/legal-engine/calculators/liquidacion'
+import type { LiquidacionInput, MotivoCese } from '@/lib/legal-engine/types'
 
 const VALID_STATUSES: WorkerStatus[] = ['ACTIVE', 'ON_LEAVE', 'SUSPENDED', 'TERMINATED']
 
@@ -43,6 +45,19 @@ const MAX_BATCH = 200
  *                              instructor?: string; horas: number } → crea SstRecord tipo CAPACITACION
  *   - register-entrega-epp: { epps: string[]; fechaEntrega: ISODate; serie?: string }
  *                                                                  → crea SstRecord tipo ENTREGA_EPP
+ *
+ * Fase 3 — Compliance avanzado / Workflows:
+ *   - terminate-with-liquidacion: { tipoCese; fechaCese; motivoCese }
+ *       → versión enriquecida de terminate-bulk: además calcula liquidación
+ *         (CTS, vacaciones, gratificación, indemnización) y la persiste en CeseRecord
+ *         pasando la etapa a LIQUIDACION_CALCULADA
+ *   - apply-salary-raise: { mode: 'percent' | 'amount'; value: number; effectiveDate: ISODate }
+ *       → ajusta sueldoBruto + crea AuditLog por worker. NO genera addendum (eso lo hace
+ *         el admin desde el detalle del worker)
+ *   - renew-contracts: { extensionMonths: number }
+ *       → solo sobre Contracts type=LABORAL_PLAZO_FIJO con expiresAt. Suma months a expiresAt
+ *   - transfer-area: { department: string; position?: string }
+ *       → versión enriquecida de change-department con position opcional + AuditLog por worker
  *
  * Todas las acciones excepto change-status excluyen workers ya TERMINATED.
  * Se reportan los workers saltados con razón en `skipped[]`.
@@ -523,6 +538,408 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
         skipped,
         action,
         sstRecordId: record.id,
+      })
+    }
+
+    case 'terminate-with-liquidacion': {
+      const { tipoCese, fechaCese, motivoCese } = body as {
+        tipoCese?: string
+        fechaCese?: string
+        motivoCese?: string
+      }
+      if (!tipoCese || !VALID_TIPOS_CESE.includes(tipoCese as TipoCese)) {
+        return NextResponse.json(
+          { error: `Tipo de cese inválido. Opciones: ${VALID_TIPOS_CESE.join(', ')}` },
+          { status: 400 },
+        )
+      }
+      if (!fechaCese || isNaN(new Date(fechaCese).getTime())) {
+        return NextResponse.json({ error: 'fechaCese inválida (formato YYYY-MM-DD)' }, { status: 400 })
+      }
+      if (!motivoCese || motivoCese.trim().length < 3) {
+        return NextResponse.json({ error: 'motivoCese requiere al menos 3 caracteres' }, { status: 400 })
+      }
+
+      const fechaCeseDate = new Date(fechaCese)
+      const motivoTrim = motivoCese.trim()
+
+      // Mapeo TipoCese (Prisma enum) → MotivoCese (legal engine union)
+      const TIPO_TO_MOTIVO: Record<string, MotivoCese> = {
+        RENUNCIA_VOLUNTARIA: 'renuncia',
+        DESPIDO_CAUSA_JUSTA: 'fin_contrato',
+        DESPIDO_ARBITRARIO: 'despido_arbitrario',
+        MUTUO_DISENSO: 'mutuo_acuerdo',
+        TERMINO_CONTRATO: 'fin_contrato',
+        NO_RENOVACION: 'fin_contrato',
+        FALLECIMIENTO: 'fin_contrato',
+        JUBILACION: 'fin_contrato',
+        PERIODO_PRUEBA: 'fin_contrato',
+      }
+      const motivoEngine = TIPO_TO_MOTIVO[tipoCese] ?? 'fin_contrato'
+
+      // Workers eligibles + sus vacaciones (necesarias para diasNoGozados)
+      const candidates = await prisma.worker.findMany({
+        where: { id: { in: ids }, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+        include: { vacations: { select: { diasPendientes: true } } },
+      })
+
+      // Workers con CeseRecord previo (skip)
+      const existingCeses = candidates.length > 0
+        ? await prisma.ceseRecord.findMany({
+            where: { workerId: { in: candidates.map(w => w.id) } },
+            select: { workerId: true },
+          })
+        : []
+      const idsConCese = new Set(existingCeses.map(c => c.workerId))
+
+      const candidateIds = new Set(candidates.map(w => w.id))
+      const skipped: { id: string; reason: string }[] = []
+      ids.forEach(id => {
+        if (!candidateIds.has(id)) {
+          skipped.push({ id, reason: 'Trabajador cesado o no encontrado' })
+        } else if (idsConCese.has(id)) {
+          skipped.push({ id, reason: 'Ya tiene proceso de cese registrado' })
+        }
+      })
+
+      const toProcess = candidates.filter(w => !idsConCese.has(w.id))
+      let updated = 0
+
+      // Procesar uno por uno: calcular liquidación + transaction (update worker + create CeseRecord)
+      for (const w of toProcess) {
+        const sueldoBruto = Number(w.sueldoBruto)
+        const fechaIngresoIso = w.fechaIngreso.toISOString().slice(0, 10)
+        const fechaCeseIso = fechaCeseDate.toISOString().slice(0, 10)
+        const vacacionesNoGozadas = w.vacations.reduce((sum, v) => sum + v.diasPendientes, 0)
+
+        // Aplicar reglas de régimen para liquidación (mismo patrón que /api/workers/[id]/liquidacion)
+        let ultimaGrati = sueldoBruto // aproximación = 1 sueldo
+        if (w.regimenLaboral === 'MYPE_MICRO') {
+          ultimaGrati = 0
+        } else if (w.regimenLaboral === 'MYPE_PEQUENA') {
+          ultimaGrati = sueldoBruto * 0.5
+        }
+
+        const input: LiquidacionInput = {
+          sueldoBruto,
+          fechaIngreso: fechaIngresoIso,
+          fechaCese: fechaCeseIso,
+          motivoCese: motivoEngine,
+          asignacionFamiliar: w.asignacionFamiliar,
+          gratificacionesPendientes: false,
+          vacacionesNoGozadas,
+          horasExtrasPendientes: 0,
+          ultimaGratificacion: ultimaGrati,
+          comisionesPromedio: 0,
+        }
+
+        let liquidacion
+        try {
+          liquidacion = calcularLiquidacion(input)
+        } catch (err) {
+          skipped.push({
+            id: w.id,
+            reason: `Error en cálculo de liquidación: ${err instanceof Error ? err.message : 'desconocido'}`,
+          })
+          continue
+        }
+
+        // Para MYPE_MICRO ceramos CTS y grati (microempresa no las paga)
+        const ctsMonto = w.regimenLaboral === 'MYPE_MICRO' ? 0 : (liquidacion.breakdown.cts?.amount ?? 0)
+        const gratiMonto = w.regimenLaboral === 'MYPE_MICRO' ? 0 : (liquidacion.breakdown.gratificacionTrunca?.amount ?? 0)
+        const vacMonto = (liquidacion.breakdown.vacacionesTruncas?.amount ?? 0) + (liquidacion.breakdown.vacacionesNoGozadas?.amount ?? 0)
+        const indemMonto = liquidacion.breakdown.indemnizacion?.amount ?? 0
+
+        // Recalcular total considerando los ceros de microempresa
+        const total = ctsMonto + gratiMonto + vacMonto + indemMonto +
+          (liquidacion.breakdown.horasExtras?.amount ?? 0) +
+          (liquidacion.breakdown.bonificacionEspecial?.amount ?? 0)
+
+        await prisma.$transaction([
+          prisma.worker.update({
+            where: { id: w.id },
+            data: {
+              status: 'TERMINATED',
+              fechaCese: fechaCeseDate,
+              motivoCese: motivoTrim,
+            },
+          }),
+          prisma.ceseRecord.create({
+            data: {
+              workerId: w.id,
+              orgId: ctx.orgId,
+              tipoCese: tipoCese as TipoCese,
+              causaDetalle: motivoTrim,
+              fechaInicioProceso: new Date(),
+              fechaCese: fechaCeseDate,
+              sueldoBruto,
+              ctsMonto,
+              vacacionesMonto: vacMonto,
+              gratificacionMonto: gratiMonto,
+              indemnizacionMonto: indemMonto,
+              totalLiquidacion: total,
+              detalleJson: liquidacion.breakdown as unknown as object,
+              etapa: 'LIQUIDACION_CALCULADA',
+              observaciones: 'Cese masivo con liquidación auto-calculada — pendiente de pago',
+            },
+          }),
+        ])
+        updated++
+      }
+
+      return NextResponse.json({ updated, skipped, action, tipoCese })
+    }
+
+    case 'apply-salary-raise': {
+      const { mode, value, effectiveDate } = body as {
+        mode?: 'percent' | 'amount'
+        value?: number
+        effectiveDate?: string
+      }
+      if (mode !== 'percent' && mode !== 'amount') {
+        return NextResponse.json({ error: 'mode debe ser "percent" o "amount"' }, { status: 400 })
+      }
+      const numValue = Number(value)
+      if (isNaN(numValue) || numValue <= 0) {
+        return NextResponse.json({ error: 'value debe ser un número positivo' }, { status: 400 })
+      }
+      // Hard caps de seguridad
+      if (mode === 'percent' && numValue > 100) {
+        return NextResponse.json({ error: 'Aumento máximo permitido: 100% por operación' }, { status: 400 })
+      }
+      if (mode === 'amount' && numValue > 50000) {
+        return NextResponse.json({ error: 'Aumento fijo máximo permitido: S/ 50,000' }, { status: 400 })
+      }
+      if (effectiveDate && isNaN(new Date(effectiveDate).getTime())) {
+        return NextResponse.json({ error: 'effectiveDate inválida' }, { status: 400 })
+      }
+      const effDateIso = effectiveDate || new Date().toISOString().slice(0, 10)
+
+      const eligibles = await prisma.worker.findMany({
+        where: {
+          id: { in: ids },
+          orgId: ctx.orgId,
+          status: { not: 'TERMINATED' },
+          sueldoBruto: { gt: 0 },
+        },
+        select: { id: true, sueldoBruto: true },
+      })
+      const eligibleIds = new Set(eligibles.map(w => w.id))
+      const skipped = ids
+        .filter(id => !eligibleIds.has(id))
+        .map(id => ({ id, reason: 'Trabajador cesado, sin sueldo o no encontrado' }))
+
+      // Cap final: ningún sueldo > 999,999 (límite de Decimal(10,2))
+      const MAX_SUELDO = 999_999
+      let updated = 0
+      const auditEntries: { workerId: string; oldSalary: number; newSalary: number }[] = []
+
+      for (const w of eligibles) {
+        const oldSalary = Number(w.sueldoBruto)
+        let newSalary = mode === 'percent'
+          ? oldSalary * (1 + numValue / 100)
+          : oldSalary + numValue
+        newSalary = Math.round(newSalary * 100) / 100 // 2 decimales
+
+        if (newSalary >= MAX_SUELDO) {
+          skipped.push({ id: w.id, reason: `Sueldo resultante excede el límite (${MAX_SUELDO})` })
+          continue
+        }
+
+        await prisma.worker.update({
+          where: { id: w.id },
+          data: { sueldoBruto: newSalary },
+        })
+        auditEntries.push({ workerId: w.id, oldSalary, newSalary })
+        updated++
+      }
+
+      // 1 AuditLog por worker — RRHH y SUNAFIL piden trazabilidad individual
+      if (auditEntries.length > 0) {
+        await prisma.auditLog.createMany({
+          data: auditEntries.map(e => ({
+            orgId: ctx.orgId,
+            userId: ctx.userId,
+            action: 'worker.salary_raised',
+            entityType: 'worker',
+            entityId: e.workerId,
+            metadataJson: {
+              mode,
+              value: numValue,
+              effectiveDate: effDateIso,
+              oldSalary: e.oldSalary,
+              newSalary: e.newSalary,
+              increasePct: Math.round(((e.newSalary - e.oldSalary) / e.oldSalary) * 10000) / 100,
+            },
+          })),
+        })
+      }
+
+      return NextResponse.json({ updated, skipped, action, mode, value: numValue })
+    }
+
+    case 'renew-contracts': {
+      const { extensionMonths } = body as { extensionMonths?: number }
+      const months = Number(extensionMonths)
+      if (isNaN(months) || months < 1 || months > 60) {
+        return NextResponse.json(
+          { error: 'extensionMonths debe ser un entero entre 1 y 60' },
+          { status: 400 },
+        )
+      }
+
+      // Workers no cesados de la org
+      const eligibleWorkers = await prisma.worker.findMany({
+        where: { id: { in: ids }, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+        select: { id: true },
+      })
+      const eligibleWorkerIds = new Set(eligibleWorkers.map(w => w.id))
+
+      // Buscar Contracts de esos workers que sean LABORAL_PLAZO_FIJO con expiresAt
+      const contracts = eligibleWorkerIds.size > 0
+        ? await prisma.contract.findMany({
+            where: {
+              orgId: ctx.orgId,
+              type: 'LABORAL_PLAZO_FIJO',
+              expiresAt: { not: null },
+              status: { not: 'ARCHIVED' },
+              workerContracts: {
+                some: { workerId: { in: [...eligibleWorkerIds] } },
+              },
+            },
+            select: {
+              id: true,
+              expiresAt: true,
+              workerContracts: { select: { workerId: true } },
+            },
+          })
+        : []
+
+      // Resumen por worker: qué contratos se le renovaron
+      const renovadosPorWorker = new Map<string, number>()
+      const skipped: { id: string; reason: string }[] = []
+
+      ids.forEach(id => {
+        if (!eligibleWorkerIds.has(id)) {
+          skipped.push({ id, reason: 'Trabajador cesado o no encontrado' })
+        }
+      })
+
+      let updatedContracts = 0
+      const auditEntries: { contractId: string; workerId: string; oldExpiresAt: Date; newExpiresAt: Date }[] = []
+
+      for (const c of contracts) {
+        if (!c.expiresAt) continue
+        const newExpiresAt = new Date(c.expiresAt)
+        newExpiresAt.setMonth(newExpiresAt.getMonth() + months)
+        await prisma.contract.update({
+          where: { id: c.id },
+          data: { expiresAt: newExpiresAt },
+        })
+        // El contrato puede tener varios workers (raro pero posible). Atribuimos a cada uno.
+        for (const wc of c.workerContracts) {
+          if (eligibleWorkerIds.has(wc.workerId)) {
+            renovadosPorWorker.set(wc.workerId, (renovadosPorWorker.get(wc.workerId) ?? 0) + 1)
+            auditEntries.push({
+              contractId: c.id,
+              workerId: wc.workerId,
+              oldExpiresAt: c.expiresAt,
+              newExpiresAt,
+            })
+          }
+        }
+        updatedContracts++
+      }
+
+      // Workers sin contratos elegibles: skipped
+      eligibleWorkers.forEach(w => {
+        if (!renovadosPorWorker.has(w.id)) {
+          skipped.push({ id: w.id, reason: 'Sin contrato a plazo fijo vigente' })
+        }
+      })
+
+      if (auditEntries.length > 0) {
+        await prisma.auditLog.createMany({
+          data: auditEntries.map(e => ({
+            orgId: ctx.orgId,
+            userId: ctx.userId,
+            action: 'contract.renewed',
+            entityType: 'contract',
+            entityId: e.contractId,
+            metadataJson: {
+              workerId: e.workerId,
+              oldExpiresAt: e.oldExpiresAt.toISOString(),
+              newExpiresAt: e.newExpiresAt.toISOString(),
+              extensionMonths: months,
+            },
+          })),
+        })
+      }
+
+      return NextResponse.json({
+        updated: renovadosPorWorker.size,
+        contractsUpdated: updatedContracts,
+        skipped,
+        action,
+        extensionMonths: months,
+      })
+    }
+
+    case 'transfer-area': {
+      const { department, position } = body as {
+        department?: string
+        position?: string
+      }
+      const dept = department && department.trim() ? department.trim() : null
+      if (!dept) {
+        return NextResponse.json({ error: 'department requerido (no puede estar vacío)' }, { status: 400 })
+      }
+      const pos = position && position.trim() ? position.trim() : null
+
+      const eligibles = await prisma.worker.findMany({
+        where: { id: { in: ids }, orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+        select: { id: true, department: true, position: true },
+      })
+      const eligibleIds = new Set(eligibles.map(w => w.id))
+      const skipped = ids
+        .filter(id => !eligibleIds.has(id))
+        .map(id => ({ id, reason: 'Trabajador cesado o no encontrado' }))
+
+      if (eligibles.length === 0) {
+        return NextResponse.json({ updated: 0, skipped, action }, { status: 200 })
+      }
+
+      // Update workers (department siempre, position solo si se pasó)
+      const updateData: { department: string; position?: string } = { department: dept }
+      if (pos) updateData.position = pos
+      await prisma.worker.updateMany({
+        where: { id: { in: eligibles.map(w => w.id) }, orgId: ctx.orgId },
+        data: updateData,
+      })
+
+      // 1 AuditLog por worker afectado — trazabilidad individual
+      await prisma.auditLog.createMany({
+        data: eligibles.map(w => ({
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          action: 'worker.transferred',
+          entityType: 'worker',
+          entityId: w.id,
+          metadataJson: {
+            oldDepartment: w.department,
+            newDepartment: dept,
+            oldPosition: w.position,
+            newPosition: pos ?? w.position,
+          },
+        })),
+      })
+
+      return NextResponse.json({
+        updated: eligibles.length,
+        skipped,
+        action,
+        department: dept,
+        position: pos,
       })
     }
 

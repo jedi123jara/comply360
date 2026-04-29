@@ -41,6 +41,7 @@ import {
   BookOpen,
   GraduationCap,
   HardHat,
+  Banknote,
 } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
@@ -345,10 +346,11 @@ export default function TrabajadoresPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkAction, setBulkAction] = useState<string>('')
   const [bulkLoading, setBulkLoading] = useState(false)
-  // Modal de acciones masivas que requieren input adicional (Fase 1 + Fase 2)
+  // Modal de acciones masivas que requieren input adicional (Fase 1 + Fase 2 + Fase 3)
   type BulkModalKind =
     | 'department' | 'regimen' | 'terminate'
     | 'enroll-course' | 'generate-payslips' | 'capacitacion' | 'entrega-epp'
+    | 'transfer-area' | 'salary-raise' | 'renew-contracts' | 'terminate-liquidacion'
     | null
   const [bulkModal, setBulkModal] = useState<BulkModalKind>(null)
   const [bulkDeptInput, setBulkDeptInput] = useState('')
@@ -379,6 +381,25 @@ export default function TrabajadoresPage() {
     eppsRaw: '', // textarea con un EPP por línea
     fechaEntrega: new Date().toISOString().split('T')[0] ?? '',
     serie: '',
+  })
+
+  // Fase 3 — Compliance avanzado
+  const [bulkTransferForm, setBulkTransferForm] = useState({
+    department: '',
+    position: '',
+  })
+  const [bulkRaiseForm, setBulkRaiseForm] = useState({
+    mode: 'percent' as 'percent' | 'amount',
+    value: 5,
+    effectiveDate: new Date().toISOString().split('T')[0] ?? '',
+  })
+  const [bulkRenewForm, setBulkRenewForm] = useState({
+    extensionMonths: 12,
+  })
+  const [bulkTermLiqForm, setBulkTermLiqForm] = useState({
+    tipoCese: 'MUTUO_DISENSO',
+    fechaCese: new Date().toISOString().split('T')[0] ?? '',
+    motivoCese: '',
   })
 
   // Lazy-load del catálogo de cursos cuando se abre el modal de "Asignar curso"
@@ -1189,6 +1210,34 @@ export default function TrabajadoresPage() {
                   <span className="text-[11px] text-[color:var(--text-tertiary)]">D.Leg. 728, MYPE, agrario, etc.</span>
                 </div>
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setBulkTransferForm({ department: '', position: '' })
+                  setBulkModal('transfer-area')
+                }}
+              >
+                <Building2 className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Transferir a otra área</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Cambia área + cargo + audit log</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setBulkRaiseForm({
+                    mode: 'percent',
+                    value: 5,
+                    effectiveDate: new Date().toISOString().split('T')[0] ?? '',
+                  })
+                  setBulkModal('salary-raise')
+                }}
+              >
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Aplicar aumento de sueldo</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">% o monto fijo a la selección</span>
+                </div>
+              </DropdownMenuItem>
 
               <DropdownMenuLabel>Cambiar estado</DropdownMenuLabel>
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
@@ -1256,6 +1305,16 @@ export default function TrabajadoresPage() {
                   <span className="text-[11px] text-[color:var(--text-tertiary)]">Una boleta por trabajador para el periodo</span>
                 </div>
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => {
+                setBulkRenewForm({ extensionMonths: 12 })
+                setBulkModal('renew-contracts')
+              }}>
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Renovar contratos a plazo fijo</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Extiende expiresAt N meses</span>
+                </div>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Exportar</DropdownMenuLabel>
@@ -1291,6 +1350,23 @@ export default function TrabajadoresPage() {
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">Terminar masivo</span>
                   <span className="text-[11px] opacity-70">Crea proceso de cese para cada uno</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                destructive
+                onSelect={() => {
+                  setBulkTermLiqForm({
+                    tipoCese: 'MUTUO_DISENSO',
+                    fechaCese: new Date().toISOString().split('T')[0] ?? '',
+                    motivoCese: '',
+                  })
+                  setBulkModal('terminate-liquidacion')
+                }}
+              >
+                <Banknote className="w-4 h-4" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Terminar con liquidación</span>
+                  <span className="text-[11px] opacity-70">Calcula CTS, vac., grati e indemnización</span>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1890,6 +1966,351 @@ export default function TrabajadoresPage() {
               >
                 {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                 Registrar entrega
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Transferir a otra área (Fase 3) */}
+      {bulkModal === 'transfer-area' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Transferir a otra área</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'} seleccionados
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Nueva área
+                </label>
+                <input
+                  type="text"
+                  list="dept-suggestions-transfer"
+                  value={bulkTransferForm.department}
+                  onChange={(e) => setBulkTransferForm(f => ({ ...f, department: e.target.value }))}
+                  placeholder="Ej: Operaciones — Sede Lima Norte"
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  autoFocus
+                />
+                <datalist id="dept-suggestions-transfer">
+                  {(stats?.departments ?? []).map(d => <option key={d} value={d} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Cargo (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={bulkTransferForm.position}
+                  onChange={(e) => setBulkTransferForm(f => ({ ...f, position: e.target.value }))}
+                  placeholder="Si todos pasan al mismo cargo. Vacío = mantener cargos actuales"
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                />
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-700">
+                  Se crea 1 entrada en AuditLog por trabajador con el cambio (área anterior → nueva). Cesados quedan fuera.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleBulkAction('transfer-area', {
+                  department: bulkTransferForm.department,
+                  position: bulkTransferForm.position || undefined,
+                })}
+                disabled={bulkLoading || !bulkTransferForm.department.trim()}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                Transferir a {selected.size}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Aplicar aumento de sueldo (Fase 3) */}
+      {bulkModal === 'salary-raise' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Aplicar aumento de sueldo</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'} con sueldo &gt; 0
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Tipo de aumento
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['percent', 'amount'] as const).map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setBulkRaiseForm(f => ({ ...f, mode: m, value: m === 'percent' ? 5 : 200 }))}
+                      className={cn(
+                        'px-3 py-2 text-sm font-medium rounded-lg transition-colors border',
+                        bulkRaiseForm.mode === m
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                          : 'border-[color:var(--border-default)] bg-white text-slate-600 hover:bg-slate-50',
+                      )}
+                    >
+                      {m === 'percent' ? 'Porcentaje %' : 'Monto fijo S/'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  {bulkRaiseForm.mode === 'percent' ? 'Aumento (%)' : 'Aumento (S/)'}
+                </label>
+                <input
+                  type="number"
+                  min={0.01}
+                  step={bulkRaiseForm.mode === 'percent' ? 0.5 : 50}
+                  max={bulkRaiseForm.mode === 'percent' ? 100 : 50000}
+                  value={bulkRaiseForm.value}
+                  onChange={(e) => setBulkRaiseForm(f => ({ ...f, value: Number(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Vigencia desde
+                </label>
+                <input
+                  type="date"
+                  value={bulkRaiseForm.effectiveDate}
+                  onChange={(e) => setBulkRaiseForm(f => ({ ...f, effectiveDate: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                />
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-800">
+                  Esto actualiza <strong>sueldoBruto</strong> y crea AuditLog por trabajador con el delta. <strong>No</strong> genera addendum — para eso usa el detalle del trabajador. Recalcula CTS y gratificación a partir de la próxima.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `¿Aplicar ${bulkRaiseForm.mode === 'percent' ? `+${bulkRaiseForm.value}%` : `+S/ ${bulkRaiseForm.value}`} a ${selected.size}?`,
+                    description: 'Cambia el sueldo bruto de cada trabajador inmediatamente. Acción rastreada en AuditLog. Verifica el monto antes de confirmar.',
+                    confirmLabel: 'Aplicar aumento',
+                    tone: 'danger',
+                  })
+                  if (!ok) return
+                  handleBulkAction('apply-salary-raise', {
+                    mode: bulkRaiseForm.mode,
+                    value: bulkRaiseForm.value,
+                    effectiveDate: bulkRaiseForm.effectiveDate,
+                  })
+                }}
+                disabled={bulkLoading || !bulkRaiseForm.value || bulkRaiseForm.value <= 0}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5" />}
+                Aplicar a {selected.size}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Renovar contratos a plazo fijo (Fase 3) */}
+      {bulkModal === 'renew-contracts' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Renovar contratos a plazo fijo</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'} seleccionados
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Meses de extensión
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  step={1}
+                  value={bulkRenewForm.extensionMonths}
+                  onChange={(e) => setBulkRenewForm({ extensionMonths: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 text-sm"
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                  Los D.Leg. 728 contratos a plazo fijo no pueden superar 5 años acumulados sin pasar a indeterminado.
+                </p>
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-700">
+                  Solo se renuevan contratos tipo <strong>LABORAL_PLAZO_FIJO</strong> con fecha de vencimiento. Los workers sin contrato a plazo fijo se reportan como saltados.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleBulkAction('renew-contracts', { extensionMonths: bulkRenewForm.extensionMonths })}
+                disabled={bulkLoading || bulkRenewForm.extensionMonths < 1 || bulkRenewForm.extensionMonths > 60}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calendar className="w-3.5 h-3.5" />}
+                Renovar +{bulkRenewForm.extensionMonths}m
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Terminar con liquidación (Fase 3) */}
+      {bulkModal === 'terminate-liquidacion' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+                  <Banknote className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Terminar con liquidación</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'} a cesar
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setBulkModal(null)} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Tipo de cese
+                </label>
+                <select
+                  value={bulkTermLiqForm.tipoCese}
+                  onChange={(e) => setBulkTermLiqForm(f => ({ ...f, tipoCese: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500/40 text-sm"
+                >
+                  {TIPO_CESE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}{o.hint ? ` — ${o.hint}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Fecha de cese
+                </label>
+                <input
+                  type="date"
+                  value={bulkTermLiqForm.fechaCese}
+                  onChange={(e) => setBulkTermLiqForm(f => ({ ...f, fechaCese: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500/40 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Motivo / observaciones
+                </label>
+                <textarea
+                  value={bulkTermLiqForm.motivoCese}
+                  onChange={(e) => setBulkTermLiqForm(f => ({ ...f, motivoCese: e.target.value }))}
+                  placeholder="Ej: Cierre de sucursal Lima Norte"
+                  rows={2}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500/40 text-sm resize-none"
+                />
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-red-800">
+                  Para cada trabajador: marca <strong>Cesado</strong>, calcula CTS, vacaciones, gratificación e indemnización con <strong>calcularLiquidacion()</strong>, y persiste todo en CeseRecord etapa <strong>LIQUIDACION_CALCULADA</strong>. Microempresa: CTS y grati en cero. Acción irreversible.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button onClick={() => setBulkModal(null)} className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `¿Terminar a ${selected.size} con liquidación?`,
+                    description: 'Cada uno quedará Cesado y tendrá su liquidación calculada y persistida. Verifica los datos antes de confirmar — esto es irreversible.',
+                    confirmLabel: 'Sí, terminar y liquidar',
+                    tone: 'danger',
+                  })
+                  if (!ok) return
+                  handleBulkAction('terminate-with-liquidacion', {
+                    tipoCese: bulkTermLiqForm.tipoCese,
+                    fechaCese: bulkTermLiqForm.fechaCese,
+                    motivoCese: bulkTermLiqForm.motivoCese,
+                  })
+                }}
+                disabled={
+                  bulkLoading ||
+                  !bulkTermLiqForm.fechaCese ||
+                  bulkTermLiqForm.motivoCese.trim().length < 3
+                }
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Banknote className="w-3.5 h-3.5" />}
+                Terminar y liquidar
               </button>
             </div>
           </div>
