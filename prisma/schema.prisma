@@ -1306,6 +1306,12 @@ model Attendance {
   hoursWorked Decimal?         @map("hours_worked") @db.Decimal(5, 2)
   status      AttendanceStatus @default(PRESENT)
   notes       String?
+  // Horas extras detectadas automáticamente al hacer clock-out (Fase 1.3).
+  // Una jornada que excede `Worker.jornadaSemanal / 5` se marca con isOvertime=true
+  // y overtimeMinutes guarda los minutos extras (ej: 8.5h trabajadas con jornada
+  // 8h → isOvertime=true, overtimeMinutes=30).
+  isOvertime      Boolean  @default(false) @map("is_overtime")
+  overtimeMinutes Int?     @map("overtime_minutes")
   // Anti-fraude (PRO+): geolocalización, device, selfie hash al check-in
   geoLat      Decimal?         @map("geo_lat") @db.Decimal(10, 7)
   geoLng      Decimal?         @map("geo_lng") @db.Decimal(10, 7)

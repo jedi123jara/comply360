@@ -23,6 +23,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyAttendanceToken } from '@/lib/attendance/qr-token'
 import { checkAttendance, listFences } from '@/lib/attendance/geofence'
 import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
+import { calculateOvertime } from '@/lib/attendance/overtime'
 
 export const runtime = 'nodejs'
 
@@ -257,11 +258,22 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   const hoursWorked =
     (now.getTime() - existingToday.clockIn.getTime()) / (1000 * 60 * 60)
 
+  // Detectar horas extras (Fase 1.3): si hoursWorked > jornadaSemanal/5
+  // → marca isOvertime + persiste overtimeMinutes. La bonificación se calcula
+  // al generar boleta usando estos campos.
+  const workerJornada = await prisma.worker.findUnique({
+    where: { id: ctx.workerId },
+    select: { jornadaSemanal: true },
+  })
+  const overtime = calculateOvertime(hoursWorked, workerJornada?.jornadaSemanal ?? 48)
+
   const updated = await prisma.attendance.update({
     where: { id: existingToday.id },
     data: {
       clockOut: now,
       hoursWorked,
+      isOvertime: overtime.isOvertime,
+      overtimeMinutes: overtime.isOvertime ? overtime.overtimeMinutes : null,
     },
   })
 
