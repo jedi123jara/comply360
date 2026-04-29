@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { parseAttendanceNotes, deriveJustificationState } from '@/lib/attendance/notes'
 
 /**
  * GET /api/attendance?date=YYYY-MM-DD
@@ -28,27 +29,48 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
     orderBy: { clockIn: 'asc' },
   })
 
-  // Calcular resumen
-  const summary = {
-    present: records.filter((r) => r.status === 'PRESENT').length,
-    late: records.filter((r) => r.status === 'LATE').length,
-    absent: records.filter((r) => r.status === 'ABSENT').length,
-    onLeave: records.filter((r) => r.status === 'ON_LEAVE').length,
-    total: records.length,
-  }
-
-  return NextResponse.json({
-    date: dateStr,
-    records: records.map((r) => ({
+  // Parsear notes para extraer justificación/aprobación de cada registro
+  const enrichedRecords = records.map((r) => {
+    const meta = parseAttendanceNotes(r.notes)
+    const justState = deriveJustificationState(r.status, meta)
+    return {
       id: r.id,
       workerId: r.workerId,
       clockIn: r.clockIn.toISOString(),
       clockOut: r.clockOut?.toISOString() ?? null,
       hoursWorked: r.hoursWorked ? Number(r.hoursWorked) : null,
       status: r.status,
-      notes: r.notes,
+      // Nota libre (sin metadata estructurada)
+      notes: meta.note ?? null,
+      // Estado derivado para la UI: 'no-applicable' | 'pending-justification' |
+      // 'pending-approval' | 'approved' | 'rejected'
+      justificationState: justState,
+      justification: meta.justification ?? null,
+      approval: meta.approval ?? null,
       worker: r.worker,
-    })),
+    }
+  })
+
+  // Resumen ampliado: agregamos contadores de justificación pendiente/aprobada
+  // para alimentar el banner CTA y los KPIs en la UI.
+  const summary = {
+    present: records.filter((r) => r.status === 'PRESENT').length,
+    late: records.filter((r) => r.status === 'LATE').length,
+    absent: records.filter((r) => r.status === 'ABSENT').length,
+    onLeave: records.filter((r) => r.status === 'ON_LEAVE').length,
+    total: records.length,
+    pendingJustification: enrichedRecords.filter(
+      (r) => r.justificationState === 'pending-justification',
+    ).length,
+    pendingApproval: enrichedRecords.filter(
+      (r) => r.justificationState === 'pending-approval',
+    ).length,
+    approved: enrichedRecords.filter((r) => r.justificationState === 'approved').length,
+  }
+
+  return NextResponse.json({
+    date: dateStr,
+    records: enrichedRecords,
     summary,
   })
 })
