@@ -452,7 +452,11 @@ export default function CockpitPage() {
       <HeroPanel
         score={typeof score === 'number' ? Math.round(score) : 82}
         userFirstName={(data?.stats as { ownerFirstName?: string } | undefined)?.ownerFirstName ?? 'equipo'}
-        orgName={(data as { orgName?: string } | undefined)?.orgName ?? 'tu empresa'}
+        orgName={
+          (data?.stats as { orgName?: string } | undefined)?.orgName ??
+          (data as { orgName?: string } | undefined)?.orgName ??
+          'tu empresa'
+        }
         multaEvitadaSoles={
           (data?.complianceTasks?.multaEvitada as number | undefined) ?? multaPotencial ?? 0
         }

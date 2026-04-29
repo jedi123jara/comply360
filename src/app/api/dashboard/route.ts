@@ -99,9 +99,18 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         },
       }),
       // Para calcular `diasSinMulta` REAL (no score × 2 fake)
+      // + nombre real del owner para saludo personalizado en Hero
       prisma.organization.findUnique({
         where: { id: orgId },
-        select: { createdAt: true, name: true },
+        select: {
+          createdAt: true,
+          name: true,
+          users: {
+            where: { role: 'OWNER' },
+            select: { firstName: true, lastName: true },
+            take: 1,
+          },
+        },
       }),
       // Para calcular `trabajadoresProtegidos` REAL: total - en_riesgo
       // Worker en riesgo = tiene alerta CRITICAL o HIGH activa, o legajoScore < 60
@@ -126,6 +135,9 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       0,
       Math.floor((Date.now() - orgCreatedAt.getTime()) / (1000 * 60 * 60 * 24)),
     )
+    // Nombre real del owner para saludo personalizado en HeroPanel
+    const owner = orgMeta?.users?.[0]
+    const ownerFirstName = owner?.firstName ?? null
 
     let complianceScore = null
     try {
@@ -456,6 +468,9 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         workersAtRisk: workersAtRiskCount,
         workersProtected: workersBlindados,
         daysSinceOrgCreated: diasDesdeCreacion,
+        // Saludo personalizado en HeroPanel ("Buenos días, Amado" en lugar de "equipo")
+        ownerFirstName,
+        orgName: orgMeta?.name ?? null,
       },
       complianceTasks: {
         open: tasksOpen,

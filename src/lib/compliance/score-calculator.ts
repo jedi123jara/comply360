@@ -24,6 +24,35 @@ export interface ComplianceScoreResult {
 const UIT = 5500 // 2026
 
 /**
+ * Factor de multa SUNAFIL según régimen laboral predominante de la org.
+ * Basado en cuadro de infracciones D.S. 019-2006-TR + Ley 32353 (MYPE).
+ *
+ * Antes el cálculo era plano (estimatedMissingDocs * UIT * 0.23) sin importar
+ * si era MYPE micro de 5 trabajadores o empresa general de 500. Resultado:
+ * micro empresas veían "multa estimada S/145,929" — totalmente irreal y
+ * alarmista (en realidad multa máxima MYPE micro por infracción muy grave
+ * es ~9.55 UIT = S/52,525 distribuido entre todos los workers).
+ *
+ * Multipliers calibrados así:
+ * - MYPE_MICRO (1-10 trab.): 0.10 — multas mínimas (Anexo I.A D.S. 019)
+ * - MYPE_PEQUENA (11-100): 0.30
+ * - GENERAL y otros (>100): 1.00 (referencia base)
+ */
+function getMultaMultiplierByRegimen(regimen: string | null | undefined, totalWorkers: number): number {
+  if (!regimen) {
+    // Sin régimen declarado, usar tamaño como proxy
+    if (totalWorkers <= 10) return 0.10
+    if (totalWorkers <= 100) return 0.30
+    return 1.00
+  }
+  const r = regimen.toUpperCase()
+  if (r === 'MYPE_MICRO') return 0.10
+  if (r === 'MYPE_PEQUENA') return 0.30
+  // AGRARIO, CONSTRUCCION, MINERO, etc. → multas iguales al régimen general
+  return 1.00
+}
+
+/**
  * Calculate compliance score for an organization.
  * Score Global = weighted average of area scores.
  */
@@ -106,10 +135,24 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
   )
 
   // Calculate potential fines from aggregated alert sum
+  // Las alertas tienen su propia multaEstimada calibrada por tipo (D.S. 019)
   const alertMulta = Number(totalMultaFromAlerts._sum.multaEstimada ?? 0)
   // Estimate missing-doc fines: inverse of legajo completeness across all workers
   const estimatedMissingDocs = Math.round(totalWorkers * 18 * (1 - legajoAvg / 100))
-  const multaPotencial = alertMulta + estimatedMissingDocs * UIT * 0.23
+  // ─── Calibrar por régimen + tamaño (Sprint QA Cockpit 2026-04) ───
+  // Antes: estimatedMissingDocs * UIT * 0.23 sin importar tamaño
+  // Resultado: MYPE micro 2 trabajadores con legajo 0% → S/45,540 fake
+  // Ahora: factor por régimen + tope absoluto realista
+  const orgRegimen = (await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { regimenPrincipal: true },
+  }))?.regimenPrincipal
+  const multiplier = getMultaMultiplierByRegimen(orgRegimen, totalWorkers)
+  const multaDocsCalibrada = estimatedMissingDocs * UIT * 0.23 * multiplier
+  // Tope absoluto: máximo realista para todo el set de problemas detectados
+  // (D.S. 019: ningún cuadro permite multa > 52.5 UIT por una sola inspección)
+  const TOPE_MULTA_TOTAL = 52.5 * UIT // S/288,750
+  const multaPotencial = Math.min(TOPE_MULTA_TOTAL, alertMulta + multaDocsCalibrada)
 
   const breakdown = [
     { label: 'Contratos vigentes', score: scoreContratos, weight: 20, detail: `${workersWithContract}/${totalWorkers} trabajadores con contrato` },
