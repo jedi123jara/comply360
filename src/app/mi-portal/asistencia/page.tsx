@@ -15,10 +15,14 @@ import {
   MessageSquare,
   X,
   Send,
+  Camera,
+  MapPin,
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { track } from '@/lib/analytics'
 import { QrScanner } from '@/components/attendance/qr-scanner'
+import { SelfieCaptureModal } from '@/components/attendance/selfie-capture-modal'
+import type { SelfieCapture } from '@/lib/attendance/selfie-capture'
 
 /**
  * /mi-portal/asistencia — vista del trabajador.
@@ -63,6 +67,22 @@ export default function MiPortalAsistenciaPage() {
   const [justifyReason, setJustifyReason] = useState('')
   const [justifySubmitting, setJustifySubmitting] = useState(false)
 
+  // Fase 2 — flujo en cadena: botón Entrada/Salida → selfie → scanner → submit
+  const [pendingAction, setPendingAction] = useState<'in' | 'out' | null>(null)
+  const [selfieOpen, setSelfieOpen] = useState(false)
+  const [pendingSelfie, setPendingSelfie] = useState<SelfieCapture | null>(null)
+  // Modal de "fuera de zona" cuando geofence falla; permite reportar motivo
+  // y reintentar con la justificación ya incluida.
+  const [oobModal, setOobModal] = useState<{
+    distanceMeters: number
+    nearestFence?: string
+    token: string
+    action?: 'in' | 'out'
+    selfieHash?: string
+    geo?: { lat: number; lng: number; accuracy?: number }
+  } | null>(null)
+  const [oobReason, setOobReason] = useState('')
+
   // Reloj en vivo
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -86,20 +106,22 @@ export default function MiPortalAsistenciaPage() {
     void loadHistory()
   }, [loadHistory])
 
-  // Submit clock (con token proveniente del deep link o manual input)
+  // Submit clock — acepta selfieHash y outOfBoundsReason como overrides opcionales
   const submitClock = useCallback(
-    async (token: string, action?: 'in' | 'out') => {
+    async (
+      token: string,
+      action?: 'in' | 'out',
+      opts?: { selfieHash?: string; outOfBoundsReason?: string; geo?: { lat: number; lng: number; accuracy?: number } },
+    ) => {
       setState('submitting')
       setError(null)
       setResultMessage(null)
       setResultStatus(null)
       track('biometric_ceremony_started', { feature: 'attendance' })
 
-      // Capturar geolocalización (best-effort): si la org tiene geofences
-      // configuradas, el server requerirá lat/lng. Si el worker rechaza
-      // permisos o falla GPS, mandamos sin coords y el server decidirá.
-      let geo: { lat: number; lng: number; accuracy?: number } | null = null
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      // Si el caller no pasó geo, lo capturamos here (fallback)
+      let geo = opts?.geo ?? null
+      if (!geo && typeof navigator !== 'undefined' && navigator.geolocation) {
         try {
           const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -126,6 +148,8 @@ export default function MiPortalAsistenciaPage() {
             token,
             action,
             ...(geo ? { lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy } : {}),
+            ...(opts?.selfieHash ? { selfieHash: opts.selfieHash } : {}),
+            ...(opts?.outOfBoundsReason ? { outOfBoundsReason: opts.outOfBoundsReason } : {}),
           }),
         })
         const body = (await res.json().catch(() => ({}))) as {
@@ -135,9 +159,27 @@ export default function MiPortalAsistenciaPage() {
           message?: string
           error?: string
           code?: string
+          distanceMeters?: number
+          nearestFence?: string
         }
 
         if (!res.ok) {
+          // Caso especial Fase 2: fuera de zona pero el worker puede justificar.
+          // En lugar de mostrar error, abrimos modal de fuera-de-zona con
+          // textarea. Reintentamos con outOfBoundsReason.
+          if (body.code === 'GEOFENCE_OUT_NEEDS_REASON') {
+            setOobModal({
+              distanceMeters: body.distanceMeters ?? 0,
+              nearestFence: body.nearestFence,
+              token,
+              action,
+              selfieHash: opts?.selfieHash,
+              geo: geo ?? undefined,
+            })
+            setOobReason('')
+            setState('idle')
+            return
+          }
           setError(body.error ?? `HTTP ${res.status}`)
           setState('error')
           track('biometric_ceremony_failed', { feature: 'attendance', code: body.code })
@@ -148,6 +190,9 @@ export default function MiPortalAsistenciaPage() {
         setResultStatus(body.status ?? null)
         setState('success')
         track('biometric_ceremony_succeeded', { feature: 'attendance', action: body.action })
+        // Reset del flujo de selfie post-éxito
+        setPendingSelfie(null)
+        setPendingAction(null)
         void loadHistory()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error de conexión')
@@ -364,10 +409,9 @@ export default function MiPortalAsistenciaPage() {
             </section>
           ) : null}
 
-          {/* CTA escanear — abre cámara DENTRO de la PWA */}
-          <section
-            className="rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 p-6 text-center"
-          >
+          {/* CTA Entrada/Salida — botones explícitos (Fase 2)
+              Flujo en cadena: click → selfie → scanner → submit con selfieHash + action */}
+          <section className="rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 p-6 text-center">
             <div
               className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-white"
               style={{ background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' }}
@@ -378,33 +422,75 @@ export default function MiPortalAsistenciaPage() {
               className="text-xl text-[color:var(--text-primary)] mb-1"
               style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
             >
-              Escanea el QR del día
+              ¿Qué vas a marcar?
             </h2>
             <p className="text-sm text-[color:var(--text-secondary)] mb-4 max-w-sm mx-auto leading-relaxed">
-              Pulsa el botón y apunta tu cámara al QR que tu supervisor tiene en pantalla. Marcamos automáticamente al detectar.
+              Tomamos una foto rápida (anti-fraude), luego escaneas el QR del supervisor.
             </p>
-            <button
-              type="button"
-              onClick={() => setScannerOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-base px-6 py-3 shadow-md transition-colors mb-4"
-            >
-              <ScanLine className="h-5 w-5" />
-              Abrir escáner
-            </button>
+            <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingAction('in')
+                  setSelfieOpen(true)
+                }}
+                disabled={Boolean(today && !today.clockOut)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-3 shadow-md transition-colors"
+                title={today && !today.clockOut ? 'Ya marcaste entrada hoy' : 'Marcar entrada'}
+              >
+                <LogIn className="h-4 w-4" />
+                Entrada
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingAction('out')
+                  setSelfieOpen(true)
+                }}
+                disabled={!today || Boolean(today.clockOut)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-3 shadow-md transition-colors"
+                title={!today ? 'Primero debes marcar entrada' : today.clockOut ? 'Ya marcaste salida hoy' : 'Marcar salida'}
+              >
+                <LogOut className="h-4 w-4" />
+                Salida
+              </button>
+            </div>
             <div className="flex items-center justify-center gap-2 text-[11px] text-[color:var(--text-tertiary)]">
               <Fingerprint className="h-3 w-3" />
-              Todas las marcaciones quedan auditadas con fecha, hora e IP.
+              Foto + ubicación + hash auditado · R.M. 037-2024-TR
             </div>
           </section>
 
-          {/* Scanner overlay (fullscreen) */}
+          {/* Modal: captura de selfie (Fase 2 — anti-fraude) */}
+          <SelfieCaptureModal
+            open={selfieOpen}
+            onClose={() => {
+              setSelfieOpen(false)
+              setPendingAction(null)
+            }}
+            onCapture={(capture) => {
+              setPendingSelfie(capture)
+              setSelfieOpen(false)
+              // Tras capturar selfie, abrimos el scanner para que escanee el QR del admin
+              setScannerOpen(true)
+            }}
+            title={pendingAction === 'out' ? 'Foto de salida' : 'Foto de entrada'}
+          />
+
+          {/* Scanner overlay (fullscreen) — al scan llama submitClock con selfieHash + action */}
           {scannerOpen && (
             <QrScanner
               onScan={(token) => {
                 setScannerOpen(false)
-                void submitClock(token)
+                void submitClock(token, pendingAction ?? undefined, {
+                  selfieHash: pendingSelfie?.sha256 || undefined,
+                })
               }}
-              onClose={() => setScannerOpen(false)}
+              onClose={() => {
+                setScannerOpen(false)
+                setPendingAction(null)
+                setPendingSelfie(null)
+              }}
             />
           )}
 
@@ -437,6 +523,85 @@ export default function MiPortalAsistenciaPage() {
           </details>
         </>
       ) : null}
+
+      {/* Modal: Fuera de zona con motivo (Fase 2 — geofence justification) */}
+      {oobModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--border-default)]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-amber-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Estás fuera de la zona</h3>
+                  <p className="text-[11px] text-gray-500">
+                    {oobModal.distanceMeters > 0 ? `~${oobModal.distanceMeters}m de ${oobModal.nearestFence ?? 'la zona'}` : 'Sin ubicación detectada'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setOobModal(null); setOobReason('') }}
+                className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <p className="text-sm text-slate-700 leading-relaxed">
+                Si tienes un motivo válido (cita médica, reunión cliente, home office, visita a obra), repórtalo. Tu marcación queda registrada y tu admin la va a revisar.
+              </p>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Motivo
+                </label>
+                <textarea
+                  value={oobReason}
+                  onChange={(e) => setOobReason(e.target.value)}
+                  placeholder="Ej: Visita programada al cliente Acme S.A.C. — coordinada con jefatura"
+                  rows={4}
+                  maxLength={480}
+                  className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/40 text-sm resize-none"
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-500 mt-1">{oobReason.length}/480 caracteres.</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button
+                type="button"
+                onClick={() => { setOobModal(null); setOobReason('') }}
+                className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors"
+              >
+                Cancelar marcación
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (oobReason.trim().length < 3) {
+                    toast.error('El motivo necesita al menos 3 caracteres')
+                    return
+                  }
+                  const m = oobModal
+                  setOobModal(null)
+                  void submitClock(m.token, m.action, {
+                    selfieHash: m.selfieHash,
+                    outOfBoundsReason: oobReason.trim(),
+                    geo: m.geo,
+                  })
+                  setOobReason('')
+                }}
+                disabled={oobReason.trim().length < 3}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+                Marcar con justificación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Reportar justificación */}
       {justifyOpen && today && (

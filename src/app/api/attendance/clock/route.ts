@@ -24,6 +24,7 @@ import { verifyAttendanceToken } from '@/lib/attendance/qr-token'
 import { checkAttendance, listFences } from '@/lib/attendance/geofence'
 import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
 import { calculateOvertime } from '@/lib/attendance/overtime'
+import { serializeAttendanceNotes, type AttendanceMetadata } from '@/lib/attendance/notes'
 
 export const runtime = 'nodejs'
 
@@ -36,6 +37,12 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
     accuracy?: number
     /** SHA-256 hash de la foto selfie tomada al marcar (anti-fraude PRO+) */
     selfieHash?: string
+    /**
+     * Si el worker está fuera de la geocerca, puede mandar este motivo y
+     * el server registra el Attendance con justificación pendiente de
+     * aprobación admin (en lugar de bloquear con 403).
+     */
+    outOfBoundsReason?: string
   }
   try {
     body = await req.json()
@@ -94,18 +101,43 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       accuracyMeters: body.accuracy,
     })
     if (!geoCheck.valid) {
-      return NextResponse.json(
-        {
-          error: 'Estás fuera de la zona permitida para marcar asistencia.',
-          code: 'GEOFENCE_OUT',
-          distanceMeters: Math.round(geoCheck.distanceToNearestFence),
-          nearestFence: geoCheck.nearestFence?.name,
-          reasons: geoCheck.reasons,
-        },
-        { status: 403 },
-      )
+      const reason = (body.outOfBoundsReason ?? '').trim()
+      // Si el worker NO mandó motivo, devolvemos 403 con metadata para que
+      // la UI muestre el modal de "fuera de zona" — esto es el flujo nuevo
+      // de Fase 2.
+      if (reason.length < 3) {
+        return NextResponse.json(
+          {
+            error: 'Estás fuera de la zona permitida. Si tienes un motivo válido (cita médica, reunión cliente, home office), repórtalo y registramos tu marcación con justificación pendiente de aprobación.',
+            code: 'GEOFENCE_OUT_NEEDS_REASON',
+            distanceMeters: Math.round(geoCheck.distanceToNearestFence),
+            nearestFence: geoCheck.nearestFence?.name,
+            reasons: geoCheck.reasons,
+          },
+          { status: 403 },
+        )
+      }
+      // Si SÍ mandó motivo, dejamos pasar y persistimos la justificación.
+      // Marcamos el geofenceMatched como "out-of-bounds" para audit trail.
+      geofenceMatched = `OUT_OF_BOUNDS:${geoCheck.nearestFence?.name ?? 'sin zona'}`
+    } else {
+      geofenceMatched = geoCheck.matchedFence?.name
     }
-    geofenceMatched = geoCheck.matchedFence?.name
+  }
+  // Helper: si el worker está fuera de zona pero con motivo, se persiste
+  // como justification (mismo formato que Fase 1.1) — pendiente de aprobación admin.
+  const buildOutOfBoundsNotes = (): string | null => {
+    if (!body.outOfBoundsReason || !geofenceMatched?.startsWith('OUT_OF_BOUNDS')) {
+      return null
+    }
+    const meta: AttendanceMetadata = {
+      justification: {
+        reason: `Fuera de zona — ${body.outOfBoundsReason.trim().slice(0, 480)}`,
+        requestedAt: new Date().toISOString(),
+        requestedBy: ctx.userId,
+      },
+    }
+    return serializeAttendanceNotes(meta)
   }
 
   // ── Determinar action (in / out) ─────────────────────────────────────────
@@ -188,6 +220,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
         }
       : null
     const status = deriveAttendanceStatusFromSchedule(now, scheduleForCheck)
+    const oobNotes = buildOutOfBoundsNotes()
     const created = await prisma.attendance.create({
       data: {
         orgId: ctx.orgId,
@@ -199,6 +232,9 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
         geoLng: typeof body.lng === 'number' ? body.lng : null,
         geoAccuracy: typeof body.accuracy === 'number' ? body.accuracy : null,
         selfieHash: body.selfieHash ?? null,
+        // Si fichó fuera de zona con motivo válido, queda con justification
+        // pendiente de aprobación admin (Fase 2).
+        notes: oobNotes,
       },
     })
 
