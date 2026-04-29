@@ -7,40 +7,130 @@ import { syncComplianceScore } from '@/lib/compliance/sync-score'
 
 // =============================================
 // GET /api/workers/[id] - Get worker detail
+//
+// Defensivo (2026-04-29): si la migration de campos nuevos (expectedClockInHour,
+// isOvertime en includes, etc) no se aplicó en la DB, el `include` con SELECT
+// implícito de todas las columnas truena con 500. Este handler intenta primero
+// el query completo; si falla por columnas faltantes, cae a un select explícito
+// con SOLO los campos legacy que sabemos que existen.
 // =============================================
 export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
   const { id } = params
   const orgId = ctx.orgId
 
-  const worker = await prisma.worker.findUnique({
-    where: { id },
-    include: {
-      documents: {
-        orderBy: { createdAt: 'desc' },
-      },
-      workerContracts: {
-        include: {
-          contract: {
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              status: true,
-              expiresAt: true,
-              createdAt: true,
-            },
+  // Fields legacy que existían antes de las migrations de Fase 1.2/1.3.
+  // Si las nuevas columnas no están en la DB, este select sigue funcionando.
+  const SAFE_WORKER_SELECT = {
+    id: true,
+    orgId: true,
+    userId: true,
+    dni: true,
+    firstName: true,
+    lastName: true,
+    email: true,
+    phone: true,
+    birthDate: true,
+    gender: true,
+    nationality: true,
+    address: true,
+    position: true,
+    department: true,
+    regimenLaboral: true,
+    tipoContrato: true,
+    fechaIngreso: true,
+    fechaCese: true,
+    motivoCese: true,
+    sueldoBruto: true,
+    asignacionFamiliar: true,
+    jornadaSemanal: true,
+    tiempoCompleto: true,
+    tipoAporte: true,
+    afpNombre: true,
+    cuspp: true,
+    essaludVida: true,
+    sctr: true,
+    status: true,
+    legajoScore: true,
+    photoUrl: true,
+    bio: true,
+    createdAt: true,
+    updatedAt: true,
+    documents: {
+      orderBy: { createdAt: 'desc' as const },
+    },
+    workerContracts: {
+      include: {
+        contract: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            status: true,
+            expiresAt: true,
+            createdAt: true,
           },
         },
       },
-      vacations: {
-        orderBy: { periodoInicio: 'desc' },
-      },
-      alerts: {
-        where: { resolvedAt: null },
-        orderBy: { createdAt: 'desc' },
-      },
     },
-  })
+    vacations: {
+      orderBy: { periodoInicio: 'desc' as const },
+    },
+    alerts: {
+      where: { resolvedAt: null },
+      orderBy: { createdAt: 'desc' as const },
+    },
+  }
+
+  let worker
+  try {
+    // Intento 1: query con include completo (incluye campos nuevos via SELECT *)
+    worker = await prisma.worker.findUnique({
+      where: { id },
+      include: {
+        documents: {
+          orderBy: { createdAt: 'desc' },
+        },
+        workerContracts: {
+          include: {
+            contract: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                status: true,
+                expiresAt: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+        vacations: {
+          orderBy: { periodoInicio: 'desc' },
+        },
+        alerts: {
+          where: { resolvedAt: null },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    })
+  } catch (err) {
+    console.warn('[workers/GET] include query failed, fallback to safe select', err instanceof Error ? err.message : err)
+    try {
+      worker = await prisma.worker.findUnique({
+        where: { id },
+        select: SAFE_WORKER_SELECT,
+      })
+    } catch (err2) {
+      console.error('[workers/GET] fallback select also failed', err2 instanceof Error ? err2.message : err2)
+      return NextResponse.json(
+        {
+          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse — pídele a tu admin que abra /dashboard/admin/db-sync y aplique los cambios pendientes.',
+          code: 'DB_SCHEMA_MISMATCH',
+        },
+        { status: 500 },
+      )
+    }
+  }
 
   if (!worker || worker.orgId !== orgId) {
     return NextResponse.json({ error: 'Worker not found' }, { status: 404 })
