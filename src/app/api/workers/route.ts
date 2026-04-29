@@ -144,6 +144,9 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
         status: true,
         legajoScore: true,
         createdAt: true,
+        // Personalización subida por el worker desde su portal
+        photoUrl: true,
+        bio: true,
       },
     }),
     prisma.worker.count({ where }),

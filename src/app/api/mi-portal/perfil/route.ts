@@ -8,6 +8,9 @@ const updateSchema = z.object({
   email: z.string().email().or(z.literal('')).nullable().optional(),
   phone: z.string().max(20).or(z.literal('')).nullable().optional(),
   address: z.string().max(200).or(z.literal('')).nullable().optional(),
+  // Personalización: foto del worker (data URL base64) + bio (max 200 chars)
+  photoUrl: z.string().max(500_000).or(z.literal('')).nullable().optional(), // 500KB max base64
+  bio: z.string().max(200).or(z.literal('')).nullable().optional(),
 })
 
 export const GET = withWorkerAuth(async (_req, ctx) => {
@@ -36,6 +39,9 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
     regimenLaboral: worker.regimenLaboral,
     tipoContrato: worker.tipoContrato,
     organization: worker.organization,
+    // Personalización
+    photoUrl: worker.photoUrl,
+    bio: worker.bio,
   })
 })
 
@@ -46,7 +52,7 @@ export const PATCH = withWorkerAuth(async (req, ctx) => {
     return NextResponse.json({ error: 'Datos invalidos', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { email, phone, address } = parsed.data
+  const { email, phone, address, photoUrl, bio } = parsed.data
 
   const updated = await prisma.worker.update({
     where: { id: ctx.workerId },
@@ -54,6 +60,8 @@ export const PATCH = withWorkerAuth(async (req, ctx) => {
       ...(email !== undefined && { email: email || null }),
       ...(phone !== undefined && { phone: phone || null }),
       ...(address !== undefined && { address: address || null }),
+      ...(photoUrl !== undefined && { photoUrl: photoUrl || null }),
+      ...(bio !== undefined && { bio: bio || null }),
     },
     include: { organization: { select: { name: true, ruc: true } } },
   })
@@ -94,5 +102,7 @@ export const PATCH = withWorkerAuth(async (req, ctx) => {
     regimenLaboral: updated.regimenLaboral,
     tipoContrato: updated.tipoContrato,
     organization: updated.organization,
+    photoUrl: updated.photoUrl,
+    bio: updated.bio,
   })
 })

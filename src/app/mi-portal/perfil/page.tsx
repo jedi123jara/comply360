@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { User, Mail, Phone, MapPin, Calendar, Briefcase, Building2, Save, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useState, useRef } from 'react'
+import { User, Mail, Phone, MapPin, Calendar, Briefcase, Building2, Save, AlertCircle, CheckCircle2, Loader2, Camera, Smile } from 'lucide-react'
 import { PageHeader, ErrorState, DetailSkeleton } from '@/components/mi-portal'
 import { formatLongDate, formatPhonePE } from '@/lib/format/peruvian'
 
@@ -21,15 +21,57 @@ interface PerfilData {
   regimenLaboral: string
   tipoContrato: string
   organization: { name: string; ruc: string | null }
+  photoUrl: string | null
+  bio: string | null
+}
+
+/**
+ * Comprime y redimensiona una foto a max 400x400 JPEG quality 0.85.
+ * Output: data URL (base64) listo para guardar en DB.
+ * Tamaño típico: ~30-80KB por foto (vs ~2-4MB original de cámara móvil).
+ */
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX_DIM = 400
+        const scale = Math.min(MAX_DIM / img.width, MAX_DIM / img.height, 1)
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Canvas no soportado'))
+          return
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.85))
+      }
+      img.onerror = () => reject(new Error('No se pudo procesar la imagen'))
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'))
+    reader.readAsDataURL(file)
+  })
 }
 
 export default function PerfilPage() {
   const [data, setData] = useState<PerfilData | null>(null)
-  const [editing, setEditing] = useState<{ email: string; phone: string; address: string } | null>(null)
+  const [editing, setEditing] = useState<{
+    email: string
+    phone: string
+    address: string
+    bio: string
+    photoUrl: string
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -39,13 +81,44 @@ export default function PerfilPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const d = await res.json()
       setData(d)
-      setEditing({ email: d.email ?? '', phone: d.phone ?? '', address: d.address ?? '' })
+      setEditing({
+        email: d.email ?? '',
+        phone: d.phone ?? '',
+        address: d.address ?? '',
+        bio: d.bio ?? '',
+        photoUrl: d.photoUrl ?? '',
+      })
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Error')
     } finally {
       setLoading(false)
     }
   }, [])
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'El archivo debe ser una imagen.' })
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'La imagen no puede pesar más de 10MB.' })
+      return
+    }
+    setUploadingPhoto(true)
+    setMessage(null)
+    try {
+      const dataUrl = await compressImage(file)
+      if (editing) setEditing({ ...editing, photoUrl: dataUrl })
+      setMessage({ type: 'success', text: 'Foto cargada. Recuerda guardar los cambios.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'No se pudo procesar la foto' })
+    } finally {
+      setUploadingPhoto(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   useEffect(() => { load() }, [load])
 
@@ -77,7 +150,11 @@ export default function PerfilPage() {
   const changed =
     editing.email !== (data.email ?? '') ||
     editing.phone !== (data.phone ?? '') ||
-    editing.address !== (data.address ?? '')
+    editing.address !== (data.address ?? '') ||
+    editing.bio !== (data.bio ?? '') ||
+    editing.photoUrl !== (data.photoUrl ?? '')
+
+  const initials = `${data.firstName.charAt(0)}${data.lastName.charAt(0)}`.toUpperCase()
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -105,6 +182,82 @@ export default function PerfilPage() {
           <p className="text-sm">{message.text}</p>
         </div>
       )}
+
+      {/* ─── Tu identidad: foto + bio (humaniza el perfil del worker) ─── */}
+      <Section
+        title="Tu identidad"
+        subtitle="Sube una foto y cuéntanos algo de ti. Tus compañeros y RRHH te verán más cerca."
+      >
+        <div className="flex flex-col sm:flex-row gap-5 items-start">
+          {/* Avatar grande con upload */}
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <div className="relative">
+              {editing.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={editing.photoUrl}
+                  alt={`Foto de ${data.firstName}`}
+                  className="w-28 h-28 rounded-2xl object-cover ring-2 ring-emerald-200 shadow-md"
+                />
+              ) : (
+                <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 ring-2 ring-emerald-300 flex items-center justify-center text-3xl font-bold text-emerald-700">
+                  {initials}
+                </div>
+              )}
+              {uploadingPhoto && (
+                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-900 disabled:opacity-50"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              {editing.photoUrl ? 'Cambiar foto' : 'Subir foto'}
+            </button>
+            {editing.photoUrl && (
+              <button
+                type="button"
+                onClick={() => editing && setEditing({ ...editing, photoUrl: '' })}
+                className="text-[10px] text-rose-600 hover:text-rose-800"
+              >
+                Quitar foto
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+          </div>
+
+          {/* Bio */}
+          <div className="flex-1 w-full">
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
+              <Smile className="w-3.5 h-3.5 text-emerald-600" />
+              Cuéntanos algo de ti
+            </label>
+            <textarea
+              rows={3}
+              maxLength={200}
+              value={editing.bio}
+              onChange={(e) => setEditing({ ...editing, bio: e.target.value })}
+              placeholder="Ej. Me encanta el fútbol los fines de semana · Soy fan de la cocina criolla · Tengo 2 perros · Me gusta viajar al sur"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 resize-none"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              {editing.bio.length}/200 caracteres · Es opcional pero recomendado
+            </p>
+          </div>
+        </div>
+      </Section>
 
       <Section title="Datos personales" subtitle="Estos datos solo pueden ser modificados por RRHH.">
         <Field icon={User} label="Nombre completo" value={`${data.firstName} ${data.lastName}`} />

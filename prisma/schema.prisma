@@ -233,6 +233,13 @@ model Worker {
   // PIN 4 dígitos para asistencia sin smartphone (backup del flujo QR).
   // Generado automáticamente al onboarding del worker. Se envía por email.
   attendancePin      String?        @map("attendance_pin") // hash bcrypt del PIN
+  // ─── Personalización del worker (subido desde el portal) ────────────
+  // Foto subida por el trabajador desde /mi-portal/perfil. Si null, el
+  // admin ve solo las iniciales como avatar.
+  photoUrl           String?        @map("photo_url")
+  // Bio breve / hobby / fun fact (max 200 chars). Humaniza el card del
+  // admin: en lugar de solo nombre+cargo, ve "Le encanta la cocina coreana".
+  bio                String?
   // Estado
   status             WorkerStatus   @default(ACTIVE)
   legajoScore        Int?           @map("legajo_score")

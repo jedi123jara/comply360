@@ -61,6 +61,10 @@ interface WorkerItem {
   sueldoBruto: number
   status: string
   legajoScore: number | null
+  /** Foto subida desde portal worker (data URL base64). Null = mostrar iniciales. */
+  photoUrl?: string | null
+  /** Bio breve (max 200 chars) — humaniza el card del admin. */
+  bio?: string | null
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -652,14 +656,32 @@ export default function TrabajadoresPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Link href={`/dashboard/trabajadores/${worker.id}`} className="flex items-center gap-3 group">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-primary">
-                              {workerInitials(worker.firstName, worker.lastName)}
+                          {/* Foto subida desde portal o iniciales como fallback */}
+                          {worker.photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={worker.photoUrl}
+                              alt={`Foto de ${worker.firstName}`}
+                              className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-emerald-200"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-bold text-primary">
+                                {workerInitials(worker.firstName, worker.lastName)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <span className="text-sm font-semibold text-slate-900 group-hover:text-primary transition-colors block">
+                              {displayWorkerName(worker.firstName, worker.lastName)}
                             </span>
+                            {/* Bio personal — humaniza el card */}
+                            {worker.bio && (
+                              <span className="text-[11px] text-slate-500 italic block truncate max-w-[260px]" title={worker.bio}>
+                                💬 {worker.bio}
+                              </span>
+                            )}
                           </div>
-                          <span className="text-sm font-semibold text-slate-900 group-hover:text-primary transition-colors">
-                            {displayWorkerName(worker.firstName, worker.lastName)}
-                          </span>
                         </Link>
                       </td>
                       <td className="px-6 py-4 text-sm text-[color:var(--text-secondary)] font-mono">{worker.dni}</td>
