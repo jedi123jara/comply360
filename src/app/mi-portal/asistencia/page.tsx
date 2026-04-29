@@ -67,10 +67,24 @@ export default function MiPortalAsistenciaPage() {
   const [justifyReason, setJustifyReason] = useState('')
   const [justifySubmitting, setJustifySubmitting] = useState(false)
 
-  // Fase 2 — flujo en cadena: botón Entrada/Salida → selfie → scanner → submit
+  // Fase 2 — flujo en cadena: botón Entrada/Salida → (selfie opcional) → scanner → submit
   const [pendingAction, setPendingAction] = useState<'in' | 'out' | null>(null)
   const [selfieOpen, setSelfieOpen] = useState(false)
   const [pendingSelfie, setPendingSelfie] = useState<SelfieCapture | null>(null)
+  // Foto OPT-IN — por default OFF (más rápido). Persistido en localStorage
+  // para que cada worker recuerde su preferencia entre sesiones.
+  const [selfieEnabled, setSelfieEnabled] = useState(false)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('comply360.selfieEnabled')
+      if (saved === '1') setSelfieEnabled(true)
+    } catch {/* localStorage no disponible */}
+  }, [])
+  useEffect(() => {
+    try {
+      localStorage.setItem('comply360.selfieEnabled', selfieEnabled ? '1' : '0')
+    } catch {/* ignore */}
+  }, [selfieEnabled])
   // Modal de "fuera de zona" cuando geofence falla; permite reportar motivo
   // y reintentar con la justificación ya incluida.
   const [oobModal, setOobModal] = useState<{
@@ -409,8 +423,12 @@ export default function MiPortalAsistenciaPage() {
             </section>
           ) : null}
 
-          {/* CTA Entrada/Salida — botones explícitos (Fase 2)
-              Flujo en cadena: click → selfie → scanner → submit con selfieHash + action */}
+          {/* CTA Entrada/Salida — botones explícitos (simplificado 2026-04-29)
+              Flujo directo: click → scanner → submit con action explícita.
+              La foto es OPT-IN: el toggle "Tomar foto al fichar" la activa
+              cuando la org la pide (anti-fraude PRO). Por defecto OFF — más
+              rápido y menos fricción. Suficiente legal: token JWT firmado +
+              sesión Clerk del worker + audit trail (IP, GPS, user-agent). */}
           <section className="rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 p-6 text-center">
             <div
               className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-white"
@@ -425,14 +443,18 @@ export default function MiPortalAsistenciaPage() {
               ¿Qué vas a marcar?
             </h2>
             <p className="text-sm text-[color:var(--text-secondary)] mb-4 max-w-sm mx-auto leading-relaxed">
-              Tomamos una foto rápida (anti-fraude), luego escaneas el QR del supervisor.
+              Pulsa el botón y apunta tu cámara al QR del supervisor.
             </p>
             <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto mb-4">
               <button
                 type="button"
                 onClick={() => {
                   setPendingAction('in')
-                  setSelfieOpen(true)
+                  if (selfieEnabled) {
+                    setSelfieOpen(true)
+                  } else {
+                    setScannerOpen(true)
+                  }
                 }}
                 disabled={Boolean(today && !today.clockOut)}
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-3 shadow-md transition-colors"
@@ -445,7 +467,11 @@ export default function MiPortalAsistenciaPage() {
                 type="button"
                 onClick={() => {
                   setPendingAction('out')
-                  setSelfieOpen(true)
+                  if (selfieEnabled) {
+                    setSelfieOpen(true)
+                  } else {
+                    setScannerOpen(true)
+                  }
                 }}
                 disabled={!today || Boolean(today.clockOut)}
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-3 shadow-md transition-colors"
@@ -455,13 +481,25 @@ export default function MiPortalAsistenciaPage() {
                 Salida
               </button>
             </div>
+
+            {/* Toggle opcional para tomar foto (anti-fraude opt-in) */}
+            <label className="inline-flex items-center gap-2 text-xs text-[color:var(--text-secondary)] cursor-pointer select-none mb-2">
+              <input
+                type="checkbox"
+                checked={selfieEnabled}
+                onChange={(e) => setSelfieEnabled(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30"
+              />
+              Tomar foto al fichar (extra anti-fraude)
+            </label>
+
             <div className="flex items-center justify-center gap-2 text-[11px] text-[color:var(--text-tertiary)]">
               <Fingerprint className="h-3 w-3" />
-              Foto + ubicación + hash auditado · R.M. 037-2024-TR
+              Marcación auditada con QR + sesión + GPS · R.M. 037-2024-TR
             </div>
           </section>
 
-          {/* Modal: captura de selfie (Fase 2 — anti-fraude) */}
+          {/* Modal: captura de selfie — solo si selfieEnabled */}
           <SelfieCaptureModal
             open={selfieOpen}
             onClose={() => {
@@ -477,7 +515,8 @@ export default function MiPortalAsistenciaPage() {
             title={pendingAction === 'out' ? 'Foto de salida' : 'Foto de entrada'}
           />
 
-          {/* Scanner overlay (fullscreen) — al scan llama submitClock con selfieHash + action */}
+          {/* Scanner overlay (fullscreen) — al scan llama submitClock con action explícita
+              y selfieHash solo si la foto se tomó (selfieEnabled=true). */}
           {scannerOpen && (
             <QrScanner
               onScan={(token) => {
