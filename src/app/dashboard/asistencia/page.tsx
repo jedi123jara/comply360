@@ -27,6 +27,7 @@ import {
   ExternalLink,
   X,
   Send,
+  Zap,
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
 import { AttendanceQrCard } from '@/components/attendance/attendance-qr-card'
@@ -43,6 +44,7 @@ import {
 } from '@/components/ui/dropdown'
 import { confirm } from '@/components/ui/confirm-dialog'
 import { toast } from 'sonner'
+import { formatOvertime } from '@/lib/attendance/overtime'
 
 // ── Types ──────────────────────────────────────────
 type JustificationState =
@@ -74,6 +76,8 @@ interface AttendanceRecord {
     byName?: string
     comment?: string
   } | null
+  isOvertime: boolean
+  overtimeMinutes: number | null
   worker: {
     firstName: string
     lastName: string
@@ -91,6 +95,8 @@ interface Summary {
   pendingJustification: number
   pendingApproval: number
   approved: number
+  overtimeCount: number
+  overtimeMinutes: number
 }
 
 // ── Status Config ──────────────────────────────────
@@ -150,6 +156,7 @@ export default function AsistenciaPage() {
   const [summary, setSummary] = useState<Summary>({
     present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
     pendingJustification: 0, pendingApproval: 0, approved: 0,
+    overtimeCount: 0, overtimeMinutes: 0,
   })
   const [loading, setLoading] = useState(true)
   const [clockingIn, setClockingIn] = useState(false)
@@ -182,12 +189,14 @@ export default function AsistenciaPage() {
         setSummary(data.summary ?? {
           present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
           pendingJustification: 0, pendingApproval: 0, approved: 0,
+          overtimeCount: 0, overtimeMinutes: 0,
         })
       } else {
         setRecords([])
         setSummary({
           present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
           pendingJustification: 0, pendingApproval: 0, approved: 0,
+          overtimeCount: 0, overtimeMinutes: 0,
         })
       }
     } catch {
@@ -195,6 +204,7 @@ export default function AsistenciaPage() {
       setSummary({
         present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
         pendingJustification: 0, pendingApproval: 0, approved: 0,
+        overtimeCount: 0, overtimeMinutes: 0,
       })
     }
     setLoading(false)
@@ -413,6 +423,17 @@ export default function AsistenciaPage() {
           value={summary.onLeave}
           footer="Ausencia justificada"
         />
+        <KpiCard
+          icon={Zap}
+          label="Horas extras"
+          value={summary.overtimeCount}
+          variant={summary.overtimeCount > 0 ? 'amber' : 'default'}
+          footer={
+            summary.overtimeMinutes > 0
+              ? `${formatOvertime(summary.overtimeMinutes)} acumuladas`
+              : 'Sin sobretiempo hoy'
+          }
+        />
       </KpiGrid>
 
       {/* Banner CTA: tardanzas/ausencias sin resolver */}
@@ -621,9 +642,20 @@ export default function AsistenciaPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className="text-sm font-mono text-[color:var(--text-secondary)]">
-                          {record.hoursWorked ? `${record.hoursWorked.toFixed(1)}h` : '-'}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-sm font-mono text-[color:var(--text-secondary)]">
+                            {record.hoursWorked ? `${record.hoursWorked.toFixed(1)}h` : '-'}
+                          </span>
+                          {record.isOvertime && record.overtimeMinutes ? (
+                            <span
+                              className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
+                              title={`Sobretiempo: ${formatOvertime(record.overtimeMinutes)}. D.Leg. 854 exige bonificación de 25% (primeras 2h) y 35% (resto).`}
+                            >
+                              <Zap className="w-2.5 h-2.5" />
+                              +{formatOvertime(record.overtimeMinutes)}
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border', config.color)}>

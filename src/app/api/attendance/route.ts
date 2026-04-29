@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { parseAttendanceNotes, deriveJustificationState } from '@/lib/attendance/notes'
 import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
+import { calculateOvertime } from '@/lib/attendance/overtime'
 
 /**
  * GET /api/attendance?date=YYYY-MM-DD
@@ -48,12 +49,19 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
       justificationState: justState,
       justification: meta.justification ?? null,
       approval: meta.approval ?? null,
+      // Horas extras detectadas en clock-out (Fase 1.3)
+      isOvertime: r.isOvertime,
+      overtimeMinutes: r.overtimeMinutes,
       worker: r.worker,
     }
   })
 
   // Resumen ampliado: agregamos contadores de justificación pendiente/aprobada
-  // para alimentar el banner CTA y los KPIs en la UI.
+  // y horas extras totales del día para alimentar KPIs en la UI.
+  const totalOvertimeMinutes = enrichedRecords.reduce(
+    (sum, r) => sum + (r.overtimeMinutes ?? 0),
+    0,
+  )
   const summary = {
     present: records.filter((r) => r.status === 'PRESENT').length,
     late: records.filter((r) => r.status === 'LATE').length,
@@ -67,6 +75,8 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
       (r) => r.justificationState === 'pending-approval',
     ).length,
     approved: enrichedRecords.filter((r) => r.justificationState === 'approved').length,
+    overtimeCount: enrichedRecords.filter((r) => r.isOvertime).length,
+    overtimeMinutes: totalOvertimeMinutes,
   }
 
   return NextResponse.json({
@@ -122,6 +132,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
       expectedClockInHour: true,
       expectedClockInMinute: true,
       lateToleranceMinutes: true,
+      jornadaSemanal: true,
     },
   })
 
@@ -204,11 +215,16 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
   const msWorked = now.getTime() - openRecord.clockIn.getTime()
   const hoursWorked = Math.round((msWorked / (1000 * 60 * 60)) * 100) / 100
 
+  // Detectar horas extras (Fase 1.3) usando jornada semanal del worker
+  const overtime = calculateOvertime(hoursWorked, worker.jornadaSemanal ?? 48)
+
   const updated = await prisma.attendance.update({
     where: { id: openRecord.id },
     data: {
       clockOut: now,
       hoursWorked,
+      isOvertime: overtime.isOvertime,
+      overtimeMinutes: overtime.isOvertime ? overtime.overtimeMinutes : null,
       notes: notes ?? openRecord.notes,
     },
     include: {
