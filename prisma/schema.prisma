@@ -216,6 +216,15 @@ model Worker {
   asignacionFamiliar Boolean        @default(false) @map("asignacion_familiar")
   jornadaSemanal     Int            @default(48) @map("jornada_semanal")
   tiempoCompleto     Boolean        @default(true) @map("tiempo_completo")
+  // Horario laboral pactado (R.M. 037-2024-TR exige documentar política de
+  // entrada/salida y tolerancia). Defaults conservadores: 8:00-17:00 con 15
+  // min de tolerancia. Si la org tiene turnos distintos, se editan por worker
+  // o vía bulk action "Asignar horario".
+  expectedClockInHour    Int @default(8)  @map("expected_clock_in_hour")
+  expectedClockInMinute  Int @default(0)  @map("expected_clock_in_minute")
+  expectedClockOutHour   Int @default(17) @map("expected_clock_out_hour")
+  expectedClockOutMinute Int @default(0)  @map("expected_clock_out_minute")
+  lateToleranceMinutes   Int @default(15) @map("late_tolerance_minutes")
   // Previsional
   tipoAporte         TipoAporte     @default(AFP) @map("tipo_aporte")
   afpNombre          String?        @map("afp_nombre")

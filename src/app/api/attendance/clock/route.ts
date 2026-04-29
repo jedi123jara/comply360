@@ -20,8 +20,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withWorkerAuth } from '@/lib/api-auth'
 import type { WorkerAuthContext } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
-import { verifyAttendanceToken, deriveAttendanceStatus } from '@/lib/attendance/qr-token'
+import { verifyAttendanceToken } from '@/lib/attendance/qr-token'
 import { checkAttendance, listFences } from '@/lib/attendance/geofence'
+import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
 
 export const runtime = 'nodejs'
 
@@ -164,7 +165,28 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       )
     }
 
-    const status = deriveAttendanceStatus(now, 8, 0, payload.graceMinutes)
+    // Cargar el horario pactado del worker (Fase 1.2). Si no tiene
+    // configurado o la migration aún no se aplicó, usa los defaults
+    // (8:00 con 15 min tolerancia).
+    const workerSchedule = await prisma.worker.findUnique({
+      where: { id: ctx.workerId },
+      select: {
+        expectedClockInHour: true,
+        expectedClockInMinute: true,
+        lateToleranceMinutes: true,
+      },
+    })
+    // Si el token trae graceMinutes explícito (admin lo overrideó al generar
+    // QR), gana sobre el del worker. Sino, usamos el del worker.
+    const scheduleForCheck = workerSchedule
+      ? {
+          ...workerSchedule,
+          ...(payload.graceMinutes != null
+            ? { lateToleranceMinutes: payload.graceMinutes }
+            : {}),
+        }
+      : null
+    const status = deriveAttendanceStatusFromSchedule(now, scheduleForCheck)
     const created = await prisma.attendance.create({
       data: {
         orgId: ctx.orgId,

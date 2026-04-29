@@ -3,6 +3,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import type { WorkerSummary } from '../worker-profile-header'
 import { OnboardingCascadeCard } from '../onboarding-cascade-card'
+import { ScheduleCard } from '../schedule-card'
 
 function DataRow({
   label,
@@ -90,6 +91,7 @@ export function TabInfo({ worker }: { worker: WorkerSummary }) {
         </CardContent>
       </Card>
       </div>
+      <ScheduleCard workerId={worker.id} />
     </div>
   )
 }

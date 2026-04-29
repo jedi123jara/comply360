@@ -42,6 +42,7 @@ import {
   GraduationCap,
   HardHat,
   Banknote,
+  Clock,
 } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
@@ -351,6 +352,7 @@ export default function TrabajadoresPage() {
     | 'department' | 'regimen' | 'terminate'
     | 'enroll-course' | 'generate-payslips' | 'capacitacion' | 'entrega-epp'
     | 'transfer-area' | 'salary-raise' | 'renew-contracts' | 'terminate-liquidacion'
+    | 'set-schedule'
     | null
   const [bulkModal, setBulkModal] = useState<BulkModalKind>(null)
   const [bulkDeptInput, setBulkDeptInput] = useState('')
@@ -400,6 +402,14 @@ export default function TrabajadoresPage() {
     tipoCese: 'MUTUO_DISENSO',
     fechaCese: new Date().toISOString().split('T')[0] ?? '',
     motivoCese: '',
+  })
+  // Fase 1.2 — Asignar horario laboral masivo
+  const [bulkScheduleForm, setBulkScheduleForm] = useState({
+    expectedClockInHour: 8,
+    expectedClockInMinute: 0,
+    expectedClockOutHour: 17,
+    expectedClockOutMinute: 0,
+    lateToleranceMinutes: 15,
   })
 
   // Lazy-load del catálogo de cursos cuando se abre el modal de "Asignar curso"
@@ -1236,6 +1246,24 @@ export default function TrabajadoresPage() {
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-[color:var(--text-primary)]">Aplicar aumento de sueldo</span>
                   <span className="text-[11px] text-[color:var(--text-tertiary)]">% o monto fijo a la selección</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setBulkScheduleForm({
+                    expectedClockInHour: 8,
+                    expectedClockInMinute: 0,
+                    expectedClockOutHour: 17,
+                    expectedClockOutMinute: 0,
+                    lateToleranceMinutes: 15,
+                  })
+                  setBulkModal('set-schedule')
+                }}
+              >
+                <Clock className="w-4 h-4 text-emerald-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Asignar horario laboral</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Entrada/salida + tolerancia (R.M. 037)</span>
                 </div>
               </DropdownMenuItem>
 
@@ -2311,6 +2339,148 @@ export default function TrabajadoresPage() {
               >
                 {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Banknote className="w-3.5 h-3.5" />}
                 Terminar y liquidar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Asignar horario laboral (Fase 1.2) */}
+      {bulkModal === 'set-schedule' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Asignar horario laboral</h3>
+                  <p className="text-xs text-gray-500">
+                    {selected.size} {selected.size === 1 ? 'trabajador' : 'trabajadores'} seleccionados
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBulkModal(null)}
+                className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Hora entrada
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      step={1}
+                      value={bulkScheduleForm.expectedClockInHour}
+                      onChange={(e) => setBulkScheduleForm(f => ({
+                        ...f,
+                        expectedClockInHour: Math.max(0, Math.min(23, Math.floor(Number(e.target.value) || 0))),
+                      }))}
+                      className="w-14 px-2 py-2 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-lg text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40"
+                    />
+                    <span className="text-slate-400">:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      step={1}
+                      value={bulkScheduleForm.expectedClockInMinute}
+                      onChange={(e) => setBulkScheduleForm(f => ({
+                        ...f,
+                        expectedClockInMinute: Math.max(0, Math.min(59, Math.floor(Number(e.target.value) || 0))),
+                      }))}
+                      className="w-14 px-2 py-2 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-lg text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                    Hora salida
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      step={1}
+                      value={bulkScheduleForm.expectedClockOutHour}
+                      onChange={(e) => setBulkScheduleForm(f => ({
+                        ...f,
+                        expectedClockOutHour: Math.max(0, Math.min(23, Math.floor(Number(e.target.value) || 0))),
+                      }))}
+                      className="w-14 px-2 py-2 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-lg text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40"
+                    />
+                    <span className="text-slate-400">:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      step={1}
+                      value={bulkScheduleForm.expectedClockOutMinute}
+                      onChange={(e) => setBulkScheduleForm(f => ({
+                        ...f,
+                        expectedClockOutMinute: Math.max(0, Math.min(59, Math.floor(Number(e.target.value) || 0))),
+                      }))}
+                      className="w-14 px-2 py-2 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-lg text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Tolerancia (minutos)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={120}
+                  step={1}
+                  value={bulkScheduleForm.lateToleranceMinutes}
+                  onChange={(e) => setBulkScheduleForm(f => ({
+                    ...f,
+                    lateToleranceMinutes: Math.max(0, Math.min(120, Math.floor(Number(e.target.value) || 0))),
+                  }))}
+                  className="w-32 px-3 py-2 border border-[color:var(--border-default)] bg-white text-slate-900 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Margen de gracia post-hora de entrada (0-120 min). Después es tardanza.
+                </p>
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-700">
+                  R.M. 037-2024-TR exige documentar la política de entrada y tolerancia.
+                  Se aplica a workers no cesados. Cesados se ignoran.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[color:var(--border-default)] bg-[color:var(--neutral-50)] rounded-b-2xl">
+              <button
+                onClick={() => setBulkModal(null)}
+                className="px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleBulkAction('set-schedule', bulkScheduleForm)}
+                disabled={
+                  bulkLoading ||
+                  bulkScheduleForm.expectedClockOutHour * 60 + bulkScheduleForm.expectedClockOutMinute <=
+                    bulkScheduleForm.expectedClockInHour * 60 + bulkScheduleForm.expectedClockInMinute
+                }
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
+                Aplicar a {selected.size}
               </button>
             </div>
           </div>
