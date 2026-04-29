@@ -10,6 +10,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Upload,
   Download,
   X,
@@ -21,18 +22,34 @@ import {
   Calendar,
   TrendingUp,
   AlertCircle,
+  AlertTriangle,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ArrowRight,
   Wallet,
   BarChart2,
   Building2,
+  MoreHorizontal,
+  Mail,
+  FileText,
+  Bell,
+  ShieldCheck,
+  FilePlus2,
 } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { KpiCard, KpiGrid } from '@/components/comply360/kpi-card'
 import { PremiumEmptyState } from '@/components/comply360/premium-empty-state'
 import { confirm } from '@/components/ui/confirm-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown'
 import { toast } from 'sonner'
 
 interface WorkerStats {
@@ -65,6 +82,12 @@ interface WorkerItem {
   photoUrl?: string | null
   /** Bio breve (max 200 chars) — humaniza el card del admin. */
   bio?: string | null
+  /** Conteo de alertas críticas/altas activas (para badge "EN RIESGO"). */
+  alertCount?: number
+  /** True si el worker ya activó su portal (Worker.userId != null). */
+  hasAccount?: boolean
+  /** Email del worker (para acción "Reenviar invitación"). */
+  email?: string | null
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -351,6 +374,34 @@ export default function TrabajadoresPage() {
     window.open(`/api/export?type=workers&format=xlsx&ids=${ids}`, '_blank')
   }
 
+  // Reenvía la invitación al portal del worker reusando el endpoint de
+  // onboarding-cascade en modo "solo email" (no re-pide legajo).
+  const handleResendInvite = useCallback(async (worker: WorkerItem) => {
+    const fullName = displayWorkerName(worker.firstName, worker.lastName)
+    if (!worker.email) {
+      toast.error(`${fullName} no tiene email registrado. Edítalo y agrega uno antes de invitarlo.`)
+      return
+    }
+    const tid = `invite-${worker.id}`
+    toast.loading(`Enviando invitación a ${fullName}...`, { id: tid })
+    try {
+      const res = await fetch(`/api/workers/${worker.id}/onboarding-cascade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true, sendEmail: true, requestLegajo: false }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo reenviar la invitación')
+      if (data.data?.emailSent) {
+        toast.success(`Invitación enviada a ${worker.email}`, { id: tid })
+      } else {
+        toast.error(data.message || 'El email no pudo enviarse. Revisa la configuración.', { id: tid })
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al reenviar invitación', { id: tid })
+    }
+  }, [])
+
   // Clear selection when page/filter/sort changes
   useEffect(() => { setSelected(new Set()) }, [pagination.page, statusFilter, regimenFilter, departmentFilter, search, sortBy, sortDir])
 
@@ -384,27 +435,46 @@ export default function TrabajadoresPage() {
         subtitle="Registra, importa y mantén al día a todos tus trabajadores desde un solo lugar. Su legajo alimenta tu score de compliance."
         actions={
           <>
-            <a
-              href="/api/export?type=workers&format=xlsx"
-              className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-500/60 transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Exportar Excel
-            </a>
-            <button
-              onClick={() => { setShowPayroll(true); resetPayroll() }}
-              className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-500/60 transition-colors"
-            >
-              <History className="w-3.5 h-3.5" />
-              Importar Historial
-            </button>
-            <button
-              onClick={() => { setShowImport(true); resetImport() }}
-              className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-500/60 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Importar Trabajadores
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-500/60 transition-colors data-[state=open]:border-emerald-500/60"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Importar / Exportar
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[260px]">
+                <DropdownMenuLabel>Importar</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => { setShowImport(true); resetImport() }}>
+                  <Upload className="w-4 h-4 text-emerald-600" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Importar Trabajadores</span>
+                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Excel o CSV con tu planilla</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { setShowPayroll(true); resetPayroll() }}>
+                  <History className="w-4 h-4 text-emerald-600" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Importar Historial</span>
+                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Boletas y pagos pasados</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Exportar</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <a href="/api/export?type=workers&format=xlsx" className="cursor-pointer">
+                    <Download className="w-4 h-4 text-emerald-600" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-[color:var(--text-primary)]">Exportar Excel</span>
+                      <span className="text-[11px] text-[color:var(--text-tertiary)]">Toda tu planilla en .xlsx</span>
+                    </div>
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Link
               href="/dashboard/trabajadores/nuevo"
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors"
@@ -476,6 +546,41 @@ export default function TrabajadoresPage() {
           }
         />
       </KpiGrid>
+
+      {/* CTA accionable: si hay trabajadores con legajo incompleto, ofrecemos
+          un atajo para reordenar la tabla por score asc — lleva al admin
+          directo a los casos más urgentes sin pelear con filtros. */}
+      {stats && stats.lowLegajoCount > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-4 h-4 text-amber-700" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-amber-900">
+                {stats.lowLegajoCount === 1
+                  ? '1 trabajador tiene su legajo incompleto'
+                  : `${stats.lowLegajoCount} trabajadores tienen su legajo incompleto`}
+              </p>
+              <p className="text-[11px] text-amber-800/80">
+                Sin legajo completo no podemos calcular bien beneficios ni protegerte de multas SUNAFIL.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSortBy('legajoScore')
+              setSortDir('asc')
+              setPagination(p => ({ ...p, page: 1 }))
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors flex-shrink-0"
+          >
+            Completar legajos ahora
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
@@ -638,6 +743,7 @@ export default function TrabajadoresPage() {
                     </button>
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Riesgo</th>
                   <th className="text-right px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
@@ -707,21 +813,38 @@ export default function TrabajadoresPage() {
                       </td>
                       <td className="px-6 py-4">
                         {worker.legajoScore != null ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-12 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
-                              <div
-                                className={cn(
-                                  'h-full rounded-full',
-                                  worker.legajoScore >= 70 ? 'bg-green-500' :
-                                  worker.legajoScore >= 40 ? 'bg-amber-500' : 'bg-red-500'
-                                )}
-                                style={{ width: `${worker.legajoScore}%` }}
-                              />
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-12 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full',
+                                    worker.legajoScore >= 70 ? 'bg-green-500' :
+                                    worker.legajoScore >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                                  )}
+                                  style={{ width: `${worker.legajoScore}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-400">{worker.legajoScore}%</span>
                             </div>
-                            <span className="text-xs text-gray-400">{worker.legajoScore}%</span>
+                            {worker.legajoScore < 100 && (
+                              <Link
+                                href={`/dashboard/trabajadores/${worker.id}?tab=legajo`}
+                                className="text-[11px] font-medium text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-0.5"
+                              >
+                                Subir docs
+                                <ArrowRight className="w-3 h-3" />
+                              </Link>
+                            )}
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-500">—</span>
+                          <Link
+                            href={`/dashboard/trabajadores/${worker.id}?tab=legajo`}
+                            className="text-[11px] font-medium text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-0.5"
+                          >
+                            Subir docs
+                            <ArrowRight className="w-3 h-3" />
+                          </Link>
                         )}
                       </td>
                       <td className="px-6 py-4">
@@ -729,8 +852,111 @@ export default function TrabajadoresPage() {
                           {st.label}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        {(worker.alertCount ?? 0) > 0 ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200"
+                            title="Este trabajador tiene alertas críticas o altas activas"
+                          >
+                            <AlertTriangle className="w-3 h-3" />
+                            {worker.alertCount} {worker.alertCount === 1 ? 'alerta' : 'alertas'}
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            title="Sin alertas críticas activas"
+                          >
+                            <ShieldCheck className="w-3 h-3" />
+                            Sin alertas
+                          </span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* Acciones rápidas — agrupadas en dropdown para no saturar la fila.
+                              Las URLs llevan al admin a la pantalla correspondiente con
+                              autofill por query string cuando aplica. */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors data-[state=open]:bg-primary/10 data-[state=open]:text-primary"
+                                title="Más acciones"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="min-w-[240px]">
+                              <DropdownMenuLabel>Acciones rápidas</DropdownMenuLabel>
+                              <DropdownMenuItem
+                                disabled={!worker.email}
+                                onSelect={() => handleResendInvite(worker)}
+                              >
+                                <Mail className="w-4 h-4 text-emerald-600" />
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-[color:var(--text-primary)]">
+                                    {worker.hasAccount ? 'Reenviar invitación' : 'Invitar al portal'}
+                                  </span>
+                                  <span className="text-[11px] text-[color:var(--text-tertiary)]">
+                                    {worker.email ? worker.email : 'Sin email registrado'}
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/dashboard/contratos/nuevo?dni=${encodeURIComponent(worker.dni)}&workerName=${encodeURIComponent(displayWorkerName(worker.firstName, worker.lastName))}&cargo=${encodeURIComponent(worker.position ?? '')}&sueldo=${worker.sueldoBruto}`}
+                                  className="cursor-pointer"
+                                >
+                                  <FilePlus2 className="w-4 h-4 text-emerald-600" />
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Generar contrato</span>
+                                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Pre-llenado con sus datos</span>
+                                  </div>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/dashboard/trabajadores/${worker.id}?tab=alertas`}
+                                  className="cursor-pointer"
+                                >
+                                  <Bell className={cn(
+                                    'w-4 h-4',
+                                    (worker.alertCount ?? 0) > 0 ? 'text-red-600' : 'text-emerald-600',
+                                  )} />
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Ver alertas</span>
+                                    <span className="text-[11px] text-[color:var(--text-tertiary)]">
+                                      {(worker.alertCount ?? 0) > 0
+                                        ? `${worker.alertCount} ${worker.alertCount === 1 ? 'activa' : 'activas'}`
+                                        : 'Sin alertas activas'}
+                                    </span>
+                                  </div>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/dashboard/calculadoras/cts?dni=${encodeURIComponent(worker.dni)}`}
+                                  className="cursor-pointer"
+                                >
+                                  <Wallet className="w-4 h-4 text-emerald-600" />
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-[color:var(--text-primary)]">Calcular CTS</span>
+                                    <span className="text-[11px] text-[color:var(--text-tertiary)]">Compensación semestral</span>
+                                  </div>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/dashboard/trabajadores/${worker.id}`}
+                                  className="cursor-pointer"
+                                >
+                                  <FileText className="w-4 h-4 text-[color:var(--text-secondary)]" />
+                                  <span className="text-sm font-medium text-[color:var(--text-primary)]">Ver perfil completo</span>
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Link
                             href={`/dashboard/trabajadores/${worker.id}`}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"

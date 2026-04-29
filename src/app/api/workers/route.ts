@@ -147,18 +147,36 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
         // Personalización subida por el worker desde su portal
         photoUrl: true,
         bio: true,
+        // Vinculación con cuenta del worker (para mostrar "invitación enviada/abierta")
+        userId: true,
+        email: true,
+        // Conteo de alertas críticas activas — para badge "EN RIESGO" en la fila
+        _count: {
+          select: {
+            alerts: {
+              where: { resolvedAt: null, severity: { in: ['CRITICAL', 'HIGH'] } },
+            },
+          },
+        },
       },
     }),
     prisma.worker.count({ where }),
   ])
 
   return NextResponse.json({
-    data: workers.map(w => ({
-      ...w,
-      sueldoBruto: Number(w.sueldoBruto),
-      fechaIngreso: w.fechaIngreso.toISOString(),
-      createdAt: w.createdAt.toISOString(),
-    })),
+    data: workers.map(w => {
+      const { _count, ...rest } = w
+      return {
+        ...rest,
+        sueldoBruto: Number(w.sueldoBruto),
+        fechaIngreso: w.fechaIngreso.toISOString(),
+        createdAt: w.createdAt.toISOString(),
+        // Aplanar _count para el frontend
+        alertCount: _count?.alerts ?? 0,
+        // hasAccount: el worker ya activó su portal (vinculó cuenta Clerk)
+        hasAccount: !!w.userId,
+      }
+    }),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   })
 })
