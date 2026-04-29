@@ -5,8 +5,11 @@ import type { AuthContext } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
 /**
- * GET /api/export?type=workers|calculations|diagnostics&format=xlsx|csv
+ * GET /api/export?type=workers|calculations|diagnostics|contracts|alerts|legajo-inventory&format=xlsx|csv
  * Downloads an Excel or CSV file with org data.
+ *
+ * Para legajo-inventory: usar `?ids=` (CSV de worker IDs) para filtrar a una selección.
+ * Genera un row por documento con info del worker — útil para auditorías SUNAFIL.
  */
 export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
@@ -230,8 +233,71 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     filename = `alertas_${new Date().toISOString().split('T')[0]}`
   }
 
+  else if (type === 'legajo-inventory') {
+    // Inventario de WorkerDocuments — un row por doc con datos del worker al lado.
+    // Útil para auditorías SUNAFIL: el inspector pivota por DNI o por categoría.
+    const docs = await prisma.workerDocument.findMany({
+      where: {
+        worker: {
+          orgId,
+          ...(ids ? { id: { in: ids.split(',') } } : {}),
+        },
+      },
+      orderBy: [
+        { worker: { lastName: 'asc' } },
+        { category: 'asc' },
+        { documentType: 'asc' },
+      ],
+      select: {
+        category: true,
+        documentType: true,
+        title: true,
+        status: true,
+        isRequired: true,
+        expiresAt: true,
+        verifiedAt: true,
+        verifiedBy: true,
+        fileUrl: true,
+        createdAt: true,
+        worker: {
+          select: {
+            dni: true,
+            firstName: true,
+            lastName: true,
+            position: true,
+            department: true,
+            status: true,
+            legajoScore: true,
+          },
+        },
+      },
+    })
+
+    rows = docs.map(d => ({
+      'DNI': d.worker.dni ?? '',
+      'Apellidos': d.worker.lastName,
+      'Nombres': d.worker.firstName,
+      'Cargo': d.worker.position ?? '',
+      'Area': d.worker.department ?? '',
+      'Estado Trabajador': d.worker.status,
+      'Score Legajo (%)': d.worker.legajoScore ?? 0,
+      'Categoria Doc': d.category,
+      'Tipo Doc': d.documentType,
+      'Titulo': d.title,
+      'Estado Doc': d.status,
+      'Obligatorio': d.isRequired ? 'Si' : 'No',
+      'Tiene Archivo': d.fileUrl ? 'Si' : 'No',
+      'Verificado': d.verifiedAt ? new Date(d.verifiedAt).toLocaleDateString('es-PE') : '',
+      'Verificado Por': d.verifiedBy ?? '',
+      'Vence': d.expiresAt ? new Date(d.expiresAt).toLocaleDateString('es-PE') : '',
+      'Fecha Carga': new Date(d.createdAt).toLocaleDateString('es-PE'),
+    }))
+    sheetName = 'Inventario Legajo'
+    filename = `inventario_legajo_${new Date().toISOString().split('T')[0]}`
+  }
+
   else {
-    return NextResponse.json({ error: `Tipo no reconocido: ${type}. Use workers, calculations, diagnostics, contracts o alerts.` }, { status: 400 })
+    return NextResponse.json({ error: `Tipo no reconocido: ${type}. Use workers, calculations, diagnostics, contracts, alerts o legajo-inventory.` }, { status: 400 })
   }
 
   // Build workbook
