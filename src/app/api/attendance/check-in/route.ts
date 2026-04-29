@@ -23,7 +23,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     return NextResponse.json({ error: 'lat y lng son requeridos (number)' }, { status: 400 })
   }
 
-  const fences = listFences(ctx.orgId)
+  const fences = await listFences(ctx.orgId)
   const result = checkAttendance(fences, {
     point: { lat: body.lat, lng: body.lng },
     accuracyMeters: body.accuracyMeters,

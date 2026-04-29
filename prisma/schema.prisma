@@ -1339,6 +1339,74 @@ enum AttendanceStatus {
   ON_LEAVE
 }
 
+/// Geocercas persistentes (Fase 4 — Asistencia).
+/// Antes vivían en Map<orgId, Geofence[]> en memoria, lo que se rompía en
+/// Vercel multi-instance y al hacer rolling deploy. Ahora son persistentes.
+model Geofence {
+  id           String       @id @default(cuid())
+  orgId        String       @map("org_id")
+  name         String
+  type         GeofenceType
+  // CIRCLE: center + radius
+  centerLat    Decimal?     @map("center_lat") @db.Decimal(10, 7)
+  centerLng    Decimal?     @map("center_lng") @db.Decimal(10, 7)
+  radiusMeters Int?         @map("radius_meters")
+  // POLYGON: array de vertices [{lat,lng}, ...]
+  vertices     Json?
+  // Identificador opcional del local/obra/sede para reportes por ubicación
+  locationId   String?      @map("location_id")
+  isActive     Boolean      @default(true) @map("is_active")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  @@index([orgId, isActive])
+  @@map("geofences")
+}
+
+enum GeofenceType {
+  CIRCLE
+  POLYGON
+}
+
+/// Log de intentos de fichado (Fase 4 — anti-fraude).
+/// Persiste TODOS los intentos: exitosos y fallidos. Permite detectar patrones
+/// sospechosos (muchos intentos fallidos por geofence_out, brute-force de PIN,
+/// tokens reutilizados, etc.). TTL 30 días via cron de cleanup.
+model AttendanceAttempt {
+  id          String                  @id @default(cuid())
+  orgId       String                  @map("org_id")
+  workerId    String?                 @map("worker_id")
+  result      AttendanceAttemptResult
+  reason      String?                 // detalle del fallo si result != SUCCESS
+  via         String?                 // "qr" | "pin" | "code" | "kiosko"
+  geoLat      Decimal?                @map("geo_lat") @db.Decimal(10, 7)
+  geoLng      Decimal?                @map("geo_lng") @db.Decimal(10, 7)
+  geoAccuracy Decimal?                @map("geo_accuracy") @db.Decimal(8, 2)
+  ipAddress   String?                 @map("ip_address")
+  userAgent   String?                 @map("user_agent") @db.Text
+  metadataJson Json?                  @map("metadata_json")
+  createdAt   DateTime                @default(now()) @map("created_at")
+
+  @@index([orgId, createdAt])
+  @@index([workerId, createdAt])
+  @@index([result, createdAt])
+  @@map("attendance_attempts")
+}
+
+enum AttendanceAttemptResult {
+  SUCCESS
+  TOKEN_EXPIRED
+  TOKEN_INVALID
+  ORG_MISMATCH
+  GEOFENCE_OUT
+  GEOLOCATION_REQUIRED
+  PIN_WRONG
+  RATE_LIMITED
+  ALREADY_CLOCKED
+  WORKER_NOT_FOUND
+  ERROR
+}
+
 // =============================================
 // PORTAL DEL TRABAJADOR
 // Modelos para que cada empleado tenga acceso
