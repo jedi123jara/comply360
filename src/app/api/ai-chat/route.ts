@@ -93,7 +93,35 @@ export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
       },
     })
   } catch (error) {
+    // Logueamos el error completo (stack trace) en server logs Vercel
     console.error('AI chat error:', error)
-    return NextResponse.json({ error: 'Failed to generate response' }, { status: 500 })
+    if (error instanceof Error && error.stack) {
+      console.error('AI chat stack:', error.stack)
+    }
+
+    // Retornamos detalle del error para debugging — antes era opaco
+    // ("Failed to generate response") y eso impedía diagnosticar problemas
+    // de auth/key/quota desde el cliente. En producción sigue siendo un 500
+    // pero con info útil. Si en el futuro quieres ocultar detalles, cambia
+    // a process.env.NODE_ENV === 'production' ? generic : detail.
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorName = error instanceof Error ? error.name : 'UnknownError'
+
+    return NextResponse.json(
+      {
+        error: 'Failed to generate response',
+        detail: errorMessage.slice(0, 500), // truncado para no leak demasiado
+        errorType: errorName,
+        provider: detectProvider(),
+        hint: errorMessage.toLowerCase().includes('api key') || errorMessage.toLowerCase().includes('unauthorized')
+          ? 'Probablemente la API key de DeepSeek u OpenAI es inválida o falta. Verifica DEEPSEEK_API_KEY y OPENAI_API_KEY en Vercel.'
+          : errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate limit')
+            ? 'Cuota o rate limit excedido en el provider de IA.'
+            : errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('econnreset')
+              ? 'Timeout o problema de red con el provider de IA.'
+              : 'Error inesperado del provider de IA. Revisa los logs de Vercel.',
+      },
+      { status: 500 },
+    )
   }
 })
