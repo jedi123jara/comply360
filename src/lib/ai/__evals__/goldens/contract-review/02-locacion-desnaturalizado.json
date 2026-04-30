@@ -1,0 +1,19 @@
+{
+  "id": "review-locacion-desnaturalizado-01",
+  "description": "Locación de servicios con elementos de subordinación → debe detectar riesgo CRITICAL",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres un abogado laboralista peruano. Respondes SOLO con JSON válido. Detectas desnaturalización." },
+      { "role": "user", "content": "Analiza este contrato de locación de servicios:\n\nCONTRATO DE LOCACIÓN DE SERVICIOS\nEntre Empresa XYZ ([RUC_1]) y [DNI_1] (locador).\nObjeto: prestar servicios de asistencia administrativa.\nHorario: lunes a viernes de 9:00 a 18:00 en oficinas del comitente.\nExclusividad: el locador no podrá prestar servicios a terceros mientras dure este contrato.\nHonorarios: S/ 2,500 mensuales.\nDuración: indefinida.\nReporta a: Gerente de Operaciones.\n\nRetorna JSON {overallScore, riskLevel, risks[], compliance[], clausulasObligatorias[], resumenEjecutivo, multaEstimadaUIT}." }
+    ],
+    "options": { "feature": "contract-review", "temperature": 0.2, "maxTokens": 4000, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "riskLevel": { "oneOf": ["HIGH", "CRITICAL"] },
+      "multaEstimadaUIT": { "min": 1 }
+    },
+    "containsAny": ["desnaturalización", "desnaturalizacion", "subordinación", "subordinacion", "principio de primacía"]
+  },
+  "tags": ["locacion", "desnaturalizacion", "critical"]
+}

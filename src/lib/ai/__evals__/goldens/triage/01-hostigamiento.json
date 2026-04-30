@@ -1,0 +1,18 @@
+{
+  "id": "triage-hostigamiento-01",
+  "description": "Denuncia de hostigamiento sexual por superior jerárquico",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Clasificas denuncias de canal interno conforme a Ley 27942. Respondes solo con JSON {tipoReclamo, categoria, prioridad, respuestaRecomendada}." },
+      { "role": "user", "content": "Denuncia anónima: 'Mi jefe directo me ha invitado a salir varias veces a pesar de mis negativas, y ahora me asigna turnos malos cuando le digo que no. Tengo screenshots de los mensajes.'" }
+    ],
+    "options": { "feature": "complaint-triage", "temperature": 0.1, "maxTokens": 800, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "tipoReclamo": { "exists": true, "contains": "hostigamiento" },
+      "prioridad": { "oneOf": ["ALTA", "CRITICA", "alta", "critica"] }
+    }
+  },
+  "tags": ["hostigamiento", "ley-27942"]
+}

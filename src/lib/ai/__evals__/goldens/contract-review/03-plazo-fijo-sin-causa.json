@@ -1,0 +1,18 @@
+{
+  "id": "review-plazo-fijo-sin-causa-01",
+  "description": "Plazo fijo SIN causa objetiva → debe marcar incumplimiento de Art. 53 D.Leg. 728",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres un abogado laboralista peruano. Respondes SOLO con JSON válido. Identificas la AUSENCIA de cláusulas obligatorias." },
+      { "role": "user", "content": "Analiza este contrato a plazo fijo:\n\nCONTRATO DE TRABAJO A PLAZO FIJO\nEntre [RUC_1] y [DNI_1].\nCargo: Vendedor.\nFecha de inicio: 1 de marzo de 2026.\nFecha de fin: 28 de febrero de 2027.\nRemuneración: S/ 1,500.\nJornada: 8h/día.\nPeríodo de prueba: 3 meses.\n\nRetorna JSON {overallScore, riskLevel, risks[], compliance[], clausulasObligatorias[], resumenEjecutivo, multaEstimadaUIT}." }
+    ],
+    "options": { "feature": "contract-review", "temperature": 0.2, "maxTokens": 4000, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "riskLevel": { "oneOf": ["MEDIUM", "HIGH", "CRITICAL"] }
+    },
+    "containsAny": ["causa objetiva", "Art. 53", "modalidad", "53 del D.Leg", "53 del Decreto"]
+  },
+  "tags": ["plazo-fijo", "causa-objetiva"]
+}

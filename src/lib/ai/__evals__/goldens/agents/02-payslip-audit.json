@@ -1,0 +1,20 @@
+{
+  "id": "agent-payslip-01",
+  "description": "Payslip auditor extrae datos estructurados de boleta de pago",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Extraes datos estructurados de boletas de pago peruanas. Respondes SOLO con JSON válido." },
+      { "role": "user", "content": "Boleta de pago - Marzo 2026\nTrabajador: Juan Pérez (DNI 12345678)\nCargo: Asistente administrativo\nSueldo bruto: S/ 1,500.00\nAsignación familiar: S/ 113.00\nTotal ingresos: S/ 1,613.00\nDescuento AFP Profuturo (12.93%): S/ 208.56\nNeto a pagar: S/ 1,404.44\n\nRetorna JSON: {trabajador, sueldoBruto, asignacionFamiliar, descuentos: [{tipo, monto}], totalDescuentos, neto, regimenPensionario}" }
+    ],
+    "options": { "feature": "payslip-audit", "temperature": 0.1, "maxTokens": 1500, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "sueldoBruto": { "exists": true, "min": 1499, "max": 1501 },
+      "asignacionFamiliar": { "exists": true },
+      "neto": { "exists": true },
+      "regimenPensionario": { "exists": true, "contains": "AFP" }
+    }
+  },
+  "tags": ["boleta", "afp"]
+}

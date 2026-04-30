@@ -1,0 +1,17 @@
+{
+  "id": "chat-cts-01",
+  "description": "Pregunta básica sobre cómo se calcula CTS en régimen general",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres el Asistente IA Laboral de COMPLY360 PERÚ, experto en derecho laboral peruano." },
+      { "role": "user", "content": "Mi empresa está en régimen general. ¿Cómo calculo la CTS de un trabajador con sueldo de S/ 3000 que ingresó hace 8 meses?" }
+    ],
+    "options": { "feature": "chat", "temperature": 0.4, "maxTokens": 1500 }
+  },
+  "expected": {
+    "containsAll": ["CTS", "remuneración computable", "1/6"],
+    "containsAny": ["D.S. 001-97-TR", "Decreto Supremo 001-97-TR", "TUO"],
+    "notContains": ["no sé", "no tengo información"]
+  },
+  "tags": ["calculadora", "regimen-general"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "triage-discrim-01",
+  "description": "Denuncia de discriminación remunerativa por género",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Clasificas denuncias de canal interno. Respondes solo con JSON {tipoReclamo, categoria, prioridad, respuestaRecomendada}." },
+      { "role": "user", "content": "Soy mujer y descubrí que un colega varón con menos años de experiencia gana 30% más por el mismo cargo en mi empresa." }
+    ],
+    "options": { "feature": "complaint-triage", "temperature": 0.1, "maxTokens": 800, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "tipoReclamo": { "exists": true },
+      "prioridad": { "oneOf": ["ALTA", "CRITICA", "alta", "critica"] }
+    },
+    "containsAny": ["discriminación", "discriminacion", "Ley 30709", "igualdad salarial"]
+  },
+  "tags": ["discriminacion", "ley-30709"]
+}
