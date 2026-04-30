@@ -20,13 +20,25 @@ export type AIProvider = 'openai' | 'anthropic' | 'ollama' | 'deepseek' | 'groq'
 
 /** Features que pueden usar diferentes providers via env vars */
 export type AIFeature =
+  // ── Tier Flash (chat / clasificación / extracción) ─────────────────────
   | 'chat'             // Asistente IA del dashboard
   | 'worker-chat'      // Chatbot del trabajador en /mi-portal
+  | 'complaint-triage' // Triaje de denuncias del canal
+  | 'norm-classifier'  // Clasificador del crawler normativo
+  | 'pdf-extract'      // Extracción batch de trabajadores desde PDF
+  | 'doc-generator'    // Generadores SST + compliance docs
+  // ── Tier Pro (legal high-stakes) ───────────────────────────────────────
   | 'contract-review'  // Revisión de contratos
   | 'contract-gen'     // Generación de contratos con IA
+  | 'contract-fix'     // Auto-fix de contratos
   | 'action-plan'      // Plan de acción tras diagnóstico
   | 'pliego-analysis'  // Análisis de pliego de reclamos
-  | 'rag-embed'        // Embeddings para RAG
+  | 'sunafil-agent'    // Agente analista SUNAFIL (acta + descargos)
+  | 'payslip-audit'    // Auditor de boletas
+  | 'descargo-writer'  // Redactor de descargos
+  // ── Excepciones OpenAI ─────────────────────────────────────────────────
+  | 'rag-embed'        // Embeddings para RAG (text-embedding-3-small)
+  | 'document-vision'  // Vision Fase 3.5 (gpt-4o-mini)
 
 export interface AICallOptions {
   temperature?: number
@@ -108,24 +120,27 @@ function getGroqKeyCount(): number {
  *   CONTRACT_REVIEW_AI_PROVIDER=deepseek    (vuelve a DeepSeek)
  *   CONTRACT_GEN_AI_PROVIDER=openai         (usa GPT-4o)
  */
-const LEGAL_HIGH_STAKES_FEATURES: AIFeature[] = [
-  'contract-review',
-  'contract-gen',
-  'action-plan',
-  'pliego-analysis',
-]
+// ─── Routing declarativo por feature ─────────────────────────────────────
+// FEATURE_ROUTING (en feature-routing.ts) es la fuente única de verdad.
+// Las listas debajo se mantienen por compat hacia atrás con detectProvider
+// pero ahora se derivan automáticamente del mapping.
+import { FEATURE_ROUTING, tierToDeepSeekModel, getFeatureConfig } from './feature-routing'
+import { redactPii, unredact, type RedactOptions } from './pii-redactor'
 
-/**
- * Features de chat / conversación general — priorizan costo bajo + velocidad.
- * Usan DeepSeek V4 Flash por default (3¢ por 1000 chats).
- */
-const CHAT_FEATURES: AIFeature[] = ['chat', 'worker-chat']
+const LEGAL_HIGH_STAKES_FEATURES: AIFeature[] = (
+  Object.entries(FEATURE_ROUTING) as Array<[AIFeature, typeof FEATURE_ROUTING[AIFeature]]>
+)
+  .filter(([, cfg]) => cfg.tier === 'pro')
+  .map(([feature]) => feature)
 
-/**
- * Features de embeddings (RAG vectorial) — solo OpenAI por ahora.
- * DeepSeek/Anthropic/Groq no exponen embeddings competitivos.
- */
+const CHAT_FEATURES: AIFeature[] = (
+  Object.entries(FEATURE_ROUTING) as Array<[AIFeature, typeof FEATURE_ROUTING[AIFeature]]>
+)
+  .filter(([, cfg]) => cfg.tier === 'flash')
+  .map(([feature]) => feature)
+
 const EMBEDDING_FEATURES: AIFeature[] = ['rag-embed']
+const VISION_FEATURES: AIFeature[] = ['document-vision']
 
 export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeature }): AIProvider {
   // 1. Override directo
@@ -150,52 +165,42 @@ export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeatu
   if (explicit === 'deepseek') return 'deepseek'
   if (explicit === 'groq') return 'groq'
 
-  // 4. ─── Defaults inteligentes por tipo de feature ──────────────────────
-  //
-  // Si el repo tiene VARIAS keys configuradas, ruteamos automáticamente:
-  //   - Legal high-stakes  → Anthropic (calidad legal superior)
-  //   - Chat / conversación → DeepSeek (3¢ / 1000 requests)
-  //   - Embeddings RAG     → OpenAI (text-embedding-3-small)
-  //
-  // Sin sobrecargar al admin con configurar 5+ env vars.
+  // 4. ─── Routing declarativo desde FEATURE_ROUTING ─────────────────────
+  // FEATURE_ROUTING (feature-routing.ts) es la fuente única de verdad.
+  // Si la key del provider preferido está disponible, se usa. Si no, fallback.
   if (opts?.feature) {
-    // Legal high-stakes → Anthropic > DeepSeek > OpenAI
-    if (LEGAL_HIGH_STAKES_FEATURES.includes(opts.feature)) {
-      if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
-      if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
-      const openaiKey = process.env.OPENAI_API_KEY || ''
-      if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
-    }
-    // Chat → DeepSeek > Groq > Anthropic > OpenAI
-    if (CHAT_FEATURES.includes(opts.feature)) {
-      if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
-      if (process.env.GROQ_API_KEY) return 'groq'
-      if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
-      const openaiKey = process.env.OPENAI_API_KEY || ''
-      if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
-    }
-    // Embeddings → OpenAI obligatorio (DeepSeek/Anthropic no lo soportan bien)
-    if (EMBEDDING_FEATURES.includes(opts.feature)) {
-      const openaiKey = process.env.OPENAI_API_KEY || ''
-      if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
+    const cfg = FEATURE_ROUTING[opts.feature]
+    if (cfg) {
+      // Vision y embeddings: OpenAI obligatorio (DeepSeek no soporta).
+      if (VISION_FEATURES.includes(opts.feature) || EMBEDDING_FEATURES.includes(opts.feature)) {
+        const openaiKey = process.env.OPENAI_API_KEY || ''
+        if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
+        // Si no hay OpenAI y es vision/embeddings, falla explícito en callAI.
+      }
+      // Provider preferido del feature
+      if (cfg.provider === 'deepseek' && process.env.DEEPSEEK_API_KEY) return 'deepseek'
+      if (cfg.provider === 'openai' && process.env.OPENAI_API_KEY?.startsWith('sk-')) return 'openai'
+      if (cfg.provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) return 'anthropic'
+      if (cfg.provider === 'groq' && process.env.GROQ_API_KEY) return 'groq'
+      // Si el preferido no está, caer al global priority abajo.
     }
   }
 
-  // 5. Auto-detect global priority por costo/calidad (sin feature):
-  //    DeepSeek V4 (35x más barato que Claude Opus, calidad similar a Sonnet)
+  // 5. Auto-detect global priority (sin feature o feature sin key del preferido):
+  //    DeepSeek V4 es el motor único del producto; resto son fallback.
   if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
 
-  // 6. Anthropic (mejor para legal/razonamiento high-stakes)
-  if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
-
-  // 7. Groq (ultra-rápido, tier gratuito — bueno para chat)
-  if (process.env.GROQ_API_KEY) return 'groq'
-
-  // 8. OpenAI (vision, default histórico)
+  // 6. OpenAI (vision + embeddings + fallback general)
   const openaiKey = process.env.OPENAI_API_KEY || ''
   if (openaiKey && openaiKey !== 'sk-xxxxx' && openaiKey.startsWith('sk-')) {
     return 'openai'
   }
+
+  // 7. Anthropic (deprecated en este producto, mantener por compat)
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
+
+  // 8. Groq (deprecated, mantener por compat)
+  if (process.env.GROQ_API_KEY) return 'groq'
 
   // 9. Ollama (self-hosted, gratis pero requiere infra)
   if (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL) return 'ollama'
@@ -218,8 +223,17 @@ export function getModelName(opts?: { provider?: AIProvider; feature?: AIFeature
 
   if (provider === 'deepseek') {
     if (opts?.feature) {
-      const envKey = `${opts.feature.toUpperCase().replace(/-/g, '_')}_DEEPSEEK_MODEL`
-      if (process.env[envKey]) return process.env[envKey]!
+      // 1. Override directo del modelo por env (máxima precedencia)
+      const envKeyModel = `${opts.feature.toUpperCase().replace(/-/g, '_')}_DEEPSEEK_MODEL`
+      if (process.env[envKeyModel]) return process.env[envKeyModel]!
+      // 2. Override del TIER por env (flash | pro)
+      const envKeyTier = `${opts.feature.toUpperCase().replace(/-/g, '_')}_TIER`
+      const tierEnv = (process.env[envKeyTier] || '').toLowerCase().trim()
+      if (tierEnv === 'flash') return 'deepseek-chat'
+      if (tierEnv === 'pro') return 'deepseek-reasoner'
+      // 3. Tier declarativo desde FEATURE_ROUTING
+      const cfg = FEATURE_ROUTING[opts.feature]
+      if (cfg && cfg.tier) return tierToDeepSeekModel(cfg.tier)
     }
     // DeepSeek aliases auto-upgradan al modelo más reciente:
     //   - "deepseek-chat" → V4 Flash (1M context, $0.14/M input)
@@ -433,18 +447,38 @@ export async function callAI(
     // ── Telemetría de tokens ──────────────────────────────────────────────
     let promptTokens = 0
     let completionTokens = 0
+    let cachedTokens = 0
+    let reasoningTokens = 0
     if (provider === 'anthropic') {
       // Anthropic: usage.input_tokens / output_tokens
-      const u = data?.usage as { input_tokens?: number; output_tokens?: number } | undefined
+      // cache_read_input_tokens si activado prompt caching.
+      const u = data?.usage as {
+        input_tokens?: number
+        output_tokens?: number
+        cache_read_input_tokens?: number
+      } | undefined
       promptTokens = u?.input_tokens ?? 0
       completionTokens = u?.output_tokens ?? 0
+      cachedTokens = u?.cache_read_input_tokens ?? 0
     } else {
-      // OpenAI shape: usage.prompt_tokens / completion_tokens / total_tokens
+      // OpenAI/DeepSeek shape: usage.prompt_tokens / completion_tokens.
+      // DeepSeek devuelve `prompt_cache_hit_tokens` (cache hit) y
+      // `prompt_cache_miss_tokens` cuando el context cache está activo.
+      // DeepSeek-reasoner devuelve `completion_tokens_details.reasoning_tokens`.
       const u = data?.usage as
-        | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+        | {
+            prompt_tokens?: number
+            completion_tokens?: number
+            total_tokens?: number
+            prompt_cache_hit_tokens?: number
+            prompt_cache_miss_tokens?: number
+            completion_tokens_details?: { reasoning_tokens?: number }
+          }
         | undefined
       promptTokens = u?.prompt_tokens ?? 0
       completionTokens = u?.completion_tokens ?? 0
+      cachedTokens = u?.prompt_cache_hit_tokens ?? 0
+      reasoningTokens = u?.completion_tokens_details?.reasoning_tokens ?? 0
     }
     if (promptTokens > 0 || completionTokens > 0) {
       lastCallMetadata.set(messages, {
@@ -453,6 +487,8 @@ export async function callAI(
         promptTokens,
         completionTokens,
         totalTokens: promptTokens + completionTokens,
+        cachedTokens,
+        reasoningTokens,
       })
     }
 
@@ -479,6 +515,8 @@ const lastCallMetadata = new WeakMap<
     promptTokens: number
     completionTokens: number
     totalTokens: number
+    cachedTokens: number
+    reasoningTokens: number
   }
 >()
 
@@ -488,6 +526,10 @@ export interface AICallUsage {
   promptTokens: number
   completionTokens: number
   totalTokens: number
+  /** Tokens servidos desde context cache del provider (DeepSeek/Anthropic). */
+  cachedTokens: number
+  /** Tokens de reasoning interno (DeepSeek-reasoner / o1). */
+  reasoningTokens: number
   latencyMs: number
 }
 
@@ -516,6 +558,8 @@ export async function callAIWithUsage(
       promptTokens: meta?.promptTokens ?? 0,
       completionTokens: meta?.completionTokens ?? 0,
       totalTokens: meta?.totalTokens ?? 0,
+      cachedTokens: meta?.cachedTokens ?? 0,
+      reasoningTokens: meta?.reasoningTokens ?? 0,
       latencyMs,
     },
   }
@@ -587,6 +631,262 @@ export async function callAIWithFallback(
     lastError ??
     new Error('No hay providers de AI disponibles. Configura DEEPSEEK_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY / GROQ_API_KEY.')
   )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// callAIStream — streaming SSE para hot path (chat copilot, worker chat).
+// Devuelve un AsyncIterable de chunks que el endpoint API puede transmitir
+// directo como SSE al cliente.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface AIStreamChunk {
+  /** Delta de texto incremental. Vacío en el chunk final. */
+  delta: string
+  /** Verdadero solo en el último chunk del stream. */
+  done: boolean
+  /** Usage acumulado, solo presente cuando done=true. */
+  usage?: AICallUsage
+}
+
+export interface AIStreamOptions extends AICallOptions {
+  /** AbortSignal para cancelar el stream. */
+  signal?: AbortSignal
+  /**
+   * TTFT timeout en ms. Si el primer chunk no llega en este plazo, el stream
+   * lanza error y el caller puede caer a fallback. Default 5000.
+   */
+  firstTokenTimeoutMs?: number
+}
+
+/**
+ * Llama al LLM en modo stream. Yieldea chunks parsea SSE format del provider.
+ * Soporta DeepSeek, OpenAI, Groq (todos OpenAI-compatible).
+ * Lanza error si TTFT > firstTokenTimeoutMs (5s default) — el caller decide fallback.
+ */
+export async function* callAIStream(
+  messages: AIMessage[],
+  options: AIStreamOptions = {},
+): AsyncGenerator<AIStreamChunk, void, unknown> {
+  const { temperature = 0.4, maxTokens = 2000, jsonMode = false, provider: providerOpt, feature, signal, firstTokenTimeoutMs = 5000 } = options
+  const provider = detectProvider({ provider: providerOpt, feature })
+  const model = getModelName({ provider: providerOpt, feature })
+
+  if (provider === 'simulated') {
+    throw new Error('No AI provider configured')
+  }
+
+  // Construir URL/headers
+  let url: string
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (provider === 'deepseek') {
+    url = 'https://api.deepseek.com/v1/chat/completions'
+    headers['Authorization'] = `Bearer ${process.env.DEEPSEEK_API_KEY}`
+  } else if (provider === 'openai') {
+    url = 'https://api.openai.com/v1/chat/completions'
+    headers['Authorization'] = `Bearer ${process.env.OPENAI_API_KEY}`
+  } else if (provider === 'groq') {
+    url = 'https://api.groq.com/openai/v1/chat/completions'
+    headers['Authorization'] = `Bearer ${getGroqKey()}`
+  } else if (provider === 'ollama') {
+    const base = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '')
+    url = `${base}/v1/chat/completions`
+    headers['Authorization'] = 'Bearer ollama'
+  } else if (provider === 'anthropic') {
+    // Anthropic Messages API tiene streaming pero shape distinto. No lo usamos en hot path.
+    throw new Error('Anthropic streaming no soportado en este wrapper. Usa OpenAI/DeepSeek.')
+  } else {
+    throw new Error(`Provider ${provider} no soporta streaming`)
+  }
+
+  const body: Record<string, unknown> = {
+    model,
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+    stream: true,
+    stream_options: { include_usage: true }, // OpenAI-compatible: pide usage en el último chunk
+  }
+  if (jsonMode && (provider === 'openai' || provider === 'deepseek' || provider === 'groq')) {
+    body.response_format = { type: 'json_object' }
+  }
+
+  const controller = new AbortController()
+  const ttftTimer = setTimeout(() => controller.abort(new Error('TTFT timeout')), firstTokenTimeoutMs)
+  if (signal) {
+    if (signal.aborted) controller.abort(signal.reason)
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true })
+  }
+
+  const start = Date.now()
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    signal: controller.signal,
+  })
+
+  if (!response.ok) {
+    clearTimeout(ttftTimer)
+    const errText = await response.text().catch(() => '')
+    throw new Error(`${provider} stream error ${response.status}: ${errText.slice(0, 200)}`)
+  }
+
+  if (!response.body) {
+    clearTimeout(ttftTimer)
+    throw new Error('Response sin body — stream no soportado')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let firstTokenReceived = false
+  let promptTokens = 0
+  let completionTokens = 0
+  let cachedTokens = 0
+  let reasoningTokens = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      // Parsear SSE: cada evento es "data: {json}\n\n"
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        if (!trimmed.startsWith('data:')) continue
+        const payload = trimmed.slice(5).trim()
+        if (payload === '[DONE]') {
+          continue
+        }
+        let parsed: {
+          choices?: Array<{ delta?: { content?: string } }>
+          usage?: {
+            prompt_tokens?: number
+            completion_tokens?: number
+            prompt_cache_hit_tokens?: number
+            completion_tokens_details?: { reasoning_tokens?: number }
+          }
+        }
+        try {
+          parsed = JSON.parse(payload)
+        } catch {
+          continue
+        }
+        const delta = parsed.choices?.[0]?.delta?.content
+        if (delta) {
+          if (!firstTokenReceived) {
+            firstTokenReceived = true
+            clearTimeout(ttftTimer)
+          }
+          yield { delta, done: false }
+        }
+        if (parsed.usage) {
+          promptTokens = parsed.usage.prompt_tokens ?? promptTokens
+          completionTokens = parsed.usage.completion_tokens ?? completionTokens
+          cachedTokens = parsed.usage.prompt_cache_hit_tokens ?? cachedTokens
+          reasoningTokens = parsed.usage.completion_tokens_details?.reasoning_tokens ?? reasoningTokens
+        }
+      }
+    }
+  } finally {
+    clearTimeout(ttftTimer)
+    try { reader.releaseLock() } catch { /* noop */ }
+  }
+
+  const latencyMs = Date.now() - start
+  yield {
+    delta: '',
+    done: true,
+    usage: {
+      provider,
+      model,
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+      cachedTokens,
+      reasoningTokens,
+      latencyMs,
+    },
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// callAIRedacted — variante que redacta PII automáticamente antes de mandar
+// y restaura placeholders en la respuesta. Usar para todo entry point AI que
+// reciba contenido del usuario / contratos / boletas / denuncias.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface AIRedactedOptions extends AICallOptions {
+  /** Nombres del trabajador a redactar como [WORKER_N]. */
+  workerNames?: string[]
+  /** Si true, redacta también códigos médicos CIE-10. */
+  redactMedical?: boolean
+  /**
+   * Si true (default), restaura los placeholders en la respuesta antes de
+   * devolverla al caller. Si false, devuelve el response tal cual con [DNI_1] etc
+   * (útil cuando NO queremos exponer los datos al admin después del LLM).
+   */
+  unredactResponse?: boolean
+}
+
+/**
+ * Llama al LLM con redaction automática de PII antes y restauración después.
+ *
+ * Flujo:
+ *   1. Cada message.content pasa por redactPii() — DNIs, RUCs, emails, etc → placeholders.
+ *   2. Se envía al LLM.
+ *   3. La respuesta se desredacta (los placeholders vuelven a ser DNIs reales).
+ *
+ * El mapping nunca sale del proceso. El LLM solo ve placeholders.
+ *
+ * Usar SIEMPRE en: chat, worker-chat, complaint-triage, pdf-extract, action-plan,
+ * cualquier flujo donde el input contenga datos personales identificables.
+ */
+export async function callAIRedacted(
+  messages: AIMessage[],
+  options: AIRedactedOptions = {},
+): Promise<{ content: string; usage: AICallUsage; redactionCounts: Record<string, number> }> {
+  const redactOpts: RedactOptions = {
+    workerNames: options.workerNames,
+    redactMedical: options.redactMedical,
+  }
+
+  // Acumulamos un mapping conjunto de todos los messages.
+  const combinedMapping: Record<string, string> = {}
+  const combinedCounts: Record<string, number> = {
+    dni: 0, ruc: 0, email: 0, phone: 0, name: 0, account: 0, medical: 0,
+  }
+
+  // Redactamos cada message preservando el shape {role, content}.
+  // NOTA: redactPii reinicia el counter por llamada; combinamos manualmente.
+  // Para simplicidad concatenamos todos los content, redactamos juntos, y
+  // luego separamos por longitud original. Eso garantiza que el mismo DNI en
+  // dos messages distintos comparta placeholder.
+  const sep = '\n\n[[__MSG_SEP__]]\n\n'
+  const joined = messages.map(m => m.content).join(sep)
+  const redacted = redactPii(joined, redactOpts)
+  Object.assign(combinedMapping, redacted.mapping)
+  for (const [k, v] of Object.entries(redacted.counts)) {
+    combinedCounts[k] = (combinedCounts[k] ?? 0) + v
+  }
+
+  const redactedParts = redacted.redacted.split(sep)
+  const redactedMessages: AIMessage[] = messages.map((m, i) => ({
+    role: m.role,
+    content: redactedParts[i] ?? m.content,
+  }))
+
+  const { content, usage } = await callAIWithUsage(redactedMessages, options)
+
+  const finalContent = options.unredactResponse !== false
+    ? unredact(content, combinedMapping)
+    : content
+
+  return { content: finalContent, usage, redactionCounts: combinedCounts }
 }
 
 /**
