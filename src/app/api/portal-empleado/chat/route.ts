@@ -83,6 +83,7 @@ CONTEXTO DEL TRABAJADOR (usa solo si es relevante a la pregunta):
       temperature: 0.3,
       maxTokens: 700,
       feature: 'worker-chat',
+      orgId: ctx.orgId,
     })
   } catch (e) {
     return NextResponse.json(

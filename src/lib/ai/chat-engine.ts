@@ -135,6 +135,7 @@ export async function generateChatResponse(
       temperature: 0.4,
       maxTokens: 2000,
       feature: (meta?.feature as 'chat' | 'worker-chat' | undefined) ?? 'chat',
+      orgId: meta?.orgId,
     })
 
     // Telemetría — fire-and-forget (no bloquea la respuesta al usuario)
@@ -248,6 +249,7 @@ export async function* generateChatStream(
       temperature: 0.4,
       maxTokens: 2000,
       feature: featureName,
+      orgId: meta?.orgId,
       signal: meta?.signal,
     })) {
       if (chunk.delta) {

@@ -46,6 +46,13 @@ export interface AICallOptions {
   jsonMode?: boolean // Pide respuesta JSON. No todos los modelos lo soportan.
   provider?: AIProvider // Override directo del provider
   feature?: AIFeature // Override basado en variable de entorno por feature
+  /**
+   * orgId para bucketing del rollout staged (AI_ROLLOUT_PERCENTAGE).
+   * Permite que la misma org siempre caiga en el mismo bucket mientras el
+   * porcentaje no cambie — evita que un cliente alterne entre proveedores.
+   * Opcional: sin orgId el bucketing usa solo feature como salt.
+   */
+  orgId?: string | null
 }
 
 // ── Rotación de API keys (Groq multi-cuenta) ──────────────────────────────
@@ -126,6 +133,7 @@ function getGroqKeyCount(): number {
 // pero ahora se derivan automáticamente del mapping.
 import { FEATURE_ROUTING, tierToDeepSeekModel, getFeatureConfig } from './feature-routing'
 import { redactPii, unredact, type RedactOptions } from './pii-redactor'
+import { rolloutProvider } from './rollout'
 
 const LEGAL_HIGH_STAKES_FEATURES: AIFeature[] = (
   Object.entries(FEATURE_ROUTING) as Array<[AIFeature, typeof FEATURE_ROUTING[AIFeature]]>
@@ -142,9 +150,29 @@ const CHAT_FEATURES: AIFeature[] = (
 const EMBEDDING_FEATURES: AIFeature[] = ['rag-embed']
 const VISION_FEATURES: AIFeature[] = ['document-vision']
 
-export function detectProvider(opts?: { provider?: AIProvider; feature?: AIFeature }): AIProvider {
+export function detectProvider(opts?: {
+  provider?: AIProvider
+  feature?: AIFeature
+  orgId?: string | null
+}): AIProvider {
   // 1. Override directo
   if (opts?.provider) return opts.provider
+
+  // 1b. Rollout staged: si AI_ROLLOUT_PERCENTAGE está configurado, decide
+  // entre DeepSeek y OpenAI con bucketing estable por orgId+feature.
+  // SOLO se aplica si la feature no es vision/embeddings (que requieren OpenAI
+  // sí o sí) — esas se siguen ruteando por el flujo normal abajo.
+  if (
+    process.env.AI_ROLLOUT_PERCENTAGE !== undefined &&
+    process.env.AI_ROLLOUT_PERCENTAGE !== '' &&
+    opts?.feature &&
+    !VISION_FEATURES.includes(opts.feature) &&
+    !EMBEDDING_FEATURES.includes(opts.feature)
+  ) {
+    const rolled = rolloutProvider({ orgId: opts.orgId, feature: opts.feature })
+    if (rolled === 'deepseek' && process.env.DEEPSEEK_API_KEY) return 'deepseek'
+    if (rolled === 'openai' && process.env.OPENAI_API_KEY?.startsWith('sk-')) return 'openai'
+  }
 
   // 2. Override por feature via env var (ej: CONTRACT_REVIEW_AI_PROVIDER=anthropic)
   if (opts?.feature) {
@@ -282,8 +310,8 @@ export async function callAI(
   messages: AIMessage[],
   options: AICallOptions = {}
 ): Promise<string> {
-  const { temperature = 0.4, maxTokens = 2000, jsonMode = false, provider: providerOpt, feature } = options
-  const provider = detectProvider({ provider: providerOpt, feature })
+  const { temperature = 0.4, maxTokens = 2000, jsonMode = false, provider: providerOpt, feature, orgId } = options
+  const provider = detectProvider({ provider: providerOpt, feature, orgId })
 
   if (provider === 'simulated') {
     throw new Error('No AI provider configured (use AI_PROVIDER=ollama or set OPENAI_API_KEY)')
@@ -667,8 +695,8 @@ export async function* callAIStream(
   messages: AIMessage[],
   options: AIStreamOptions = {},
 ): AsyncGenerator<AIStreamChunk, void, unknown> {
-  const { temperature = 0.4, maxTokens = 2000, jsonMode = false, provider: providerOpt, feature, signal, firstTokenTimeoutMs = 5000 } = options
-  const provider = detectProvider({ provider: providerOpt, feature })
+  const { temperature = 0.4, maxTokens = 2000, jsonMode = false, provider: providerOpt, feature, orgId, signal, firstTokenTimeoutMs = 5000 } = options
+  const provider = detectProvider({ provider: providerOpt, feature, orgId })
   const model = getModelName({ provider: providerOpt, feature })
 
   if (provider === 'simulated') {

@@ -282,6 +282,7 @@ export async function reviewContract(input: ContractReviewInput): Promise<Contra
       maxTokens: 5000,
       jsonMode: true,
       feature: 'contract-review',
+      orgId: input.orgId,
     })
 
     void recordAiUsage({

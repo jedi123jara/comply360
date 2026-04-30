@@ -103,6 +103,7 @@ CONTEXTO DEL TRABAJADOR (usa solo si es relevante):
           temperature: 0.3,
           maxTokens: 700,
           feature: 'worker-chat',
+          orgId: ctx.orgId,
           signal: abortController.signal,
         })) {
           if (chunk.delta) {
