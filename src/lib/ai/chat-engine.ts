@@ -155,6 +155,9 @@ export async function generateChatResponse(
     return { content, citations, ragChunksUsed: ragResults.length, simulated: false }
   } catch (error) {
     console.error('AI chat error:', error)
+    if (error instanceof Error && error.stack) {
+      console.error('AI chat stack:', error.stack)
+    }
     // Registrar el fallo también — útil para alertar si un provider está caído
     void recordAiUsage({
       orgId: meta?.orgId,
@@ -163,11 +166,29 @@ export async function generateChatResponse(
       provider: detectProvider(),
       model: getModelName(),
       success: false,
-      errorMessage: error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200),
+      errorMessage: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
     })
-    // Fallback al modo simulado si el LLM no está disponible
-    const content = generateSimulatedResponse(lastUserMessage, orgContext)
-    return { content, citations, ragChunksUsed: ragResults.length, simulated: true }
+
+    // Bug fix 2026-04-30: ANTES caíamos a respuesta simulada (mock) y el
+    // usuario veía respuestas falsas creyendo que el Copilot funcionaba.
+    // Eso enmascaró el bug del 500 durante horas. Ahora propagamos el error
+    // real al endpoint que lo retornará al cliente con detalle.
+    //
+    // Solo en desarrollo (NODE_ENV=development) Y si la env var explícita
+    // FALLBACK_SIMULATED_AI=1 está activa, mostramos la respuesta simulada
+    // — esto solo para debug local cuando no quieres consumir cuota.
+    const allowSimulated =
+      process.env.NODE_ENV === 'development' &&
+      process.env.FALLBACK_SIMULATED_AI === '1'
+
+    if (allowSimulated) {
+      const content = generateSimulatedResponse(lastUserMessage, orgContext)
+      return { content, citations, ragChunksUsed: ragResults.length, simulated: true }
+    }
+
+    // En producción: re-throw para que el endpoint /api/ai-chat retorne 500
+    // con detalle del error (commit d06adec ya expone provider, hint, type).
+    throw error
   }
 }
 
@@ -289,6 +310,9 @@ export async function* generateChatStream(
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
+    if (err instanceof Error && err.stack) {
+      console.error('[chat-engine stream] error stack:', err.stack)
+    }
     yield { type: 'error', error: message }
     void recordAiUsage({
       orgId: meta?.orgId,
@@ -297,10 +321,15 @@ export async function* generateChatStream(
       provider: detectProvider(),
       model: getModelName(),
       success: false,
-      errorMessage: message.slice(0, 200),
+      errorMessage: message.slice(0, 500),
     })
-    // Fallback simulado si totalContent quedó vacío
-    if (!totalContent) {
+    // Bug fix 2026-04-30: solo emitimos respuesta simulada en dev con flag
+    // explícita FALLBACK_SIMULATED_AI=1. En producción, el cliente recibe
+    // solo el evento 'error' y muestra UI apropiada.
+    const allowSimulated =
+      process.env.NODE_ENV === 'development' &&
+      process.env.FALLBACK_SIMULATED_AI === '1'
+    if (allowSimulated && !totalContent) {
       const sim = generateSimulatedResponse(lastUserMessage, orgContext)
       yield { type: 'delta', delta: sim }
       yield { type: 'done' }

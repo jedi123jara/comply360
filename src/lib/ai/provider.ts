@@ -112,6 +112,36 @@ function getGroqKeyCount(): number {
 // ── Detección de proveedor ──────────────────────────────────────────────────
 
 /**
+ * Validadores de keys.
+ *
+ * Una key "presente" no es suficiente — env vars vacías ("") o con placeholders
+ * ("sk-xxxxx", "tu-key-aqui") pasan el check truthy normal y luego rompen el
+ * fetch con 401 silencioso. Validamos formato antes de elegir provider.
+ *
+ * Bug fix 2026-04-30: el `if (process.env.DEEPSEEK_API_KEY)` original devolvía
+ * 'deepseek' aún con keys inválidas, causando errors 500 sin causa clara.
+ */
+function isValidDeepseekKey(): boolean {
+  const k = process.env.DEEPSEEK_API_KEY?.trim() ?? ''
+  return k.length > 10 && k.startsWith('sk-') && !k.includes('xxxxx')
+}
+
+function isValidOpenAIKey(): boolean {
+  const k = process.env.OPENAI_API_KEY?.trim() ?? ''
+  return k.length > 10 && k.startsWith('sk-') && !k.includes('xxxxx')
+}
+
+function isValidAnthropicKey(): boolean {
+  const k = process.env.ANTHROPIC_API_KEY?.trim() ?? ''
+  return k.length > 10 && (k.startsWith('sk-ant-') || k.startsWith('sk-'))
+}
+
+function isValidGroqKey(): boolean {
+  const k = process.env.GROQ_API_KEY?.trim() ?? ''
+  return k.length > 10 && k.startsWith('gsk_')
+}
+
+/**
  * Detecta el provider a usar:
  * 1. Si options.provider está definido → ese
  * 2. Si options.feature está definido y la env var del feature existe → esa
@@ -170,8 +200,14 @@ export function detectProvider(opts?: {
     !EMBEDDING_FEATURES.includes(opts.feature)
   ) {
     const rolled = rolloutProvider({ orgId: opts.orgId, feature: opts.feature })
-    if (rolled === 'deepseek' && process.env.DEEPSEEK_API_KEY) return 'deepseek'
-    if (rolled === 'openai' && process.env.OPENAI_API_KEY?.startsWith('sk-')) return 'openai'
+    if (rolled === 'deepseek' && isValidDeepseekKey()) return 'deepseek'
+    if (rolled === 'openai' && isValidOpenAIKey()) return 'openai'
+    // Si rolled retornó null o la key del rolled no es válida, log explícito
+    // para que el problema sea visible en logs (antes caía silencioso al flujo
+    // normal y terminaba en Ollama default = ECONNREFUSED).
+    if (rolled === null) {
+      console.warn('[AI] rollout retornó null — ninguna key válida configurada (DEEPSEEK_API_KEY, OPENAI_API_KEY)')
+    }
   }
 
   // 2. Override por feature via env var (ej: CONTRACT_REVIEW_AI_PROVIDER=anthropic)
@@ -201,40 +237,43 @@ export function detectProvider(opts?: {
     if (cfg) {
       // Vision y embeddings: OpenAI obligatorio (DeepSeek no soporta).
       if (VISION_FEATURES.includes(opts.feature) || EMBEDDING_FEATURES.includes(opts.feature)) {
-        const openaiKey = process.env.OPENAI_API_KEY || ''
-        if (openaiKey && openaiKey.startsWith('sk-')) return 'openai'
+        if (isValidOpenAIKey()) return 'openai'
         // Si no hay OpenAI y es vision/embeddings, falla explícito en callAI.
       }
       // Provider preferido del feature
-      if (cfg.provider === 'deepseek' && process.env.DEEPSEEK_API_KEY) return 'deepseek'
-      if (cfg.provider === 'openai' && process.env.OPENAI_API_KEY?.startsWith('sk-')) return 'openai'
-      if (cfg.provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) return 'anthropic'
-      if (cfg.provider === 'groq' && process.env.GROQ_API_KEY) return 'groq'
+      if (cfg.provider === 'deepseek' && isValidDeepseekKey()) return 'deepseek'
+      if (cfg.provider === 'openai' && isValidOpenAIKey()) return 'openai'
+      if (cfg.provider === 'anthropic' && isValidAnthropicKey()) return 'anthropic'
+      if (cfg.provider === 'groq' && isValidGroqKey()) return 'groq'
       // Si el preferido no está, caer al global priority abajo.
     }
   }
 
   // 5. Auto-detect global priority (sin feature o feature sin key del preferido):
   //    DeepSeek V4 es el motor único del producto; resto son fallback.
-  if (process.env.DEEPSEEK_API_KEY) return 'deepseek'
+  if (isValidDeepseekKey()) return 'deepseek'
 
   // 6. OpenAI (vision + embeddings + fallback general)
-  const openaiKey = process.env.OPENAI_API_KEY || ''
-  if (openaiKey && openaiKey !== 'sk-xxxxx' && openaiKey.startsWith('sk-')) {
-    return 'openai'
-  }
+  if (isValidOpenAIKey()) return 'openai'
 
   // 7. Anthropic (deprecated en este producto, mantener por compat)
-  if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
+  if (isValidAnthropicKey()) return 'anthropic'
 
   // 8. Groq (deprecated, mantener por compat)
-  if (process.env.GROQ_API_KEY) return 'groq'
+  if (isValidGroqKey()) return 'groq'
 
   // 9. Ollama (self-hosted, gratis pero requiere infra)
   if (process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL) return 'ollama'
 
-  // 10. Default: Ollama (fallará al fetch si no está corriendo)
-  return 'ollama'
+  // 10. NINGUNA key válida configurada — devolvemos 'simulated' para que
+  //     callAI sepa que tiene que tirar error explícito en lugar de hacer
+  //     fetch a Ollama default que va a colgar con ECONNREFUSED.
+  //     Bug fix 2026-04-30: antes default era 'ollama' que daba timeouts
+  //     en producción donde no hay servidor Ollama corriendo.
+  console.error(
+    '[AI] No hay ningún provider configurado. Verifica DEEPSEEK_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY.',
+  )
+  return 'simulated'
 }
 
 export function getModelName(opts?: { provider?: AIProvider; feature?: AIFeature }): string {
@@ -314,7 +353,12 @@ export async function callAI(
   const provider = detectProvider({ provider: providerOpt, feature, orgId })
 
   if (provider === 'simulated') {
-    throw new Error('No AI provider configured (use AI_PROVIDER=ollama or set OPENAI_API_KEY)')
+    // Bug fix 2026-04-30: detectProvider() devuelve 'simulated' cuando ninguna
+    // key válida está configurada. Antes el default era 'ollama' que colgaba
+    // con ECONNREFUSED en producción donde no hay servidor Ollama corriendo.
+    throw new Error(
+      'No hay ningún provider de IA configurado. Configura DEEPSEEK_API_KEY u OPENAI_API_KEY en Vercel → Settings → Environment Variables.',
+    )
   }
 
   // ── Construir URL y headers según proveedor ─────────────────────────────
@@ -323,23 +367,45 @@ export async function callAI(
 
   if (provider === 'openai') {
     url = 'https://api.openai.com/v1/chat/completions'
-    headers['Authorization'] = `Bearer ${process.env.OPENAI_API_KEY}`
+    const key = process.env.OPENAI_API_KEY?.trim()
+    if (!key || !key.startsWith('sk-') || key.includes('xxxxx')) {
+      throw new Error(
+        'OPENAI_API_KEY no está configurada o es inválida. Configúrala en Vercel → Settings → Environment Variables.',
+      )
+    }
+    headers['Authorization'] = `Bearer ${key}`
   } else if (provider === 'anthropic') {
     // Claude usa /v1/messages (NO /chat/completions). API distinta.
     url = 'https://api.anthropic.com/v1/messages'
-    headers['x-api-key'] = process.env.ANTHROPIC_API_KEY ?? ''
+    const key = process.env.ANTHROPIC_API_KEY?.trim()
+    if (!key || key.length < 10) {
+      throw new Error('ANTHROPIC_API_KEY no está configurada.')
+    }
+    headers['x-api-key'] = key
     headers['anthropic-version'] = '2023-06-01'
   } else if (provider === 'deepseek') {
     url = 'https://api.deepseek.com/v1/chat/completions'
-    headers['Authorization'] = `Bearer ${process.env.DEEPSEEK_API_KEY}`
+    const key = process.env.DEEPSEEK_API_KEY?.trim()
+    if (!key || !key.startsWith('sk-') || key.includes('xxxxx')) {
+      throw new Error(
+        'DEEPSEEK_API_KEY no está configurada o es inválida. Configúrala en Vercel → Settings → Environment Variables.',
+      )
+    }
+    headers['Authorization'] = `Bearer ${key}`
   } else if (provider === 'groq') {
     url = 'https://api.groq.com/openai/v1/chat/completions'
     const groqKey = getGroqKey()
+    if (!groqKey || groqKey.length < 10) {
+      throw new Error(
+        'GROQ_API_KEY no está configurada o es inválida.',
+      )
+    }
     headers['Authorization'] = `Bearer ${groqKey}`
     if (getGroqKeyCount() > 1) {
       console.log(`[AI] Groq key ${groqKeyState.currentIndex + 1}/${getGroqKeyCount()}`)
     }
   } else {
+    // Ollama (self-hosted, local dev). 'simulated' ya tira más arriba.
     const base = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '')
     url = `${base}/v1/chat/completions`
     headers['Authorization'] = 'Bearer ollama'
