@@ -237,10 +237,40 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
     }
   }
 
-  const worker = await prisma.worker.update({
-    where: { id },
-    data: updateData,
-  })
+  let worker
+  try {
+    worker = await prisma.worker.update({
+      where: { id },
+      data: updateData,
+    })
+  } catch (err) {
+    console.error('[workers/PUT] update failed', { id, fields: Object.keys(updateData), err })
+    // Si está fallando por columnas de schedule no aplicadas, reintentamos
+    // sin esos campos para que al menos lo demás se guarde.
+    if (tocaSchedule && Object.keys(updateData).length > scheduleIntFields.length) {
+      const fallbackData = { ...updateData }
+      for (const { field } of scheduleIntFields) {
+        delete fallbackData[field]
+      }
+      try {
+        worker = await prisma.worker.update({ where: { id }, data: fallbackData })
+        return NextResponse.json({
+          data: worker,
+          warning: 'El horario laboral no se pudo guardar (DB no actualizada). Aplica el sync desde /dashboard/admin/db-sync. Los demás cambios sí se guardaron.',
+        })
+      } catch (err2) {
+        console.error('[workers/PUT] fallback update also failed', err2)
+      }
+    }
+    return NextResponse.json(
+      {
+        error: 'No se pudo guardar el cambio. La base de datos puede necesitar actualizarse desde /dashboard/admin/db-sync',
+        code: 'DB_UPDATE_ERROR',
+        detail: err instanceof Error ? err.message.slice(0, 300) : String(err),
+      },
+      { status: 500 },
+    )
+  }
 
   // Recompute alerts — fechaIngreso/regimen/sueldo/status changes all affect alert state.
   // Never block the update if alerting throws.

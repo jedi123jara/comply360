@@ -76,10 +76,58 @@ export const POST = withAuthParams<{ id: string }>(async (
   const workerId = params.id
   const orgId = ctx.orgId
 
-  // Load worker
-  const worker = await prisma.worker.findFirst({
-    where: { id: workerId, orgId },
-  })
+  // Load worker — select EXPLÍCITO con SOLO los campos que necesitamos para
+  // calcularBoleta. Evita SELECT * implícito que truena si alguna columna nueva
+  // no existe en DB (caso de migrations no aplicadas).
+  let worker
+  try {
+    worker = await prisma.worker.findFirst({
+      where: { id: workerId, orgId },
+      select: {
+        id: true,
+        sueldoBruto: true,
+        asignacionFamiliar: true,
+        tipoAporte: true,
+        afpNombre: true,
+        sctr: true,
+        regimenLaboral: true,
+        jornadaSemanal: true,
+        status: true,
+        expectedClockInHour: true,
+        expectedClockInMinute: true,
+        lateToleranceMinutes: true,
+      },
+    })
+  } catch (err) {
+    // Las columnas de schedule no existen en DB → reintenta sin esos campos
+    console.warn('[payslips/POST] schedule columns missing, retrying without', err instanceof Error ? err.message : err)
+    try {
+      worker = await prisma.worker.findFirst({
+        where: { id: workerId, orgId },
+        select: {
+          id: true,
+          sueldoBruto: true,
+          asignacionFamiliar: true,
+          tipoAporte: true,
+          afpNombre: true,
+          sctr: true,
+          regimenLaboral: true,
+          jornadaSemanal: true,
+          status: true,
+        },
+      }) as typeof worker
+    } catch (err2) {
+      console.error('[payslips/POST] worker fetch failed', err2 instanceof Error ? err2.message : err2)
+      return NextResponse.json(
+        {
+          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse desde /dashboard/admin/db-sync',
+          code: 'DB_SCHEMA_MISMATCH',
+          detail: err2 instanceof Error ? err2.message.slice(0, 200) : String(err2),
+        },
+        { status: 500 },
+      )
+    }
+  }
   if (!worker) {
     return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 404 })
   }
@@ -169,32 +217,58 @@ export const POST = withAuthParams<{ id: string }>(async (
     descuentoTardanzasMinutos,
   }
 
-  const result = calcularBoleta(boletaInput)
+  let result
+  try {
+    result = calcularBoleta(boletaInput)
+  } catch (err) {
+    console.error('[payslips/POST] calcularBoleta failed', err)
+    return NextResponse.json(
+      {
+        error: 'Error al calcular la boleta. Verifica que el trabajador tenga sueldo, régimen y tipo de aporte definidos.',
+        code: 'BOLETA_CALC_ERROR',
+        detail: err instanceof Error ? err.message.slice(0, 200) : String(err),
+      },
+      { status: 500 },
+    )
+  }
 
   // Persist payslip
-  const payslip = await prisma.payslip.create({
-    data: {
-      orgId,
-      workerId,
-      periodo,
-      fechaEmision: new Date(),
-      sueldoBruto: result.sueldoBruto,
-      asignacionFamiliar: result.asignacionFamiliar || null,
-      horasExtras: result.horasExtras || null,
-      bonificaciones: result.bonificaciones || null,
-      totalIngresos: result.totalIngresos,
-      aporteAfpOnp: result.aporteAfpOnp || null,
-      rentaQuintaCat: result.rentaQuintaCat || null,
-      // Descuento por tardanzas/ausencias no justificadas (Fase 4) — usa el
-      // campo otrosDescuentos del schema Payslip que ya existía sin uso.
-      otrosDescuentos: result.descuentoTardanzas > 0 ? result.descuentoTardanzas : null,
-      totalDescuentos: result.totalDescuentos,
-      netoPagar: result.netoPagar,
-      essalud: result.essalud || null,
-      detalleJson: result.detalleJson,
-      status: 'EMITIDA',
-    },
-  })
+  let payslip
+  try {
+    payslip = await prisma.payslip.create({
+      data: {
+        orgId,
+        workerId,
+        periodo,
+        fechaEmision: new Date(),
+        sueldoBruto: result.sueldoBruto,
+        asignacionFamiliar: result.asignacionFamiliar || null,
+        horasExtras: result.horasExtras || null,
+        bonificaciones: result.bonificaciones || null,
+        totalIngresos: result.totalIngresos,
+        aporteAfpOnp: result.aporteAfpOnp || null,
+        rentaQuintaCat: result.rentaQuintaCat || null,
+        // Descuento por tardanzas/ausencias no justificadas (Fase 4) — usa el
+        // campo otrosDescuentos del schema Payslip que ya existía sin uso.
+        otrosDescuentos: result.descuentoTardanzas > 0 ? result.descuentoTardanzas : null,
+        totalDescuentos: result.totalDescuentos,
+        netoPagar: result.netoPagar,
+        essalud: result.essalud || null,
+        detalleJson: result.detalleJson,
+        status: 'EMITIDA',
+      },
+    })
+  } catch (err) {
+    console.error('[payslips/POST] payslip.create failed', err)
+    return NextResponse.json(
+      {
+        error: 'No se pudo guardar la boleta. Probablemente la DB necesita actualizarse desde /dashboard/admin/db-sync',
+        code: 'DB_INSERT_ERROR',
+        detail: err instanceof Error ? err.message.slice(0, 300) : String(err),
+      },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({ payslip, result }, { status: 201 })
 })

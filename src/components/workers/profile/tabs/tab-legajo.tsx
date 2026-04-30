@@ -1,12 +1,15 @@
 'use client'
 
-import { CheckCircle2, AlertTriangle, Upload, FileText, Sparkles, ShieldAlert, CalendarCheck } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { CheckCircle2, AlertTriangle, Upload, FileText, Sparkles, ShieldAlert, CalendarCheck, Loader2 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ProgressRing } from '@/components/ui/progress-ring'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 export interface LegajoDoc {
   id: string
@@ -52,12 +55,54 @@ const STATUS_META: Record<
 }
 
 export function TabLegajo({
+  workerId,
   docs,
   legajoScore,
 }: {
+  workerId: string
   docs: LegajoDoc[]
   legajoScore: number
 }) {
+  const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // Reset input para que el mismo archivo se pueda re-seleccionar después
+    e.target.value = ''
+
+    setUploading(true)
+    const tid = `upload-${file.name}`
+    toast.loading(`Subiendo ${file.name}...`, { id: tid })
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      // Documento genérico — el worker o admin elige categoría después
+      // o la IA vision lo clasifica. Por defecto: VIGENTE genérico.
+      fd.append('category', 'VIGENTE')
+      fd.append('documentType', 'OTRO')
+      fd.append('title', file.name)
+      const res = await fetch(`/api/workers/${workerId}/documents`, {
+        method: 'POST',
+        body: fd,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      toast.success(`${file.name} subido. Refrescando...`, { id: tid })
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir', { id: tid })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const total = docs.length || 1
   const uploaded = docs.filter((d) =>
     ['UPLOADED', 'VERIFIED'].includes(d.status)
@@ -99,7 +144,21 @@ export function TabLegajo({
                 : 'Legajo completo y verificado.'}
           </p>
         </div>
-        <Button icon={<Upload className="h-3.5 w-3.5" />}>Subir documento</Button>
+        <Button
+          icon={uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          onClick={handleUploadClick}
+          disabled={uploading}
+        >
+          {uploading ? 'Subiendo...' : 'Subir documento'}
+        </Button>
+        {/* Input file oculto que dispara handleUploadClick */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          onChange={handleFileSelected}
+          className="hidden"
+        />
       </Card>
 
       {/* Docs by category */}

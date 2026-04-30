@@ -83,7 +83,7 @@ export function WorkerProfile({ worker, legajoDocs = [] }: WorkerProfileProps) {
         </TabsContent>
 
         <TabsContent value="legajo">
-          <TabLegajo docs={legajoDocs} legajoScore={worker.legajoScore ?? 0} />
+          <TabLegajo workerId={worker.id} docs={legajoDocs} legajoScore={worker.legajoScore ?? 0} />
         </TabsContent>
 
         <TabsContent value="contratos">

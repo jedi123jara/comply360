@@ -668,7 +668,7 @@ function NuevoContratoInner() {
           Contratos
         </Link>
         <span className="text-[color:var(--text-secondary)]">/</span>
-        <span className="text-sm font-medium text-white">Nuevo Contrato</span>
+        <span className="text-sm font-medium text-slate-900">Nuevo Contrato</span>
       </div>
 
       {/* Step Indicator */}
@@ -693,7 +693,7 @@ function NuevoContratoInner() {
                 i + 1
               )}
             </div>
-            <span className={`text-sm ${step === s.key ? 'font-semibold text-white' : 'text-gray-500'}`}>
+            <span className={`text-sm ${step === s.key ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>
               {s.label}
             </span>
             {i < 3 && <div className="w-8 h-px bg-gray-300" />}
@@ -705,7 +705,7 @@ function NuevoContratoInner() {
       {step === 'select' && (
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Selecciona el tipo de contrato</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Selecciona el tipo de contrato</h1>
             <p className="text-gray-500 mt-1">
               Elige una plantilla. Todas están actualizadas con la normativa peruana vigente.
             </p>
@@ -746,8 +746,8 @@ function NuevoContratoInner() {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-base font-bold text-white mb-1">{opt.name}</h3>
-                  <p className="text-sm text-gray-500">{opt.description}</p>
+                  <h3 className="text-base font-bold text-slate-900 mb-1">{opt.name}</h3>
+                  <p className="text-sm text-slate-600">{opt.description}</p>
                 </button>
               )
             })}
@@ -766,8 +766,8 @@ function NuevoContratoInner() {
                   <Wand2 className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">Generar contrato con IA</h2>
-                  <p className="text-xs text-gray-500">Describe lo que necesitas en lenguaje natural</p>
+                  <h2 className="text-base font-bold text-slate-900">Generar contrato con IA</h2>
+                  <p className="text-xs text-slate-600">Describe lo que necesitas en lenguaje natural</p>
                 </div>
               </div>
               <button
@@ -794,7 +794,7 @@ function NuevoContratoInner() {
                       onChange={e => setAiDescription(e.target.value)}
                       rows={3}
                       placeholder="Ej: Contrato para profesional de marketing y ventas, jornada completa, salario S/3500 mensual, regimen general..."
-                      className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm text-white placeholder:text-gray-400 resize-none bg-white"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm text-slate-900 placeholder:text-slate-400 resize-none bg-white"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Mientras más detallado, mejor el resultado.
@@ -822,7 +822,7 @@ function NuevoContratoInner() {
                             onChange={e => handleRucChange(e.target.value)}
                             placeholder="20XXXXXXXXX"
                             maxLength={11}
-                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium transition-colors ${
+                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium transition-colors ${
                               empRucStatus === 'ok' ? 'border-green-400' :
                               empRucStatus === 'error' ? 'border-red-400' :
                               'border-white/10'
@@ -846,7 +846,7 @@ function NuevoContratoInner() {
                           value={empRazonSocial}
                           onChange={e => setEmpRazonSocial(e.target.value)}
                           placeholder="Mi Empresa SAC"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
                         />
                       </div>
                       <div>
@@ -858,7 +858,7 @@ function NuevoContratoInner() {
                           value={empRepresentante}
                           onChange={e => setEmpRepresentante(e.target.value)}
                           placeholder="Juan Garcia Lopez — Gerente General"
-                          className="w-full px-3 py-2.5 border border-amber-300 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 font-medium"
+                          className="w-full px-3 py-2.5 border border-amber-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 font-medium"
                         />
                       </div>
                       <div>
@@ -870,7 +870,7 @@ function NuevoContratoInner() {
                           value={empDireccion}
                           onChange={e => setEmpDireccion(e.target.value)}
                           placeholder="Av. Principal 123, Lima"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
                         />
                       </div>
                     </div>
@@ -894,7 +894,7 @@ function NuevoContratoInner() {
                             onChange={e => handleDniChange(e.target.value)}
                             placeholder="12345678"
                             maxLength={8}
-                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium transition-colors ${
+                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium transition-colors ${
                               trabDniStatus === 'ok' ? 'border-green-400' :
                               trabDniStatus === 'error' ? 'border-red-400' :
                               'border-white/10'
@@ -918,7 +918,7 @@ function NuevoContratoInner() {
                           value={trabNombre}
                           onChange={e => setTrabNombre(e.target.value)}
                           placeholder="Juan Perez Garcia"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium"
                         />
                       </div>
                     </div>
@@ -936,7 +936,7 @@ function NuevoContratoInner() {
                         <select
                           value={modalidad}
                           onChange={e => setModalidad(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         >
                           <option value="">IA lo detecta auto</option>
                           <option value="INDEFINIDO">Plazo Indeterminado</option>
@@ -952,7 +952,7 @@ function NuevoContratoInner() {
                         <select
                           value={periodoPrueba}
                           onChange={e => setPeriodoPrueba(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         >
                           <option value="3">3 meses (estandar)</option>
                           <option value="6">6 meses (trabajador confianza)</option>
@@ -966,7 +966,7 @@ function NuevoContratoInner() {
                           type="date"
                           value={fechaInicio}
                           onChange={e => setFechaInicio(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         />
                       </div>
                     </div>
@@ -980,7 +980,7 @@ function NuevoContratoInner() {
                             type="date"
                             value={fechaFin}
                             onChange={e => setFechaFin(e.target.value)}
-                            className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                            className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                           />
                         </div>
                         <div>
@@ -993,7 +993,7 @@ function NuevoContratoInner() {
                             value={causaObjetiva}
                             onChange={e => setCausaObjetiva(e.target.value)}
                             placeholder="Ej: Incremento extraordinario de actividad comercial"
-                            className="w-full px-3 py-2.5 border border-orange-300 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-orange-400/20 focus:border-orange-400 font-medium"
+                            className="w-full px-3 py-2.5 border border-orange-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-orange-400/20 focus:border-orange-400 font-medium"
                           />
                         </div>
                       </div>
@@ -1014,7 +1014,7 @@ function NuevoContratoInner() {
                           value={cargo}
                           onChange={e => setCargo(e.target.value)}
                           placeholder="Gerente de Marketing"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         />
                       </div>
                       <div>
@@ -1022,7 +1022,7 @@ function NuevoContratoInner() {
                         <select
                           value={jornada}
                           onChange={e => setJornada(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         >
                           <option value="48">48 horas (completa)</option>
                           <option value="40">40 horas</option>
@@ -1038,7 +1038,7 @@ function NuevoContratoInner() {
                           value={horario}
                           onChange={e => setHorario(e.target.value)}
                           placeholder="08:00 - 17:00"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         />
                       </div>
                     </div>
@@ -1055,7 +1055,7 @@ function NuevoContratoInner() {
                             onChange={e => setRemuneracion(e.target.value)}
                             placeholder="3500"
                             min="1130"
-                            className="w-full pl-8 pr-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                            className="w-full pl-8 pr-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                           />
                         </div>
                         <p className="text-[11px] text-gray-500 mt-0.5">Min. RMV: S/ 1,130</p>
@@ -1065,7 +1065,7 @@ function NuevoContratoInner() {
                         <select
                           value={formaPago}
                           onChange={e => setFormaPago(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         >
                           <option value="MENSUAL">Mensual</option>
                           <option value="QUINCENAL">Quincenal</option>
@@ -1079,7 +1079,7 @@ function NuevoContratoInner() {
                           value={beneficios}
                           onChange={e => setBeneficios(e.target.value)}
                           placeholder="Movilidad S/150, bono metas 5%, laptop..."
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                         />
                       </div>
                     </div>
@@ -1531,7 +1531,7 @@ function DynamicField({
             onChange={e => onChange(e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white placeholder:text-gray-400"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white placeholder:text-gray-400"
           />
           {field.helpText && (
             <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
@@ -1552,7 +1552,7 @@ function DynamicField({
             min={field.validation?.min}
             max={field.validation?.max}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
           />
           {field.helpText && (
             <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
@@ -1576,7 +1576,7 @@ function DynamicField({
               min="0"
               required={field.required}
               placeholder="0.00"
-              className="w-full pl-10 pr-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white"
+              className="w-full pl-10 pr-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
             />
           </div>
           {field.helpText && (
@@ -1595,7 +1595,7 @@ function DynamicField({
             value={(value as string) ?? ''}
             onChange={e => onChange(e.target.value)}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
           >
             <option value="">Selecciona...</option>
             {field.options?.map(opt => (
@@ -1620,7 +1620,7 @@ function DynamicField({
             placeholder={field.placeholder}
             required={field.required}
             rows={4}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-white bg-white placeholder:text-gray-400 resize-y"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white placeholder:text-gray-400 resize-y"
           />
           {field.helpText && (
             <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
