@@ -198,7 +198,7 @@ async function runTriage(input: TriageInput): Promise<TriageOutcome> {
   let raw: string
   try {
     raw = await Promise.race([
-      callAI(messages, { temperature: 0.1, maxTokens: 800, jsonMode: true }),
+      callAI(messages, { temperature: 0.1, maxTokens: 800, jsonMode: true, feature: 'complaint-triage' }),
       timeoutPromise,
     ])
   } catch (err) {

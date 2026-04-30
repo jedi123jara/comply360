@@ -154,7 +154,7 @@ async function runDescargoWriter(
         temperature: 0.3,
         maxTokens: 4500,
         jsonMode: true,
-        feature: 'contract-review',
+        feature: 'descargo-writer',
       }
     )
   } catch (e) {

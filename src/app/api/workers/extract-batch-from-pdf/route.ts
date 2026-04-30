@@ -54,7 +54,7 @@ async function extractOne(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: buildExtractionPrompt(cleaned, { index, total }) },
       ],
-      { temperature: 0.1, maxTokens: 1500, jsonMode: true, feature: 'contract-gen' }
+      { temperature: 0.1, maxTokens: 1500, jsonMode: true, feature: 'pdf-extract' }
     )
     const data = extractJson<ExtractedWorkerData>(ai)
     return { status: 'success', data }
@@ -119,7 +119,7 @@ async function extractBatch(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: buildBatchExtractionPrompt(contracts, totalContracts) },
       ],
-      { temperature: 0.1, maxTokens: 1500 * blocks.length, jsonMode: true, feature: 'contract-gen' }
+      { temperature: 0.1, maxTokens: 1500 * blocks.length, jsonMode: true, feature: 'pdf-extract' }
     )
     const parsed = extractJson<ExtractedWorkerData[]>(ai)
 
