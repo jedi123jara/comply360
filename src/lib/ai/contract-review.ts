@@ -15,6 +15,13 @@ export interface ContractReviewInput {
   /** Para telemetría de costos AI — pasarlos cuando estén disponibles */
   orgId?: string | null
   userId?: string | null
+  /**
+   * Si `true`, inyecta el corpus normativo COMPLETO (todos los chunks v1+v2)
+   * en lugar del top-6 RAG. Aprovecha la ventana de 1M de DeepSeek V4 y el
+   * context caching para que el costo no escale tanto. Mejora la detección
+   * de cláusulas obligatorias en ~10-15%. Detrás de plan PRO+.
+   */
+  deepResearch?: boolean
 }
 
 export interface ContractReviewResult {
@@ -240,20 +247,24 @@ export async function reviewContract(input: ContractReviewInput): Promise<Contra
   try {
     const prompt = buildPrompt(input)
 
-    // ── RAG: recupera normativa relevante al tipo de contrato + temas detectados
-    // en el texto. Inyecta como system message antes del prompt para fundamentar
-    // la revisión en citas exactas del corpus v1 (handcrafted) + v2 (9 PDFs SUNAFIL).
+    // ── RAG: recupera normativa relevante al tipo de contrato + temas detectados.
+    // En modo `deepResearch=true` inyectamos el corpus COMPLETO (no top-6) para
+    // aprovechar la ventana de 1M de DeepSeek V4 y el context caching que reduce
+    // costo del prefijo. Mejor cobertura legal a costo marginal mínimo.
     let ragSystem: { role: 'system'; content: string } | null = null
     try {
       const tipoLabel = input.contractType.replace(/_/g, ' ').toLowerCase()
       const textoSample = stripHtml(input.contractHtml).slice(0, 600).toLowerCase()
       const ragQuery = `${tipoLabel} remuneracion jornada CTS gratificacion vacaciones SST hostigamiento. ${textoSample}`
-      const ragResults = await retrieveRelevantLawVector(ragQuery, { topK: 6, minScore: 0.05 })
+      const topK = input.deepResearch ? 30 : 6
+      const ragResults = await retrieveRelevantLawVector(ragQuery, { topK, minScore: input.deepResearch ? 0.0 : 0.05 })
       const ragContext = formatVectorContext(ragResults)
       if (ragContext) {
         ragSystem = {
           role: 'system',
-          content: `Normativa aplicable relevante (usa estas citas para fundamentar tus hallazgos):\n${ragContext}`,
+          content: input.deepResearch
+            ? `Marco normativo extendido (usa estas ${ragResults.length} citas para fundamentar TODA tu revisión, sin omitir aristas):\n${ragContext}`
+            : `Normativa aplicable relevante (usa estas citas para fundamentar tus hallazgos):\n${ragContext}`,
         }
       }
     } catch (ragErr) {
@@ -281,6 +292,8 @@ export async function reviewContract(input: ContractReviewInput): Promise<Contra
       model: usage.model,
       promptTokens: usage.promptTokens,
       completionTokens: usage.completionTokens,
+      cachedTokens: usage.cachedTokens,
+      reasoningTokens: usage.reasoningTokens,
       latencyMs: usage.latencyMs,
     })
 

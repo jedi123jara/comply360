@@ -9,7 +9,7 @@
  *  3. Inyecta el contexto normativo antes de las messages del usuario
  *  4. Genera la respuesta con el LLM (o fallback simulado)
  */
-import { callAIWithUsage, detectProvider, getModelName } from './provider'
+import { callAIWithUsage, callAIStream, detectProvider, getModelName } from './provider'
 import { retrieveRelevantLaw, formatRetrievedContext, type RetrievalResult } from './rag/retriever'
 import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
 import { recordAiUsage } from './usage'
@@ -134,6 +134,7 @@ export async function generateChatResponse(
     const { content, usage } = await callAIWithUsage(allMessages, {
       temperature: 0.4,
       maxTokens: 2000,
+      feature: (meta?.feature as 'chat' | 'worker-chat' | undefined) ?? 'chat',
     })
 
     // Telemetría — fire-and-forget (no bloquea la respuesta al usuario)
@@ -145,6 +146,8 @@ export async function generateChatResponse(
       model: usage.model,
       promptTokens: usage.promptTokens,
       completionTokens: usage.completionTokens,
+      cachedTokens: usage.cachedTokens,
+      reasoningTokens: usage.reasoningTokens,
       latencyMs: usage.latencyMs,
     })
 
@@ -169,6 +172,139 @@ export async function generateChatResponse(
 
 /** Exporta info del proveedor activo para mostrar en la UI */
 export { detectProvider, getModelName }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// generateChatStream — versión streaming SSE del copilot.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface ChatStreamEvent {
+  type: 'citations' | 'delta' | 'done' | 'error'
+  /** Solo en type='delta' */
+  delta?: string
+  /** Solo en type='citations' */
+  citations?: string[]
+  ragChunksUsed?: number
+  /** Solo en type='done' */
+  usage?: {
+    provider: string
+    model: string
+    promptTokens: number
+    completionTokens: number
+    cachedTokens: number
+    totalTokens: number
+    latencyMs: number
+  }
+  /** Solo en type='error' */
+  error?: string
+}
+
+/**
+ * Stream SSE-compatible de la respuesta del copilot.
+ * Yieldea eventos tipados: primero las citations recuperadas del RAG, luego
+ * los deltas de texto, y al final un done con usage para telemetría.
+ */
+export async function* generateChatStream(
+  messages: ChatMessage[],
+  orgContext: OrgContext,
+  meta?: { orgId?: string | null; userId?: string | null; feature?: string; signal?: AbortSignal },
+): AsyncGenerator<ChatStreamEvent, void, unknown> {
+  // 1. RAG (idéntico a generateChatResponse)
+  const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || ''
+  let ragResults: RetrievalResult[] = []
+  let ragContext = ''
+  try {
+    ragResults = await retrieveRelevantLawVector(lastUserMessage, { topK: 5, minScore: 0.05 })
+    ragContext = formatVectorContext(ragResults)
+  } catch (err) {
+    console.error('[chat-engine.stream] vector retriever fallback:', err)
+    ragResults = retrieveRelevantLaw(lastUserMessage, 5, 0.05)
+    ragContext = formatRetrievedContext(ragResults)
+  }
+  const citations = extractCitationsFromRetrieval(ragResults)
+
+  yield { type: 'citations', citations, ragChunksUsed: ragResults.length }
+
+  // 2. System messages (mismo orden que en generateChatResponse: system, context, RAG)
+  // Importante: el system prompt + org context van PRIMERO siempre. DeepSeek
+  // cachea el prefijo común, así que mantener orden estable maximiza cache hits.
+  const systemMessages: ChatMessage[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: buildContextMessage(orgContext) },
+  ]
+  if (ragContext) {
+    systemMessages.push({
+      role: 'system',
+      content: `A continuación encontrarás los artículos legales más relevantes para la consulta del usuario. Úsalos para fundamentar tu respuesta con citas exactas:\n${ragContext}`,
+    })
+  }
+  const allMessages = [...systemMessages, ...messages]
+
+  // 3. Stream del LLM
+  let firstChunkAt: number | null = null
+  let totalContent = ''
+  try {
+    const featureName = (meta?.feature as 'chat' | 'worker-chat' | undefined) ?? 'chat'
+    for await (const chunk of callAIStream(allMessages, {
+      temperature: 0.4,
+      maxTokens: 2000,
+      feature: featureName,
+      signal: meta?.signal,
+    })) {
+      if (chunk.delta) {
+        if (firstChunkAt === null) firstChunkAt = Date.now()
+        totalContent += chunk.delta
+        yield { type: 'delta', delta: chunk.delta }
+      }
+      if (chunk.done && chunk.usage) {
+        const ttftMs = firstChunkAt && (chunk.usage.latencyMs - (Date.now() - firstChunkAt))
+        // Telemetría fire-and-forget
+        void recordAiUsage({
+          orgId: meta?.orgId,
+          userId: meta?.userId,
+          feature: featureName,
+          provider: chunk.usage.provider,
+          model: chunk.usage.model,
+          promptTokens: chunk.usage.promptTokens,
+          completionTokens: chunk.usage.completionTokens,
+          cachedTokens: chunk.usage.cachedTokens,
+          reasoningTokens: chunk.usage.reasoningTokens,
+          ttftMs: typeof ttftMs === 'number' ? ttftMs : null,
+          latencyMs: chunk.usage.latencyMs,
+        })
+        yield {
+          type: 'done',
+          usage: {
+            provider: chunk.usage.provider,
+            model: chunk.usage.model,
+            promptTokens: chunk.usage.promptTokens,
+            completionTokens: chunk.usage.completionTokens,
+            cachedTokens: chunk.usage.cachedTokens,
+            totalTokens: chunk.usage.totalTokens,
+            latencyMs: chunk.usage.latencyMs,
+          },
+        }
+      }
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    yield { type: 'error', error: message }
+    void recordAiUsage({
+      orgId: meta?.orgId,
+      userId: meta?.userId,
+      feature: meta?.feature ?? 'chat',
+      provider: detectProvider(),
+      model: getModelName(),
+      success: false,
+      errorMessage: message.slice(0, 200),
+    })
+    // Fallback simulado si totalContent quedó vacío
+    if (!totalContent) {
+      const sim = generateSimulatedResponse(lastUserMessage, orgContext)
+      yield { type: 'delta', delta: sim }
+      yield { type: 'done' }
+    }
+  }
+}
 
 /**
  * Simulated response for demo/development (no API key needed)
