@@ -54,7 +54,7 @@ export const GET = withAuthParams<{ id: string }>(
       return NextResponse.json(
         {
           error:
-            'No se pudieron cargar las vacaciones. La base de datos necesita actualizarse desde /dashboard/admin/db-sync',
+            'No se pudieron cargar las vacaciones. La base de datos necesita actualizarse desde /admin/db-sync',
           code: 'DB_SCHEMA_MISMATCH',
           detail: err instanceof Error ? err.message.slice(0, 200) : String(err),
         },

@@ -124,7 +124,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
       console.error('[workers/GET] fallback select also failed', err2 instanceof Error ? err2.message : err2)
       return NextResponse.json(
         {
-          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse — pídele a tu admin que abra /dashboard/admin/db-sync y aplique los cambios pendientes.',
+          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse — pídele a tu admin que abra /admin/db-sync y aplique los cambios pendientes.',
           code: 'DB_SCHEMA_MISMATCH',
         },
         { status: 500 },
@@ -195,7 +195,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
       console.error('[workers/PUT] findUnique failed', err2 instanceof Error ? err2.message : err2)
       return NextResponse.json(
         {
-          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse desde /dashboard/admin/db-sync',
+          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse desde /admin/db-sync',
           code: 'DB_SCHEMA_MISMATCH',
         },
         { status: 500 },
@@ -306,7 +306,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
       if (Object.keys(fallbackData).length === 0) {
         return NextResponse.json(
           {
-            error: 'El horario laboral no se puede guardar todavía. Tu base de datos necesita un sync — entra a /dashboard/admin/db-sync, dale click al botón ámbar y vuelve a intentar.',
+            error: 'El horario laboral no se puede guardar todavía. Tu base de datos necesita un sync — entra a /admin/db-sync, dale click al botón ámbar y vuelve a intentar.',
             code: 'DB_SCHEMA_NEEDS_SYNC',
             requiresSync: true,
           },
@@ -318,7 +318,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
         worker = await prisma.worker.update({ where: { id }, data: fallbackData })
         return NextResponse.json({
           data: worker,
-          warning: 'El horario laboral no se pudo guardar (DB necesita sync desde /dashboard/admin/db-sync). Los demás cambios sí se guardaron.',
+          warning: 'El horario laboral no se pudo guardar (DB necesita sync desde /admin/db-sync). Los demás cambios sí se guardaron.',
         })
       } catch (err2) {
         console.error('[workers/PUT] fallback update also failed', err2)
@@ -327,7 +327,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
 
     return NextResponse.json(
       {
-        error: 'No se pudo guardar el cambio. Aplica el sync desde /dashboard/admin/db-sync',
+        error: 'No se pudo guardar el cambio. Aplica el sync desde /admin/db-sync',
         code: 'DB_UPDATE_ERROR',
         detail: err instanceof Error ? err.message.slice(0, 300) : String(err),
       },
