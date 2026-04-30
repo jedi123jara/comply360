@@ -107,6 +107,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         select: {
           createdAt: true,
           name: true,
+          plan: true, // ⚠️ CRÍTICO: necesario para /dashboard/planes y sidebar
+          planExpiresAt: true,
           totalWorkersDeclared: true,
           totalWorkersDeclaredAt: true,
           users: {
@@ -460,6 +462,16 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     const tasksCompleted = taskCountsMap['COMPLETED'] ?? 0
 
     return NextResponse.json({
+      // Datos de la organización (incluye plan — usado por /dashboard/planes
+      // y por componentes que necesitan saber el tier actual del cliente).
+      // Antes esto faltaba y la página /planes mostraba "Plan Gratuito"
+      // aunque la DB tuviera plan PRO. Bug fix 2026-04-30.
+      org: {
+        id: orgId,
+        name: orgMeta?.name ?? null,
+        plan: orgMeta?.plan ?? 'FREE',
+        planExpiresAt: orgMeta?.planExpiresAt ?? null,
+      },
       stats: {
         totalContracts,
         totalWorkers,
@@ -482,6 +494,7 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         // Saludo personalizado en HeroPanel ("Buenos días, Amado" en lugar de "equipo")
         ownerFirstName,
         orgName: orgMeta?.name ?? null,
+        plan: orgMeta?.plan ?? 'FREE', // duplicado en stats por compatibilidad con código legacy
         // Detección subdeclaración (anti-informalidad)
         totalWorkersDeclared,
         subdeclarationGap, // null = no declarado, 0 = sin brecha, >0 = trabajadores fuera de planilla

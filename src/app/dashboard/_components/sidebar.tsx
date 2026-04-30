@@ -177,7 +177,9 @@ export { planBadgeVariant }
 export type { PlanBadgeVariant }
 
 function useOrgPlan(): string {
-  const [plan, setPlan] = useState<string>('STARTER')
+  // Default 'FREE' (no 'STARTER') — si el fetch falla, FREE es más honesto
+  // que asumir un plan pago. El plan real viene del fetch a /api/org/profile.
+  const [plan, setPlan] = useState<string>('FREE')
 
   useEffect(() => {
     let mounted = true
@@ -190,7 +192,11 @@ function useOrgPlan(): string {
         const r = await fetch('/api/org/profile', { cache: 'no-store' })
         if (!r.ok) return
         const d = await r.json()
-        const p = d?.data?.plan ?? d?.plan
+        // BUG FIX 2026-04-30: el endpoint retorna { org: { plan } }, NO
+        // { data: { plan } } ni { plan } directo. El sidebar nunca leía
+        // el plan correctamente y siempre caía al default 'STARTER'.
+        // Mantenemos los fallbacks por compatibilidad si el shape cambia.
+        const p = d?.org?.plan ?? d?.data?.plan ?? d?.plan
         if (mounted && typeof p === 'string') setPlan(p)
       } catch {
         /* ignore */
