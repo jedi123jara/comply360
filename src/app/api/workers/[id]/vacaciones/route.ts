@@ -14,12 +14,54 @@ export const GET = withAuthParams<{ id: string }>(
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId } = params
 
-    const worker = await prisma.worker.findFirst({
-      where: { id: workerId, orgId: ctx.orgId },
-      include: {
-        vacations: { orderBy: { periodoInicio: 'asc' } },
-      },
-    })
+    // Select EXPLÍCITO: solo los campos que realmente usamos. Antes usábamos
+    // `include: { vacations }` que hace SELECT * implícito sobre worker, y si
+    // alguna columna nueva (expectedClockInHour, etc.) no existe en DB porque
+    // las migraciones no se aplicaron, esto trona con 500. Esto evita ese bug.
+    let worker
+    try {
+      worker = await prisma.worker.findFirst({
+        where: { id: workerId, orgId: ctx.orgId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          position: true,
+          department: true,
+          fechaIngreso: true,
+          regimenLaboral: true,
+          vacations: {
+            orderBy: { periodoInicio: 'asc' },
+            select: {
+              id: true,
+              periodoInicio: true,
+              periodoFin: true,
+              diasCorresponden: true,
+              diasGozados: true,
+              diasPendientes: true,
+              fechaGoce: true,
+              esDoble: true,
+              createdAt: true,
+            },
+          },
+        },
+      })
+    } catch (err) {
+      console.error(
+        '[vacaciones/GET] worker fetch failed',
+        err instanceof Error ? err.message : err,
+      )
+      return NextResponse.json(
+        {
+          error:
+            'No se pudieron cargar las vacaciones. La base de datos necesita actualizarse desde /dashboard/admin/db-sync',
+          code: 'DB_SCHEMA_MISMATCH',
+          detail: err instanceof Error ? err.message.slice(0, 200) : String(err),
+        },
+        { status: 500 },
+      )
+    }
+
     if (!worker) {
       return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 404 })
     }
@@ -31,7 +73,7 @@ export const GET = withAuthParams<{ id: string }>(
 
     const records = worker.vacations
     const totalDiasPendientes = records.reduce((s, r) => s + r.diasPendientes, 0)
-    const periodosSinGoce = records.filter(r => r.diasGozados === 0).length
+    const periodosSinGoce = records.filter((r) => r.diasGozados === 0).length
 
     return NextResponse.json({
       worker: {
