@@ -11,57 +11,66 @@ export const APP_NAME = "COMPLY360" as const;
 /**
  * PLANS — fuente de verdad única de pricing.
  *
- * Sincronizado con `src/lib/payments/culqi.ts` (CULQI_PLANS) y
- * `src/app/dashboard/planes/page.tsx`. Si modificas aquí, ejecuta el
- * grep de verificación: `grep -rE "S/\s*(149|349|799|1299)" src/`
+ * **PRICING OFICIAL 2026-04-30** (ver `docs/PRICING.md`):
  *
- * Pricing 2026-04-26 (Sprint 2 — tier-up): subida deliberada vs benchmark
- * (Buk Starter ~S/199, Worki360 ~S/499). Plan Maestro V2 lo justificó:
- * el ticket promedio del cliente B2B peruano de compliance soporta este nivel
- * cuando la propuesta de valor es "evita multas SUNAFIL hasta S/289k".
+ *  • FREE       → S/0     · hasta 5 trabajadores  (freemium / lead capture)
+ *  • STARTER    → S/249   · hasta 20 trabajadores (PYME 10-20 personas)
+ *  • PRO ⭐     → S/699   · hasta 75 trabajadores (sweet spot 30-75)
+ *  • EMPRESA    → S/1,899 · hasta 250 trabajadores (mediana 100-250)
+ *  • ENTERPRISE → custom desde S/4,990 · ilimitado (corporativo 300+)
  *
- *  • STARTER → gestor de planilla + calculadoras (valor inmediato sin compliance profundo)
- *  • EMPRESA → + diagnóstico + simulacro + plantillas merge-fields (compliance básico)
- *  • PRO     → + IA copilot + vision + portal worker biométrico + SST (compliance avanzado)
- *  • ENTERPRISE → + SLA + multi-cuenta contadores + API (canal partner + grandes empresas)
+ * Cambios 2026-04-30 vs versión anterior:
+ *  - Reordenado: PRO ahora es intermedio (sweet spot), EMPRESA es alto
+ *  - Eliminado BUSINESS (absorbido por EMPRESA)
+ *  - Eliminado white-label (defender brand equity)
+ *  - T-REGISTRO + PLAME export desde STARTER
+ *  - Boletas masivas gratis para todos los planes
+ *  - Soporte 24/7 IA + soporte humano escalado por plan
+ *  - Founding Members: 50% off por 2 años para primeros 20 (no es LAUNCH_DISCOUNT global)
  *
- * Política de grandfather: clientes activos con `pricingFrozenUntil > now`
- * conservan el precio anterior hasta esa fecha. Implementado en
- * `Subscription.pricingFrozenUntil` (campo nullable Prisma).
- */
-/**
- * Estructura de planes 2026 con per-seat overflow.
- *
- * Modelo híbrido: cada tier tiene precio base con N workers incluidos.
- * Cuando el cliente excede maxWorkers debería pagar overflow per-seat
- * (extraPerWorkerSoles) — la facturación de overflow se implementa en
- * Sprint 8+ vía cron mensual que recomputa el monto.
- *
- * ENTERPRISE NO tiene precio fijo: es contact-sales (`isCustomQuote: true`).
- * Esto evita regalar valor a empresas grandes (ej. 5,000 workers no pueden
- * pagar el mismo flat de S/3,499 que paga uno con 1,000 workers).
+ * Sincronizado con: `src/lib/payments/culqi.ts`, `src/app/dashboard/planes/page.tsx`,
+ * `src/lib/plan-features.ts`, `src/lib/plan-gate.ts`, `docs/PRICING.md`.
  *
  * Política de grandfather: clientes activos con `pricingFrozenUntil > now`
- * conservan precio anterior 12 meses. Implementado en Subscription.
+ * conservan el precio anterior. Implementado en `Subscription.pricingFrozenUntil`.
  */
 
 /**
- * Descuento promocional de lanzamiento.
- * El precio "real" en PLANS es el precio FINAL que paga el cliente.
- * El "precio original" mostrado tachado se calcula como
- * `price / (1 - LAUNCH_DISCOUNT_PERCENT/100)`.
- *
- * Cambiar a 0 cuando termine la promoción de lanzamiento.
+ * Descuento promocional global de lanzamiento.
+ * Se mantiene en 0 ahora — el descuento real es Founding Members
+ * (50% por 2 años para los primeros 20 clientes) que se aplica per-cliente
+ * vía `Subscription.foundingMember = true`, no como descuento global.
  */
-export const LAUNCH_DISCOUNT_PERCENT = 50
+export const LAUNCH_DISCOUNT_PERCENT = 0
+
+/**
+ * Founding Members Program — primeros 20 clientes obtienen 50% off por 2 años.
+ * Ver `docs/PRICING.md` sección "Promos de lanzamiento".
+ */
+export const FOUNDING_MEMBER_DISCOUNT_PERCENT = 50
+export const FOUNDING_MEMBER_DURATION_MONTHS = 24
+export const FOUNDING_MEMBER_MAX_SLOTS = 20
+
+/**
+ * Pago anual: 2 meses gratis (~17% descuento).
+ * priceAnnual = priceMonthly * 10 (en vez de 12).
+ */
+export const ANNUAL_DISCOUNT_MONTHS = 2
 
 /**
  * Calcula el precio "original" (antes del descuento) a partir del precio actual.
- * Ej. precio actual S/199 + 50% descuento → precio original S/398.
+ * Útil cuando hay descuento promocional activo (LAUNCH_DISCOUNT_PERCENT > 0).
  */
 export function getOriginalPrice(currentPrice: number, discountPercent = LAUNCH_DISCOUNT_PERCENT): number {
   if (discountPercent === 0 || discountPercent >= 100) return currentPrice
   return Math.round(currentPrice / (1 - discountPercent / 100))
+}
+
+/**
+ * Calcula el precio anual con descuento (2 meses gratis).
+ */
+export function getAnnualPrice(monthlyPrice: number): number {
+  return monthlyPrice * (12 - ANNUAL_DISCOUNT_MONTHS)
 }
 
 export const PLANS = {
@@ -70,6 +79,7 @@ export const PLANS = {
     name: "Gratuito",
     price: 0,
     priceInCentimos: 0,
+    priceAnnual: 0,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 5,
@@ -77,18 +87,24 @@ export const PLANS = {
     extraPerWorkerSoles: 0,
     isCustomQuote: false,
     features: [
-      "Hasta 5 trabajadores (demo)",
+      "Hasta 5 trabajadores",
       "13 calculadoras laborales peruanas",
-      "Diagnóstico gratis 10 preguntas",
-      "1 usuario admin",
+      "Calendario de obligaciones (CTS, grati, AFP)",
+      "Boletas individuales y masivas (ilimitadas)",
+      "1 contrato/mes con plantilla Comply360",
+      "Diagnóstico SUNAFIL Express (1/mes)",
+      "Alertas básicas por email (semanales)",
+      "🤖 Asistente IA de soporte 24/7",
+      "Branding 'Powered by Comply360' en PDFs",
       "Sin tarjeta de crédito",
     ],
   },
   STARTER: {
     key: "STARTER",
     name: "Starter",
-    price: 199,
-    priceInCentimos: 19900,
+    price: 249,
+    priceInCentimos: 24900,
+    priceAnnual: 2490, // 10 meses (2 gratis)
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 20,
@@ -97,93 +113,102 @@ export const PLANS = {
     isCustomQuote: false,
     features: [
       "Hasta 20 trabajadores (S/12 por trabajador adicional)",
-      "Gestor de planilla + legajo digital",
-      "13 calculadoras completas (CTS, gratificación, vacaciones, liquidación)",
-      "Alertas normativas y de vencimientos",
-      "Calendario de compliance",
+      "Todo del plan Free",
+      "Legajo digital (manual)",
+      "5 contratos/mes con plantillas",
+      "1 plantilla propia (zero-liability)",
+      "Export PLAME + T-REGISTRO",
+      "Diagnóstico SUNAFIL Express (ilimitado)",
+      "Alertas diarias por email",
+      "IA Copilot (50 consultas/mes)",
+      "💬 Chat humano lun-sáb 8am-8pm",
       "2 usuarios admin",
-      "Soporte por email",
-    ],
-  },
-  EMPRESA: {
-    key: "EMPRESA",
-    name: "Empresa",
-    price: 599,
-    priceInCentimos: 59900,
-    currency: "PEN",
-    interval: "month" as const,
-    maxWorkers: 100,
-    maxUsers: 5,
-    extraPerWorkerSoles: 8,
-    isCustomQuote: false,
-    features: [
-      "Hasta 100 trabajadores (S/8 por trabajador adicional)",
-      "Todo del plan Starter",
-      "Diagnóstico SUNAFIL completo (135 preguntas)",
-      "Simulacro de inspección básico",
-      "Biblioteca de plantillas con merge fields",
-      "Generación de contratos desde plantilla",
-      "Reportes ejecutivos PDF",
-      "5 usuarios admin",
-      "Soporte prioritario",
     ],
   },
   PRO: {
     key: "PRO",
     name: "Pro",
-    price: 1499,
-    priceInCentimos: 149900,
+    price: 699,
+    priceInCentimos: 69900,
+    priceAnnual: 6990, // 10 meses (2 gratis)
     currency: "PEN",
     interval: "month" as const,
-    maxWorkers: 300,
-    maxUsers: 15,
-    extraPerWorkerSoles: 5,
+    maxWorkers: 75,
+    maxUsers: 5,
+    extraPerWorkerSoles: 15,
     isCustomQuote: false,
     features: [
-      "Hasta 300 trabajadores (S/5 por trabajador adicional)",
-      "Todo del plan Empresa",
-      "Asistente IA laboral peruano (copilot)",
-      "Auto-verificación de documentos con IA Vision",
-      "Revisión IA de contratos",
+      "Hasta 75 trabajadores (S/15 por trabajador adicional)",
+      "Todo del plan Starter",
+      "Contratos ilimitados",
+      "5 plantillas propias (zero-liability)",
+      "Legajo digital con IA Vision (auto-verifica DNI, CV, exámenes)",
+      "Diagnóstico SUNAFIL completo (135 preguntas)",
       "Simulacro SUNAFIL completo + Acta de Requerimiento",
-      "Portal del trabajador con firma biométrica (Ley 27269)",
-      "Cascada de onboarding automatizada",
-      "Canal de denuncias (Ley 27942)",
-      "SST integral (Ley 29783)",
-      "15 usuarios admin",
-      "Soporte dedicado en horario laboral",
+      "AI Review de contratos",
+      "IA Copilot (500 consultas/mes)",
+      "15 generadores SST (Ley 29783)",
+      "Canal de denuncias público (Ley 27942)",
+      "Push notifications + Alertas diarias",
+      "📱 WhatsApp Business (respuesta <2h hábiles)",
+      "5 usuarios admin",
     ],
   },
-  BUSINESS: {
-    key: "BUSINESS",
-    name: "Business",
-    price: 3999,
-    priceInCentimos: 399900,
+  EMPRESA: {
+    key: "EMPRESA",
+    name: "Empresa",
+    price: 1899,
+    priceInCentimos: 189900,
+    priceAnnual: 18990, // 10 meses (2 gratis)
     currency: "PEN",
     interval: "month" as const,
-    maxWorkers: 750,
-    maxUsers: 30,
-    extraPerWorkerSoles: 4,
+    maxWorkers: 250,
+    maxUsers: 15,
+    extraPerWorkerSoles: 12,
     isCustomQuote: false,
     features: [
-      "Hasta 750 trabajadores (S/4 por trabajador adicional)",
+      "Hasta 250 trabajadores (S/12 por trabajador adicional)",
       "Todo del plan Pro",
-      "Multi-empresa básico (hasta 3 sucursales o RUCs hermanos)",
-      "Cuota IA ampliada (5,000 consultas/mes)",
-      "Onboarding asistido (1 sesión guiada con tu equipo)",
-      "Soporte prioritario respuesta < 8h horario laboral",
-      "30 usuarios admin",
-      "Reportes consolidados multi-empresa",
+      "Plantillas propias ilimitadas",
+      "Portal del trabajador (PWA + firma biométrica Ley 27269)",
+      "E-Learning + certificados QR",
+      "Multi-empresa (1 cuenta, varias orgs)",
+      "Cascada de onboarding automatizada",
+      "IA Copilot (2,000 consultas/mes)",
+      "🚨 SLA 4h 24/7 (incluyendo domingos)",
+      "15 usuarios admin",
+      "Reportes ejecutivos PDF",
+    ],
+  },
+  // BUSINESS — plan legacy. Mantenido por compatibilidad con schema Prisma
+  // (enum SubscriptionPlan) y código histórico. NO se muestra en UI nueva.
+  // Las features que tenía BUSINESS (multi-empresa, reportes consolidados)
+  // ahora vienen incluidas en EMPRESA según pricing oficial 2026-04-30.
+  BUSINESS: {
+    key: "BUSINESS",
+    name: "Business (Legacy)",
+    price: 1899,
+    priceInCentimos: 189900,
+    priceAnnual: 18990,
+    currency: "PEN",
+    interval: "month" as const,
+    maxWorkers: 250,
+    maxUsers: 15,
+    extraPerWorkerSoles: 12,
+    isCustomQuote: false,
+    features: [
+      "Plan legacy — equivale a EMPRESA en pricing 2026-04-30",
     ],
   },
   ENTERPRISE: {
     key: "ENTERPRISE",
     name: "Enterprise",
     // price=0 + isCustomQuote=true → UI muestra "Cotizar" en lugar de S/0.
-    // El precio real se acuerda en sales call. Negociación típica:
-    // S/15,000–60,000/mes según workers + features + SLA.
+    // El precio real se acuerda en sales call. Desde S/4,990/mes según
+    // workers + features + SLA.
     price: 0,
     priceInCentimos: 0,
+    priceAnnual: 0,
     currency: "PEN",
     interval: "month" as const,
     maxWorkers: 999999,
@@ -191,17 +216,17 @@ export const PLANS = {
     extraPerWorkerSoles: 0,
     isCustomQuote: true,
     features: [
-      "Para empresas con +1,000 trabajadores u holdings",
-      "Todo del plan Business",
-      "Multi-tenant ilimitado (holdings con N empresas hermanas)",
+      "Para empresas 300+ trabajadores · desde S/4,990/mes",
+      "Todo del plan Empresa",
+      "Trabajadores ilimitados",
       "API REST v1 + webhooks salientes",
-      "SLA 99.9% uptime con créditos por incumplimiento",
-      "Customer Success Manager dedicado",
-      "Cuota IA ilimitada",
+      "Integración API SUNAT / T-REGISTRO (cuando esté disponible)",
+      "Multi-empresa ilimitada (holdings)",
+      "IA Copilot ilimitado",
+      "👤 Customer Success Manager dedicado",
+      "📞 Línea telefónica directa",
       "Data Processing Agreement (DPA) personalizado",
       "Integración con planilla externa (Buk, Ofisis, Starsoft)",
-      "Branding white-label opcional",
-      "Soporte 24/7 con tiempo de respuesta < 4h",
       "Usuarios admin ilimitados",
     ],
   },

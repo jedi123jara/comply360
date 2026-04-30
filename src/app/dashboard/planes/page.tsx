@@ -51,35 +51,47 @@ const IGV_RATE = 0.18
 
 // Los precios + features vienen de `@/lib/constants.ts` PLANS (fuente canónica).
 // Acá solo mergemos UI metadata (icon, highlighted, badge, description corta).
+//
+// Pricing oficial 2026-04-30 (ver docs/PRICING.md):
+//   FREE → S/0 / 5 workers
+//   STARTER → S/249 / 20 workers
+//   PRO ⭐ → S/699 / 75 workers (sweet spot — "Más popular")
+//   EMPRESA → S/1,899 / 250 workers
+//   ENTERPRISE → custom desde S/4,990 / ilimitado
 const PLAN_UI_META: Record<
-  'STARTER' | 'EMPRESA' | 'PRO' | 'ENTERPRISE',
+  'FREE' | 'STARTER' | 'PRO' | 'EMPRESA' | 'ENTERPRISE',
   { icon: React.ComponentType<{ className?: string }>; description: string; highlighted?: boolean; badge?: string }
 > = {
+  FREE: {
+    icon: Shield,
+    description: 'Para freelancers o micro-PYMES con hasta 5 trabajadores. Sin tarjeta.',
+  },
   STARTER: {
     icon: Star,
-    description: 'Gestor de planilla + calculadoras para MYPEs (hasta 20 trabajadores).',
-  },
-  EMPRESA: {
-    icon: Building2,
-    highlighted: true,
-    badge: 'Más popular',
-    description: 'Compliance SUNAFIL completo para pequeñas empresas (hasta 100).',
+    description: 'Gestor de planilla + T-REGISTRO + PLAME para PYMES (hasta 20 trabajadores).',
   },
   PRO: {
     icon: Rocket,
-    badge: 'IA + Portal Worker',
-    description: 'IA + portal biométrico para medianas empresas (hasta 300).',
+    highlighted: true,
+    badge: 'Más popular',
+    description: 'IA + Diagnóstico SUNAFIL + AI Review para empresas 30-75 workers.',
+  },
+  EMPRESA: {
+    icon: Building2,
+    badge: 'Portal worker + SLA 4h',
+    description: 'Compliance integral + Portal del trabajador + SLA 4h 24/7 (hasta 250).',
   },
   ENTERPRISE: {
     icon: Crown,
     badge: 'Contáctanos',
-    description: 'Trabajadores ilimitados + SLA + multi-cuenta contadores + API.',
+    description: 'Empresas 300+ workers · API + integración SUNAT + CSM dedicado.',
   },
 }
 
-const PLANS: PlanDefinition[] = (
-  ['STARTER', 'EMPRESA', 'PRO', 'ENTERPRISE'] as const
-).map((key) => {
+// Orden visual oficial: FREE → STARTER → PRO ⭐ → EMPRESA → ENTERPRISE
+const PLAN_ORDER = ['FREE', 'STARTER', 'PRO', 'EMPRESA', 'ENTERPRISE'] as const
+
+const PLANS: PlanDefinition[] = PLAN_ORDER.map((key) => {
   const canonical = PLANS_CANONICAL[key]
   const ui = PLAN_UI_META[key]
   return {
@@ -101,29 +113,33 @@ const PLANS: PlanDefinition[] = (
 
 interface FeatureRow {
   name: string
+  free: string | boolean
   starter: string | boolean
-  empresa: string | boolean
   pro: string | boolean
+  empresa: string | boolean
 }
 
 const FEATURE_COMPARISON: FeatureRow[] = [
-  { name: 'Contratos/mes', starter: '10', empresa: '50', pro: 'Ilimitados' },
-  { name: 'Usuarios', starter: '1', empresa: '5', pro: 'Ilimitados' },
-  { name: 'Calculadoras laborales', starter: true, empresa: true, pro: true },
-  { name: 'Alertas normativas', starter: true, empresa: true, pro: true },
-  { name: 'Generador de documentos', starter: true, empresa: true, pro: true },
-  { name: 'Exportar PDF/DOCX', starter: false, empresa: true, pro: true },
-  { name: 'Diagnostico de cumplimiento', starter: false, empresa: true, pro: true },
-  { name: 'Expedientes digitales', starter: false, empresa: true, pro: true },
-  { name: 'Calendario laboral', starter: false, empresa: true, pro: true },
-  { name: 'IA: Revision de riesgos', starter: false, empresa: false, pro: true },
-  { name: 'Simulacro SUNAFIL', starter: false, empresa: false, pro: true },
-  { name: 'Canal de denuncias', starter: false, empresa: false, pro: true },
-  { name: 'Capacitaciones e-learning', starter: false, empresa: false, pro: true },
-  { name: 'Asistente IA avanzado', starter: false, empresa: false, pro: true },
-  { name: 'API access', starter: false, empresa: false, pro: true },
-  { name: 'Integraciones avanzadas', starter: false, empresa: false, pro: true },
-  { name: 'Soporte', starter: 'Email', empresa: 'Prioritario', pro: 'Dedicado 24/7' },
+  { name: 'Trabajadores incluidos', free: '5', starter: '20', pro: '75', empresa: '250' },
+  { name: 'Contratos/mes', free: '1', starter: '5', pro: 'Ilimitados', empresa: 'Ilimitados' },
+  { name: 'Boletas (individuales y masivas)', free: 'Ilimitadas', starter: 'Ilimitadas', pro: 'Ilimitadas', empresa: 'Ilimitadas' },
+  { name: '13 calculadoras laborales', free: true, starter: true, pro: true, empresa: true },
+  { name: 'Calendario obligaciones (CTS, grati, AFP)', free: true, starter: true, pro: true, empresa: true },
+  { name: 'Export PLAME + T-REGISTRO', free: false, starter: true, pro: true, empresa: true },
+  { name: 'Plantillas propias (zero-liability)', free: false, starter: '1', pro: '5', empresa: 'Ilimitadas' },
+  { name: 'Legajo digital con IA Vision', free: false, starter: 'Manual', pro: 'IA ✨', empresa: 'IA ✨' },
+  { name: 'IA Copilot consultas/mes', free: false, starter: '50', pro: '500', empresa: '2,000' },
+  { name: 'AI Review de contratos', free: false, starter: false, pro: true, empresa: true },
+  { name: 'Diagnóstico SUNAFIL', free: 'Express 1/mes', starter: 'Express ∞', pro: 'Full + Simulacro', empresa: 'Full + Simulacro' },
+  { name: '15 generadores SST', free: false, starter: false, pro: true, empresa: true },
+  { name: 'Canal de denuncias público', free: false, starter: false, pro: true, empresa: true },
+  { name: 'Portal del trabajador (PWA + firma biométrica)', free: false, starter: false, pro: false, empresa: true },
+  { name: 'E-Learning + certificados QR', free: false, starter: false, pro: false, empresa: true },
+  { name: 'Multi-empresa', free: false, starter: false, pro: false, empresa: true },
+  { name: 'Asistente IA soporte 24/7', free: true, starter: true, pro: true, empresa: true },
+  { name: 'Chat humano (lun-sáb 8am-8pm)', free: false, starter: true, pro: true, empresa: true },
+  { name: 'WhatsApp Business <2h hábiles', free: false, starter: false, pro: true, empresa: true },
+  { name: 'SLA 4h 24/7 (incluye domingos)', free: false, starter: false, pro: false, empresa: true },
 ]
 
 // =============================================
@@ -131,24 +147,29 @@ const FEATURE_COMPARISON: FeatureRow[] = [
 // =============================================
 
 export default function PlanesPage() {
-  const [currentPlan, setCurrentPlan] = useState<string>('STARTER')
+  // Default a 'FREE' en vez de 'STARTER' — si el fetch falla, FREE es más
+  // honesto que mostrar STARTER (puede ser un usuario sin plan asignado).
+  // El plan REAL viene del fetch a /api/dashboard que lee Organization.plan.
+  const [currentPlan, setCurrentPlan] = useState<string>('FREE')
   const [loading, setLoading] = useState(true)
   const [selectedPlan, setSelectedPlan] = useState<PlanDefinition | null>(null)
   const [showModal, setShowModal] = useState(false)
 
-  // Fetch current org plan
+  // Fetch current org plan — fuente de verdad: Organization.plan en DB
   useEffect(() => {
     async function fetchPlan() {
       try {
-        const res = await fetch('/api/dashboard')
+        // Cache: 'no-store' para evitar que el SW o el browser cacheen el plan
+        // viejo después de un upgrade. Necesitamos siempre el valor fresh.
+        const res = await fetch('/api/dashboard', { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()
           if (data.org?.plan) {
             setCurrentPlan(data.org.plan)
           }
         }
-      } catch {
-        // Default to STARTER if fetch fails
+      } catch (err) {
+        console.warn('[planes] fetch plan failed, defaulting to FREE', err)
       } finally {
         setLoading(false)
       }
@@ -158,10 +179,11 @@ export default function PlanesPage() {
 
   function handleSelectPlan(plan: PlanDefinition) {
     if (plan.key === currentPlan) return
+    if (plan.key === 'FREE') return // FREE no se "compra", solo se hace downgrade voluntario
     // ENTERPRISE es contact-sales: abrir WhatsApp directamente, no el modal Culqi
     if (plan.key === 'ENTERPRISE') {
       const msg = encodeURIComponent(
-        'Hola, quiero info del plan Enterprise de COMPLY360 (SLA + multi-cuenta + API).'
+        'Hola, quiero info del plan Enterprise de COMPLY360 (300+ workers + API + integración SUNAT + CSM dedicado).'
       )
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank')
       return
@@ -172,8 +194,10 @@ export default function PlanesPage() {
 
   function getButtonText(planKey: string) {
     if (planKey === currentPlan) return 'Plan actual'
+    if (planKey === 'FREE') return 'Plan gratuito'
     if (planKey === 'ENTERPRISE') return 'Contactar ventas'
-    const planOrder = ['FREE', 'STARTER', 'EMPRESA', 'PRO', 'ENTERPRISE']
+    // Orden oficial: FREE < STARTER < PRO < EMPRESA < ENTERPRISE
+    const planOrder = ['FREE', 'STARTER', 'PRO', 'EMPRESA', 'ENTERPRISE']
     const currentIdx = planOrder.indexOf(currentPlan)
     const targetIdx = planOrder.indexOf(planKey)
     if (targetIdx > currentIdx) return 'Mejorar plan'
@@ -182,7 +206,8 @@ export default function PlanesPage() {
 
   function getButtonVariant(planKey: string): 'primary' | 'secondary' | 'gold' {
     if (planKey === currentPlan) return 'secondary'
-    return planKey === 'EMPRESA' ? 'gold' : 'primary'
+    // Plan PRO ⭐ usa variante gold para destacar como "Más popular"
+    return planKey === 'PRO' ? 'gold' : 'primary'
   }
 
   if (loading) {
@@ -359,7 +384,7 @@ export default function PlanesPage() {
 
       {/* ---- Feature comparison table ---- */}
       <div>
-        <h2 className="mb-4 text-lg font-bold text-slate-900">Comparacion detallada</h2>
+        <h2 className="mb-4 text-lg font-bold text-slate-900">Comparación detallada</h2>
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -368,14 +393,17 @@ export default function PlanesPage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
                     Funcionalidad
                   </th>
+                  <th className="px-4 py-4 text-center text-sm font-semibold text-slate-700">
+                    Free
+                  </th>
                   <th className="px-4 py-4 text-center text-sm font-semibold text-slate-900">
                     Starter
                   </th>
                   <th className="px-4 py-4 text-center text-sm font-semibold text-gold">
-                    Empresa
+                    Pro ⭐
                   </th>
                   <th className="px-4 py-4 text-center text-sm font-semibold text-slate-900">
-                    Pro
+                    Empresa
                   </th>
                 </tr>
               </thead>
@@ -387,13 +415,16 @@ export default function PlanesPage() {
                   >
                     <td className="px-6 py-3 text-sm text-[color:var(--text-secondary)]">{row.name}</td>
                     <td className="px-4 py-3 text-center">
+                      <FeatureCell value={row.free} />
+                    </td>
+                    <td className="px-4 py-3 text-center">
                       <FeatureCell value={row.starter} />
                     </td>
                     <td className="px-4 py-3 text-center bg-gold/5">
-                      <FeatureCell value={row.empresa} highlight />
+                      <FeatureCell value={row.pro} highlight />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <FeatureCell value={row.pro} />
+                      <FeatureCell value={row.empresa} />
                     </td>
                   </tr>
                 ))}
