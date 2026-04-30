@@ -78,9 +78,14 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
         if (!r.ok) throw new Error(`status ${r.status}`)
         return r.json()
       })
-      .then((json: { data?: Payslip[] } | Payslip[]) => {
+      .then((json: { data?: Payslip[]; payslips?: Payslip[] } | Payslip[]) => {
         if (!mounted) return
-        const data = Array.isArray(json) ? json : (json.data ?? [])
+        // El endpoint devuelve { payslips, byYear, total } — antes leíamos
+        // json.data (que no existe) y la lista quedaba vacía aunque hubieran
+        // boletas. Aceptamos ambos por compatibilidad.
+        const data = Array.isArray(json)
+          ? json
+          : (json.payslips ?? json.data ?? [])
         setPayslips(data)
       })
       .catch((e: Error) => {

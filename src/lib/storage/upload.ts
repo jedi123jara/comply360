@@ -50,6 +50,75 @@ function generateFilename(ext: string): string {
 // =============================================
 // Supabase Storage upload (production)
 // =============================================
+
+// Cache para no preguntar 1000 veces si el bucket existe
+let bucketEnsured = false
+
+/**
+ * Verifica si el bucket existe; si no, intenta crearlo.
+ * Idempotente: corre una sola vez por proceso (cache en memoria).
+ *
+ * Razón: muchos proyectos Supabase nuevos no tienen el bucket "worker-documents"
+ * pre-creado. En vez de fallar con "Bucket not found" sin pista, lo creamos.
+ */
+async function ensureBucketExists(supabaseUrl: string, serviceKey: string): Promise<void> {
+  if (bucketEnsured) return
+
+  // GET /storage/v1/bucket/<name> — si existe devuelve 200, si no 404
+  const checkUrl = `${supabaseUrl}/storage/v1/bucket/${SUPABASE_BUCKET}`
+  const checkRes = await fetch(checkUrl, {
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+    },
+  })
+
+  if (checkRes.ok) {
+    bucketEnsured = true
+    return
+  }
+
+  if (checkRes.status !== 404) {
+    // Error de conectividad/auth — no intentes crear, deja que el upload falle con su propio error
+    return
+  }
+
+  // Bucket no existe → crear
+  const createUrl = `${supabaseUrl}/storage/v1/bucket`
+  const createRes = await fetch(createUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id: SUPABASE_BUCKET,
+      name: SUPABASE_BUCKET,
+      public: true, // Documentos accesibles via URL pública (firmadas opcionales)
+      file_size_limit: 5 * 1024 * 1024, // 5MB
+      allowed_mime_types: ALLOWED_TYPES,
+    }),
+  })
+
+  if (createRes.ok) {
+    bucketEnsured = true
+    return
+  }
+
+  // Si la respuesta de error dice "already exists" tratamos como ok (race condition)
+  const errText = await createRes.text()
+  if (errText.toLowerCase().includes('already exists') || errText.toLowerCase().includes('duplicate')) {
+    bucketEnsured = true
+    return
+  }
+
+  // Falló de verdad → no marcamos cache, que reintenten siguiente upload
+  throw new Error(
+    `No se pudo crear el bucket "${SUPABASE_BUCKET}" en Supabase. Crea el bucket manualmente en Supabase Dashboard → Storage → New bucket → name: ${SUPABASE_BUCKET} → public access. Detalle: ${errText}`,
+  )
+}
+
 async function uploadToSupabase(file: File, subfolder: string): Promise<UploadResult> {
   const { ext } = validateFile(file)
   const safeSubfolder = sanitizeSubfolder(subfolder)
@@ -59,6 +128,9 @@ async function uploadToSupabase(file: File, subfolder: string): Promise<UploadRe
 
   const supabaseUrl = process.env.SUPABASE_URL!
   const serviceKey = process.env.SUPABASE_SERVICE_KEY!
+
+  // Garantizar que el bucket existe antes del upload
+  await ensureBucketExists(supabaseUrl, serviceKey)
 
   // Use Supabase REST API directly (no SDK dependency needed)
   const uploadUrl = `${supabaseUrl}/storage/v1/object/${SUPABASE_BUCKET}/${storagePath}`
@@ -74,6 +146,24 @@ async function uploadToSupabase(file: File, subfolder: string): Promise<UploadRe
 
   if (!res.ok) {
     const err = await res.text()
+    // Mensaje amigable según el error
+    if (res.status === 404 || err.toLowerCase().includes('bucket not found')) {
+      // Reset cache para que el siguiente intento reintente crear
+      bucketEnsured = false
+      throw new Error(
+        `El bucket "${SUPABASE_BUCKET}" no existe en Supabase. Ve a Supabase Dashboard → Storage → New bucket → name: ${SUPABASE_BUCKET} → marca "Public bucket". También puedes intentar de nuevo en 30s y la app intentará crearlo.`,
+      )
+    }
+    if (res.status === 413 || err.toLowerCase().includes('payload')) {
+      throw new Error(
+        `El archivo es demasiado grande para subirse. Máximo: 4.5MB. Comprime la imagen o el PDF antes de subir.`,
+      )
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(
+        `No tienes permisos para subir a Supabase. Verifica que SUPABASE_SERVICE_KEY esté correcta en las variables de entorno.`,
+      )
+    }
     throw new Error(`Supabase upload failed: ${err}`)
   }
 

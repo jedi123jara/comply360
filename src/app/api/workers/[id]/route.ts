@@ -291,26 +291,43 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
     })
   } catch (err) {
     console.error('[workers/PUT] update failed', { id, fields: Object.keys(updateData), err })
-    // Si está fallando por columnas de schedule no aplicadas, reintentamos
-    // sin esos campos para que al menos lo demás se guarde.
-    if (tocaSchedule && Object.keys(updateData).length > scheduleIntFields.length) {
+
+    // Si está fallando por columnas de schedule no aplicadas:
+    //   - Si SOLO mandó campos de schedule → mensaje claro inmediato (no hay
+    //     más que guardar, así que no tiene sentido reintentar).
+    //   - Si mandó schedule + otros campos → reintenta SIN schedule para que
+    //     al menos los otros se guarden.
+    if (tocaSchedule) {
       const fallbackData = { ...updateData }
       for (const { field } of scheduleIntFields) {
         delete fallbackData[field]
       }
+      // Si NO queda nada que guardar, mensaje claro
+      if (Object.keys(fallbackData).length === 0) {
+        return NextResponse.json(
+          {
+            error: 'El horario laboral no se puede guardar todavía. Tu base de datos necesita un sync — entra a /dashboard/admin/db-sync, dale click al botón ámbar y vuelve a intentar.',
+            code: 'DB_SCHEMA_NEEDS_SYNC',
+            requiresSync: true,
+          },
+          { status: 422 },
+        )
+      }
+      // Hay otros campos → reintentar sin schedule
       try {
         worker = await prisma.worker.update({ where: { id }, data: fallbackData })
         return NextResponse.json({
           data: worker,
-          warning: 'El horario laboral no se pudo guardar (DB no actualizada). Aplica el sync desde /dashboard/admin/db-sync. Los demás cambios sí se guardaron.',
+          warning: 'El horario laboral no se pudo guardar (DB necesita sync desde /dashboard/admin/db-sync). Los demás cambios sí se guardaron.',
         })
       } catch (err2) {
         console.error('[workers/PUT] fallback update also failed', err2)
       }
     }
+
     return NextResponse.json(
       {
-        error: 'No se pudo guardar el cambio. La base de datos puede necesitar actualizarse desde /dashboard/admin/db-sync',
+        error: 'No se pudo guardar el cambio. Aplica el sync desde /dashboard/admin/db-sync',
         code: 'DB_UPDATE_ERROR',
         detail: err instanceof Error ? err.message.slice(0, 300) : String(err),
       },
