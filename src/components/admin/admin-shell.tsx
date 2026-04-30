@@ -15,6 +15,7 @@ import {
   Building2,
   ChevronRight,
   CreditCard,
+  Database,
   FileText,
   Home,
   LifeBuoy,
@@ -79,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/admin/soporte', icon: LifeBuoy, name: 'Soporte', shortcut: '5', danger: true },
       { href: '/admin/auditoria', icon: Shield, name: 'Auditoría', shortcut: '6' },
+      { href: '/admin/db-sync', icon: Database, name: 'DB sync' },
       { href: '/admin/configuracion', icon: Settings, name: 'Sistema' },
     ],
   },

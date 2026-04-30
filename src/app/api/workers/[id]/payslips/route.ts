@@ -120,7 +120,7 @@ export const POST = withAuthParams<{ id: string }>(async (
       console.error('[payslips/POST] worker fetch failed', err2 instanceof Error ? err2.message : err2)
       return NextResponse.json(
         {
-          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse desde /dashboard/admin/db-sync',
+          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse desde /admin/db-sync',
           code: 'DB_SCHEMA_MISMATCH',
           detail: err2 instanceof Error ? err2.message.slice(0, 200) : String(err2),
         },
@@ -262,7 +262,7 @@ export const POST = withAuthParams<{ id: string }>(async (
     console.error('[payslips/POST] payslip.create failed', err)
     return NextResponse.json(
       {
-        error: 'No se pudo guardar la boleta. Probablemente la DB necesita actualizarse desde /dashboard/admin/db-sync',
+        error: 'No se pudo guardar la boleta. Probablemente la DB necesita actualizarse desde /admin/db-sync',
         code: 'DB_INSERT_ERROR',
         detail: err instanceof Error ? err.message.slice(0, 300) : String(err),
       },
