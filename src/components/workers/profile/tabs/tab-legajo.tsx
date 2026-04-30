@@ -10,6 +10,7 @@ import { ProgressRing } from '@/components/ui/progress-ring'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { compressImageIfNeeded } from '@/lib/storage/compress-image'
 
 export interface LegajoDoc {
   id: string
@@ -72,29 +73,57 @@ export function TabLegajo({
   }
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const original = e.target.files?.[0]
+    if (!original) return
     // Reset input para que el mismo archivo se pueda re-seleccionar después
     e.target.value = ''
 
     setUploading(true)
-    const tid = `upload-${file.name}`
-    toast.loading(`Subiendo ${file.name}...`, { id: tid })
+    const tid = `upload-${original.name}`
+
+    // Comprimir si es imagen grande — Vercel limita body a ~4.5MB y los
+    // celulares modernos toman fotos de 5-20MB. Sin compresión = HTTP 413.
+    let fileToUpload = original
+    try {
+      toast.loading(`Preparando ${original.name}...`, { id: tid })
+      const result = await compressImageIfNeeded(original)
+      fileToUpload = result.file
+      if (result.compressed) {
+        const ratio = Math.round(((1 - result.finalSize / result.originalSize) * 100))
+        toast.loading(
+          `Foto comprimida ${ratio}% (${(result.originalSize / 1024 / 1024).toFixed(1)}MB → ${(result.finalSize / 1024 / 1024).toFixed(1)}MB). Subiendo...`,
+          { id: tid },
+        )
+      } else {
+        toast.loading(`Subiendo ${fileToUpload.name}...`, { id: tid })
+      }
+    } catch (err) {
+      // El helper ya tira mensajes accionables ("comprime con una herramienta", "toma con menor resolución")
+      toast.error(err instanceof Error ? err.message : 'Archivo demasiado grande', { id: tid })
+      setUploading(false)
+      return
+    }
+
     try {
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', fileToUpload)
       // Documento genérico — el worker o admin elige categoría después
       // o la IA vision lo clasifica. Por defecto: VIGENTE genérico.
       fd.append('category', 'VIGENTE')
       fd.append('documentType', 'OTRO')
-      fd.append('title', file.name)
+      fd.append('title', fileToUpload.name)
       const res = await fetch(`/api/workers/${workerId}/documents`, {
         method: 'POST',
         body: fd,
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-      toast.success(`${file.name} subido. Refrescando...`, { id: tid })
+      if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error('El archivo es demasiado grande para subir. Comprímelo o reduce su resolución.')
+        }
+        throw new Error(data.error || `HTTP ${res.status}`)
+      }
+      toast.success(`${fileToUpload.name} subido. Refrescando...`, { id: tid })
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al subir', { id: tid })

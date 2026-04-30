@@ -103,7 +103,7 @@ const STATUS_STYLES: Record<string, { label: string; dot: string; bg: string }> 
   ACEPTADA: { label: 'Aceptada', dot: 'bg-emerald-400', bg: 'bg-emerald-50 text-emerald-600' },
 }
 
-const inputStyles = 'w-full rounded-lg border border-white/10 bg-[color:var(--neutral-100)] px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-gold/50 focus:outline-none focus:ring-1 focus:ring-gold/20 transition-colors'
+const inputStyles = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors'
 
 // Avatar colors based on name hash
 const AVATAR_COLORS = [
@@ -165,13 +165,13 @@ function GenerarModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#1a1f2e] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
           <div>
-            <h3 className="text-lg font-bold text-white">Generar Boleta de Pago</h3>
+            <h3 className="text-lg font-bold text-slate-900">Generar Boleta de Pago</h3>
             <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
               {displayName(worker.firstName, worker.lastName)}
-              <span className="mx-2 text-white/20">|</span>
+              <span className="mx-2 text-slate-300">|</span>
               <span className="text-[color:var(--text-tertiary)]">DNI {worker.dni}</span>
             </p>
           </div>
@@ -200,10 +200,10 @@ function GenerarModal({
               <input id="boleta-bonificaciones" type="number" step="0.01" min="0" value={bonificaciones} onChange={e => setBonificaciones(parseFloat(e.target.value) || 0)} className={inputStyles} />
             </div>
           </div>
-          <label className="flex items-center gap-4 cursor-pointer rounded-xl border border-white/10 bg-[color:var(--neutral-50)] px-5 py-4 hover:bg-[color:var(--neutral-100)] transition-colors">
+          <label className="flex items-center gap-4 cursor-pointer rounded-xl border border-slate-200 bg-[color:var(--neutral-50)] px-5 py-4 hover:bg-[color:var(--neutral-100)] transition-colors">
             <input type="checkbox" checked={incluirGratif} onChange={e => setIncluirGratif(e.target.checked)} className="h-4 w-4 rounded border-white/20 bg-white/10 text-amber-500 focus:ring-gold/30" />
             <div>
-              <p className="text-sm font-semibold text-white">Incluir Gratificacion</p>
+              <p className="text-sm font-semibold text-slate-900">Incluir Gratificacion</p>
               <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">Marcar en julio y diciembre</p>
             </div>
           </label>
@@ -223,8 +223,8 @@ function GenerarModal({
             </div>
           </div>
         </div>
-        <div className="flex gap-3 border-t border-white/10 px-6 py-5">
-          <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors">
+        <div className="flex gap-3 border-t border-slate-200 px-6 py-5">
+          <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors">
             Cancelar
           </button>
           <button type="button" onClick={generate} disabled={loading} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gold py-2.5 text-sm font-bold text-black hover:bg-gold/90 disabled:opacity-60 transition-colors">
@@ -273,10 +273,10 @@ function PayslipsDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border border-white/10 bg-[#1a1f2e] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-5 shrink-0">
+      <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-white">Historial de Boletas</h3>
+            <h3 className="text-lg font-bold text-slate-900">Historial de Boletas</h3>
             <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
               {displayName(worker.firstName, worker.lastName)} · DNI {worker.dni}
             </p>
@@ -310,7 +310,7 @@ function PayslipsDrawer({
                         <Calendar className="h-4 w-4 text-amber-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">{fmtPeriodo(p.periodo)}</p>
+                        <p className="text-sm font-bold text-slate-900">{fmtPeriodo(p.periodo)}</p>
                         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold mt-0.5', st.bg)}>
                           <span className={cn('h-1.5 w-1.5 rounded-full', st.dot)} />
                           {st.label}
@@ -372,13 +372,13 @@ function WorkerGridCard({
       <div className="flex items-center gap-3 mb-3">
         {/* Compact circular avatar */}
         <div className={cn(
-          'flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white shadow-md',
+          'flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-slate-900 shadow-md',
           color,
         )}>
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-white leading-tight truncate">
+          <h3 className="text-sm font-bold text-slate-900 leading-tight truncate">
             {fullName}
           </h3>
           {worker.position && (
@@ -390,8 +390,8 @@ function WorkerGridCard({
         </div>
         <button
           onClick={onViewHistory}
-          className="rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)] hover:text-white hover:bg-[color:var(--neutral-100)] hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-          title="Ver historial"
+          className="rounded-lg p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors shrink-0"
+          title="Ver historial de boletas"
         >
           <MoreVertical className="h-4 w-4" />
         </button>
@@ -405,30 +405,43 @@ function WorkerGridCard({
       {/* Sueldo */}
       <div className="rounded-lg bg-[color:var(--neutral-100)] border border-[color:var(--border-default)] px-3 py-2.5 mb-3">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-0.5">Sueldo Bruto</p>
-        <p className="text-base font-bold text-white tabular-nums">{fmt(worker.sueldoBruto)}</p>
+        <p className="text-base font-bold text-slate-900 tabular-nums">{fmt(worker.sueldoBruto)}</p>
       </div>
 
       {/* Footer: status + action */}
       <div className="mt-auto flex items-center justify-between gap-2">
         {hasCurrentMonth ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
             <CheckCircle2 className="h-3 w-3" />
             Al dia
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 border border-amber-200">
             <Clock className="h-3 w-3" />
             Pendiente
           </span>
         )}
-        <button
-          type="button"
-          onClick={onGenerar}
-          className="flex items-center gap-1.5 rounded-lg bg-gold px-3 py-1.5 text-[11px] font-bold text-black hover:bg-gold/90 transition-all shadow-sm hover:shadow-md hover:shadow-gold/20"
-        >
-          <Plus className="h-3 w-3" />
-          Generar Boleta
-        </button>
+        {hasCurrentMonth ? (
+          /* Si ya hay boleta del mes en curso, el CTA principal va a "Ver" — abre
+             el historial. La generación queda accesible desde ahí si el admin
+             la quiere regenerar. */
+          <button
+            type="button"
+            onClick={onViewHistory}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700 transition-all shadow-sm"
+          >
+            Ver boletas
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onGenerar}
+            className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-amber-700 transition-all shadow-sm"
+          >
+            <Plus className="h-3 w-3" />
+            Generar Boleta
+          </button>
+        )}
       </div>
     </div>
   )
@@ -473,7 +486,7 @@ function BulkPayslipButton({ periodo, periodoLabel, pendingCount, onComplete }: 
             <Banknote className="h-5 w-5 text-amber-500" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white">Generacion masiva — {periodoLabel}</p>
+            <p className="text-sm font-bold text-slate-900">Generacion masiva — {periodoLabel}</p>
             <p className="text-xs text-[color:var(--text-tertiary)]">{pendingCount} trabajadores pendientes de boleta</p>
           </div>
         </div>
@@ -575,7 +588,7 @@ export default function BoletasPage() {
             </div>
             <div>
               <p className="text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider">Total</p>
-              <p className="text-2xl font-bold text-white">{total}</p>
+              <p className="text-2xl font-bold text-slate-900">{total}</p>
             </div>
           </div>
         </div>
@@ -611,7 +624,7 @@ export default function BoletasPage() {
             </div>
             <div>
               <p className="text-xs font-medium text-[color:var(--text-tertiary)] uppercase tracking-wider">Periodo</p>
-              <p className="text-lg font-bold text-white">{periodoLabel}</p>
+              <p className="text-lg font-bold text-slate-900">{periodoLabel}</p>
             </div>
           </div>
         </div>
@@ -651,7 +664,7 @@ export default function BoletasPage() {
           placeholder="Buscar trabajador..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-white/10 bg-[color:var(--neutral-100)] py-3 pl-11 pr-4 text-sm text-white placeholder-gray-500 focus:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/20 transition-colors"
+          className="w-full rounded-xl border border-slate-200 bg-[color:var(--neutral-100)] py-3 pl-11 pr-4 text-sm text-white placeholder-gray-500 focus:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/20 transition-colors"
         />
         {loading && (
           <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[color:var(--text-tertiary)]" />
@@ -669,7 +682,7 @@ export default function BoletasPage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 mb-5">
             <Users className="h-8 w-8 text-gray-600" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">Sin trabajadores activos</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Sin trabajadores activos</h3>
           <p className="max-w-md text-sm text-[color:var(--text-tertiary)] mb-6">
             Primero debes registrar trabajadores en el modulo de Trabajadores.
           </p>

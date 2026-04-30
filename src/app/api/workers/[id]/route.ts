@@ -157,7 +157,51 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
   const orgId = ctx.orgId
   const body = await req.json()
 
-  const existing = await prisma.worker.findUnique({ where: { id } })
+  // Defensivo: select explícito SIN las columnas nuevas (Fase 1.2 schedule)
+  // para que el findUnique no truene si la migration no se aplicó.
+  let existing: {
+    id: string
+    orgId: string
+    status: string
+    expectedClockInHour?: number
+    expectedClockInMinute?: number
+    expectedClockOutHour?: number
+    expectedClockOutMinute?: number
+    lateToleranceMinutes?: number
+  } | null = null
+  try {
+    existing = await prisma.worker.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        orgId: true,
+        status: true,
+        expectedClockInHour: true,
+        expectedClockInMinute: true,
+        expectedClockOutHour: true,
+        expectedClockOutMinute: true,
+        lateToleranceMinutes: true,
+      },
+    })
+  } catch {
+    // Columnas de schedule no existen → fallback a select básico
+    try {
+      const fallback = await prisma.worker.findUnique({
+        where: { id },
+        select: { id: true, orgId: true, status: true },
+      })
+      existing = fallback
+    } catch (err2) {
+      console.error('[workers/PUT] findUnique failed', err2 instanceof Error ? err2.message : err2)
+      return NextResponse.json(
+        {
+          error: 'No se pudo cargar el trabajador. La base de datos necesita actualizarse desde /dashboard/admin/db-sync',
+          code: 'DB_SCHEMA_MISMATCH',
+        },
+        { status: 500 },
+      )
+    }
+  }
   if (!existing || existing.orgId !== orgId) {
     return NextResponse.json({ error: 'Worker not found' }, { status: 404 })
   }
@@ -220,13 +264,15 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
       updateData[field] = v
     }
   }
-  // Validación cruzada: entrada < salida si se tocó alguno
+  // Validación cruzada: entrada < salida si se tocó alguno.
+  // Si `existing` no trae los campos de schedule (DB pre-migration), usamos
+  // defaults conservadores (8:00 - 17:00).
   const tocaSchedule = scheduleIntFields.some(({ field }) => field in body)
   if (tocaSchedule) {
-    const newInHour = (updateData.expectedClockInHour as number | undefined) ?? existing.expectedClockInHour
-    const newInMinute = (updateData.expectedClockInMinute as number | undefined) ?? existing.expectedClockInMinute
-    const newOutHour = (updateData.expectedClockOutHour as number | undefined) ?? existing.expectedClockOutHour
-    const newOutMinute = (updateData.expectedClockOutMinute as number | undefined) ?? existing.expectedClockOutMinute
+    const newInHour = (updateData.expectedClockInHour as number | undefined) ?? existing.expectedClockInHour ?? 8
+    const newInMinute = (updateData.expectedClockInMinute as number | undefined) ?? existing.expectedClockInMinute ?? 0
+    const newOutHour = (updateData.expectedClockOutHour as number | undefined) ?? existing.expectedClockOutHour ?? 17
+    const newOutMinute = (updateData.expectedClockOutMinute as number | undefined) ?? existing.expectedClockOutMinute ?? 0
     const inMin = newInHour * 60 + newInMinute
     const outMin = newOutHour * 60 + newOutMinute
     if (outMin <= inMin) {
