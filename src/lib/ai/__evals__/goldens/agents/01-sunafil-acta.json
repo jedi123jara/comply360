@@ -1,0 +1,19 @@
+{
+  "id": "agent-sunafil-01",
+  "description": "Sunafil-analyzer recibe acta de requerimiento simulada y debe extraer infracciones",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres un abogado laboralista peruano experto en SUNAFIL. Respondes EXCLUSIVAMENTE con JSON válido." },
+      { "role": "user", "content": "Analiza esta acta:\n\nACTA DE REQUERIMIENTO N° 2026-12345\nINSPECTOR: Juan Pérez\nEMPRESA: ABC SAC (RUC 20505050505)\nINFRACCIONES DETECTADAS:\n1. No registró a 3 trabajadores en T-REGISTRO\n2. Pagó remuneración menor a la RMV (S/ 800) a 2 trabajadores\n3. No depositó CTS de mayo 2025 a 5 trabajadores\nPLAZO PARA SUBSANAR: 10 días hábiles\n\nRetorna JSON: {infracciones: [{tipo, descripcion, gravedad, multaUIT, baseLegal}], totalMultaUIT, recomendacion}" }
+    ],
+    "options": { "feature": "sunafil-agent", "temperature": 0.1, "maxTokens": 2500, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "infracciones": { "exists": true },
+      "totalMultaUIT": { "exists": true, "min": 1 },
+      "recomendacion": { "exists": true }
+    }
+  },
+  "tags": ["sunafil", "acta"]
+}

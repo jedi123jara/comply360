@@ -1,0 +1,19 @@
+{
+  "id": "triage-acoso-01",
+  "description": "Denuncia de acoso laboral (mobbing)",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Clasificas denuncias de canal interno. Respondes solo con JSON {tipoReclamo, categoria, prioridad, respuestaRecomendada}." },
+      { "role": "user", "content": "Mi supervisor me grita delante de todos, me cambia de tareas constantemente sin razón y me excluye de las reuniones del área. Esto pasa hace 3 meses." }
+    ],
+    "options": { "feature": "complaint-triage", "temperature": 0.1, "maxTokens": 800, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "tipoReclamo": { "exists": true },
+      "prioridad": { "oneOf": ["MEDIA", "ALTA", "media", "alta"] }
+    },
+    "containsAny": ["acoso", "mobbing", "hostigamiento laboral"]
+  },
+  "tags": ["acoso-laboral"]
+}

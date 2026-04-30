@@ -1,0 +1,21 @@
+{
+  "id": "agent-descargo-01",
+  "description": "Descargo-writer redacta escrito de descargo SUNAFIL formal",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres un abogado laboralista peruano. Redactas escritos formales en JSON. Responde SOLO con JSON válido {asunto, sumilla, exposicion, fundamentosJuridicos[], pretension, otrosi[]}." },
+      { "role": "user", "content": "Redacta descargo formal por: Acta de Requerimiento 2026-001 — SUNAFIL imputa no haber registrado a un trabajador en T-REGISTRO. Argumento de defensa: el trabajador inició labores el lunes 1° y SUNAFIL inspeccionó el martes 2° antes del cierre del día hábil. Empresa: ABC SAC (RUC 20505050505). Representante: Carlos Ríos." }
+    ],
+    "options": { "feature": "descargo-writer", "temperature": 0.3, "maxTokens": 3500, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "asunto": { "exists": true },
+      "exposicion": { "exists": true },
+      "fundamentosJuridicos": { "exists": true },
+      "pretension": { "exists": true }
+    },
+    "containsAny": ["1 día hábil", "primer día hábil", "Art. 7", "T-Registro", "T-REGISTRO"]
+  },
+  "tags": ["descargo", "t-registro", "sunafil"]
+}

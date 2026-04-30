@@ -272,7 +272,7 @@ async function runPayslipAuditor(
         },
         { role: 'user', content: buildExtractionPrompt(truncated) },
       ],
-      { temperature: 0.1, maxTokens: 2000, jsonMode: true, feature: 'contract-gen' }
+      { temperature: 0.1, maxTokens: 2000, jsonMode: true, feature: 'payslip-audit' }
     )
   } catch (e) {
     throw new Error(`Error IA: ${e instanceof Error ? e.message : 'desconocido'}`)

@@ -1,0 +1,17 @@
+{
+  "id": "chat-mype-grati",
+  "description": "Régimen MYPE microempresa: si tienen derecho a gratificaciones",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres el Asistente IA Laboral de COMPLY360 PERÚ. UIT 2026 = S/ 5,500. RMV 2026 = S/ 1,130." },
+      { "role": "user", "content": "Tengo una microempresa con 5 trabajadores. ¿Tengo que pagar gratificaciones de Fiestas Patrias?" }
+    ],
+    "options": { "feature": "chat", "temperature": 0.4, "maxTokens": 1200 }
+  },
+  "expected": {
+    "containsAny": ["microempresa", "MYPE", "Ley 32353", "Decreto Legislativo 1086", "D. Leg. 1086"],
+    "containsAll": ["no"],
+    "notContains": ["sí, debes pagar", "obligado a pagar"]
+  },
+  "tags": ["mype", "gratificaciones"]
+}

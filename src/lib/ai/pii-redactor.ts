@@ -42,6 +42,7 @@ export interface RedactionResult {
     phone: number
     name: number
     account: number
+    medical: number
   }
 }
 
@@ -57,6 +58,12 @@ export interface RedactOptions {
    * para no romper layouts (ej. contratos con tablas alineadas). Default: false.
    */
   preserveLength?: boolean
+  /**
+   * Si `true`, redacta códigos CIE-10 y términos clínicos comunes en
+   * certificados de incapacidad. Default: false (la mayoría de prompts no
+   * cargan datos médicos crudos). Habilítalo en flujos de exámenes médicos.
+   */
+  redactMedical?: boolean
 }
 
 /**
@@ -69,7 +76,7 @@ export interface RedactOptions {
  */
 export function redactPii(text: string, opts: RedactOptions = {}): RedactionResult {
   const mapping: Record<string, string> = {}
-  const counters = { dni: 0, ruc: 0, email: 0, phone: 0, name: 0, account: 0 }
+  const counters = { dni: 0, ruc: 0, email: 0, phone: 0, name: 0, account: 0, medical: 0 }
   let working = text
 
   // ── Helper: registrar/recuperar placeholder determinista por valor ────────
@@ -91,8 +98,18 @@ export function redactPii(text: string, opts: RedactOptions = {}): RedactionResu
     return tag
   }
 
-  // ── 1. CCI / cuenta bancaria (20 dígitos consecutivos) ───────────────────
-  // Prioritario antes de DNI (8) y RUC (11) para no romper números largos.
+  // ── 1. CCI / cuenta bancaria con guiones (formato peruano) ───────────────
+  // Formatos típicos:
+  //   BCP:       192-3045820-0-26   (3-7-1-2)
+  //   Interbank: 898-3001234567-89  (3-10-2)
+  //   BBVA:      0011-0123-0123456789-01 (4-4-10-2)
+  //   CCI:       00219200304582002612 (20 dígitos sin guiones — match abajo)
+  // Solo guiones (no espacios) y grupos suficientemente grandes para no
+  // confundirse con teléfonos peruanos "999 888 777".
+  working = working.replace(/\b\d{3,4}-\d{4,10}-\d{2,10}(?:-\d{1,3})?\b/g, (m) =>
+    getOrCreate('account', m),
+  )
+  // CCI puro 20 dígitos consecutivos.
   working = working.replace(/\b\d{20}\b/g, (m) => getOrCreate('account', m))
   // Cuentas de 14-17 dígitos (CCI antiguo, cuentas BCP/Interbank)
   working = working.replace(/\b\d{14,17}\b/g, (m) => getOrCreate('account', m))
@@ -118,7 +135,13 @@ export function redactPii(text: string, opts: RedactOptions = {}): RedactionResu
     (m) => getOrCreate('phone', m),
   )
 
-  // ── 6. Nombres del worker (si se proveen) ────────────────────────────────
+  // ── 6. Códigos médicos CIE-10 (si se solicita) ───────────────────────────
+  if (opts.redactMedical) {
+    // CIE-10: 1 letra + 2 dígitos + opcional .1-2 dígitos. Ej: J45, F32.1, M54.5
+    working = working.replace(/\b[A-Z]\d{2}(?:\.\d{1,2})?\b/g, (m) => getOrCreate('medical', m))
+  }
+
+  // ── 7. Nombres del worker (si se proveen) ────────────────────────────────
   if (opts.workerNames && opts.workerNames.length > 0) {
     // Filtra strings vacíos y partes muy cortas (1 letra) que generarían ruido.
     const names = opts.workerNames

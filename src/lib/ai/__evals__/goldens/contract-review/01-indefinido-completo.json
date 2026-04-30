@@ -1,0 +1,19 @@
+{
+  "id": "review-indefinido-01",
+  "description": "Contrato indefinido completo — debería pasar review con score alto",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres un abogado laboralista peruano. Respondes SOLO con JSON válido conforme al schema de COMPLY360." },
+      { "role": "user", "content": "Analiza este contrato indefinido y devuelve JSON {overallScore, riskLevel, risks[], compliance[], clausulasObligatorias[], resumenEjecutivo, multaEstimadaUIT}:\n\nCONTRATO INDEFINIDO\nEntre [RUC_1] y [DNI_1] (en adelante el TRABAJADOR), con domicilio en Lima.\nCargo: Asistente Administrativo\nFecha de ingreso: 1 de febrero de 2026\nRemuneración: S/ 1,500 mensuales (cumple RMV)\nJornada: 8 horas diarias / 48 horas semanales\nPeríodo de prueba: 3 meses\nLugar: Av. Javier Prado 123, San Isidro\nBeneficios: CTS, gratificaciones, 30 días de vacaciones por año\nSST: el trabajador se compromete a cumplir la Ley 29783 y el reglamento interno\nProtección de datos: el trabajador autoriza el tratamiento de sus datos personales conforme a Ley 29733\nHostigamiento sexual: la empresa cuenta con política conforme a Ley 27942\nCausas de extinción: las previstas en el D.Leg. 728" }
+    ],
+    "options": { "feature": "contract-review", "temperature": 0.2, "maxTokens": 4000, "jsonMode": true }
+  },
+  "expected": {
+    "jsonShape": {
+      "overallScore": { "min": 70, "max": 100 },
+      "riskLevel": { "oneOf": ["LOW", "MEDIUM"] },
+      "clausulasObligatorias": { "exists": true }
+    }
+  },
+  "tags": ["indefinido", "completo"]
+}

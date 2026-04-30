@@ -38,6 +38,16 @@ export interface AiUsageInput {
   model: string
   promptTokens?: number
   completionTokens?: number
+  /** Tokens servidos desde cache de contexto (DeepSeek prompt_cache_hit_tokens). */
+  cachedTokens?: number
+  /** Tokens de reasoning (DeepSeek-reasoner devuelve `reasoning_tokens`). */
+  reasoningTokens?: number
+  /** Time-to-first-token en streams (ms). Null si fue no-stream. */
+  ttftMs?: number | null
+  /** True si el primario falló y la respuesta vino de un fallback. */
+  fallbackUsed?: boolean
+  /** Score evaluado por el harness, si esta llamada vino de un eval run. */
+  evalScore?: number | null
   latencyMs?: number | null
   success?: boolean
   errorMessage?: string | null
@@ -51,6 +61,8 @@ export interface AiUsageInput {
 export function recordAiUsage(input: AiUsageInput): Promise<void> {
   const promptTokens = Math.max(0, input.promptTokens ?? 0)
   const completionTokens = Math.max(0, input.completionTokens ?? 0)
+  const cachedTokens = Math.max(0, input.cachedTokens ?? 0)
+  const reasoningTokens = Math.max(0, input.reasoningTokens ?? 0)
   const totalTokens = promptTokens + completionTokens
 
   const costUsd = estimateCostUsd({
@@ -58,12 +70,16 @@ export function recordAiUsage(input: AiUsageInput): Promise<void> {
     model: input.model,
     promptTokens,
     completionTokens,
+    cachedTokens,
+    reasoningTokens,
   })
 
-  return prisma.aiUsage
+  // Fire-and-forget: persist y bump del counter mensual en paralelo
+  const orgId = input.orgId ?? null
+  const persistUsage = prisma.aiUsage
     .create({
       data: {
-        orgId: input.orgId ?? null,
+        orgId,
         userId: input.userId ?? null,
         feature: input.feature,
         provider: input.provider,
@@ -71,6 +87,11 @@ export function recordAiUsage(input: AiUsageInput): Promise<void> {
         promptTokens,
         completionTokens,
         totalTokens,
+        cachedTokens: cachedTokens || null,
+        reasoningTokens: reasoningTokens || null,
+        ttftMs: input.ttftMs ?? null,
+        fallbackUsed: input.fallbackUsed === true,
+        evalScore: input.evalScore ?? null,
         costUsd,
         latencyMs: input.latencyMs ?? null,
         success: input.success !== false,
@@ -81,6 +102,48 @@ export function recordAiUsage(input: AiUsageInput): Promise<void> {
     .catch((err) => {
       console.error('[ai/usage] persist failed:', err)
     })
+
+  // Bump del counter mensual (solo si hay org y la llamada fue exitosa).
+  // Esto permite que checkCapacity sea O(1) en lugar de un aggregate sobre AiUsage.
+  if (orgId && input.success !== false) {
+    void bumpBudgetCounter({ orgId, totalTokens, costUsd }).catch((err) => {
+      console.error('[ai/usage] budget counter bump failed:', err)
+    })
+  }
+
+  return persistUsage
+}
+
+/**
+ * Incrementa el contador mensual de la org. Crea el registro si no existe
+ * para el mes actual. Idempotente — usa upsert.
+ */
+async function bumpBudgetCounter(params: {
+  orgId: string
+  totalTokens: number
+  costUsd: number
+}): Promise<void> {
+  const now = new Date()
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+
+  await prisma.aiBudgetCounter.upsert({
+    where: { orgId_monthStart: { orgId: params.orgId, monthStart } },
+    create: {
+      orgId: params.orgId,
+      monthStart,
+      totalCalls: 1,
+      totalTokens: params.totalTokens,
+      totalCostUsd: params.costUsd,
+      hourlyCalls: 1,
+      hourlyResetAt: now,
+    },
+    update: {
+      totalCalls: { increment: 1 },
+      totalTokens: { increment: params.totalTokens },
+      totalCostUsd: { increment: params.costUsd },
+      hourlyCalls: { increment: 1 },
+    },
+  })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

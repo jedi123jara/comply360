@@ -1,0 +1,17 @@
+{
+  "id": "chat-multa-tregistro",
+  "description": "Multa SUNAFIL por no registrar trabajador en T-REGISTRO",
+  "input": {
+    "messages": [
+      { "role": "system", "content": "Eres el Asistente IA Laboral de COMPLY360 PERÚ. UIT 2026 = S/ 5,500." },
+      { "role": "user", "content": "Si SUNAFIL me detecta que no registré a un trabajador en T-REGISTRO, ¿cuánto me pueden multar? Tengo 30 trabajadores formales." }
+    ],
+    "options": { "feature": "chat", "temperature": 0.4, "maxTokens": 1500 }
+  },
+  "expected": {
+    "containsAll": ["UIT", "muy grave"],
+    "containsAny": ["D.S. 019-2006-TR", "Decreto Supremo 019-2006-TR", "Ley 28806", "T-REGISTRO", "T-Registro"],
+    "regex": "S/.*\\d"
+  },
+  "tags": ["sunafil", "multa", "t-registro"]
+}

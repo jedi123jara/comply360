@@ -2069,6 +2069,20 @@ model AiUsage {
   completionTokens Int      @default(0) @map("completion_tokens")
   totalTokens      Int      @default(0) @map("total_tokens")
   /**
+   * Tokens servidos desde cache de contexto del provider (DeepSeek devuelve
+   * `prompt_cache_hit_tokens` en la respuesta). Se cobran ~10x menos que
+   * promptTokens. Permite calcular cache hit rate y costo real.
+   */
+  cachedTokens     Int?     @map("cached_tokens")
+  /** Tokens de reasoning interno (DeepSeek-reasoner / o1). Se cobran como completion. */
+  reasoningTokens  Int?     @map("reasoning_tokens")
+  /** Time-to-first-token en streams. Null si no fue stream. */
+  ttftMs           Int?     @map("ttft_ms")
+  /** True si el primario falló y se sirvió desde fallback. */
+  fallbackUsed     Boolean  @default(false) @map("fallback_used")
+  /** Score producido por el eval harness (si esta llamada vino de un eval run). */
+  evalScore        Float?   @map("eval_score")
+  /**
    * Costo estimado en USD calculado con la pricing table local.
    * NO refleja ningún descuento de volumen ni precio enterprise — sirve
    * como guía para alertas y presupuesto, no como factura.
@@ -2083,6 +2097,28 @@ model AiUsage {
   @@index([orgId, feature, createdAt])
   @@index([feature, createdAt])
   @@map("ai_usage")
+}
+
+/**
+ * Contador agregado por org/mes para rate limiting y capacity guards.
+ * Se actualiza incrementalmente desde recordAiUsage para evitar agregaciones
+ * costosas en cada checkCapacity.
+ */
+model AiBudgetCounter {
+  id            String   @id @default(cuid())
+  orgId         String   @map("org_id")
+  /** Mes calendario UTC en formato YYYY-MM-01 (DateTime al inicio del mes). */
+  monthStart    DateTime @map("month_start")
+  totalCalls    Int      @default(0) @map("total_calls")
+  totalTokens   Int      @default(0) @map("total_tokens")
+  totalCostUsd  Decimal  @default(0) @map("total_cost_usd") @db.Decimal(12, 6)
+  hourlyCalls   Int      @default(0) @map("hourly_calls")
+  hourlyResetAt DateTime @default(now()) @map("hourly_reset_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([orgId, monthStart])
+  @@index([orgId])
+  @@map("ai_budget_counters")
 }
 
 /**

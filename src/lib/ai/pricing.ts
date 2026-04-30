@@ -14,10 +14,12 @@
  */
 
 export interface ModelPricing {
-  /** USD por 1M prompt tokens. */
+  /** USD por 1M prompt tokens (cache miss). */
   promptPer1M: number
   /** USD por 1M completion tokens. */
   completionPer1M: number
+  /** USD por 1M tokens servidos desde context cache (si el provider lo soporta). */
+  cachedPer1M?: number
 }
 
 type ProviderName = 'openai' | 'anthropic' | 'groq' | 'deepseek' | 'ollama' | 'simulated'
@@ -53,16 +55,15 @@ const PRICING: Record<ProviderName, Record<string, ModelPricing>> = {
     '*': { promptPer1M: 0.5, completionPer1M: 0.7 },
   },
   deepseek: {
-    // V4 Flash (alias `deepseek-chat`): el más barato del mercado
-    // Cache hit es 50x más barato — recordAiUsage usa promptPer1M conservador.
-    'deepseek-chat': { promptPer1M: 0.14, completionPer1M: 0.28 },
-    'deepseek-v4': { promptPer1M: 0.14, completionPer1M: 0.28 },
-    'deepseek-v4-flash': { promptPer1M: 0.14, completionPer1M: 0.28 },
-    // V4 Pro (alias `deepseek-reasoner`): mejor razonamiento
-    // Precio normal post-promo: 1.74 / 3.48 (descuento 75% hasta 2026-05-05)
-    'deepseek-reasoner': { promptPer1M: 1.74, completionPer1M: 3.48 },
-    'deepseek-v4-pro': { promptPer1M: 1.74, completionPer1M: 3.48 },
-    '*': { promptPer1M: 0.14, completionPer1M: 0.28 },
+    // V4 Flash (alias `deepseek-chat`): el más barato del mercado.
+    // Cache hit es ~10x más barato que cache miss.
+    'deepseek-chat':      { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
+    'deepseek-v4':        { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
+    'deepseek-v4-flash':  { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
+    // V4 Pro (alias `deepseek-reasoner`): mejor razonamiento.
+    'deepseek-reasoner':  { promptPer1M: 1.74, completionPer1M: 3.48, cachedPer1M: 0.174 },
+    'deepseek-v4-pro':    { promptPer1M: 1.74, completionPer1M: 3.48, cachedPer1M: 0.174 },
+    '*': { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
   },
   anthropic: {
     // Claude 4 Opus — el más caro pero más exacto en legal high-stakes
@@ -90,6 +91,7 @@ const PRICING: Record<ProviderName, Record<string, ModelPricing>> = {
 
 /**
  * Calcula el costo en USD de una llamada dado provider, model y usage.
+ * Considera tokens servidos desde cache si `cachedTokens` se provee.
  * Devuelve 0 si el provider/model no están en la tabla (con warning).
  */
 export function estimateCostUsd(params: {
@@ -97,6 +99,10 @@ export function estimateCostUsd(params: {
   model: string
   promptTokens: number
   completionTokens: number
+  /** Tokens servidos desde cache de contexto (DeepSeek). Se cobran a cachedPer1M. */
+  cachedTokens?: number
+  /** Tokens de reasoning (DeepSeek-reasoner). Se cobran como completion. */
+  reasoningTokens?: number
 }): number {
   const provider = params.provider.toLowerCase() as ProviderName
   const providerTable = PRICING[provider]
@@ -105,9 +111,20 @@ export function estimateCostUsd(params: {
     return 0
   }
   const modelPricing = providerTable[params.model] ?? providerTable['*']
-  const promptCost = (params.promptTokens / 1_000_000) * modelPricing.promptPer1M
+  const cachedTokens = Math.max(0, params.cachedTokens ?? 0)
+  const reasoningTokens = Math.max(0, params.reasoningTokens ?? 0)
+  // promptTokens viene del provider e incluye los cached. Restamos para no contar doble.
+  const billablePromptTokens = Math.max(0, params.promptTokens - cachedTokens)
+  // reasoning ya está incluido en completionTokens en la API DeepSeek (no se duplica).
+  const promptCost = (billablePromptTokens / 1_000_000) * modelPricing.promptPer1M
+  const cachedCost = cachedTokens > 0 && modelPricing.cachedPer1M !== undefined
+    ? (cachedTokens / 1_000_000) * modelPricing.cachedPer1M
+    : 0
   const completionCost = (params.completionTokens / 1_000_000) * modelPricing.completionPer1M
-  return Number((promptCost + completionCost).toFixed(6))
+  // reasoningCost ya está dentro de completionCost. Se loguea aparte solo para
+  // observabilidad — no se cobra extra.
+  void reasoningTokens
+  return Number((promptCost + cachedCost + completionCost).toFixed(6))
 }
 
 /**

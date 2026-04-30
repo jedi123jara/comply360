@@ -143,33 +143,75 @@ export default function FloatingAiChat() {
     setInput('')
     setIsLoading(true)
 
+    // Placeholder del assistant que se va llenando con tokens.
+    setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
+
     try {
-      const res = await fetch('/api/ai-chat', {
+      const res = await fetch('/api/ai-chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: updatedMessages }),
       })
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         throw new Error(`Error ${res.status}`)
       }
 
-      const data = await res.json()
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: data.message?.content ?? 'No se pudo obtener una respuesta.',
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let assistantContent = ''
+      let currentEvent = 'message'
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim()
+            continue
+          }
+          if (line.startsWith('data:')) {
+            const payload = line.slice(5).trim()
+            if (!payload) continue
+            try {
+              const parsed = JSON.parse(payload) as { delta?: string; error?: string }
+              if (currentEvent === 'delta' && parsed.delta) {
+                assistantContent += parsed.delta
+                // Update solo el último message (el placeholder del assistant)
+                setMessages((prev) => {
+                  const next = [...prev]
+                  next[next.length - 1] = { role: 'assistant', content: assistantContent }
+                  return next
+                })
+              } else if (currentEvent === 'error' && parsed.error) {
+                throw new Error(parsed.error)
+              }
+            } catch (e) {
+              if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
+                throw e
+              }
+            }
+          }
+        }
       }
 
-      setMessages((prev) => [...prev, assistantMessage])
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
+      if (!assistantContent) {
+        throw new Error('Respuesta vacía del servidor')
+      }
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : 'desconocido'
+      setMessages((prev) => {
+        const next = [...prev]
+        next[next.length - 1] = {
           role: 'assistant',
-          content:
-            'Lo siento, ocurrió un error al procesar tu consulta. Por favor intenta nuevamente.',
-        },
-      ])
+          content: `Lo siento, ocurrió un error: ${errMsg}. Intenta nuevamente.`,
+        }
+        return next
+      })
     } finally {
       setIsLoading(false)
     }

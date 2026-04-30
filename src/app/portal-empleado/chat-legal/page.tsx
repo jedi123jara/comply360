@@ -41,8 +41,15 @@ export default function ChatLegalPage() {
     setInput('')
     setLoading(true)
 
+    // Placeholder del assistant que se va llenando con tokens (streaming SSE).
+    const placeholderTimestamp = new Date().toISOString()
+    setMessages(prev => [
+      ...prev,
+      { role: 'assistant', content: '', timestamp: placeholderTimestamp },
+    ])
+
     try {
-      const res = await fetch('/api/portal-empleado/chat', {
+      const res = await fetch('/api/portal-empleado/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -50,22 +57,63 @@ export default function ChatLegalPage() {
           history: messages.map(m => ({ role: m.role, content: m.content })),
         }),
       })
-      const data = await res.json()
-      const assistantMsg: Message = {
-        role: 'assistant',
-        content: data.response || data.fallback || 'No pude procesar la pregunta.',
-        timestamp: new Date().toISOString(),
+      if (!res.ok || !res.body) {
+        throw new Error(`HTTP ${res.status}`)
       }
-      setMessages(prev => [...prev, assistantMsg])
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let accumulated = ''
+      let currentEvent = 'message'
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim()
+            continue
+          }
+          if (!line.startsWith('data:')) continue
+          const payload = line.slice(5).trim()
+          if (!payload) continue
+          try {
+            const parsed = JSON.parse(payload) as { delta?: string; error?: string }
+            if (currentEvent === 'delta' && parsed.delta) {
+              accumulated += parsed.delta
+              setMessages(prev => {
+                const next = [...prev]
+                next[next.length - 1] = {
+                  role: 'assistant',
+                  content: accumulated,
+                  timestamp: placeholderTimestamp,
+                }
+                return next
+              })
+            } else if (currentEvent === 'error' && parsed.error) {
+              throw new Error(parsed.error)
+            }
+          } catch (err) {
+            if (err instanceof Error && err.message !== 'Unexpected end of JSON input') {
+              throw err
+            }
+          }
+        }
+      }
+      if (!accumulated) throw new Error('Respuesta vacía')
     } catch (e) {
-      setMessages(prev => [
-        ...prev,
-        {
+      setMessages(prev => {
+        const next = [...prev]
+        next[next.length - 1] = {
           role: 'assistant',
           content: `Disculpa, hubo un error: ${e instanceof Error ? e.message : 'desconocido'}`,
-          timestamp: new Date().toISOString(),
-        },
-      ])
+          timestamp: placeholderTimestamp,
+        }
+        return next
+      })
     } finally {
       setLoading(false)
     }

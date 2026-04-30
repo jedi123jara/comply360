@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: buildExtractionPrompt(cleaned, { index: contractIndex, total: totalContracts }) },
       ],
-      { temperature: 0.1, maxTokens: 1500, jsonMode: true, feature: 'contract-gen' }
+      { temperature: 0.1, maxTokens: 1500, jsonMode: true, feature: 'pdf-extract' }
     )
 
     const data = extractJson<ExtractedWorkerData>(aiResponse)

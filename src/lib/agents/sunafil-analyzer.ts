@@ -231,7 +231,7 @@ async function runSunafilAnalyzer(
         temperature: 0.1,
         maxTokens: 3500,
         jsonMode: true,
-        feature: 'contract-review',
+        feature: 'sunafil-agent',
       }
     )
   } catch (e) {
