@@ -544,13 +544,15 @@ REGLAS:
     const relevantLaws = this.searchRelevantLaws(userQuery)
     const { systemPrompt, citations } = this.buildPrompt(userQuery, relevantLaws)
 
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY
 
     let response: string
 
     if (apiKey) {
-      // Usar OpenAI con contexto RAG
+      // Routing por feature 'chat' → DeepSeek V4 Flash por default.
+      // Si falla cualquier provider, cae a respuesta simulada con citas RAG.
       try {
+        const { callAI } = await import('./provider')
         const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
           { role: 'system', content: systemPrompt },
         ]
@@ -565,28 +567,13 @@ REGLAS:
 
         messages.push({ role: 'user' as const, content: userQuery })
 
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages,
-            temperature: 0.3,
-            max_tokens: 2000,
-          }),
+        response = await callAI(messages, {
+          temperature: 0.3,
+          maxTokens: 2000,
+          feature: 'chat',
         })
-
-        if (!res.ok) {
-          throw new Error(`OpenAI API error: ${res.status}`)
-        }
-
-        const data = await res.json()
-        response = data.choices[0].message.content
       } catch (error) {
-        console.error('Error en LegalRAG con OpenAI:', error)
+        console.error('Error en LegalRAG con provider:', error)
         response = this.buildSimulatedResponse(userQuery, relevantLaws)
       }
     } else {
