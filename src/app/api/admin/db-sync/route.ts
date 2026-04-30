@@ -102,6 +102,62 @@ const SCHEMA_PATCHES: { name: string; sql: string }[] = [
           CREATE INDEX IF NOT EXISTS "attendance_attempts_worker_id_created_at_idx" ON "attendance_attempts"("worker_id", "created_at");
           CREATE INDEX IF NOT EXISTS "attendance_attempts_result_created_at_idx" ON "attendance_attempts"("result", "created_at")`,
   },
+  // ─────────────────────────────────────────────────────────────────────
+  // AI Telemetry — tabla principal `ai_usage` que faltaba en producción.
+  // Bug fix 2026-04-30: la migración ai_telemetry_v2 agregaba COLUMNAS a
+  // ai_usage asumiendo que la tabla existía, pero en algunas DBs (db push
+  // sin migrate) la tabla nunca se creó. Sin esta tabla, cualquier llamada
+  // al Copilot trona con "table public.ai_usage does not exist".
+  // ─────────────────────────────────────────────────────────────────────
+  {
+    name: 'ai_usage (table)',
+    sql: `CREATE TABLE IF NOT EXISTS "ai_usage" (
+      "id"                TEXT PRIMARY KEY,
+      "org_id"            TEXT,
+      "user_id"           TEXT,
+      "feature"           TEXT NOT NULL,
+      "provider"          TEXT NOT NULL,
+      "model"             TEXT NOT NULL,
+      "prompt_tokens"     INTEGER NOT NULL DEFAULT 0,
+      "completion_tokens" INTEGER NOT NULL DEFAULT 0,
+      "total_tokens"      INTEGER NOT NULL DEFAULT 0,
+      "cached_tokens"     INTEGER,
+      "reasoning_tokens"  INTEGER,
+      "ttft_ms"           INTEGER,
+      "fallback_used"     BOOLEAN NOT NULL DEFAULT false,
+      "eval_score"        DOUBLE PRECISION,
+      "cost_usd"          DECIMAL(12, 6) NOT NULL DEFAULT 0,
+      "latency_ms"        INTEGER,
+      "success"           BOOLEAN NOT NULL DEFAULT true,
+      "error_message"     TEXT,
+      "created_at"        TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
+  {
+    name: 'ai_usage indexes',
+    sql: `CREATE INDEX IF NOT EXISTS "ai_usage_org_id_created_at_idx" ON "ai_usage"("org_id", "created_at");
+          CREATE INDEX IF NOT EXISTS "ai_usage_org_id_feature_created_at_idx" ON "ai_usage"("org_id", "feature", "created_at");
+          CREATE INDEX IF NOT EXISTS "ai_usage_feature_created_at_idx" ON "ai_usage"("feature", "created_at")`,
+  },
+  {
+    name: 'ai_budget_counters (table)',
+    sql: `CREATE TABLE IF NOT EXISTS "ai_budget_counters" (
+      "id"                TEXT PRIMARY KEY,
+      "org_id"            TEXT NOT NULL,
+      "month_start"       TIMESTAMP(3) NOT NULL,
+      "total_calls"       INTEGER NOT NULL DEFAULT 0,
+      "total_tokens"      INTEGER NOT NULL DEFAULT 0,
+      "total_cost_usd"    DECIMAL(12, 6) NOT NULL DEFAULT 0,
+      "hourly_calls"      INTEGER NOT NULL DEFAULT 0,
+      "hourly_reset_at"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updated_at"        TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
+  {
+    name: 'ai_budget_counters indexes',
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS "ai_budget_counters_org_id_month_start_key" ON "ai_budget_counters"("org_id", "month_start");
+          CREATE INDEX IF NOT EXISTS "ai_budget_counters_org_id_idx" ON "ai_budget_counters"("org_id")`,
+  },
 ]
 
 export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
