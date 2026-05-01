@@ -187,11 +187,6 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
           { facingMode: 'environment' },
           {
             fps: 10,
-            // qrbox dinámico: usa el 70% del ancho del viewport.
-            qrbox: (vw, vh) => {
-              const size = Math.floor(Math.min(vw, vh) * 0.7)
-              return { width: size, height: size }
-            },
           },
           (decodedText) => {
             if (scannedRef.current) return
