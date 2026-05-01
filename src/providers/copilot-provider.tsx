@@ -136,7 +136,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
       ])
 
       try {
-        const res = await fetch('/api/ai-chat', {
+        const res = await fetch('/api/ai-chat/stream', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -215,8 +215,8 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
           }
         } else {
           // Non-streaming fallback
-          const data = (await res.json()) as { content?: string; reply?: string }
-          appendToLast(data.content ?? data.reply ?? '')
+          const data = (await res.json()) as { content?: string; reply?: string; message?: { content: string } }
+          appendToLast(data.message?.content ?? data.content ?? data.reply ?? '')
         }
 
         setMessages((prev) =>
