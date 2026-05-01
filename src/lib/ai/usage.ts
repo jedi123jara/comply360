@@ -195,11 +195,21 @@ export async function checkAiBudget(params: {
   const now = new Date()
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
 
-  const agg = await prisma.aiUsage.aggregate({
-    where: { orgId: params.orgId, createdAt: { gte: monthStart } },
-    _sum: { costUsd: true },
-  })
-  const spentUsd = Number(agg._sum.costUsd ?? 0)
+  // Graceful fallback: if the AiUsage table doesn't exist yet (migration
+  // pending), allow the request instead of crashing with P2021.
+  let spentUsd = 0
+  try {
+    const agg = await prisma.aiUsage.aggregate({
+      where: { orgId: params.orgId, createdAt: { gte: monthStart } },
+      _sum: { costUsd: true },
+    })
+    spentUsd = Number(agg._sum.costUsd ?? 0)
+  } catch (err) {
+    // P2021 = table does not exist. P2010 = raw query failed.
+    // Allow the request to proceed — budget check is a soft cap, not a blocker.
+    console.warn('[ai/usage] checkAiBudget query failed (table may not exist yet):', err)
+    return { allowed: true, spentUsd: 0, budgetUsd, remainingUsd: budgetUsd }
+  }
 
   if (spentUsd >= budgetUsd) {
     return { allowed: false, reason: 'budget_exceeded', spentUsd, budgetUsd }
