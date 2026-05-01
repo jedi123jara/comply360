@@ -242,9 +242,11 @@ function GenerarModal({
 function PayslipsDrawer({
   worker,
   onClose,
+  onNew,
 }: {
   worker: Worker
   onClose: () => void
+  onNew: () => void
 }) {
   const [payslips, setPayslips] = useState<Payslip[]>([])
   const [loading, setLoading] = useState(true)
@@ -281,9 +283,15 @@ function PayslipsDrawer({
               {displayName(worker.firstName, worker.lastName)} · DNI {worker.dni}
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar modal" className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onNew} className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-amber-700 transition-all shadow-sm">
+              <Plus className="h-3 w-3" />
+              Nueva Boleta
+            </button>
+            <button type="button" onClick={onClose} aria-label="Cerrar modal" className="rounded-lg p-2 text-[color:var(--text-tertiary)] hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
@@ -728,6 +736,10 @@ export default function BoletasPage() {
         <PayslipsDrawer
           worker={historyWorker}
           onClose={() => setHistoryWorker(null)}
+          onNew={() => {
+            setModalWorker(historyWorker)
+            setHistoryWorker(null)
+          }}
         />
       )}
     </div>

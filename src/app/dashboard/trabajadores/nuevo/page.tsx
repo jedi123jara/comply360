@@ -361,6 +361,24 @@ export default function NuevoTrabajadorPage() {
       }
 
       const { data } = await res.json()
+
+      // Guardar el contrato en el legajo si se extrajo de un archivo
+      if (extractFile) {
+        try {
+          const fd = new FormData()
+          fd.append('file', extractFile)
+          fd.append('category', 'VIGENTE')
+          fd.append('documentType', 'CONTRATO')
+          fd.append('title', extractFile.name)
+          await fetch(`/api/workers/${data.id}/documents`, {
+            method: 'POST',
+            body: fd,
+          })
+        } catch (e) {
+          console.error('Error al subir el contrato al legajo:', e)
+        }
+      }
+
       router.push(`/dashboard/trabajadores/${data.id}`)
     } catch {
       setApiError('Error de conexion. Intenta de nuevo.')
