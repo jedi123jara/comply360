@@ -193,14 +193,21 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
           // SSE-like reader
           const reader = res.body.getReader()
           const decoder = new TextDecoder()
+          let buffer = ''
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
-            const text = decoder.decode(value, { stream: true })
-            // Parse "data: {...}\n\n" lines; fall back to raw text
-            for (const line of text.split(/\r?\n/)) {
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split(/\r?\n/)
+            buffer = lines.pop() ?? '' // El último elemento puede estar incompleto
+
+            for (const line of lines) {
               if (!line.trim()) continue
-              const payload = line.startsWith('data:') ? line.slice(5).trim() : line
+              if (line.startsWith('event:')) continue
+              if (line.startsWith(':')) continue // heartbeat
+              if (!line.startsWith('data:')) continue
+
+              const payload = line.slice(5).trim()
               if (payload === '[DONE]') continue
               try {
                 const json = JSON.parse(payload) as {
@@ -209,7 +216,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
                 }
                 appendToLast(json.content ?? json.delta ?? '')
               } catch {
-                appendToLast(payload)
+                // ignorar json inválido
               }
             }
           }
