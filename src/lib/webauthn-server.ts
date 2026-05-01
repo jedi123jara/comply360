@@ -87,6 +87,9 @@ export function getChallengeSecret(): string | null {
   const explicit = process.env.WEBAUTHN_CHALLENGE_SECRET
   if (explicit && explicit.length >= 32) return explicit
 
+  const fallback = process.env.JWT_SECRET
+  if (fallback && fallback.length >= 32) return fallback
+
   if (process.env.NODE_ENV !== 'production') {
     // Derivar un secret dev-only a partir de algo que ya exista, para que
     // los devs no tengan que configurar otra variable.
