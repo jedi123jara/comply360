@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import type { WorkerSummary } from '../worker-profile-header'
 import { OnboardingCascadeCard } from '../onboarding-cascade-card'
 import { ScheduleCard } from '../schedule-card'
+import Link from 'next/link'
+import { Pencil } from 'lucide-react'
 
 function DataRow({
   label,
@@ -32,6 +34,17 @@ export function TabInfo({ worker }: { worker: WorkerSummary }) {
         workerFirstName={worker.firstName}
         hasEmail={Boolean(worker.email)}
       />
+
+      <div className="flex justify-end">
+        <Link
+          href={`/dashboard/trabajadores/${worker.id}/editar`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-500/60 transition-colors shadow-sm"
+        >
+          <Pencil className="w-3 h-3" />
+          Editar Información
+        </Link>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card padding="none">
         <CardHeader>
