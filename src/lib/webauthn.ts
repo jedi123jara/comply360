@@ -149,14 +149,24 @@ export async function tryBiometricCeremony(
       crypto.getRandomValues(challengeBytes)
     }
 
-    const cred = (await navigator.credentials.get({
+    const cred = (await navigator.credentials.create({
       publicKey: {
+        rp: { name: 'Comply360', id: window.location.hostname },
+        user: {
+          id: challengeBytes.slice(0, 16).buffer as ArrayBuffer,
+          name: 'firma@comply360.pe',
+          displayName: 'Firma Biométrica Comply360',
+        },
         challenge: challengeBytes.buffer as ArrayBuffer,
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
         timeout: 60_000,
-        userVerification: 'required',
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'discouraged', // Evita guardar el passkey en el gestor de contraseñas si el OS lo permite
+        },
       },
-      mediation: 'optional',
-    } as CredentialRequestOptions)) as PublicKeyCredential | null
+    })) as PublicKeyCredential | null
 
     if (!cred) {
       return { verified: false, reason: 'user-cancelled', userAgent }
