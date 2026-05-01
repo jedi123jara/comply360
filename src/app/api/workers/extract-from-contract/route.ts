@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/api-auth'
 import { callAI, extractJson } from '@/lib/ai/provider'
 import { cleanContractText } from '@/lib/agents/text-cleaner'
 import { buildExtractionPrompt, SYSTEM_PROMPT } from '@/lib/agents/extraction-prompt'
-import { PDFParse } from 'pdf-parse'
+import pdfParse from 'pdf-parse'
 import mammoth from 'mammoth'
 
 // ─── Disable body parsing (we'll use formData) ────────────────────────────
@@ -43,10 +43,8 @@ export interface ExtractedWorkerData {
 // ─── Text extraction helpers ──────────────────────────────────────────────
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // pdf-parse v2: getText() → { pages: [{text,num}], text: string, total: number }
-  const result = await new PDFParse({ data: buffer }).getText()
-  // Limpiar marcadores de página "-- X of Y --" que v2 inserta
-  return (result.text || '').replace(/\n*-- \d+ of \d+ --\n*/g, '\n\n').trim()
+  const result = await pdfParse(buffer)
+  return (result.text || '').trim()
 }
 
 async function extractTextFromDocx(buffer: Buffer): Promise<string> {

@@ -115,11 +115,9 @@ function detectarDesnaturalizacion(
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   // pdf-parse v2: getText() → { pages: [{text,num}], text: string, total: number }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-  const { PDFParse } = require('pdf-parse') as any
-  const data = await new PDFParse({ data: buffer }).getText()
-  // Limpiar marcadores de página "-- X of Y --" que v2 inserta
-  const text = (data.text || '').replace(/\n*-- \d+ of \d+ --\n*/g, '\n\n').trim()
+  const pdfParse = require('pdf-parse')
+  const data = await pdfParse(buffer)
+  const text = (data.text || '').trim()
 
   // Si el texto es insuficiente → PDF escaneado → OCR automático
   const { isTextInsufficient, ocrPdfBuffer } = await import('@/lib/agents/ocr')

@@ -707,12 +707,9 @@ async function verifyPdfDocument(
   // se rinda. Antes esto retornaba error y el doc quedaba sin verificar.
   let extractedText = ''
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-    const { PDFParse } = require('pdf-parse') as any
-    const result = await new PDFParse({ data: pdfBuffer }).getText()
-    extractedText = ((result.text as string) ?? '')
-      .replace(/\n*-- \d+ of \d+ --\n*/g, '\n\n') // markers de página v2
-      .trim()
+    const pdfParse = require('pdf-parse')
+    const result = await pdfParse(pdfBuffer)
+    extractedText = ((result.text as string) ?? '').trim()
   } catch (err) {
     console.warn('[document-verifier] pdf-parse failed, falling back to vision:',
       err instanceof Error ? err.message : err)

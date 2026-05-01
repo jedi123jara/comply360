@@ -50,10 +50,9 @@ export async function extractTextFromBuffer(
   if (lower.endsWith('.pdf')) {
     // pdf-parse v2: new PDFParse({ data: buffer }).getText()
     // Retorna { pages: [{text, num}], text: string, total: number }
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-    const { PDFParse } = require('pdf-parse') as any
-    const result = await new PDFParse({ data: buffer }).getText()
-    const text: string = cleanContractText(cleanPdfParseMarkers(result.text || ''))
+    const pdfParse = require('pdf-parse')
+    const result = await pdfParse(buffer)
+    const text: string = cleanContractText((result.text || '').trim())
 
     // Si el texto es insuficiente → PDF escaneado → intentar OCR automático
     if (isTextInsufficient(text)) {
@@ -127,21 +126,29 @@ export async function extractTextByPage(buffer: Buffer): Promise<PdfTextWithPage
   //   - pages: array de objetos por página (text = contenido, num = nro de página)
   //   - text: texto completo con marcadores "-- X of Y --"
   //   - total: cantidad total de páginas (NÚMERO, no array)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-  const { PDFParse } = require('pdf-parse') as any
-  const parsed = await new PDFParse({ data: buffer }).getText()
+  const pdfParse = require('pdf-parse')
+  
+  // Custom pagerender to capture pages individually
+  const pageTexts: string[] = []
+  const render_page = async (pageData: any) => {
+    const render_options = { normalizeWhitespace: false, disableCombineTextItems: false }
+    const textContent = await pageData.getTextContent(render_options)
+    let lastY, text = ''
+    for (const item of textContent.items) {
+      if (lastY == item.transform[5] || !lastY) {
+        text += item.str
+      } else {
+        text += '\n' + item.str
+      }
+      lastY = item.transform[5]
+    }
+    pageTexts.push(text)
+    return text
+  }
 
-  // ⚠️ CUIDADO: parsed.pages es un ARRAY [{text,num}], NO un número.
-  //    El total de páginas está en parsed.total.
-  const totalPages: number = typeof parsed.total === 'number' ? parsed.total : 1
-  const pagesArray: Array<{ text: string; num: number }> = Array.isArray(parsed.pages) ? parsed.pages : []
+  const parsed = await pdfParse(buffer, { pagerender: render_page })
+  const totalPages: number = parsed.numpages || 1
 
-  // Usar el array de páginas de pdf-parse v2 directamente (cada una tiene {text, num})
-  const pageTexts: string[] = pagesArray.length > 0
-    ? pagesArray.map((p: { text: string; num: number }) => (p.text || '').trim())
-    : [cleanPdfParseMarkers(parsed.text || '').trim()]
-
-  const pages: PdfPageText[] = []
   let cursor = 0
   let fullText = ''
   const PAGE_DELIM = '\n\n'
