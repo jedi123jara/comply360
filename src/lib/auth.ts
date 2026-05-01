@@ -428,31 +428,30 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       }
     }
 
-    // User exists but has no org — might be mid-onboarding (path original para owner/admin)
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        // Create ISOLATED org for this user based on their email
-        const userEmail = user.email || 'dev@comply360.pe'
-        const userOrgId = `org-${userEmail.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
-        await prisma.organization.upsert({
-          where: { id: userOrgId },
-          create: {
-            id: userOrgId,
-            name: `Empresa de ${userEmail.split('@')[0]}`,
-            plan: 'PRO',
-            alertEmail: userEmail,
-            onboardingCompleted: false,
-          },
-          update: {},
-        })
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { orgId: userOrgId },
-        })
-      } catch (seedErr) {
-        console.error('[auth] Failed to assign org to user:', seedErr)
-      }
-      const userOrgId = `org-${(user.email || 'dev').replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
+    // User exists but has no org — might be mid-onboarding or legacy user
+    try {
+      const userEmail = user.email || 'user@comply360.pe'
+      const userOrgId = `org-${userEmail.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
+      const defaultPlan = process.env.NODE_ENV === 'development' ? 'PRO' : 'FREE'
+      
+      await prisma.organization.upsert({
+        where: { id: userOrgId },
+        create: {
+          id: userOrgId,
+          name: `Empresa de ${userEmail.split('@')[0]}`,
+          plan: defaultPlan,
+          alertEmail: userEmail,
+          onboardingCompleted: false,
+        },
+        update: {},
+      })
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { orgId: userOrgId },
+      })
+      
+      console.log(`[auth] Recovered legacy user ${user.id} by creating org ${userOrgId}`)
+      
       return {
         userId: user.id,
         clerkId: user.clerkId,
@@ -460,8 +459,10 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         email: user.email,
         role: user.role,
       }
+    } catch (seedErr) {
+      console.error('[auth] Failed to assign org to user during recovery:', seedErr)
+      return null
     }
-    return null
   }
 
   return {
