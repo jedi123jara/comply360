@@ -412,7 +412,7 @@ export async function callAI(
   }
 
   // ── Construir body ────────────────────────────────────────────────────────
-  const model = getModelName({ provider: providerOpt, feature })
+  const model = getModelName({ provider, feature })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: Record<string, any>
@@ -763,7 +763,7 @@ export async function* callAIStream(
 ): AsyncGenerator<AIStreamChunk, void, unknown> {
   const { temperature = 0.4, maxTokens = 2000, jsonMode = false, provider: providerOpt, feature, orgId, signal, firstTokenTimeoutMs = 5000 } = options
   const provider = detectProvider({ provider: providerOpt, feature, orgId })
-  const model = getModelName({ provider: providerOpt, feature })
+  const model = getModelName({ provider, feature })
 
   if (provider === 'simulated') {
     throw new Error('No AI provider configured')
