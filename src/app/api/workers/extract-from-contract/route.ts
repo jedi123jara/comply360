@@ -3,6 +3,8 @@ import { withAuth } from '@/lib/api-auth'
 import { callAI, extractJson } from '@/lib/ai/provider'
 import { cleanContractText } from '@/lib/agents/text-cleaner'
 import { buildExtractionPrompt, SYSTEM_PROMPT } from '@/lib/agents/extraction-prompt'
+import { PDFParse } from 'pdf-parse'
+import mammoth from 'mammoth'
 
 // ─── Disable body parsing (we'll use formData) ────────────────────────────
 export const runtime = 'nodejs'
@@ -42,16 +44,12 @@ export interface ExtractedWorkerData {
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   // pdf-parse v2: getText() → { pages: [{text,num}], text: string, total: number }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-  const { PDFParse } = require('pdf-parse') as any
   const result = await new PDFParse({ data: buffer }).getText()
   // Limpiar marcadores de página "-- X of Y --" que v2 inserta
   return (result.text || '').replace(/\n*-- \d+ of \d+ --\n*/g, '\n\n').trim()
 }
 
 async function extractTextFromDocx(buffer: Buffer): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mammoth = require('mammoth')
   const result = await mammoth.extractRawText({ buffer })
   return result.value || ''
 }
