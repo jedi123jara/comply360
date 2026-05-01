@@ -149,6 +149,7 @@ export async function extractTextByPage(buffer: Buffer): Promise<PdfTextWithPage
   const parsed = await pdfParse(buffer, { pagerender: render_page })
   const totalPages: number = parsed.numpages || 1
 
+  const pages: PdfPageText[] = []
   let cursor = 0
   let fullText = ''
   const PAGE_DELIM = '\n\n'
