@@ -17,7 +17,7 @@ import {
   X,
   Eye,
 } from 'lucide-react'
-import { tryBiometricCeremony as runCeremony } from '@/lib/webauthn'
+import { tryBiometricCeremony as runCeremony, hasBiometricHardware } from '@/lib/webauthn'
 
 /**
  * /mi-portal/boletas/[id] — Detalle de boleta + firma biométrica (Sprint 1 Fase 1).
@@ -82,6 +82,11 @@ export default function BoletaDetailPage() {
   const [signError, setSignError] = useState<string | null>(null)
   const [showCeremony, setShowCeremony] = useState(false)
   const [showPdfPreview, setShowPdfPreview] = useState(false)
+  const [hasBiometric, setHasBiometric] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    hasBiometricHardware().then(setHasBiometric)
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -110,11 +115,34 @@ export default function BoletaDetailPage() {
     setSignError(null)
     setSigningState('biometric')
     try {
-      // Step 1: biometric ceremony (WebAuthn) con challenge server-side
-      const ceremony = await runCeremony({
-        action: 'sign_payslip',
-        entityId: id,
-      })
+      let signatureLevel = 'SIMPLE'
+      let ceremonyPayload: any = {}
+
+      if (hasBiometric) {
+        // Step 1: biometric ceremony (WebAuthn) con challenge server-side
+        const ceremony = await runCeremony({
+          action: 'sign_payslip',
+          entityId: id,
+        })
+        
+        if (!ceremony.verified) {
+          if (ceremony.reason === 'user-cancelled') {
+            setSigningState('idle')
+            return
+          }
+          setSignError('No pudimos validar tu huella/biometría. Intenta nuevamente o usa otro dispositivo.')
+          setSigningState('error')
+          return
+        }
+        
+        signatureLevel = 'BIOMETRIC'
+        ceremonyPayload = {
+          userAgent: ceremony.userAgent ?? navigator.userAgent,
+          credentialId: ceremony.credentialId ?? null,
+          challengeToken: ceremony.challengeToken,
+          challenge: ceremony.challenge,
+        }
+      }
 
       // Step 2: POST al backend con el resultado
       setSigningState('submitting')
@@ -122,11 +150,8 @@ export default function BoletaDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          signatureLevel: ceremony.verified ? 'BIOMETRIC' : 'SIMPLE',
-          userAgent: ceremony.userAgent ?? navigator.userAgent,
-          credentialId: ceremony.credentialId ?? null,
-          challengeToken: ceremony.challengeToken,
-          challenge: ceremony.challenge,
+          signatureLevel,
+          ...ceremonyPayload
         }),
       })
       if (!res.ok) {
@@ -380,7 +405,7 @@ export default function BoletaDetailPage() {
             }}
           >
             <Fingerprint className="h-4 w-4" />
-            Firmar con huella
+            {hasBiometric === false ? 'Firmar Electrónicamente' : 'Firmar con huella'}
           </button>
         ) : null}
 
@@ -451,6 +476,7 @@ export default function BoletaDetailPage() {
           periodo={periodoLabel}
           state={signingState}
           error={signError}
+          hasBiometric={hasBiometric}
           onSign={handleSign}
           onClose={() => {
             if (signingState !== 'submitting') {
@@ -472,6 +498,7 @@ function BiometricCeremonyModal({
   periodo,
   state,
   error,
+  hasBiometric,
   onSign,
   onClose,
 }: {
@@ -479,6 +506,7 @@ function BiometricCeremonyModal({
   periodo: string
   state: 'idle' | 'ceremony' | 'biometric' | 'submitting' | 'success' | 'error'
   error: string | null
+  hasBiometric: boolean | null
   onSign: () => void
   onClose: () => void
 }) {
@@ -562,7 +590,7 @@ function BiometricCeremonyModal({
             ) : state === 'error' ? (
               'No se pudo firmar'
             ) : state === 'biometric' ? (
-              'Confirmá tu identidad'
+              hasBiometric === false ? 'Procesando firma' : 'Confirmá tu identidad'
             ) : state === 'submitting' ? (
               'Registrando firma...'
             ) : (
@@ -573,14 +601,14 @@ function BiometricCeremonyModal({
           </h2>
           <p className="text-sm text-[color:var(--text-secondary)]">
             {state === 'success'
-              ? 'La boleta quedó registrada en tu legajo digital con huella y timestamp auditable.'
+              ? (hasBiometric === false ? 'La boleta quedó registrada en tu legajo digital de forma electrónica.' : 'La boleta quedó registrada en tu legajo digital con huella y timestamp auditable.')
               : state === 'error'
                 ? error || 'Intentá nuevamente en unos segundos.'
                 : state === 'biometric'
-                  ? 'Sigue las instrucciones de tu dispositivo para confirmar con huella, rostro o PIN.'
+                  ? (hasBiometric === false ? 'Aplicando firma electrónica...' : 'Sigue las instrucciones de tu dispositivo para confirmar con huella, rostro o PIN.')
                   : state === 'submitting'
                     ? 'Firmando en el sistema...'
-                    : 'Confirmá la recepción de tu boleta con tu huella. La firma queda auditada legalmente (D.S. 001-98-TR).'}
+                    : (hasBiometric === false ? 'Confirmá la recepción de tu boleta. La firma queda auditada legalmente (D.S. 001-98-TR).' : 'Confirmá la recepción de tu boleta con tu huella. La firma queda auditada legalmente (D.S. 001-98-TR).')}
           </p>
         </div>
 
@@ -622,7 +650,7 @@ function BiometricCeremonyModal({
               }}
             >
               <Fingerprint className="h-4 w-4" />
-              Firmar con mi huella
+              {hasBiometric === false ? 'Confirmar Firma Electrónica' : 'Firmar con mi huella'}
             </button>
             <button
               type="button"
