@@ -130,9 +130,6 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
               facingMode: { ideal: 'environment' },
-              // Resolución 720p — suficiente para QR, mucho más rápida que 1080p+
-              width: { ideal: 1280, max: 1920 },
-              height: { ideal: 720, max: 1080 },
             },
             audio: false,
           })
@@ -189,18 +186,11 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
         await scanner.start(
           { facingMode: 'environment' },
           {
-            fps: 30,                // ↑ era 10 — 3x más rápido
-            // qrbox dinámico: usa el 70% del ancho del viewport, aspect square.
-            // Antes era 250×250 fijo lo que limitaba detección si el QR era grande.
+            fps: 10,
+            // qrbox dinámico: usa el 70% del ancho del viewport.
             qrbox: (vw, vh) => {
               const size = Math.floor(Math.min(vw, vh) * 0.7)
               return { width: size, height: size }
-            },
-            aspectRatio: 1.0,
-            videoConstraints: {
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 1280, max: 1920 },
-              height: { ideal: 720, max: 1080 },
             },
           },
           (decodedText) => {

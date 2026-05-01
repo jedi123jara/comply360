@@ -68,7 +68,7 @@ export function AttendanceQrCard() {
       //    los corner-finder patterns sin pelear con elementos cercanos.
       //  - scale 12: más resolución → enfoque más nítido a distancia.
       const qr = await QRCode.toDataURL(data.deepLink, {
-        errorCorrectionLevel: 'H',
+        errorCorrectionLevel: 'M',
         margin: 4,
         scale: 12,
         color: {
