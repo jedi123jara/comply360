@@ -1059,3 +1059,93 @@ body.c360-canvas {
   background-size: 100% 100%, 24px 24px;
   background-attachment: fixed;
 }
+
+/* =============================================================================
+ * FIX: text-white-on-light-background (systemic)
+ *
+ * The codebase was originally built with a dark theme where `text-white` was
+ * correct. After migrating to "Emerald Light" (light-first), hundreds of
+ * elements still carry `text-white` on white/light backgrounds — making text
+ * invisible.
+ *
+ * Instead of editing 575+ individual occurrences, this CSS layer overrides
+ * `color: white` ONLY when the element lives inside a light-background context
+ * (the dashboard) and does NOT have its own dark background.
+ *
+ * Elements with explicit dark backgrounds (buttons, badges, pills, banners)
+ * preserve text-white correctly via higher-specificity restore rules below.
+ * ============================================================================= */
+
+/* ── 1. Override: bare text-white → dark text inside <main> ─────────────────── */
+:where(main) :where(
+  h1, h2, h3, h4, h5, h6,
+  p, span, code, td, th,
+  label, a, div, li
+):where(.text-white) {
+  color: var(--text-primary);
+}
+
+/* ── 2. Override: same fix for fixed overlays / modals ──────────────────────── */
+:where(.fixed) :where(
+  h1, h2, h3, h4, h5, h6,
+  p, span, code, td, th,
+  label, a, div
+):where(.text-white) {
+  color: var(--text-primary);
+}
+
+/* ── 3. Restore: text-white inside containers with dark backgrounds ────────── */
+[class*="bg-emerald-"] .text-white,
+[class*="bg-green-"] .text-white,
+[class*="bg-blue-"] .text-white,
+[class*="bg-red-"] .text-white,
+[class*="bg-rose-"] .text-white,
+[class*="bg-amber-"] .text-white,
+[class*="bg-crimson-"] .text-white,
+[class*="bg-purple-"] .text-white,
+[class*="bg-indigo-"] .text-white,
+[class*="bg-cyan-"] .text-white,
+[class*="bg-orange-"] .text-white,
+[class*="bg-violet-"] .text-white,
+[class*="bg-fuchsia-"] .text-white,
+[class*="bg-pink-"] .text-white,
+[class*="bg-teal-"] .text-white,
+[class*="bg-slate-"] .text-white,
+[class*="bg-gray-"] .text-white,
+[class*="bg-black"] .text-white,
+[class*="bg-primary"] .text-white,
+[class*="bg-gradient"] .text-white {
+  color: #ffffff;
+}
+
+/* ── 4. Restore: elements that ARE the dark-bg container AND have text-white ─ */
+[class*="bg-emerald-"][class*="text-white"],
+[class*="bg-green-"][class*="text-white"],
+[class*="bg-blue-"][class*="text-white"],
+[class*="bg-red-"][class*="text-white"],
+[class*="bg-rose-"][class*="text-white"],
+[class*="bg-amber-"][class*="text-white"],
+[class*="bg-crimson-"][class*="text-white"],
+[class*="bg-purple-"][class*="text-white"],
+[class*="bg-indigo-"][class*="text-white"],
+[class*="bg-primary"][class*="text-white"],
+[class*="bg-gradient"][class*="text-white"],
+[class*="bg-black"][class*="text-white"] {
+  color: #ffffff;
+}
+
+/* ── 5. Restore: dark hex backgrounds (e.g. bg-[#1a2035] bulk bar) ─────────── */
+[class*="bg-\[#0"] .text-white,
+[class*="bg-\[#1"] .text-white,
+[class*="bg-\[#2"] .text-white,
+[class*="bg-\[#0"][class*="text-white"],
+[class*="bg-\[#1"][class*="text-white"],
+[class*="bg-\[#2"][class*="text-white"] {
+  color: #ffffff;
+}
+
+/* ── 6. Restore: notification badges (colored rounded-full) ────────────────── */
+[class*="rounded-full"][class*="bg-emerald"][class*="text-white"],
+[class*="rounded-full"][class*="bg-crimson"][class*="text-white"] {
+  color: #ffffff;
+}
