@@ -59,6 +59,9 @@ function summarizeChange(type: string, entityType: string, afterJson: unknown, b
   if (type.includes('DELETE') || type.includes('END')) return `${labelEntity(entityType)} archivado${beforeName ? `: ${beforeName}` : ''}`
   if (type.includes('MOVE') || type.includes('REPARENT')) return `${labelEntity(entityType)} movido${name ? `: ${name}` : ''}`
   if (type.includes('SNAPSHOT')) return `Snapshot creado${name ? `: ${name}` : ''}`
+  if (type.includes('DRAFT_CREATE')) return `Escenario What-If creado${name ? `: ${name}` : ''}`
+  if (type.includes('DRAFT_APPLY')) return `Escenario What-If aplicado${name ? `: ${name}` : ''}`
+  if (type.includes('DRAFT_DISCARD')) return `Escenario What-If descartado${name ? `: ${name}` : ''}`
   if (type.includes('PUBLIC_LINK')) return 'Auditor Link generado'
   if (type.includes('REASSIGN')) return `${labelEntity(entityType)} reasignado${name ? `: ${name}` : ''}`
   return `${labelEntity(entityType)} actualizado${name ? `: ${name}` : ''}`
@@ -71,6 +74,7 @@ function labelEntity(entityType: string) {
     OrgAssignment: 'Asignación',
     OrgComplianceRole: 'Rol legal',
     OrgChartSnapshot: 'Snapshot',
+    OrgChartDraft: 'Escenario What-If',
     OrgTemplate: 'Plantilla',
     OrgChartImport: 'Importación',
   }

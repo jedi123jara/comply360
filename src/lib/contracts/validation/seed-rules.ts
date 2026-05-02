@@ -336,4 +336,77 @@ export const CONTRACT_VALIDATION_RULES: ContractRuleDefinition[] = [
     },
     version: '1.0.0',
   },
+
+  // ─── REGLAS PROACTIVAS PARA VALIDACION EN VIVO (MG5) ────────────────────
+  // Estas son INFO/WARNING, no bloqueos. Su valor esta en feedback temprano
+  // mientras el usuario llena el formulario, no en bloquear la generacion.
+
+  {
+    code: 'RMV-002',
+    category: 'RMV',
+    severity: 'INFO',
+    title: 'Sueldo al limite de la RMV',
+    description:
+      'La remuneración asignada coincide exactamente con la RMV. Si el trabajador tiene carga familiar (hijos menores), recibira asignacion familiar (10% RMV) sobre este monto, lo que puede dejar margen muy estrecho ante futuros incrementos de RMV.',
+    legalBasis: 'Ley 25129 (asignacion familiar = 10% RMV).',
+    ruleSpec: {
+      kind: 'FIELD_COMPARE',
+      leftPath: 'contract.monthlySalary',
+      operator: '>',
+      rightValue: 'constants.RMV',
+      rightIsPath: true,
+    },
+    appliesTo: {
+      contractTypes: ['LABORAL_INDEFINIDO', 'LABORAL_PLAZO_FIJO'],
+    },
+    version: '1.0.0',
+  },
+
+  {
+    code: 'PRUEBA-002',
+    category: 'PRUEBA',
+    severity: 'WARNING',
+    title: 'Periodo de prueba extendido',
+    description:
+      'El periodo de prueba estandar es de 3 meses. Hasta 6 meses se admite solo para personal calificado o de confianza, y 12 meses solo para personal de direccion. Documenta la justificacion en el contrato.',
+    legalBasis:
+      'Art. 10 TUO D.Leg. 728: 3 meses regla general; 6 meses para personal calificado o de confianza; 12 meses para personal de direccion (debe constar por escrito).',
+    ruleSpec: {
+      kind: 'FIELD_COMPARE',
+      leftPath: 'contract.formData.periodo_prueba_meses',
+      operator: '<=',
+      rightValue: 3,
+    },
+    appliesTo: {
+      contractTypes: ['LABORAL_INDEFINIDO', 'LABORAL_PLAZO_FIJO'],
+    },
+    version: '1.0.0',
+  },
+
+  {
+    code: 'MODAL-003',
+    category: 'MODAL',
+    severity: 'WARNING',
+    title: 'Causa objetiva con formulas potencialmente debiles',
+    description:
+      'Adicional a MODAL-001 (que bloquea formulas obvias), aqui se detectan otras formulas que la jurisprudencia ha considerado debiles. Considera anadir hechos especificos: el proyecto, cliente, periodo, area afectada.',
+    legalBasis:
+      'Cas. Lab. 13734-2017-Lima (apertura como expansion no es causa) + Cas. Lab. 8912-2023-Lima (causa generica = desnaturalizacion).',
+    ruleSpec: {
+      kind: 'FIELD_REGEX_DENY',
+      field: 'contract.causeObjective',
+      patterns: [
+        // Formas frecuentes en jurisprudencia que NO son las de MODAL-001
+        'expansi[óo]n\\s+planificada',
+        'reorganizaci[óo]n\\s+(?:interna|empresarial)',
+        'plan\\s+(?:de\\s+)?crecimiento',
+        'objetivos?\\s+(?:de\\s+)?(?:la\\s+)?empresa',
+      ],
+      flags: 'i',
+    },
+    appliesTo: {
+      contractTypes: ['LABORAL_PLAZO_FIJO'],
+    },
+    version: '1.0.0',
+  },
 ]

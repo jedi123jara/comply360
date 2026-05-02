@@ -218,3 +218,125 @@ function extractGestanteFlag(
   const str = String(raw).toLowerCase().trim()
   return str === 'true' || str === 'si' || str === 'sí' || str === '1' || str === 'yes'
 }
+
+// =============================================
+// DRAFT VALIDATION (in-memory, no BD reads)
+//
+// Para QW5: validar un borrador de contrato MIENTRAS el usuario lo llena,
+// sin escribir nada a BD. El endpoint /api/contracts/validate-draft hace
+// las pocas queries necesarias (workers + history) y pasa todo armado a
+// esta funcion pura.
+// =============================================
+
+/**
+ * Input para validar un borrador en memoria. El caller (endpoint o motor
+ * client-side para reglas puras) debe haber leido los workers del directorio
+ * y el historial modal previamente.
+ */
+export interface DraftValidationInput {
+  contract: {
+    type: ContractType
+    title?: string
+    formData?: Record<string, unknown> | null
+    contentHtml?: string | null
+    /** Override para fecha de fin si no esta en formData */
+    expiresAt?: Date | string | null
+  }
+  organization: {
+    id: string
+    regimenPrincipal?: string | null
+    ruc?: string | null
+  }
+  workers: ReadonlyArray<{
+    id: string
+    dni: string
+    firstName: string
+    lastName: string
+    regimenLaboral: string
+    fechaIngreso: Date | string
+    sueldoBruto: number
+    nationality?: string | null
+  }>
+  /**
+   * Historial modal previo para Art. 74 LPCL. Si el caller no lo provee,
+   * se asume vacio (la regla WORKER_MODAL_SUM_MAX_DAYS solo evaluara el
+   * contrato actual).
+   */
+  workerModalHistory?: ReadonlyArray<{
+    contractId: string
+    type: ContractType
+    startDate: Date | string
+    endDate: Date | string | null
+    durationDays: number
+  }>
+}
+
+/**
+ * Construye un ValidationContext desde un input in-memory. Pura: NO toca BD.
+ *
+ * Diferencias con `buildValidationContext`:
+ *  - No hay `contract.id` real (se usa 'draft')
+ *  - status siempre 'DRAFT'
+ *  - El caller es responsable de proveer workers + historial
+ */
+export function buildValidationContextFromDraft(
+  input: DraftValidationInput,
+): ValidationContext {
+  const formData = input.contract.formData ?? null
+  const extracted = extractFromFormData(formData)
+  const expiresAt = input.contract.expiresAt
+    ? input.contract.expiresAt instanceof Date
+      ? input.contract.expiresAt
+      : new Date(input.contract.expiresAt)
+    : null
+
+  const workers = input.workers.map(w => ({
+    id: w.id,
+    dni: w.dni,
+    fullName: `${w.firstName} ${w.lastName}`.trim(),
+    regimenLaboral: w.regimenLaboral as ValidationContext['workers'][number]['regimenLaboral'],
+    fechaIngreso: w.fechaIngreso instanceof Date ? w.fechaIngreso : new Date(w.fechaIngreso),
+    sueldoBruto: Number(w.sueldoBruto),
+    isPregnant: extractGestanteFlag(formData, w.id),
+    nationality: w.nationality ?? null,
+  }))
+
+  const workerModalHistory = (input.workerModalHistory ?? []).map(h => ({
+    contractId: h.contractId,
+    type: h.type,
+    startDate: h.startDate instanceof Date ? h.startDate : new Date(h.startDate),
+    endDate: h.endDate
+      ? h.endDate instanceof Date ? h.endDate : new Date(h.endDate)
+      : null,
+    durationDays: h.durationDays,
+  }))
+
+  return {
+    contract: {
+      id: 'draft',
+      type: input.contract.type,
+      title: input.contract.title ?? '',
+      status: 'DRAFT',
+      startDate: extracted.startDate,
+      endDate: extracted.endDate ?? expiresAt,
+      causeObjective: extracted.causeObjective,
+      position: extracted.position,
+      monthlySalary: extracted.monthlySalary,
+      weeklyHours: extracted.weeklyHours,
+      formData,
+      contentHtml: input.contract.contentHtml ?? null,
+    },
+    organization: {
+      id: input.organization.id,
+      regimenPrincipal: input.organization.regimenPrincipal ?? null,
+      ruc: input.organization.ruc ?? null,
+    },
+    workers,
+    workerModalHistory,
+    constants: {
+      UIT: UIT_2026,
+      RMV: RMV_2026,
+      MAX_MODAL_TOTAL_DAYS,
+    },
+  }
+}

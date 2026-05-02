@@ -28,6 +28,12 @@ import {
 import { toast } from 'sonner'
 import OrgCanvas from './org-canvas'
 import OrgDoctorPanel from './org-doctor-panel'
+import { buildOrgCommandResults, type OrgCommandResult } from '@/lib/orgchart/command-search'
+import {
+  buildLegalResponsiblesSummary,
+  type LegalResponsibilityItem,
+  type LegalResponsibilityStatus,
+} from '@/lib/orgchart/legal-responsibles'
 import type {
   OrgChartTree,
   DoctorReport,
@@ -39,10 +45,53 @@ import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 
 type View = 'hierarchy' | 'committees'
 type OrgLens = 'general' | 'mof' | 'sst' | 'vacancies'
-type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'historial'
+type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'historial'
 type PendingReparent = { positionId: string; newParentId: string }
+type AssignRoleRequest = { unitId: string | null; roleType?: ComplianceRoleType }
 type OrgAlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 type OrgAlertCategory = 'MOF' | 'SST' | 'LEGAL_ROLE' | 'VACANCY' | 'SUBORDINATION' | 'SUCCESSION' | 'STRUCTURE'
+type OrgDraftStatus = 'DRAFT' | 'REVIEWING' | 'APPLIED' | 'DISCARDED'
+
+interface WhatIfRiskDTO {
+  severity: OrgAlertSeverity
+  title: string
+  description: string
+}
+
+interface WhatIfImpactReportDTO {
+  generatedAt: string
+  blocked: boolean
+  scenario: {
+    positionId: string
+    positionTitle: string
+    unitId: string
+    unitName: string | null
+    fromParentId: string | null
+    fromParentTitle: string | null
+    toParentId: string
+    toParentTitle: string
+  }
+  metrics: {
+    occupants: number
+    directReportsMoved: number
+    projectedSpanOfControl: number
+    risks: number
+  }
+  risks: WhatIfRiskDTO[]
+}
+
+interface OrgChartDraftDTO {
+  id: string
+  name: string
+  status: OrgDraftStatus
+  baseSnapshotId: string | null
+  impactReport: WhatIfImpactReportDTO | null
+  createdAt: string
+  updatedAt: string
+  appliedAt: string | null
+  createdBy?: { name: string; email: string } | null
+  appliedBy?: { name: string; email: string } | null
+}
 
 interface OrgAlertDTO {
   id: string
@@ -69,6 +118,16 @@ interface OrgAlertsReportDTO {
   }
 }
 
+interface OrgAlertMonitorReportDTO {
+  generatedAt: string
+  scoreOrgHealth: number
+  includedSeverities: OrgAlertSeverity[]
+  considered: number
+  created: number
+  skipped: number
+  bySeverity: Record<'critical' | 'high' | 'medium' | 'low', number>
+}
+
 export default function OrganigramaClient() {
   const [tree, setTree] = useState<OrgChartTree | null>(null)
   const [loading, setLoading] = useState(true)
@@ -85,6 +144,8 @@ export default function OrganigramaClient() {
   const [alertsReport, setAlertsReport] = useState<OrgAlertsReportDTO | null>(null)
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState<string | null>(null)
+  const [alertMonitorReport, setAlertMonitorReport] = useState<OrgAlertMonitorReportDTO | null>(null)
+  const [alertMonitorLoading, setAlertMonitorLoading] = useState(false)
 
   const [snapshots, setSnapshots] = useState<OrgChartSnapshotDTO[]>([])
   const [asOf, setAsOf] = useState<string | null>(null)
@@ -94,12 +155,14 @@ export default function OrganigramaClient() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [showSnapshotDiff, setShowSnapshotDiff] = useState(false)
   const [showWhatIf, setShowWhatIf] = useState(false)
+  const [showDrafts, setShowDrafts] = useState(false)
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [showAuditorModal, setShowAuditorModal] = useState(false)
   const [showCreateUnit, setShowCreateUnit] = useState(false)
   const [createPositionForUnitId, setCreatePositionForUnitId] = useState<string | null>(null)
   const [editPositionId, setEditPositionId] = useState<string | null>(null)
   const [assignWorkerForPositionId, setAssignWorkerForPositionId] = useState<string | null>(null)
-  const [assignRoleForUnitId, setAssignRoleForUnitId] = useState<string | null>(null)
+  const [assignRoleRequest, setAssignRoleRequest] = useState<AssignRoleRequest | null>(null)
   const [pendingReparent, setPendingReparent] = useState<PendingReparent | null>(null)
   const [reparenting, setReparenting] = useState(false)
 
@@ -166,6 +229,17 @@ export default function OrganigramaClient() {
     if (isModuleTab(tab)) setActiveTab(tab)
   }, [])
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setShowCommandPalette(true)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const changeTab = useCallback((tab: ModuleTab) => {
     setActiveTab(tab)
     setSelectedUnitId(null)
@@ -177,6 +251,20 @@ export default function OrganigramaClient() {
       url.searchParams.set('tab', tab)
     }
     window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [])
+
+  const applyCommandResult = useCallback((result: OrgCommandResult) => {
+    setShowCommandPalette(false)
+    changeTab(result.tab)
+    setLens(result.lens)
+    setShowDoctor(false)
+    setShowAlerts(false)
+    setPendingReparent(null)
+    setSelectedUnitId(result.unitId)
+  }, [changeTab])
+
+  const openAssignRole = useCallback((unitId: string | null, roleType?: ComplianceRoleType) => {
+    setAssignRoleRequest({ unitId, roleType })
   }, [])
 
   const runDoctor = useCallback(async () => {
@@ -197,20 +285,24 @@ export default function OrganigramaClient() {
     }
   }, [])
 
-  const createTasksFromFindings = useCallback(async () => {
+  const runAlertMonitor = useCallback(async () => {
+    setAlertMonitorLoading(true)
     try {
-      const res = await fetch('/api/orgchart/diagnose', {
+      const res = await fetch('/api/orgchart/alerts/monitor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ createTasks: true }),
+        body: JSON.stringify({ includeMedium: false }),
       })
-      if (!res.ok) throw new Error('Error al crear tareas')
-      const data = (await res.json()) as DoctorReport & { createdTasks: number }
-      toast.success(`${data.createdTasks} tareas creadas en el módulo de compliance.`)
-      setDoctorReport(data)
-      fetchAlerts()
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'Error al crear tareas')
+      const report = data as OrgAlertMonitorReportDTO
+      setAlertMonitorReport(report)
+      toast.success(`${report.created} tareas nuevas; ${report.skipped} ya estaban abiertas.`)
+      await fetchAlerts()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setAlertMonitorLoading(false)
     }
   }, [fetchAlerts])
 
@@ -315,6 +407,15 @@ export default function OrganigramaClient() {
         />
       )
     }
+    if (activeTab === 'responsables') {
+      return (
+        <LegalResponsiblesView
+          tree={tree}
+          readOnly={isHistorical}
+          onAssignRole={(roleType) => openAssignRole(null, roleType)}
+        />
+      )
+    }
     if (activeTab === 'historial') {
       return <ChangeHistoryView />
     }
@@ -358,6 +459,13 @@ export default function OrganigramaClient() {
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <ViewToggle value={view} onChange={setView} />
             <LensToggle value={lens} onChange={setLens} />
+            <button
+              onClick={() => setShowCommandPalette(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Search className="h-4 w-4" />
+              Buscar
+            </button>
             <button
               onClick={() => setShowCreateUnit(true)}
               disabled={isHistorical}
@@ -418,6 +526,13 @@ export default function OrganigramaClient() {
               What-If
             </button>
             <button
+              onClick={() => setShowDrafts(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <ScrollText className="h-4 w-4" />
+              Escenarios
+            </button>
+            <button
               onClick={takeSnapshot}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
@@ -430,6 +545,13 @@ export default function OrganigramaClient() {
             >
               <Download className="h-4 w-4" />
               PDF
+            </a>
+            <a
+              href={`/api/orgchart/rit${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <ScrollText className="h-4 w-4" />
+              RIT
             </a>
             <button
               onClick={() => setShowAuditorModal(true)}
@@ -483,6 +605,7 @@ export default function OrganigramaClient() {
             assigned: tree?.assignments.length ?? 0,
             units: tree?.units.length ?? 0,
             positions: tree?.positions.length ?? 0,
+            roles: tree?.complianceRoles.length ?? 0,
           }}
         />
       </div>
@@ -497,8 +620,10 @@ export default function OrganigramaClient() {
               report={alertsReport}
               loading={alertsLoading}
               error={alertsError}
+              monitorReport={alertMonitorReport}
+              monitorLoading={alertMonitorLoading}
               onRefresh={fetchAlerts}
-              onCreateTasks={createTasksFromFindings}
+              onCreateTasks={runAlertMonitor}
               onClose={() => setShowAlerts(false)}
             />
           </div>
@@ -510,7 +635,7 @@ export default function OrganigramaClient() {
               report={doctorReport}
               loading={doctorLoading}
               onRun={runDoctor}
-              onCreateTasks={createTasksFromFindings}
+              onCreateTasks={runAlertMonitor}
               onClose={() => setShowDoctor(false)}
             />
           </div>
@@ -528,12 +653,19 @@ export default function OrganigramaClient() {
             onCreatePosition={(unitId) => setCreatePositionForUnitId(unitId)}
             onEditPosition={setEditPositionId}
             onAssignWorker={(positionId) => setAssignWorkerForPositionId(positionId)}
-            onAssignRole={(unitId) => setAssignRoleForUnitId(unitId)}
+            onAssignRole={(unitId) => openAssignRole(unitId)}
             readOnly={isHistorical}
           />
         )}
       </div>
 
+      {showCommandPalette && tree && (
+        <CommandPaletteModal
+          tree={tree}
+          onClose={() => setShowCommandPalette(false)}
+          onSelect={applyCommandResult}
+        />
+      )}
       {showSeedWizard && (
         <SeedWizard
           onClose={() => setShowSeedWizard(false)}
@@ -572,9 +704,21 @@ export default function OrganigramaClient() {
         <WhatIfModal
           tree={tree}
           onClose={() => setShowWhatIf(false)}
+          onSaved={() => setShowDrafts(true)}
           onApply={(positionId, newParentId) => {
             setShowWhatIf(false)
             setPendingReparent({ positionId, newParentId })
+          }}
+        />
+      )}
+      {showDrafts && (
+        <WhatIfDraftsModal
+          onClose={() => setShowDrafts(false)}
+          onApplied={() => {
+            setShowDrafts(false)
+            fetchTree(null)
+            fetchAlerts()
+            fetchSnapshots()
           }}
         />
       )}
@@ -631,13 +775,14 @@ export default function OrganigramaClient() {
           }}
         />
       )}
-      {assignRoleForUnitId && tree && !isHistorical && (
+      {assignRoleRequest && tree && !isHistorical && (
         <AssignComplianceRoleModal
-          unitId={assignRoleForUnitId}
-          unitName={tree.units.find(u => u.id === assignRoleForUnitId)?.name ?? 'unidad'}
-          onClose={() => setAssignRoleForUnitId(null)}
+          unitId={assignRoleRequest.unitId}
+          unitName={assignRoleRequest.unitId ? tree.units.find(u => u.id === assignRoleRequest.unitId)?.name ?? 'unidad' : 'organizacion'}
+          initialRoleType={assignRoleRequest.roleType}
+          onClose={() => setAssignRoleRequest(null)}
           onAssigned={() => {
-            setAssignRoleForUnitId(null)
+            setAssignRoleRequest(null)
             fetchTree(asOf)
             fetchAlerts()
           }}
@@ -714,7 +859,13 @@ function LensToggle({ value, onChange }: { value: OrgLens; onChange: (v: OrgLens
 }
 
 function isModuleTab(value: string | null): value is ModuleTab {
-  return value === 'organigrama' || value === 'directorio' || value === 'areas-cargos' || value === 'historial'
+  return (
+    value === 'organigrama' ||
+    value === 'directorio' ||
+    value === 'areas-cargos' ||
+    value === 'responsables' ||
+    value === 'historial'
+  )
 }
 
 function ModuleTabs({
@@ -724,12 +875,13 @@ function ModuleTabs({
 }: {
   value: ModuleTab
   onChange: (tab: ModuleTab) => void
-  counts: { assigned: number; units: number; positions: number }
+  counts: { assigned: number; units: number; positions: number; roles: number }
 }) {
   const items: Array<{ key: ModuleTab; label: string; meta: string; icon: typeof Network }> = [
     { key: 'organigrama', label: 'Organigrama', meta: `${counts.units} áreas`, icon: Network },
     { key: 'directorio', label: 'Directorio', meta: `${counts.assigned} asignados`, icon: FileSpreadsheet },
     { key: 'areas-cargos', label: 'Áreas y cargos', meta: `${counts.positions} cargos`, icon: ListTree },
+    { key: 'responsables', label: 'Responsables', meta: `${counts.roles} roles`, icon: ShieldCheck },
     { key: 'historial', label: 'Historial', meta: 'Auditoría', icon: History },
   ]
 
@@ -835,10 +987,327 @@ function CsstMetric({ label, value, highlight = false }: { label: string; value:
   )
 }
 
+function LegalResponsiblesView({
+  tree,
+  readOnly,
+  onAssignRole,
+}: {
+  tree: OrgChartTree
+  readOnly: boolean
+  onAssignRole: (roleType: ComplianceRoleType) => void
+}) {
+  const [filter, setFilter] = useState<'all' | LegalResponsibilityStatus>('all')
+  const [search, setSearch] = useState('')
+  const summary = useMemo(() => buildLegalResponsiblesSummary(tree), [tree])
+  const filters: Array<{ key: 'all' | LegalResponsibilityStatus; label: string; count: number }> = [
+    { key: 'all', label: 'Todos', count: summary.totals.catalogRoleTypes },
+    { key: 'missing', label: 'Sin titular', count: summary.totals.missingRoleTypes },
+    { key: 'expiring', label: 'Por vencer', count: summary.totals.expiringSoon },
+    { key: 'orphaned', label: 'Sin cargo', count: summary.totals.orphaned },
+  ]
+
+  return (
+    <div className="h-full overflow-y-auto bg-slate-50 p-6">
+      <div className="mb-5 flex flex-wrap items-start gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Responsables legales</h2>
+          <div className="mt-1 text-xs text-slate-500">
+            Matriz viva de comites, brigadas y responsables individuales del organigrama.
+          </div>
+        </div>
+        <div className="relative ml-auto min-w-[280px]">
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Buscar rol, titular, base legal..."
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          />
+        </div>
+      </div>
+
+      <div className="mb-5 grid gap-3 md:grid-cols-4">
+        <ResponsiblesMetric label="Designaciones" value={summary.totals.assignedRoles} tone="emerald" />
+        <ResponsiblesMetric label="Roles cubiertos" value={`${summary.totals.coveredRoleTypes}/${summary.totals.catalogRoleTypes}`} tone="sky" />
+        <ResponsiblesMetric label="Por vencer 30d" value={summary.totals.expiringSoon} tone={summary.totals.expiringSoon ? 'amber' : 'slate'} />
+        <ResponsiblesMetric label="Sin cargo activo" value={summary.totals.orphaned} tone={summary.totals.orphaned ? 'rose' : 'slate'} />
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {filters.map(item => (
+          <button
+            key={item.key}
+            onClick={() => setFilter(item.key)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              filter === item.key
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {item.label}
+            <span className="ml-1 text-[10px] opacity-70">{item.count}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-4">
+        {summary.groups.map(group => {
+          const items = group.items.filter(item => matchesResponsibility(item, search, filter))
+          if (items.length === 0) return null
+          return (
+            <section key={group.key} className="rounded-lg border border-slate-200 bg-white">
+              <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">{group.label}</h3>
+                  <div className="mt-0.5 text-xs text-slate-500">{group.description}</div>
+                </div>
+                <div className="ml-auto flex gap-2 text-[10px] font-semibold uppercase text-slate-500">
+                  <span>{group.totals.covered} cubiertos</span>
+                  <span>{group.totals.missing} sin titular</span>
+                  <span>{group.totals.expiring} por vencer</span>
+                </div>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {items.map(item => (
+                  <LegalResponsibilityRow
+                    key={item.roleType}
+                    item={item}
+                    readOnly={readOnly}
+                    onAssignRole={onAssignRole}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function ResponsiblesMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: number | string
+  tone: 'emerald' | 'sky' | 'amber' | 'rose' | 'slate'
+}) {
+  const classes = {
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    sky: 'border-sky-200 bg-sky-50 text-sky-800',
+    amber: 'border-amber-200 bg-amber-50 text-amber-800',
+    rose: 'border-rose-200 bg-rose-50 text-rose-800',
+    slate: 'border-slate-200 bg-white text-slate-800',
+  }[tone]
+  return (
+    <div className={`rounded-lg border p-4 ${classes}`}>
+      <div className="text-xl font-semibold">{value}</div>
+      <div className="mt-1 text-xs font-medium opacity-75">{label}</div>
+    </div>
+  )
+}
+
+function LegalResponsibilityRow({
+  item,
+  readOnly,
+  onAssignRole,
+}: {
+  item: LegalResponsibilityItem
+  readOnly: boolean
+  onAssignRole: (roleType: ComplianceRoleType) => void
+}) {
+  return (
+    <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(260px,1fr)_minmax(320px,1.5fr)_auto]">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold text-slate-900">{item.label}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${responsibilityStatusClass(item.status)}`}>
+            {responsibilityStatusLabel(item.status)}
+          </span>
+        </div>
+        <p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.description}</p>
+        <div className="mt-2 font-mono text-[10px] text-slate-500">{item.baseLegal}</div>
+      </div>
+
+      <div className="min-w-0 space-y-2">
+        {item.holders.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Sin titular registrado para este rol.
+          </div>
+        ) : (
+          item.holders.map(holder => (
+            <div key={holder.roleId} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-slate-800">{holder.workerName}</span>
+                <span className="text-slate-500">{holder.unitName ?? 'Alcance organizacion'}</span>
+                {!holder.hasActivePosition && (
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                    Sin cargo activo
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-wrap gap-2 text-[10px] text-slate-500">
+                <span>Desde {formatResponsibilityDate(holder.startsAt)}</span>
+                <span>{holder.endsAt ? `Vence ${formatResponsibilityDate(holder.endsAt)}` : 'Sin vencimiento'}</span>
+                {holder.daysToExpiry !== null && holder.daysToExpiry <= 30 && holder.daysToExpiry >= 0 && (
+                  <span className="font-semibold text-amber-700">{holder.daysToExpiry} dias restantes</span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="flex items-start justify-end">
+        {!readOnly && (
+          <button
+            onClick={() => onAssignRole(item.roleType)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Asignar
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function matchesResponsibility(
+  item: LegalResponsibilityItem,
+  search: string,
+  filter: 'all' | LegalResponsibilityStatus,
+) {
+  if (filter !== 'all' && item.status !== filter) return false
+  const query = search.trim().toLowerCase()
+  if (!query) return true
+  const text = [
+    item.label,
+    item.shortLabel,
+    item.description,
+    item.baseLegal,
+    item.roleType,
+    ...item.holders.flatMap(holder => [holder.workerName, holder.unitName ?? '']),
+  ].join(' ').toLowerCase()
+  return text.includes(query)
+}
+
+function responsibilityStatusLabel(status: LegalResponsibilityStatus) {
+  if (status === 'covered') return 'Cubierto'
+  if (status === 'missing') return 'Sin titular'
+  if (status === 'expiring') return 'Por vencer'
+  if (status === 'expired') return 'Vencido'
+  return 'Sin cargo'
+}
+
+function responsibilityStatusClass(status: LegalResponsibilityStatus) {
+  if (status === 'covered') return 'bg-emerald-100 text-emerald-700'
+  if (status === 'missing') return 'bg-amber-100 text-amber-700'
+  if (status === 'expiring') return 'bg-orange-100 text-orange-700'
+  if (status === 'expired') return 'bg-rose-100 text-rose-700'
+  return 'bg-slate-200 text-slate-700'
+}
+
+function formatResponsibilityDate(value: string) {
+  return new Date(value).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function CommandPaletteModal({
+  tree,
+  onClose,
+  onSelect,
+}: {
+  tree: OrgChartTree
+  onClose: () => void
+  onSelect: (result: OrgCommandResult) => void
+}) {
+  const [query, setQuery] = useState('')
+  const results = useMemo(() => buildOrgCommandResults(tree, query, 14), [query, tree])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/35 px-4 pt-[12vh] backdrop-blur-sm">
+      <div className="w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+          <Search className="h-5 w-5 text-slate-400" />
+          <input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            autoFocus
+            placeholder="Buscar persona, cargo, area, responsables, MOF, SST..."
+            className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+          />
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
+            <X className="h-4 w-4 text-slate-500" />
+          </button>
+        </div>
+        <div className="max-h-[420px] overflow-y-auto p-2">
+          {results.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-slate-500">Sin resultados.</div>
+          ) : (
+            results.map(result => (
+              <button
+                key={result.id}
+                onClick={() => onSelect(result)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-slate-50"
+              >
+                <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${commandIconClass(result.kind)}`}>
+                  {commandKindIcon(result.kind)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-slate-900">{result.title}</span>
+                  <span className="block truncate text-xs text-slate-500">{result.subtitle}</span>
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
+                  {commandLensLabel(result.lens)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function commandKindIcon(kind: OrgCommandResult['kind']) {
+  if (kind === 'worker') return <UserPlus className="h-4 w-4" />
+  if (kind === 'position') return <Briefcase className="h-4 w-4" />
+  if (kind === 'unit') return <Building2 className="h-4 w-4" />
+  if (kind === 'role') return <ShieldCheck className="h-4 w-4" />
+  return <Sparkles className="h-4 w-4" />
+}
+
+function commandIconClass(kind: OrgCommandResult['kind']) {
+  if (kind === 'worker') return 'bg-sky-50 text-sky-700'
+  if (kind === 'position') return 'bg-emerald-50 text-emerald-700'
+  if (kind === 'unit') return 'bg-violet-50 text-violet-700'
+  if (kind === 'role') return 'bg-indigo-50 text-indigo-700'
+  return 'bg-amber-50 text-amber-700'
+}
+
+function commandLensLabel(lens: OrgCommandResult['lens']) {
+  if (lens === 'mof') return 'MOF'
+  if (lens === 'sst') return 'SST'
+  if (lens === 'vacancies') return 'Vacantes'
+  return 'General'
+}
+
 function OrgAlertsPanel({
   report,
   loading,
   error,
+  monitorReport,
+  monitorLoading,
   onRefresh,
   onCreateTasks,
   onClose,
@@ -846,8 +1315,10 @@ function OrgAlertsPanel({
   report: OrgAlertsReportDTO | null
   loading: boolean
   error: string | null
+  monitorReport: OrgAlertMonitorReportDTO | null
+  monitorLoading: boolean
   onRefresh: () => void
-  onCreateTasks: () => void
+  onCreateTasks: () => Promise<void>
   onClose: () => void
 }) {
   const alerts = report?.alerts ?? []
@@ -878,14 +1349,22 @@ function OrgAlertsPanel({
           Actualizar
         </button>
         <button
-          onClick={onCreateTasks}
-          disabled={alerts.length === 0}
+          onClick={() => {
+            void onCreateTasks()
+          }}
+          disabled={alerts.length === 0 || monitorLoading}
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <CheckCircle2 className="h-4 w-4" />
-          Crear tareas
+          {monitorLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+          Generar tareas
         </button>
       </div>
+
+      {monitorReport && (
+        <div className="border-b border-slate-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800">
+          Ultimo monitor: {monitorReport.created} nueva(s), {monitorReport.skipped} ya abierta(s), {monitorReport.considered} evaluada(s).
+        </div>
+      )}
 
       {report && (
         <div className="grid grid-cols-4 gap-2 border-b border-slate-200 px-4 py-3">
@@ -1072,17 +1551,204 @@ function ReparentPositionModal({
   )
 }
 
+function WhatIfDraftsModal({
+  onClose,
+  onApplied,
+}: {
+  onClose: () => void
+  onApplied: () => void
+}) {
+  const [drafts, setDrafts] = useState<OrgChartDraftDTO[]>([])
+  const [loading, setLoading] = useState(true)
+  const [mutatingId, setMutatingId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/orgchart/drafts?limit=50', { cache: 'no-store' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'No se pudieron cargar los escenarios')
+      setDrafts(data.drafts ?? [])
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al cargar escenarios')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const mutateDraft = async (draftId: string, action: 'APPLY' | 'DISCARD') => {
+    setMutatingId(draftId)
+    try {
+      const res = await fetch(`/api/orgchart/drafts/${draftId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'No se pudo actualizar el escenario')
+      toast.success(action === 'APPLY' ? 'Escenario aplicado al organigrama.' : 'Escenario descartado.')
+      if (action === 'APPLY') {
+        onApplied()
+      } else {
+        load()
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setMutatingId(null)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-5 w-5 text-emerald-600" />
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Escenarios What-If</h2>
+              <div className="text-xs text-slate-500">Borradores estructurales con snapshot base e impacto.</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={load}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <History className="h-4 w-4" />}
+              Actualizar
+            </button>
+            <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
+              <X className="h-4 w-4 text-slate-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-auto bg-slate-50 p-5">
+          {loading ? (
+            <div className="flex h-56 items-center justify-center text-sm text-slate-500">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Cargando escenarios...
+            </div>
+          ) : drafts.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-white px-4 py-12 text-center text-sm text-slate-500">
+              Todavía no hay escenarios guardados.
+            </div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {drafts.map(draft => (
+                <div key={draft.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-slate-900">{draft.name}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {new Date(draft.createdAt).toLocaleString('es-PE')} · {draft.createdBy?.name ?? 'Usuario'}
+                      </div>
+                    </div>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${draftStatusClass(draft.status)}`}>
+                      {draftStatusLabel(draft.status)}
+                    </span>
+                  </div>
+
+                  {draft.impactReport && (
+                    <>
+                      <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm">
+                        <div className="font-medium text-slate-900">{draft.impactReport.scenario.positionTitle}</div>
+                        <div className="mt-1 text-xs text-slate-600">
+                          {draft.impactReport.scenario.fromParentTitle ?? 'Sin jefe'} {'->'} {draft.impactReport.scenario.toParentTitle}
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-4 gap-2">
+                        <MiniMetric label="Ocup." value={draft.impactReport.metrics.occupants} />
+                        <MiniMetric label="Reportes" value={draft.impactReport.metrics.directReportsMoved} />
+                        <MiniMetric label="Span" value={draft.impactReport.metrics.projectedSpanOfControl} />
+                        <MiniMetric label="Riesgos" value={draft.impactReport.metrics.risks} highlight={draft.impactReport.metrics.risks > 0} />
+                      </div>
+                      {draft.impactReport.risks.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {draft.impactReport.risks.slice(0, 4).map(risk => (
+                            <span key={`${draft.id}-${risk.title}`} className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${alertSeverityClass(risk.severity)}`}>
+                              {risk.title}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button
+                      onClick={() => mutateDraft(draft.id, 'DISCARD')}
+                      disabled={mutatingId === draft.id || draft.status === 'APPLIED' || draft.status === 'DISCARDED'}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Descartar
+                    </button>
+                    <button
+                      onClick={() => mutateDraft(draft.id, 'APPLY')}
+                      disabled={mutatingId === draft.id || draft.status === 'APPLIED' || draft.status === 'DISCARDED'}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {mutatingId === draft.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MiniMetric({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className={`rounded-lg border px-2 py-2 text-center ${highlight ? 'border-amber-200 bg-amber-50' : 'border-slate-100 bg-white'}`}>
+      <div className={`text-sm font-bold ${highlight ? 'text-amber-800' : 'text-slate-900'}`}>{value}</div>
+      <div className="text-[10px] font-medium text-slate-500">{label}</div>
+    </div>
+  )
+}
+
+function draftStatusClass(status: OrgDraftStatus) {
+  if (status === 'APPLIED') return 'bg-emerald-100 text-emerald-700'
+  if (status === 'DISCARDED') return 'bg-slate-100 text-slate-500'
+  if (status === 'REVIEWING') return 'bg-amber-100 text-amber-800'
+  return 'bg-sky-100 text-sky-700'
+}
+
+function draftStatusLabel(status: OrgDraftStatus) {
+  const labels: Record<OrgDraftStatus, string> = {
+    DRAFT: 'Borrador',
+    REVIEWING: 'En revisión',
+    APPLIED: 'Aplicado',
+    DISCARDED: 'Descartado',
+  }
+  return labels[status]
+}
+
 function WhatIfModal({
   tree,
   onClose,
+  onSaved,
   onApply,
 }: {
   tree: OrgChartTree
   onClose: () => void
+  onSaved: () => void
   onApply: (positionId: string, newParentId: string) => void
 }) {
   const [positionId, setPositionId] = useState(tree.positions[0]?.id ?? '')
   const [selectedNewParentId, setSelectedNewParentId] = useState(tree.positions.find(position => position.id !== tree.positions[0]?.id)?.id ?? '')
+  const [scenarioName, setScenarioName] = useState(() => `Escenario What-If ${new Date().toLocaleDateString('es-PE')}`)
+  const [saving, setSaving] = useState(false)
   const position = tree.positions.find(candidate => candidate.id === positionId) ?? null
   const availableParents = useMemo(
     () => tree.positions.filter(candidate => candidate.id !== positionId),
@@ -1120,6 +1786,30 @@ function WhatIfModal({
   })
   const canApply = Boolean(position && newParent && !cycle)
 
+  const saveScenario = async () => {
+    if (!position || !newParent || !scenarioName.trim() || cycle) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/orgchart/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: scenarioName.trim(),
+          positionId: position.id,
+          newParentId: newParent.id,
+        }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'No se pudo guardar el escenario')
+      toast.success('Escenario What-If guardado con snapshot base.')
+      onSaved()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar escenario')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
       <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
@@ -1142,6 +1832,15 @@ function WhatIfModal({
           </div>
         ) : (
           <div className="overflow-auto px-6 py-5">
+            <label className="mb-4 block text-xs font-medium text-slate-600">
+              Nombre del escenario
+              <input
+                value={scenarioName}
+                onChange={event => setScenarioName(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
+                placeholder="Ej. Reubicar Coordinación SST bajo Gerencia General"
+              />
+            </label>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="text-xs font-medium text-slate-600">
                 Cargo a mover
@@ -1225,6 +1924,14 @@ function WhatIfModal({
                 className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Cerrar
+              </button>
+              <button
+                onClick={saveScenario}
+                disabled={!canApply || saving || !scenarioName.trim()}
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScrollText className="h-4 w-4" />}
+                Guardar escenario
               </button>
               <button
                 onClick={() => position && newParent && onApply(position.id, newParent.id)}
@@ -1826,6 +2533,7 @@ function entityLabel(entityType: string) {
     OrgAssignment: 'Asignación',
     OrgComplianceRole: 'Rol legal',
     OrgChartSnapshot: 'Snapshot',
+    OrgChartDraft: 'Escenario What-If',
     OrgTemplate: 'Plantilla',
     OrgChartImport: 'Importación',
   }
@@ -4097,16 +4805,18 @@ function AssignWorkerModal({
 function AssignComplianceRoleModal({
   unitId,
   unitName,
+  initialRoleType,
   onClose,
   onAssigned,
 }: {
-  unitId: string
+  unitId: string | null
   unitName: string
+  initialRoleType?: ComplianceRoleType
   onClose: () => void
   onAssigned: () => void
 }) {
   const [workers, setWorkers] = useState<WorkerOption[]>([])
-  const [roleType, setRoleType] = useState<ComplianceRoleType>('PRESIDENTE_COMITE_SST')
+  const [roleType, setRoleType] = useState<ComplianceRoleType>(initialRoleType ?? 'PRESIDENTE_COMITE_SST')
   const [workerId, setWorkerId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)

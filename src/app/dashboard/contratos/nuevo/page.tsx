@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -20,11 +20,19 @@ import {
   Wand2,
   X,
   ScrollText,
+  History,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { CONTRACT_TEMPLATES, type ContractTemplateDefinition, type TemplateField } from '@/lib/legal-engine/contracts/templates'
 import { generateDocx } from '@/lib/docx/generate-docx'
 import { RegimeBadge } from '@/components/contracts/regime-badge'
+import { useLocalDraft } from '@/hooks/use-local-draft'
+import { useCostEmployer } from '@/hooks/use-cost-employer'
+import { CostSummaryPill } from '@/components/contracts/cost-summary-pill'
+import { WorkerPicker, type WorkerSummary } from '@/components/contracts/worker-picker'
+import { useLiveValidation } from '@/hooks/use-live-validation'
+import { LiveValidationPanel } from '@/components/contracts/live-validation-panel'
+import { ContractPreview } from '@/components/contracts/contract-preview'
 
 // ─── Types for AI generated contract (mirror of contract-generator.ts) ──────
 interface AIContractClause {
@@ -96,6 +104,64 @@ const TEMPLATE_OPTIONS = [
 
 type Step = 'select' | 'form' | 'preview' | 'review'
 
+/** Resumen de una plantilla propia (subset del payload de /api/org-templates) */
+interface OrgTemplateSummary {
+  id: string
+  title: string
+  documentType: string
+  documentTypeLabel: string
+  contractType: string | null
+  placeholderCount: number
+  mappingCount: number
+  usageCount: number
+}
+
+/**
+ * Shape del borrador local (autosave a localStorage).
+ * Todo lo necesario para reconstruir la sesion del usuario sin tocar la BD.
+ */
+interface ContractWizardDraft {
+  step: Step
+  selectedTemplateId: string | null
+  currentSection: number
+  formData: Record<string, string | number | boolean>
+  // Modal IA
+  aiDescription: string
+  aiShownOnce: boolean
+  // Empleador (espejos del formData para restaurar inputs controlados)
+  empRuc: string
+  empRazonSocial: string
+  empRepresentante: string
+  empDireccion: string
+  // Trabajador
+  trabDni: string
+  trabNombre: string
+  // Tipo de contrato
+  modalidad: string
+  causaObjetiva: string
+  fechaInicio: string
+  fechaFin: string
+  periodoPrueba: string
+  // Condiciones
+  cargo: string
+  jornada: string
+  horario: string
+  remuneracion: string
+  formaPago: string
+  beneficios: string
+}
+
+function formatRelativeTime(date: Date): string {
+  const diffMs = Date.now() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return 'hace un momento'
+  if (diffMin < 60) return `hace ${diffMin} ${diffMin === 1 ? 'minuto' : 'minutos'}`
+  const diffH = Math.floor(diffMin / 60)
+  if (diffH < 24) return `hace ${diffH} ${diffH === 1 ? 'hora' : 'horas'}`
+  const diffD = Math.floor(diffH / 24)
+  return `hace ${diffD} ${diffD === 1 ? 'dia' : 'dias'}`
+}
+
 function NuevoContratoInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -105,6 +171,18 @@ function NuevoContratoInner() {
   const [currentSection, setCurrentSection] = useState(0)
   const [formData, setFormData] = useState<Record<string, string | number | boolean>>({})
   const [saving, setSaving] = useState(false)
+  // orgId para scopear el autosave a localStorage por organizacion
+  const [orgId, setOrgId] = useState<string | null>(null)
+  // Banner para restaurar borrador local
+  const [showRestoreBanner, setShowRestoreBanner] = useState(false)
+  // Plantillas propias de la empresa (QW4)
+  const [orgTemplates, setOrgTemplates] = useState<OrgTemplateSummary[]>([])
+  const [orgTemplatesLoaded, setOrgTemplatesLoaded] = useState(false)
+  // Refs para focus management cross-step (a11y)
+  const stepHeadingRef = useRef<HTMLHeadingElement | null>(null)
+  const previousStep = useRef<Step>('select')
+  // Live region para anuncios de autosave a screen readers
+  const [a11yAnnouncement, setA11yAnnouncement] = useState('')
 
   // ─── AI Generation state ────────────────────────────────────────────────
   const [showAiModal, setShowAiModal] = useState(false)
@@ -135,6 +213,7 @@ function NuevoContratoInner() {
       .then(
         (data: {
           org?: {
+            id?: string
             ruc: string | null
             razonSocial: string | null
             name: string | null
@@ -144,6 +223,7 @@ function NuevoContratoInner() {
         }) => {
           const o = data.org
           if (!o) return
+          if (o.id) setOrgId(o.id)
           if (o.ruc) {
             setEmpRuc(o.ruc)
             setFormData(prev => ({ ...prev, empleador_ruc: o.ruc as string }))
@@ -201,6 +281,10 @@ function NuevoContratoInner() {
   const [trabNombre, setTrabNombre] = useState('')
   const [trabDniLoading, setTrabDniLoading] = useState(false)
   const [trabDniStatus, setTrabDniStatus] = useState<'idle' | 'ok' | 'error'>('idle')
+  // Worker existente seleccionado del directorio (QW2)
+  const [selectedWorker, setSelectedWorker] = useState<WorkerSummary | null>(null)
+  // Modo de seleccion: 'picker' = abierto, 'manual' = usuario eligio nuevo trabajador
+  const [trabajadorMode, setTrabajadorMode] = useState<'picker' | 'manual'>('picker')
 
   // Pre-fill from query params (when coming from worker profile)
   useEffect(() => {
@@ -221,6 +305,51 @@ function NuevoContratoInner() {
     if (sueldo) setFormData(prev => ({ ...prev, remuneracion_mensual: sueldo }))
   }, [searchParams])
 
+  // MG4: Save & resume — si la URL trae ?resume=<id>, rehidratar contrato desde BD
+  useEffect(() => {
+    const resumeId = searchParams.get('resume')
+    if (!resumeId) return
+    if (templateSavedId === resumeId) return
+    fetch(`/api/contracts/${resumeId}`)
+      .then(async res => {
+        if (!res.ok) {
+          toast({
+            title: 'No se pudo cargar el borrador',
+            description: 'Verifica que aun exista en la lista de contratos.',
+            type: 'error',
+          })
+          return
+        }
+        const { data } = await res.json() as {
+          data: {
+            id: string
+            templateId: string | null
+            type: string
+            title: string
+            formData: Record<string, string | number | boolean> | null
+            status: string
+          }
+        }
+        if (data.templateId) {
+          const tmpl = CONTRACT_TEMPLATES.find(t => t.id === data.templateId)
+          if (tmpl) setSelectedTemplate(tmpl)
+        }
+        setFormData((data.formData as Record<string, string | number | boolean>) ?? {})
+        setTemplateSavedId(data.id)
+        setStep('form')
+        toast({
+          title: 'Borrador cargado',
+          description: `Continua editando "${data.title}"`,
+          type: 'success',
+        })
+        setA11yAnnouncement(`Borrador "${data.title}" cargado.`)
+      })
+      .catch(() => {
+        toast({ title: 'Error de red al cargar el borrador', type: 'error' })
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
   // Tipo de contrato
   const [modalidad, setModalidad] = useState('')
   const [causaObjetiva, setCausaObjetiva] = useState('')
@@ -234,6 +363,168 @@ function NuevoContratoInner() {
   const [remuneracion, setRemuneracion] = useState('')
   const [formaPago, setFormaPago] = useState('MENSUAL')
   const [beneficios, setBeneficios] = useState('')
+
+  // ─── Autosave a localStorage (QW1) ──────────────────────────────────────
+  // Scoped por orgId para evitar fugas entre organizaciones del mismo usuario.
+  // TTL 7 dias. Debounce 1.5s.
+  const draftHook = useLocalDraft<ContractWizardDraft>({
+    key: 'contract-draft',
+    orgId,
+    ttlDays: 7,
+    debounceMs: 1500,
+  })
+
+  // Mostrar banner de restaurar cuando el draft se restaura del storage
+  useEffect(() => {
+    if (draftHook.draft && draftHook.restoredAt && step === 'select' && !selectedTemplate) {
+      setShowRestoreBanner(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftHook.draft, draftHook.restoredAt])
+
+  // Persistir cambios al draft (debounced por el hook)
+  useEffect(() => {
+    // No guardar borrador en estados terminales
+    if (step === 'review') return
+    // No guardar si nada significativo se ha llenado todavia
+    const hasMeaningfulData =
+      selectedTemplate !== null ||
+      Object.keys(formData).length > 0 ||
+      trabDni.length > 0 ||
+      cargo.length > 0 ||
+      remuneracion.length > 0
+    if (!hasMeaningfulData) return
+
+    draftHook.save({
+      step,
+      selectedTemplateId: selectedTemplate?.id ?? null,
+      currentSection,
+      formData,
+      aiDescription,
+      aiShownOnce: showAiModal,
+      empRuc,
+      empRazonSocial,
+      empRepresentante,
+      empDireccion,
+      trabDni,
+      trabNombre,
+      modalidad,
+      causaObjetiva,
+      fechaInicio,
+      fechaFin,
+      periodoPrueba,
+      cargo,
+      jornada,
+      horario,
+      remuneracion,
+      formaPago,
+      beneficios,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    step, selectedTemplate?.id, currentSection, formData,
+    aiDescription, showAiModal,
+    empRuc, empRazonSocial, empRepresentante, empDireccion,
+    trabDni, trabNombre,
+    modalidad, causaObjetiva, fechaInicio, fechaFin, periodoPrueba,
+    cargo, jornada, horario, remuneracion, formaPago, beneficios,
+  ])
+
+  /** Aplica el draft restaurado al estado actual del wizard. */
+  const restoreDraft = () => {
+    const d = draftHook.draft
+    if (!d) return
+    if (d.selectedTemplateId) {
+      const tmpl = CONTRACT_TEMPLATES.find(t => t.id === d.selectedTemplateId)
+      if (tmpl) setSelectedTemplate(tmpl)
+    }
+    setStep(d.step)
+    setCurrentSection(d.currentSection || 0)
+    setFormData(d.formData || {})
+    setAiDescription(d.aiDescription || '')
+    setEmpRuc(d.empRuc || '')
+    setEmpRazonSocial(d.empRazonSocial || '')
+    setEmpRepresentante(d.empRepresentante || '')
+    setEmpDireccion(d.empDireccion || '')
+    setTrabDni(d.trabDni || '')
+    setTrabNombre(d.trabNombre || '')
+    setModalidad(d.modalidad || '')
+    setCausaObjetiva(d.causaObjetiva || '')
+    setFechaInicio(d.fechaInicio || '')
+    setFechaFin(d.fechaFin || '')
+    setPeriodoPrueba(d.periodoPrueba || '3')
+    setCargo(d.cargo || '')
+    setJornada(d.jornada || '48')
+    setHorario(d.horario || '')
+    setRemuneracion(d.remuneracion || '')
+    setFormaPago(d.formaPago || 'MENSUAL')
+    setBeneficios(d.beneficios || '')
+    setShowRestoreBanner(false)
+    setA11yAnnouncement('Borrador restaurado.')
+    toast({
+      title: 'Borrador restaurado',
+      description: 'Continua donde lo dejaste.',
+      type: 'success',
+    })
+  }
+
+  /** Descarta el draft restaurado y limpia el storage. */
+  const dismissDraft = () => {
+    draftHook.clear()
+    setShowRestoreBanner(false)
+    setA11yAnnouncement('Borrador descartado.')
+  }
+
+  // Anuncio de autosave a screen readers (live region)
+  useEffect(() => {
+    if (draftHook.saving) return
+    if (showRestoreBanner) return
+    if (!draftHook.draft && Object.keys(formData).length === 0) return
+    // Solo anunciar cuando dejo de estar 'saving' y tenemos contenido
+    const handle = setTimeout(() => {
+      setA11yAnnouncement('Borrador guardado automaticamente.')
+    }, 200)
+    return () => clearTimeout(handle)
+  }, [draftHook.saving, draftHook.draft, formData, showRestoreBanner])
+
+  // Focus management: al cambiar de step, mover foco al h1 del nuevo step (a11y)
+  useEffect(() => {
+    if (previousStep.current !== step && stepHeadingRef.current) {
+      stepHeadingRef.current.focus()
+      previousStep.current = step
+    }
+  }, [step])
+
+  // QW4: Cargar plantillas propias de la empresa para mostrarlas en el grid
+  useEffect(() => {
+    if (orgTemplatesLoaded) return
+    fetch('/api/org-templates')
+      .then(async res => {
+        if (!res.ok) {
+          // 403 = plan no incluye feature, 404 = no existe — silencio en ambos
+          setOrgTemplatesLoaded(true)
+          return
+        }
+        const data = await res.json() as { data: OrgTemplateSummary[] }
+        setOrgTemplates(data.data || [])
+        setOrgTemplatesLoaded(true)
+      })
+      .catch(() => setOrgTemplatesLoaded(true))
+  }, [orgTemplatesLoaded])
+
+  /**
+   * QW4: usuario eligio una plantilla propia. Por ahora redirigimos al editor
+   * con el contexto del worker seleccionado. En MG2 se construira un step
+   * dedicado que reusa el WorkerPicker y los placeholders.
+   */
+  const handleSelectOrgTemplate = (tmpl: OrgTemplateSummary) => {
+    const params = new URLSearchParams()
+    if (selectedWorker) params.set('workerId', selectedWorker.id)
+    params.set('action', 'generate')
+    router.push(
+      `/dashboard/configuracion/empresa/plantillas/${tmpl.id}${params.toString() ? `?${params}` : ''}`
+    )
+  }
 
   const handleSelectTemplate = (id: string) => {
     if (id === '__ai_generate__') {
@@ -431,6 +722,8 @@ function NuevoContratoInner() {
       }
       const { data } = (await res.json()) as { data: { id: string } }
       setAiSavedId(data.id)
+      // Borrador ya esta en BD: limpiar localStorage para no mostrar restore banner
+      draftHook.clear()
       toast({
         title: 'Contrato guardado ✓',
         description: 'Borrador creado automáticamente. Puedes descargarlo o editarlo cuando quieras.',
@@ -467,6 +760,92 @@ function NuevoContratoInner() {
     })
     toast({ title: 'Contrato descargado', description: 'Revisa los placeholders antes de firmar', type: 'success' })
   }
+
+  /** QW2: usuario eligio un trabajador existente del directorio */
+  const handleSelectWorker = (w: WorkerSummary) => {
+    setSelectedWorker(w)
+    setTrabajadorMode('manual') // ya no mostramos el picker, mostramos los campos pre-rellenados
+    setTrabDni(w.dni)
+    setTrabDniStatus('ok')
+    setTrabNombre(`${w.firstName} ${w.lastName}`.trim())
+    if (w.position && !cargo) setCargo(w.position)
+    if (w.sueldoBruto && !remuneracion) setRemuneracion(String(w.sueldoBruto))
+    setFormData(prev => ({
+      ...prev,
+      trabajador_dni: w.dni,
+      trabajador_nombre: `${w.firstName} ${w.lastName}`.trim(),
+      trabajador_cargo: w.position ?? prev.trabajador_cargo,
+      trabajador_regimen: w.regimenLaboral,
+      remuneracion_mensual: w.sueldoBruto ? String(w.sueldoBruto) : prev.remuneracion_mensual,
+      fecha_inicio: w.fechaIngreso?.split('T')[0] ?? prev.fecha_inicio,
+    }))
+    setA11yAnnouncement(
+      `Trabajador ${w.firstName} ${w.lastName} seleccionado. Datos prellenados.`
+    )
+  }
+
+  /** QW2: limpiar seleccion de worker existente */
+  const handleClearWorker = () => {
+    setSelectedWorker(null)
+    setTrabajadorMode('picker')
+    setTrabDni('')
+    setTrabNombre('')
+    setTrabDniStatus('idle')
+  }
+
+  /** Costo empleador en vivo (QW3) — usa los inputs del modal IA */
+  const costoEmpleador = useCostEmployer({
+    sueldoBruto: remuneracion ? Number(remuneracion) : 0,
+    regimenLaboral: selectedWorker?.regimenLaboral ?? 'GENERAL',
+    asignacionFamiliar: selectedWorker?.asignacionFamiliar ?? false,
+    tipoAporte: 'AFP',
+    sctr: false,
+    essaludVida: false,
+    jornadaSemanal: jornada ? Number(jornada) : 48,
+  })
+
+  /** Validacion legal en vivo (QW5). Mapea modalidad UI -> ContractType Prisma. */
+  const liveContractType = (() => {
+    const map: Record<string, string> = {
+      INDEFINIDO: 'LABORAL_INDEFINIDO',
+      PLAZO_FIJO: 'LABORAL_PLAZO_FIJO',
+      PARTTIME: 'LABORAL_TIEMPO_PARCIAL',
+      MYPE: 'LABORAL_INDEFINIDO',
+      LOCACION: 'LOCACION_SERVICIOS',
+      PRACTICAS: 'CONVENIO_PRACTICAS',
+    }
+    if (modalidad && map[modalidad]) return map[modalidad]
+    if (selectedTemplate?.type) return selectedTemplate.type
+    return null
+  })()
+
+  const liveFormData: Record<string, string | number | boolean> = {
+    ...formData,
+    causa_objetiva: causaObjetiva,
+    fecha_inicio: fechaInicio,
+    fecha_fin: fechaFin,
+    remuneracion: remuneracion ? Number(remuneracion) : '',
+    cargo,
+    jornada_semanal: jornada ? Number(jornada) : '',
+  }
+
+  const liveValidation = useLiveValidation({
+    contractType: liveContractType,
+    formData: liveFormData,
+    workerIds: selectedWorker ? [selectedWorker.id] : [],
+    inlineWorker: !selectedWorker && trabDni && trabDni.length === 8 && trabNombre
+      ? {
+          dni: trabDni,
+          firstName: trabNombre.split(' ')[0] ?? '',
+          lastName: trabNombre.split(' ').slice(1).join(' ') || trabNombre,
+          regimenLaboral: 'GENERAL',
+          fechaIngreso: fechaInicio || new Date().toISOString().split('T')[0],
+          sueldoBruto: remuneracion ? Number(remuneracion) : 0,
+          nationality: 'peruana',
+        }
+      : null,
+    enabled: showAiModal || step === 'form',
+  })
 
   const handleResetAi = () => {
     setShowAiModal(false)
@@ -507,6 +886,7 @@ function NuevoContratoInner() {
       if (!res.ok) throw new Error()
       const { data } = await res.json() as { data: { id: string } }
       setTemplateSavedId(data.id)
+      draftHook.clear()
       toast({ title: 'Borrador guardado', description: 'Puedes continuar editandolo despues', type: 'success' })
       router.push(`/dashboard/contratos/${data.id}`)
     } catch {
@@ -583,6 +963,8 @@ function NuevoContratoInner() {
       const { data } = (await res.json()) as { data: { id: string } }
       setTemplateSavedId(data.id)
       setTemplateAutoSaveStatus('saved')
+      // Borrador en BD: limpiar localStorage para no mostrar restore banner
+      draftHook.clear()
       toast({
         title: 'Borrador guardado ✓',
         description: 'Se creó automáticamente. Puedes descargarlo o volver más tarde.',
@@ -659,54 +1041,113 @@ function NuevoContratoInner() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Live region para anuncios a screen readers (a11y) */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {a11yAnnouncement}
+      </div>
+
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <nav aria-label="Migas de pan" className="flex items-center gap-4">
         <Link
           href="/dashboard/contratos"
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[color:var(--text-secondary)]"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Contratos
         </Link>
-        <span className="text-[color:var(--text-secondary)]">/</span>
-        <span className="text-sm font-medium text-slate-900">Nuevo Contrato</span>
-      </div>
+        <span className="text-[color:var(--text-secondary)]" aria-hidden="true">/</span>
+        <span className="text-sm font-medium text-slate-900" aria-current="page">Nuevo Contrato</span>
+      </nav>
+
+      {/* Banner de restaurar borrador (QW1) */}
+      {showRestoreBanner && draftHook.draft && draftHook.restoredAt && (
+        <div
+          role="region"
+          aria-labelledby="restore-draft-title"
+          className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+        >
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+            <History className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div className="flex-1">
+            <p id="restore-draft-title" className="text-sm font-semibold text-blue-900">
+              Tienes un borrador sin terminar
+            </p>
+            <p className="text-xs text-blue-800 mt-0.5">
+              Guardado {formatRelativeTime(draftHook.restoredAt)}. ¿Quieres continuarlo o empezar uno nuevo?
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={dismissDraft}
+              className="px-3 py-2 text-xs font-semibold text-blue-900 hover:bg-blue-100 rounded-lg"
+            >
+              Descartar
+            </button>
+            <button
+              type="button"
+              onClick={restoreDraft}
+              className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+            >
+              Continuar borrador
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Step Indicator */}
-      <div className="flex items-center gap-3">
-        {[
-          { key: 'select', label: '1. Tipo' },
-          { key: 'form', label: '2. Datos' },
-          { key: 'preview', label: '3. Preview' },
-          { key: 'review', label: '4. Revisión IA' },
-        ].map((s, i) => (
-          <div key={s.key} className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              step === s.key
-                ? 'bg-primary text-white'
-                : ['select', 'form', 'preview', 'review'].indexOf(step) > i
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-200 text-gray-500'
-            }`}>
-              {['select', 'form', 'preview', 'review'].indexOf(step) > i ? (
-                <Check className="w-3.5 h-3.5" />
-              ) : (
-                i + 1
-              )}
-            </div>
-            <span className={`text-sm ${step === s.key ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>
-              {s.label}
-            </span>
-            {i < 3 && <div className="w-8 h-px bg-gray-300" />}
-          </div>
-        ))}
-      </div>
+      <nav aria-label="Pasos del wizard" className="flex items-center gap-3">
+        <ol className="flex items-center gap-3 m-0 p-0">
+          {[
+            { key: 'select', label: '1. Tipo' },
+            { key: 'form', label: '2. Datos' },
+            { key: 'preview', label: '3. Preview' },
+            { key: 'review', label: '4. Revisión IA' },
+          ].map((s, i) => {
+            const isCurrent = step === s.key
+            const isCompleted = ['select', 'form', 'preview', 'review'].indexOf(step) > i
+            return (
+              <li
+                key={s.key}
+                className="flex items-center gap-2"
+                aria-current={isCurrent ? 'step' : undefined}
+              >
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                    isCurrent
+                      ? 'bg-primary text-white'
+                      : isCompleted
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-500'
+                  }`}
+                  aria-hidden="true"
+                >
+                  {isCompleted ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                </div>
+                <span className={`hidden sm:inline text-sm ${isCurrent ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>
+                  {s.label}
+                  {isCurrent && <span className="sr-only"> (paso actual)</span>}
+                  {isCompleted && <span className="sr-only"> (completado)</span>}
+                </span>
+                {i < 3 && <div className="w-4 sm:w-8 h-px bg-gray-300" aria-hidden="true" />}
+              </li>
+            )
+          })}
+        </ol>
+      </nav>
 
       {/* STEP: Select Template */}
       {step === 'select' && (
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Selecciona el tipo de contrato</h1>
+            <h1
+              ref={stepHeadingRef}
+              tabIndex={-1}
+              className="text-2xl font-bold text-slate-900 outline-none"
+            >
+              Selecciona el tipo de contrato
+            </h1>
             <p className="text-gray-500 mt-1">
               Elige una plantilla. Todas están actualizadas con la normativa peruana vigente.
             </p>
@@ -756,6 +1197,60 @@ function NuevoContratoInner() {
               )
             })}
           </div>
+
+          {/* QW4: Plantillas propias de la empresa (zero-liability) */}
+          {orgTemplates.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                  Tus plantillas
+                </h2>
+                <span className="text-[11px] text-slate-500">
+                  {orgTemplates.length} disponible{orgTemplates.length === 1 ? '' : 's'}
+                </span>
+                <Link
+                  href="/dashboard/configuracion/empresa/plantillas"
+                  className="ml-auto text-xs font-semibold text-emerald-700 hover:underline"
+                >
+                  Administrar plantillas →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {orgTemplates.map(tmpl => (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => handleSelectOrgTemplate(tmpl)}
+                    className="text-left p-6 rounded-2xl border-2 border-emerald-200 hover:border-emerald-500 hover:shadow-lg bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30 cursor-pointer transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
+                        <ScrollText className="w-6 h-6 text-white" aria-hidden="true" />
+                      </div>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        Tu plantilla
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 mb-1">{tmpl.title}</h3>
+                    <p className="text-sm text-slate-600">{tmpl.documentTypeLabel}</p>
+                    <div className="mt-3 flex items-center gap-3 text-[11px] text-slate-500">
+                      <span>{tmpl.placeholderCount} placeholders</span>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {tmpl.mappingCount}/{tmpl.placeholderCount} mapeados
+                      </span>
+                      {tmpl.usageCount > 0 && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>{tmpl.usageCount} usos</span>
+                        </>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -880,52 +1375,93 @@ function NuevoContratoInner() {
                     </div>
                   </div>
 
-                  {/* ── Trabajador ────────────────────────────────────────── */}
+                  {/* ── Trabajador (QW2: WorkerPicker + fallback manual) ──── */}
                   <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
                     <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
                       <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gold text-black font-bold text-[10px] font-bold">2</span>
                       Datos del Trabajador / Locador
                     </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                          DNI <span className="text-blue-600 font-normal text-[11px]">→ auto-carga nombre</span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={trabDni}
-                            onChange={e => handleDniChange(e.target.value)}
-                            placeholder="12345678"
-                            maxLength={8}
-                            className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium transition-colors ${
-                              trabDniStatus === 'ok' ? 'border-green-400' :
-                              trabDniStatus === 'error' ? 'border-red-400' :
-                              'border-white/10'
-                            }`}
-                          />
-                          <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
-                            {trabDniLoading && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
-                            {!trabDniLoading && trabDniStatus === 'ok' && <Check className="h-4 w-4 text-green-500" />}
-                            {!trabDniLoading && trabDniStatus === 'error' && <X className="h-4 w-4 text-red-400" />}
+
+                    {trabajadorMode === 'picker' && !selectedWorker && (
+                      <WorkerPicker
+                        orgId={orgId}
+                        onSelectExisting={handleSelectWorker}
+                        onChooseNew={() => setTrabajadorMode('manual')}
+                        selectedWorker={null}
+                      />
+                    )}
+
+                    {selectedWorker && (
+                      <WorkerPicker
+                        orgId={orgId}
+                        onSelectExisting={handleSelectWorker}
+                        onChooseNew={() => setTrabajadorMode('manual')}
+                        selectedWorker={selectedWorker}
+                        onClear={handleClearWorker}
+                      />
+                    )}
+
+                    {trabajadorMode === 'manual' && !selectedWorker && (
+                      <>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-600">Trabajador nuevo (no esta en el directorio)</span>
+                          <button
+                            type="button"
+                            onClick={() => setTrabajadorMode('picker')}
+                            className="text-blue-700 hover:underline font-semibold"
+                          >
+                            ← Buscar uno existente
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label htmlFor="ai-trab-dni" className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
+                              DNI <span className="text-blue-600 font-normal text-[11px]">→ auto-carga nombre</span>
+                            </label>
+                            <div className="relative">
+                              <input
+                                id="ai-trab-dni"
+                                type="text"
+                                value={trabDni}
+                                onChange={e => handleDniChange(e.target.value)}
+                                placeholder="12345678"
+                                maxLength={8}
+                                aria-describedby="ai-trab-dni-status"
+                                className={`w-full px-3 py-2.5 pr-8 border rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium transition-colors ${
+                                  trabDniStatus === 'ok' ? 'border-green-400' :
+                                  trabDniStatus === 'error' ? 'border-red-400' :
+                                  'border-slate-200'
+                                }`}
+                              />
+                              <div className="absolute right-2.5 top-1/2 -translate-y-1/2" aria-hidden="true">
+                                {trabDniLoading && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+                                {!trabDniLoading && trabDniStatus === 'ok' && <Check className="h-4 w-4 text-green-500" />}
+                                {!trabDniLoading && trabDniStatus === 'error' && <X className="h-4 w-4 text-red-400" />}
+                              </div>
+                            </div>
+                            <p id="ai-trab-dni-status" className="sr-only" aria-live="polite">
+                              {trabDniStatus === 'ok' && 'DNI valido, nombre cargado desde RENIEC'}
+                              {trabDniStatus === 'error' && 'DNI no encontrado'}
+                            </p>
+                            {trabDniStatus === 'ok' && <p className="mt-0.5 text-[11px] text-green-700 flex items-center gap-1"><Check className="h-3 w-3" aria-hidden="true"/>Nombre cargado desde RENIEC</p>}
+                            {trabDniStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">DNI no encontrado — ingresa manualmente</p>}
+                          </div>
+                          <div>
+                            <label htmlFor="ai-trab-nombre" className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
+                              Nombre Completo {trabDniStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
+                            </label>
+                            <input
+                              id="ai-trab-nombre"
+                              type="text"
+                              value={trabNombre}
+                              onChange={e => setTrabNombre(e.target.value)}
+                              placeholder="Juan Perez Garcia"
+                              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium"
+                            />
                           </div>
                         </div>
-                        {trabDniStatus === 'ok' && <p className="mt-0.5 text-[11px] text-green-700 flex items-center gap-1"><Check className="h-3 w-3"/>Nombre cargado desde RENIEC</p>}
-                        {trabDniStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">DNI no encontrado — ingresa manualmente</p>}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                          Nombre Completo {trabDniStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
-                        </label>
-                        <input
-                          type="text"
-                          value={trabNombre}
-                          onChange={e => setTrabNombre(e.target.value)}
-                          placeholder="Juan Perez Garcia"
-                          className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:ring-2 focus:ring-gold/30/20 focus:border-gold/50 font-medium"
-                        />
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
 
                   {/* ── Tipo de Contrato ──────────────────────────────────── */}
@@ -1087,21 +1623,47 @@ function NuevoContratoInner() {
                         />
                       </div>
                     </div>
+
+                    {/* QW3: Costo empleador en vivo */}
+                    {costoEmpleador && (
+                      <CostSummaryPill result={costoEmpleador} />
+                    )}
                   </div>
 
+                  {/* QW5: Panel de validacion legal en vivo */}
+                  <LiveValidationPanel
+                    blockers={liveValidation.blockers}
+                    warnings={liveValidation.warnings}
+                    infos={liveValidation.infos}
+                    passed={liveValidation.passed}
+                    totalRules={liveValidation.totalRules}
+                    loading={liveValidation.loading}
+                    error={liveValidation.error}
+                  />
+
                   {aiError && (
-                    <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 flex items-start gap-2" role="alert">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
                       {aiError}
+                    </div>
+                  )}
+
+                  {liveValidation.blockers.length > 0 && (
+                    <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-700 flex items-start gap-2" role="alert">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+                      <span>
+                        Hay {liveValidation.blockers.length} bloqueo{liveValidation.blockers.length === 1 ? '' : 's'} legal{liveValidation.blockers.length === 1 ? '' : 'es'} que debes resolver antes de generar el contrato.
+                      </span>
                     </div>
                   )}
 
                   <button
                     onClick={handleGenerateAi}
-                    disabled={aiDescription.trim().length < 10}
+                    disabled={aiDescription.trim().length < 10 || liveValidation.blockers.length > 0}
+                    aria-disabled={aiDescription.trim().length < 10 || liveValidation.blockers.length > 0}
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    <Wand2 className="h-4 w-4" />
+                    <Wand2 className="h-4 w-4" aria-hidden="true" />
                     Generar contrato con IA
                   </button>
                 </>
@@ -1116,7 +1678,7 @@ function NuevoContratoInner() {
                       <Loader2 className="h-7 w-7 animate-spin text-white" />
                     </div>
                   </div>
-                  <h3 className="mt-4 text-base font-semibold text-white">Redactando tu contrato...</h3>
+                  <h3 className="mt-4 text-base font-semibold text-slate-900">Redactando tu contrato...</h3>
                   <p className="mt-1 text-sm text-gray-500">
                     Analizando descripcion, detectando tipo y generando clausulas legales
                   </p>
@@ -1177,13 +1739,13 @@ function NuevoContratoInner() {
                     <div className="p-4 space-y-4">
                       {aiContract.clausulas.map((c, idx) => (
                         <div key={idx} className="border-purple-300 pl-3">
-                          <h5 className="text-xs font-bold text-white uppercase">
+                          <h5 className="text-xs font-bold text-slate-900 uppercase">
                             {c.numero}. {c.titulo}
                             {c.obligatoria && (
                               <span className="ml-2 text-[10px] font-medium text-red-600">(obligatoria)</span>
                             )}
                           </h5>
-                          <p className="mt-1 text-xs text-[color:var(--text-secondary)] leading-relaxed whitespace-pre-line">{c.contenido}</p>
+                          <p className="mt-1 text-xs text-slate-700 leading-relaxed whitespace-pre-line">{c.contenido}</p>
                           {c.baseLegal && (
                             <p className="mt-1 text-[10px] italic text-gray-500">Base: {c.baseLegal}</p>
                           )}
@@ -1262,7 +1824,11 @@ function NuevoContratoInner() {
           {/* Progress Bar */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h1 className="text-xl font-bold text-white">
+              <h1
+                ref={stepHeadingRef}
+                tabIndex={-1}
+                className="text-xl font-bold text-slate-900 outline-none"
+              >
                 {selectedTemplate.sections[currentSection]?.title}
               </h1>
               <span className="text-sm text-gray-500">
@@ -1317,9 +1883,9 @@ function NuevoContratoInner() {
                   setSelectedTemplate(null)
                 }
               }}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] hover:text-white border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)] transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-[color:var(--neutral-50)] transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               Anterior
             </button>
             <button
@@ -1342,58 +1908,16 @@ function NuevoContratoInner() {
       {/* STEP: Preview */}
       {step === 'preview' && selectedTemplate && (
         <div className="space-y-6">
-          <h1 className="text-xl font-bold text-white">Vista Previa del Contrato</h1>
+          <h1
+            ref={stepHeadingRef}
+            tabIndex={-1}
+            className="text-xl font-bold text-slate-900 outline-none"
+          >
+            Vista Previa del Contrato
+          </h1>
 
-          <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-12 max-w-3xl mx-auto">
-            <div className="prose prose-sm max-w-none">
-              {selectedTemplate.contentBlocks.map(block => {
-                // Check condition
-                if (block.condition) {
-                  try {
-                    const condFn = new Function(...Object.keys(formData), `return ${block.condition}`)
-                    if (!condFn(...Object.values(formData))) return null
-                  } catch {
-                    return null
-                  }
-                }
+          <ContractPreview template={selectedTemplate} formData={formData} isDraft />
 
-                // Replace variables
-                let text = block.text
-                Object.entries(formData).forEach(([key, value]) => {
-                  text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(value ?? '___'))
-                })
-                // Replace unreplaced variables with blanks
-                text = text.replace(/\{\{[^}]+\}\}/g, '____________')
-
-                return (
-                  <div key={block.id} className="mb-6">
-                    {block.title && (
-                      <h3 className="text-base font-bold text-white uppercase mb-2">
-                        {block.title}
-                      </h3>
-                    )}
-                    <p className="text-sm leading-relaxed text-[color:var(--text-secondary)] whitespace-pre-line">
-                      {text}
-                    </p>
-                  </div>
-                )
-              })}
-
-              {/* Signature blocks */}
-              <div className="grid grid-cols-2 gap-16 mt-16 pt-8 border-t border-white/[0.08]">
-                <div className="text-center">
-                  <div className="w-full h-px bg-gray-400 mb-2" />
-                  <p className="text-sm font-semibold text-[color:var(--text-secondary)]">EL EMPLEADOR</p>
-                  <p className="text-xs text-gray-500">{formData.empleador_razon_social as string || '___'}</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-full h-px bg-gray-400 mb-2" />
-                  <p className="text-sm font-semibold text-[color:var(--text-secondary)]">EL TRABAJADOR</p>
-                  <p className="text-xs text-gray-500">{formData.trabajador_nombre as string || '___'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Auto-save status */}
           <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${
@@ -1484,13 +2008,22 @@ function NuevoContratoInner() {
       {/* STEP: AI Review */}
       {step === 'review' && (
         <div className="space-y-6">
-          <h1 className="text-xl font-bold text-white">Revisión con IA</h1>
+          <h1
+            ref={stepHeadingRef}
+            tabIndex={-1}
+            className="text-xl font-bold text-slate-900 outline-none"
+          >
+            Revisión con IA
+          </h1>
 
-          <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-8 text-center">
+          <div
+            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center"
+            aria-busy="true"
+          >
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <Sparkles className="w-8 h-8 text-primary" />
+              <Sparkles className="w-8 h-8 text-primary" aria-hidden="true" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">
               Analizando tu contrato...
             </h3>
             <p className="text-sm text-gray-500 max-w-md mx-auto">
@@ -1521,24 +2054,31 @@ function DynamicField({
   value: string | number | boolean | undefined
   onChange: (value: string | number | boolean) => void
 }) {
+  // a11y: ID estable del field para vincular label + helpText
+  const inputId = `field-${field.id}`
+  const helpId = field.helpText ? `${inputId}-help` : undefined
+
   switch (field.type) {
     case 'text':
     case 'date':
       return (
         <div>
-          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
-            {field.label} {field.required && <span className="text-red-500">*</span>}
+          <label htmlFor={inputId} className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+            {field.label} {field.required && <span className="text-red-500" aria-label="obligatorio">*</span>}
           </label>
           <input
+            id={inputId}
             type={field.type}
             value={(value as string) ?? ''}
             onChange={e => onChange(e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white placeholder:text-gray-400"
+            aria-describedby={helpId}
+            aria-required={field.required || undefined}
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white placeholder:text-gray-400"
           />
           {field.helpText && (
-            <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+            <p id={helpId} className="text-xs text-gray-500 mt-1">{field.helpText}</p>
           )}
         </div>
       )
@@ -1546,20 +2086,23 @@ function DynamicField({
     case 'number':
       return (
         <div>
-          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
-            {field.label} {field.required && <span className="text-red-500">*</span>}
+          <label htmlFor={inputId} className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+            {field.label} {field.required && <span className="text-red-500" aria-label="obligatorio">*</span>}
           </label>
           <input
+            id={inputId}
             type="number"
             value={(value as number) ?? ''}
             onChange={e => onChange(Number(e.target.value))}
             min={field.validation?.min}
             max={field.validation?.max}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
+            aria-describedby={helpId}
+            aria-required={field.required || undefined}
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
           />
           {field.helpText && (
-            <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+            <p id={helpId} className="text-xs text-gray-500 mt-1">{field.helpText}</p>
           )}
         </div>
       )
@@ -1567,12 +2110,13 @@ function DynamicField({
     case 'currency':
       return (
         <div>
-          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
-            {field.label} {field.required && <span className="text-red-500">*</span>}
+          <label htmlFor={inputId} className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+            {field.label} {field.required && <span className="text-red-500" aria-label="obligatorio">*</span>}
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">S/</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm" aria-hidden="true">S/</span>
             <input
+              id={inputId}
               type="number"
               value={(value as number) ?? ''}
               onChange={e => onChange(Number(e.target.value))}
@@ -1580,11 +2124,13 @@ function DynamicField({
               min="0"
               required={field.required}
               placeholder="0.00"
-              className="w-full pl-10 pr-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
+              aria-describedby={helpId}
+              aria-required={field.required || undefined}
+              className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
             />
           </div>
           {field.helpText && (
-            <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+            <p id={helpId} className="text-xs text-gray-500 mt-1">{field.helpText}</p>
           )}
         </div>
       )
@@ -1592,14 +2138,17 @@ function DynamicField({
     case 'select':
       return (
         <div>
-          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
-            {field.label} {field.required && <span className="text-red-500">*</span>}
+          <label htmlFor={inputId} className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+            {field.label} {field.required && <span className="text-red-500" aria-label="obligatorio">*</span>}
           </label>
           <select
+            id={inputId}
             value={(value as string) ?? ''}
             onChange={e => onChange(e.target.value)}
             required={field.required}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
+            aria-describedby={helpId}
+            aria-required={field.required || undefined}
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white"
           >
             <option value="">Selecciona...</option>
             {field.options?.map(opt => (
@@ -1607,7 +2156,7 @@ function DynamicField({
             ))}
           </select>
           {field.helpText && (
-            <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+            <p id={helpId} className="text-xs text-gray-500 mt-1">{field.helpText}</p>
           )}
         </div>
       )
@@ -1615,19 +2164,22 @@ function DynamicField({
     case 'textarea':
       return (
         <div>
-          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
-            {field.label} {field.required && <span className="text-red-500">*</span>}
+          <label htmlFor={inputId} className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+            {field.label} {field.required && <span className="text-red-500" aria-label="obligatorio">*</span>}
           </label>
           <textarea
+            id={inputId}
             value={(value as string) ?? ''}
             onChange={e => onChange(e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
             rows={4}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white placeholder:text-gray-400 resize-y"
+            aria-describedby={helpId}
+            aria-required={field.required || undefined}
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm text-slate-900 bg-white placeholder:text-gray-400 resize-y"
           />
           {field.helpText && (
-            <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+            <p id={helpId} className="text-xs text-gray-500 mt-1">{field.helpText}</p>
           )}
         </div>
       )
@@ -1636,7 +2188,7 @@ function DynamicField({
       return (
         <label className="flex items-center justify-between p-4 bg-[color:var(--neutral-50)] rounded-xl cursor-pointer group hover:bg-[color:var(--neutral-100)] transition-colors">
           <div>
-            <span className="text-sm font-semibold text-[color:var(--text-secondary)] group-hover:text-white">
+            <span className="text-sm font-semibold text-[color:var(--text-secondary)] group-hover:text-slate-900">
               {field.label}
             </span>
             {field.helpText && (
