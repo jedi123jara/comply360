@@ -1039,8 +1039,13 @@ function NuevoContratoInner() {
     })
   }
 
+  // Layout: el step 'form' usa 3-col wide; el resto (select/preview/review) mantiene narrow
+  const containerClass = step === 'form' || step === 'preview'
+    ? 'max-w-7xl mx-auto space-y-6'
+    : 'max-w-4xl mx-auto space-y-6'
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className={containerClass}>
       {/* Live region para anuncios a screen readers (a11y) */}
       <div role="status" aria-live="polite" className="sr-only">
         {a11yAnnouncement}
@@ -1058,6 +1063,27 @@ function NuevoContratoInner() {
         <span className="text-[color:var(--text-secondary)]" aria-hidden="true">/</span>
         <span className="text-sm font-medium text-slate-900" aria-current="page">Nuevo Contrato</span>
       </nav>
+
+      {/* Hero header (estilo del mockup) */}
+      {(step === 'form' || step === 'preview') && (
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Nuevo contrato</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Crea un contrato en pocos pasos. Tu progreso{' '}
+              <span className="text-emerald-700 font-medium">se guarda automáticamente</span>.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link
+              href="/dashboard/contratos?status=DRAFT"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg"
+            >
+              Guardar borrador
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Banner de restaurar borrador (QW1) */}
       {showRestoreBanner && draftHook.draft && draftHook.restoredAt && (
@@ -1096,41 +1122,44 @@ function NuevoContratoInner() {
         </div>
       )}
 
-      {/* Step Indicator */}
-      <nav aria-label="Pasos del wizard" className="flex items-center gap-3">
-        <ol className="flex items-center gap-3 m-0 p-0">
+      {/* Step Indicator (rediseñado estilo mockup) */}
+      <nav aria-label="Pasos del wizard" className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <ol className="flex items-center justify-between gap-2 m-0 p-0">
           {[
-            { key: 'select', label: '1. Tipo' },
-            { key: 'form', label: '2. Datos' },
-            { key: 'preview', label: '3. Preview' },
-            { key: 'review', label: '4. Revisión IA' },
+            { key: 'select', label: '1. Plantilla', sub: 'Elegir tipo' },
+            { key: 'form', label: '2. Datos', sub: 'Completar información' },
+            { key: 'preview', label: '3. Revisión', sub: 'Validaciones y preview' },
+            { key: 'review', label: '4. Generar', sub: 'Descargar contrato' },
           ].map((s, i) => {
             const isCurrent = step === s.key
             const isCompleted = ['select', 'form', 'preview', 'review'].indexOf(step) > i
             return (
               <li
                 key={s.key}
-                className="flex items-center gap-2"
+                className="flex items-center gap-3 flex-1 min-w-0"
                 aria-current={isCurrent ? 'step' : undefined}
               >
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                  className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center text-sm font-bold transition-colors ${
                     isCurrent
-                      ? 'bg-primary text-white'
+                      ? 'bg-primary text-white shadow-md shadow-primary/30'
                       : isCompleted
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-100 text-slate-400'
                   }`}
                   aria-hidden="true"
                 >
-                  {isCompleted ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                  {isCompleted ? <Check className="w-4 h-4" /> : i + 1}
                 </div>
-                <span className={`hidden sm:inline text-sm ${isCurrent ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>
-                  {s.label}
-                  {isCurrent && <span className="sr-only"> (paso actual)</span>}
-                  {isCompleted && <span className="sr-only"> (completado)</span>}
-                </span>
-                {i < 3 && <div className="w-4 sm:w-8 h-px bg-gray-300" aria-hidden="true" />}
+                <div className="hidden sm:block min-w-0">
+                  <p className={`text-sm font-semibold truncate ${isCurrent ? 'text-slate-900' : isCompleted ? 'text-slate-700' : 'text-slate-500'}`}>
+                    {s.label}
+                    {isCurrent && <span className="sr-only"> (paso actual)</span>}
+                    {isCompleted && <span className="sr-only"> (completado)</span>}
+                  </p>
+                  <p className="text-[11px] text-slate-500 truncate">{s.sub}</p>
+                </div>
+                {i < 3 && <div className="hidden md:block flex-1 h-px bg-slate-200" aria-hidden="true" />}
               </li>
             )
           })}
@@ -1820,14 +1849,14 @@ function NuevoContratoInner() {
 
       {/* STEP: Form */}
       {step === 'form' && selectedTemplate && (
-        <div className="space-y-6">
+        <div className="space-y-4 pb-24">
           {/* Progress Bar */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <h1
                 ref={stepHeadingRef}
                 tabIndex={-1}
-                className="text-xl font-bold text-slate-900 outline-none"
+                className="text-2xl font-bold text-slate-900 outline-none"
               >
                 {selectedTemplate.sections[currentSection]?.title}
               </h1>
@@ -1843,64 +1872,158 @@ function NuevoContratoInner() {
             </div>
           </div>
 
-          {/* Fields */}
-          <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-8 space-y-5">
-            {selectedTemplate.sections[currentSection]?.fields.map(field => {
-              // Check condition
-              if (field.condition) {
-                const condValue = formData[field.condition.field]
-                if (condValue !== field.condition.value) return null
-              }
+          {/* 3-col layout: form | preview | sidebar */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* COLUMNA 1: Form */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* WorkerPicker (siempre arriba para vincular trabajador) */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Datos del trabajador</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Busca un trabajador existente o registra uno nuevo
+                  </p>
+                </div>
+                {trabajadorMode === 'picker' && !selectedWorker && (
+                  <WorkerPicker
+                    orgId={orgId}
+                    onSelectExisting={handleSelectWorker}
+                    onChooseNew={() => setTrabajadorMode('manual')}
+                    selectedWorker={null}
+                  />
+                )}
+                {selectedWorker && (
+                  <WorkerPicker
+                    orgId={orgId}
+                    onSelectExisting={handleSelectWorker}
+                    onChooseNew={() => setTrabajadorMode('manual')}
+                    selectedWorker={selectedWorker}
+                    onClear={handleClearWorker}
+                  />
+                )}
+              </div>
 
-              return (
-                <DynamicField
-                  key={field.id}
-                  field={field}
-                  value={formData[field.id]}
-                  onChange={value => updateFormField(field.id, value)}
-                />
-              )
-            })}
-          </div>
+              {/* Fields del template */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+                <h2 className="text-base font-bold text-slate-900">
+                  {selectedTemplate.sections[currentSection]?.title}
+                </h2>
+                {selectedTemplate.sections[currentSection]?.fields.map(field => {
+                  if (field.condition) {
+                    const condValue = formData[field.condition.field]
+                    if (condValue !== field.condition.value) return null
+                  }
+                  return (
+                    <DynamicField
+                      key={field.id}
+                      field={field}
+                      value={formData[field.id]}
+                      onChange={value => updateFormField(field.id, value)}
+                    />
+                  )
+                })}
+              </div>
 
-          {/* Legal Basis Info */}
-          <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
-            <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <span className="text-sm font-semibold text-blue-800">Base Legal: </span>
-              <span className="text-sm text-blue-700">{selectedTemplate.legalBasis}</span>
+              {/* Base Legal Info */}
+              <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <span className="text-sm font-semibold text-blue-800">Base Legal: </span>
+                  <span className="text-sm text-blue-700">{selectedTemplate.legalBasis}</span>
+                </div>
+              </div>
             </div>
+
+            {/* COLUMNA 2: Preview en vivo (QW6 split view) */}
+            <div className="lg:col-span-4">
+              <div className="lg:sticky lg:top-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-slate-900">Vista previa en vivo</h2>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+                    Actualizado
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                  <div className="max-h-[600px] overflow-y-auto p-2 [transform:scale(0.85)] [transform-origin:top_left] [width:117.6%]">
+                    <ContractPreview
+                      template={selectedTemplate}
+                      formData={formData}
+                      isDraft
+                      className="!shadow-none !p-6"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* COLUMNA 3: Sidebar con cost + validation */}
+            <aside className="lg:col-span-3 space-y-4 lg:sticky lg:top-4 lg:self-start">
+              <CostSummaryPill result={costoEmpleador} />
+              <LiveValidationPanel
+                blockers={liveValidation.blockers}
+                warnings={liveValidation.warnings}
+                infos={liveValidation.infos}
+                passed={liveValidation.passed}
+                totalRules={liveValidation.totalRules}
+                loading={liveValidation.loading}
+                error={liveValidation.error}
+              />
+            </aside>
           </div>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => {
-                if (currentSection > 0) {
-                  setCurrentSection(prev => prev - 1)
-                } else {
-                  setStep('select')
-                  setSelectedTemplate(null)
-                }
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-[color:var(--neutral-50)] transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-              Anterior
-            </button>
-            <button
-              onClick={() => {
-                if (currentSection < totalSections - 1) {
-                  setCurrentSection(prev => prev + 1)
-                } else {
-                  setStep('preview')
-                }
-              }}
-              className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors shadow-lg shadow-primary/20"
-            >
-              {currentSection < totalSections - 1 ? 'Siguiente' : 'Vista Previa'}
-              <ArrowRight className="w-4 h-4" />
-            </button>
+          {/* Footer fijo con autosave + nav buttons */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-sm shadow-lg">
+            <div className={containerClass + ' flex items-center justify-between gap-3 py-3 px-4'}>
+              <div className="flex items-center gap-2 text-xs text-slate-600">
+                {draftHook.saving ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                    Guardando borrador…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 text-emerald-600" aria-hidden="true" />
+                    <span>
+                      Borrador guardado <span className="text-slate-400">· hace unos segundos</span>
+                    </span>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentSection > 0) {
+                      setCurrentSection(prev => prev - 1)
+                    } else {
+                      setStep('select')
+                      setSelectedTemplate(null)
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentSection < totalSections - 1) {
+                      setCurrentSection(prev => prev + 1)
+                    } else {
+                      setStep('preview')
+                    }
+                  }}
+                  disabled={liveValidation.blockers.length > 0}
+                  aria-disabled={liveValidation.blockers.length > 0}
+                  className="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors shadow-lg shadow-primary/20"
+                >
+                  {currentSection < totalSections - 1 ? 'Continuar' : 'Vista Previa'}
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

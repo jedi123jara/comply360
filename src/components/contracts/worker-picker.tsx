@@ -145,26 +145,28 @@ export function WorkerPicker({
     onSelectExisting(w)
   }
 
-  // Si ya hay selectedWorker, mostrar chip
+  // Si ya hay selectedWorker, mostrar card rica
   if (selectedWorker) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 flex items-center gap-4">
+        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-white font-bold text-lg shadow-md">
           {selectedWorker.firstName.charAt(0)}
           {selectedWorker.lastName.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-900 truncate">
-            {selectedWorker.firstName} {selectedWorker.lastName}
-          </p>
-          <p className="text-xs text-slate-600 truncate">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-base font-semibold text-slate-900 truncate">
+              {selectedWorker.firstName} {selectedWorker.lastName}
+            </p>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
+              <Check className="h-3 w-3" aria-hidden="true" />
+              Información encontrada
+            </span>
+          </div>
+          <p className="text-xs text-slate-600 mt-0.5 truncate">
             DNI {selectedWorker.dni}
             {selectedWorker.position && ` · ${selectedWorker.position}`}
             {selectedWorker.department && ` · ${selectedWorker.department}`}
-          </p>
-          <p className="text-[10px] text-emerald-700 mt-0.5 flex items-center gap-1">
-            <Check className="h-3 w-3" aria-hidden="true" />
-            Datos prellenados desde el directorio
           </p>
         </div>
         {onClear && (
@@ -183,33 +185,43 @@ export function WorkerPicker({
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-white p-4 text-left hover:border-primary hover:bg-slate-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-            <Users className="h-5 w-5" aria-hidden="true" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Card 1: Buscar existente */}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 text-left hover:border-primary hover:bg-primary/10 transition-colors group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Buscar trabajador existente</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Autocompleta la información
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Buscar trabajador del directorio</p>
-            <p className="text-xs text-slate-500">
-              Pre-rellena nombre, DNI, cargo, régimen y sueldo
-            </p>
-          </div>
-        </div>
-        <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-      </button>
+        </button>
 
-      <div className="mt-2 text-center">
+        {/* Card 2: Nuevo trabajador */}
         <button
           type="button"
           onClick={onChooseNew}
-          className="text-xs text-slate-600 hover:text-slate-900 underline inline-flex items-center gap-1"
+          className="rounded-xl border-2 border-slate-200 bg-white p-4 text-left hover:border-slate-400 hover:bg-slate-50 transition-colors group"
         >
-          <UserPlus className="h-3 w-3" aria-hidden="true" />
-          O ingresa un trabajador nuevo manualmente
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-slate-700 group-hover:text-white transition-colors">
+              <UserPlus className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Nuevo trabajador</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Registrar manualmente
+              </p>
+            </div>
+          </div>
         </button>
       </div>
 
