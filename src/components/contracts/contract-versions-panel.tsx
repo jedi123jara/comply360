@@ -25,6 +25,9 @@ import {
   ChevronUp,
   RefreshCw,
   X,
+  Anchor,
+  CheckCircle2,
+  ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/toast'
@@ -61,6 +64,22 @@ interface VersionDetail extends VersionSummary {
   contractId: string
 }
 
+interface ProofResponse {
+  anchored: boolean
+  message?: string
+  versionHash: string
+  leafIndex?: number | null
+  merkleRoot?: string
+  anchorDate?: string
+  anchorStatus?: 'PENDING' | 'RFC3161_OK' | 'OTS_OK' | 'FULL_OK' | 'FAILED'
+  leafCount?: number
+  verifies?: boolean
+  externalAnchoring?: {
+    rfc3161: { tsa: string; at: string | null } | null
+    opentimestamps: { calendar: string; at: string | null; bitcoinBlockHeight: number | null } | null
+  }
+}
+
 interface Props {
   contractId: string
 }
@@ -80,6 +99,7 @@ export function ContractVersionsPanel({ contractId }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [detail, setDetail] = useState<VersionDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [proofs, setProofs] = useState<Record<number, ProofResponse | 'loading' | 'error'>>({})
 
   const load = useCallback(async () => {
     try {
@@ -135,6 +155,22 @@ export function ContractVersionsPanel({ contractId }: Props) {
       else next.add(n)
       return next
     })
+    // Lazy-load del proof al expandir
+    if (proofs[n] === undefined) {
+      void loadProof(n)
+    }
+  }
+
+  async function loadProof(versionNumber: number) {
+    setProofs((p) => ({ ...p, [versionNumber]: 'loading' }))
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/versions/${versionNumber}/proof`)
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setProofs((p) => ({ ...p, [versionNumber]: data.data as ProofResponse }))
+    } catch {
+      setProofs((p) => ({ ...p, [versionNumber]: 'error' }))
+    }
   }
 
   if (loading) {
@@ -272,6 +308,8 @@ export function ContractVersionsPanel({ contractId }: Props) {
                         {new Date(v.createdAt).toLocaleString('es-PE')}
                       </span>
                     </div>
+                    <ProofBox state={proofs[v.versionNumber]} />
+
                     <button
                       onClick={() => openDetail(v.versionNumber)}
                       disabled={loadingDetail}
@@ -340,4 +378,108 @@ export function ContractVersionsPanel({ contractId }: Props) {
       )}
     </div>
   )
+}
+
+// =============================================
+// SUB-COMPONENTE: ProofBox
+// Muestra estado de anclaje (Merkle + RFC 3161 + OpenTimestamps)
+// Generador de Contratos / Chunk 8
+// =============================================
+
+function shortHashLocal(h: string): string {
+  if (!h) return ''
+  if (h.startsWith('0x') && h.length === 66) return `${h.slice(0, 8)}…${h.slice(-6)}`
+  if (h.length >= 10) return `${h.slice(0, 8)}…${h.slice(-6)}`
+  return h
+}
+
+function ProofBox({ state }: { state: ProofResponse | 'loading' | 'error' | undefined }) {
+  if (state === undefined) return null
+  if (state === 'loading') {
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+        <Loader2 className="w-3 h-3 animate-spin" />
+        Verificando anclaje criptográfico…
+      </div>
+    )
+  }
+  if (state === 'error') {
+    return (
+      <div className="text-[11px] text-amber-700">No se pudo consultar la prueba de anclaje.</div>
+    )
+  }
+
+  if (!state.anchored) {
+    return (
+      <div className="rounded-lg bg-slate-50 border border-slate-200 p-2 text-[11px] text-slate-600 inline-flex items-start gap-2">
+        <Anchor className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-slate-400" />
+        <span>{state.message ?? 'Aún no anclada externamente. El cron diario procesa el día UTC anterior.'}</span>
+      </div>
+    )
+  }
+
+  const cfg = anchorStatusConfig(state.anchorStatus)
+
+  return (
+    <div className={cn('rounded-lg border p-2 space-y-1.5', cfg.bg, cfg.border)}>
+      <div className="flex items-center gap-1.5">
+        <Anchor className={cn('w-3.5 h-3.5', cfg.text)} />
+        <span className={cn('text-[11px] font-bold uppercase tracking-wide', cfg.text)}>
+          Anclada {state.anchorDate} · {cfg.label}
+        </span>
+        {state.verifies && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+      </div>
+
+      <div className="text-[11px] font-mono text-slate-700">
+        Merkle root:{' '}
+        <span title={state.merkleRoot}>{shortHashLocal(state.merkleRoot ?? '')}</span>
+        <span className="text-slate-500 ml-2">({state.leafCount} hojas, índice {state.leafIndex ?? '—'})</span>
+      </div>
+
+      {state.externalAnchoring?.rfc3161 && (
+        <div className="text-[11px] text-slate-700">
+          <span className="font-semibold">RFC 3161:</span>{' '}
+          {state.externalAnchoring.rfc3161.tsa}
+          {state.externalAnchoring.rfc3161.at && (
+            <span className="text-slate-500"> · {new Date(state.externalAnchoring.rfc3161.at).toLocaleString('es-PE')}</span>
+          )}
+        </div>
+      )}
+
+      {state.externalAnchoring?.opentimestamps && (
+        <div className="text-[11px] text-slate-700 inline-flex items-center gap-1">
+          <span className="font-semibold">OpenTimestamps:</span>
+          <a
+            href={state.externalAnchoring.opentimestamps.calendar}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline inline-flex items-center gap-0.5"
+          >
+            calendar <ExternalLink className="w-2.5 h-2.5" />
+          </a>
+          {state.externalAnchoring.opentimestamps.bitcoinBlockHeight !== null && (
+            <span className="text-slate-500">
+              · Bitcoin block #{state.externalAnchoring.opentimestamps.bitcoinBlockHeight}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function anchorStatusConfig(status?: ProofResponse['anchorStatus']) {
+  switch (status) {
+    case 'FULL_OK':
+      return { label: 'verificación dual', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', Icon: CheckCircle2 }
+    case 'RFC3161_OK':
+      return { label: 'TSA acreditada', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', Icon: CheckCircle2 }
+    case 'OTS_OK':
+      return { label: 'OpenTimestamps', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', Icon: CheckCircle2 }
+    case 'FAILED':
+      return { label: 'falló anclaje externo', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', Icon: ShieldAlert }
+    case 'PENDING':
+    default:
+      return { label: 'merkle local', bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700', Icon: Anchor }
+  }
 }

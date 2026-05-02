@@ -60,6 +60,14 @@
     {
       "path": "/api/cron/orgchart-snapshots",
       "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron/orgchart-alerts",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron/anchor-versions",
+      "schedule": "30 2 * * *"
     }
   ]
 }

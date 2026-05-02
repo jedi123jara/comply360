@@ -11,10 +11,11 @@ describe('buildMerkleTree', () => {
     expect(() => buildMerkleTree([])).toThrow()
   })
 
-  it('1 hoja → root es pair(hoja, hoja)', () => {
+  it('1 hoja → root es la propia hoja (convención Bitcoin)', () => {
     const tree = buildMerkleTree(['aaa'])
     expect(tree.leafCount).toBe(1)
-    expect(tree.root).toMatch(/^[a-f0-9]{64}$/)
+    expect(tree.root).toBe('aaa')
+    expect(tree.levels.length).toBe(1)
   })
 
   it('2 hojas → 2 niveles', () => {
