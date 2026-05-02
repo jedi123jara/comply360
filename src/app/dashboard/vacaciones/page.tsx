@@ -168,7 +168,7 @@ function AddPeriodModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b">
           <div>
-            <h3 className="font-semibold text-white">Nuevo Período Vacacional</h3>
+            <h3 className="font-semibold text-[color:var(--text-primary)]">Nuevo Período Vacacional</h3>
             <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{workerName}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
@@ -326,7 +326,7 @@ function RegisterGoceModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b">
           <div>
-            <h3 className="font-semibold text-white">Registrar Goce Vacacional</h3>
+            <h3 className="font-semibold text-[color:var(--text-primary)]">Registrar Goce Vacacional</h3>
             <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{workerName}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-[color:var(--neutral-100)] rounded-lg transition-colors">
@@ -553,7 +553,7 @@ function WorkerVacCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm text-white truncate">{fullName}</span>
+              <span className="font-medium text-sm text-[color:var(--text-primary)] truncate">{fullName}</span>
               <StatusBadge summary={summary} />
             </div>
             <p className="text-xs text-[color:var(--text-tertiary)] truncate mt-0.5">
@@ -565,7 +565,7 @@ function WorkerVacCard({
         </div>
         <div className="flex items-center gap-4 shrink-0 ml-3">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-white">{summary.totalDiasPendientes}d</p>
+            <p className="text-sm font-bold text-[color:var(--text-primary)]">{summary.totalDiasPendientes}d</p>
             <p className="text-xs text-[color:var(--text-tertiary)]">
               {summary.totalPeriodos} período{summary.totalPeriodos !== 1 ? 's' : ''}
             </p>
@@ -675,11 +675,11 @@ function KpiCard({
   accent: 'blue' | 'amber' | 'red' | 'purple' | 'gray'
 }) {
   const colors: Record<string, { bg: string; icon: string; text: string }> = {
-    blue: { bg: 'bg-blue-100', icon: 'text-blue-600', text: 'text-white' },
-    amber: { bg: 'bg-amber-100', icon: 'text-amber-600', text: 'text-white' },
-    red: { bg: 'bg-red-100', icon: 'text-red-600', text: typeof value === 'number' && value > 0 ? 'text-red-600' : 'text-white' },
-    purple: { bg: 'bg-purple-100', icon: 'text-purple-600', text: 'text-white' },
-    gray: { bg: 'bg-[color:var(--neutral-100)]', icon: 'text-gray-600', text: 'text-white' },
+    blue: { bg: 'bg-blue-100', icon: 'text-blue-600', text: 'text-blue-900' },
+    amber: { bg: 'bg-amber-100', icon: 'text-amber-600', text: 'text-amber-900' },
+    red: { bg: 'bg-red-100', icon: 'text-red-600', text: typeof value === 'number' && value > 0 ? 'text-red-600' : 'text-[color:var(--text-primary)]' },
+    purple: { bg: 'bg-purple-100', icon: 'text-purple-600', text: 'text-purple-900' },
+    gray: { bg: 'bg-[color:var(--neutral-100)]', icon: 'text-gray-600', text: 'text-[color:var(--text-primary)]' },
   }
   const c = colors[accent]
 
