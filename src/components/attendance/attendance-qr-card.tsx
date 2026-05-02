@@ -31,7 +31,7 @@ interface TokenResponse {
   rotateAfterSeconds: number
 }
 
-export function AttendanceQrCard() {
+export function AttendanceQrCard({ isKioskMode = false }: { isKioskMode?: boolean } = {}) {
   const [token, setToken] = useState<TokenResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -169,27 +169,29 @@ export function AttendanceQrCard() {
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Refrescar
             </button>
-            <button
-              type="button"
-              onClick={() => setFullscreen(!fullscreen)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[color:var(--border-default)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-400 transition-colors"
-              title={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa (proyectar en TV)'}
-            >
-              {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-              {fullscreen ? 'Salir' : 'Proyectar'}
-            </button>
+            {!isKioskMode && (
+              <button
+                type="button"
+                onClick={() => setFullscreen(!fullscreen)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[color:var(--border-default)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--text-primary)] hover:border-emerald-400 transition-colors"
+                title={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa (proyectar en TV)'}
+              >
+                {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                {fullscreen ? 'Salir' : 'Proyectar'}
+              </button>
+            )}
           </div>
         </div>
 
         <div
           className={`${
-            fullscreen ? 'flex flex-col items-center gap-6 max-w-4xl' : 'grid md:grid-cols-[auto_1fr] gap-6 items-center'
+            fullscreen || isKioskMode ? 'flex flex-col items-center gap-6 max-w-4xl mx-auto' : 'grid md:grid-cols-[auto_1fr] gap-6 items-center'
           }`}
         >
           {/* QR */}
           <div
             className={`${
-              fullscreen ? 'w-[520px] h-[520px]' : 'w-[260px] h-[260px]'
+              fullscreen || isKioskMode ? 'w-[320px] h-[320px] sm:w-[520px] sm:h-[520px]' : 'w-[260px] h-[260px]'
             } relative rounded-2xl bg-white border-[0.5px] border-[color:var(--border-default)] p-3 flex items-center justify-center shrink-0`}
           >
             {loading && !qrDataUrl ? (
@@ -212,9 +214,9 @@ export function AttendanceQrCard() {
           </div>
 
           {/* Instrucciones + short code */}
-          <div className={`${fullscreen ? 'text-center' : ''}`}>
+          <div className={`${fullscreen || isKioskMode ? 'text-center w-full' : ''}`}>
             <div
-              className={`${fullscreen ? 'text-base max-w-lg mx-auto mb-6' : 'text-sm mb-4'} space-y-1.5 text-[color:var(--text-primary)]`}
+              className={`${fullscreen || isKioskMode ? 'text-base max-w-lg mx-auto mb-6' : 'text-sm mb-4'} space-y-1.5 text-[color:var(--text-primary)]`}
             >
               <div className="flex items-start gap-2">
                 <Smartphone className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -231,7 +233,7 @@ export function AttendanceQrCard() {
             {token ? (
               <div
                 className={`${
-                  fullscreen ? 'max-w-md mx-auto' : ''
+                  fullscreen || isKioskMode ? 'max-w-md mx-auto' : ''
                 } rounded-xl border border-dashed border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-3`}
               >
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] mb-1">
@@ -240,7 +242,7 @@ export function AttendanceQrCard() {
                 <div className="flex items-center gap-2">
                   <code
                     className={`${
-                      fullscreen ? 'text-3xl' : 'text-xl'
+                      fullscreen || isKioskMode ? 'text-3xl' : 'text-xl'
                     } font-mono font-bold text-emerald-900 tracking-[0.2em]`}
                   >
                     {token.shortCode}

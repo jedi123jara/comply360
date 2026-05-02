@@ -96,10 +96,9 @@ export default function KioskoPage() {
           </p>
         </div>
 
-        {/* AttendanceQrCard ya soporta fullscreen={true} pero acá lo usamos en
-            tamaño normal porque ya estamos en pantalla dedicada */}
+        {/* Usamos isKioskMode para que el QR sea grande por defecto y oculte el botón de "Proyectar" */}
         <div className="w-full max-w-3xl">
-          <AttendanceQrCard />
+          <AttendanceQrCard isKioskMode={true} />
         </div>
 
         <p className="mt-6 text-xs text-[color:var(--text-tertiary)] text-center max-w-md">

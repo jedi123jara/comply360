@@ -313,22 +313,53 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         update: {},
       })
       // 2. Create user linked to THEIR org
-      const seeded = await prisma.user.upsert({
-        where: { clerkId },
-        create: {
-          clerkId,
-          orgId,
-          email,
-          firstName,
-          lastName,
-          role: defaultRole,
-        },
-        // For existing users, if they're in the founder safelist but don't
-        // yet have SUPER_ADMIN (e.g. created before env var was set), promote
-        // them. We never demote here — existing SUPER_ADMIN stays.
-        update: isFounder ? { role: 'SUPER_ADMIN' } : {},
+      // ─── Re-vinculación por email cuando cambia el clerkId ────────────
+      // Caso típico: el usuario tiene su User row creado con un clerkId de
+      // una instance Clerk (ej. prod), pero el login actual viene de OTRA
+      // instance (ej. dev keys en localhost). Como el clerkId no matchea,
+      // entramos a JIT provisioning, pero el email YA existe → UNIQUE
+      // constraint failed loop. Detectamos ese caso y re-vinculamos
+      // actualizando el clerkId del User existente al de la sesión actual.
+      // Seguro porque Clerk ya autenticó la identidad por email.
+      // Usamos mode: 'insensitive' para evitar duplicados si Clerk envía
+      // el email con mayúsculas/minúsculas distintas a la base de datos.
+      const existingByEmail = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
         select: { id: true, clerkId: true, orgId: true, email: true, role: true },
+        orderBy: { createdAt: 'asc' },
       })
+      let seeded
+      if (existingByEmail && existingByEmail.clerkId !== clerkId) {
+        seeded = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            clerkId,
+            ...(isFounder ? { role: 'SUPER_ADMIN' } : {}),
+          },
+          select: { id: true, clerkId: true, orgId: true, email: true, role: true },
+        })
+        console.log(
+          `[auth] Re-vinculado User ${seeded.id} (email=${email}) a nuevo clerkId=${clerkId} ` +
+            `(antes=${existingByEmail.clerkId}). Esto suele pasar al cambiar de instance Clerk dev↔prod.`,
+        )
+      } else {
+        seeded = await prisma.user.upsert({
+          where: { clerkId },
+          create: {
+            clerkId,
+            orgId,
+            email,
+            firstName,
+            lastName,
+            role: defaultRole,
+          },
+          // For existing users, if they're in the founder safelist but don't
+          // yet have SUPER_ADMIN (e.g. created before env var was set), promote
+          // them. We never demote here — existing SUPER_ADMIN stays.
+          update: isFounder ? { role: 'SUPER_ADMIN' } : {},
+          select: { id: true, clerkId: true, orgId: true, email: true, role: true },
+        })
+      }
 
       // Si fue pending invite, consumimos el marker y loggeamos la promoción
       // contra la org del user recién creado (ADMIN_PROMOTED) para auditoría.
