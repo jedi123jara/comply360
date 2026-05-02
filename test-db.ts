@@ -1,0 +1,1 @@
+import { prisma } from "./src/lib/prisma"; async function run() { const logs = await prisma.aiUsage.findMany({ where: { success: false }, orderBy: { createdAt: "desc" }, take: 5 }); console.log(JSON.stringify(logs, null, 2)); } run().catch(console.error).finally(() => prisma.$disconnect());

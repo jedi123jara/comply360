@@ -12,64 +12,90 @@ datasource db {
 // =============================================
 
 model Organization {
-  id                  String    @id @default(cuid())
-  name                String
-  ruc                 String?   @unique
-  razonSocial         String?   @map("razon_social")
-  nombreComercial     String?   @map("nombre_comercial")
-  sector              String?
-  sizeRange           String?   @map("size_range") // 1-10, 11-50, 51-200, 200+
-  logoUrl             String?   @map("logo_url")
-  plan                Plan      @default(STARTER)
-  planExpiresAt       DateTime? @map("plan_expires_at")
-  onboardingCompleted Boolean   @default(false) @map("onboarding_completed")
-  regimenPrincipal    String?   @map("regimen_principal") // GENERAL, MYPE_MICRO, etc.
-  regimenTributario   String?   @map("regimen_tributario") // RER, RMT, RG, RUS
-  alertEmail          String?   @map("alert_email")
-  phone               String?
-  address             String? // direccion fiscal
-  city                String? // departamento
-  province            String?
-  district            String?
+  id                     String    @id @default(cuid())
+  name                   String
+  ruc                    String?   @unique
+  razonSocial            String?   @map("razon_social")
+  nombreComercial        String?   @map("nombre_comercial")
+  sector                 String?
+  sizeRange              String?   @map("size_range") // 1-10, 11-50, 51-200, 200+
+  logoUrl                String?   @map("logo_url")
+  plan                   Plan      @default(STARTER)
+  planExpiresAt          DateTime? @map("plan_expires_at")
+  onboardingCompleted    Boolean   @default(false) @map("onboarding_completed")
+  regimenPrincipal       String?   @map("regimen_principal") // GENERAL, MYPE_MICRO, etc.
+  regimenTributario      String?   @map("regimen_tributario") // RER, RMT, RG, RUS
+  alertEmail             String?   @map("alert_email")
+  phone                  String?
+  address                String? // direccion fiscal
+  city                   String? // departamento
+  province               String?
+  district               String?
   // Representante Legal
-  repNombre           String?   @map("rep_nombre")
-  repDni              String?   @map("rep_dni")
-  repCargo            String?   @map("rep_cargo")
+  repNombre              String?   @map("rep_nombre")
+  repDni                 String?   @map("rep_dni")
+  repCargo               String?   @map("rep_cargo")
   // Contador responsable
-  contNombre          String?   @map("cont_nombre")
-  contCpc             String?   @map("cont_cpc")
-  contEmail           String?   @map("cont_email")
+  contNombre             String?   @map("cont_nombre")
+  contCpc                String?   @map("cont_cpc")
+  contEmail              String?   @map("cont_email")
   // ─── Detección de subdeclaración (anti-informalidad) ─────────────────
   // Total de trabajadores que el empleador DECLARA que tiene en total
   // (incluyendo no registrados aún en COMPLY360). Si > workers registrados
   // → brecha = trabajadores fuera de planilla → multa SUNAFIL Art. 24.5
   // D.S. 019-2006-TR. El sistema lo detecta y alerta.
-  totalWorkersDeclared    Int?      @map("total_workers_declared")
-  totalWorkersDeclaredAt  DateTime? @map("total_workers_declared_at")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  totalWorkersDeclared   Int?      @map("total_workers_declared")
+  totalWorkersDeclaredAt DateTime? @map("total_workers_declared_at")
 
-  users                  User[]
-  workers                Worker[]
-  contracts              Contract[]
-  calculations           Calculation[]
-  orgAlerts              OrgAlert[]
-  auditLogs              AuditLog[]
-  subscription           Subscription?
-  diagnostics            ComplianceDiagnostic[]
-  complianceTasks        ComplianceTask[]
-  complaints             Complaint[]
-  invitations            Invitation[]
-  payslips               Payslip[]
-  workerRequests         WorkerRequest[]
-  documents              OrgDocument[]
+  // ─── Inputs del detector automático de régimen (Generador / Chunk 2) ─
+  // Campos que alimentan src/lib/contracts/regime/detect.ts. Todos
+  // opcionales para no romper orgs existentes; el detector cae a "GENERAL"
+  // cuando faltan datos y avisa por warnings.
+  ciiu                   String?         @map("ciiu") // CIIU rev. 4 a 4 dígitos: ej. "4100" construcción
+  ubigeo                 String?         @map("ubigeo") // 6 dígitos INEI: dept(2)+prov(2)+dist(2)
+  annualSalesPEN         Decimal?        @map("annual_sales_pen") @db.Decimal(14, 2) // ventas anuales
+  groupAnnualSalesPEN    Decimal?        @map("group_annual_sales_pen") @db.Decimal(14, 2) // grupo económico vinculado
+  isPartOfBigGroup       Boolean         @default(false) @map("is_part_of_big_group") // Ley 32353 — vinculados que en consolidado superan 1700 UIT
+  remypeRegistered       Boolean         @default(false) @map("remype_registered") // inscripción REMYPE habilitante
+  exportRatioPct         Decimal?        @map("export_ratio_pct") @db.Decimal(5, 2) // % exportación 0-100
+  currentProjectCostUIT  Decimal?        @map("current_project_cost_uit") @db.Decimal(10, 2) // costo de obra en UIT (construcción civil > 50 UIT)
+  employerType           EmployerType    @default(LEGAL_PERSON) @map("employer_type")
+  domesticPurpose        Boolean         @default(false) @map("domestic_purpose") // empleador persona natural con propósito doméstico → Ley 31047
+  usesAgroInputs         Boolean         @default(false) @map("uses_agro_inputs") // agroindustria con insumos agropecuarios → Ley 31110
+  isPublicEntity         Boolean         @default(false) @map("is_public_entity") // entidad pública → capa Huatuco
+
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  users                   User[]
+  workers                 Worker[]
+  contracts               Contract[]
+  calculations            Calculation[]
+  orgAlerts               OrgAlert[]
+  auditLogs               AuditLog[]
+  subscription            Subscription?
+  diagnostics             ComplianceDiagnostic[]
+  complianceTasks         ComplianceTask[]
+  complaints              Complaint[]
+  invitations             Invitation[]
+  payslips                Payslip[]
+  workerRequests          WorkerRequest[]
+  documents               OrgDocument[]
   documentAcknowledgments DocumentAcknowledgment[]
-  serviceProviders       ServiceProvider[]
-  rhInvoices             RhInvoice[]
-  inspecciones           InspeccionEnVivo[]
-  ownedClients           ConsultorClient[]       @relation("ConsultorOwner")
-  managedBy              ConsultorClient[]       @relation("ConsultorManaged")
-  integrationCredentials IntegrationCredential[]
+  serviceProviders        ServiceProvider[]
+  rhInvoices              RhInvoice[]
+  inspecciones            InspeccionEnVivo[]
+  ownedClients            ConsultorClient[]        @relation("ConsultorOwner")
+  managedBy               ConsultorClient[]        @relation("ConsultorManaged")
+  integrationCredentials  IntegrationCredential[]
+  // Organigrama
+  orgUnits                OrgUnit[]
+  orgPositions            OrgPosition[]
+  orgAssignments          OrgAssignment[]
+  orgComplianceRoles      OrgComplianceRole[]
+  orgChartSnapshots       OrgChartSnapshot[]
+  orgChartDrafts          OrgChartDraft[]
+  orgStructureChangeLogs  OrgStructureChangeLog[]
 
   @@map("organizations")
 }
@@ -101,6 +127,11 @@ enum Plan {
   PRO
   BUSINESS
   ENTERPRISE
+}
+
+enum EmployerType {
+  NATURAL_PERSON // Persona natural — habilita régimen Trabajo del Hogar (Ley 31047) si propósito doméstico
+  LEGAL_PERSON   // Persona jurídica (default, mayoría de tenants)
 }
 
 model User {
@@ -191,81 +222,83 @@ model Invitation {
 // =============================================
 
 model Worker {
-  id                 String         @id @default(cuid())
-  orgId              String         @map("org_id")
-  userId             String?        @unique @map("user_id") // Opcional — vincula con User cuando el trabajador activa su portal
+  id                     String         @id @default(cuid())
+  orgId                  String         @map("org_id")
+  userId                 String?        @unique @map("user_id") // Opcional — vincula con User cuando el trabajador activa su portal
   // Datos personales
-  dni                String
-  firstName          String         @map("first_name")
-  lastName           String         @map("last_name")
-  email              String?
-  phone              String?
-  birthDate          DateTime?      @map("birth_date")
-  gender             String?
-  nationality        String?        @default("peruana")
-  address            String?
+  dni                    String
+  firstName              String         @map("first_name")
+  lastName               String         @map("last_name")
+  email                  String?
+  phone                  String?
+  birthDate              DateTime?      @map("birth_date")
+  gender                 String?
+  nationality            String?        @default("peruana")
+  address                String?
   // Datos laborales
-  position           String?
-  department         String?
-  regimenLaboral     RegimenLaboral @default(GENERAL) @map("regimen_laboral")
-  tipoContrato       TipoContrato   @default(INDEFINIDO) @map("tipo_contrato")
-  fechaIngreso       DateTime       @map("fecha_ingreso")
-  fechaCese          DateTime?      @map("fecha_cese")
-  motivoCese         String?        @map("motivo_cese")
-  sueldoBruto        Decimal        @map("sueldo_bruto") @db.Decimal(10, 2)
-  asignacionFamiliar Boolean        @default(false) @map("asignacion_familiar")
-  jornadaSemanal     Int            @default(48) @map("jornada_semanal")
-  tiempoCompleto     Boolean        @default(true) @map("tiempo_completo")
+  position               String?
+  department             String?
+  regimenLaboral         RegimenLaboral @default(GENERAL) @map("regimen_laboral")
+  tipoContrato           TipoContrato   @default(INDEFINIDO) @map("tipo_contrato")
+  fechaIngreso           DateTime       @map("fecha_ingreso")
+  fechaCese              DateTime?      @map("fecha_cese")
+  motivoCese             String?        @map("motivo_cese")
+  sueldoBruto            Decimal        @map("sueldo_bruto") @db.Decimal(10, 2)
+  asignacionFamiliar     Boolean        @default(false) @map("asignacion_familiar")
+  jornadaSemanal         Int            @default(48) @map("jornada_semanal")
+  tiempoCompleto         Boolean        @default(true) @map("tiempo_completo")
   // Horario laboral pactado (R.M. 037-2024-TR exige documentar política de
   // entrada/salida y tolerancia). Defaults conservadores: 8:00-17:00 con 15
   // min de tolerancia. Si la org tiene turnos distintos, se editan por worker
   // o vía bulk action "Asignar horario".
-  expectedClockInHour    Int @default(8)  @map("expected_clock_in_hour")
-  expectedClockInMinute  Int @default(0)  @map("expected_clock_in_minute")
-  expectedClockOutHour   Int @default(17) @map("expected_clock_out_hour")
-  expectedClockOutMinute Int @default(0)  @map("expected_clock_out_minute")
-  lateToleranceMinutes   Int @default(15) @map("late_tolerance_minutes")
+  expectedClockInHour    Int            @default(8) @map("expected_clock_in_hour")
+  expectedClockInMinute  Int            @default(0) @map("expected_clock_in_minute")
+  expectedClockOutHour   Int            @default(17) @map("expected_clock_out_hour")
+  expectedClockOutMinute Int            @default(0) @map("expected_clock_out_minute")
+  lateToleranceMinutes   Int            @default(15) @map("late_tolerance_minutes")
   // Previsional
-  tipoAporte         TipoAporte     @default(AFP) @map("tipo_aporte")
-  afpNombre          String?        @map("afp_nombre")
-  afpComisionTipo    String?        @map("afp_comision_tipo") // "MIXTA" | "FLUJO"
-  cuspp              String?
-  essaludVida        Boolean        @default(false) @map("essalud_vida")
-  sctr               Boolean        @default(false)
-  sctrRiesgoNivel    String?        @map("sctr_riesgo_nivel") // "BAJO" | "MEDIO" | "ALTO" — para sectores Ley 26790
+  tipoAporte             TipoAporte     @default(AFP) @map("tipo_aporte")
+  afpNombre              String?        @map("afp_nombre")
+  afpComisionTipo        String?        @map("afp_comision_tipo") // "MIXTA" | "FLUJO"
+  cuspp                  String?
+  essaludVida            Boolean        @default(false) @map("essalud_vida")
+  sctr                   Boolean        @default(false)
+  sctrRiesgoNivel        String?        @map("sctr_riesgo_nivel") // "BAJO" | "MEDIO" | "ALTO" — para sectores Ley 26790
   // Condiciones especiales (peruanas)
   // Ley 29973 — cuota 3% de personas con discapacidad. Reportable a SUNAFIL.
-  discapacidad       Boolean        @default(false)
-  discapacidadTipo   String?        @map("discapacidad_tipo") // "FISICA" | "SENSORIAL" | "INTELECTUAL" | "PSICOSOCIAL" | "MULTIPLE"
+  discapacidad           Boolean        @default(false)
+  discapacidadTipo       String?        @map("discapacidad_tipo") // "FISICA" | "SENSORIAL" | "INTELECTUAL" | "PSICOSOCIAL" | "MULTIPLE"
   // Tipo de jornada — afecta cálculo de horas extras (D.Leg. 854: 25% día, 35% noche)
-  tipoJornada        String         @default("DIURNO") @map("tipo_jornada") // "DIURNO" | "NOCTURNO" | "MIXTO"
+  tipoJornada            String         @default("DIURNO") @map("tipo_jornada") // "DIURNO" | "NOCTURNO" | "MIXTO"
   // PIN 4 dígitos para asistencia sin smartphone (backup del flujo QR).
   // Generado automáticamente al onboarding del worker. Se envía por email.
-  attendancePin      String?        @map("attendance_pin") // hash bcrypt del PIN
+  attendancePin          String?        @map("attendance_pin") // hash bcrypt del PIN
   // ─── Personalización del worker (subido desde el portal) ────────────
   // Foto subida por el trabajador desde /mi-portal/perfil. Si null, el
   // admin ve solo las iniciales como avatar.
-  photoUrl           String?        @map("photo_url")
+  photoUrl               String?        @map("photo_url")
   // Bio breve / hobby / fun fact (max 200 chars). Humaniza el card del
   // admin: en lugar de solo nombre+cargo, ve "Le encanta la cocina coreana".
-  bio                String?
+  bio                    String?
   // Estado
-  status             WorkerStatus   @default(ACTIVE)
-  legajoScore        Int?           @map("legajo_score")
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  status                 WorkerStatus   @default(ACTIVE)
+  legajoScore            Int?           @map("legajo_score")
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
 
-  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user            User?            @relation(fields: [userId], references: [id])
-  documents       WorkerDocument[]
-  workerContracts WorkerContract[]
-  vacations       VacationRecord[]
-  alerts          WorkerAlert[]
-  attendance      Attendance[]
-  payslips        Payslip[]
-  requests        WorkerRequest[]
-  ceseRecord      CeseRecord?
-  acknowledgments DocumentAcknowledgment[]
+  organization       Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user               User?                    @relation(fields: [userId], references: [id])
+  documents          WorkerDocument[]
+  workerContracts    WorkerContract[]
+  vacations          VacationRecord[]
+  alerts             WorkerAlert[]
+  attendance         Attendance[]
+  payslips           Payslip[]
+  requests           WorkerRequest[]
+  ceseRecord         CeseRecord?
+  acknowledgments    DocumentAcknowledgment[]
+  orgAssignments     OrgAssignment[]
+  orgComplianceRoles OrgComplianceRole[]
 
   @@unique([orgId, dni])
   @@index([orgId, status])
@@ -419,14 +452,14 @@ enum WorkerAlertType {
   VACACIONES_DOBLE_PERIODO
   DOCUMENTO_FALTANTE
   DOCUMENTO_VENCIDO
-  DOCUMENTO_SOSPECHOSO  // IA visión detectó posible manipulación
+  DOCUMENTO_SOSPECHOSO // IA visión detectó posible manipulación
   EXAMEN_MEDICO_VENCIDO
   CAPACITACION_PENDIENTE
   AFP_EN_MORA
   REGISTRO_INCOMPLETO
   // Patrones de asistencia detectados por scan periódico (Fase 3)
-  TARDANZAS_CRONICAS    // 5+ tardanzas en 15 días sin justificar
-  AUSENTISMO_CRONICO    // 3+ ausencias sin justificar en el mes
+  TARDANZAS_CRONICAS // 5+ tardanzas en 15 días sin justificar
+  AUSENTISMO_CRONICO // 3+ ausencias sin justificar en el mes
 }
 
 enum AlertSeverity {
@@ -500,6 +533,8 @@ model Contract {
   createdBy       User              @relation("CreatedBy", fields: [createdById], references: [id])
   template        ContractTemplate? @relation(fields: [templateId], references: [id])
   workerContracts WorkerContract[]
+  validations     ContractValidation[]
+  versions        ContractVersion[]
 
   @@index([orgId, status])
   @@index([orgId, type])
@@ -515,6 +550,298 @@ enum ContractStatus {
   SIGNED
   EXPIRED
   ARCHIVED
+}
+
+// =============================================
+// CONTRACT VALIDATION ENGINE (Generador de Contratos — Chunk 1)
+// Reglas declarativas (ContractValidationRule) + resultados por contrato
+// (ContractValidation). Ver docs/specs/contract-generator-spec.md §11.
+// Las reglas viven como DATOS, no como código → futuras casaciones se
+// despliegan como migraciones de seed sin redeploy.
+// =============================================
+
+enum ValidationSeverity {
+  BLOCKER // Impide emitir / firmar el contrato
+  WARNING // Permite emitir si hay acknowledgement explícito
+  INFO    // Sugerencia de mejora
+}
+
+model ContractValidationRule {
+  id          String             @id @default(cuid())
+  code        String             @unique // "FORMAL-001", "MODAL-001", etc.
+  category    String // "FORMAL" | "MODAL" | "PLAZO" | "SUPLENCIA" | "GESTANTE" | "RMV" | "TPARCIAL" | "EXTRANJ" | "PRUEBA" | "DATOS"
+  severity    ValidationSeverity
+  title       String
+  description String             @db.Text
+  legalBasis  String             @db.Text // "Art. 72 LPCL — Cas. Lab. 13734-2017-Lima"
+  ruleSpec    Json               @map("rule_spec") // declarative spec — ver lib/contracts/validation/types.ts
+  appliesTo   Json?              @map("applies_to") // { contractTypes?: ContractType[], regimes?: RegimenLaboral[] } — null = aplica siempre
+  active      Boolean            @default(true)
+  version     String             @default("1.0.0") // semver: refleja cambios al ruleSpec
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  validations ContractValidation[]
+
+  @@index([category, active])
+  @@map("contract_validation_rules")
+}
+
+model ContractValidation {
+  id                 String             @id @default(cuid())
+  orgId              String             @map("org_id") // denormalizado: filtros por tenant
+  contractId         String             @map("contract_id")
+  ruleId             String             @map("rule_id")
+  ruleCode           String             @map("rule_code") // denormalizado para queries rápidas
+  ruleVersion        String             @map("rule_version") // versión del ruleSpec aplicado
+  passed             Boolean
+  severity           ValidationSeverity
+  message            String             @db.Text
+  evidence           Json? // datos del contexto que dispararon (o no) la regla
+  acknowledged       Boolean            @default(false)
+  acknowledgedBy     String?            @map("acknowledged_by")
+  acknowledgedAt     DateTime?          @map("acknowledged_at")
+  acknowledgedReason String?            @map("acknowledged_reason") @db.Text
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  rule     ContractValidationRule @relation(fields: [ruleId], references: [id])
+  contract Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, contractId])
+  @@index([contractId, passed])
+  @@index([ruleCode])
+  @@map("contract_validations")
+}
+
+// =============================================
+// CRYPTOGRAPHIC ANCHORING (Generador de Contratos — Chunk 8)
+// Anclaje diario del set de versionHash de cada tenant en un Merkle root,
+// con timestamping externo opcional (RFC 3161 vía TSA INDECOPI y/o
+// OpenTimestamps sobre Bitcoin). Cada `ContractVersion` queda enlazado
+// a su MerkleAnchor del día → posible exhibir prueba inmutable ante peritos.
+// Ver docs/specs/contract-generator-spec.md §10.
+// =============================================
+
+model MerkleAnchor {
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  /// Día calendario UTC (YYYY-MM-DD) — clave junto con orgId.
+  anchorDate     DateTime  @map("anchor_date") @db.Date
+  /// Total de hojas en el árbol — versions del día para esa org.
+  leafCount      Int       @map("leaf_count")
+  /// Hojas: [{ versionId, versionHash, leafIndex }]. Permite reconstruir.
+  leaves         Json
+  /// Raíz del árbol: SHA-256 hex 64 chars.
+  merkleRoot     String    @map("merkle_root")
+
+  // ── Anclaje externo (opcional) ─────────────────────────────────────
+  /// RFC 3161 TimeStampToken (binary). Serialización CMS según RFC 3161.
+  rfc3161Token   Bytes?    @map("rfc3161_token")
+  /// Authority que emitió el token (URL TSA o nombre acreditado).
+  rfc3161Tsa     String?   @map("rfc3161_tsa")
+  rfc3161At      DateTime? @map("rfc3161_at")
+
+  /// OpenTimestamps proof (binary, formato .ots).
+  otsProof       Bytes?    @map("ots_proof")
+  otsCalendar    String?   @map("ots_calendar") // URL del calendar server
+  otsAt          DateTime? @map("ots_at")
+  /// Bitcoin block height cuando OTS confirma — null hasta upgrade.
+  bitcoinBlockHeight Int?  @map("bitcoin_block_height")
+
+  /// Estado del anclaje: PENDING | RFC3161_OK | OTS_OK | FULL_OK | FAILED
+  status         String    @default("PENDING")
+  errors         Json?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  versions       ContractVersion[]
+
+  @@unique([orgId, anchorDate])
+  @@index([anchorDate])
+  @@index([orgId, status])
+  @@map("merkle_anchors")
+}
+
+// =============================================
+// BULK CONTRACT JOBS (Generador de Contratos — Chunk 7)
+// Audit trail de cada generación masiva: qué archivo subió el usuario,
+// cuántas filas, cuáles dieron error, hash del ZIP resultante. El proceso
+// real corre síncrono en el endpoint /generate (sin Redis); el modelo
+// existe para trazabilidad y para futuras corridas con BullMQ.
+// =============================================
+
+enum BulkJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model BulkContractJob {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  createdById    String        @map("created_by_id")
+  status         BulkJobStatus @default(QUEUED)
+  /// Tipo de contrato a generar (ContractType enum)
+  contractType   String        @map("contract_type")
+  /// Plantilla / lógica usada — opcional
+  templateId     String?       @map("template_id")
+  /// Nombre del archivo origen
+  sourceFileName String?       @map("source_file_name")
+  totalRows      Int           @map("total_rows")
+  succeededRows  Int           @default(0) @map("succeeded_rows")
+  failedRows     Int           @default(0) @map("failed_rows")
+  /// Errores por fila: [{ row: 5, message: "DNI inválido" }]
+  errors         Json?
+  /// SHA-256 del ZIP final (si llegó a generarse)
+  zipSha256      String?       @map("zip_sha256")
+  zipByteLength  Int?          @map("zip_byte_length")
+  startedAt      DateTime?     @map("started_at")
+  finishedAt     DateTime?     @map("finished_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+  @@map("bulk_contract_jobs")
+}
+
+// =============================================
+// JURISPRUDENCE UPDATE INGESTOR (Generador de Contratos — Chunk 9)
+// Cada nueva casación, resolución SUNAFIL o sentencia TC se ingresa como
+// una entrada `JurisprudenceUpdate`. Tras revisión humana, "apply" muta
+// el catálogo de reglas y cláusulas (chunks 1 y 4) sin requerir redeploy.
+// Las instancias firmadas quedan inmutables (versionado del chunk 3).
+// Ver docs/specs/contract-generator-spec.md §6 + §12.1.
+// =============================================
+
+enum JurisprudenceSource {
+  CORTE_SUPREMA
+  TRIBUNAL_CONSTITUCIONAL
+  SUNAFIL
+  MTPE
+  OTRO
+}
+
+enum JurisprudenceReviewStatus {
+  PENDING // Recién ingresada — falta revisión legal
+  APPROVED // Validada para apply
+  APPLIED // Apply ya ejecutado — afectaciones impactaron BD
+  REJECTED // Descartada por el revisor
+}
+
+model JurisprudenceUpdate {
+  id              String                   @id @default(cuid())
+  source          JurisprudenceSource
+  reference       String // "Cas. Lab. 8912-2023-Lima", "STC 00797-2022-AA/TC"
+  title           String
+  publicationDate DateTime                 @map("publication_date")
+  topic           String // "DESNATURALIZACION_MODAL" | "TUTELA_GESTANTE" | etc.
+  summary         String                   @db.Text
+  fullTextUrl     String?                  @map("full_text_url")
+  /// Acciones a ejecutar sobre ContractValidationRule cuando se haga apply.
+  /// Schema: [{ ruleCode, action: "ADD"|"MODIFY"|"DEPRECATE", ruleSpec?, severity?, version? }]
+  affectedRules   Json                     @map("affected_rules")
+  /// Acciones a ejecutar sobre ContractClause cuando se haga apply.
+  /// Schema: [{ code, action: "ADD"|"MODIFY"|"DEPRECATE", patch? }]
+  affectedClauses Json                     @map("affected_clauses")
+  reviewStatus    JurisprudenceReviewStatus @default(PENDING) @map("review_status")
+  reviewedBy      String?                  @map("reviewed_by")
+  reviewedAt      DateTime?                @map("reviewed_at")
+  /// Cuando se aplica: snapshot de las acciones y sus resultados (audit trail).
+  applyResult     Json?                    @map("apply_result")
+  appliedAt       DateTime?                @map("applied_at")
+  appliedBy       String?                  @map("applied_by")
+  notes           String?                  @db.Text
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  @@index([source, publicationDate])
+  @@index([reviewStatus, createdAt])
+  @@index([reference])
+  @@map("jurisprudence_updates")
+}
+
+// =============================================
+// CONTRACT CLAUSE CATALOG (Generador de Contratos — Chunk 4)
+// Catálogo modular de cláusulas potestativas + causas objetivas blindadas.
+// El contenido vive como DATOS (bodyTemplate con {{placeholders}}) →
+// nuevas casaciones se aplican como migraciones de seed sin redeploy.
+// Ver docs/specs/contract-generator-spec.md §5.2 y §15.
+// =============================================
+
+model ContractClause {
+  id           String   @id @default(cuid())
+  code         String   @unique // "CONF-001", "NOC-001", "PDP-001", "CO-INI-001", etc.
+  category     String // "POTESTATIVA" | "CAUSA_OBJETIVA" | "OBLIGATORIA"
+  type         String // "CONFIDENCIALIDAD" | "NO_COMPETENCIA" | "IP" | "PDP" | "EXCLUSIVIDAD" | "PERMANENCIA" | "JORNADA_ATIPICA" | "TELETRABAJO" | "CAUSA_OBJETIVA_INICIO" | "CAUSA_OBJETIVA_SUPLENCIA"
+  title        String
+  bodyTemplate String   @db.Text // texto con {{placeholders}}
+  legalBasis   String   @db.Text // "Arts. 122-123 D.Leg. 823 + Cas. Lab. 11259-2017-Lima"
+  variables    Json // [{key, label, default, helpText, required, type}]
+  applicableTo Json? // { contractTypes?: ContractType[], regimes?: RegimenLaboral[] }
+  active       Boolean  @default(true)
+  version      String   @default("1.0.0")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([category, active])
+  @@index([type])
+  @@map("contract_clauses")
+}
+
+// =============================================
+// CONTRACT VERSIONING (Generador de Contratos — Chunk 3)
+// Hash-chain SHA-256 por contrato. Cada edición que toca el contenido
+// crea una versión nueva con prevHash apuntando a la anterior. Esto da
+// inmutabilidad criptográfica: si una versión histórica es alterada en
+// BD, la verificación de cadena lo detecta. Preparado para anclaje
+// posterior (Merkle diario + RFC 3161 + OpenTimestamps).
+// Ver docs/specs/contract-generator-spec.md §10.
+// =============================================
+
+model ContractVersion {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id") // denormalizado: filtro por tenant
+  contractId     String   @map("contract_id")
+  contract       Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  versionNumber  Int      @map("version_number") // 1, 2, 3... por contrato
+
+  // Snapshot del contenido al momento de esta versión
+  contentHtml    String?  @map("content_html") @db.Text
+  contentJson    Json?    @map("content_json")
+  formData       Json?    @map("form_data")
+
+  // Hash chain (blockchain-style). Genesis prevHash = "0x" + "0"*64.
+  contentSha256  String   @map("content_sha256") // SHA-256 del contenido canonicalizado
+  prevHash       String   @map("prev_hash") // versionHash de la versión anterior
+  versionHash    String   @map("version_hash") // SHA-256(content || prev || canonicalJSON(meta))
+
+  // Diff y trazabilidad
+  diffJson       Json?    @map("diff_json") // RFC 6902 JSON Patch vs versión anterior
+  diffSummary    String?  @map("diff_summary") @db.Text // resumen humano legible
+  changeReason   String   @map("change_reason") @db.Text // por qué cambió
+  changedBy      String   @map("changed_by") // userId
+
+  // Anclaje externo (chunk 8) — null hasta que el cron diario procese.
+  merkleAnchorId String?   @map("merkle_anchor_id")
+  merkleAnchor   MerkleAnchor? @relation(fields: [merkleAnchorId], references: [id])
+  /// Índice de la hoja dentro del árbol del día.
+  leafIndex      Int?     @map("leaf_index")
+  /// Camino de pruebas (siblings hashes ordenados desde la hoja a la raíz).
+  /// Schema: [{ hash: "...", side: "L"|"R" }]. Permite verificar que
+  /// `versionHash` está incluido en `MerkleAnchor.merkleRoot` sin recargar todo.
+  merkleProof    Json?    @map("merkle_proof")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([contractId, versionNumber])
+  @@index([orgId, contractId])
+  @@index([versionHash])
+  @@index([contractId, createdAt])
+  @@index([merkleAnchorId])
+  @@map("contract_versions")
 }
 
 // =============================================
@@ -846,24 +1173,24 @@ enum SstStatus {
 // =============================================
 
 model Complaint {
-  id                 String          @id @default(cuid())
-  orgId              String          @map("org_id")
-  code               String          @unique // DENUNCIA-2026-001
+  id                 String             @id @default(cuid())
+  orgId              String             @map("org_id")
+  code               String             @unique // DENUNCIA-2026-001
   type               ComplaintType
-  isAnonymous        Boolean         @default(true) @map("is_anonymous")
-  reporterName       String?         @map("reporter_name")
-  reporterEmail      String?         @map("reporter_email")
-  reporterPhone      String?         @map("reporter_phone")
-  accusedName        String?         @map("accused_name")
-  accusedPosition    String?         @map("accused_position")
+  isAnonymous        Boolean            @default(true) @map("is_anonymous")
+  reporterName       String?            @map("reporter_name")
+  reporterEmail      String?            @map("reporter_email")
+  reporterPhone      String?            @map("reporter_phone")
+  accusedName        String?            @map("accused_name")
+  accusedPosition    String?            @map("accused_position")
   description        String
-  evidenceUrls       String[]        @map("evidence_urls")
-  status             ComplaintStatus @default(RECEIVED)
-  assignedTo         String?         @map("assigned_to")
+  evidenceUrls       String[]           @map("evidence_urls")
+  status             ComplaintStatus    @default(RECEIVED)
+  assignedTo         String?            @map("assigned_to")
   resolution         String?
-  protectionMeasures Json?           @map("protection_measures")
-  receivedAt         DateTime        @default(now()) @map("received_at")
-  resolvedAt         DateTime?       @map("resolved_at")
+  protectionMeasures Json?              @map("protection_measures")
+  receivedAt         DateTime           @default(now()) @map("received_at")
+  resolvedAt         DateTime?          @map("resolved_at")
   // Triaje IA (Fase γ) — la IA clasifica severidad/urgencia al recibir la
   // denuncia y sugiere medidas de protección. Ver `src/lib/ai/complaint-triage.ts`.
   // `severityAi` y `urgencyAi` se promueven a columnas para índice + WHERE.
@@ -873,8 +1200,8 @@ model Complaint {
   triageJson         Json?              @map("triage_json")
   triagedAt          DateTime?          @map("triaged_at")
   triageVersion      Int                @default(1) @map("triage_version")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
 
   organization Organization        @relation(fields: [orgId], references: [id])
   timeline     ComplaintTimeline[]
@@ -1286,9 +1613,9 @@ model NpsFeedback {
   id        String   @id @default(cuid())
   orgId     String   @map("org_id")
   userId    String   @map("user_id")
-  score     Int      // 0-10
+  score     Int // 0-10
   comment   String?  @db.Text
-  source    String?  // "dashboard", "post-onboarding", etc.
+  source    String? // "dashboard", "post-onboarding", etc.
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([userId]) // un solo feedback por user
@@ -1301,29 +1628,29 @@ model NpsFeedback {
 // =============================================
 
 model Attendance {
-  id          String           @id @default(cuid())
-  orgId       String           @map("org_id")
-  workerId    String           @map("worker_id")
-  clockIn     DateTime         @map("clock_in")
-  clockOut    DateTime?        @map("clock_out")
-  hoursWorked Decimal?         @map("hours_worked") @db.Decimal(5, 2)
-  status      AttendanceStatus @default(PRESENT)
-  notes       String?
+  id              String           @id @default(cuid())
+  orgId           String           @map("org_id")
+  workerId        String           @map("worker_id")
+  clockIn         DateTime         @map("clock_in")
+  clockOut        DateTime?        @map("clock_out")
+  hoursWorked     Decimal?         @map("hours_worked") @db.Decimal(5, 2)
+  status          AttendanceStatus @default(PRESENT)
+  notes           String?
   // Horas extras detectadas automáticamente al hacer clock-out (Fase 1.3).
   // Una jornada que excede `Worker.jornadaSemanal / 5` se marca con isOvertime=true
   // y overtimeMinutes guarda los minutos extras (ej: 8.5h trabajadas con jornada
   // 8h → isOvertime=true, overtimeMinutes=30).
-  isOvertime      Boolean  @default(false) @map("is_overtime")
-  overtimeMinutes Int?     @map("overtime_minutes")
+  isOvertime      Boolean          @default(false) @map("is_overtime")
+  overtimeMinutes Int?             @map("overtime_minutes")
   // Anti-fraude (PRO+): geolocalización, device, selfie hash al check-in
-  geoLat      Decimal?         @map("geo_lat") @db.Decimal(10, 7)
-  geoLng      Decimal?         @map("geo_lng") @db.Decimal(10, 7)
-  geoAccuracy Decimal?         @map("geo_accuracy") @db.Decimal(8, 2)
+  geoLat          Decimal?         @map("geo_lat") @db.Decimal(10, 7)
+  geoLng          Decimal?         @map("geo_lng") @db.Decimal(10, 7)
+  geoAccuracy     Decimal?         @map("geo_accuracy") @db.Decimal(8, 2)
   // Hash SHA-256 de la foto selfie tomada al marcar (no guardamos imagen
   // por privacidad/storage). El hash sirve como evidencia de presencia.
   // Sprint 6+ podrá comparar contra otros hashes para detectar fotos duplicadas.
-  selfieHash  String?          @map("selfie_hash")
-  createdAt   DateTime         @default(now()) @map("created_at")
+  selfieHash      String?          @map("selfie_hash")
+  createdAt       DateTime         @default(now()) @map("created_at")
 
   worker Worker @relation(fields: [workerId], references: [id])
 
@@ -1373,19 +1700,19 @@ enum GeofenceType {
 /// sospechosos (muchos intentos fallidos por geofence_out, brute-force de PIN,
 /// tokens reutilizados, etc.). TTL 30 días via cron de cleanup.
 model AttendanceAttempt {
-  id          String                  @id @default(cuid())
-  orgId       String                  @map("org_id")
-  workerId    String?                 @map("worker_id")
-  result      AttendanceAttemptResult
-  reason      String?                 // detalle del fallo si result != SUCCESS
-  via         String?                 // "qr" | "pin" | "code" | "kiosko"
-  geoLat      Decimal?                @map("geo_lat") @db.Decimal(10, 7)
-  geoLng      Decimal?                @map("geo_lng") @db.Decimal(10, 7)
-  geoAccuracy Decimal?                @map("geo_accuracy") @db.Decimal(8, 2)
-  ipAddress   String?                 @map("ip_address")
-  userAgent   String?                 @map("user_agent") @db.Text
-  metadataJson Json?                  @map("metadata_json")
-  createdAt   DateTime                @default(now()) @map("created_at")
+  id           String                  @id @default(cuid())
+  orgId        String                  @map("org_id")
+  workerId     String?                 @map("worker_id")
+  result       AttendanceAttemptResult
+  reason       String? // detalle del fallo si result != SUCCESS
+  via          String? // "qr" | "pin" | "code" | "kiosko"
+  geoLat       Decimal?                @map("geo_lat") @db.Decimal(10, 7)
+  geoLng       Decimal?                @map("geo_lng") @db.Decimal(10, 7)
+  geoAccuracy  Decimal?                @map("geo_accuracy") @db.Decimal(8, 2)
+  ipAddress    String?                 @map("ip_address")
+  userAgent    String?                 @map("user_agent") @db.Text
+  metadataJson Json?                   @map("metadata_json")
+  createdAt    DateTime                @default(now()) @map("created_at")
 
   @@index([orgId, createdAt])
   @@index([workerId, createdAt])
@@ -1541,17 +1868,17 @@ model OrgDocument {
   // ─── Acknowledgment system (Idea 1 — auto-notify workers) ───────────────
   // Si true, cuando el doc se actualiza (version bump) → notifica a todos
   // los workers activos y exige acuse de recibo con valor legal SUNAFIL.
-  acknowledgmentRequired      Boolean   @default(false) @map("ack_required")
+  acknowledgmentRequired     Boolean   @default(false) @map("ack_required")
   // Días que el worker tiene para firmar antes de escalar al admin (null = sin deadline)
-  acknowledgmentDeadlineDays  Int?      @map("ack_deadline_days")
+  acknowledgmentDeadlineDays Int?      @map("ack_deadline_days")
   // Filtro JSON para limitar quién debe firmar (null = todos los workers activos)
   // Ej: { "regimen": ["GENERAL", "MYPE_PEQUENA"] } excluye CAS / modalidad formativa
-  scopeFilter                 Json?     @map("scope_filter")
+  scopeFilter                Json?     @map("scope_filter")
   // Última vez que se envió notificación batch — para throttling (max 1/semana)
-  lastNotifiedAt              DateTime? @map("last_notified_at")
+  lastNotifiedAt             DateTime? @map("last_notified_at")
 
-  organization     Organization              @relation(fields: [orgId], references: [id])
-  acknowledgments  DocumentAcknowledgment[]
+  organization    Organization             @relation(fields: [orgId], references: [id])
+  acknowledgments DocumentAcknowledgment[]
 
   @@index([orgId, type])
   @@index([orgId, isPublishedToWorkers])
@@ -1561,13 +1888,11 @@ model OrgDocument {
 /**
  * DocumentAcknowledgment — acuse de recibo del trabajador para una versión
  * específica de un OrgDocument (RIT, Política SST, Política Hostigamiento, etc.).
- *
  * Diseñado para defensa legal SUNAFIL bajo Ley 27269 (firma electrónica):
- *   - documentVersion garantiza trazabilidad exacta de qué texto firmó
- *   - signatureMethod soporta SIMPLE | BIOMETRIC | OTP_EMAIL
- *   - signatureProof guarda metadata específica del método (credentialId, etc.)
- *   - ip + userAgent + scrolledToEnd + readingTimeMs = evidencia de lectura genuina
- *
+ * - documentVersion garantiza trazabilidad exacta de qué texto firmó
+ * - signatureMethod soporta SIMPLE | BIOMETRIC | OTP_EMAIL
+ * - signatureProof guarda metadata específica del método (credentialId, etc.)
+ * - ip + userAgent + scrolledToEnd + readingTimeMs = evidencia de lectura genuina
  * Uno por (worker, doc, version) — si admin actualiza la versión, worker
  * debe firmar de nuevo.
  */
@@ -1580,18 +1905,18 @@ model DocumentAcknowledgment {
   acknowledgedAt  DateTime @default(now()) @map("acknowledged_at")
 
   // Métodos de firma (orden de fortaleza legal: SIMPLE < OTP_EMAIL < BIOMETRIC)
-  signatureMethod String   @map("signature_method")
-  signatureProof  Json?    @map("signature_proof")
+  signatureMethod String @map("signature_method")
+  signatureProof  Json?  @map("signature_proof")
 
   // Evidencia técnica de lectura — para defensa en juicio
-  ip              String?
-  userAgent       String?  @map("user_agent")
-  scrolledToEnd   Boolean  @default(false) @map("scrolled_to_end")
-  readingTimeMs   Int?     @map("reading_time_ms")
+  ip            String?
+  userAgent     String? @map("user_agent")
+  scrolledToEnd Boolean @default(false) @map("scrolled_to_end")
+  readingTimeMs Int?    @map("reading_time_ms")
 
-  worker          Worker      @relation(fields: [workerId], references: [id])
-  document        OrgDocument @relation(fields: [documentId], references: [id])
-  organization    Organization @relation(fields: [orgId], references: [id])
+  worker       Worker       @relation(fields: [workerId], references: [id])
+  document     OrgDocument  @relation(fields: [documentId], references: [id])
+  organization Organization @relation(fields: [orgId], references: [id])
 
   @@unique([workerId, documentId, documentVersion])
   @@index([orgId, documentId])
@@ -1858,20 +2183,20 @@ model Workflow {
 // La UI calcula el próximo disparo client-side con `cron-parser`.
 
 model ScheduledReport {
-  id             String   @id @default(cuid())
-  orgId          String   @map("org_id")
-  reportType     String   @map("report_type") // 'compliance-ejecutivo' | 'sst-anual' | 'workers' | ...
-  cronExpression String   @map("cron_expression") // ej "0 8 1 * *"
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  reportType     String    @map("report_type") // 'compliance-ejecutivo' | 'sst-anual' | 'workers' | ...
+  cronExpression String    @map("cron_expression") // ej "0 8 1 * *"
   recipients     String[] // emails destinatarios
   format         String // 'PDF' | 'XLSX' | 'BOTH'
   params         Json? // filtros por tipo (year, department, regime)
-  active         Boolean  @default(true)
+  active         Boolean   @default(true)
   lastRunAt      DateTime? @map("last_run_at")
   lastRunStatus  String?   @map("last_run_status") // 'SUCCESS' | 'FAILED'
   lastRunError   String?   @map("last_run_error") @db.Text
-  createdBy      String?  @map("created_by")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@index([orgId, active])
   @@map("scheduled_reports")
@@ -1907,37 +2232,35 @@ model WorkflowRun {
 
 /**
  * Suscripciones de webhooks salientes (API pública v1).
- *
  * Cliente B2B configura un endpoint propio + lista de eventos a recibir.
  * Cuando el event bus interno emite un `DomainEvent`, el handler de webhook
  * dispatch busca subs activas matching y crea filas `WebhookDelivery` que
  * el cron `webhook-retry` procesa con HMAC + backoff exponencial.
- *
  * Patrón de seguridad:
- *   - HMAC-SHA256 sobre el body, header `X-Comply360-Signature`
- *   - Replay protection con `X-Comply360-Timestamp` (ventana 5min)
+ * - HMAC-SHA256 sobre el body, header `X-Comply360-Signature`
+ * - Replay protection con `X-Comply360-Timestamp` (ventana 5min)
  */
 model WebhookSubscription {
-  id              String   @id @default(cuid())
-  orgId           String   @map("org_id")
-  url             String
-  events          String[] @default([])
+  id                  String    @id @default(cuid())
+  orgId               String    @map("org_id")
+  url                 String
+  events              String[]  @default([])
   /**
    * Secret aleatorio (32 bytes hex). Comply360 lo guarda en claro porque
    * es shared secret HMAC, NO credencial de usuario. Se exhibe UNA vez al
    * crear la sub.
    */
-  secret          String
-  description     String?
-  active          Boolean  @default(true)
-  lastDeliveryAt  DateTime? @map("last_delivery_at")
-  lastDeliveryStatus String? @map("last_delivery_status")
-  consecutiveFailures Int   @default(0) @map("consecutive_failures")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  createdBy       String?  @map("created_by")
+  secret              String
+  description         String?
+  active              Boolean   @default(true)
+  lastDeliveryAt      DateTime? @map("last_delivery_at")
+  lastDeliveryStatus  String?   @map("last_delivery_status")
+  consecutiveFailures Int       @default(0) @map("consecutive_failures")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by")
 
-  deliveries      WebhookDelivery[]
+  deliveries WebhookDelivery[]
 
   @@index([orgId, active])
   @@map("webhook_subscriptions")
@@ -1950,23 +2273,23 @@ model WebhookSubscription {
  * consecutivos en una misma sub, la sub queda `active=false`.
  */
 model WebhookDelivery {
-  id              String   @id @default(cuid())
-  subscriptionId  String   @map("subscription_id")
-  orgId           String   @map("org_id")
-  eventName       String   @map("event_name")
-  eventId         String   @map("event_id")
-  payload         Json
-  status          String   @default("PENDING")
-  attempts        Int      @default(0)
-  lastAttemptAt   DateTime? @map("last_attempt_at")
-  nextRetryAt     DateTime? @map("next_retry_at")
-  responseStatus  Int?     @map("response_status")
-  responseBody    String?  @map("response_body")
-  error           String?
-  createdAt       DateTime @default(now()) @map("created_at")
-  completedAt     DateTime? @map("completed_at")
+  id             String    @id @default(cuid())
+  subscriptionId String    @map("subscription_id")
+  orgId          String    @map("org_id")
+  eventName      String    @map("event_name")
+  eventId        String    @map("event_id")
+  payload        Json
+  status         String    @default("PENDING")
+  attempts       Int       @default(0)
+  lastAttemptAt  DateTime? @map("last_attempt_at")
+  nextRetryAt    DateTime? @map("next_retry_at")
+  responseStatus Int?      @map("response_status")
+  responseBody   String?   @map("response_body")
+  error          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
 
-  subscription    WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([status, nextRetryAt])
   @@index([subscriptionId, createdAt])
@@ -1977,29 +2300,26 @@ model WebhookDelivery {
 /**
  * Sello "Compliance-Ready" — distintivo público que la empresa exhibe en
  * su web propia para acreditar el cumplimiento sostenido en el tiempo.
- *
  * Reglas de emisión (cron mensual):
- *   - score actual ≥ 80
- *   - score promedio últimos 90 días ≥ 80
- *
+ * - score actual ≥ 80
+ * - score promedio últimos 90 días ≥ 80
  * Verificación pública en `/verify/[slug]` — devuelve org info, score
  * histórico simple, y `validUntil`. SEO-friendly + lock-in real porque la
  * empresa publica el badge en su web (link de vuelta a Comply360).
- *
  * Tiers visuales:
- *   - BRONZE: score 80-89
- *   - SILVER: score 90-94
- *   - GOLD:   score ≥95
+ * - BRONZE: score 80-89
+ * - SILVER: score 90-94
+ * - GOLD:   score ≥95
  */
 model OrgComplianceSeal {
-  id            String   @id @default(cuid())
-  orgId         String   @map("org_id")
-  slug          String   @unique
-  scoreAtIssue  Int      @map("score_at_issue")
-  scoreAvg90d   Int      @map("score_avg_90d")
-  tier          String   @default("BRONZE")
-  issuedAt      DateTime @default(now()) @map("issued_at")
-  validUntil    DateTime @map("valid_until")
+  id            String    @id @default(cuid())
+  orgId         String    @map("org_id")
+  slug          String    @unique
+  scoreAtIssue  Int       @map("score_at_issue")
+  scoreAvg90d   Int       @map("score_avg_90d")
+  tier          String    @default("BRONZE")
+  issuedAt      DateTime  @default(now()) @map("issued_at")
+  validUntil    DateTime  @map("valid_until")
   revokedAt     DateTime? @map("revoked_at")
   revokedReason String?   @map("revoked_reason")
 
@@ -2010,19 +2330,17 @@ model OrgComplianceSeal {
 
 /**
  * Bitácora idempotente de ejecuciones de crons.
- *
  * Cada cron registra su corrida acá con (cronName, bucket). El `bucket` es
  * un identificador determinístico del intervalo en el que cae la corrida
  * (por ejemplo el minuto en formato `YYYYMMDDHHmm`). El unique constraint
  * `[cronName, bucket]` previene que dos invocaciones en el mismo bucket
  * ejecuten el handler — usual cuando Vercel reintenta o cuando alguien
  * dispara manualmente con `curl` mientras el cron está corriendo.
- *
  * Uso desde un cron:
- *   const claim = await claimCronRun('morning-briefing')
- *   if (!claim.acquired) return Response.json({ duplicate: true })
- *   try { ...trabajo real... }
- *   await completeCronRun(claim.runId, { ok: true, processed: 42 })
+ * const claim = await claimCronRun('morning-briefing')
+ * if (!claim.acquired) return Response.json({ duplicate: true })
+ * try { ...trabajo real... }
+ * await completeCronRun(claim.runId, { ok: true, processed: 42 })
  */
 model CronRun {
   id          String    @id @default(cuid())
@@ -2045,15 +2363,12 @@ model CronRun {
 
 /**
  * Telemetría de uso de IA — un registro por llamada al LLM.
- *
  * Permite responder preguntas críticas sin pelear con logs:
- *   - ¿Cuánto USD gasté esta semana en gpt-4o-mini para contract-review?
- *   - ¿Qué org consume el 80% del budget?
- *   - ¿Tengo orgs FREE quemando tokens (= bug)?
- *   - ¿Qué feature tiene latencia p95 mala?
- *
+ * - ¿Cuánto USD gasté esta semana en gpt-4o-mini para contract-review?
+ * - ¿Qué org consume el 80% del budget?
+ * - ¿Tengo orgs FREE quemando tokens (= bug)?
+ * - ¿Qué feature tiene latencia p95 mala?
  * Sin esto, escalar IA es a ciegas: cada feature nueva genera costo opaco.
- *
  * Persistencia es **fire-and-forget** desde el helper — si la creación
  * falla, la llamada al LLM ya tuvo éxito y no debemos romper el flujo del
  * usuario. Se logea el error a console.
@@ -2074,13 +2389,21 @@ model AiUsage {
    * promptTokens. Permite calcular cache hit rate y costo real.
    */
   cachedTokens     Int?     @map("cached_tokens")
-  /** Tokens de reasoning interno (DeepSeek-reasoner / o1). Se cobran como completion. */
+  /**
+   * Tokens de reasoning interno (DeepSeek-reasoner / o1). Se cobran como completion.
+   */
   reasoningTokens  Int?     @map("reasoning_tokens")
-  /** Time-to-first-token en streams. Null si no fue stream. */
+  /**
+   * Time-to-first-token en streams. Null si no fue stream.
+   */
   ttftMs           Int?     @map("ttft_ms")
-  /** True si el primario falló y se sirvió desde fallback. */
+  /**
+   * True si el primario falló y se sirvió desde fallback.
+   */
   fallbackUsed     Boolean  @default(false) @map("fallback_used")
-  /** Score producido por el eval harness (si esta llamada vino de un eval run). */
+  /**
+   * Score producido por el eval harness (si esta llamada vino de un eval run).
+   */
   evalScore        Float?   @map("eval_score")
   /**
    * Costo estimado en USD calculado con la pricing table local.
@@ -2107,7 +2430,9 @@ model AiUsage {
 model AiBudgetCounter {
   id            String   @id @default(cuid())
   orgId         String   @map("org_id")
-  /** Mes calendario UTC en formato YYYY-MM-01 (DateTime al inicio del mes). */
+  /**
+   * Mes calendario UTC en formato YYYY-MM-01 (DateTime al inicio del mes).
+   */
   monthStart    DateTime @map("month_start")
   totalCalls    Int      @default(0) @map("total_calls")
   totalTokens   Int      @default(0) @map("total_tokens")
@@ -2123,42 +2448,39 @@ model AiBudgetCounter {
 
 /**
  * Credenciales WebAuthn registradas por usuarios para firma biométrica.
- *
  * Cada vez que un trabajador registra su huella / Face ID / Windows Hello en
  * el portal, almacenamos la `publicKey` que el authenticator nos entrega. En
  * cada firma posterior validamos la `assertion` contra esta clave pública
  * usando `@simplewebauthn/server` (`verifyAuthenticationResponse`).
- *
  * Sin esto, la firma biométrica solo verifica el challenge JWT — no prueba
  * que es ESE dispositivo específico el que firma. Con esto, una firma falsa
  * desde un device distinto se rechaza criptográficamente, alcanzando la
  * "firma electrónica fuerte" de la Ley 27269.
- *
  * Campos:
- *   - credentialID: bytes del credential id devuelto por el authenticator.
- *   - publicKey:    bytes de la clave pública (formato CBOR, COSE_Key).
- *   - counter:      anti-cloning. Incrementa cada uso. Si baja → rechazo.
- *   - transports:   ['internal','hybrid','usb', ...] reportado por el browser.
- *   - aaguid:       identifier del modelo de authenticator (16 bytes hex).
- *   - deviceType:   'singleDevice' | 'multiDevice' (passkeys sincronizables).
- *   - backedUp:     true si la passkey está en iCloud/Google Password Manager.
- *   - legacy:       credentials registrados antes de Sprint 1 con engine
- *                   casero. Se aceptan en modo no estricto pero el usuario
- *                   debe re-enrollar para obtener firma fuerte.
+ * - credentialID: bytes del credential id devuelto por el authenticator.
+ * - publicKey:    bytes de la clave pública (formato CBOR, COSE_Key).
+ * - counter:      anti-cloning. Incrementa cada uso. Si baja → rechazo.
+ * - transports:   ['internal','hybrid','usb', ...] reportado por el browser.
+ * - aaguid:       identifier del modelo de authenticator (16 bytes hex).
+ * - deviceType:   'singleDevice' | 'multiDevice' (passkeys sincronizables).
+ * - backedUp:     true si la passkey está en iCloud/Google Password Manager.
+ * - legacy:       credentials registrados antes de Sprint 1 con engine
+ * casero. Se aceptan en modo no estricto pero el usuario
+ * debe re-enrollar para obtener firma fuerte.
  */
 model WebAuthnCredential {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
-  credentialID Bytes    @map("credential_id")
-  publicKey    Bytes    @map("public_key")
-  counter      BigInt   @default(0)
-  transports   String[] @default([])
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  credentialID Bytes     @map("credential_id")
+  publicKey    Bytes     @map("public_key")
+  counter      BigInt    @default(0)
+  transports   String[]  @default([])
   aaguid       String?
-  deviceType   String?  @map("device_type")
-  backedUp     Boolean  @default(false) @map("backed_up")
+  deviceType   String?   @map("device_type")
+  backedUp     Boolean   @default(false) @map("backed_up")
   nickname     String? // ej. "iPhone 15 — huella"
-  legacy       Boolean  @default(false)
-  createdAt    DateTime @default(now()) @map("created_at")
+  legacy       Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at")
   lastUsedAt   DateTime? @map("last_used_at")
 
   @@unique([userId, credentialID])
@@ -2168,32 +2490,296 @@ model WebAuthnCredential {
 
 /**
  * Idempotencia de webhooks entrantes.
- *
  * Culqi (y otros providers en el futuro) reenvían eventos cuando el receptor
  * tarda en responder o cae. Sin dedupe, `charge.success` reenviado puede
  * extender el `currentPeriodEnd` de la subscription un mes extra por cada
  * retry, regalando plan al cliente.
- *
  * Flow:
- *   1. Webhook entra → `upsert { provider_externalId }` con `processedAt: null`.
- *   2. Si `processedAt != null` → 200 OK + `{ duplicated: true }` sin reprocesar.
- *   3. Si es nuevo → procesar handler → marcar `processedAt = now()` + `status`.
- *
+ * 1. Webhook entra → `upsert { provider_externalId }` con `processedAt: null`.
+ * 2. Si `processedAt != null` → 200 OK + `{ duplicated: true }` sin reprocesar.
+ * 3. Si es nuevo → procesar handler → marcar `processedAt = now()` + `status`.
  * Ver `src/app/api/payments/webhook/route.ts`.
  */
 model WebhookEvent {
-  id           String    @id @default(cuid())
-  provider     String // 'culqi' | 'clerk' | 'resend' | ...
-  externalId   String    @map("external_id") // chargeId, eventId del provider
-  eventType    String?   @map("event_type") // 'charge.success', etc.
-  payload      Json
-  status       String    @default("RECEIVED") // RECEIVED | PROCESSED | FAILED | DUPLICATED
-  error        String?
-  receivedAt   DateTime  @default(now()) @map("received_at")
-  processedAt  DateTime? @map("processed_at")
+  id          String    @id @default(cuid())
+  provider    String // 'culqi' | 'clerk' | 'resend' | ...
+  externalId  String    @map("external_id") // chargeId, eventId del provider
+  eventType   String?   @map("event_type") // 'charge.success', etc.
+  payload     Json
+  status      String    @default("RECEIVED") // RECEIVED | PROCESSED | FAILED | DUPLICATED
+  error       String?
+  receivedAt  DateTime  @default(now()) @map("received_at")
+  processedAt DateTime? @map("processed_at")
 
   @@unique([provider, externalId])
   @@index([provider, status])
   @@index([receivedAt])
   @@map("webhook_events")
+}
+
+// =============================================
+// ORGANIGRAMA — Compliance-First Org Chart
+// =============================================
+//
+// Estructura organizacional viva con base legal peruana embebida.
+// El organigrama deja de ser un cuadro estático y se convierte en el panel
+// de control de responsabilidades legales frente a SUNAFIL (Ley 29783 SST,
+// Ley 27942 hostigamiento, Ley 29733 datos personales).
+//
+// Modelos:
+//   - OrgUnit          → unidad (gerencia/área/comité/brigada) con jerarquía adjacency
+//   - OrgUnitClosure   → closure table mantenida en aplicación
+//   - OrgPosition      → cargo dentro de una unidad
+//   - OrgAssignment    → Worker ↔ Position con titularidad e historial
+//   - OrgComplianceRole → rol legal peruano asignado a un Worker (Comité SST, DPO, etc.)
+//   - OrgChartSnapshot → time travel firmado con hash sha256
+//   - OrgChartDraft    → sandbox what-if (Fase 3)
+
+enum UnitKind {
+  GERENCIA
+  AREA
+  DEPARTAMENTO
+  EQUIPO
+  COMITE_LEGAL
+  BRIGADA
+  PROYECTO
+}
+
+enum ComplianceRoleType {
+  PRESIDENTE_COMITE_SST // Ley 29783 art. 29
+  SECRETARIO_COMITE_SST // Ley 29783 art. 29
+  REPRESENTANTE_TRABAJADORES_SST // Ley 29783 art. 29 (mín. 50% trabajadores)
+  REPRESENTANTE_EMPLEADOR_SST // Ley 29783 art. 29
+  SUPERVISOR_SST // Ley 29783 art. 30 (≤20 trabajadores)
+  PRESIDENTE_COMITE_HOSTIGAMIENTO // Ley 27942 / D.S. 014-2019-MIMP
+  MIEMBRO_COMITE_HOSTIGAMIENTO // Ley 27942
+  JEFE_INMEDIATO_HOSTIGAMIENTO // Receptor de denuncias
+  BRIGADISTA_PRIMEROS_AUXILIOS // Ley 29783 / R.M. 050-2013-TR
+  BRIGADISTA_EVACUACION // Ley 29783
+  BRIGADISTA_AMAGO_INCENDIO // Ley 29783
+  DPO_LEY_29733 // Ley 29733 art. 42 (obligatorio >100 trabajadores)
+  RT_PLANILLA // Responsable T-REGISTRO/PLAME
+  RESPONSABLE_IGUALDAD_SALARIAL // Ley 30709
+  ENCARGADO_LIBRO_RECLAMACIONES // Código Consumo
+  MEDICO_OCUPACIONAL // Ley 29783 / D.S. 005-2012-TR (>200 trabajadores)
+  ASISTENTA_SOCIAL // D.S. 009-2016-MIMP (>100 trabajadoras)
+  RESPONSABLE_LACTARIO // Ley 29896 (≥20 trabajadoras en edad fértil)
+  ENCARGADO_NUTRICION // Sector alimentario · DIGESA
+}
+
+enum OrgStructureChangeType {
+  UNIT_CREATE
+  UNIT_UPDATE
+  UNIT_DELETE
+  UNIT_MOVE
+  POSITION_CREATE
+  POSITION_UPDATE
+  POSITION_DELETE
+  POSITION_REPARENT
+  ASSIGNMENT_CREATE
+  ASSIGNMENT_END
+  ASSIGNMENT_REASSIGN
+  COMPLIANCE_ROLE_CREATE
+  COMPLIANCE_ROLE_END
+  SNAPSHOT_CREATE
+  PUBLIC_LINK_CREATE
+}
+
+model OrgUnit {
+  id          String    @id @default(cuid())
+  orgId       String    @map("org_id")
+  parentId    String?   @map("parent_id")
+  name        String
+  slug        String
+  kind        UnitKind  @default(AREA)
+  code        String?
+  description String?
+  costCenter  String?   @map("cost_center")
+  level       Int       @default(0)
+  sortOrder   Int       @default(0) @map("sort_order")
+  color       String?
+  icon        String?
+  version     Int       @default(1)
+  isActive    Boolean   @default(true) @map("is_active")
+  validFrom   DateTime  @default(now()) @map("valid_from")
+  validTo     DateTime? @map("valid_to")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  organization       Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  parent             OrgUnit?            @relation("OrgUnitParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children           OrgUnit[]           @relation("OrgUnitParent")
+  positions          OrgPosition[]
+  ancestorClosures   OrgUnitClosure[]    @relation("ClosureDescendant")
+  descendantClosures OrgUnitClosure[]    @relation("ClosureAncestor")
+  complianceRoles    OrgComplianceRole[]
+
+  @@unique([orgId, slug])
+  @@index([orgId, parentId])
+  @@index([orgId, kind])
+  @@index([orgId, validFrom, validTo])
+  @@map("org_units")
+}
+
+model OrgUnitClosure {
+  ancestorId   String @map("ancestor_id")
+  descendantId String @map("descendant_id")
+  depth        Int
+
+  ancestor   OrgUnit @relation("ClosureAncestor", fields: [ancestorId], references: [id], onDelete: Cascade)
+  descendant OrgUnit @relation("ClosureDescendant", fields: [descendantId], references: [id], onDelete: Cascade)
+
+  @@id([ancestorId, descendantId])
+  @@index([descendantId])
+  @@map("org_unit_closure")
+}
+
+model OrgPosition {
+  id                  String    @id @default(cuid())
+  orgId               String    @map("org_id")
+  orgUnitId           String    @map("org_unit_id")
+  title               String
+  code                String?
+  description         String?
+  level               String?
+  purpose             String?   @db.Text
+  functions           Json?
+  responsibilities    Json?
+  requirements        Json?
+  salaryBandMin       Decimal?  @map("salary_band_min") @db.Decimal(10, 2)
+  salaryBandMax       Decimal?  @map("salary_band_max") @db.Decimal(10, 2)
+  category            String?
+  riskCategory        String?   @map("risk_category")
+  requiresSctr        Boolean   @default(false) @map("requires_sctr")
+  requiresMedicalExam Boolean   @default(false) @map("requires_medical_exam")
+  isCritical          Boolean   @default(false) @map("is_critical")
+  isManagerial        Boolean   @default(false) @map("is_managerial")
+  reportsToPositionId String?   @map("reports_to_position_id")
+  backupPositionId    String?   @map("backup_position_id")
+  seats               Int       @default(1)
+  raciDefault         Json?     @map("raci_default")
+  validFrom           DateTime  @default(now()) @map("valid_from")
+  validTo             DateTime? @map("valid_to")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgUnit      OrgUnit         @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  reportsTo    OrgPosition?    @relation("OrgPositionReportsTo", fields: [reportsToPositionId], references: [id], onDelete: SetNull)
+  reportees    OrgPosition[]   @relation("OrgPositionReportsTo")
+  backup       OrgPosition?    @relation("OrgPositionBackup", fields: [backupPositionId], references: [id], onDelete: SetNull)
+  backupOf     OrgPosition[]   @relation("OrgPositionBackup")
+  assignments  OrgAssignment[]
+
+  @@index([orgId, orgUnitId])
+  @@index([orgId, reportsToPositionId])
+  @@index([orgId, validFrom, validTo])
+  @@map("org_positions")
+}
+
+model OrgAssignment {
+  id          String    @id @default(cuid())
+  orgId       String    @map("org_id")
+  workerId    String    @map("worker_id")
+  positionId  String    @map("position_id")
+  isPrimary   Boolean   @default(true) @map("is_primary")
+  isInterim   Boolean   @default(false) @map("is_interim")
+  startedAt   DateTime  @default(now()) @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+  capacityPct Int       @default(100) @map("capacity_pct")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  position     OrgPosition  @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, workerId, endedAt])
+  @@index([orgId, positionId, endedAt])
+  @@map("org_assignments")
+}
+
+model OrgComplianceRole {
+  id        String             @id @default(cuid())
+  orgId     String             @map("org_id")
+  workerId  String             @map("worker_id")
+  roleType  ComplianceRoleType @map("role_type")
+  unitId    String?            @map("unit_id")
+  startsAt  DateTime           @default(now()) @map("starts_at")
+  endsAt    DateTime?          @map("ends_at")
+  electedAt DateTime?          @map("elected_at")
+  actaUrl   String?            @map("acta_url")
+  baseLegal String?            @map("base_legal")
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  unit         OrgUnit?     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, roleType, endsAt])
+  @@index([orgId, workerId])
+  @@map("org_compliance_roles")
+}
+
+model OrgChartSnapshot {
+  id          String   @id @default(cuid())
+  orgId       String   @map("org_id")
+  label       String
+  reason      String?
+  takenById   String?  @map("taken_by_id")
+  payload     Json
+  workerCount Int      @default(0) @map("worker_count")
+  unitCount   Int      @default(0) @map("unit_count")
+  depthMax    Int      @default(0) @map("depth_max")
+  hash        String
+  isAuto      Boolean  @default(false) @map("is_auto")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, hash])
+  @@index([orgId, createdAt])
+  @@map("org_chart_snapshots")
+}
+
+model OrgChartDraft {
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  name           String
+  baseSnapshotId String?   @map("base_snapshot_id")
+  payload        Json
+  diffSummary    Json?     @map("diff_summary")
+  impactReport   Json?     @map("impact_report")
+  createdById    String    @map("created_by_id")
+  status         String    @default("DRAFT") // DRAFT | REVIEWING | APPLIED | DISCARDED
+  appliedAt      DateTime? @map("applied_at")
+  appliedById    String?   @map("applied_by_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, status])
+  @@map("org_chart_drafts")
+}
+
+model OrgStructureChangeLog {
+  id            String                 @id @default(cuid())
+  orgId         String                 @map("org_id")
+  type          OrgStructureChangeType
+  entityType    String                 @map("entity_type")
+  entityId      String                 @map("entity_id")
+  beforeJson    Json?                  @map("before_json")
+  afterJson     Json?                  @map("after_json")
+  performedById String?                @map("performed_by_id")
+  ipAddress     String?                @map("ip_address")
+  reason        String?
+  createdAt     DateTime               @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+  @@index([orgId, entityType, entityId])
+  @@map("org_structure_change_logs")
 }

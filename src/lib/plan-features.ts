@@ -27,6 +27,8 @@ export type PlanFeature =
   | 'api_access'
   | 'gamificacion'
   | 'attendance_selfie'
+  | 'organigrama'           // Organigrama básico CRUD + Compliance Mesh (PRO+)
+  | 'organigrama_completo'  // AI Org Doctor + Time travel + Auditor Link (EMPRESA+)
   | 'multi_empresa'        // Holding básico (BUSINESS+) o ilimitado (ENTERPRISE)
   | 'reportes_consolidados' // Reportes cross-empresa
   | 'csm_dedicado'         // Customer Success Manager
@@ -55,6 +57,8 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'reportes_pdf',
     'ia_contratos',
     'gamificacion',
+    'organigrama',
+    'organigrama_completo',
   ],
   PRO: [
     'calculadoras',
@@ -74,6 +78,7 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'api_access',
     'gamificacion',
     'attendance_selfie',
+    'organigrama',
   ],
   BUSINESS: [
     'calculadoras',
@@ -93,6 +98,8 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'api_access',
     'gamificacion',
     'attendance_selfie',
+    'organigrama',
+    'organigrama_completo',
     'multi_empresa',
     'reportes_consolidados',
   ],
@@ -114,6 +121,8 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'api_access',
     'gamificacion',
     'attendance_selfie',
+    'organigrama',
+    'organigrama_completo',
     'multi_empresa',
     'reportes_consolidados',
     'csm_dedicado',
@@ -147,6 +156,8 @@ export const FEATURE_MIN_PLAN: Record<PlanFeature, string> = {
   sst_completo: 'PRO',
   api_access: 'PRO',
   attendance_selfie: 'PRO',
+  organigrama: 'PRO',
+  organigrama_completo: 'EMPRESA',
   multi_empresa: 'BUSINESS',
   reportes_consolidados: 'BUSINESS',
   csm_dedicado: 'ENTERPRISE',
@@ -172,6 +183,7 @@ export const ROUTE_FEATURE_MAP: Record<string, PlanFeature> = {
   '/dashboard/sst': 'sst_completo',
   '/dashboard/api-docs': 'api_access',
   '/dashboard/gamificacion': 'gamificacion',
+  '/dashboard/organigrama': 'organigrama',
 }
 
 export function planHasFeature(plan: string, feature: PlanFeature): boolean {

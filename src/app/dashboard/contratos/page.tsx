@@ -158,6 +158,13 @@ export default function ContratosPage() {
               Importar legajo PDF
             </Link>
             <Link
+              href="/dashboard/contratos/bulk"
+              className="inline-flex items-center gap-2 rounded-lg border border-blue-500/40 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-100 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5 rotate-180" />
+              Generación masiva
+            </Link>
+            <Link
               href="/dashboard/contratos/nuevo"
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors"
               style={{ boxShadow: '0 1px 2px rgba(4,120,87,0.18), inset 0 1px 0 rgba(255,255,255,0.12)' }}

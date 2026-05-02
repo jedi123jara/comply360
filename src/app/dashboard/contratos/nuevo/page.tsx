@@ -24,6 +24,7 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { CONTRACT_TEMPLATES, type ContractTemplateDefinition, type TemplateField } from '@/lib/legal-engine/contracts/templates'
 import { generateDocx } from '@/lib/docx/generate-docx'
+import { RegimeBadge } from '@/components/contracts/regime-badge'
 
 // ─── Types for AI generated contract (mirror of contract-generator.ts) ──────
 interface AIContractClause {
@@ -710,6 +711,9 @@ function NuevoContratoInner() {
               Elige una plantilla. Todas están actualizadas con la normativa peruana vigente.
             </p>
           </div>
+
+          {/* Detección automática de régimen — Generador de Contratos / Chunk 2 */}
+          <RegimeBadge />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {TEMPLATE_OPTIONS.map(opt => {

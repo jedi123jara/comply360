@@ -2,6 +2,8 @@ import 'dotenv/config'
 import pg from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../src/generated/prisma/client.js'
+import { seedContractValidationRules } from '../src/lib/contracts/validation/seed-runner'
+import { seedContractClauses } from '../src/lib/contracts/clauses/seed-runner'
 
 const pool = new pg.Pool({ connectionString: process.env.DIRECT_URL })
 const adapter = new PrismaPg(pool)
@@ -1175,16 +1177,36 @@ async function main() {
   console.log(`   ✅ ${courseCount} cursos creados\n`)
 
   // =============================================
+  // REGLAS DE VALIDACIÓN DE CONTRATOS (Generador)
+  // =============================================
+  console.log('⚖️  Sembrando reglas de validación de contratos...')
+  const validationRules = await seedContractValidationRules(prisma)
+  console.log(
+    `   ✅ ${validationRules.total} reglas (${validationRules.created} nuevas, ${validationRules.updated} actualizadas)\n`,
+  )
+
+  // =============================================
+  // CATÁLOGO DE CLÁUSULAS DE CONTRATOS (Generador / Chunk 4)
+  // =============================================
+  console.log('📜 Sembrando catálogo de cláusulas...')
+  const clauses = await seedContractClauses(prisma)
+  console.log(
+    `   ✅ ${clauses.total} cláusulas (${clauses.created} nuevas, ${clauses.updated} actualizadas)\n`,
+  )
+
+  // =============================================
   // RESUMEN FINAL
   // =============================================
   console.log('═══════════════════════════════════════════')
   console.log('  COMPLY360 — Seed completado exitosamente')
   console.log('═══════════════════════════════════════════')
-  console.log(`  📜 Normas legales:     ${normas.length}`)
-  console.log(`  ⚖️  Reglas compliance:  ${reglas.length}`)
-  console.log(`  📄 Templates contrato: ${templates.length}`)
-  console.log(`  🔔 Alertas normativas: ${alertas.length}`)
-  console.log(`  🎓 Cursos e-learning:  ${courseCount}`)
+  console.log(`  📜 Normas legales:        ${normas.length}`)
+  console.log(`  ⚖️  Reglas compliance:     ${reglas.length}`)
+  console.log(`  📄 Templates contrato:    ${templates.length}`)
+  console.log(`  🔔 Alertas normativas:    ${alertas.length}`)
+  console.log(`  🎓 Cursos e-learning:     ${courseCount}`)
+  console.log(`  ⚖️  Reglas validación:     ${validationRules.total}`)
+  console.log(`  📋 Cláusulas catálogo:    ${clauses.total}`)
   console.log('═══════════════════════════════════════════\n')
 }
 

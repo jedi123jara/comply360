@@ -382,6 +382,7 @@ export const NAV_HUBS: readonly NavHub[] = [
       // las acciones de uso DIARIO. Los demás (planilla, boletas, prestadores)
       // son uso semanal/mensual y van debajo.
       { label: "Trabajadores", href: "/dashboard/trabajadores", icon: "Users" },
+      { label: "Organigrama", href: "/dashboard/organigrama", icon: "Network" },
       { label: "Asistencia", href: "/dashboard/asistencia", icon: "Clock" },
       { label: "Vacaciones", href: "/dashboard/vacaciones", icon: "CalendarRange" },
       { label: "Solicitudes", href: "/dashboard/solicitudes", icon: "ClipboardList" },

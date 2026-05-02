@@ -81,6 +81,33 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
     },
   })
 
+  // Re-validar fire-and-forget si cambiaron datos relevantes (formData / contenido).
+  if (body.formData !== undefined || body.contentHtml !== undefined) {
+    import('@/lib/contracts/validation/engine').then(({ runValidationPipelineFireAndForget }) => {
+      runValidationPipelineFireAndForget(params.id, ctx.orgId, {
+        triggeredBy: ctx.userId,
+        trigger: 'update',
+      })
+    }).catch((err) => console.warn('[validation] re-validation failed:', err))
+
+    // Versionado (Chunk 3) — appendar nueva versión al hash-chain.
+    import('@/lib/contracts/versioning/service').then(({ createContractVersionFireAndForget }) => {
+      createContractVersionFireAndForget({
+        contractId: params.id,
+        orgId: ctx.orgId,
+        changedBy: ctx.userId,
+        changeReason: body.formData !== undefined && body.contentHtml !== undefined
+          ? 'Edición de datos y contenido'
+          : body.contentHtml !== undefined
+            ? 'Edición del contenido del contrato'
+            : 'Edición de datos del contrato',
+        contentHtml: body.contentHtml ?? updated.contentHtml,
+        contentJson: updated.contentJson,
+        formData: (body.formData ?? updated.formData) as Record<string, unknown> | null,
+      })
+    }).catch((err) => console.warn('[versioning] update version failed:', err))
+  }
+
   // ── Onboarding cascade: si el contrato pasa a SIGNED, disparar para cada
   //    worker vinculado. Fire-and-forget: no bloqueamos la respuesta al admin.
   if (body.status === 'SIGNED' && contract.status !== 'SIGNED') {

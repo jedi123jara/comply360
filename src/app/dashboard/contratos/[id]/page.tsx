@@ -30,12 +30,16 @@ import {
 } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
 import { useToast } from '@/components/ui/toast'
+import { ContractValidationsPanel } from '@/components/contracts/contract-validations-panel'
+import { ContractVersionsPanel } from '@/components/contracts/contract-versions-panel'
+import { ClauseComposer } from '@/components/contracts/clause-composer'
+import { ContractRiskBadge } from '@/components/contracts/contract-risk-badge'
 
 // =============================================
 // Types
 // =============================================
 
-type ActiveTab = 'detalles' | 'contrato' | 'ia'
+type ActiveTab = 'detalles' | 'contrato' | 'clausulas' | 'validacion' | 'historial' | 'ia'
 
 interface WorkerOption {
   id: string
@@ -309,6 +313,8 @@ export default function ContratoDetailPage() {
                   <StatusIcon className="w-3 h-3" />
                   {statusCfg.label}
                 </span>
+                {/* Risk badge — Generador de Contratos / Chunk 5 */}
+                <ContractRiskBadge contractId={id as string} refreshKey={contract.updatedAt} />
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
                 Creado {new Date(contract.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -327,6 +333,14 @@ export default function ContratoDetailPage() {
             >
               <Download className="w-4 h-4" />
               PDF
+            </a>
+            <a
+              href={`/api/contracts/${id}/render-docx`}
+              download
+              className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-sm font-semibold transition-colors border border-blue-500/20"
+            >
+              <Download className="w-4 h-4" />
+              DOCX
             </a>
             <Link
               href={`/dashboard/contratos/${id}/analisis`}
@@ -425,6 +439,9 @@ export default function ContratoDetailPage() {
         {([
           { key: 'detalles', label: 'Detalles', Icon: FileText },
           { key: 'contrato', label: 'Ver Contrato', Icon: Scroll },
+          { key: 'clausulas', label: 'Cláusulas', Icon: Scroll },
+          { key: 'validacion', label: 'Validación legal', Icon: ShieldCheck },
+          { key: 'historial', label: 'Historial', Icon: TrendingUp },
           { key: 'ia', label: 'Análisis IA', Icon: Bot },
         ] as { key: ActiveTab; label: string; Icon: React.ElementType }[]).map(({ key, label, Icon }) => (
           <button
@@ -622,6 +639,31 @@ export default function ContratoDetailPage() {
               <p className="text-xs text-slate-500 mt-1">Este contrato fue creado sin plantilla HTML. Los datos están en la pestaña Detalles.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ══════════════════ TAB: CLÁUSULAS ══════════════════ */}
+      {activeTab === 'clausulas' && (
+        <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-6">
+          <ClauseComposer
+            contractId={id as string}
+            contractType={contract.type}
+            onChange={() => fetchContract()}
+          />
+        </div>
+      )}
+
+      {/* ══════════════════ TAB: VALIDACIÓN LEGAL ══════════════════ */}
+      {activeTab === 'validacion' && (
+        <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-6">
+          <ContractValidationsPanel contractId={id as string} />
+        </div>
+      )}
+
+      {/* ══════════════════ TAB: HISTORIAL (HASH-CHAIN) ══════════════════ */}
+      {activeTab === 'historial' && (
+        <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-6">
+          <ContractVersionsPanel contractId={id as string} />
         </div>
       )}
 

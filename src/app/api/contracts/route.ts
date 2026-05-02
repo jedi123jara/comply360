@@ -346,6 +346,29 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     // Fire-and-forget compliance score recalculation
     syncComplianceScore(orgId).catch(() => {})
 
+    // Fire-and-forget motor de validación legal (Generador de Contratos / Chunk 1)
+    // Corre las reglas declarativas y persiste resultados sin bloquear la creación.
+    // Si el contrato es modal y no cumple causa objetiva → BLOCKER visible al detalle.
+    import('@/lib/contracts/validation/engine').then(({ runValidationPipelineFireAndForget }) => {
+      runValidationPipelineFireAndForget(contract.id, orgId, {
+        triggeredBy: userId,
+        trigger: 'create',
+      })
+    }).catch((err) => console.warn('[validation] auto-trigger failed:', err))
+
+    // Fire-and-forget versionado (Chunk 3) — versión 1 (génesis del hash-chain).
+    import('@/lib/contracts/versioning/service').then(({ createContractVersionFireAndForget }) => {
+      createContractVersionFireAndForget({
+        contractId: contract.id,
+        orgId,
+        changedBy: userId,
+        changeReason: 'Creación inicial del contrato',
+        contentHtml: typeof contentHtml === 'string' ? contentHtml : null,
+        contentJson: contentJson ?? null,
+        formData: (formData ?? null) as Record<string, unknown> | null,
+      })
+    }).catch((err) => console.warn('[versioning] genesis version failed:', err))
+
     // Auto-trigger AI review for labor contracts with content
     const AI_LABOR_TYPES = ['LABORAL_INDEFINIDO', 'LABORAL_PLAZO_FIJO', 'LABORAL_TIEMPO_PARCIAL']
     if (AI_LABOR_TYPES.includes(normalizedType) && contentHtml) {

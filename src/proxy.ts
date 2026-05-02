@@ -26,6 +26,7 @@ const isPublicRoute = createRouteMatcher([
   '/portal-empleado(.*)',    // Lookup publico del trabajador (DNI + codigo empresa)
   '/firmar(.*)',             // Firma biométrica por link público (mobile deep link)
   '/mi-portal/registrarse',  // Worker self-serve signup (sin invitación de empresa)
+  '/audit/orgchart(.*)',     // Auditor Link público del organigrama (token JWT)
 
   // APIs de bajo privilegio o protegidas por secret
   '/api/calculations(.*)',   // Public calculator API (no auth needed for demo)
@@ -33,6 +34,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/health',             // Health check endpoint
   '/api/complaints',         // Public complaint submission
   '/api/portal-empleado(.*)',
+  '/api/public/orgchart(.*)', // API pública del Auditor Link (token JWT validado en route)
   '/api/leads',              // POST leads desde /diagnostico-gratis
   '/api/integrations/sunat-sol/receive', // Chrome Extension endpoint (CORS preflight)
 

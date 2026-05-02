@@ -22,6 +22,7 @@ import {
   LogOut,
   Menu,
   Newspaper,
+  Scale,
   Search,
   Settings,
   Shield,
@@ -67,6 +68,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Contenido',
     items: [
       { href: '/admin/normas', icon: Newspaper, name: 'Novedades normativas', shortcut: '7' },
+      { href: '/admin/jurisprudencia', icon: Scale, name: 'Jurisprudencia', shortcut: '8' },
     ],
   },
   {
