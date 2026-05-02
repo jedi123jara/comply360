@@ -191,7 +191,7 @@ export function AttendanceQrCard({ isKioskMode = false }: { isKioskMode?: boolea
           {/* QR */}
           <div
             className={`${
-              fullscreen || isKioskMode ? 'w-[320px] h-[320px] sm:w-[520px] sm:h-[520px]' : 'w-[260px] h-[260px]'
+              fullscreen || isKioskMode ? 'w-[360px] h-[360px] sm:w-[640px] sm:h-[640px] lg:w-[720px] lg:h-[720px]' : 'w-[260px] h-[260px]'
             } relative rounded-2xl bg-white border-[0.5px] border-[color:var(--border-default)] p-3 flex items-center justify-center shrink-0`}
           >
             {loading && !qrDataUrl ? (
