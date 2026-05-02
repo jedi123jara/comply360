@@ -1,40 +1,50 @@
 /**
  * POST /api/ai/contract-fix/pdf
  *
- * Genera un PDF profesional del contrato corregido usando jsPDF + helpers
- * compartidos (`server-pdf.ts`). Respuesta: `application/pdf` descargable.
+ * Genera un PDF profesional del contrato corregido por IA.
+ * Usa los helpers `contract-pdf.ts` (sin marca COMPLY360, tipografía Times,
+ * cláusulas separadas, base legal en pie discreto, portada formal y firmas).
  *
- * Body: {
- *   title: string
- *   fixedHtml: string
- *   summary?: string
- *   warningLegal?: string
- *   changesCount?: number
- * }
+ * Body:
+ *   {
+ *     title: string
+ *     fixedHtml: string
+ *     summary?: string         // resumen de los cambios (notas IA)
+ *     warningLegal?: string    // aviso legal sobre el uso de IA
+ *     changesCount?: number
+ *   }
  *
  * Plan-gate: PRO (feature `review_ia`).
  *
- * Estilo: header COMPLY360 + título "Contrato (versión corregida por IA)" +
- * cuerpo con texto del contrato (HTML stripped a párrafos) + footer con
- * advertencia legal + número de página.
+ * Diseño: el contrato corregido se presenta como un contrato profesional
+ * autónomo. Las notas de la revisión IA se imprimen al final, claramente
+ * marcadas como "no forman parte del contrato".
  */
 
 import { NextResponse } from 'next/server'
 import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
+import { cleanContractContent } from '@/lib/pdf/contract-content-cleaner'
 import {
-  createPDFDoc,
-  addHeader,
-  finalizePDF,
-  checkPageBreak,
-  type JsPDFDoc,
-} from '@/lib/pdf/server-pdf'
+  createContractPDFDoc,
+  addCoverPage,
+  addContractHeader,
+  renderContractBody,
+  addSignatureBlock,
+  finalizeContractPDF,
+  loadOrgLogoBytes,
+  drawJustifiedParagraph,
+  checkContractPageBreak,
+  CONTRACT_LAYOUT,
+  type JsPDFContractDoc,
+  type ContractHeaderOpts,
+} from '@/lib/pdf/contract-pdf'
 
 function stripHtml(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<\/(p|div|h[1-6]|li|br)\s*>/gi, '\n\n')
+    .replace(/<\/(p|div|h[1-6]|li)\s*>/gi, '\n\n')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
@@ -68,86 +78,65 @@ export const POST = withPlanGate('review_ia', async (req, ctx) => {
     return NextResponse.json({ error: 'fixedHtml requerido' }, { status: 400 })
   }
 
-  // Datos de org para el header
   const org = await prisma.organization.findUnique({
     where: { id: ctx.orgId },
-    select: { name: true, razonSocial: true, ruc: true },
+    select: { name: true, razonSocial: true, ruc: true, logoUrl: true },
   })
 
   const title = body.title ?? 'Contrato laboral'
-  const subtitle = `Versión corregida por IA · ${body.changesCount ?? 0} cambios`
-  const orgInfo = {
-    name: org?.name ?? 'Empresa',
-    razonSocial: org?.razonSocial ?? null,
-    ruc: org?.ruc ?? null,
+  const orgForPdf = {
+    name: org?.name,
+    razonSocial: org?.razonSocial,
+    ruc: org?.ruc,
   }
+  const logo = await loadOrgLogoBytes(org?.logoUrl)
+  const headerOpts: ContractHeaderOpts = { org: orgForPdf, logo }
 
-  // Crear PDF
-  const doc = await createPDFDoc()
-  addHeader(doc, title, orgInfo, subtitle)
-
-  let y = 56
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const marginX = 14
-  const contentWidth = pageWidth - marginX * 2
-  const lineHeight = 5
-
-  // Summary banner si existe
-  if (body.summary) {
-    doc.setFillColor(236, 253, 245) // emerald-50
-    doc.rect(marginX, y, contentWidth, 14, 'F')
-    doc.setTextColor(4, 120, 87) // emerald-700
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'bold')
-    doc.text('RESUMEN DE LA CORRECCIÓN', marginX + 3, y + 5)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(6, 95, 70) // emerald-800
-    const summaryLines = wrapText(body.summary, 90)
-    summaryLines.slice(0, 1).forEach((line, i) => {
-      doc.text(line, marginX + 3, y + 11 + i * lineHeight)
-    })
-    y += 18
-  }
-
-  // Body — texto del contrato corregido
+  // Limpiar y procesar el HTML del contrato corregido
   const text = stripHtml(body.fixedHtml)
-  const paragraphs = text.split(/\n{2,}/).filter(p => p.trim())
+  const cleaned = cleanContractContent(text)
 
-  doc.setFontSize(10)
-  doc.setTextColor(30, 30, 30)
-  doc.setFont('helvetica', 'normal')
+  // Construir PDF
+  const doc = await createContractPDFDoc()
 
-  for (const para of paragraphs) {
-    const lines = wrapText(para, 95)
-    for (const line of lines) {
-      y = checkPageBreak(doc, y, 270, {
-        title,
-        org: orgInfo,
-        subtitle,
-      })
-      doc.text(line, marginX, y)
-      y += lineHeight
-    }
-    y += 3 // gap entre párrafos
-  }
+  addCoverPage(doc, {
+    title,
+    org: orgForPdf,
+    logo,
+    workerFullName: '',
+    workerDni: '',
+    ciudad: 'Lima',
+  })
 
-  // Warning legal al final
-  y = checkPageBreak(doc, y + 10, 270, { title, org: orgInfo, subtitle })
-  if (body.warningLegal) {
-    doc.setFillColor(255, 251, 235) // amber-50
-    doc.rect(marginX, y, contentWidth, 16, 'F')
-    doc.setTextColor(146, 64, 14) // amber-800
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'bold')
-    doc.text('AVISO LEGAL', marginX + 3, y + 5)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    const warningLines = wrapText(body.warningLegal, 110)
-    warningLines.slice(0, 2).forEach((line, i) => {
-      doc.text(line, marginX + 3, y + 10 + i * 4)
+  doc.addPage()
+  addContractHeader(doc, headerOpts)
+
+  let y = renderContractBody(doc, cleaned, {
+    startY: 36,
+    headerOpts,
+  })
+
+  // Bloque de firmas placeholder (sin datos del trabajador específicos —
+  // este endpoint es preview de un contrato corregido, no instancia firmable)
+  y = addSignatureBlock(doc, y, {
+    empleador: {
+      razonSocial: org?.razonSocial ?? org?.name ?? '',
+      ruc: org?.ruc ?? '',
+    },
+    trabajador: { fullName: '', dni: '' },
+    ciudad: 'Lima',
+    fecha: new Date(),
+    headerOpts,
+  })
+
+  // Notas de la revisión IA al final, en página separada y claramente
+  // marcadas como NO formando parte del contrato.
+  if (body.summary || body.warningLegal) {
+    appendIANotes(doc, headerOpts, {
+      summary: body.summary,
+      warningLegal: body.warningLegal,
+      changesCount: body.changesCount,
     })
-    y += 22
   }
 
   // Audit log fire-and-forget
@@ -168,22 +157,69 @@ export const POST = withPlanGate('review_ia', async (req, ctx) => {
     .catch(() => null)
 
   const filename = `contrato-corregido-${Date.now()}.pdf`
-  return finalizePDF(doc as JsPDFDoc, filename)
+  return finalizeContractPDF(doc, filename)
 })
 
-/** Wrap texto a N caracteres por línea (aproximación monoespacio simple). */
-function wrapText(text: string, maxChars: number): string[] {
-  const words = text.split(/\s+/)
-  const lines: string[] = []
-  let current = ''
-  for (const word of words) {
-    if (current.length + word.length + 1 > maxChars) {
-      if (current) lines.push(current)
-      current = word
-    } else {
-      current = current ? `${current} ${word}` : word
-    }
+function appendIANotes(
+  doc: JsPDFContractDoc,
+  headerOpts: ContractHeaderOpts,
+  notes: { summary?: string; warningLegal?: string; changesCount?: number },
+): void {
+  doc.addPage()
+  addContractHeader(doc, headerOpts)
+
+  const x = CONTRACT_LAYOUT.marginX
+  const W = doc.internal.pageSize.getWidth()
+  const maxWidth = W - CONTRACT_LAYOUT.marginX * 2
+  let y = 40
+
+  // Título de la sección
+  doc.setFont('times', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+  doc.text('NOTAS DE LA REVISIÓN POR IA', x, y)
+  y += 6
+
+  doc.setFont('times', 'italic')
+  doc.setFontSize(9)
+  doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+  doc.text('Esta sección no forma parte del contrato.', x, y)
+  y += 9
+
+  if (typeof notes.changesCount === 'number') {
+    doc.setFont('times', 'normal')
+    doc.setFontSize(CONTRACT_LAYOUT.bodyFontSize)
+    doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+    doc.text(
+      `Cambios sugeridos por la IA: ${notes.changesCount}`,
+      x,
+      y,
+    )
+    y += 7
   }
-  if (current) lines.push(current)
-  return lines
+
+  if (notes.summary) {
+    doc.setFont('times', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+    doc.text('Resumen de la corrección', x, y)
+    y += 5
+    doc.setFont('times', 'normal')
+    doc.setFontSize(CONTRACT_LAYOUT.bodyFontSize)
+    y = drawJustifiedParagraph(doc, notes.summary, x, y, maxWidth, CONTRACT_LAYOUT.lineHeight)
+    y += CONTRACT_LAYOUT.paragraphGap + 4
+  }
+
+  if (notes.warningLegal) {
+    y = checkContractPageBreak(doc, y + 4, undefined, headerOpts)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+    doc.text('Aviso legal sobre el uso de IA', x, y)
+    y += 5
+    doc.setFont('times', 'italic')
+    doc.setFontSize(CONTRACT_LAYOUT.bodyFontSize)
+    doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+    drawJustifiedParagraph(doc, notes.warningLegal, x, y, maxWidth, CONTRACT_LAYOUT.lineHeight)
+  }
 }

@@ -30,12 +30,16 @@ import {
   type OrgTemplateMeta,
   type WorkerMergeData,
 } from '@/lib/templates/org-template-engine'
+import { cleanContractContent } from '@/lib/pdf/contract-content-cleaner'
 import {
-  createPDFDoc,
-  finalizePDF,
-  addHeader,
-  checkPageBreak,
-} from '@/lib/pdf/server-pdf'
+  createContractPDFDoc,
+  addCoverPage,
+  addContractHeader,
+  renderContractBody,
+  addSignatureBlock,
+  finalizeContractPDF,
+  loadOrgLogoBytes,
+} from '@/lib/pdf/contract-pdf'
 
 export const runtime = 'nodejs'
 
@@ -151,6 +155,7 @@ export const POST = withAuthParams<{ id: string }>(async (
       ruc: true,
       address: true,
       sector: true,
+      logoUrl: true,
     },
   })
 
@@ -304,60 +309,57 @@ export const POST = withAuthParams<{ id: string }>(async (
   }
 
   // ── Respond: PDF ──────────────────────────────────────────────────────────
-  const pdfDoc = await createPDFDoc()
-  addHeader(
-    pdfDoc,
-    documentTypeLabel.toUpperCase(),
-    { name: org?.name, razonSocial: org?.razonSocial, ruc: org?.ruc },
-    fullWorkerName,
+  // Re-renderizamos preservando los placeholders sin valor como `{{KEY}}`
+  // para que el cleaner los pueda transformar en líneas con etiqueta legible
+  // (ej. `____ [Domicilio del Empleador] ____`) en lugar de los `__________`
+  // genéricos que produce blankUnmapped:true.
+  const pdfRender = renderTemplate(
+    meta.content,
+    meta.mappings ?? {},
+    { worker: workerData, org: orgData },
+    { ciudad: body.ciudad, blankUnmapped: false },
   )
+  const cleaned = cleanContractContent(pdfRender.rendered)
 
-  const W = pdfDoc.internal.pageSize.getWidth()
-  let y = 54
-
-  pdfDoc.setFontSize(10)
-  pdfDoc.setFont('helvetica', 'normal')
-  pdfDoc.setTextColor(30, 30, 30)
-
-  const paragraphs = result.rendered.split(/\n\n+/)
-  for (const para of paragraphs) {
-    const trimmed = para.trim()
-    if (!trimmed) {
-      y += 3
-      continue
-    }
-    const lines = pdfDoc.text(trimmed, 14, y, { maxWidth: W - 28 }) as unknown as string[]
-    const lineCount = Array.isArray(lines) ? lines.length : Math.ceil(trimmed.length / 90)
-    y += lineCount * 5
-    y += 3
-    y = checkPageBreak(pdfDoc, y, 270, {
-      title: documentTypeLabel.toUpperCase(),
-      org: { name: org?.name, razonSocial: org?.razonSocial, ruc: org?.ruc },
-      subtitle: fullWorkerName,
-    })
+  const ciudad = body.ciudad ?? 'Lima'
+  const orgForPdf = {
+    name: org?.name,
+    razonSocial: org?.razonSocial,
+    ruc: org?.ruc,
   }
+  const logo = await loadOrgLogoBytes(org?.logoUrl)
+  const headerOpts = { org: orgForPdf, logo }
 
-  // Firmas
-  y += 12
-  y = checkPageBreak(pdfDoc, y, 260, {
-    title: documentTypeLabel.toUpperCase(),
-    org: { name: org?.name, razonSocial: org?.razonSocial, ruc: org?.ruc },
-    subtitle: fullWorkerName,
+  const pdfDoc = await createContractPDFDoc()
+
+  addCoverPage(pdfDoc, {
+    title: documentTypeLabel,
+    org: orgForPdf,
+    logo,
+    workerFullName: fullWorkerName,
+    workerDni: worker.dni,
+    ciudad,
+    fechaIngreso: worker.fechaIngreso,
   })
-  pdfDoc.setDrawColor(100, 100, 100)
-  pdfDoc.line(14, y, 80, y)
-  pdfDoc.line(W - 80, y, W - 14, y)
 
-  pdfDoc.setFontSize(8)
-  pdfDoc.setTextColor(80, 80, 80)
-  pdfDoc.text('EL EMPLEADOR', 47, y + 5, { align: 'center' })
-  pdfDoc.text('EL TRABAJADOR', W - 47, y + 5, { align: 'center' })
+  pdfDoc.addPage()
+  addContractHeader(pdfDoc, headerOpts)
 
-  if (org?.razonSocial || org?.name) {
-    pdfDoc.text(org.razonSocial ?? org.name ?? '', 47, y + 10, { align: 'center' })
-  }
-  pdfDoc.text(fullWorkerName, W - 47, y + 10, { align: 'center' })
-  pdfDoc.text(`DNI: ${worker.dni}`, W - 47, y + 14, { align: 'center' })
+  const bodyEndY = renderContractBody(pdfDoc, cleaned, {
+    startY: 36,
+    headerOpts,
+  })
+
+  addSignatureBlock(pdfDoc, bodyEndY, {
+    empleador: {
+      razonSocial: org?.razonSocial ?? org?.name ?? '',
+      ruc: org?.ruc ?? '',
+    },
+    trabajador: { fullName: fullWorkerName, dni: worker.dni },
+    ciudad,
+    fecha: new Date(),
+    headerOpts,
+  })
 
   const slug = documentTypeLabel
     .toLowerCase()
@@ -366,7 +368,7 @@ export const POST = withAuthParams<{ id: string }>(async (
     .replace(/[^a-z0-9]+/g, '-')
     .slice(0, 40)
   const filename = `${slug}-${worker.dni}.pdf`
-  return finalizePDF(pdfDoc, filename)
+  return finalizeContractPDF(pdfDoc, filename)
 })
 
 // =============================================

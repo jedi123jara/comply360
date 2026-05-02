@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
+import { cleanContractContent } from '@/lib/pdf/contract-content-cleaner'
 import {
-  createPDFDoc,
-  finalizePDF,
-  addHeader,
-  sectionTitle,
-  kv,
-  checkPageBreak,
-} from '@/lib/pdf/server-pdf'
+  createContractPDFDoc,
+  addCoverPage,
+  addContractHeader,
+  renderContractBody,
+  addSignatureBlock,
+  finalizeContractPDF,
+  loadOrgLogoBytes,
+} from '@/lib/pdf/contract-pdf'
 
 // =============================================
 // GET /api/contracts/[id]/pdf — Download contract as PDF
@@ -21,7 +23,9 @@ export const GET = withAuthParams<{ id: string }>(
     const contract = await prisma.contract.findFirst({
       where: { id: params.id, orgId },
       include: {
-        organization: { select: { name: true, razonSocial: true, ruc: true } },
+        organization: {
+          select: { name: true, razonSocial: true, ruc: true, logoUrl: true },
+        },
       },
     })
 
@@ -32,99 +36,77 @@ export const GET = withAuthParams<{ id: string }>(
     const org = contract.organization
     const formData = (contract.formData ?? {}) as Record<string, string | number | null>
 
-    // ── Build PDF ─────────────────────────────────────────────────────────
-    const doc = await createPDFDoc()
-    const headerOrg = { name: org?.name, razonSocial: org?.razonSocial, ruc: org?.ruc }
+    const trabajadorNombre =
+      typeof formData.trabajador_nombre === 'string' ? formData.trabajador_nombre : ''
+    const trabajadorDni =
+      typeof formData.trabajador_dni === 'string' ? formData.trabajador_dni : ''
+    const ciudad = typeof formData.ciudad === 'string' ? formData.ciudad : 'Lima'
+    const fechaInicio =
+      typeof formData.fecha_inicio === 'string' ? formData.fecha_inicio : null
 
-    addHeader(doc, contract.title || 'CONTRATO', headerOrg, contract.type?.replace(/_/g, ' '))
+    // ── Limpiar contenido HTML → texto sanitizado ─────────────────────────
+    const plainText = stripHtml(contract.contentHtml ?? '')
+    const cleaned = cleanContractContent(plainText)
 
-    let y = 52
-
-    // ── Contract metadata ─────────────────────────────────────────────────
-    y = sectionTitle(doc, 'DATOS DEL CONTRATO', y)
-    y = kv(doc, 'Tipo', contract.type?.replace(/_/g, ' ') ?? '—', 14, y, 45)
-    y = kv(doc, 'Estado', contract.status ?? '—', 14, y, 45)
-    if (formData.trabajador_nombre) {
-      y = kv(doc, 'Trabajador', String(formData.trabajador_nombre), 14, y, 45)
+    // ── Construir PDF ──────────────────────────────────────────────────────
+    const orgForPdf = {
+      name: org?.name,
+      razonSocial: org?.razonSocial,
+      ruc: org?.ruc,
     }
-    if (formData.trabajador_dni) {
-      y = kv(doc, 'DNI', String(formData.trabajador_dni), 14, y, 45)
-    }
-    if (formData.cargo) {
-      y = kv(doc, 'Cargo', String(formData.cargo), 14, y, 45)
-    }
-    if (formData.remuneracion) {
-      y = kv(doc, 'Remuneración', `S/ ${formData.remuneracion}`, 14, y, 45)
-    }
-    if (formData.fecha_inicio) {
-      y = kv(doc, 'Fecha inicio', String(formData.fecha_inicio), 14, y, 45)
-    }
-    if (formData.fecha_fin) {
-      y = kv(doc, 'Fecha fin', String(formData.fecha_fin), 14, y, 45)
-    }
-    y += 4
+    const logo = await loadOrgLogoBytes(org?.logoUrl)
+    const headerOpts = { org: orgForPdf, logo }
 
-    // ── Contract content ─────────────────────────────────────────────────
-    const content = contract.contentHtml as string | null
-    if (content) {
-      y = sectionTitle(doc, 'CONTENIDO DEL CONTRATO', y)
+    const doc = await createContractPDFDoc()
 
-      // Strip HTML tags for plain text rendering
-      const plainText = content
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/p>/gi, '\n\n')
-        .replace(/<\/div>/gi, '\n')
-        .replace(/<\/li>/gi, '\n')
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .trim()
+    addCoverPage(doc, {
+      title: contract.title || 'Contrato',
+      org: orgForPdf,
+      logo,
+      workerFullName: trabajadorNombre,
+      workerDni: trabajadorDni,
+      ciudad,
+      fechaIngreso: fechaInicio,
+    })
 
-      const W = doc.internal.pageSize.getWidth()
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(30, 30, 30)
+    doc.addPage()
+    addContractHeader(doc, headerOpts)
 
-      // Split into paragraphs and render with word wrapping
-      const paragraphs = plainText.split(/\n\n+/)
-      for (const para of paragraphs) {
-        const lines = doc.text(para.trim(), 14, y, { maxWidth: W - 28 }) as unknown as string[]
-        // Estimate line count for page break
-        const lineCount = Array.isArray(lines) ? lines.length : Math.ceil(para.length / 80)
-        y += lineCount * 4.5
-        y += 3
-        y = checkPageBreak(doc, y)
-      }
-    }
+    const bodyEndY = renderContractBody(doc, cleaned, {
+      startY: 36,
+      headerOpts,
+    })
 
-    // ── Signatures ─────────────────────────────────────────────────────────
-    y += 10
-    y = checkPageBreak(doc, y, 260)
-    y = sectionTitle(doc, 'FIRMAS', y)
-    y += 15
+    addSignatureBlock(doc, bodyEndY, {
+      empleador: {
+        razonSocial: org?.razonSocial ?? org?.name ?? '',
+        ruc: org?.ruc ?? '',
+      },
+      trabajador: { fullName: trabajadorNombre, dni: trabajadorDni },
+      ciudad,
+      fecha: new Date(),
+      headerOpts,
+    })
 
-    const W = doc.internal.pageSize.getWidth()
-    doc.setDrawColor(100, 100, 100)
-    doc.line(14, y, 80, y)
-    doc.line(W - 80, y, W - 14, y)
-
-    doc.setFontSize(8)
-    doc.setTextColor(80, 80, 80)
-    doc.text('EL EMPLEADOR', 47, y + 5, { align: 'center' })
-    doc.text('EL TRABAJADOR', W - 47, y + 5, { align: 'center' })
-
-    if (org?.razonSocial || org?.name) {
-      doc.text(org.razonSocial ?? org.name ?? '', 47, y + 10, { align: 'center' })
-    }
-    if (formData.trabajador_nombre) {
-      doc.text(String(formData.trabajador_nombre), W - 47, y + 10, { align: 'center' })
-    }
-
-    // ── Finalize ──────────────────────────────────────────────────────────
     const filename = `contrato-${contract.id.slice(-8)}.pdf`
-    return finalizePDF(doc, filename)
+    return finalizeContractPDF(doc, filename)
   },
 )
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<\/(p|div|h[1-6]|li)\s*>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
