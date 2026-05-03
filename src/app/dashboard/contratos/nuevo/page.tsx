@@ -1285,17 +1285,17 @@ function NuevoContratoInner() {
 
       {/* AI Generation Modal */}
       {showAiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-6 overflow-y-auto">
+          <div className="relative w-full max-w-7xl max-h-[95vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.08] bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md">
-                  <Wand2 className="h-5 w-5 text-white" />
+                  <Wand2 className="h-5 w-5 text-white" aria-hidden="true" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Generar contrato con IA</h2>
-                  <p className="text-xs text-slate-600">Describe lo que necesitas en lenguaje natural</p>
+                  <h2 className="text-lg font-bold text-slate-900">Generar contrato con IA</h2>
+                  <p className="text-xs text-slate-600">Describe lo que necesitas en lenguaje natural · datos en vivo a la derecha</p>
                 </div>
               </div>
               <button
@@ -1308,8 +1308,11 @@ function NuevoContratoInner() {
               </button>
             </div>
 
-            {/* Body */}
-            <div className="p-6 space-y-4">
+            {/* Body — layout 2-col cuando estamos en form mode (MG2) */}
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Columna izquierda: form / loading / resultado */}
+                <div className={(!aiContract && !aiLoading) ? "lg:col-span-8 space-y-4" : "lg:col-span-12 space-y-4"}>
               {!aiContract && !aiLoading && (
                 <>
                   {/* ── Descripción ───────────────────────────────────────── */}
@@ -1653,22 +1656,10 @@ function NuevoContratoInner() {
                       </div>
                     </div>
 
-                    {/* QW3: Costo empleador en vivo */}
-                    {costoEmpleador && (
-                      <CostSummaryPill result={costoEmpleador} />
-                    )}
+                    {/* QW3: Costo empleador movido al sidebar derecho (MG2) */}
                   </div>
 
-                  {/* QW5: Panel de validacion legal en vivo */}
-                  <LiveValidationPanel
-                    blockers={liveValidation.blockers}
-                    warnings={liveValidation.warnings}
-                    infos={liveValidation.infos}
-                    passed={liveValidation.passed}
-                    totalRules={liveValidation.totalRules}
-                    loading={liveValidation.loading}
-                    error={liveValidation.error}
-                  />
+                  {/* QW5: Validacion en vivo movida al sidebar derecho (MG2) */}
 
                   {aiError && (
                     <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 flex items-start gap-2" role="alert">
@@ -1842,6 +1833,23 @@ function NuevoContratoInner() {
                   </div>
                 </div>
               )}
+                </div>
+                {/* Columna derecha: sidebar con cost + validation (solo en form mode) */}
+                {!aiContract && !aiLoading && (
+                  <aside className="lg:col-span-4 lg:sticky lg:top-20 lg:self-start space-y-4">
+                    <CostSummaryPill result={costoEmpleador} />
+                    <LiveValidationPanel
+                      blockers={liveValidation.blockers}
+                      warnings={liveValidation.warnings}
+                      infos={liveValidation.infos}
+                      passed={liveValidation.passed}
+                      totalRules={liveValidation.totalRules}
+                      loading={liveValidation.loading}
+                      error={liveValidation.error}
+                    />
+                  </aside>
+                )}
+              </div>
             </div>
           </div>
         </div>
