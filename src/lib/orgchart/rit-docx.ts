@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import { prisma } from '@/lib/prisma'
 import { getTree } from './tree-service'
+import { buildStructureAnalytics, type StructureAnalyticsSummary } from './structure-analytics'
 import type { OrgChartTree, OrgPositionDTO } from './types'
 
 export interface OrgChartRitDocx {
@@ -20,6 +21,12 @@ export interface RitSummary {
   sstSensitiveCount: number
   complianceRoleCount: number
   maxDepth: number
+  structureScore: number
+  structureHealth: string
+  overloadedManagers: number
+  criticalManagers: number
+  maxSpan: number
+  averageSpan: number
 }
 
 interface RitOrganization {
@@ -59,11 +66,13 @@ export async function generateOrgChartRitDocx(orgId: string, asOf?: Date | null)
 
   const generatedAt = new Date()
   const title = 'RIT estructural - Organigrama y lineas de mando'
-  const summary = buildRitSummary(tree)
+  const analytics = buildStructureAnalytics(tree)
+  const summary = buildRitSummary(tree, analytics)
   const body = buildRitBody({
     tree,
     organization,
     summary,
+    analytics,
     generatedAt,
     asOf: asOf ?? null,
   })
@@ -82,7 +91,10 @@ export async function generateOrgChartRitDocx(orgId: string, asOf?: Date | null)
   }
 }
 
-export function buildRitSummary(tree: OrgChartTree): RitSummary {
+export function buildRitSummary(
+  tree: OrgChartTree,
+  analytics: StructureAnalyticsSummary = buildStructureAnalytics(tree),
+): RitSummary {
   const assignmentCountByPosition = new Map<string, number>()
   for (const assignment of tree.assignments) {
     assignmentCountByPosition.set(
@@ -104,6 +116,12 @@ export function buildRitSummary(tree: OrgChartTree): RitSummary {
     sstSensitiveCount: tree.positions.filter(isSstSensitive).length,
     complianceRoleCount: tree.complianceRoles.length,
     maxDepth: tree.units.reduce((max, unit) => Math.max(max, unit.level), 0),
+    structureScore: analytics.score,
+    structureHealth: structureHealthLabel(analytics.health),
+    overloadedManagers: analytics.totals.overloadedManagers,
+    criticalManagers: analytics.totals.criticalManagers,
+    maxSpan: Math.max(0, ...analytics.spanRecords.map(record => record.directReports)),
+    averageSpan: analytics.totals.averageSpan,
   }
 }
 
@@ -111,10 +129,11 @@ function buildRitBody(input: {
   tree: OrgChartTree
   organization: RitOrganization
   summary: RitSummary
+  analytics: StructureAnalyticsSummary
   generatedAt: Date
   asOf: Date | null
 }) {
-  const { tree, organization, summary, generatedAt, asOf } = input
+  const { tree, organization, summary, analytics, generatedAt, asOf } = input
   const companyName = organization.razonSocial ?? organization.name
   const unitsById = new Map(tree.units.map(unit => [unit.id, unit]))
   const positionsById = new Map(tree.positions.map(position => [position.id, position]))
@@ -144,8 +163,27 @@ function buildRitBody(input: {
     keyValue('Puestos criticos', String(summary.criticalPositionCount)),
     keyValue('Puestos sensibles SST', String(summary.sstSensitiveCount)),
     keyValue('Roles legales/SST asignados', String(summary.complianceRoleCount)),
+    keyValue('Score estructural', `${summary.structureScore}/100 (${summary.structureHealth})`),
+    keyValue('Jefaturas con span alto', String(summary.overloadedManagers)),
+    keyValue('Span maximo detectado', String(summary.maxSpan)),
+    keyValue('Span promedio de jefaturas', String(summary.averageSpan)),
     spacer(),
-    heading('3. Unidades y dependencias'),
+    heading('3. Riesgos estructurales priorizados'),
+    listOrMissing(
+      analytics.topRisks.map(risk => `${risk.title} (${spanSeverityLabel(risk.severity)}): ${risk.description}`),
+      'riesgos estructurales priorizados',
+    ),
+    spacer(),
+    heading('4. Salud estructural por area'),
+    listOrMissing(
+      analytics.unitScores.slice(0, 20).map(unit => {
+        const flags = unit.flags.length > 0 ? ` | alertas: ${unit.flags.join(', ')}` : ''
+        return `${unit.unitName} | score ${unit.score}/100 (${structureHealthLabel(unit.health)}) | cargos: ${unit.positions} | vacantes: ${unit.vacancies} | MOF pendiente: ${unit.missingMof} | span maximo: ${unit.maxSpan}${flags}`
+      }),
+      'salud estructural por area',
+    ),
+    spacer(),
+    heading('5. Unidades y dependencias'),
     listOrMissing(
       tree.units
         .slice()
@@ -158,7 +196,7 @@ function buildRitBody(input: {
       'unidades organizacionales',
     ),
     spacer(),
-    heading('4. Lineas de mando y puestos'),
+    heading('6. Lineas de mando y puestos'),
     listOrMissing(
       tree.positions
         .slice()
@@ -178,10 +216,10 @@ function buildRitBody(input: {
       'puestos y lineas de mando',
     ),
     spacer(),
-    heading('5. Puestos criticos, vacantes y MOF'),
+    heading('7. Puestos criticos, vacantes y MOF'),
     listOrMissing(buildRiskAndMofLines(tree, unitsById, assignmentsByPosition), 'controles de puestos criticos, vacantes y MOF'),
     spacer(),
-    heading('6. Roles legales, SST y comites'),
+    heading('8. Roles legales, SST y comites'),
     listOrMissing(
       tree.complianceRoles.map(role => {
         const unit = role.unitId ? unitsById.get(role.unitId)?.name : null
@@ -190,10 +228,10 @@ function buildRitBody(input: {
       'roles legales o SST vigentes',
     ),
     spacer(),
-    heading('7. Redaccion base sugerida para RIT'),
+    heading('9. Redaccion base sugerida para RIT'),
     listOrMissing(defaultRitClauses(companyName), 'clausulas estructurales sugeridas'),
     spacer(),
-    heading('8. Control documental'),
+    heading('10. Control documental'),
     keyValue('Fuente', 'Modulo Organigrama COMPLY360'),
     keyValue('Fecha tecnica de extraccion', tree.generatedAt),
     keyValue('Modo de consulta', tree.asOf ? 'Historico' : 'Vigente'),
@@ -266,6 +304,20 @@ function isSstSensitive(position: OrgPositionDTO) {
     position.isCritical ||
     ['ALTO', 'CRITICO'].includes(risk),
   )
+}
+
+function structureHealthLabel(health: 'excellent' | 'stable' | 'attention' | 'critical') {
+  if (health === 'excellent') return 'Excelente'
+  if (health === 'stable') return 'Estable'
+  if (health === 'attention') return 'Atencion'
+  return 'Critico'
+}
+
+function spanSeverityLabel(severity: 'healthy' | 'watch' | 'high' | 'critical') {
+  if (severity === 'healthy') return 'Saludable'
+  if (severity === 'watch') return 'Vigilar'
+  if (severity === 'high') return 'Alto'
+  return 'Critico'
 }
 
 function documentXml(body: string[]) {

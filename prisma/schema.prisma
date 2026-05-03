@@ -96,6 +96,15 @@ model Organization {
   orgChartSnapshots       OrgChartSnapshot[]
   orgChartDrafts          OrgChartDraft[]
   orgStructureChangeLogs  OrgStructureChangeLog[]
+  // Fase 5 — SST Premium
+  sedes                   Sede[]
+  iperBases               IPERCBase[]
+  accidentes              Accidente[]
+  comitesSst              ComiteSST[]
+  visitasFieldAudit       VisitaFieldAudit[]
+  emos                    EMO[]
+  consentimientosLey29733 ConsentimientoLey29733[]
+  solicitudesArco         SolicitudARCO[]
 
   @@map("organizations")
 }
@@ -159,6 +168,8 @@ model User {
   auditLogs          AuditLog[]
   workerRequests     WorkerRequest[]     @relation("RequestReviewer")
   gamificationEvents GamificationEvent[]
+  // Fase 5 — SST Premium (DPO designado por org para responder solicitudes ARCO)
+  solicitudesArcoAsDpo SolicitudARCO[]   @relation("DpoAsignado")
 
   @@map("users")
 }
@@ -299,6 +310,12 @@ model Worker {
   acknowledgments    DocumentAcknowledgment[]
   orgAssignments     OrgAssignment[]
   orgComplianceRoles OrgComplianceRole[]
+  // Fase 5 — SST Premium
+  puestosTrabajo     PuestoTrabajo[]
+  accidentes         Accidente[]
+  miembroComites     MiembroComite[]
+  emos               EMO[]
+  consentimientosLey29733 ConsentimientoLey29733[]
 
   @@unique([orgId, dni])
   @@index([orgId, status])
@@ -460,6 +477,15 @@ enum WorkerAlertType {
   // Patrones de asistencia detectados por scan periódico (Fase 3)
   TARDANZAS_CRONICAS // 5+ tardanzas en 15 días sin justificar
   AUSENTISMO_CRONICO // 3+ ausencias sin justificar en el mes
+  // Fase 5 — SST Premium
+  IPERC_VENCIDO
+  EMO_PROXIMO
+  EMO_VENCIDO
+  SAT_PLAZO_PROXIMO
+  SAT_PLAZO_VENCIDO
+  COMITE_REUNION_PENDIENTE
+  COMITE_MANDATO_VENCE
+  SIMULACRO_PENDIENTE
 }
 
 enum AlertSeverity {
@@ -2786,4 +2812,546 @@ model OrgStructureChangeLog {
   @@index([orgId, createdAt])
   @@index([orgId, entityType, entityId])
   @@map("org_structure_change_logs")
+}
+
+// =============================================
+// FASE 5 — SST PREMIUM
+// =============================================
+// Estructura tabular real del módulo SST: Sede / PuestoTrabajo / IPERC matriz
+// P×S oficial SUNAFIL (R.M. 050-2013-TR) / Accidente con tracking SAT manual
+// (D.S. 006-2022-TR) / Comité paritario (R.M. 245-2021-TR) / FieldAudit con
+// captura offline + ingesta en oficina / sub-schema médico cifrado (Ley 29733
+// + D.S. 016-2024-JUS) / catálogos seed.
+//
+// Decisiones congeladas:
+// - Multi-tenancy via Organization.orgId (no Tenant). RLS Postgres en tablas
+//   tenant-scoped como segunda capa (rls-policies.sql).
+// - Auth Clerk v7 (no NextAuth).
+// - Queue Vercel Cron (BullMQ NO se introduce — RPA SAT descartado).
+// - LLM wrapper multi-provider (DeepSeek V4 1M primario para motor IPERC).
+// - Datos médicos cifrados con pgcrypto.pgp_sym_encrypt; solo Aptitud
+//   persistida en claro, jamás diagnóstico.
+// - Trazabilidad = hash chain SHA-256 + Merkle (ya existe en MerkleAnchor).
+//   Sin TSA INDECOPI, sin OpenTimestamps Bitcoin.
+// - Inspectores = ColaboradorSST interno COMPLY360 (no marketplace).
+// =============================================
+
+model Sede {
+  id              String          @id @default(cuid())
+  orgId           String          @map("org_id")
+  nombre          String
+  direccion       String
+  ubigeo          String          @db.VarChar(6) // 6 dígitos INEI: dept(2)+prov(2)+dist(2)
+  departamento    String
+  provincia       String
+  distrito        String
+  areaM2          Decimal?        @map("area_m2") @db.Decimal(10, 2)
+  numeroPisos     Int?            @map("numero_pisos")
+  planoArchivoUrl String?         @map("plano_archivo_url")
+  lat             Decimal?        @db.Decimal(9, 6)
+  lng             Decimal?        @db.Decimal(9, 6)
+  tipoInstalacion TipoInstalacion @map("tipo_instalacion")
+  activa          Boolean         @default(true)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  puestos      PuestoTrabajo[]
+  iperBases    IPERCBase[]
+  accidentes   Accidente[]
+  visitas      VisitaFieldAudit[]
+
+  @@index([orgId])
+  @@index([orgId, tipoInstalacion])
+  @@map("sedes")
+}
+
+model PuestoTrabajo {
+  id                        String   @id @default(cuid())
+  orgId                     String   @map("org_id")
+  sedeId                    String   @map("sede_id")
+  workerId                  String?  @map("worker_id")
+  nombre                    String
+  descripcionTareas         String[] @map("descripcion_tareas")
+  jornada                   String? // "DIURNO" | "NOCTURNO" | "MIXTO" | descripción libre
+  // Flags de exposición — alimentan el motor IPERC para sugerir peligros
+  exposicionFisica          Boolean  @default(false) @map("exposicion_fisica")
+  exposicionQuimica         Boolean  @default(false) @map("exposicion_quimica")
+  exposicionBiologica       Boolean  @default(false) @map("exposicion_biologica")
+  exposicionErgonomica      Boolean  @default(false) @map("exposicion_ergonomica")
+  exposicionPsicosocial     Boolean  @default(false) @map("exposicion_psicosocial")
+  requiereAlturas           Boolean  @default(false) @map("requiere_alturas")
+  requiereEspacioConfinado  Boolean  @default(false) @map("requiere_espacio_confinado")
+  requiereCalienteFrio      Boolean  @default(false) @map("requiere_caliente_frio")
+  requiereSCTR              Boolean  @default(false) @map("requiere_sctr") // Anexo 5 D.S. 009-97-SA
+  requiereExposicionUVSolar Boolean  @default(false) @map("requiere_exposicion_uv_solar") // Ley 30102 + D.S. 003-2026-SA
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  sede   Sede    @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  worker Worker? @relation(fields: [workerId], references: [id], onDelete: SetNull)
+
+  @@index([orgId])
+  @@index([sedeId])
+  @@index([workerId])
+  @@map("puestos_trabajo")
+}
+
+model IPERCBase {
+  id              String          @id @default(cuid())
+  orgId           String          @map("org_id")
+  sedeId          String          @map("sede_id")
+  version         Int             @default(1)
+  hashSha256      String          @map("hash_sha256")
+  estado          EstadoDocumento @default(BORRADOR)
+  fechaAprobacion DateTime?       @map("fecha_aprobacion")
+  aprobadoPor     String?         @map("aprobado_por") // userId del approver
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sede         Sede         @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  filas        IPERCFila[]
+
+  @@unique([orgId, sedeId, version])
+  @@index([orgId, estado])
+  @@map("iperc_bases")
+}
+
+model IPERCFila {
+  id            String           @id @default(cuid())
+  iperBaseId    String           @map("iper_base_id")
+  proceso       String
+  actividad     String
+  tarea         String
+  peligroId     String?          @map("peligro_id") // FK CatalogoPeligro
+  riesgo        String
+  // Índices Manual IPERC SUNAFIL R.M. 050-2013-TR (Tablas 9, 11, 12)
+  // Probabilidad IP = A + B + C + D (rango 4-12)
+  indicePersonas      Int        @map("indice_personas")      // A: 1 (1-3), 2 (4-12), 3 (>12)
+  indiceProcedimiento Int        @map("indice_procedimiento") // B: 1 satisfactorio, 2 parcial, 3 no existe
+  indiceCapacitacion  Int        @map("indice_capacitacion")  // C: 1 entrenado, 2 parcial, 3 no entrenado
+  indiceExposicion    Int        @map("indice_exposicion")    // D: 1 esporádico, 2 eventual, 3 permanente
+  indiceProbabilidad  Int        @map("indice_probabilidad")  // suma A+B+C+D
+  indiceSeveridad     Int        @map("indice_severidad")     // 1 ligeramente dañino, 2 dañino, 3 ext. dañino
+  nivelRiesgo         Int        @map("nivel_riesgo")         // IP × IS (4-36)
+  clasificacion       NivelRiesgoIPERC
+  esSignificativo     Boolean    @map("es_significativo") // true si Moderado, Importante o Intolerable
+  controlesActuales   String[]   @map("controles_actuales")
+  controlesPropuestos Json       @map("controles_propuestos") // jerarquía: eliminación, sustitución, ingeniería, admin, EPP
+  responsable         String?
+  plazoCierre         DateTime?  @map("plazo_cierre")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  iperBase IPERCBase @relation(fields: [iperBaseId], references: [id], onDelete: Cascade)
+
+  @@index([iperBaseId])
+  @@index([clasificacion])
+  @@map("iperc_filas")
+}
+
+model Accidente {
+  id                    String        @id @default(cuid())
+  orgId                 String        @map("org_id")
+  sedeId                String        @map("sede_id")
+  workerId              String?       @map("worker_id") // null si afectó a tercero o no-worker
+  tipo                  TipoAccidente
+  fechaHora             DateTime      @map("fecha_hora")
+  descripcion           String
+  // Plazo legal informativo según D.S. 006-2022-TR:
+  //   24 h  — Mortal / Incidente Peligroso (empleador)
+  //   720 h — No mortal (centro médico, último día hábil mes siguiente)
+  //   120 h — Enfermedad ocupacional (centro médico, 5 días hábiles)
+  plazoLegalHoras       Int           @map("plazo_legal_horas")
+  // Tracking SAT manual — el cliente notifica en gob.pe/774 y carga su cargo.
+  // COMPLY360 NO ejecuta RPA: solo asiste con wizard pre-llenado + recordatorios.
+  satNumeroManual       String?       @map("sat_numero_manual")
+  satFechaEnvioManual   DateTime?     @map("sat_fecha_envio_manual")
+  satCargoArchivoUrl    String?       @map("sat_cargo_archivo_url")
+  satEstado             EstadoSAT     @default(PENDIENTE) @map("sat_estado")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  organization     Organization               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sede             Sede                       @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  worker           Worker?                    @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  investigaciones  InvestigacionAccidente[]
+
+  @@index([orgId, satEstado])
+  @@index([orgId, fechaHora])
+  @@index([sedeId])
+  @@map("accidentes")
+}
+
+model InvestigacionAccidente {
+  id                  String   @id @default(cuid())
+  accidenteId         String   @map("accidente_id")
+  fechaInvestigacion  DateTime @map("fecha_investigacion")
+  causasInmediatas    Json     @map("causas_inmediatas")    // [{ tipo: "ACTO_INSEGURO" | "CONDICION_INSEGURA", descripcion }]
+  causasBasicas       Json     @map("causas_basicas")       // [{ tipo: "FACTOR_PERSONAL" | "FACTOR_TRABAJO", descripcion }]
+  accionesCorrectivas Json     @map("acciones_correctivas") // [{ accion, responsable, plazo, estado }]
+  responsableId       String?  @map("responsable_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  accidente Accidente @relation(fields: [accidenteId], references: [id], onDelete: Cascade)
+
+  @@index([accidenteId])
+  @@map("investigaciones_accidente")
+}
+
+model ComiteSST {
+  id              String        @id @default(cuid())
+  orgId           String        @map("org_id")
+  mandatoInicio   DateTime      @map("mandato_inicio")
+  mandatoFin      DateTime      @map("mandato_fin") // 2 años por R.M. 245-2021-TR
+  estado          EstadoComite  @default(VIGENTE)
+  libroActasUrl   String?       @map("libro_actas_url")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  miembros     MiembroComite[]
+
+  @@index([orgId, estado])
+  @@map("comites_sst")
+}
+
+model MiembroComite {
+  id        String          @id @default(cuid())
+  comiteId  String          @map("comite_id")
+  workerId  String          @map("worker_id")
+  cargo     CargoComite
+  origen    OrigenMiembro
+  fechaAlta DateTime        @default(now()) @map("fecha_alta")
+  fechaBaja DateTime?       @map("fecha_baja")
+
+  comite ComiteSST @relation(fields: [comiteId], references: [id], onDelete: Cascade)
+  worker Worker    @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([comiteId, workerId])
+  @@index([comiteId])
+  @@map("miembros_comite")
+}
+
+// Inspector/auditor directo de COMPLY360 (empleado o contratista interno).
+// NO es marketplace: queda gestionado por super-admin de la plataforma.
+model ColaboradorSST {
+  id                    String           @id @default(cuid())
+  nombre                String
+  apellido              String
+  dni                   String           @unique
+  email                 String           @unique
+  telefono              String?
+  tipoColaborador       TipoColaborador  @map("tipo_colaborador")
+  vigenciaContratoHasta DateTime?        @map("vigencia_contrato_hasta")
+  disponibilidad        Json? // { lun: "08:00-17:00", mar: "08:00-17:00", ... }
+  especialidades        String[] // ["alturas","espacios_confinados","monitoreo_higienico", ...]
+  activo                Boolean          @default(true)
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  visitas VisitaFieldAudit[]
+
+  @@index([activo])
+  @@map("colaboradores_sst")
+}
+
+// Visita de inspección: captura en campo + ingesta en oficina al regresar.
+// payloadOfflineJson contiene los datos crudos de la tablet/móvil (IndexedDB
+// volcado) para procesamiento posterior. NO se requiere sync online crítico.
+model VisitaFieldAudit {
+  id                  String        @id @default(cuid())
+  orgId               String        @map("org_id")
+  sedeId              String        @map("sede_id")
+  colaboradorId       String        @map("colaborador_id")
+  fechaProgramada     DateTime      @map("fecha_programada")
+  fechaInicioCampo    DateTime?     @map("fecha_inicio_campo")
+  fechaCierreOficina  DateTime?     @map("fecha_cierre_oficina")
+  lat                 Decimal?      @db.Decimal(9, 6)
+  lng                 Decimal?      @db.Decimal(9, 6)
+  fotoFachadaUrl      String?       @map("foto_fachada_url")
+  estado              EstadoVisita  @default(PROGRAMADA)
+  payloadOfflineJson  Json?         @map("payload_offline_json")
+  notasInspector      String?       @map("notas_inspector")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  organization Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sede         Sede                  @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  colaborador  ColaboradorSST        @relation(fields: [colaboradorId], references: [id])
+  hallazgos    HallazgoFieldAudit[]
+
+  @@index([orgId, estado])
+  @@index([sedeId])
+  @@index([colaboradorId])
+  @@map("visitas_field_audit")
+}
+
+model HallazgoFieldAudit {
+  id              String           @id @default(cuid())
+  visitaId        String           @map("visita_id")
+  tipo            TipoHallazgo
+  severidad       NivelRiesgoIPERC
+  descripcion     String
+  fotoUrl         String?          @map("foto_url")
+  coordenadasGps  Json?            @map("coordenadas_gps") // { lat, lng, accuracy }
+  accionPropuesta String           @map("accion_propuesta")
+  responsable     String?
+  plazoCierre     DateTime?        @map("plazo_cierre")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  visita VisitaFieldAudit @relation(fields: [visitaId], references: [id], onDelete: Cascade)
+
+  @@index([visitaId])
+  @@index([severidad])
+  @@map("hallazgos_field_audit")
+}
+
+// Catálogo seed reutilizable de peligros tipo (~80 entradas Sprint 1).
+// El catálogo sectorial completo (~1,200 entradas) es trabajo de SST senior
+// peruano en Sprint 3, no dev. Sin filtro CIIU sectorial todavía.
+model CatalogoPeligro {
+  id          String         @id @default(cuid())
+  familia     FamiliaPeligro
+  sectorCiiu  String?        @map("sector_ciiu") // null = aplica a todos
+  codigo      String         @unique // ej: "FIS-RUI-001"
+  nombre      String
+  descripcion String
+  fuenteLegal String?        @map("fuente_legal") // ej: "R.M. 050-2013-TR Anexo 3"
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@index([familia])
+  @@index([sectorCiiu])
+  @@map("catalogo_peligros")
+}
+
+// Catálogo de controles tipo según jerarquía R.M. 050-2013-TR.
+model CatalogoControl {
+  id                 String        @id @default(cuid())
+  peligroIdSugerido  String?       @map("peligro_id_sugerido")
+  nivel              NivelControl
+  codigo             String        @unique // ej: "ING-VENT-001"
+  descripcion        String
+  costoEstimadoSoles Decimal?      @map("costo_estimado_soles") @db.Decimal(10, 2)
+  fuenteLegal        String?       @map("fuente_legal")
+  createdAt          DateTime      @default(now()) @map("created_at")
+
+  @@index([nivel])
+  @@index([peligroIdSugerido])
+  @@map("catalogo_controles")
+}
+
+// =============================================
+// SUB-SCHEMA MÉDICO — Ley 29733 + D.S. 016-2024-JUS
+// =============================================
+// Datos médicos cifrados con pgcrypto.pgp_sym_encrypt usando MEDICAL_VAULT_KEY.
+// Solo "Aptitud" se persiste en claro. El diagnóstico JAMÁS toca COMPLY360.
+// =============================================
+
+model EMO {
+  id                     String        @id @default(cuid())
+  orgId                  String        @map("org_id")
+  workerId               String        @map("worker_id")
+  tipoExamen             TipoExamenEMO @map("tipo_examen")
+  fechaExamen            DateTime      @map("fecha_examen")
+  centroMedicoNombre     String        @map("centro_medico_nombre")
+  centroMedicoRuc        String?       @map("centro_medico_ruc")
+  // Único campo médico persistido en claro
+  aptitud                AptitudEMO
+  // Texto libre cifrado: restricciones SIN diagnóstico
+  restriccionesCifrado   Bytes?        @map("restricciones_cifrado")
+  consentimientoLey29733 Boolean       @map("consentimiento_ley_29733")
+  fechaConsentimiento    DateTime?     @map("fecha_consentimiento")
+  proximoExamenAntes     DateTime?     @map("proximo_examen_antes")
+  certificadoUrl         String?       @map("certificado_url")
+  createdAt              DateTime      @default(now()) @map("created_at")
+  updatedAt              DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, workerId])
+  @@index([proximoExamenAntes])
+  @@map("emo")
+}
+
+model ConsentimientoLey29733 {
+  id                   String    @id @default(cuid())
+  orgId                String    @map("org_id")
+  workerId             String    @map("worker_id")
+  textoCifrado         Bytes     @map("texto_cifrado") // contenido íntegro del consentimiento, cifrado
+  firmaCifrada         Bytes     @map("firma_cifrada") // datos de firma (e-firma simple o WebAuthn) cifrados
+  webauthnCredentialId String?   @map("webauthn_credential_id")
+  ip                   String?
+  userAgent            String?   @map("user_agent")
+  // 5 años post-cese (Art. 8 D.S. 016-2024-JUS)
+  vigenciaHasta        DateTime  @map("vigencia_hasta")
+  revocadoAt           DateTime? @map("revocado_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, workerId])
+  @@map("consentimientos_ley_29733")
+}
+
+model SolicitudARCO {
+  id              String      @id @default(cuid())
+  orgId           String      @map("org_id")
+  solicitanteDni  String      @map("solicitante_dni")
+  solicitanteName String      @map("solicitante_name")
+  tipo            TipoARCO
+  detalleCifrado  Bytes?      @map("detalle_cifrado") // descripción de la solicitud, cifrada
+  estado          EstadoARCO  @default(RECIBIDA)
+  // SLA: 20 días hábiles (Art. 41 Ley 29733 + D.S. 016-2024-JUS)
+  slaHasta        DateTime    @map("sla_hasta")
+  dpoAsignadoId   String?     @map("dpo_asignado_id")
+  respuestaAt     DateTime?   @map("respuesta_at")
+  respuestaArchivoUrl String? @map("respuesta_archivo_url")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  dpoAsignado  User?        @relation("DpoAsignado", fields: [dpoAsignadoId], references: [id])
+
+  @@index([orgId, estado])
+  @@index([slaHasta])
+  @@map("solicitudes_arco")
+}
+
+// =============================================
+// FASE 5 — ENUMS
+// =============================================
+
+enum TipoInstalacion {
+  OFICINA
+  PLANTA
+  OBRA
+  SUCURSAL
+  TALLER
+  ALMACEN
+  CAMPO
+}
+
+enum NivelRiesgoIPERC {
+  TRIVIAL      // 4
+  TOLERABLE    // 5-8
+  MODERADO     // 9-16
+  IMPORTANTE   // 17-24
+  INTOLERABLE  // 25-36
+}
+
+enum EstadoDocumento {
+  BORRADOR
+  REVISION
+  VIGENTE
+  VENCIDO
+  ARCHIVADO
+}
+
+enum TipoAccidente {
+  MORTAL
+  NO_MORTAL
+  INCIDENTE_PELIGROSO
+  ENFERMEDAD_OCUPACIONAL
+}
+
+enum EstadoSAT {
+  PENDIENTE
+  EN_PROCESO
+  NOTIFICADO
+  CONFIRMADO
+  RECHAZADO
+}
+
+enum EstadoComite {
+  VIGENTE
+  EN_ELECCION
+  INACTIVO
+}
+
+enum CargoComite {
+  PRESIDENTE
+  SECRETARIO
+  MIEMBRO
+}
+
+enum OrigenMiembro {
+  REPRESENTANTE_EMPLEADOR
+  REPRESENTANTE_TRABAJADORES
+}
+
+enum TipoColaborador {
+  EMPLEADO_INTERNO
+  CONTRATISTA
+}
+
+enum EstadoVisita {
+  PROGRAMADA
+  EN_CAMPO
+  PENDIENTE_INGESTA
+  EN_INGESTA
+  CERRADA
+  CANCELADA
+}
+
+enum TipoHallazgo {
+  PELIGRO_NUEVO
+  PROCEDIMIENTO_INCUMPLIDO
+  EPP_AUSENTE
+  SENALIZACION_FALTANTE
+  EXTINTOR_VENCIDO
+  RUTA_EVACUACION_BLOQUEADA
+  OTRO
+}
+
+enum FamiliaPeligro {
+  FISICO
+  QUIMICO
+  BIOLOGICO
+  ERGONOMICO
+  PSICOSOCIAL
+  MECANICO
+  ELECTRICO
+  LOCATIVO
+}
+
+enum NivelControl {
+  ELIMINACION
+  SUSTITUCION
+  INGENIERIA
+  ADMINISTRATIVO
+  EPP
+}
+
+enum TipoExamenEMO {
+  PRE_EMPLEO
+  PERIODICO
+  RETIRO
+  REINTEGRO_LARGA_AUSENCIA
+}
+
+enum AptitudEMO {
+  APTO
+  APTO_CON_RESTRICCIONES
+  NO_APTO
+  OBSERVADO
+}
+
+enum TipoARCO {
+  ACCESO
+  RECTIFICACION
+  CANCELACION
+  OPOSICION
+  PORTABILIDAD
+}
+
+enum EstadoARCO {
+  RECIBIDA
+  EN_PROCESO
+  RESPONDIDA
+  VENCIDA
 }

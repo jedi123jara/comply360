@@ -139,6 +139,13 @@ describe('RIT estructural DOCX', () => {
       sstSensitiveCount: 3,
       complianceRoleCount: 1,
       maxDepth: 1,
+      structureScore: expect.any(Number),
+      structureHealth: expect.any(String),
+      overloadedManagers: 0,
+      criticalManagers: 0,
+      maxSpan: 0,
+      averageSpan: 0,
     })
+    expect(summary.structureScore).toBeLessThan(100)
   })
 })

@@ -34,6 +34,23 @@ import {
   type LegalResponsibilityItem,
   type LegalResponsibilityStatus,
 } from '@/lib/orgchart/legal-responsibles'
+import {
+  buildStructureAnalytics,
+  type SpanControlRecord,
+  type SpanSeverity,
+  type StructureHealth,
+  type UnitStructureScore,
+} from '@/lib/orgchart/structure-analytics'
+import {
+  analyzeMof,
+  type MofCompletenessReport,
+  type MofIssueSeverity,
+  type MofReadinessStatus,
+} from '@/lib/orgchart/mof-analysis'
+import {
+  buildWhatIfCostImpact,
+  type WhatIfCostImpact,
+} from '@/lib/orgchart/what-if-cost'
 import type {
   OrgChartTree,
   DoctorReport,
@@ -45,7 +62,7 @@ import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 
 type View = 'hierarchy' | 'committees'
 type OrgLens = 'general' | 'mof' | 'sst' | 'vacancies'
-type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'historial'
+type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'analitica' | 'historial'
 type PendingReparent = { positionId: string; newParentId: string }
 type AssignRoleRequest = { unitId: string | null; roleType?: ComplianceRoleType }
 type OrgAlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
@@ -77,6 +94,7 @@ interface WhatIfImpactReportDTO {
     projectedSpanOfControl: number
     risks: number
   }
+  costImpact?: WhatIfCostImpact | null
   risks: WhatIfRiskDTO[]
 }
 
@@ -328,6 +346,7 @@ export default function OrganigramaClient() {
     if (!selectedUnitId || !tree) return null
     return tree.units.find(u => u.id === selectedUnitId) ?? null
   }, [selectedUnitId, tree])
+  const structureAnalytics = useMemo(() => (tree ? buildStructureAnalytics(tree) : null), [tree])
   const isHistorical = Boolean(asOf)
 
   const requestReparentPosition = useCallback((positionId: string, newParentId: string) => {
@@ -413,6 +432,17 @@ export default function OrganigramaClient() {
           tree={tree}
           readOnly={isHistorical}
           onAssignRole={(roleType) => openAssignRole(null, roleType)}
+        />
+      )
+    }
+    if (activeTab === 'analitica') {
+      return (
+        <StructureAnalyticsView
+          summary={structureAnalytics ?? buildStructureAnalytics(tree)}
+          onFocusUnit={(unitId) => {
+            setSelectedUnitId(unitId)
+            changeTab('organigrama')
+          }}
         />
       )
     }
@@ -606,6 +636,7 @@ export default function OrganigramaClient() {
             units: tree?.units.length ?? 0,
             positions: tree?.positions.length ?? 0,
             roles: tree?.complianceRoles.length ?? 0,
+            structureScore: structureAnalytics?.score ?? 100,
           }}
         />
       </div>
@@ -864,6 +895,7 @@ function isModuleTab(value: string | null): value is ModuleTab {
     value === 'directorio' ||
     value === 'areas-cargos' ||
     value === 'responsables' ||
+    value === 'analitica' ||
     value === 'historial'
   )
 }
@@ -875,13 +907,14 @@ function ModuleTabs({
 }: {
   value: ModuleTab
   onChange: (tab: ModuleTab) => void
-  counts: { assigned: number; units: number; positions: number; roles: number }
+  counts: { assigned: number; units: number; positions: number; roles: number; structureScore: number }
 }) {
   const items: Array<{ key: ModuleTab; label: string; meta: string; icon: typeof Network }> = [
     { key: 'organigrama', label: 'Organigrama', meta: `${counts.units} áreas`, icon: Network },
     { key: 'directorio', label: 'Directorio', meta: `${counts.assigned} asignados`, icon: FileSpreadsheet },
     { key: 'areas-cargos', label: 'Áreas y cargos', meta: `${counts.positions} cargos`, icon: ListTree },
     { key: 'responsables', label: 'Responsables', meta: `${counts.roles} roles`, icon: ShieldCheck },
+    { key: 'analitica', label: 'Analítica', meta: `${counts.structureScore}/100`, icon: Sparkles },
     { key: 'historial', label: 'Historial', meta: 'Auditoría', icon: History },
   ]
 
@@ -985,6 +1018,302 @@ function CsstMetric({ label, value, highlight = false }: { label: string; value:
       <div className="text-[10px] font-medium text-slate-500">{label}</div>
     </div>
   )
+}
+
+function StructureAnalyticsView({
+  summary,
+  onFocusUnit,
+}: {
+  summary: ReturnType<typeof buildStructureAnalytics>
+  onFocusUnit: (unitId: string) => void
+}) {
+  const [spanFilter, setSpanFilter] = useState<'all' | SpanSeverity>('all')
+  const [unitFilter, setUnitFilter] = useState<'all' | StructureHealth>('all')
+  const visibleSpans = summary.spanRecords.filter(record => spanFilter === 'all' || record.severity === spanFilter)
+  const visibleUnits = summary.unitScores.filter(unit => unitFilter === 'all' || unit.health === unitFilter)
+
+  return (
+    <div className="h-full overflow-y-auto bg-slate-50 p-6">
+      <div className="mb-5 flex flex-wrap items-start gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Analítica estructural</h2>
+          <div className="mt-1 text-xs text-slate-500">
+            Score ejecutivo, span de control, vacantes, MOF y salud por área.
+          </div>
+        </div>
+        <div className={`ml-auto rounded-lg border px-4 py-3 ${structureHealthSurface(summary.health)}`}>
+          <div className="text-2xl font-semibold">{summary.score}/100</div>
+          <div className="text-xs font-medium opacity-75">{structureHealthLabel(summary.health)}</div>
+        </div>
+      </div>
+
+      <div className="mb-5 grid gap-3 md:grid-cols-4">
+        <AnalyticsMetric label="Jefaturas" value={summary.totals.managers} detail={`${summary.totals.averageSpan} reportes promedio`} />
+        <AnalyticsMetric
+          label="Span alto"
+          value={summary.totals.overloadedManagers}
+          detail={`${summary.totals.criticalManagers} crítico(s)`}
+          tone={summary.totals.overloadedManagers ? 'amber' : 'emerald'}
+        />
+        <AnalyticsMetric
+          label="Vacantes"
+          value={summary.totals.vacancies}
+          detail={`${formatPercent(summary.totals.vacancyRate)} de cupos`}
+          tone={summary.totals.vacancies ? 'amber' : 'emerald'}
+        />
+        <AnalyticsMetric
+          label="MOF pendiente"
+          value={summary.totals.missingMof}
+          detail={`${formatPercent(summary.totals.missingMofRate)} de cargos`}
+          tone={summary.totals.missingMof ? 'rose' : 'emerald'}
+        />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1fr_1.2fr]">
+        <section className="rounded-lg border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Riesgos prioritarios</h3>
+              <div className="mt-0.5 text-xs text-slate-500">{summary.topRisks.length} riesgo(s) estructurales priorizados</div>
+            </div>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {summary.topRisks.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-slate-500">Sin riesgos estructurales relevantes.</div>
+            ) : (
+              summary.topRisks.map(risk => (
+                <div key={risk.id} className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${spanSeverityClass(risk.severity)}`}>
+                      {spanSeverityLabel(risk.severity)}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-900">{risk.title}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">{risk.description}</p>
+                  {risk.unitId && (
+                    <button
+                      onClick={() => onFocusUnit(risk.unitId!)}
+                      className="mt-2 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                    >
+                      Ver área
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Span de control</h3>
+              <div className="mt-0.5 text-xs text-slate-500">Jefaturas ordenadas por reportes directos.</div>
+            </div>
+            <div className="ml-auto flex flex-wrap gap-2">
+              {(['all', 'watch', 'high', 'critical'] as Array<'all' | SpanSeverity>).map(item => (
+                <button
+                  key={item}
+                  onClick={() => setSpanFilter(item)}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
+                    spanFilter === item
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {item === 'all' ? 'Todos' : spanSeverityLabel(item)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="max-h-[420px] overflow-y-auto divide-y divide-slate-100">
+            {visibleSpans.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-slate-500">Sin jefaturas para este filtro.</div>
+            ) : (
+              visibleSpans.map(record => (
+                <SpanControlRow key={record.positionId} record={record} onFocusUnit={onFocusUnit} />
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+
+      <section className="mt-5 rounded-lg border border-slate-200 bg-white">
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Score por área</h3>
+            <div className="mt-0.5 text-xs text-slate-500">Áreas ordenadas por menor salud estructural.</div>
+          </div>
+          <div className="ml-auto flex flex-wrap gap-2">
+            {(['all', 'critical', 'attention', 'stable', 'excellent'] as Array<'all' | StructureHealth>).map(item => (
+              <button
+                key={item}
+                onClick={() => setUnitFilter(item)}
+                className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
+                  unitFilter === item
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {item === 'all' ? 'Todas' : structureHealthLabel(item)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {visibleUnits.map(unit => (
+            <UnitStructureScoreRow key={unit.unitId} unit={unit} onFocusUnit={onFocusUnit} />
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function AnalyticsMetric({
+  label,
+  value,
+  detail,
+  tone = 'slate',
+}: {
+  label: string
+  value: number | string
+  detail: string
+  tone?: 'emerald' | 'amber' | 'rose' | 'slate'
+}) {
+  const classes = {
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    amber: 'border-amber-200 bg-amber-50 text-amber-800',
+    rose: 'border-rose-200 bg-rose-50 text-rose-800',
+    slate: 'border-slate-200 bg-white text-slate-800',
+  }[tone]
+  return (
+    <div className={`rounded-lg border p-4 ${classes}`}>
+      <div className="text-xl font-semibold">{value}</div>
+      <div className="mt-1 text-xs font-medium opacity-75">{label}</div>
+      <div className="mt-2 text-[11px] opacity-70">{detail}</div>
+    </div>
+  )
+}
+
+function SpanControlRow({ record, onFocusUnit }: { record: SpanControlRecord; onFocusUnit: (unitId: string) => void }) {
+  return (
+    <div className="grid gap-3 px-4 py-3 md:grid-cols-[1fr_auto]">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold text-slate-900">{record.title}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${spanSeverityClass(record.severity)}`}>
+            {spanSeverityLabel(record.severity)}
+          </span>
+        </div>
+        <div className="mt-1 text-xs text-slate-500">
+          {record.unitName} · {record.occupantNames.length ? record.occupantNames.join(', ') : 'Sin ocupante'} · profundidad {record.depth}
+        </div>
+        <p className="mt-2 text-xs text-slate-600">{record.recommendation}</p>
+      </div>
+      <div className="flex items-center justify-between gap-4 md:justify-end">
+        <div className="text-right">
+          <div className="text-lg font-semibold text-slate-900">{record.directReports}</div>
+          <div className="text-[10px] font-medium uppercase text-slate-500">directos</div>
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-semibold text-slate-900">{record.totalSubtree}</div>
+          <div className="text-[10px] font-medium uppercase text-slate-500">subárbol</div>
+        </div>
+        <button
+          onClick={() => onFocusUnit(record.unitId)}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Ver
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function UnitStructureScoreRow({ unit, onFocusUnit }: { unit: UnitStructureScore; onFocusUnit: (unitId: string) => void }) {
+  return (
+    <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(240px,1fr)_2fr_auto]">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold text-slate-900">{unit.unitName}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${structureHealthPill(unit.health)}`}>
+            {structureHealthLabel(unit.health)}
+          </span>
+        </div>
+        <div className="mt-1 text-xs text-slate-500">
+          {unit.positions} cargos · {unit.occupants} ocupantes · nivel {unit.level}
+        </div>
+      </div>
+      <div className="grid gap-2 text-xs sm:grid-cols-4">
+        <UnitMiniMetric label="Score" value={`${unit.score}/100`} />
+        <UnitMiniMetric label="Vacantes" value={`${unit.vacancies} (${formatPercent(unit.vacancyRate)})`} />
+        <UnitMiniMetric label="MOF" value={`${unit.missingMof} pend.`} />
+        <UnitMiniMetric label="Span máx." value={unit.maxSpan} />
+      </div>
+      <div className="flex flex-col items-start gap-2 lg:items-end">
+        {unit.flags.length > 0 ? (
+          <div className="max-w-md text-xs text-slate-500">{unit.flags.join(' · ')}</div>
+        ) : (
+          <div className="text-xs text-emerald-700">Sin alertas estructurales.</div>
+        )}
+        <button
+          onClick={() => onFocusUnit(unit.unitId)}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Ver área
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function UnitMiniMetric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-lg bg-slate-50 px-3 py-2">
+      <div className="font-semibold text-slate-900">{value}</div>
+      <div className="mt-0.5 text-[10px] font-medium uppercase text-slate-500">{label}</div>
+    </div>
+  )
+}
+
+function structureHealthLabel(health: StructureHealth) {
+  if (health === 'excellent') return 'Excelente'
+  if (health === 'stable') return 'Estable'
+  if (health === 'attention') return 'Atención'
+  return 'Crítico'
+}
+
+function structureHealthPill(health: StructureHealth) {
+  if (health === 'excellent') return 'bg-emerald-100 text-emerald-700'
+  if (health === 'stable') return 'bg-sky-100 text-sky-700'
+  if (health === 'attention') return 'bg-amber-100 text-amber-700'
+  return 'bg-rose-100 text-rose-700'
+}
+
+function structureHealthSurface(health: StructureHealth) {
+  if (health === 'excellent') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (health === 'stable') return 'border-sky-200 bg-sky-50 text-sky-800'
+  if (health === 'attention') return 'border-amber-200 bg-amber-50 text-amber-800'
+  return 'border-rose-200 bg-rose-50 text-rose-800'
+}
+
+function spanSeverityLabel(severity: SpanSeverity) {
+  if (severity === 'healthy') return 'Saludable'
+  if (severity === 'watch') return 'Vigilar'
+  if (severity === 'high') return 'Alto'
+  return 'Crítico'
+}
+
+function spanSeverityClass(severity: SpanSeverity) {
+  if (severity === 'healthy') return 'bg-emerald-100 text-emerald-700'
+  if (severity === 'watch') return 'bg-sky-100 text-sky-700'
+  if (severity === 'high') return 'bg-amber-100 text-amber-700'
+  return 'bg-rose-100 text-rose-700'
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`
 }
 
 function LegalResponsiblesView({
@@ -1243,7 +1572,7 @@ function CommandPaletteModal({
             value={query}
             onChange={event => setQuery(event.target.value)}
             autoFocus
-            placeholder="Buscar persona, cargo, area, responsables, MOF, SST..."
+            placeholder="Buscar persona, cargo, area, responsables, analitica, MOF, SST..."
             className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
           <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
@@ -1669,6 +1998,17 @@ function WhatIfDraftsModal({
                         <MiniMetric label="Span" value={draft.impactReport.metrics.projectedSpanOfControl} />
                         <MiniMetric label="Riesgos" value={draft.impactReport.metrics.risks} highlight={draft.impactReport.metrics.risks > 0} />
                       </div>
+                      {draft.impactReport.costImpact && (
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          <MoneyMetric label="Nómina mes" value={draft.impactReport.costImpact.estimatedMonthlyPayroll} />
+                          <MoneyMetric label="Vacantes mes" value={draft.impactReport.costImpact.estimatedMonthlyVacancyBudget} />
+                          <MoneyMetric
+                            label="Indem. ref."
+                            value={draft.impactReport.costImpact.estimatedSeveranceExposure}
+                            highlight={draft.impactReport.costImpact.estimatedSeveranceExposure > 0}
+                          />
+                        </div>
+                      )}
                       {draft.impactReport.risks.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1.5">
                           {draft.impactReport.risks.slice(0, 4).map(risk => (
@@ -1712,6 +2052,15 @@ function MiniMetric({ label, value, highlight = false }: { label: string; value:
   return (
     <div className={`rounded-lg border px-2 py-2 text-center ${highlight ? 'border-amber-200 bg-amber-50' : 'border-slate-100 bg-white'}`}>
       <div className={`text-sm font-bold ${highlight ? 'text-amber-800' : 'text-slate-900'}`}>{value}</div>
+      <div className="text-[10px] font-medium text-slate-500">{label}</div>
+    </div>
+  )
+}
+
+function MoneyMetric({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className={`rounded-lg border px-2 py-2 text-center ${highlight ? 'border-amber-200 bg-amber-50' : 'border-slate-100 bg-white'}`}>
+      <div className={`text-sm font-bold ${highlight ? 'text-amber-800' : 'text-slate-900'}`}>{formatCurrency(value)}</div>
       <div className="text-[10px] font-medium text-slate-500">{label}</div>
     </div>
   )
@@ -1784,6 +2133,10 @@ function WhatIfModal({
     directReports: directReports.length,
     projectedSpan,
   })
+  const costImpact = useMemo(
+    () => (position ? buildWhatIfCostImpact(tree, position.id) : null),
+    [position, tree],
+  )
   const canApply = Boolean(position && newParent && !cycle)
 
   const saveScenario = async () => {
@@ -1878,6 +2231,33 @@ function WhatIfModal({
               <Stat label="Span destino" value={projectedSpan} highlight={projectedSpan >= 12} />
               <Stat label="Riesgos" value={risks.length} highlight={risks.length > 0} />
             </div>
+
+            {costImpact && (
+              <section className="mt-5 rounded-lg border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-slate-900">Impacto económico referencial</h3>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                    {costImpact.salaryBandCoverage.positionsMissingBand === 0 ? 'Bandas completas' : 'Bandas incompletas'}
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-2 md:grid-cols-4">
+                  <MoneyMetric label="Nómina mensual" value={costImpact.estimatedMonthlyPayroll} />
+                  <MoneyMetric label="Nómina anual" value={costImpact.estimatedAnnualPayroll} />
+                  <MoneyMetric label="Vacantes mes" value={costImpact.estimatedMonthlyVacancyBudget} highlight={costImpact.estimatedMonthlyVacancyBudget > 0} />
+                  <MoneyMetric label="Indem. ref." value={costImpact.estimatedSeveranceExposure} highlight={costImpact.estimatedSeveranceExposure > 0} />
+                </div>
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  <MiniMetric label="Puestos" value={costImpact.positionsAffected} />
+                  <MiniMetric label="Trabajadores" value={costImpact.workersAffected} />
+                  <MiniMetric label="Vacantes" value={costImpact.vacantSeatsAffected} highlight={costImpact.vacantSeatsAffected > 0} />
+                </div>
+                {costImpact.salaryBandCoverage.positionsMissingBand > 0 && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                    {costImpact.salaryBandCoverage.positionsMissingBand} cargo(s) sin banda salarial dentro de la rama afectada.
+                  </div>
+                )}
+              </section>
+            )}
 
             <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
               <section className="rounded-lg border border-slate-200 bg-white p-4">
@@ -3774,6 +4154,14 @@ function Stat({ label, value, highlight = false }: { label: string; value: numbe
   )
 }
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('es-PE', {
+    style: 'currency',
+    currency: 'PEN',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 // ─── Auditor Link modal ──────────────────────────────────────────────────────
 type AuditorHours = 24 | 48 | 72 | 168 | 360
 function AuditorLinkModal({ onClose }: { onClose: () => void }) {
@@ -4297,6 +4685,7 @@ function PositionFormModal({
   const isEditing = Boolean(position)
   const [title, setTitle] = useState(position?.title ?? '')
   const [code, setCode] = useState(position?.code ?? '')
+  const [description, setDescription] = useState(position?.description ?? '')
   const [level, setLevel] = useState(position?.level ?? '')
   const [category, setCategory] = useState(position?.category ?? '')
   const [purpose, setPurpose] = useState(position?.purpose ?? '')
@@ -4314,7 +4703,52 @@ function PositionFormModal({
   const [reportsToPositionId, setReportsToPositionId] = useState(position?.reportsToPositionId ?? '')
   const [backupPositionId, setBackupPositionId] = useState(position?.backupPositionId ?? '')
   const [seats, setSeats] = useState(position?.seats ?? 1)
+  const [salaryBandMin, setSalaryBandMin] = useState(position?.salaryBandMin ?? '')
+  const [salaryBandMax, setSalaryBandMax] = useState(position?.salaryBandMax ?? '')
   const [submitting, setSubmitting] = useState(false)
+  const functions = useMemo(() => splitMultiline(functionsText), [functionsText])
+  const responsibilities = useMemo(() => splitMultiline(responsibilitiesText), [responsibilitiesText])
+  const requirementsPayload = useMemo(
+    () => buildRequirementsPayload(education, experience, competenciesText),
+    [education, experience, competenciesText],
+  )
+  const mofReport = useMemo(
+    () =>
+      analyzeMof({
+        title,
+        description,
+        level,
+        category,
+        purpose,
+        functions,
+        responsibilities,
+        requirements: requirementsPayload,
+        riskCategory,
+        requiresSctr,
+        requiresMedicalExam,
+        isCritical,
+        isManagerial,
+        reportsToPositionId: reportsToPositionId || null,
+        backupPositionId: backupPositionId || null,
+      }),
+    [
+      title,
+      description,
+      level,
+      category,
+      purpose,
+      functions,
+      responsibilities,
+      requirementsPayload,
+      riskCategory,
+      requiresSctr,
+      requiresMedicalExam,
+      isCritical,
+      isManagerial,
+      reportsToPositionId,
+      backupPositionId,
+    ],
+  )
 
   const submit = async () => {
     if (!title.trim()) return
@@ -4324,12 +4758,15 @@ function PositionFormModal({
         orgUnitId: unitId,
         title: title.trim(),
         code: code.trim() || null,
+        description: description.trim() || null,
         level: level.trim() || null,
         category: category.trim() || null,
         purpose: purpose.trim() || null,
-        functions: splitMultiline(functionsText),
-        responsibilities: splitMultiline(responsibilitiesText),
-        requirements: buildRequirementsPayload(education, experience, competenciesText),
+        functions,
+        responsibilities,
+        requirements: requirementsPayload,
+        salaryBandMin: parseOptionalMoney(salaryBandMin),
+        salaryBandMax: parseOptionalMoney(salaryBandMax),
         riskCategory: riskCategory.trim() || null,
         requiresSctr,
         requiresMedicalExam,
@@ -4390,6 +4827,16 @@ function PositionFormModal({
                     placeholder="Ej. Gerente de Operaciones, Jefe de Tienda, Vendedor"
                     className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                     autoFocus
+                  />
+                </label>
+                <label className="block text-sm md:col-span-2">
+                  <span className="text-slate-700">Descripción general</span>
+                  <textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    rows={2}
+                    placeholder="Resume el alcance del cargo, su aporte principal y el contexto operativo."
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   />
                 </label>
                 <label className="block text-sm">
@@ -4499,6 +4946,10 @@ function PositionFormModal({
 
             <aside className="space-y-4">
               <div className="rounded-lg border border-slate-200 p-4">
+                <MofCompletenessPanel report={mofReport} />
+              </div>
+
+              <div className="rounded-lg border border-slate-200 p-4">
                 <div className="mb-3 text-sm font-semibold text-slate-900">Línea de mando</div>
                 <label className="block text-sm">
                   <span className="text-slate-700">Reporta a</span>
@@ -4530,6 +4981,37 @@ function PositionFormModal({
                     ))}
                   </select>
                 </label>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 p-4">
+                <div className="mb-3 text-sm font-semibold text-slate-900">Banda salarial</div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  <label className="block text-sm">
+                    <span className="text-slate-700">Mínimo</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={salaryBandMin}
+                      onChange={e => setSalaryBandMin(e.target.value)}
+                      placeholder="0.00"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="text-slate-700">Máximo</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={salaryBandMax}
+                      onChange={e => setSalaryBandMax(e.target.value)}
+                      placeholder="0.00"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
+                  </label>
+                </div>
+                <div className="mt-2 text-[11px] text-slate-500">
+                  Útil para cuadro de categorías, equidad salarial y auditoría de compensaciones.
+                </div>
               </div>
 
               <div className="rounded-lg border border-slate-200 p-4">
@@ -4603,12 +5085,106 @@ function PositionFormModal({
   )
 }
 
+function MofCompletenessPanel({ report }: { report: MofCompletenessReport }) {
+  const topIssues = report.issues.slice(0, 5)
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">Completitud MOF</div>
+          <div className="mt-1 text-xs text-slate-500">
+            {report.completed}/{report.total} criterios completos
+          </div>
+        </div>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${mofStatusClass(report.status)}`}>
+          {mofStatusLabel(report.status)}
+        </span>
+      </div>
+      <div className="mt-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-medium text-slate-700">{report.score}/100</span>
+          <span className="text-slate-500">listo para auditoría</span>
+        </div>
+        <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className={`h-full rounded-full ${mofProgressClass(report.status)}`} style={{ width: `${report.score}%` }} />
+        </div>
+      </div>
+
+      {topIssues.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          {topIssues.map(item => (
+            <div key={item.key} className="rounded-lg bg-slate-50 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${mofIssueDotClass(item.severity)}`} />
+                <span className="text-xs font-semibold text-slate-800">{item.label}</span>
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500">{item.detail}</div>
+            </div>
+          ))}
+          {report.issues.length > topIssues.length && (
+            <div className="text-[11px] text-slate-500">+{report.issues.length - topIssues.length} pendiente(s) adicional(es).</div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+          MOF completo para descarga y evidencia.
+        </div>
+      )}
+
+      {report.strengths.length > 0 && (
+        <div className="mt-4 space-y-1">
+          {report.strengths.slice(0, 3).map(item => (
+            <div key={item} className="flex items-center gap-2 text-[11px] text-emerald-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {item}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function mofStatusLabel(status: MofReadinessStatus) {
+  if (status === 'complete') return 'Completo'
+  if (status === 'usable') return 'Usable'
+  if (status === 'incomplete') return 'Incompleto'
+  return 'Crítico'
+}
+
+function mofStatusClass(status: MofReadinessStatus) {
+  if (status === 'complete') return 'bg-emerald-100 text-emerald-700'
+  if (status === 'usable') return 'bg-sky-100 text-sky-700'
+  if (status === 'incomplete') return 'bg-amber-100 text-amber-700'
+  return 'bg-rose-100 text-rose-700'
+}
+
+function mofProgressClass(status: MofReadinessStatus) {
+  if (status === 'complete') return 'bg-emerald-500'
+  if (status === 'usable') return 'bg-sky-500'
+  if (status === 'incomplete') return 'bg-amber-500'
+  return 'bg-rose-500'
+}
+
+function mofIssueDotClass(severity: MofIssueSeverity) {
+  if (severity === 'high') return 'bg-rose-500'
+  if (severity === 'medium') return 'bg-amber-500'
+  return 'bg-slate-400'
+}
+
 function splitMultiline(value: string) {
   const items = value
     .split(/\r?\n|;/g)
     .map(item => item.trim())
     .filter(Boolean)
   return items.length > 0 ? items : null
+}
+
+function parseOptionalMoney(value: string) {
+  const normalized = value.trim()
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 function listToText(value: unknown) {

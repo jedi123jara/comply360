@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import { prisma } from '@/lib/prisma'
 import { getTree } from './tree-service'
 import { computeSnapshotMetrics, hashSnapshotPayload } from './snapshot-service'
+import { buildStructureAnalytics } from './structure-analytics'
 import type { OrgChartTree } from './types'
 
 export interface OrgChartPdfExport {
@@ -25,6 +26,7 @@ export async function exportOrgChartPdf(orgId: string, asOf?: Date | null): Prom
 
   const metrics = computeSnapshotMetrics(tree)
   const hash = hashSnapshotPayload(tree)
+  const analytics = buildStructureAnalytics(tree)
   const orgName = org?.razonSocial ?? org?.name ?? 'Organización'
 
   ctx.addTitlePage({
@@ -41,13 +43,52 @@ export async function exportOrgChartPdf(orgId: string, asOf?: Date | null): Prom
 
   ctx.addSection('Resumen ejecutivo')
   ctx.addKeyValues([
+    ['Score estructural', `${analytics.score}/100 (${structureHealthLabel(analytics.health)})`],
     ['Áreas/unidades', String(metrics.unitCount)],
     ['Cargos', String(tree.positions.length)],
     ['Trabajadores asignados', String(metrics.workerCount)],
     ['Asignaciones vigentes', String(tree.assignments.length)],
     ['Roles legales', String(tree.complianceRoles.length)],
     ['Profundidad máxima', String(metrics.depthMax)],
+    ['Vacantes formales', `${analytics.totals.vacancies} (${formatPercent(analytics.totals.vacancyRate)})`],
+    ['MOF pendiente', `${analytics.totals.missingMof} (${formatPercent(analytics.totals.missingMofRate)})`],
+    ['Jefaturas con span alto', String(analytics.totals.overloadedManagers)],
   ])
+
+  ctx.addSection('Riesgos estructurales priorizados')
+  if (analytics.topRisks.length === 0) {
+    ctx.addParagraph('No se detectan riesgos estructurales relevantes con los criterios actuales.', { color: rgb(0.04, 0.45, 0.25) })
+  } else {
+    for (const risk of analytics.topRisks) {
+      ctx.addParagraph(`${risk.title} · ${spanSeverityLabel(risk.severity)}`, { bold: true, spacingAfter: 2 })
+      ctx.addParagraph(risk.description, { size: 9, color: rgb(0.29, 0.34, 0.42), indent: 12 })
+    }
+  }
+
+  ctx.addSection('Salud por área')
+  for (const unit of analytics.unitScores.slice(0, 15)) {
+    ctx.addParagraph(
+      `${unit.unitName} · ${unit.score}/100 · ${structureHealthLabel(unit.health)}`,
+      { bold: true, spacingAfter: 2 },
+    )
+    ctx.addParagraph(
+      `${unit.positions} cargos · ${unit.occupants} ocupantes · ${unit.vacancies} vacante(s) · ${unit.missingMof} MOF pendiente(s) · span máx. ${unit.maxSpan}`,
+      { size: 9, color: rgb(0.29, 0.34, 0.42), indent: 12 },
+    )
+    if (unit.flags.length > 0) {
+      ctx.addParagraph(`Alertas: ${unit.flags.join(' · ')}`, { size: 8.5, color: rgb(0.7, 0.25, 0.1), indent: 12 })
+    }
+  }
+
+  ctx.addSection('Span de control')
+  const relevantSpans = analytics.spanRecords.filter(record => record.severity !== 'healthy').slice(0, 20)
+  if (relevantSpans.length === 0) {
+    ctx.addParagraph('No hay jefaturas con span fuera de rango.', { color: rgb(0.04, 0.45, 0.25) })
+  } else {
+    for (const record of relevantSpans) {
+      ctx.addBullet(`${record.title} (${record.unitName}) · ${record.directReports} directos · ${record.totalSubtree} en subárbol · ${spanSeverityLabel(record.severity)}.`)
+    }
+  }
 
   ctx.addSection('Áreas y unidades')
   for (const unit of tree.units) {
@@ -254,6 +295,24 @@ function formatDateTime(date: Date) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
+}
+
+function structureHealthLabel(health: 'excellent' | 'stable' | 'attention' | 'critical') {
+  if (health === 'excellent') return 'Excelente'
+  if (health === 'stable') return 'Estable'
+  if (health === 'attention') return 'Atención'
+  return 'Crítico'
+}
+
+function spanSeverityLabel(severity: 'healthy' | 'watch' | 'high' | 'critical') {
+  if (severity === 'healthy') return 'Saludable'
+  if (severity === 'watch') return 'Vigilar'
+  if (severity === 'high') return 'Alto'
+  return 'Crítico'
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`
 }
 
 function formatFileDate(date: Date) {

@@ -862,6 +862,99 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 
 ---
 
+### FASE 5 — SST PREMIUM (NUEVO, 2026-05)
+
+**Objetivo**: extender el SST base (Fase 3) a un módulo enterprise con estructura tabular real, motor IPERC oficial SUNAFIL, sub-schema médico cifrado (Ley 29733), Field Audit con captura offline, Comité paritario operativo, y scoring SUNAFIL específico.
+
+**Por qué**: la Fase 3 dejó SST funcional con `SstRecord` genérico + 15 generadores de documentos. Para clientes enterprise (≥200 trabajadores, sectores Anexo 5 SCTR, holdings) hace falta:
+- Matriz IPERC tabular con índices P×S oficiales R.M. 050-2013-TR (no JSON suelto)
+- Sede + PuestoTrabajo como entidades de primera clase (multi-sede, multi-puesto)
+- EMO con sub-schema médico cifrado (Ley 29733 no perdona)
+- Accidente con tracking SAT (D.S. 006-2022-TR)
+- Comité SST con elecciones y libro de actas (R.M. 245-2021-TR)
+- Field Audit con inspectores presenciales + GPS + fotos
+- Scoring SUNAFIL específico con exposición económica
+
+**Decisiones congeladas (Sprint 1)**:
+
+1. **Nomenclatura**: `Organization` + `orgId` (NO `Tenant` + `tenantId`). El blueprint externo usa "Tenant" — mapear, no duplicar.
+2. **Multi-tenancy**: `withAuth() + orgId` filter (ya existe) **+ RLS Postgres activado en todas las nuevas tablas SST tenant-scoped** (defensa en profundidad). Tablas globales sin RLS: `colaboradores_sst`, `catalogo_peligros`, `catalogo_controles`.
+3. **Auth**: Clerk v7 (NO migrar a NextAuth v5).
+4. **Queue**: Vercel Cron para todo el calendarizador SST. **BullMQ + Redis NO se introducen** en Ola 1 (al haberse descartado el RPA SAT).
+5. **LLM**: wrapper multi-provider existente. **DeepSeek V4 1M** primario para motor IPERC por su context window.
+6. **Datos médicos**: sub-schema con `pgcrypto.pgp_sym_encrypt`. Solo **Aptitud** persistida en claro. **El diagnóstico jamás toca COMPLY360**.
+7. **Trazabilidad**: hash chain SHA-256 + Merkle (ya existen en `AuditLog` y `MerkleAnchor`) + endpoint público de verificación con QR. **Sin TSA INDECOPI, sin OpenTimestamps Bitcoin**.
+8. **Notificación SAT**: wizard pre-llenado + PDF imprimible Form. 1/2 + tracking manual. **Sin RPA Playwright**.
+9. **Inspectores**: `ColaboradorSST` interno COMPLY360 (empleados/contratistas). **Sin marketplace, sin escrow, sin ratings, sin KYC**.
+10. **Field Audit**: captura offline en tablet/móvil con IndexedDB local + ingesta en oficina. **Sin Service Worker complejo, sin sync online crítico**.
+
+**Piezas DESCARTADAS del blueprint externo (no se construyen ni en este sprint ni en sprints futuros)**:
+
+- ❌ RPA SAT con Playwright + Clave SOL (riesgo legal alto, infra compleja)
+- ❌ TSA INDECOPI / RFC 3161 (legacy SOAP, costo recurrente, postergar hasta cliente enterprise)
+- ❌ OpenTimestamps Bitcoin (sin valor probatorio peruano adicional)
+- ❌ Marketplace de partners estilo Uber (cambio de modelo: inspectores son colaboradores directos)
+- ❌ App móvil React Native nativa (web responsive cubre el flujo aclarado)
+- ❌ ML predictivo accidentes Ola 2 (cold start, postergar hasta tracción)
+- ❌ API pública + 3 SDKs (premature, solo si cliente enterprise lo pide)
+
+#### F5.1 — Schema tabular SST + sub-schema médico cifrado ✅ (Sprint 1, 2026-05)
+
+- [x] 13 modelos Prisma SST (`Sede`, `PuestoTrabajo`, `IPERCBase`, `IPERCFila`, `Accidente`, `InvestigacionAccidente`, `ComiteSST`, `MiembroComite`, `ColaboradorSST`, `VisitaFieldAudit`, `HallazgoFieldAudit`, `CatalogoPeligro`, `CatalogoControl`)
+- [x] 3 modelos sub-schema médico (`EMO`, `ConsentimientoLey29733`, `SolicitudARCO`) con columnas `Bytes` cifradas
+- [x] 17 enums nuevos (TipoInstalacion, NivelRiesgoIPERC, EstadoSAT, etc.)
+- [x] Extensión `WorkerAlertType` con 8 nuevos tipos SST (IPERC_VENCIDO, EMO_PROXIMO, SAT_PLAZO_PROXIMO, COMITE_REUNION_PENDIENTE, etc.)
+- [x] Migración `add_sst_premium_schema` con `CREATE EXTENSION IF NOT EXISTS pgcrypto`
+- [x] RLS Postgres en 13 tablas tenant-scoped (`prisma/rls-policies.sql`)
+- [x] Motor IPERC determinístico [src/lib/sst/iperc-matrix.ts](legaliapro-platform/src/lib/sst/iperc-matrix.ts) — matriz P×S oficial R.M. 050-2013-TR (Tablas 9, 11, 12). 38 tests verdes en `__tests__/iperc-matrix.test.ts` (incluye barrido exhaustivo de los 243 inputs posibles).
+- [x] Helpers de cifrado médico [src/lib/sst/medical-vault.ts](legaliapro-platform/src/lib/sst/medical-vault.ts) usando `pgp_sym_encrypt`
+- [x] Seeds: 80 peligros base distribuidos en 8 familias + 40 controles distribuidos en 5 niveles de jerarquía + colaborador SST demo (`prisma/seed-sst.ts`)
+- [x] Variable de entorno `MEDICAL_VAULT_KEY` documentada en `.env.example`
+
+#### F5.2 — Endpoints API SST + onboarding wizard (Sprint 2-3, futuro)
+- [ ] `POST /api/sst/sedes` — CRUD sedes
+- [ ] `POST /api/sst/puestos` — CRUD puestos de trabajo
+- [ ] `POST /api/sst/iperc/base` + `/iperc/{id}/filas` — motor IPERC con LLM (sugerencias) + función pura para cálculo
+- [ ] Onboarding wizard SST: alta de Sede + Puesto + plano + asignación de trabajadores
+
+#### F5.3 — Field Audit captura offline + ingesta oficina (Sprint 14-15, futuro)
+- [ ] SPA mobile-first dentro del monolito (web responsive, no React Native)
+- [ ] IndexedDB local para borradores + sync diferido al regresar a oficina
+- [ ] Geolocalización + captura nativa de fotos vía `<input capture>`
+- [ ] 12 pasos de visita (agendamiento → cierre)
+- [ ] Generación de PDF de hallazgos con foto-evidencia georreferenciada
+
+#### F5.4 — Wizard SAT manual + tracking (Sprint 12, futuro)
+- [ ] Wizard pre-llenado para Form. 1 (mortal) y Form. 2 (no mortal) según D.S. 006-2022-TR
+- [ ] PDF imprimible para presentación en mesa de partes / portal gob.pe/774
+- [ ] Tracking de fecha de envío + carga de cargo (foto/PDF) por el cliente
+- [ ] Recordatorios automatizados según `plazoLegalHoras` (24/720/120)
+- [ ] **NO ejecuta RPA**: COMPLY360 asiste, el cliente notifica manualmente
+
+#### F5.5 — Comité SST elecciones electrónicas (Sprint 8, futuro)
+- [ ] Junta electoral + cédulas electrónicas + votación con WebAuthn (huella)
+- [ ] Acta de instalación + libro de actas versionado
+- [ ] Mandato 2 años con recordatorio 60 días antes del vencimiento
+
+#### F5.6 — Calendarizador SST sobre Vercel Cron (Sprint 10, futuro)
+- [ ] Reglas declarativas JSON en `/rules/sst/*.json`
+- [ ] 40+ obligaciones cíclicas modeladas (EMO, SCTR, capacitaciones, simulacros, auditoría externa, etc.)
+- [ ] Re-evaluación diaria a las 02:00 PET via cron
+- [ ] Integración como cliente del Alert Engine existente
+
+#### F5.7 — Scoring SUNAFIL específico + dashboard (Sprint 16, futuro)
+- [ ] Extender [src/lib/compliance/score-calculator.ts](legaliapro-platform/src/lib/compliance/score-calculator.ts) con dimensiones SST (cobertura SCTR, IPERC vigente, capacitaciones, mantenimiento equipos)
+- [ ] Cálculo de exposición económica S/ basado en escala SUNAFIL 2026
+- [ ] Heatmap por sede + tendencias 24 meses + benchmarking sectorial
+
+#### F5.8 — Editor visual mapa de riesgos con Konva.js (Sprint 7, futuro)
+- [ ] Subida de planos (PDF rasterizado, JPG/PNG, AutoCAD .dwg → SVG vía LibreCAD)
+- [ ] Biblioteca de iconos NTP 399.010-1 (~120 SVG seed — trabajo de diseñador SST)
+- [ ] Drag-and-drop con coordenadas sobre el plano + capas (peligros, equipos seguridad, rutas evacuación)
+- [ ] Generación SVG normalizado A2/A1 para impresión exhibida
+
+---
+
 ### FASE 4 — ECOSISTEMA
 
 **Objetivo**: Funcionalidades de valor agregado que generan revenue adicional y lock-in.

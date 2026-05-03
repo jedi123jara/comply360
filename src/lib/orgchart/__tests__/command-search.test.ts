@@ -254,4 +254,32 @@ describe('Busqueda de comandos del organigrama', () => {
       tab: 'responsables',
     })
   })
+
+  it('envia consultas de span y score al tab de analitica', () => {
+    const base = tree({
+      positions: [
+        position({ id: 'p1', orgUnitId: 'u1', title: 'Jefe' }),
+        ...Array.from({ length: 13 }, (_, index) =>
+          position({
+            id: `p${index + 2}`,
+            orgUnitId: 'u1',
+            title: `Analista ${index + 1}`,
+            reportsToPositionId: 'p1',
+          }),
+        ),
+      ],
+    })
+
+    const span = buildOrgCommandResults(base, 'span')[0]
+    const score = buildOrgCommandResults(base, 'score').find(result => result.id === 'insight:analytics')
+
+    expect(span).toMatchObject({
+      id: 'insight:span',
+      tab: 'analitica',
+    })
+    expect(score).toMatchObject({
+      title: 'Analitica estructural',
+      tab: 'analitica',
+    })
+  })
 })

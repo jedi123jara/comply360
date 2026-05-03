@@ -1,5 +1,6 @@
 import JSZip from 'jszip'
 import { prisma } from '@/lib/prisma'
+import { analyzeMof } from './mof-analysis'
 
 export interface PositionMofDocx {
   buffer: Buffer
@@ -34,6 +35,13 @@ export async function generatePositionMofDocx(
           orgUnit: { select: { name: true } },
         },
       },
+      backup: {
+        select: {
+          id: true,
+          title: true,
+          orgUnit: { select: { name: true } },
+        },
+      },
       reportees: {
         where: { validTo: null },
         select: { id: true, title: true },
@@ -62,6 +70,23 @@ export async function generatePositionMofDocx(
 
   const title = `MOF - ${position.title}`
   const generatedAt = new Date()
+  const mofReport = analyzeMof({
+    title: position.title,
+    description: position.description,
+    level: position.level,
+    category: position.category,
+    purpose: position.purpose,
+    functions: position.functions,
+    responsibilities: position.responsibilities,
+    requirements: position.requirements,
+    riskCategory: position.riskCategory,
+    requiresSctr: position.requiresSctr,
+    requiresMedicalExam: position.requiresMedicalExam,
+    isCritical: position.isCritical,
+    isManagerial: position.isManagerial,
+    reportsToPositionId: position.reportsToPositionId,
+    backupPositionId: position.backupPositionId,
+  })
   const sections = [
     heading('Manual de Organización y Funciones (MOF)', 'Title'),
     paragraph(title, true),
@@ -69,14 +94,27 @@ export async function generatePositionMofDocx(
     paragraph(`RUC: ${position.organization.ruc ?? 'Pendiente de registrar'}`),
     paragraph(`Fecha de generación: ${formatDate(generatedAt)}`),
     spacer(),
+    heading('Estado de completitud MOF'),
+    keyValue('Score', `${mofReport.score}/100 (${mofStatusLabel(mofReport.status)})`),
+    keyValue('Criterios completos', `${mofReport.completed}/${mofReport.total}`),
+    listOrMissing(
+      mofReport.issues.length > 0
+        ? mofReport.issues.map(item => `${item.label}: ${item.detail}`)
+        : ['MOF completo para uso documental y evidencia interna.'],
+      'observaciones de completitud',
+    ),
+    spacer(),
     heading('1. Identificación del cargo'),
     keyValue('Cargo', position.title),
     keyValue('Código', position.code),
+    keyValue('Descripción general', position.description),
     keyValue('Área / unidad', `${position.orgUnit.name} (${formatEnum(position.orgUnit.kind)})`),
     keyValue('Jefe inmediato', position.reportsTo ? `${position.reportsTo.title} - ${position.reportsTo.orgUnit.name}` : null),
+    keyValue('Backup / sucesor', position.backup ? `${position.backup.title} - ${position.backup.orgUnit.name}` : null),
     keyValue('Nivel', position.level),
     keyValue('Categoría', position.category),
     keyValue('Cupos aprobados', String(position.seats)),
+    keyValue('Banda salarial', formatSalaryBand(position.salaryBandMin, position.salaryBandMax)),
     keyValue('Vigencia', `${formatDate(position.validFrom)}${position.validTo ? ` a ${formatDate(position.validTo)}` : ' en adelante'}`),
     spacer(),
     heading('2. Propósito del cargo'),
@@ -96,6 +134,7 @@ export async function generatePositionMofDocx(
     keyValue('Requiere SCTR', position.requiresSctr ? 'Sí' : 'No'),
     keyValue('Requiere examen médico ocupacional', position.requiresMedicalExam ? 'Sí' : 'No'),
     keyValue('Cargo crítico', position.isCritical ? 'Sí' : 'No'),
+    keyValue('Cargo con mando', position.isManagerial ? 'Sí' : 'No'),
     spacer(),
     heading('7. Ocupantes vigentes'),
     listOrMissing(
@@ -256,6 +295,20 @@ function formatEnum(value: string) {
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+}
+
+function formatSalaryBand(min: { toString(): string } | null, max: { toString(): string } | null) {
+  if (!min && !max) return null
+  if (min && max) return `${min.toString()} - ${max.toString()}`
+  if (min) return `Desde ${min.toString()}`
+  return `Hasta ${max!.toString()}`
+}
+
+function mofStatusLabel(status: 'complete' | 'usable' | 'incomplete' | 'critical') {
+  if (status === 'complete') return 'Completo'
+  if (status === 'usable') return 'Usable'
+  if (status === 'incomplete') return 'Incompleto'
+  return 'Crítico'
 }
 
 function safeFileName(input: string) {

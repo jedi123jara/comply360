@@ -4,6 +4,7 @@ import { recordStructureChange } from './change-log'
 import { diffSnapshots, takeSnapshot } from './snapshot-service'
 import { getTree } from './tree-service'
 import type { DoctorSeverity, OrgChartTree, OrgPositionDTO } from './types'
+import { buildWhatIfCostImpact, type WhatIfCostImpact } from './what-if-cost'
 
 export interface WhatIfRisk {
   severity: DoctorSeverity
@@ -30,6 +31,7 @@ export interface WhatIfImpactReport {
     projectedSpanOfControl: number
     risks: number
   }
+  costImpact: WhatIfCostImpact
   risks: WhatIfRisk[]
 }
 
@@ -286,6 +288,7 @@ function buildImpactReport(tree: OrgChartTree, position: OrgPositionDTO, newPare
       projectedSpanOfControl: projectedSpan,
       risks: risks.length,
     },
+    costImpact: buildWhatIfCostImpact(tree, position.id),
     risks,
   }
 }

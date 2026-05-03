@@ -4,6 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../src/generated/prisma/client.js'
 import { seedContractValidationRules } from '../src/lib/contracts/validation/seed-runner'
 import { seedContractClauses } from '../src/lib/contracts/clauses/seed-runner'
+import { seedSstCatalogs } from './seed-sst'
 
 const pool = new pg.Pool({ connectionString: process.env.DIRECT_URL })
 const adapter = new PrismaPg(pool)
@@ -1195,6 +1196,22 @@ async function main() {
   )
 
   // =============================================
+  // CATÁLOGOS SST PREMIUM (Fase 5)
+  // =============================================
+  console.log('🦺 Sembrando catálogos SST Premium...')
+  const sst = await seedSstCatalogs(prisma)
+  console.log(
+    `   ✅ ${sst.peligros.total} peligros (${sst.peligros.created} nuevos, ${sst.peligros.updated} actualizados)`,
+  )
+  console.log(
+    `   ✅ ${sst.controles.total} controles (${sst.controles.created} nuevos, ${sst.controles.updated} actualizados)`,
+  )
+  if (sst.colaboradorDemo) {
+    console.log(`   ✅ Colaborador SST demo creado/verificado (solo dev)`)
+  }
+  console.log('')
+
+  // =============================================
   // RESUMEN FINAL
   // =============================================
   console.log('═══════════════════════════════════════════')
@@ -1207,6 +1224,8 @@ async function main() {
   console.log(`  🎓 Cursos e-learning:     ${courseCount}`)
   console.log(`  ⚖️  Reglas validación:     ${validationRules.total}`)
   console.log(`  📋 Cláusulas catálogo:    ${clauses.total}`)
+  console.log(`  🦺 Peligros SST:          ${sst.peligros.total}`)
+  console.log(`  🛡️  Controles SST:         ${sst.controles.total}`)
   console.log('═══════════════════════════════════════════\n')
 }
 

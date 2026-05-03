@@ -1,9 +1,10 @@
 import { COMPLIANCE_ROLES } from './compliance-rules'
+import { buildStructureAnalytics } from './structure-analytics'
 import type { OrgChartTree, OrgPositionDTO } from './types'
 
 export type OrgCommandKind = 'worker' | 'position' | 'unit' | 'role' | 'insight'
 export type OrgCommandLens = 'general' | 'mof' | 'sst' | 'vacancies'
-export type OrgCommandTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'historial'
+export type OrgCommandTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'analitica' | 'historial'
 
 export interface OrgCommandResult {
   id: string
@@ -26,7 +27,7 @@ export function buildOrgCommandResults(tree: OrgChartTree, query: string, limit 
   const reportCounts = countReportsByPosition(tree)
   const results: OrgCommandResult[] = []
 
-  results.push(...buildInsightResults(tree, normalizedQuery, unitsById, assignmentsByPosition, reportCounts))
+  results.push(...buildInsightResults(tree, normalizedQuery, unitsById, assignmentsByPosition))
   results.push(...buildRoleResults(tree, normalizedQuery, unitsById))
 
   for (const unit of tree.units) {
@@ -116,7 +117,6 @@ function buildInsightResults(
   normalizedQuery: string,
   unitsById: Map<string, OrgChartTree['units'][number]>,
   assignmentsByPosition: Map<string, OrgChartTree['assignments']>,
-  reportCounts: Map<string, number>,
 ) {
   const results: OrgCommandResult[] = []
   const queryEmpty = normalizedQuery.length === 0
@@ -126,6 +126,8 @@ function buildInsightResults(
   const wantsSpan = queryEmpty || includesAny(normalizedQuery, ['span', 'reportes', 'sobrecarga', 'jefes'])
   const wantsCivil = queryEmpty || includesAny(normalizedQuery, ['locador', 'locacion', 'servicio', 'civil', 'subordinacion'])
   const wantsRoles = includesAny(normalizedQuery, ['responsable', 'responsables', 'roles legales', 'comite', 'comites', 'dpo'])
+  const wantsAnalytics = queryEmpty || includesAny(normalizedQuery, ['analitica', 'analytics', 'score', 'salud', 'kpi', 'indicador', 'indicadores'])
+  const analytics = wantsSpan || wantsAnalytics ? buildStructureAnalytics(tree) : null
 
   if (wantsVacancies) {
     const vacantCount = tree.positions.reduce((sum, position) => {
@@ -146,8 +148,29 @@ function buildInsightResults(
   }
 
   if (wantsSpan) {
-    const overloaded = tree.positions.filter(position => (reportCounts.get(position.id) ?? 0) >= 10)
-    results.push(insight('span', 'Jefes con alto span', `${overloaded.length} cargo(s) con 10+ reportes`, 'general', 74))
+    results.push(
+      insight(
+        'span',
+        'Span de control',
+        `${analytics?.totals.overloadedManagers ?? 0} jefatura(s) con sobrecarga`,
+        'general',
+        84,
+        'analitica',
+      ),
+    )
+  }
+
+  if (wantsAnalytics) {
+    results.push(
+      insight(
+        'analytics',
+        'Analitica estructural',
+        `score ${analytics?.score ?? 100}/100 · ${analytics?.topRisks.length ?? 0} riesgo(s) priorizados`,
+        'general',
+        83,
+        'analitica',
+      ),
+    )
   }
 
   if (wantsRoles) {
