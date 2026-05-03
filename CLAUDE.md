@@ -21,11 +21,12 @@
 10. [Fase 2.5 — Pivot zero-liability: Biblioteca de plantillas](#fase-25--pivot-zero-liability-biblioteca-de-plantillas-nuevo-2026-04) ✅ NUEVO
 11. [Fase 3 — Compliance Completo](#fase-3--compliance-completo) 🟡
 12. [Fase 3.5 — IA Vision para legajo](#fase-35--ia-vision-para-legajo-nuevo-2026-04) ✅ NUEVO
-13. [Fase 4 — Ecosistema](#fase-4--ecosistema) 🟡
-14. [Mapa de Modulos vs Fases](#6-mapa-de-modulos-vs-fases)
-15. [Convenciones de Codigo](#7-convenciones-de-codigo)
-16. [Reglas de Negocio Criticas](#8-reglas-de-negocio-criticas)
-17. [Base Legal de Referencia](#9-base-legal-de-referencia)
+13. [Fase 5 — SST Premium](#fase-5--sst-premium-nuevo-2026-05) 🟡 NUEVO
+14. [Fase 4 — Ecosistema](#fase-4--ecosistema) 🟡
+15. [Mapa de Modulos vs Fases](#6-mapa-de-modulos-vs-fases)
+16. [Convenciones de Codigo](#7-convenciones-de-codigo)
+17. [Reglas de Negocio Criticas](#8-reglas-de-negocio-criticas)
+18. [Base Legal de Referencia](#9-base-legal-de-referencia)
 
 ---
 
@@ -1007,6 +1008,7 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 | **M13: Portal del Trabajador + Firma biometrica** | **F1.5 (nuevo)** | **ALTA** | **✅ DONE** |
 | **M14: Biblioteca de plantillas propias** | **F2.5 (nuevo)** | **ALTA** | **✅ DONE** |
 | **M15: Auto-verificacion IA de legajo** | **F3.5 (nuevo)** | **MEDIA** | **✅ DONE (PDF support pendiente)** |
+| **M16: SST Premium (schema tabular + motor IPERC + sub-DB médica + Field Audit + Comité + scoring)** | **F5 (nuevo)** | **ALTA** | **🟡 Sprint 1 DONE (schema + RLS + motor IPERC + seeds + medical-vault). Sprints 2-18 pendientes** |
 
 ---
 

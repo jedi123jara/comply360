@@ -188,6 +188,9 @@ export function detectProvider(opts?: {
   // 1. Override directo
   if (opts?.provider) return opts.provider
 
+  // 1a. Forzar DeepSeek para generación de contratos (Ignorando Rollout de Vercel)
+  if (opts?.feature === 'contract-gen') return 'deepseek'
+
   // 1b. Rollout staged: si AI_ROLLOUT_PERCENTAGE está configurado, decide
   // entre DeepSeek y OpenAI con bucketing estable por orgId+feature.
   // SOLO se aplica si la feature no es vision/embeddings (que requieren OpenAI

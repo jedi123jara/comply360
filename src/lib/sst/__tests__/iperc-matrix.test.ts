@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcularNivelRiesgo } from '../iperc-matrix'
-import { NivelRiesgoIPERC } from '../../../generated/prisma/client'
+import { calcularNivelRiesgo, NivelRiesgoIPERC } from '../iperc-matrix'
 
 /**
  * Tests del motor IPERC determinístico — matriz P × S oficial SUNAFIL

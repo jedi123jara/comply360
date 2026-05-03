@@ -87,6 +87,7 @@ export default function SstHub() {
   return (
     <div className="space-y-6">
       <Header />
+      <OnboardingBanner />
       {loading ? <SkeletonStats count={4} /> : <StatsRow summary={summary ?? FALLBACK} />}
 
       <Tabs defaultValue="overview">
@@ -345,6 +346,83 @@ function TabBody({
             </p>
           </div>
         </Card>
+      </CardContent>
+    </Card>
+  )
+}
+
+/**
+ * Banner de onboarding SST Premium (Fase 5).
+ *
+ * Solo se muestra si el onboarding está incompleto. Carga el estado en
+ * background (no bloquea el render del hub) y se oculta silenciosamente si
+ * el endpoint falla — el hub debe seguir siendo usable aunque /sst/onboarding
+ * tenga un problema.
+ */
+function OnboardingBanner() {
+  const [status, setStatus] = useState<{
+    completo: boolean
+    completados: number
+    total: number
+    porcentaje: number
+  } | null>(null)
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/sst/onboarding/status', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled && j) setStatus(j)
+      })
+      .catch(() => {
+        // silent fail — el banner es opcional
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!status || status.completo || dismissed) return null
+
+  return (
+    <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-50/40">
+      <CardContent className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3">
+          <Sparkles className="mt-1 h-5 w-5 text-emerald-600" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-900">
+              Configura tu SGSST en {status.total - status.completados}{' '}
+              {status.total - status.completados === 1 ? 'paso' : 'pasos'} más
+            </p>
+            <p className="text-xs text-emerald-800">
+              Sede → Puesto → IPERC con IA. Listo en menos de 10 minutos.
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-emerald-200/60">
+                <div className="h-full bg-emerald-600" style={{ width: `${status.porcentaje}%` }} />
+              </div>
+              <span className="text-[10px] font-medium text-emerald-800">
+                {status.porcentaje}%
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button asChild>
+            <Link href="/dashboard/sst/onboarding">
+              {status.completados === 0 ? 'Empezar' : 'Continuar'}
+              <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            </Link>
+          </Button>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="text-xs text-emerald-800 hover:text-emerald-900"
+          >
+            Ahora no
+          </button>
+        </div>
       </CardContent>
     </Card>
   )

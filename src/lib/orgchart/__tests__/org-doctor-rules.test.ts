@@ -30,13 +30,18 @@ function makeCtx(opts: Partial<DoctorContext> & { tree?: Partial<OrgChartTree> }
   }
 }
 
-function makeRole(workerId: string, roleType: ComplianceRoleType, endsAt: string | null = null) {
+function makeRole(
+  workerId: string,
+  roleType: ComplianceRoleType,
+  endsAt: string | null = null,
+  startsAt = '2025-01-01T00:00:00Z',
+) {
   return {
     id: `role-${roleType}-${workerId}`,
     workerId,
     roleType,
     unitId: null,
-    startsAt: '2025-01-01T00:00:00Z',
+    startsAt,
     endsAt,
     electedAt: null,
     actaUrl: null,
@@ -321,6 +326,25 @@ describe('Org Doctor — Expiring Roles', () => {
     })
     const findings = ruleExpiringRoles(ctx)
     expect(findings.some(f => f.rule === 'role-expiring-soon' && f.severity === 'MEDIUM')).toBe(true)
+  })
+
+  it('detecta mandato CSST mayor a 24 meses', () => {
+    const ctx = makeCtx({
+      now: new Date('2026-05-01T00:00:00Z'),
+      tree: {
+        complianceRoles: [
+          makeRole(
+            'w1',
+            'PRESIDENTE_COMITE_SST',
+            '2027-02-01T00:00:00Z',
+            '2025-01-01T00:00:00Z',
+          ),
+        ],
+      },
+    })
+
+    const findings = ruleExpiringRoles(ctx)
+    expect(findings.some(f => f.rule === 'role-term-exceeds-standard' && f.severity === 'HIGH')).toBe(true)
   })
 })
 

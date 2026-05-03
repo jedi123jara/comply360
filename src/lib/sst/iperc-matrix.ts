@@ -7,7 +7,18 @@
  * esta función.
  */
 
-import { NivelRiesgoIPERC } from '../../generated/prisma/client'
+// Definimos el enum localmente (mismo string union que Prisma genera) para no
+// arrastrar el cliente Prisma al bundle del browser. Cuando se use desde el
+// servidor con Prisma, los valores son intercambiables porque son strings.
+export const NivelRiesgoIPERC = {
+  TRIVIAL: 'TRIVIAL',
+  TOLERABLE: 'TOLERABLE',
+  MODERADO: 'MODERADO',
+  IMPORTANTE: 'IMPORTANTE',
+  INTOLERABLE: 'INTOLERABLE',
+} as const
+
+export type NivelRiesgoIPERC = (typeof NivelRiesgoIPERC)[keyof typeof NivelRiesgoIPERC]
 
 export interface IpercInputs {
   /** A — Personas expuestas: 1 (1-3), 2 (4-12), 3 (>12) */

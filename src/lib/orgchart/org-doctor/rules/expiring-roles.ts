@@ -13,11 +13,30 @@ export function ruleExpiringRoles(ctx: DoctorContext): DoctorFinding[] {
   const SOON = 60 * 24 * 60 * 60 * 1000 // 60 días
 
   for (const r of ctx.tree.complianceRoles) {
-    if (!r.endsAt) continue
-    const endsAt = new Date(r.endsAt).getTime()
-    const diff = endsAt - ctx.now.getTime()
     const def = COMPLIANCE_ROLES[r.roleType]
     const workerName = `${r.worker.firstName} ${r.worker.lastName}`
+    if (!r.endsAt) continue
+
+    const endDate = new Date(r.endsAt)
+    const endsAt = endDate.getTime()
+    const diff = endsAt - ctx.now.getTime()
+
+    if (def.defaultDurationMonths !== null) {
+      const maxEndsAt = addMonths(new Date(r.startsAt), def.defaultDurationMonths)
+      if (endDate.getTime() > maxEndsAt.getTime()) {
+        out.push({
+          rule: 'role-term-exceeds-standard',
+          severity: 'HIGH',
+          title: `Mandato excede vigencia legal: ${def.shortLabel}`,
+          description: `El rol "${def.label}" asignado a ${workerName} vence despues de la vigencia estandar de ${def.defaultDurationMonths} meses. Ajusta la fecha o renueva mediante acta.`,
+          baseLegal: def.baseLegal,
+          affectedUnitIds: r.unitId ? [r.unitId] : [],
+          affectedWorkerIds: [r.workerId],
+          suggestedTaskTitle: `Corregir vigencia de ${def.shortLabel}`,
+          suggestedFix: 'Ajusta el periodo del mandato a la vigencia legal o registra una nueva designacion con acta.',
+        })
+      }
+    }
 
     if (diff < 0) {
       out.push({
@@ -48,4 +67,10 @@ export function ruleExpiringRoles(ctx: DoctorContext): DoctorFinding[] {
   }
 
   return out
+}
+
+function addMonths(date: Date, months: number) {
+  const next = new Date(date)
+  next.setMonth(next.getMonth() + months)
+  return next
 }

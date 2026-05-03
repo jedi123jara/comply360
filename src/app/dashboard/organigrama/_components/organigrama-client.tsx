@@ -52,6 +52,10 @@ import {
   type WhatIfCostImpact,
 } from '@/lib/orgchart/what-if-cost'
 import type {
+  SubordinationDossier,
+  SubordinationSeverity,
+} from '@/lib/orgchart/subordination-dossier'
+import type {
   OrgChartTree,
   DoctorReport,
   OrgChartSnapshotDTO,
@@ -61,13 +65,25 @@ import type {
 import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 
 type View = 'hierarchy' | 'committees'
-type OrgLens = 'general' | 'mof' | 'sst' | 'vacancies'
-type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'analitica' | 'historial'
+type OrgLens = 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
+type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'subordinacion' | 'analitica' | 'historial'
 type PendingReparent = { positionId: string; newParentId: string }
 type AssignRoleRequest = { unitId: string | null; roleType?: ComplianceRoleType }
 type OrgAlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 type OrgAlertCategory = 'MOF' | 'SST' | 'LEGAL_ROLE' | 'VACANCY' | 'SUBORDINATION' | 'SUCCESSION' | 'STRUCTURE'
 type OrgDraftStatus = 'DRAFT' | 'REVIEWING' | 'APPLIED' | 'DISCARDED'
+
+interface SubordinationRiskSyncReportDTO {
+  generatedAt: string
+  eventCode: string
+  considered: number
+  eventsCreated: number
+  eventsSkipped: number
+  scoresUpdated: number
+  statusUpdated: number
+  tasksCreated: number
+  tasksSkipped: number
+}
 
 interface WhatIfRiskDTO {
   severity: OrgAlertSeverity
@@ -434,6 +450,12 @@ export default function OrganigramaClient() {
           onAssignRole={(roleType) => openAssignRole(null, roleType)}
         />
       )
+    }
+    if (activeTab === 'subordinacion') {
+      return <SubordinationDossierView onFocusUnit={(unitId) => {
+        setSelectedUnitId(unitId)
+        changeTab('organigrama')
+      }} />
     }
     if (activeTab === 'analitica') {
       return (
@@ -864,6 +886,8 @@ function LensToggle({ value, onChange }: { value: OrgLens; onChange: (v: OrgLens
   const items: { key: OrgLens; label: string; icon: typeof Network }[] = [
     { key: 'general', label: 'General', icon: Network },
     { key: 'mof', label: 'MOF', icon: ScrollText },
+    { key: 'compliance', label: 'Compliance', icon: CheckCircle2 },
+    { key: 'contractual', label: 'Contractual', icon: Briefcase },
     { key: 'sst', label: 'SST', icon: ShieldCheck },
     { key: 'vacancies', label: 'Vacantes', icon: AlertTriangle },
   ]
@@ -895,6 +919,7 @@ function isModuleTab(value: string | null): value is ModuleTab {
     value === 'directorio' ||
     value === 'areas-cargos' ||
     value === 'responsables' ||
+    value === 'subordinacion' ||
     value === 'analitica' ||
     value === 'historial'
   )
@@ -914,6 +939,7 @@ function ModuleTabs({
     { key: 'directorio', label: 'Directorio', meta: `${counts.assigned} asignados`, icon: FileSpreadsheet },
     { key: 'areas-cargos', label: 'Áreas y cargos', meta: `${counts.positions} cargos`, icon: ListTree },
     { key: 'responsables', label: 'Responsables', meta: `${counts.roles} roles`, icon: ShieldCheck },
+    { key: 'subordinacion', label: 'Subordinación', meta: 'Civil', icon: AlertTriangle },
     { key: 'analitica', label: 'Analítica', meta: `${counts.structureScore}/100`, icon: Sparkles },
     { key: 'historial', label: 'Historial', meta: 'Auditoría', icon: History },
   ]
@@ -1543,6 +1569,260 @@ function formatResponsibilityDate(value: string) {
   return new Date(value).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function SubordinationDossierView({ onFocusUnit }: { onFocusUnit: (unitId: string) => void }) {
+  const [dossier, setDossier] = useState<SubordinationDossier | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [syncReport, setSyncReport] = useState<SubordinationRiskSyncReportDTO | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'all' | SubordinationSeverity>('all')
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/orgchart/subordination', { cache: 'no-store' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'No se pudo cargar el expediente')
+      setDossier(data as SubordinationDossier)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar subordinacion')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const syncRiskEngine = useCallback(async () => {
+    setSyncing(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/orgchart/subordination/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ createTasks: true }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'No se pudo sincronizar con Risk Engine')
+      setSyncReport(data as SubordinationRiskSyncReportDTO)
+      toast.success(`Risk Engine actualizado: ${data.eventsCreated} evento(s), ${data.tasksCreated} tarea(s)`)
+      await load()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al sincronizar subordinacion'
+      setError(message)
+      toast.error(message)
+    } finally {
+      setSyncing(false)
+    }
+  }, [load])
+
+  const cases = dossier?.cases.filter(item => filter === 'all' || item.severity === filter) ?? []
+  const filters: Array<{ key: 'all' | SubordinationSeverity; label: string; count: number }> = [
+    { key: 'all', label: 'Todos', count: dossier?.summary.providers ?? 0 },
+    { key: 'CRITICAL', label: 'Critico', count: dossier?.summary.critical ?? 0 },
+    { key: 'HIGH', label: 'Alto', count: dossier?.summary.high ?? 0 },
+    { key: 'MEDIUM', label: 'Medio', count: dossier?.summary.medium ?? 0 },
+    { key: 'LOW', label: 'Bajo', count: dossier?.summary.low ?? 0 },
+    { key: 'CLEAR', label: 'Sin senal', count: dossier?.summary.clear ?? 0 },
+  ]
+
+  return (
+    <div className="h-full overflow-y-auto bg-slate-50 p-6">
+      <div className="mb-5 flex flex-wrap items-start gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Expediente de subordinación</h2>
+          <div className="mt-1 text-xs text-slate-500">
+            Prestadores civiles cruzados con organigrama, indicadores laborales y payload para riesgo.
+          </div>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="ml-auto inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <History className="h-4 w-4" />}
+          Actualizar
+        </button>
+        <button
+          onClick={syncRiskEngine}
+          disabled={loading || syncing || !dossier?.summary.providers}
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+        >
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+          Enviar a riesgo
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex h-56 items-center justify-center text-sm text-slate-500">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Construyendo expediente...
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      ) : !dossier ? null : (
+        <>
+          {syncReport && (
+            <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Risk Engine {syncReport.eventCode}: {syncReport.considered} caso(s) evaluado(s), {syncReport.eventsCreated} evento(s)
+              nuevo(s), {syncReport.scoresUpdated} score(s) persistido(s) y {syncReport.tasksCreated} tarea(s) de remediacion.
+            </div>
+          )}
+
+          <div className="mb-5 grid gap-3 md:grid-cols-4">
+            <SubordinationMetric label="Prestadores" value={dossier.summary.providers} tone="slate" />
+            <SubordinationMetric label="Críticos/altos" value={dossier.summary.critical + dossier.summary.high} tone={dossier.summary.critical + dossier.summary.high ? 'rose' : 'emerald'} />
+            <SubordinationMetric label="Mapeados a áreas" value={`${dossier.summary.mappedToOrgUnits}/${dossier.summary.providers}`} tone="sky" />
+            <SubordinationMetric label="Gasto civil en riesgo" value={formatCurrency(dossier.summary.estimatedMonthlyCivilSpendAtRisk)} tone={dossier.summary.estimatedMonthlyCivilSpendAtRisk ? 'amber' : 'slate'} />
+          </div>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            {filters.map(item => (
+              <button
+                key={item.key}
+                onClick={() => setFilter(item.key)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                  filter === item.key
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {item.label}
+                <span className="ml-1 text-[10px] opacity-70">{item.count}</span>
+              </button>
+            ))}
+          </div>
+
+          {cases.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-white px-4 py-12 text-center text-sm text-slate-500">
+              No hay prestadores para este filtro.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cases.map(item => (
+                <SubordinationCaseRow key={item.providerId} item={item} onFocusUnit={onFocusUnit} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function SubordinationMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: number | string
+  tone: 'emerald' | 'sky' | 'amber' | 'rose' | 'slate'
+}) {
+  const classes = {
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    sky: 'border-sky-200 bg-sky-50 text-sky-800',
+    amber: 'border-amber-200 bg-amber-50 text-amber-800',
+    rose: 'border-rose-200 bg-rose-50 text-rose-800',
+    slate: 'border-slate-200 bg-white text-slate-800',
+  }[tone]
+  return (
+    <div className={`rounded-lg border p-4 ${classes}`}>
+      <div className="text-xl font-semibold">{value}</div>
+      <div className="mt-1 text-xs font-medium opacity-75">{label}</div>
+    </div>
+  )
+}
+
+function SubordinationCaseRow({
+  item,
+  onFocusUnit,
+}: {
+  item: SubordinationDossier['cases'][number]
+  onFocusUnit: (unitId: string) => void
+}) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-900">{item.providerName}</h3>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${subordinationSeverityClass(item.severity)}`}>
+              {subordinationSeverityLabel(item.severity)}
+            </span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+              {item.score}/100
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{item.document} · {item.serviceDescription}</p>
+          <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-medium text-slate-500">
+            <span>{item.areaName ?? 'Sin area declarada'}</span>
+            <span>{formatCurrency(item.monthlyAmount)} / mes</span>
+            <span>{item.evidence.invoiceCount} RH</span>
+            {!item.evidence.hasContractFile && <span className="text-amber-700">Sin contrato adjunto</span>}
+          </div>
+        </div>
+
+        {item.unitId && (
+          <button
+            onClick={() => onFocusUnit(item.unitId!)}
+            className="ml-auto rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Ver área
+          </button>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)]">
+        <div>
+          <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Indicadores probatorios</div>
+          <div className="flex flex-wrap gap-2">
+            {item.indicators.map(indicator => (
+              <span
+                key={indicator.code}
+                title={indicator.legalMeaning}
+                className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                  indicator.present ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {indicator.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Acción inmediata</div>
+          <ul className="space-y-1 text-xs text-slate-600">
+            {item.recommendedActions.slice(0, 3).map(action => (
+              <li key={action}>{action}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function subordinationSeverityLabel(severity: SubordinationSeverity) {
+  if (severity === 'CRITICAL') return 'Crítico'
+  if (severity === 'HIGH') return 'Alto'
+  if (severity === 'MEDIUM') return 'Medio'
+  if (severity === 'LOW') return 'Bajo'
+  return 'Sin señal'
+}
+
+function subordinationSeverityClass(severity: SubordinationSeverity) {
+  if (severity === 'CRITICAL') return 'bg-rose-100 text-rose-700'
+  if (severity === 'HIGH') return 'bg-orange-100 text-orange-700'
+  if (severity === 'MEDIUM') return 'bg-amber-100 text-amber-800'
+  if (severity === 'LOW') return 'bg-sky-100 text-sky-700'
+  return 'bg-emerald-100 text-emerald-700'
+}
+
 function CommandPaletteModal({
   tree,
   onClose,
@@ -1626,6 +1906,8 @@ function commandIconClass(kind: OrgCommandResult['kind']) {
 
 function commandLensLabel(lens: OrgCommandResult['lens']) {
   if (lens === 'mof') return 'MOF'
+  if (lens === 'compliance') return 'Compliance'
+  if (lens === 'contractual') return 'Contractual'
   if (lens === 'sst') return 'SST'
   if (lens === 'vacancies') return 'Vacantes'
   return 'General'
@@ -2759,6 +3041,16 @@ function AreasPositionsView({
                     <Download className="h-3 w-3" />
                     MOF
                   </a>
+                  {!readOnly && (
+                    <a
+                      href={`/dashboard/contratos/nuevo?positionId=${encodeURIComponent(position.id)}`}
+                      onClick={event => event.stopPropagation()}
+                      className="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100"
+                    >
+                      <ScrollText className="h-3 w-3" />
+                      Contrato
+                    </a>
+                  )}
                 </div>
               </div>
             )
@@ -2939,6 +3231,13 @@ function positionLensMeta(lens: OrgLens, position: OrgChartTree['positions'][num
 
   if (lens === 'mof' && missingMof) {
     return { label: 'MOF pendiente', badgeClass: 'bg-rose-100 text-rose-700', tone: 'danger' as const }
+  }
+  if (lens === 'compliance') {
+    if (position.isCritical) return { label: 'Cargo critico', badgeClass: 'bg-rose-100 text-rose-700', tone: 'danger' as const }
+    if (sstSensitive) return { label: 'Riesgo', badgeClass: 'bg-amber-100 text-amber-800', tone: 'warning' as const }
+  }
+  if (lens === 'contractual' && vacant) {
+    return { label: 'Vacante', badgeClass: 'bg-sky-100 text-sky-700', tone: 'info' as const }
   }
   if (lens === 'sst' && sstSensitive) {
     return { label: 'SST', badgeClass: 'bg-amber-100 text-amber-800', tone: 'warning' as const }
@@ -4552,6 +4851,16 @@ function UnitInspector({
                           <Download className="h-3 w-3" />
                           MOF
                         </a>
+                        {!readOnly && (
+                          <a
+                            href={`/dashboard/contratos/nuevo?positionId=${encodeURIComponent(p.id)}`}
+                            className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[10px] font-medium text-sky-700 hover:bg-sky-50"
+                            title="Generar contrato con datos del cargo"
+                          >
+                            <ScrollText className="h-3 w-3" />
+                            Contrato
+                          </a>
+                        )}
                         {!readOnly && (
                           <button
                             onClick={() => removePosition(p.id)}

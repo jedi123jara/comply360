@@ -216,10 +216,19 @@ describe('Busqueda de comandos del organigrama', () => {
     expect(result).toMatchObject({
       id: 'civil:a1',
       kind: 'insight',
+      tab: 'subordinacion',
       workerId: 'w1',
       positionId: 'p1',
-      lens: 'general',
+      lens: 'contractual',
     })
+    expect(buildOrgCommandResults(base, 'subordinacion')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'insight:subordination',
+          tab: 'subordinacion',
+        }),
+      ]),
+    )
   })
 
   it('envia roles legales y consultas de responsables al tab correcto', () => {

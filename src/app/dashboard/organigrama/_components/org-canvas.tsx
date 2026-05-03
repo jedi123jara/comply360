@@ -38,7 +38,7 @@ const ROLE_CHIP_COLORS: Record<string, string> = {
 export interface OrgCanvasProps {
   tree: OrgChartTree
   view: 'hierarchy' | 'committees'
-  lens: 'general' | 'mof' | 'sst' | 'vacancies'
+  lens: 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
   onSelectUnit: (unitId: string) => void
   selectedUnitId: string | null
   readOnly: boolean
@@ -163,7 +163,10 @@ export default function OrgCanvas({
           const isSelected = node.unit?.id === selectedUnitId
           const isDropTarget = dragOverPositionId === node.id && draggedPositionId !== null
           const canDropHere = isDropTarget && isValidPositionDrop(node.id)
-          const lensMeta = positionLensMeta(lens, node.position, node.occupants)
+          const lensMeta = positionLensMeta(lens, node.position, node.occupants, rolesByWorker)
+          const sstStamps = primaryOccupant
+            ? sstRoleStamps(rolesByWorker.get(primaryOccupant.workerId) ?? [])
+            : []
           const workerName = primaryOccupant
             ? `${primaryOccupant.worker.firstName} ${primaryOccupant.worker.lastName}`
             : `Vacante${isVacant && node.position.seats > 1 ? ` (${node.position.seats - node.occupants.length})` : ''}`
@@ -219,10 +222,23 @@ export default function OrgCanvas({
             >
               <div className={`h-1.5 rounded-t-lg ${contractBarClass(primaryOccupant?.worker.tipoContrato, isVacant)}`} />
               <div className="relative flex h-[84px] flex-col px-2.5 py-2">
-                {score !== null && score >= 70 && (
-                  <span className={`absolute right-2 top-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${riskPillClass(score)}`}>
-                    {score >= 90 ? `CRITICAL ${score}` : score}
-                  </span>
+                {(sstStamps.length > 0 || (score !== null && score >= 70)) && (
+                  <div className="absolute right-2 top-1.5 flex max-w-[120px] flex-wrap justify-end gap-1">
+                    {sstStamps.map(stamp => (
+                      <span
+                        key={stamp.title}
+                        title={stamp.title}
+                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${stamp.className}`}
+                      >
+                        {stamp.label}
+                      </span>
+                    ))}
+                    {score !== null && score >= 70 && (
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${riskPillClass(score)}`}>
+                        {score >= 90 ? `CRITICAL ${score}` : score}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {lensMeta && (
                   <span className={`absolute bottom-1.5 right-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${lensMeta.badgeClass}`}>
@@ -284,7 +300,7 @@ export default function OrgCanvas({
                   {node.positions.slice(0, 4).map(p => {
                     const occupants = node.occupants.get(p.id) ?? []
                     const vacant = p.seats > 0 && occupants.length < p.seats
-                    const lensMeta = positionLensMeta(lens, p, occupants)
+                    const lensMeta = positionLensMeta(lens, p, occupants, rolesByWorker)
                     return (
                       <div key={p.id} className={`rounded-lg border bg-slate-50/60 px-2.5 py-1.5 ${positionLensRowClass(lensMeta)}`}>
                         <div className="flex items-center gap-2 text-xs">
@@ -429,9 +445,11 @@ function positionLensMeta(
   lens: OrgCanvasProps['lens'],
   position: OrgPositionDTO,
   occupants: OrgAssignmentDTO[],
+  rolesByWorker: Map<string, OrgComplianceRoleDTO[]> = new Map(),
 ) {
   const vacant = occupants.length < position.seats
   const missingMof = !hasMof(position)
+  const occupantSstStamps = occupants.flatMap(occupant => sstRoleStamps(rolesByWorker.get(occupant.workerId) ?? []))
   const sstSensitive = Boolean(
     position.requiresSctr ||
     position.requiresMedicalExam ||
@@ -442,8 +460,25 @@ function positionLensMeta(
   if (lens === 'mof' && missingMof) {
     return { label: 'MOF', badgeClass: 'bg-rose-100 text-rose-700', tone: 'danger' as const }
   }
+  if (lens === 'compliance') {
+    const score = occupants.find(item => item.isPrimary)?.worker.legajoScore ?? occupants[0]?.worker.legajoScore ?? null
+    if (score !== null && score >= 90) return { label: `Critico ${score}`, badgeClass: 'bg-rose-100 text-rose-700', tone: 'danger' as const }
+    if (score !== null && score >= 70) return { label: `Riesgo ${score}`, badgeClass: 'bg-amber-100 text-amber-800', tone: 'warning' as const }
+    if (position.isCritical) return { label: 'Critico', badgeClass: 'bg-amber-100 text-amber-800', tone: 'warning' as const }
+  }
+  if (lens === 'contractual') {
+    const contractType = occupants.find(item => item.isPrimary)?.worker.tipoContrato ?? occupants[0]?.worker.tipoContrato ?? null
+    if (vacant) return { label: 'Vacante', badgeClass: 'bg-sky-100 text-sky-700', tone: 'info' as const }
+    if (contractType) return contractLensMeta(contractType)
+  }
+  if (lens === 'sst' && sstSensitive && occupantSstStamps.length === 0) {
+    return { label: 'SST sin rol', badgeClass: 'bg-slate-200 text-slate-700', tone: 'neutral' as const }
+  }
   if (lens === 'sst' && sstSensitive) {
     return { label: 'SST', badgeClass: 'bg-amber-100 text-amber-800', tone: 'warning' as const }
+  }
+  if (lens === 'sst' && occupantSstStamps.length > 0) {
+    return { label: occupantSstStamps.map(stamp => stamp.label).join('/'), badgeClass: 'bg-emerald-100 text-emerald-800', tone: 'success' as const }
   }
   if (lens === 'vacancies' && vacant) {
     return { label: 'Vacante', badgeClass: 'bg-sky-100 text-sky-700', tone: 'info' as const }
@@ -455,6 +490,8 @@ function positionLensCardClass(meta: ReturnType<typeof positionLensMeta>) {
   if (!meta) return ''
   if (meta.tone === 'danger') return 'border-rose-300 ring-2 ring-rose-100'
   if (meta.tone === 'warning') return 'border-amber-300 ring-2 ring-amber-100'
+  if (meta.tone === 'success') return 'border-emerald-300 ring-2 ring-emerald-100'
+  if (meta.tone === 'neutral') return 'border-slate-300 ring-2 ring-slate-100'
   return 'border-sky-300 ring-2 ring-sky-100'
 }
 
@@ -462,7 +499,45 @@ function positionLensRowClass(meta: ReturnType<typeof positionLensMeta>) {
   if (!meta) return 'border-slate-100'
   if (meta.tone === 'danger') return 'border-rose-200 bg-rose-50'
   if (meta.tone === 'warning') return 'border-amber-200 bg-amber-50'
+  if (meta.tone === 'success') return 'border-emerald-200 bg-emerald-50'
+  if (meta.tone === 'neutral') return 'border-slate-200 bg-slate-100'
   return 'border-sky-200 bg-sky-50'
+}
+
+function sstRoleStamps(roles: OrgComplianceRoleDTO[]) {
+  const stamps = roles
+    .map(role => {
+      if (role.roleType === 'PRESIDENTE_COMITE_SST') {
+        return { label: 'P', title: 'Presidente Comité SST', className: 'bg-emerald-100 text-emerald-800' }
+      }
+      if (role.roleType === 'SECRETARIO_COMITE_SST') {
+        return { label: 'S', title: 'Secretario Comité SST', className: 'bg-sky-100 text-sky-800' }
+      }
+      if (role.roleType === 'REPRESENTANTE_TRABAJADORES_SST' || role.roleType === 'REPRESENTANTE_EMPLEADOR_SST') {
+        return { label: 'M', title: COMPLIANCE_ROLES[role.roleType].label, className: 'bg-amber-100 text-amber-800' }
+      }
+      if (role.roleType === 'SUPERVISOR_SST') {
+        return { label: 'Sup', title: 'Supervisor SST', className: 'bg-violet-100 text-violet-800' }
+      }
+      return null
+    })
+    .filter(Boolean) as Array<{ label: string; title: string; className: string }>
+
+  return Array.from(new Map(stamps.map(stamp => [stamp.title, stamp])).values()).slice(0, 3)
+}
+
+function contractLensMeta(contractType: string) {
+  const normalized = contractType.toUpperCase()
+  if (normalized.includes('LOCACION') || normalized.includes('SERVICIO')) {
+    return { label: 'Civil', badgeClass: 'bg-orange-100 text-orange-800', tone: 'warning' as const }
+  }
+  if (normalized.includes('PLAZO') || normalized.includes('MODAL') || normalized.includes('TEMPORAL')) {
+    return { label: 'Plazo', badgeClass: 'bg-amber-100 text-amber-800', tone: 'warning' as const }
+  }
+  if (normalized.includes('INDEFINIDO')) {
+    return { label: 'Indef.', badgeClass: 'bg-emerald-100 text-emerald-800', tone: 'success' as const }
+  }
+  return { label: 'Contrato', badgeClass: 'bg-sky-100 text-sky-700', tone: 'info' as const }
 }
 
 function hasMof(position: OrgPositionDTO) {

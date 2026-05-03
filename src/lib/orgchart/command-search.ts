@@ -3,8 +3,8 @@ import { buildStructureAnalytics } from './structure-analytics'
 import type { OrgChartTree, OrgPositionDTO } from './types'
 
 export type OrgCommandKind = 'worker' | 'position' | 'unit' | 'role' | 'insight'
-export type OrgCommandLens = 'general' | 'mof' | 'sst' | 'vacancies'
-export type OrgCommandTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'analitica' | 'historial'
+export type OrgCommandLens = 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
+export type OrgCommandTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'subordinacion' | 'analitica' | 'historial'
 
 export interface OrgCommandResult {
   id: string
@@ -102,7 +102,7 @@ export function buildOrgCommandResults(tree: OrgChartTree, query: string, limit 
       positionId: position?.id ?? null,
       workerId: assignment.workerId,
       tab: 'organigrama',
-      lens: isCivilContractLike(assignment.worker.tipoContrato) ? 'general' : lensForPosition(position ?? null, 1),
+      lens: isCivilContractLike(assignment.worker.tipoContrato) ? 'contractual' : lensForPosition(position ?? null, 1),
       score,
     })
   }
@@ -122,6 +122,8 @@ function buildInsightResults(
   const queryEmpty = normalizedQuery.length === 0
   const wantsVacancies = queryEmpty || includesAny(normalizedQuery, ['vacante', 'vacantes', 'sin cubrir'])
   const wantsMof = queryEmpty || includesAny(normalizedQuery, ['mof', 'funciones', 'manual'])
+  const wantsCompliance = queryEmpty || includesAny(normalizedQuery, ['compliance', 'cumplimiento', 'riesgo', 'critico'])
+  const wantsContractual = queryEmpty || includesAny(normalizedQuery, ['contractual', 'contrato', 'contratos', 'modalidad', 'locacion', 'civil'])
   const wantsSst = queryEmpty || includesAny(normalizedQuery, ['sst', 'sctr', 'seguridad', 'salud'])
   const wantsSpan = queryEmpty || includesAny(normalizedQuery, ['span', 'reportes', 'sobrecarga', 'jefes'])
   const wantsCivil = queryEmpty || includesAny(normalizedQuery, ['locador', 'locacion', 'servicio', 'civil', 'subordinacion'])
@@ -140,6 +142,16 @@ function buildInsightResults(
   if (wantsMof) {
     const missingMof = tree.positions.filter(position => !hasMof(position)).length
     results.push(insight('mof', 'MOF pendiente', `${missingMof} cargo(s) sin MOF completo`, 'mof', 78))
+  }
+
+  if (wantsCompliance) {
+    const criticalPositions = tree.positions.filter(position => position.isCritical || isSstSensitive(position)).length
+    results.push(insight('compliance', 'Lente compliance', `${criticalPositions} cargo(s) con criticidad o riesgo`, 'compliance', 77))
+  }
+
+  if (wantsContractual) {
+    const civilAssignments = tree.assignments.filter(assignment => isCivilContractLike(assignment.worker.tipoContrato)).length
+    results.push(insight('contractual', 'Lente contractual', `${civilAssignments} relacion(es) civiles o sensibles`, 'contractual', 77))
   }
 
   if (wantsSst) {
@@ -187,6 +199,16 @@ function buildInsightResults(
   }
 
   if (wantsCivil) {
+    results.push(
+      insight(
+        'subordination',
+        'Expediente de subordinacion',
+        'Prestadores civiles con indicadores de dependencia funcional',
+        'general',
+        88,
+        'subordinacion',
+      ),
+    )
     const civilAssignments = tree.assignments.filter(assignment => isCivilContractLike(assignment.worker.tipoContrato))
     for (const assignment of civilAssignments.slice(0, 5)) {
       const position = tree.positions.find(candidate => candidate.id === assignment.positionId)
@@ -199,8 +221,8 @@ function buildInsightResults(
         unitId: position?.orgUnitId ?? null,
         positionId: position?.id ?? null,
         workerId: assignment.workerId,
-        tab: 'organigrama',
-        lens: 'general',
+        tab: 'subordinacion',
+        lens: 'contractual',
         score: 90,
       })
     }
@@ -242,7 +264,7 @@ function buildRoleResults(
       positionId: null,
       workerId: role.workerId,
       tab: 'responsables',
-      lens: 'general',
+      lens: 'compliance',
       score,
     })
   }
@@ -312,12 +334,15 @@ function lensForPosition(position: OrgPositionDTO | null, occupants: number): Or
   if (!position) return 'general'
   if (occupants < position.seats) return 'vacancies'
   if (!hasMof(position)) return 'mof'
+  if (position.isCritical) return 'compliance'
   if (isSstSensitive(position)) return 'sst'
   return 'general'
 }
 
 function lensForPositionSearch(position: OrgPositionDTO, occupants: number, normalizedQuery: string): OrgCommandLens {
   if (includesAny(normalizedQuery, ['mof', 'funciones', 'manual']) && !hasMof(position)) return 'mof'
+  if (includesAny(normalizedQuery, ['compliance', 'cumplimiento', 'riesgo', 'critico']) && position.isCritical) return 'compliance'
+  if (includesAny(normalizedQuery, ['contractual', 'contrato', 'contratos', 'modalidad'])) return 'contractual'
   if (includesAny(normalizedQuery, ['sst', 'sctr', 'seguridad', 'salud']) && isSstSensitive(position)) return 'sst'
   if (includesAny(normalizedQuery, ['vacante', 'vacantes', 'sin cubrir']) && occupants < position.seats) return 'vacancies'
   return lensForPosition(position, occupants)
@@ -327,6 +352,8 @@ function positionSearchSignals(position: OrgPositionDTO, occupants: number) {
   const signals: string[] = []
   if (occupants < position.seats) signals.push('vacante vacantes sin cubrir cupo')
   if (!hasMof(position)) signals.push('mof manual funciones pendiente')
+  if (position.isCritical) signals.push('compliance cumplimiento riesgo critico')
+  signals.push('contractual contrato contratos modalidad')
   if (isSstSensitive(position)) signals.push('sst sctr seguridad salud riesgo critico')
   return signals
 }

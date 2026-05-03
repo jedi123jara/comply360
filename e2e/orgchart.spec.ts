@@ -10,6 +10,7 @@ const protectedGetEndpoints = [
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   },
   { url: "/api/orgchart/snapshots", contentType: "application/json" },
+  { url: "/api/orgchart/subordination", contentType: "application/json" },
 ];
 
 const protectedPostEndpoints = [
@@ -19,6 +20,7 @@ const protectedPostEndpoints = [
   "/api/orgchart/diagnose",
   "/api/orgchart/positions",
   "/api/orgchart/snapshots",
+  "/api/orgchart/subordination/sync",
   "/api/orgchart/units",
 ];
 
@@ -84,6 +86,20 @@ test.describe("Organigrama module", () => {
       await expectRejectedOrInvalid(response);
     });
   }
+
+  test("GET orgchart position contract prefill is protected or wired in dev fallback", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      "/api/orgchart/positions/position_test/contract-prefill",
+      { maxRedirects: 0 },
+    );
+    expect([200, 401, 403, 404, 307, 308]).toContain(response.status());
+
+    if (isRedirect(response.status())) {
+      expect(response.headers().location).toBeTruthy();
+    }
+  });
 
   test("orgchart cron rejects missing or invalid token", async ({ request }) => {
     const missingToken = await request.get("/api/cron/orgchart-alerts");
