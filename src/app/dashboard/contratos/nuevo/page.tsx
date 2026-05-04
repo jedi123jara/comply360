@@ -169,6 +169,31 @@ function formatRelativeTime(date: Date): string {
   return `hace ${diffD} ${diffD === 1 ? 'dia' : 'dias'}`
 }
 
+function exportErrorDescription(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') {
+    return 'El exportador no devolvió un detalle legible.'
+  }
+  const data = payload as {
+    error?: unknown
+    code?: unknown
+    details?: { unresolvedPlaceholders?: unknown }
+  }
+  const unresolved = Array.isArray(data.details?.unresolvedPlaceholders)
+    ? data.details.unresolvedPlaceholders.filter((item): item is string => typeof item === 'string')
+    : []
+  if (data.code === 'UNRESOLVED_PLACEHOLDERS' && unresolved.length > 0) {
+    return `Completa estos campos antes de exportar: ${unresolved.join(', ')}.`
+  }
+  return typeof data.error === 'string'
+    ? data.error
+    : 'El contrato todavía no está listo para exportarse.'
+}
+
+function fileNameFromDisposition(disposition: string | null, fallback: string): string {
+  const match = disposition?.match(/filename="?([^";]+)"?/i)
+  return match?.[1] ?? fallback
+}
+
 function NuevoContratoInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -202,6 +227,7 @@ function NuevoContratoInner() {
   // ─── Template contract autosave state ──────────────────────────────────
   const [templateSavedId, setTemplateSavedId] = useState<string | null>(null)
   const [templateAutoSaveStatus, setTemplateAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [downloadingDocx, setDownloadingDocx] = useState(false)
 
   // Empleador fields
   const [empRuc, setEmpRuc] = useState('')
@@ -977,7 +1003,7 @@ function NuevoContratoInner() {
     }
   }
 
-  const handleDownloadDocx = () => {
+  const handleDownloadDocx = async () => {
     if (!selectedTemplate) return
     if (!templateSavedId) {
       toast({
@@ -987,7 +1013,39 @@ function NuevoContratoInner() {
       })
       return
     }
-    window.location.href = `/api/contracts/${templateSavedId}/render-docx`
+    setDownloadingDocx(true)
+    try {
+      const res = await fetch(`/api/contracts/${templateSavedId}/render-docx`)
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        toast({
+          title: 'DOCX no disponible',
+          description: exportErrorDescription(errBody),
+          type: 'error',
+        })
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileNameFromDisposition(
+        res.headers.get('Content-Disposition'),
+        `${selectedTemplate.name}.docx`,
+      )
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+    } catch {
+      toast({
+        title: 'No se pudo generar el DOCX',
+        description: 'Revisa tu conexión o intenta nuevamente.',
+        type: 'error',
+      })
+    } finally {
+      setDownloadingDocx(false)
+    }
   }
 
   // Layout: el step 'form' usa 3-col wide; el resto (select/preview/review) mantiene narrow
@@ -1630,11 +1688,14 @@ function NuevoContratoInner() {
                 </button>
               )}
               <button
-                onClick={handleDownloadDocx}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)]"
+                onClick={() => void handleDownloadDocx()}
+                disabled={downloadingDocx}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Download className="w-4 h-4" />
-                Descargar DOCX
+                {downloadingDocx
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <Download className="w-4 h-4" />}
+                {downloadingDocx ? 'Generando DOCX...' : 'Descargar DOCX'}
               </button>
               <button
                 onClick={() => setStep('review')}

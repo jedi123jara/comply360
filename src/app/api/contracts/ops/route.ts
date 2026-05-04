@@ -213,6 +213,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
 
   const failedBulkJobs = recentBulkJobs.filter((job) => job.status === 'FAILED' || job.failedRows > 0).length
 
+  const uniqueWarnings = [...new Set(warnings)]
+
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
     health: {
@@ -225,7 +227,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       failedBulkJobs,
       ackPendingDocuments: ackDocuments.filter((doc) => doc.pending > 0).length,
     },
-    warnings: [...new Set(warnings)],
+    warnings: uniqueWarnings,
+    schema: buildSchemaDiagnostic(uniqueWarnings),
     byProvenance,
     recentBlockers: recentBlockers.map((row) => ({
       id: row.id,
@@ -252,6 +255,34 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     },
   })
 })
+
+function buildSchemaDiagnostic(warnings: string[]) {
+  const checks = [
+    {
+      code: 'contract_render_metadata_missing',
+      label: 'Metadata de procedencia contractual',
+      status: warnings.includes('contract_render_metadata_missing') ? 'compatibility' : 'ok',
+      impact: 'Los contadores de procedencia, fallback IA y contratos IA sin review pueden aparecer incompletos.',
+      migration: '20260508010000_add_contract_render_metadata',
+      action: 'Aplicar migraciones pendientes en la base y regenerar Prisma Client si corresponde.',
+    },
+    {
+      code: 'org_templates_table_missing',
+      label: 'Plantillas dedicadas de empresa',
+      status: warnings.includes('org_templates_table_missing') ? 'compatibility' : 'ok',
+      impact: 'Las plantillas nuevas se leen desde compatibilidad legacy y no desde la tabla dedicada org_templates.',
+      migration: '20260508000000_add_org_templates',
+      action: 'Aplicar migración de org_templates y ejecutar el bridge de migración legacy cuando la tabla exista.',
+    },
+  ]
+
+  const pending = checks.filter((check) => check.status === 'compatibility')
+  return {
+    status: pending.length > 0 ? 'compatibility' : 'ok',
+    pendingCount: pending.length,
+    checks,
+  }
+}
 
 async function safeQuery<T>(
   fn: () => Promise<T>,

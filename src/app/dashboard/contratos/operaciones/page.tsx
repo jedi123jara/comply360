@@ -8,6 +8,7 @@ import {
   Bot,
   CheckCircle,
   ClipboardCheck,
+  Database,
   FileText,
   Layers,
   Loader2,
@@ -30,6 +31,18 @@ interface OpsResponse {
     ackPendingDocuments: number
   }
   warnings?: string[]
+  schema?: {
+    status: 'ok' | 'compatibility'
+    pendingCount: number
+    checks: Array<{
+      code: string
+      label: string
+      status: 'ok' | 'compatibility'
+      impact: string
+      migration: string
+      action: string
+    }>
+  }
   byProvenance: Record<string, number>
   recentBlockers: Array<{
     id: string
@@ -180,6 +193,74 @@ export default function ContractOpsPage() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Hay migraciones pendientes en esta base. El tablero opera en modo compatibilidad y algunos contadores pueden aparecer en cero hasta aplicar el schema nuevo.
         </div>
+      )}
+      {data.schema && (
+        <section className={cn(
+          'rounded-xl border bg-white p-4',
+          data.schema.status === 'compatibility' ? 'border-amber-200' : 'border-emerald-100',
+        )}>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Database className={cn(
+                'h-4 w-4',
+                data.schema.status === 'compatibility' ? 'text-amber-600' : 'text-emerald-600',
+              )} />
+              <div>
+                <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">Estado de schema documental</h2>
+                <p className="text-xs text-[color:var(--text-tertiary)]">
+                  {data.schema.pendingCount > 0
+                    ? `${data.schema.pendingCount} componente(s) operan en compatibilidad.`
+                    : 'Schema alineado con el pipeline documental nuevo.'}
+                </p>
+              </div>
+            </div>
+            <span className={cn(
+              'rounded-full px-2.5 py-1 text-[11px] font-semibold',
+              data.schema.status === 'compatibility'
+                ? 'bg-amber-50 text-amber-700'
+                : 'bg-emerald-50 text-emerald-700',
+            )}>
+              {data.schema.status === 'compatibility' ? 'Compatibilidad' : 'OK'}
+            </span>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {data.schema.checks.map((check) => (
+              <div
+                key={check.code}
+                className={cn(
+                  'rounded-lg border p-3',
+                  check.status === 'compatibility'
+                    ? 'border-amber-100 bg-amber-50/70'
+                    : 'border-emerald-100 bg-emerald-50/50',
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className={cn(
+                    'text-sm font-semibold',
+                    check.status === 'compatibility' ? 'text-amber-900' : 'text-emerald-900',
+                  )}>
+                    {check.label}
+                  </p>
+                  <span className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                    check.status === 'compatibility'
+                      ? 'bg-white text-amber-700'
+                      : 'bg-white text-emerald-700',
+                  )}>
+                    {check.status === 'compatibility' ? 'Pendiente' : 'Listo'}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-[color:var(--text-secondary)]">{check.impact}</p>
+                <p className="mt-2 text-[11px] font-medium text-[color:var(--text-tertiary)]">
+                  Migración: <span className="font-mono">{check.migration}</span>
+                </p>
+                {check.status === 'compatibility' && (
+                  <p className="mt-1 text-[11px] text-amber-700">{check.action}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

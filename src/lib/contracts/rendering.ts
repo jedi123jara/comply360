@@ -69,6 +69,7 @@ export interface ContractRenderInput {
   renderedText?: string | null
   orgContext?: ContractRenderOrgContext | null
   workerContext?: ContractRenderWorkerContext | null
+  allowUnresolvedPlaceholders?: boolean
 }
 
 export interface ContractRenderResult {
@@ -78,6 +79,22 @@ export interface ContractRenderResult {
 }
 
 const RENDER_VERSION: ContractRenderMetadata['renderVersion'] = 'contract-render-v1'
+
+export class ContractRenderError extends Error {
+  code: 'EMPTY_RENDER' | 'UNRESOLVED_PLACEHOLDERS'
+  details: Record<string, unknown>
+
+  constructor(
+    code: ContractRenderError['code'],
+    message: string,
+    details: Record<string, unknown> = {},
+  ) {
+    super(message)
+    this.name = 'ContractRenderError'
+    this.code = code
+    this.details = details
+  }
+}
 
 export function resolveContractProvenance(input: {
   sourceKind?: ContractRenderSourceKind
@@ -161,6 +178,7 @@ export function renderContract(input: ContractRenderInput): ContractRenderResult
 
 export async function renderContractDocxBuffer(input: ContractRenderInput): Promise<Buffer> {
   const rendered = renderContract(input)
+  assertOfficialRenderReady(rendered, input)
   return htmlToDocxBuffer({
     title: input.title,
     contentHtml: rendered.renderedHtml,
@@ -172,6 +190,7 @@ export async function renderContractDocxBuffer(input: ContractRenderInput): Prom
 
 export async function renderContractPdfBuffer(input: ContractRenderInput): Promise<Buffer> {
   const rendered = renderContract(input)
+  assertOfficialRenderReady(rendered, input)
   const org = input.orgContext ?? {}
   const worker = input.workerContext ?? workerFromFormData(input.formData ?? {})
   const logo = await loadOrgLogoBytes(org.logoUrl)
@@ -385,6 +404,56 @@ function findUnresolvedPlaceholders(text: string): string[] {
   let match: RegExpExecArray | null
   while ((match = re.exec(text)) !== null) seen.add(match[1])
   return [...seen]
+}
+
+function assertOfficialRenderReady(
+  rendered: ContractRenderResult,
+  input: ContractRenderInput,
+): void {
+  const text = rendered.renderedText.trim()
+  const html = rendered.renderedHtml.trim()
+  if (!html || !text) {
+    throw new ContractRenderError(
+      'EMPTY_RENDER',
+      'El contrato no tiene contenido renderizable para exportar.',
+      { sourceKind: input.sourceKind, title: input.title },
+    )
+  }
+
+  if (input.allowUnresolvedPlaceholders) return
+
+  const unresolved = uniqueStrings([
+    ...rendered.renderMetadata.unresolvedPlaceholders,
+    ...missingPlaceholdersFrom(input.contentJson),
+  ])
+  if (unresolved.length > 0) {
+    throw new ContractRenderError(
+      'UNRESOLVED_PLACEHOLDERS',
+      'El contrato conserva placeholders sin resolver y no puede exportarse como artefacto oficial.',
+      {
+        sourceKind: input.sourceKind,
+        provenance: rendered.renderMetadata.provenance,
+        unresolvedPlaceholders: unresolved,
+      },
+    )
+  }
+}
+
+function missingPlaceholdersFrom(value: unknown): string[] {
+  if (!isRecord(value)) return []
+  const direct = stringArray(value.missingPlaceholders)
+  const nested = isRecord(value.renderMetadata)
+    ? stringArray(value.renderMetadata.unresolvedPlaceholders)
+    : []
+  return [...direct, ...nested]
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
 }
 
 function workerFromFormData(formData: Record<string, unknown>): ContractRenderWorkerContext {

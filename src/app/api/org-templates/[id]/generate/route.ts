@@ -21,7 +21,7 @@ import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { planHasFeature } from '@/lib/plan-gate'
 import { createContractWithSideEffects } from '@/lib/contracts/create'
-import { renderContractPdfBuffer } from '@/lib/contracts/rendering'
+import { ContractRenderError, renderContractPdfBuffer } from '@/lib/contracts/rendering'
 import {
   isOrgTemplate,
   parseTemplate,
@@ -322,38 +322,54 @@ export const POST = withAuthParams<{ id: string }>(async (
     .replace(/[^a-z0-9]+/g, '-')
     .slice(0, 40)
   const filename = `${slug}-${worker.dni}.pdf`
-  const pdfBuffer = await renderContractPdfBuffer({
-    title,
-    contractType,
-    sourceKind: 'org-template-based',
-    provenance: 'ORG_TEMPLATE',
-    templateId,
-    renderedText: result.rendered,
-    formData: {
-      ciudad: body.ciudad ?? 'Lima',
-      trabajador_nombre: fullWorkerName,
-      trabajador_dni: worker.dni,
-      fecha_inicio: new Date(worker.fechaIngreso).toISOString().slice(0, 10),
-    },
-    contentJson: {
+  let pdfBuffer: Buffer
+  try {
+    pdfBuffer = await renderContractPdfBuffer({
+      title,
+      contractType,
+      sourceKind: 'org-template-based',
+      provenance: 'ORG_TEMPLATE',
       templateId,
-      templateStorage,
-      templateType: meta.documentType,
-      usedPlaceholders: result.usedPlaceholders,
-      missingPlaceholders: result.missingPlaceholders,
-    },
-    orgContext: {
-      name: org?.name,
-      razonSocial: org?.razonSocial,
-      ruc: org?.ruc,
-      logoUrl: org?.logoUrl,
-    },
-    workerContext: {
-      fullName: fullWorkerName,
-      dni: worker.dni,
-      fechaIngreso: worker.fechaIngreso,
-    },
-  })
+      renderedText: result.rendered,
+      formData: {
+        ciudad: body.ciudad ?? 'Lima',
+        trabajador_nombre: fullWorkerName,
+        trabajador_dni: worker.dni,
+        fecha_inicio: new Date(worker.fechaIngreso).toISOString().slice(0, 10),
+      },
+      contentJson: {
+        templateId,
+        templateStorage,
+        templateType: meta.documentType,
+        usedPlaceholders: result.usedPlaceholders,
+        missingPlaceholders: result.missingPlaceholders,
+      },
+      orgContext: {
+        name: org?.name,
+        razonSocial: org?.razonSocial,
+        ruc: org?.ruc,
+        logoUrl: org?.logoUrl,
+      },
+      workerContext: {
+        fullName: fullWorkerName,
+        dni: worker.dni,
+        fechaIngreso: worker.fechaIngreso,
+      },
+    })
+  } catch (err) {
+    if (err instanceof ContractRenderError) {
+      return NextResponse.json(
+        {
+          error: err.message,
+          code: err.code,
+          details: err.details,
+        },
+        { status: 422 },
+      )
+    }
+    console.error('[org-templates/generate] pdf render failed', err)
+    return NextResponse.json({ error: 'No se pudo generar el PDF' }, { status: 500 })
+  }
   return new NextResponse(pdfBuffer as unknown as BodyInit, {
     status: 200,
     headers: {

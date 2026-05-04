@@ -35,12 +35,12 @@ export interface HtmlToDocxInput {
   company?: string
 }
 
-const FONT = 'Calibri'
+const FONT = 'Times New Roman'
 
 // Estilos base (rgba/hex sin "#")
-const HEADING_COLOR = '1E3A6E'
+const HEADING_COLOR = '111827'
 const TEXT_COLOR = '111111'
-const SUBTLE = '666666'
+const SUBTLE = '4B5563'
 
 interface InlineState {
   bold: boolean
@@ -113,14 +113,14 @@ function htmlToBlocks(html: string): Array<DocxParagraph | Table> {
 function makeHeading(inner: string, level: typeof HeadingLevel[keyof typeof HeadingLevel], size: number): DocxParagraph {
   return new Paragraph({
     heading: level,
-    spacing: { before: 240, after: 120 },
+    spacing: { before: 280, after: 140 },
     children: parseInline(inner, { ...INITIAL_INLINE, bold: true }, { color: HEADING_COLOR, size }),
   })
 }
 
 function makeParagraph(inner: string): DocxParagraph {
   return new Paragraph({
-    spacing: { after: 120 },
+    spacing: { after: 140, line: 360 },
     alignment: AlignmentType.JUSTIFIED,
     children: parseInline(inner, INITIAL_INLINE, { color: TEXT_COLOR, size: 22 }),
   })
@@ -130,7 +130,7 @@ function makeListItem(text: string, ordered: boolean): DocxParagraph {
   return new Paragraph({
     bullet: ordered ? undefined : { level: 0 },
     numbering: ordered ? { reference: 'default-numbering', level: 0 } : undefined,
-    spacing: { after: 80 },
+    spacing: { after: 100, line: 360 },
     children: parseInline(text, INITIAL_INLINE, { color: TEXT_COLOR, size: 22 }),
   })
 }
@@ -258,10 +258,11 @@ function stripTags(text: string): string {
  */
 export async function htmlToDocxBuffer(input: HtmlToDocxInput): Promise<Buffer> {
   const blocks = htmlToBlocks(input.contentHtml)
+  const company = input.company?.trim() || 'COMPLY360'
   const titleParagraph = new Paragraph({
     heading: HeadingLevel.TITLE,
     alignment: AlignmentType.CENTER,
-    spacing: { after: 240 },
+    spacing: { after: 240, line: 320 },
     children: [
       new TextRun({
         text: input.title.toUpperCase(),
@@ -275,10 +276,10 @@ export async function htmlToDocxBuffer(input: HtmlToDocxInput): Promise<Buffer> 
 
   const headerNote = new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { after: 480 },
+    spacing: { after: 520 },
     children: [
       new TextRun({
-        text: `Generado por COMPLY360 — ${new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+        text: `${company} | Documento legal | ${new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}`,
         color: SUBTLE,
         font: FONT,
         size: 18,
@@ -305,7 +306,7 @@ export async function htmlToDocxBuffer(input: HtmlToDocxInput): Promise<Buffer> 
     creator: input.author ?? 'COMPLY360',
     title: input.title,
     description: input.company
-      ? `Contrato laboral generado por COMPLY360 — ${input.company}`
+      ? `Contrato laboral generado por COMPLY360 - ${input.company}`
       : 'Contrato laboral generado por COMPLY360',
     styles: {
       default: {

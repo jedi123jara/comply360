@@ -146,11 +146,52 @@ describe('GET /api/contracts/ops', () => {
     expect(json.byProvenance).toMatchObject({ ORG_TEMPLATE: 5, AI_FALLBACK: 2 })
     expect(json.templates).toMatchObject({ total: 2, activeDedicated: 1, legacy: 1 })
     expect(json.templates.withGaps[0]).toMatchObject({ id: 'tpl-1', unmapped: ['DNI'] })
+    expect(json.schema).toMatchObject({
+      status: 'ok',
+      pendingCount: 0,
+    })
     expect(json.acknowledgments.documents[0]).toMatchObject({
       id: 'doc-1',
       acknowledged: 4,
       pending: 2,
       totalWorkers: 6,
     })
+  })
+
+  it('returns schema compatibility diagnostics when new tables or columns are missing', async () => {
+    mockPrisma.contract.groupBy.mockRejectedValueOnce(new Error('column does not exist'))
+    mockPrisma.contract.count
+      .mockReset()
+      .mockResolvedValueOnce(12)
+      .mockRejectedValueOnce(new Error('column does not exist'))
+      .mockRejectedValueOnce(new Error('column does not exist'))
+    mockPrisma.orgTemplate.findMany.mockRejectedValueOnce(new Error('table does not exist'))
+
+    const res = await GET(makeRequest())
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.warnings).toEqual([
+      'contract_render_metadata_missing',
+      'org_templates_table_missing',
+    ])
+    expect(json.schema).toMatchObject({
+      status: 'compatibility',
+      pendingCount: 2,
+    })
+    expect(json.schema.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'contract_render_metadata_missing',
+          status: 'compatibility',
+          migration: '20260508010000_add_contract_render_metadata',
+        }),
+        expect.objectContaining({
+          code: 'org_templates_table_missing',
+          status: 'compatibility',
+          migration: '20260508000000_add_org_templates',
+        }),
+      ]),
+    )
   })
 })

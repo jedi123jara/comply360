@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
-import { renderContractDocxBuffer } from '@/lib/contracts/rendering'
+import { ContractRenderError, renderContractDocxBuffer } from '@/lib/contracts/rendering'
 
 // =============================================
 // GET /api/contracts/[id]/render-docx
@@ -23,6 +23,8 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
       title: true,
       type: true,
       contentHtml: true,
+      contentJson: true,
+      formData: true,
       organization: { select: { name: true, razonSocial: true } },
       createdBy: { select: { firstName: true, lastName: true } },
     },
@@ -45,8 +47,8 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
       contractType: contract.type,
       sourceKind: 'html-based',
       contentHtml: contract.contentHtml,
-      formData: null,
-      contentJson: null,
+      formData: (contract.formData ?? {}) as Record<string, unknown>,
+      contentJson: contract.contentJson,
       orgContext: {
         name: contract.organization.name,
         razonSocial: contract.organization.razonSocial,
@@ -73,6 +75,16 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
       },
     })
   } catch (err) {
+    if (err instanceof ContractRenderError) {
+      return NextResponse.json(
+        {
+          error: err.message,
+          code: err.code,
+          details: err.details,
+        },
+        { status: 422 },
+      )
+    }
     console.error('[GET /api/contracts/:id/render-docx]', err)
     return NextResponse.json({ error: 'No se pudo generar el .docx' }, { status: 500 })
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
-import { renderContractPdfBuffer } from '@/lib/contracts/rendering'
+import { ContractRenderError, renderContractPdfBuffer } from '@/lib/contracts/rendering'
 
 // =============================================
 // GET /api/contracts/[id]/pdf — Download contract as PDF
@@ -13,7 +13,13 @@ export const GET = withAuthParams<{ id: string }>(
 
     const contract = await prisma.contract.findFirst({
       where: { id: params.id, orgId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        contentHtml: true,
+        contentJson: true,
+        formData: true,
         organization: {
           select: { name: true, razonSocial: true, ruc: true, logoUrl: true },
         },
@@ -34,25 +40,41 @@ export const GET = withAuthParams<{ id: string }>(
     const fechaInicio =
       typeof formData.fecha_inicio === 'string' ? formData.fecha_inicio : null
 
-    const buffer = await renderContractPdfBuffer({
-      title: contract.title || 'Contrato',
-      contractType: contract.type,
-      sourceKind: 'html-based',
-      contentHtml: contract.contentHtml,
-      contentJson: contract.contentJson,
-      formData,
-      orgContext: {
-        name: org?.name,
-        razonSocial: org?.razonSocial,
-        ruc: org?.ruc,
-        logoUrl: org?.logoUrl,
-      },
-      workerContext: {
-        fullName: trabajadorNombre,
-        dni: trabajadorDni,
-        fechaIngreso: fechaInicio,
-      },
-    })
+    let buffer: Buffer
+    try {
+      buffer = await renderContractPdfBuffer({
+        title: contract.title || 'Contrato',
+        contractType: contract.type,
+        sourceKind: 'html-based',
+        contentHtml: contract.contentHtml,
+        contentJson: contract.contentJson,
+        formData,
+        orgContext: {
+          name: org?.name,
+          razonSocial: org?.razonSocial,
+          ruc: org?.ruc,
+          logoUrl: org?.logoUrl,
+        },
+        workerContext: {
+          fullName: trabajadorNombre,
+          dni: trabajadorDni,
+          fechaIngreso: fechaInicio,
+        },
+      })
+    } catch (err) {
+      if (err instanceof ContractRenderError) {
+        return NextResponse.json(
+          {
+            error: err.message,
+            code: err.code,
+            details: err.details,
+          },
+          { status: 422 },
+        )
+      }
+      console.error('[GET /api/contracts/:id/pdf]', err)
+      return NextResponse.json({ error: 'No se pudo generar el PDF' }, { status: 500 })
+    }
 
     const filename = `contrato-${contract.id.slice(-8)}.pdf`
     return new NextResponse(buffer as unknown as BodyInit, {

@@ -167,6 +167,31 @@ function getContractProvenance(contract: Contract): string {
   return 'LEGACY'
 }
 
+function exportErrorDescription(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') {
+    return 'El exportador no devolvió un detalle legible.'
+  }
+  const data = payload as {
+    error?: unknown
+    code?: unknown
+    details?: { unresolvedPlaceholders?: unknown }
+  }
+  const unresolved = Array.isArray(data.details?.unresolvedPlaceholders)
+    ? data.details.unresolvedPlaceholders.filter((item): item is string => typeof item === 'string')
+    : []
+  if (data.code === 'UNRESOLVED_PLACEHOLDERS' && unresolved.length > 0) {
+    return `Completa estos campos antes de exportar: ${unresolved.join(', ')}.`
+  }
+  return typeof data.error === 'string'
+    ? data.error
+    : 'El contrato todavía no está listo para exportarse.'
+}
+
+function fileNameFromDisposition(disposition: string | null, fallback: string): string {
+  const match = disposition?.match(/filename="?([^";]+)"?/i)
+  return match?.[1] ?? fallback
+}
+
 // =============================================
 // Component
 // =============================================
@@ -183,6 +208,7 @@ export default function ContratoDetailPage() {
   const [archiving, setArchiving] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
   const [activeTab, setActiveTab] = useState<ActiveTab>('detalles')
+  const [downloadingExport, setDownloadingExport] = useState<'pdf' | 'docx' | null>(null)
   // Vincular trabajador
   const [linkedWorkers, setLinkedWorkers] = useState<LinkedWorker[]>([])
   const [workerSearch, setWorkerSearch] = useState('')
@@ -306,6 +332,52 @@ export default function ContratoDetailPage() {
     }
   }
 
+  async function downloadContractArtifact(format: 'pdf' | 'docx') {
+    if (!contract) return
+    setDownloadingExport(format)
+    try {
+      const endpoint = format === 'pdf'
+        ? `/api/contracts/${id}/pdf`
+        : `/api/contracts/${id}/render-docx`
+      const res = await fetch(endpoint)
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        toast({
+          title: format === 'pdf' ? 'PDF no disponible' : 'DOCX no disponible',
+          description: exportErrorDescription(errBody),
+          type: 'error',
+        })
+        if (errBody?.code === 'UNRESOLVED_PLACEHOLDERS') setActiveTab('detalles')
+        return
+      }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      if (format === 'pdf') {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      } else {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileNameFromDisposition(
+          res.headers.get('Content-Disposition'),
+          `${contract.title || 'contrato'}.docx`,
+        )
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+    } catch {
+      toast({
+        title: 'No se pudo generar el archivo',
+        description: 'Revisa tu conexión o intenta nuevamente.',
+        type: 'error',
+      })
+    } finally {
+      setDownloadingExport(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -379,23 +451,28 @@ export default function ContratoDetailPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <a
-              href={`/api/contracts/${id}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => void downloadContractArtifact('pdf')}
+              disabled={downloadingExport !== null}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl text-sm font-semibold transition-colors border border-emerald-500/20"
             >
-              <Download className="w-4 h-4" />
+              {downloadingExport === 'pdf'
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Download className="w-4 h-4" />}
               PDF
-            </a>
-            <a
-              href={`/api/contracts/${id}/render-docx`}
-              download
+            </button>
+            <button
+              type="button"
+              onClick={() => void downloadContractArtifact('docx')}
+              disabled={downloadingExport !== null}
               className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-sm font-semibold transition-colors border border-blue-500/20"
             >
-              <Download className="w-4 h-4" />
+              {downloadingExport === 'docx'
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Download className="w-4 h-4" />}
               DOCX
-            </a>
+            </button>
             <Link
               href={`/dashboard/contratos/${id}/analisis`}
               className="flex items-center gap-2 px-4 py-2 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl text-sm font-semibold transition-colors border border-primary/20"

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ContractRenderError,
   renderContract,
+  renderContractDocxBuffer,
   withContractProvenanceFormData,
   withContractRenderMetadata,
 } from '../rendering'
@@ -34,6 +36,31 @@ describe('renderContract', () => {
 
     expect(rendered.renderMetadata.provenance).toBe('LEGACY')
     expect(rendered.renderMetadata.unresolvedPlaceholders).toEqual(['trabajador_nombre'])
+  })
+
+  it('bloquea export oficial cuando hay placeholders pendientes', async () => {
+    await expect(renderContractDocxBuffer({
+      title: 'Contrato incompleto',
+      contractType: 'LABORAL_INDEFINIDO',
+      sourceKind: 'html-based',
+      contentHtml: '<article><p>Hola {{trabajador_nombre}}</p></article>',
+    })).rejects.toMatchObject({
+      name: 'ContractRenderError',
+      code: 'UNRESOLVED_PLACEHOLDERS',
+      details: { unresolvedPlaceholders: ['trabajador_nombre'] },
+    } satisfies Partial<ContractRenderError>)
+  })
+
+  it('permite previews no oficiales con placeholders pendientes', async () => {
+    const buffer = await renderContractDocxBuffer({
+      title: 'Preview incompleto',
+      contractType: 'LABORAL_INDEFINIDO',
+      sourceKind: 'html-based',
+      contentHtml: '<article><p>Hola {{trabajador_nombre}}</p></article>',
+      allowUnresolvedPlaceholders: true,
+    })
+
+    expect(buffer.byteLength).toBeGreaterThan(1000)
   })
 })
 
