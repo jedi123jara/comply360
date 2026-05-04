@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { apiKeyService } from '@/lib/api-keys'
+import { createContractWithSideEffects } from '@/lib/contracts/create'
+import type { ContractType } from '@/generated/prisma/client'
 
 /**
  * Public API v1 — Contracts
@@ -15,6 +17,21 @@ function getApiKey(req: NextRequest): string | null {
   if (!auth) return null
   return auth.startsWith('Bearer ') ? auth.slice(7) : auth
 }
+
+const VALID_CONTRACT_TYPES = new Set<ContractType>([
+  'LABORAL_INDEFINIDO',
+  'LABORAL_PLAZO_FIJO',
+  'LABORAL_TIEMPO_PARCIAL',
+  'LOCACION_SERVICIOS',
+  'CONFIDENCIALIDAD',
+  'NO_COMPETENCIA',
+  'POLITICA_HOSTIGAMIENTO',
+  'POLITICA_SST',
+  'REGLAMENTO_INTERNO',
+  'ADDENDUM',
+  'CONVENIO_PRACTICAS',
+  'CUSTOM',
+])
 
 export async function GET(req: NextRequest) {
   const key = getApiKey(req)
@@ -88,7 +105,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { title, type, expiresAt } = body
+    const { title, type, expiresAt, templateId, formData, contentHtml, contentJson } = body
 
     if (!title || !type) {
       return NextResponse.json(
@@ -97,16 +114,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Need a createdById - use a placeholder for API-created contracts
-    const contract = await prisma.contract.create({
-      data: {
-        orgId: validation.orgId,
-        createdById: 'api', // API-created
-        title,
-        type,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-        status: 'DRAFT',
-      },
+    if (!VALID_CONTRACT_TYPES.has(type)) {
+      return NextResponse.json(
+        { error: 'type inválido', validTypes: Array.from(VALID_CONTRACT_TYPES) },
+        { status: 400 },
+      )
+    }
+
+    const { contract } = await createContractWithSideEffects({
+      orgId: validation.orgId,
+      userId: 'api-key',
+      title,
+      type,
+      templateId: templateId ?? null,
+      formData: isRecord(formData) ? formData : null,
+      contentHtml: typeof contentHtml === 'string' ? contentHtml : null,
+      contentJson: contentJson ?? null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      status: 'DRAFT',
+      provenance: templateId ? 'MANUAL_TEMPLATE' : 'LEGACY',
+      changeReason: 'Creacion desde API publica v1',
     })
 
     return NextResponse.json({ data: contract }, { status: 201 })
@@ -114,4 +141,8 @@ export async function POST(req: NextRequest) {
     console.error('[api/v1/contracts] POST error:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

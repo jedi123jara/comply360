@@ -23,6 +23,7 @@
     "test:super": "vitest run && node scripts/preflight/super-test.mjs",
     "test:full": "vitest run && playwright test && node scripts/preflight/super-test.mjs",
     "seed:demo": "tsx scripts/seed-demo-empresas.ts",
+    "migrate:org-templates": "tsx scripts/migrate-org-templates.ts",
     "ingest:rag": "node scripts/ingest/embed-corpus.mjs",
     "eval:ai": "tsx src/lib/ai/__evals__/runner.ts",
     "lighthouse": "lhci autorun --config=./lighthouserc.json",

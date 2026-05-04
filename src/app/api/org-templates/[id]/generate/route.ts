@@ -20,6 +20,8 @@ import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { planHasFeature } from '@/lib/plan-gate'
+import { createContractWithSideEffects } from '@/lib/contracts/create'
+import { renderContractPdfBuffer } from '@/lib/contracts/rendering'
 import {
   isOrgTemplate,
   parseTemplate,
@@ -30,16 +32,6 @@ import {
   type OrgTemplateMeta,
   type WorkerMergeData,
 } from '@/lib/templates/org-template-engine'
-import { cleanContractContent } from '@/lib/pdf/contract-content-cleaner'
-import {
-  createContractPDFDoc,
-  addCoverPage,
-  addContractHeader,
-  renderContractBody,
-  addSignatureBlock,
-  finalizeContractPDF,
-  loadOrgLogoBytes,
-} from '@/lib/pdf/contract-pdf'
 
 export const runtime = 'nodejs'
 
@@ -109,13 +101,20 @@ export const POST = withAuthParams<{ id: string }>(async (
   }
 
   // ── Fetch template ────────────────────────────────────────────────────────
-  const doc = await prisma.orgDocument.findUnique({
-    where: { id: params.id },
+  const template = await prisma.orgTemplate.findFirst({
+    where: { id: params.id, orgId: ctx.orgId, active: true },
   })
-  if (!doc || doc.orgId !== ctx.orgId || !isOrgTemplate(doc)) {
+  const legacyDoc = template
+    ? null
+    : await prisma.orgDocument.findUnique({ where: { id: params.id } })
+  if (!template && (!legacyDoc || legacyDoc.orgId !== ctx.orgId || !isOrgTemplate(legacyDoc))) {
     return NextResponse.json({ error: 'Plantilla no encontrada' }, { status: 404 })
   }
-  const meta = parseTemplate(doc.description) as OrgTemplateMeta
+  const meta = template
+    ? orgTemplateMetaFromRow(template)
+    : parseTemplate(legacyDoc!.description) as OrgTemplateMeta
+  const templateStorage = template ? 'orgTemplate' : 'legacyOrgDocument'
+  const templateId = template?.id ?? legacyDoc!.id
 
   // ── Fetch worker (in same org) ────────────────────────────────────────────
   const worker = await prisma.worker.findUnique({
@@ -219,48 +218,52 @@ export const POST = withAuthParams<{ id: string }>(async (
   let contractId: string | undefined
   if (persist) {
     try {
-      const contract = await prisma.contract.create({
-        data: {
-          orgId: ctx.orgId,
-          title,
-          type: contractType,
-          status: 'DRAFT',
-          contentHtml: result.rendered
-            .split('\n\n')
-            .map((p) => `<p>${escapeHtml(p)}</p>`)
-            .join('\n'),
-          formData: {
-            trabajador_nombre: fullWorkerName,
-            trabajador_dni: worker.dni,
-            cargo: worker.position ?? '',
-            remuneracion: String(workerData.sueldoBruto),
-            fecha_inicio: new Date(worker.fechaIngreso).toISOString().slice(0, 10),
-            templateId: doc.id,
-            templateType: meta.documentType,
-          },
-          createdById: ctx.userId,
+      const { contract } = await createContractWithSideEffects({
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        title,
+        type: contractType,
+        templateId,
+        sourceKind: 'org-template-based',
+        provenance: 'ORG_TEMPLATE',
+        renderedText: result.rendered,
+        formData: {
+          trabajador_nombre: fullWorkerName,
+          trabajador_dni: worker.dni,
+          cargo: worker.position ?? '',
+          remuneracion: String(workerData.sueldoBruto),
+          fecha_inicio: new Date(worker.fechaIngreso).toISOString().slice(0, 10),
+          templateId,
+          templateStorage,
+          templateType: meta.documentType,
         },
-        select: { id: true },
+        contentJson: {
+          templateId,
+          templateStorage,
+          templateType: meta.documentType,
+          usedPlaceholders: result.usedPlaceholders,
+          missingPlaceholders: result.missingPlaceholders,
+        },
+        changeReason: 'Generacion desde plantilla de empresa',
       })
       contractId = contract.id
 
-      // Linkear worker ↔ contract
-      await prisma.workerContract.create({
-        data: {
-          workerId: worker.id,
-          contractId: contract.id,
-        },
-      })
-
       // Incrementar usageCount del template
-      const nextMeta: OrgTemplateMeta = {
-        ...meta,
-        usageCount: (meta.usageCount ?? 0) + 1,
+      if (template) {
+        await prisma.orgTemplate.update({
+          where: { id: template.id },
+          data: { usageCount: { increment: 1 } },
+        })
+      } else {
+        const nextMeta: OrgTemplateMeta = {
+          ...meta,
+          usageCount: (meta.usageCount ?? 0) + 1,
+        }
+        await prisma.orgDocument.update({
+          where: { id: legacyDoc!.id },
+          data: { description: serializeTemplate(nextMeta) },
+        })
       }
-      await prisma.orgDocument.update({
-        where: { id: doc.id },
-        data: { description: serializeTemplate(nextMeta) },
-      })
 
       // Audit log
       await prisma.auditLog
@@ -272,7 +275,8 @@ export const POST = withAuthParams<{ id: string }>(async (
             entityType: 'Contract',
             entityId: contract.id,
             metadataJson: {
-              templateId: doc.id,
+              templateId,
+              templateStorage,
               workerId: worker.id,
               documentType: meta.documentType,
             },
@@ -297,6 +301,8 @@ export const POST = withAuthParams<{ id: string }>(async (
         documentTypeLabel,
         usedPlaceholders: result.usedPlaceholders,
         missingPlaceholders: result.missingPlaceholders,
+        templateId,
+        templateStorage,
         warnings: result.missingPlaceholders.length
           ? [
               `${result.missingPlaceholders.length} placeholder(s) no tienen mapeo o valor y quedaron como "____________": ${result.missingPlaceholders.join(', ')}`,
@@ -309,58 +315,6 @@ export const POST = withAuthParams<{ id: string }>(async (
   }
 
   // ── Respond: PDF ──────────────────────────────────────────────────────────
-  // Re-renderizamos preservando los placeholders sin valor como `{{KEY}}`
-  // para que el cleaner los pueda transformar en líneas con etiqueta legible
-  // (ej. `____ [Domicilio del Empleador] ____`) en lugar de los `__________`
-  // genéricos que produce blankUnmapped:true.
-  const pdfRender = renderTemplate(
-    meta.content,
-    meta.mappings ?? {},
-    { worker: workerData, org: orgData },
-    { ciudad: body.ciudad, blankUnmapped: false },
-  )
-  const cleaned = cleanContractContent(pdfRender.rendered)
-
-  const ciudad = body.ciudad ?? 'Lima'
-  const orgForPdf = {
-    name: org?.name,
-    razonSocial: org?.razonSocial,
-    ruc: org?.ruc,
-  }
-  const logo = await loadOrgLogoBytes(org?.logoUrl)
-  const headerOpts = { org: orgForPdf, logo }
-
-  const pdfDoc = await createContractPDFDoc()
-
-  addCoverPage(pdfDoc, {
-    title: documentTypeLabel,
-    org: orgForPdf,
-    logo,
-    workerFullName: fullWorkerName,
-    workerDni: worker.dni,
-    ciudad,
-    fechaIngreso: worker.fechaIngreso,
-  })
-
-  pdfDoc.addPage()
-  addContractHeader(pdfDoc, headerOpts)
-
-  const bodyEndY = renderContractBody(pdfDoc, cleaned, {
-    startY: 36,
-    headerOpts,
-  })
-
-  addSignatureBlock(pdfDoc, bodyEndY, {
-    empleador: {
-      razonSocial: org?.razonSocial ?? org?.name ?? '',
-      ruc: org?.ruc ?? '',
-    },
-    trabajador: { fullName: fullWorkerName, dni: worker.dni },
-    ciudad,
-    fecha: new Date(),
-    headerOpts,
-  })
-
   const slug = documentTypeLabel
     .toLowerCase()
     .normalize('NFD')
@@ -368,20 +322,48 @@ export const POST = withAuthParams<{ id: string }>(async (
     .replace(/[^a-z0-9]+/g, '-')
     .slice(0, 40)
   const filename = `${slug}-${worker.dni}.pdf`
-  return finalizeContractPDF(pdfDoc, filename)
+  const pdfBuffer = await renderContractPdfBuffer({
+    title,
+    contractType,
+    sourceKind: 'org-template-based',
+    provenance: 'ORG_TEMPLATE',
+    templateId,
+    renderedText: result.rendered,
+    formData: {
+      ciudad: body.ciudad ?? 'Lima',
+      trabajador_nombre: fullWorkerName,
+      trabajador_dni: worker.dni,
+      fecha_inicio: new Date(worker.fechaIngreso).toISOString().slice(0, 10),
+    },
+    contentJson: {
+      templateId,
+      templateStorage,
+      templateType: meta.documentType,
+      usedPlaceholders: result.usedPlaceholders,
+      missingPlaceholders: result.missingPlaceholders,
+    },
+    orgContext: {
+      name: org?.name,
+      razonSocial: org?.razonSocial,
+      ruc: org?.ruc,
+      logoUrl: org?.logoUrl,
+    },
+    workerContext: {
+      fullName: fullWorkerName,
+      dni: worker.dni,
+      fechaIngreso: worker.fechaIngreso,
+    },
+  })
+  return new NextResponse(pdfBuffer as unknown as BodyInit, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': String(pdfBuffer.byteLength),
+      'Cache-Control': 'no-store',
+    },
+  })
 })
-
-// =============================================
-// Helpers
-// =============================================
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
 
 /** Mapea nuestro OrgTemplateType al ContractType del schema Prisma. */
 function mapTemplateTypeToContractType(
@@ -405,4 +387,36 @@ function mapTemplateTypeToContractType(
     default:
       return 'CUSTOM'
   }
+}
+
+function orgTemplateMetaFromRow(row: {
+  documentType: string
+  contractType: string | null
+  content: string
+  placeholders: unknown
+  mappings: unknown
+  notes: string | null
+  usageCount: number
+}): OrgTemplateMeta {
+  return {
+    _schema: 'contract_template_v1',
+    documentType: row.documentType as OrgTemplateMeta['documentType'],
+    contractType: row.contractType as OrgTemplateMeta['contractType'],
+    content: row.content,
+    placeholders: jsonStringArray(row.placeholders),
+    mappings: jsonStringRecord(row.mappings),
+    notes: row.notes ?? undefined,
+    usageCount: row.usageCount,
+  }
+}
+
+function jsonStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function jsonStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  )
 }

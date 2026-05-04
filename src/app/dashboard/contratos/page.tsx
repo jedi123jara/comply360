@@ -20,6 +20,7 @@ import {
   User,
   CalendarX,
   Sparkles,
+  Activity,
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
@@ -150,6 +151,13 @@ export default function ContratosPage() {
               <Download className="w-3.5 h-3.5" />
               Exportar Excel
             </a>
+            <Link
+              href="/dashboard/contratos/operaciones"
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Operaciones
+            </Link>
             <Link
               href="/dashboard/trabajadores/importar-pdf"
               className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"

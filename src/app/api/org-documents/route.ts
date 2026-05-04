@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@/generated/prisma/client'
+import { isOrgTemplate } from '@/lib/templates/org-template-engine'
 
 export const GET = withAuth(async (req: NextRequest, ctx) => {
   const { searchParams } = new URL(req.url)
@@ -48,9 +49,10 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
     },
     orderBy: { updatedAt: 'desc' },
   })
+  const documents = docs.filter((doc) => !isOrgTemplate(doc))
 
   return NextResponse.json({
-    documents: docs,
-    total: docs.length,
+    documents,
+    total: documents.length,
   })
 })

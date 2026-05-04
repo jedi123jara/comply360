@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
-import { syncComplianceScore } from '@/lib/compliance/sync-score'
-import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
+import { createContractWithSideEffects } from '@/lib/contracts/create'
 
 // =============================================
 // GET /api/contracts - List contracts from DB
@@ -184,7 +183,7 @@ type PrismaContractType =
 export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json()
-    const { templateId, type, title, formData, contentHtml, contentJson } = body
+    const { templateId, type, title, formData, contentHtml, contentJson, provenance, sourceKind, expiresAt } = body
 
     if (!type || !title) {
       return NextResponse.json(
@@ -193,197 +192,27 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       )
     }
 
-    const normalizedType = VALID_CONTRACT_TYPES.has(String(type))
-      ? (String(type) as PrismaContractType)
-      : ('CUSTOM' as PrismaContractType)
+    if (!VALID_CONTRACT_TYPES.has(String(type))) {
+      return NextResponse.json(
+        { error: `Invalid contract type: ${type}`, validTypes: Array.from(VALID_CONTRACT_TYPES) },
+        { status: 400 },
+      )
+    }
+    const normalizedType = String(type) as PrismaContractType
 
-    const orgId = ctx.orgId
-    let userId = ctx.userId
-
-    // Verificar que el userId efectivamente existe en la tabla users (evita FK violation)
-    const userExists = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
+    const { contract } = await createContractWithSideEffects({
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      templateId: templateId || null,
+      type: normalizedType,
+      title,
+      formData: formData && typeof formData === 'object' ? formData : null,
+      contentHtml: typeof contentHtml === 'string' ? contentHtml : null,
+      contentJson: contentJson ?? null,
+      sourceKind,
+      provenance,
+      expiresAt: expiresAt ?? null,
     })
-    if (!userExists) {
-      const fallbackUser = await prisma.user.findFirst({
-        where: { orgId },
-        select: { id: true },
-        orderBy: { createdAt: 'asc' },
-      })
-      if (!fallbackUser) {
-        return NextResponse.json(
-          { error: 'Usuario no encontrado. Vuelve a iniciar sesión.' },
-          { status: 401 }
-        )
-      }
-      userId = fallbackUser.id
-    }
-
-    const contract = await prisma.contract.create({
-      data: {
-        orgId,
-        createdById: userId,
-        templateId: templateId || null,
-        type: normalizedType,
-        status: 'DRAFT',
-        title,
-        formData: formData || null,
-        contentHtml: typeof contentHtml === 'string' ? contentHtml : null,
-        contentJson: contentJson ?? null,
-      },
-    })
-
-    // ──────────────────────────────────────────────────────────
-    // Auto-create Worker from contract formData when the contract
-    // is a labor type and has DNI + name in formData.
-    // Silently skips if worker already exists (unique [orgId, dni]).
-    // ──────────────────────────────────────────────────────────
-    const LABOR_TYPES = new Set([
-      'LABORAL_INDEFINIDO', 'LABORAL_PLAZO_FIJO', 'LABORAL_TIEMPO_PARCIAL',
-      'CONVENIO_PRACTICAS',
-    ])
-
-    if (LABOR_TYPES.has(normalizedType) && formData && typeof formData === 'object') {
-      const fd = formData as Record<string, unknown>
-      const dniRaw = String(fd.trabajador_dni ?? '').trim().replace(/\D/g, '')
-      const nombreRaw = String(fd.trabajador_nombre ?? '').trim()
-
-      if (dniRaw.length >= 8 && nombreRaw.length > 0) {
-        try {
-          // Parse nombre → firstName / lastName
-          // Supports "APELLIDO APELLIDO, NOMBRE NOMBRE" or "NOMBRE APELLIDO"
-          let firstName = ''
-          let lastName = ''
-          if (nombreRaw.includes(',')) {
-            const [last, first] = nombreRaw.split(',').map(s => s.trim())
-            lastName = last
-            firstName = first
-          } else {
-            const parts = nombreRaw.split(' ')
-            firstName = parts[0] ?? ''
-            lastName = parts.slice(1).join(' ') || parts[0]
-          }
-
-          // Detect regimenLaboral from contract type
-          const regimen =
-            normalizedType === 'CONVENIO_PRACTICAS' ? ('MODALIDAD_FORMATIVA' as const)
-            : ('GENERAL' as const)
-
-          // Map contract type to tipoContrato
-          const tipoContrato =
-            normalizedType === 'LABORAL_PLAZO_FIJO' ? ('PLAZO_FIJO' as const)
-            : normalizedType === 'LABORAL_TIEMPO_PARCIAL' ? ('TIEMPO_PARCIAL' as const)
-            : normalizedType === 'CONVENIO_PRACTICAS' ? ('OBRA_DETERMINADA' as const)
-            : ('INDEFINIDO' as const)
-
-          const fechaIngreso = fd.fecha_inicio
-            ? new Date(String(fd.fecha_inicio))
-            : new Date()
-          const sueldoBruto = fd.remuneracion ? Number(fd.remuneracion) : 0
-
-          // Upsert worker — if same DNI already exists in org, update position/salary
-          const worker = await prisma.worker.upsert({
-            where: { orgId_dni: { orgId, dni: dniRaw } },
-            create: {
-              orgId,
-              dni: dniRaw,
-              firstName,
-              lastName,
-              position: fd.cargo ? String(fd.cargo) : null,
-              regimenLaboral: regimen,
-              tipoContrato,
-              fechaIngreso,
-              sueldoBruto,
-              status: 'ACTIVE',
-              legajoScore: 0,
-            },
-            update: {
-              // Update position/salary if they changed
-              ...(fd.cargo ? { position: String(fd.cargo) } : {}),
-              ...(fd.remuneracion ? { sueldoBruto } : {}),
-            },
-            select: { id: true },
-          })
-
-          // Link contract to worker (idempotent)
-          await prisma.workerContract.upsert({
-            where: { workerId_contractId: { workerId: worker.id, contractId: contract.id } },
-            create: { workerId: worker.id, contractId: contract.id },
-            update: {},
-          })
-
-          // Upsert WorkerDocument contrato_trabajo → VERIFIED
-          const existingDoc = await prisma.workerDocument.findFirst({
-            where: { workerId: worker.id, documentType: 'contrato_trabajo' },
-            select: { id: true },
-          })
-          if (!existingDoc) {
-            await prisma.workerDocument.create({
-              data: {
-                workerId: worker.id,
-                category: 'INGRESO',
-                documentType: 'contrato_trabajo',
-                title,
-                isRequired: true,
-                status: 'VERIFIED',
-                verifiedAt: new Date(),
-                verifiedBy: userId,
-              },
-            })
-          }
-
-          // Recalculate legajoScore using shared utility
-          await recalculateLegajoScore(worker.id)
-
-        } catch (workerErr) {
-          // Non-fatal — contract was already saved, just log
-          console.warn('[POST /api/contracts] Auto-worker creation failed (non-fatal):', workerErr)
-        }
-      }
-    }
-
-    // Fire-and-forget compliance score recalculation
-    syncComplianceScore(orgId).catch(() => {})
-
-    // Fire-and-forget motor de validación legal (Generador de Contratos / Chunk 1)
-    // Corre las reglas declarativas y persiste resultados sin bloquear la creación.
-    // Si el contrato es modal y no cumple causa objetiva → BLOCKER visible al detalle.
-    import('@/lib/contracts/validation/engine').then(({ runValidationPipelineFireAndForget }) => {
-      runValidationPipelineFireAndForget(contract.id, orgId, {
-        triggeredBy: userId,
-        trigger: 'create',
-      })
-    }).catch((err) => console.warn('[validation] auto-trigger failed:', err))
-
-    // Fire-and-forget versionado (Chunk 3) — versión 1 (génesis del hash-chain).
-    import('@/lib/contracts/versioning/service').then(({ createContractVersionFireAndForget }) => {
-      createContractVersionFireAndForget({
-        contractId: contract.id,
-        orgId,
-        changedBy: userId,
-        changeReason: 'Creación inicial del contrato',
-        contentHtml: typeof contentHtml === 'string' ? contentHtml : null,
-        contentJson: contentJson ?? null,
-        formData: (formData ?? null) as Record<string, unknown> | null,
-      })
-    }).catch((err) => console.warn('[versioning] genesis version failed:', err))
-
-    // Auto-trigger AI review for labor contracts with content
-    const AI_LABOR_TYPES = ['LABORAL_INDEFINIDO', 'LABORAL_PLAZO_FIJO', 'LABORAL_TIEMPO_PARCIAL']
-    if (AI_LABOR_TYPES.includes(normalizedType) && contentHtml) {
-      import('@/lib/ai/contract-review').then(async ({ reviewContract }) => {
-        try {
-          const review = await reviewContract({ contractHtml: contentHtml, contractType: normalizedType })
-          await prisma.contract.update({
-            where: { id: contract.id },
-            data: { aiRiskScore: review.overallScore },
-          })
-        } catch (err) {
-          console.warn('[AI Review] Auto-trigger failed:', err)
-        }
-      }).catch(() => {})
-    }
 
     return NextResponse.json({ data: contract }, { status: 201 })
   } catch (error) {

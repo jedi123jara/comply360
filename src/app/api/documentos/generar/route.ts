@@ -19,9 +19,10 @@ import {
   renderDocumentToText,
 } from '@/lib/legal-engine/documents'
 import { prisma } from '@/lib/prisma'
+import type { OrgDocType } from '@/generated/prisma/client'
 
 export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  let body: { templateId?: string; variables?: Record<string, unknown> }
+  let body: { templateId?: string; variables?: Record<string, unknown>; persist?: boolean }
 
   try {
     body = await req.json()
@@ -79,6 +80,47 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   // Render document
   const html = renderDocumentToHtml(template, variables)
   const text = renderDocumentToText(template, variables)
+  const persist = body.persist !== false
+  let documentId: string | null = null
+  let documentVersion: number | null = null
+
+  if (persist) {
+    const orgDocType = mapDocumentTypeToOrgDocType(template.type)
+    const latest = await prisma.orgDocument.findFirst({
+      where: {
+        orgId: ctx.orgId,
+        type: orgDocType,
+        title: template.name,
+      },
+      select: { version: true },
+      orderBy: { version: 'desc' },
+    })
+    documentVersion = (latest?.version ?? 0) + 1
+    const created = await prisma.orgDocument.create({
+      data: {
+        orgId: ctx.orgId,
+        type: orgDocType,
+        title: template.name,
+        description: JSON.stringify({
+          _schema: 'generated_document_v1',
+          templateId,
+          templateType: template.type,
+          legalBasis: template.legalBasis,
+          variables,
+          html,
+          text,
+          generatedAt: new Date().toISOString(),
+        }),
+        version: documentVersion,
+        uploadedById: ctx.userId,
+        isPublishedToWorkers: false,
+        publishedAt: null,
+        acknowledgmentRequired: ['RIT', 'POLITICA_HOSTIGAMIENTO', 'POLITICA_SST'].includes(template.type),
+      },
+      select: { id: true },
+    })
+    documentId = created.id
+  }
 
   // Log document generation in audit trail
   try {
@@ -92,6 +134,8 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
         metadataJson: {
           templateName: template.name,
           templateType: template.type,
+          documentId,
+          persisted: persist,
         },
       },
     })
@@ -105,9 +149,29 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     templateName: template.name,
     templateId,
     legalBasis: template.legalBasis,
+    documentId,
+    documentVersion,
+    persisted: persist,
     generatedAt: new Date().toISOString(),
   })
 })
+
+function mapDocumentTypeToOrgDocType(type: string): OrgDocType {
+  switch (type) {
+    case 'PLAN_SST':
+      return 'PLAN_SST'
+    case 'RIT':
+      return 'RIT'
+    case 'POLITICA_HOSTIGAMIENTO':
+      return 'POLITICA_HOSTIGAMIENTO'
+    case 'POLITICA_SST':
+      return 'REGLAMENTO_SST'
+    case 'CCF':
+      return 'POLITICA_IGUALDAD'
+    default:
+      return 'OTRO'
+  }
+}
 
 /**
  * GET /api/documentos/generar — List available templates (metadata only, no blocks)

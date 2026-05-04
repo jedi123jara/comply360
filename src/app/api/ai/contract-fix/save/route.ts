@@ -20,6 +20,7 @@
 import { NextResponse } from 'next/server'
 import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
+import { createContractWithSideEffects } from '@/lib/contracts/create'
 
 // Mapeo del tipo del form de analizar-contrato (CONTRATO_INDEFINIDO, etc.)
 // al enum Prisma `ContractType` (LABORAL_INDEFINIDO, etc.).
@@ -121,13 +122,6 @@ export const POST = withPlanGate('review_ia', async (req, ctx) => {
   }
   const contractType = mappedType as PrismaContractType
 
-  // Resolver el User.id local del DB (ctx.userId es Clerk-id en algunas rutas)
-  const dbUser = await prisma.user.findFirst({
-    where: { OR: [{ id: ctx.userId }, { clerkId: ctx.userId }] },
-    select: { id: true },
-  })
-  const createdById = dbUser?.id ?? ctx.userId
-
   try {
     // Cast via JSON.parse(JSON.stringify(...)) para que Prisma acepte el shape
     // como InputJsonValue (los arrays anidados de objetos no son asignables
@@ -142,33 +136,32 @@ export const POST = withPlanGate('review_ia', async (req, ctx) => {
     )
     const aiRisksJson = body.changes ? JSON.parse(JSON.stringify(body.changes)) : null
 
-    const created = await prisma.contract.create({
+    const { contract: created } = await createContractWithSideEffects({
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      type: contractType,
+      status: 'DRAFT',
+      title: body.title.slice(0, 200),
+      contentHtml: body.fixedHtml,
+      contentJson: {
+        source: 'ai-contract-fix',
+        changes: body.changes ?? [],
+        originalHtmlSnapshot: body.originalHtml?.slice(0, 5000) ?? null,
+      },
+      formData: formDataJson,
+      workerId: body.workerId ?? null,
+      sourceKind: 'ai-draft-based',
+      provenance: 'AI_GENERATED',
+      changeReason: 'Contrato guardado desde Contract-Fix IA',
+    })
+    await prisma.contract.update({
+      where: { id: created.id },
       data: {
-        orgId: ctx.orgId,
-        createdById,
-        type: contractType,
-        status: 'DRAFT',
-        title: body.title.slice(0, 200),
-        contentHtml: body.fixedHtml,
-        formData: formDataJson,
         aiRiskScore: typeof body.aiRiskScore === 'number' ? body.aiRiskScore : null,
         aiRisksJson,
         aiReviewedAt: new Date(),
       },
-      select: { id: true, title: true, status: true, createdAt: true },
     })
-
-    // Vincular al worker si se proveyó workerId
-    if (body.workerId) {
-      await prisma.workerContract
-        .create({
-          data: {
-            workerId: body.workerId,
-            contractId: created.id,
-          },
-        })
-        .catch(() => null) // si ya existe la relación, ignoramos
-    }
 
     void prisma.auditLog
       .create({

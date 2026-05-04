@@ -67,6 +67,33 @@ export const GET = withAuthParams<{ id: string }>(async (
   const gate = await assertPlanAccess(ctx.orgId)
   if (!gate.ok) return gate.response
 
+  const template = await prisma.orgTemplate.findFirst({
+    where: { id: params.id, orgId: ctx.orgId, active: true },
+  })
+  if (template) {
+    const placeholders = jsonStringArray(template.placeholders)
+    const mappings = jsonStringRecord(template.mappings)
+    return NextResponse.json({
+      data: {
+        id: template.id,
+        storage: 'orgTemplate',
+        title: template.title,
+        documentType: template.documentType,
+        documentTypeLabel: TEMPLATE_TYPE_LABEL[template.documentType as keyof typeof TEMPLATE_TYPE_LABEL] ?? template.documentType,
+        contractType: template.contractType ?? null,
+        content: template.content,
+        placeholders,
+        mappings,
+        notes: template.notes ?? null,
+        usageCount: template.usageCount,
+        version: template.version,
+        validUntil: null,
+        createdAt: template.createdAt.toISOString(),
+        updatedAt: template.updatedAt.toISOString(),
+      },
+    })
+  }
+
   const doc = await prisma.orgDocument.findUnique({
     where: { id: params.id },
   })
@@ -80,6 +107,7 @@ export const GET = withAuthParams<{ id: string }>(async (
   return NextResponse.json({
     data: {
       id: doc.id,
+      storage: 'legacyOrgDocument',
       title: doc.title,
       documentType: meta.documentType,
       documentTypeLabel: TEMPLATE_TYPE_LABEL[meta.documentType] ?? meta.documentType,
@@ -108,15 +136,17 @@ export const PATCH = withAuthParams<{ id: string }>(async (
   const gate = await assertPlanAccess(ctx.orgId)
   if (!gate.ok) return gate.response
 
+  const template = await prisma.orgTemplate.findFirst({
+    where: { id: params.id, orgId: ctx.orgId, active: true },
+  })
+
   const doc = await prisma.orgDocument.findUnique({
     where: { id: params.id },
   })
 
-  if (!doc || doc.orgId !== ctx.orgId || !isOrgTemplate(doc)) {
+  if (!template && (!doc || doc.orgId !== ctx.orgId || !isOrgTemplate(doc))) {
     return NextResponse.json({ error: 'Plantilla no encontrada' }, { status: 404 })
   }
-
-  const meta = parseTemplate(doc.description) as OrgTemplateMeta
 
   let body: {
     title?: string
@@ -130,6 +160,76 @@ export const PATCH = withAuthParams<{ id: string }>(async (
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
+
+  if (template) {
+    const currentContent = template.content
+    let nextContent = currentContent
+    let placeholders = jsonStringArray(template.placeholders)
+    const updateData: {
+      title?: string
+      content?: string
+      placeholders?: string[]
+      mappings?: Record<string, string>
+      notes?: string | null
+      version?: number
+    } = {}
+    let contentChanged = false
+
+    if (typeof body.title === 'string') {
+      const title = body.title.trim()
+      if (title.length < 3 || title.length > 200) {
+        return NextResponse.json({ error: 'title inválido (3–200 caracteres)' }, { status: 400 })
+      }
+      updateData.title = title
+    }
+
+    if (typeof body.content === 'string') {
+      const content = body.content.trim()
+      if (content.length < 30 || content.length > 100_000) {
+        return NextResponse.json(
+          { error: 'content debe tener entre 30 y 100k caracteres' },
+          { status: 400 },
+        )
+      }
+      if (content !== currentContent) {
+        nextContent = content
+        placeholders = detectPlaceholders(content)
+        updateData.content = nextContent
+        updateData.placeholders = placeholders
+        updateData.version = template.version + 1
+        contentChanged = true
+      }
+    }
+
+    if (body.mappings && typeof body.mappings === 'object') {
+      updateData.mappings = sanitizeMappings(body.mappings)
+    }
+
+    if (typeof body.notes === 'string') {
+      updateData.notes = body.notes.trim().slice(0, 1000) || null
+    }
+
+    const updated = await prisma.orgTemplate.update({
+      where: { id: params.id },
+      data: updateData,
+    })
+
+    return NextResponse.json({
+      data: {
+        id: updated.id,
+        storage: 'orgTemplate',
+        title: updated.title,
+        documentType: updated.documentType,
+        placeholders,
+        mappings: jsonStringRecord(updated.mappings),
+        version: updated.version,
+        contentChanged,
+        updatedAt: updated.updatedAt.toISOString(),
+      },
+    })
+  }
+
+  const meta = parseTemplate(doc!.description) as OrgTemplateMeta
 
   // Construir metadata actualizada
   const nextMeta: OrgTemplateMeta = { ...meta }
@@ -180,7 +280,7 @@ export const PATCH = withAuthParams<{ id: string }>(async (
 
   updateData.description = serializeTemplate(nextMeta)
   if (contentChanged) {
-    updateData.version = (doc.version ?? 1) + 1
+    updateData.version = (doc!.version ?? 1) + 1
   }
 
   const updated = await prisma.orgDocument.update({
@@ -191,6 +291,7 @@ export const PATCH = withAuthParams<{ id: string }>(async (
   return NextResponse.json({
     data: {
       id: updated.id,
+      storage: 'legacyOrgDocument',
       title: updated.title,
       documentType: nextMeta.documentType,
       placeholders: nextMeta.placeholders,
@@ -209,6 +310,18 @@ export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (
   ctx: AuthContext,
   params,
 ) => {
+  const template = await prisma.orgTemplate.findFirst({
+    where: { id: params.id, orgId: ctx.orgId, active: true },
+    select: { id: true },
+  })
+  if (template) {
+    await prisma.orgTemplate.update({
+      where: { id: params.id },
+      data: { active: false },
+    })
+    return NextResponse.json({ success: true })
+  }
+
   const doc = await prisma.orgDocument.findUnique({
     where: { id: params.id },
   })
@@ -221,3 +334,25 @@ export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (
 
   return NextResponse.json({ success: true })
 })
+
+function sanitizeMappings(value: Record<string, string>): Record<string, string> {
+  const mappings: Record<string, string> = {}
+  for (const [key, val] of Object.entries(value)) {
+    if (typeof key !== 'string' || typeof val !== 'string') continue
+    if (!/^[A-Z_][A-Z0-9_]*$/.test(key)) continue
+    if (val.length > 200) continue
+    mappings[key] = val.trim()
+  }
+  return mappings
+}
+
+function jsonStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function jsonStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  )
+}

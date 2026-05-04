@@ -59,10 +59,15 @@ interface Contract {
   type: string
   status: string
   formData: Record<string, unknown> | null
+  contentJson: Record<string, unknown> | null
   contentHtml: string | null
   aiRiskScore: number | null
   aiRisksJson: AiReviewResult | null
   aiReviewedAt: string | null
+  provenance: string
+  generationMode: string
+  renderVersion: string | null
+  isFallback: boolean
   signedAt: string | null
   expiresAt: string | null
   createdAt: string
@@ -133,6 +138,33 @@ const RISK_LEVEL_CONFIG: Record<string, { color: string; icon: React.ElementType
   MEDIUM:   { color: 'text-amber-400', icon: Shield },
   HIGH:     { color: 'text-red-400',   icon: ShieldAlert },
   CRITICAL: { color: 'text-red-300',   icon: ShieldAlert },
+}
+
+const PROVENANCE_LABELS: Record<string, string> = {
+  MANUAL_TEMPLATE: 'Plantilla controlada',
+  ORG_TEMPLATE: 'Plantilla empresa',
+  AI_GENERATED: 'IA generativa',
+  AI_FALLBACK: 'Fallback local',
+  BULK_GENERATED: 'Generacion masiva',
+  LEGACY: 'Legacy',
+}
+
+function getContractProvenance(contract: Contract): string {
+  if (contract.provenance) return contract.provenance
+  const contentJson = contract.contentJson ?? {}
+  const formData = contract.formData ?? {}
+  const direct = contentJson.provenance ?? formData._provenance
+  const renderMeta = contentJson.renderMetadata
+  if (typeof direct === 'string') return direct
+  if (
+    renderMeta &&
+    typeof renderMeta === 'object' &&
+    'provenance' in renderMeta &&
+    typeof renderMeta.provenance === 'string'
+  ) {
+    return renderMeta.provenance
+  }
+  return 'LEGACY'
 }
 
 // =============================================
@@ -237,7 +269,19 @@ export default function ContratoDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
-      if (!res.ok) throw new Error('Error al actualizar')
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        if (res.status === 409 && errBody.code === 'CONTRACT_BLOCKERS_PENDING') {
+          toast({
+            title: 'Firma bloqueada por validaciones legales',
+            description: `${errBody.blockers?.length ?? 0} bloqueo(s) pendiente(s). Revisa la pestaña Validacion.`,
+            type: 'error',
+          })
+          setActiveTab('validacion')
+          return
+        }
+        throw new Error('Error al actualizar')
+      }
       const data = await res.json()
       setContract(prev => prev ? { ...prev, status: data.data.status, signedAt: data.data.signedAt } : prev)
       toast({ title: `Contrato movido a "${STATUS_CONFIG[newStatus]?.label}"`, type: 'success' })
@@ -282,6 +326,7 @@ export default function ContratoDetailPage() {
   const aiReview = contract.aiRisksJson
   const riskCfg = aiReview ? (RISK_LEVEL_CONFIG[aiReview.riskLevel] ?? RISK_LEVEL_CONFIG.MEDIUM) : null
   const RiskIcon = riskCfg?.icon
+  const provenance = getContractProvenance(contract)
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -312,6 +357,15 @@ export default function ContratoDetailPage() {
                   <span className={cn('w-1.5 h-1.5 rounded-full', statusCfg.dot)} />
                   <StatusIcon className="w-3 h-3" />
                   {statusCfg.label}
+                </span>
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border',
+                  contract.isFallback || provenance === 'AI_FALLBACK'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-slate-50 text-slate-600 border-slate-200',
+                )}>
+                  <Scroll className="w-3 h-3" />
+                  {PROVENANCE_LABELS[provenance] ?? provenance}
                 </span>
                 {/* Risk badge — Generador de Contratos / Chunk 5 */}
                 <ContractRiskBadge contractId={id as string} refreshKey={contract.updatedAt} />

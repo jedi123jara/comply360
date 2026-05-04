@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import type { AuthContext } from '@/lib/auth'
 import type { ContractStatus } from '@/generated/prisma/client'
 import { emit } from '@/lib/events'
+import { runValidationPipeline } from '@/lib/contracts/validation/engine'
 
 const VALID_STATUSES: ContractStatus[] = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED', 'EXPIRED', 'ARCHIVED']
 
@@ -14,7 +15,26 @@ const VALID_STATUSES: ContractStatus[] = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIG
 export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
-    include: {
+    select: {
+      id: true,
+      orgId: true,
+      createdById: true,
+      templateId: true,
+      type: true,
+      status: true,
+      title: true,
+      formData: true,
+      contentJson: true,
+      contentHtml: true,
+      docxUrl: true,
+      pdfUrl: true,
+      expiresAt: true,
+      signedAt: true,
+      aiRiskScore: true,
+      aiRisksJson: true,
+      aiReviewedAt: true,
+      createdAt: true,
+      updatedAt: true,
       createdBy: { select: { firstName: true, lastName: true, email: true } },
       template: { select: { id: true, name: true, type: true, legalBasis: true } },
     },
@@ -24,7 +44,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
     return NextResponse.json({ error: 'Contrato no encontrado' }, { status: 404 })
   }
 
-  return NextResponse.json({ data: contract })
+  return NextResponse.json({ data: withDerivedRenderMetadata(contract) })
 })
 
 // =============================================
@@ -42,6 +62,13 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
 
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
+    select: {
+      id: true,
+      orgId: true,
+      status: true,
+      title: true,
+      type: true,
+    },
   })
 
   if (!contract) {
@@ -50,6 +77,50 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
 
   if (body.status && !VALID_STATUSES.includes(body.status as ContractStatus)) {
     return NextResponse.json({ error: `Estado invalido: ${body.status}` }, { status: 400 })
+  }
+
+  if (body.status === 'SIGNED' && contract.status !== 'SIGNED') {
+    await runValidationPipeline(params.id, ctx.orgId, {
+      triggeredBy: ctx.userId,
+      trigger: 'sign',
+    })
+    const blockers = await prisma.contractValidation.findMany({
+      where: {
+        contractId: params.id,
+        orgId: ctx.orgId,
+        severity: 'BLOCKER',
+        passed: false,
+        acknowledged: false,
+      },
+      select: {
+        id: true,
+        ruleCode: true,
+        message: true,
+        rule: {
+          select: {
+            title: true,
+            legalBasis: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+    if (blockers.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'No se puede firmar el contrato con bloqueos legales pendientes.',
+          code: 'CONTRACT_BLOCKERS_PENDING',
+          blockers: blockers.map((b) => ({
+            id: b.id,
+            ruleCode: b.ruleCode,
+            title: b.rule.title,
+            legalBasis: b.rule.legalBasis,
+            message: b.message,
+          })),
+        },
+        { status: 409 },
+      )
+    }
   }
 
   const updated = await prisma.contract.update({
@@ -65,6 +136,27 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
       ...(body.status === 'SIGNED' && contract.status !== 'SIGNED'
         ? { signedAt: new Date() }
         : {}),
+    },
+    select: {
+      id: true,
+      orgId: true,
+      createdById: true,
+      templateId: true,
+      type: true,
+      status: true,
+      title: true,
+      formData: true,
+      contentJson: true,
+      contentHtml: true,
+      docxUrl: true,
+      pdfUrl: true,
+      expiresAt: true,
+      signedAt: true,
+      aiRiskScore: true,
+      aiRisksJson: true,
+      aiReviewedAt: true,
+      createdAt: true,
+      updatedAt: true,
     },
   })
 
@@ -121,8 +213,71 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
     })
   }
 
-  return NextResponse.json({ data: updated })
+  return NextResponse.json({ data: withDerivedRenderMetadata(updated) })
 })
+
+function withDerivedRenderMetadata<T extends {
+  contentJson: unknown
+  formData: unknown
+}>(contract: T): T & {
+  provenance: string
+  generationMode: string
+  renderVersion: string | null
+  isFallback: boolean
+} {
+  const contentJson = isRecord(contract.contentJson) ? contract.contentJson : {}
+  const formData = isRecord(contract.formData) ? contract.formData : {}
+  const renderMetadata = isRecord(contentJson.renderMetadata) ? contentJson.renderMetadata : {}
+  const provenance = firstString(
+    contentJson.provenance,
+    formData._provenance,
+    renderMetadata.provenance,
+    'LEGACY',
+  )
+  const generationMode = firstString(
+    contentJson.generationMode,
+    formData._generationMode,
+    renderMetadata.generationMode,
+    provenance === 'LEGACY' ? 'legacy' : 'deterministic',
+  )
+  const renderVersion = firstStringOrNull(
+    contentJson.renderVersion,
+    formData._renderVersion,
+    renderMetadata.renderVersion,
+  )
+  return {
+    ...contract,
+    provenance,
+    generationMode,
+    renderVersion,
+    isFallback: firstBoolean(contentJson.isFallback, formData._isFallback, renderMetadata.isFallback),
+  }
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.length > 0) return value
+  }
+  return 'LEGACY'
+}
+
+function firstStringOrNull(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.length > 0) return value
+  }
+  return null
+}
+
+function firstBoolean(...values: unknown[]): boolean {
+  for (const value of values) {
+    if (typeof value === 'boolean') return value
+  }
+  return false
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 
 /**
  * Dispara la cascada de onboarding para todos los workers vinculados a este
@@ -164,6 +319,7 @@ async function triggerOnboardingCascadeForContract(
 export const DELETE = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
+    select: { id: true, status: true },
   })
 
   if (!contract) {
@@ -173,6 +329,7 @@ export const DELETE = withAuthParams<{ id: string }>(async (_req: NextRequest, c
   await prisma.contract.update({
     where: { id: params.id, orgId: ctx.orgId },
     data: { status: 'ARCHIVED' },
+    select: { id: true },
   })
 
   await logAudit({

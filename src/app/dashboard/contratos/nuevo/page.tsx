@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
 import { CONTRACT_TEMPLATES, type ContractTemplateDefinition, type TemplateField } from '@/lib/legal-engine/contracts/templates'
-import { generateDocx } from '@/lib/docx/generate-docx'
 import { RegimeBadge } from '@/components/contracts/regime-badge'
 import { useCloudDraft } from '@/hooks/use-cloud-draft'
 import { useCostEmployer } from '@/hooks/use-cost-employer'
@@ -752,19 +751,15 @@ function NuevoContratoInner() {
 
   const handleDownloadAiContract = () => {
     if (!aiContract) return
-    const safeFilename = aiContract.tituloContrato
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .slice(0, 60)
-    generateDocx({
-      title: aiContract.tituloContrato,
-      content: aiContract.htmlCompleto,
-      author: empRazonSocial || 'COMPLY360',
-      company: empRazonSocial || 'COMPLY360',
-      filename: safeFilename || 'contrato-ia',
-    })
-    toast({ title: 'Contrato descargado', description: 'Revisa los placeholders antes de firmar', type: 'success' })
+    if (!aiSavedId) {
+      toast({
+        title: 'Espera a que termine el guardado',
+        description: 'El DOCX oficial se descarga desde el contrato guardado.',
+        type: 'error',
+      })
+      return
+    }
+    window.location.href = `/api/contracts/${aiSavedId}/render-docx`
   }
 
   /** QW2: usuario eligio un trabajador existente del directorio */
@@ -984,65 +979,15 @@ function NuevoContratoInner() {
 
   const handleDownloadDocx = () => {
     if (!selectedTemplate) return
-
-    // Build HTML content from the template's contentBlocks + formData
-    const blocksHtml = selectedTemplate.contentBlocks
-      .map(block => {
-        // Evaluate condition if present
-        if (block.condition) {
-          try {
-            const condFn = new Function(...Object.keys(formData), `return ${block.condition}`)
-            if (!condFn(...Object.values(formData))) return ''
-          } catch {
-            return ''
-          }
-        }
-
-        // Replace variable placeholders
-        let text = block.text
-        Object.entries(formData).forEach(([key, value]) => {
-          text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(value ?? '___'))
-        })
-        text = text.replace(/\{\{[^}]+\}\}/g, '____________')
-
-        // Convert newlines to <br> for the HTML output
-        const escapedText = text.replace(/\n/g, '<br/>')
-
-        if (block.title) {
-          return `<h2>${block.title}</h2><p>${escapedText}</p>`
-        }
-        return `<p>${escapedText}</p>`
+    if (!templateSavedId) {
+      toast({
+        title: 'Primero guarda el borrador',
+        description: 'El DOCX oficial se genera desde el contrato persistido.',
+        type: 'error',
       })
-      .filter(Boolean)
-      .join('\n')
-
-    // Add signature blocks
-    const signaturesHtml = `
-      <div class="signature">
-        <div class="signature-block">
-          <div class="signature-line">EL EMPLEADOR</div>
-          <p>${String(formData.empleador_razon_social ?? '___')}</p>
-        </div>
-        <div class="signature-block">
-          <div class="signature-line">EL TRABAJADOR</div>
-          <p>${String(formData.trabajador_nombre ?? '___')}</p>
-        </div>
-      </div>`
-
-    const fullHtml = blocksHtml + signaturesHtml
-
-    const safeFilename = selectedTemplate.name
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-
-    generateDocx({
-      title: selectedTemplate.name,
-      content: fullHtml,
-      author: String(formData.empleador_representante ?? 'COMPLY360'),
-      company: String(formData.empleador_razon_social ?? formData.comitente_razon_social ?? 'COMPLY360'),
-      filename: safeFilename,
-    })
+      return
+    }
+    window.location.href = `/api/contracts/${templateSavedId}/render-docx`
   }
 
   // Layout: el step 'form' usa 3-col wide; el resto (select/preview/review) mantiene narrow

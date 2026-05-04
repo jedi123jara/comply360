@@ -488,8 +488,12 @@ export function addContractFooter(doc: JsPDFContractDoc): void {
 
 // ─── Finalize ──────────────────────────────────────────────────────────────
 
-export function finalizeContractPDF(doc: JsPDFContractDoc, filename: string): NextResponse {
+export function contractPDFBuffer(doc: JsPDFContractDoc): ArrayBuffer {
   addContractFooter(doc)
-  const buffer = doc.output('arraybuffer')
+  return doc.output('arraybuffer')
+}
+
+export function finalizeContractPDF(doc: JsPDFContractDoc, filename: string): NextResponse {
+  const buffer = contractPDFBuffer(doc)
   return pdfResponse(buffer, filename)
 }

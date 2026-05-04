@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
-import { htmlToDocxBuffer } from '@/lib/contracts/docx/html-to-docx'
+import { renderContractDocxBuffer } from '@/lib/contracts/rendering'
 
 // =============================================
 // GET /api/contracts/[id]/render-docx
@@ -40,14 +40,17 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
   }
 
   try {
-    const buffer = await htmlToDocxBuffer({
+    const buffer = await renderContractDocxBuffer({
       title: contract.title,
+      contractType: contract.type,
+      sourceKind: 'html-based',
       contentHtml: contract.contentHtml,
-      author: contract.createdBy
-        ? `${contract.createdBy.firstName ?? ''} ${contract.createdBy.lastName ?? ''}`.trim() || 'COMPLY360'
-        : 'COMPLY360',
-      company: contract.organization.razonSocial ?? contract.organization.name,
-      footer: 'Generado por COMPLY360 — Plataforma de Compliance Laboral Peruano',
+      formData: null,
+      contentJson: null,
+      orgContext: {
+        name: contract.organization.name,
+        razonSocial: contract.organization.razonSocial,
+      },
     })
 
     await logAudit({

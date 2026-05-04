@@ -13,6 +13,7 @@ import { logAudit } from '@/lib/audit'
 import { htmlToDocxBuffer } from '@/lib/contracts/docx/html-to-docx'
 import { buildBulkZip, sha256OfBuffer } from './zip-builder'
 import type { BulkContractRow, BulkZipEntry } from './types'
+import { createContractWithSideEffects } from '../create'
 
 interface RunnerInput {
   orgId: string
@@ -38,34 +39,6 @@ const TYPE_LABELS: Record<string, string> = {
   LABORAL_INDEFINIDO: 'Plazo Indeterminado',
   LABORAL_PLAZO_FIJO: 'Plazo Fijo',
   LABORAL_TIEMPO_PARCIAL: 'Tiempo Parcial',
-}
-
-/**
- * Construye un fragmento HTML mínimo a partir de una fila — fallback cuando
- * no hay template asociado. Cubre los datos clave del trabajador y permite
- * descargar un .docx legible. Las plantillas reales (chunk #4 + #6) se
- * deben usar después por separado.
- */
-function buildContentHtml(row: BulkContractRow, contractType: string): string {
-  const lines = [
-    `<h2>I. Identificación del trabajador</h2>`,
-    `<p><b>Nombre:</b> ${escapeHtml(row.trabajador_nombre)}</p>`,
-    `<p><b>DNI:</b> ${escapeHtml(row.trabajador_dni)}</p>`,
-    `<p><b>Cargo:</b> ${escapeHtml(row.cargo)}</p>`,
-    `<h2>II. Condiciones laborales</h2>`,
-    `<p><b>Fecha de inicio:</b> ${escapeHtml(row.fecha_inicio)}</p>`,
-  ]
-  if (row.fecha_fin) lines.push(`<p><b>Fecha de fin:</b> ${escapeHtml(row.fecha_fin)}</p>`)
-  lines.push(`<p><b>Remuneración:</b> S/ ${row.remuneracion.toFixed(2)}</p>`)
-  if (row.jornada_semanal) lines.push(`<p><b>Jornada semanal:</b> ${row.jornada_semanal}h</p>`)
-  if (contractType === 'LABORAL_PLAZO_FIJO' && row.causa_objetiva) {
-    lines.push(`<h2>III. Causa objetiva</h2><p>${escapeHtml(row.causa_objetiva)}</p>`)
-  }
-  return lines.join('\n')
-}
-
-function escapeHtml(s: string): string {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function safeFileName(s: string): string {
@@ -100,28 +73,24 @@ export async function runBulkGeneration(input: RunnerInput): Promise<RunnerResul
         .replace('{{TYPE}}', TYPE_LABELS[input.contractType] ?? input.contractType)
         .replace('{{NAME}}', row.trabajador_nombre)
 
-      const contentHtml = buildContentHtml(row, input.contractType)
-
-      // Crear Contract (esto dispara los chunks 1, 3, 5 vía fire-and-forget)
-      const created = await prisma.contract.create({
-        data: {
-          orgId: input.orgId,
-          createdById: input.userId,
-          templateId: input.templateId ?? null,
-          type: input.contractType,
-          status: 'DRAFT',
-          title,
-          formData: row as unknown as Prisma.InputJsonValue,
-          contentHtml,
-          ...(row.fecha_fin ? { expiresAt: new Date(row.fecha_fin) } : {}),
-        },
-        select: { id: true },
+      const { contract: created, rendered } = await createContractWithSideEffects({
+        orgId: input.orgId,
+        userId: input.userId,
+        templateId: input.templateId ?? null,
+        type: input.contractType,
+        status: 'DRAFT',
+        title,
+        formData: row as unknown as Record<string, unknown>,
+        sourceKind: 'bulk-row-based',
+        provenance: 'BULK_GENERATED',
+        expiresAt: row.fecha_fin ? new Date(row.fecha_fin) : null,
+        changeReason: 'Generacion masiva de contrato',
       })
 
       // Render DOCX
       const buffer = await htmlToDocxBuffer({
         title,
-        contentHtml,
+        contentHtml: rendered.renderedHtml,
       })
 
       const fileName = safeFileName(`${row.trabajador_dni} - ${row.trabajador_nombre}.docx`)

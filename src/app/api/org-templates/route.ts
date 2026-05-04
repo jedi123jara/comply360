@@ -2,10 +2,9 @@
  * GET  /api/org-templates        Lista los templates de la empresa.
  * POST /api/org-templates        Crea un nuevo template de contrato/documento.
  *
- * Persistencia: reutilizamos `OrgDocument` con `type = OTRO` y metadata JSON
- * serializada en `description` (schema `contract_template_v1`) para evitar
- * una migración.  El engine en `@/lib/templates/org-template-engine` maneja
- * serialización, parsing y detección de placeholders.
+ * Persistencia primaria: `OrgTemplate`.
+ * Compatibilidad: seguimos leyendo templates legacy guardados en
+ * `OrgDocument.description` con schema `contract_template_v1`.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -17,7 +16,6 @@ import {
   detectPlaceholders,
   isOrgTemplate,
   parseTemplate,
-  serializeTemplate,
   TEMPLATE_TYPE_LABEL,
   type OrgTemplateMeta,
   type OrgTemplateType,
@@ -74,28 +72,60 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const url = new URL(req.url)
   const documentType = url.searchParams.get('type') as OrgTemplateType | null
 
-  // Traemos todos los OrgDocument tipo OTRO y filtramos los que tengan metadata válida.
-  const docs = await prisma.orgDocument.findMany({
-    where: { orgId: ctx.orgId, type: 'OTRO' },
-    orderBy: { updatedAt: 'desc' },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      version: true,
-      isPublishedToWorkers: true,
-      validUntil: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  })
+  const [rows, legacyDocs] = await Promise.all([
+    prisma.orgTemplate.findMany({
+      where: {
+        orgId: ctx.orgId,
+        active: true,
+        ...(documentType ? { documentType } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+    }),
+    prisma.orgDocument.findMany({
+      where: { orgId: ctx.orgId, type: 'OTRO' },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        version: true,
+        validUntil: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ])
 
-  const templates = docs
+  const templates = [
+    ...rows.map((t) => {
+      const placeholders = jsonStringArray(t.placeholders)
+      const mappings = jsonStringRecord(t.mappings)
+      return {
+        id: t.id,
+        storage: 'orgTemplate' as const,
+        title: t.title,
+        documentType: t.documentType,
+        documentTypeLabel: TEMPLATE_TYPE_LABEL[t.documentType as OrgTemplateType] ?? t.documentType,
+        contractType: t.contractType ?? null,
+        placeholders,
+        placeholderCount: placeholders.length,
+        mappingCount: Object.keys(mappings).length,
+        unmapped: placeholders.filter((p) => !mappings[p]),
+        usageCount: t.usageCount,
+        notes: t.notes ?? null,
+        version: t.version,
+        validUntil: null,
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.updatedAt.toISOString(),
+      }
+    }),
+    ...legacyDocs
     .filter((d) => isOrgTemplate(d))
     .map((d) => {
       const meta = parseTemplate(d.description) as OrgTemplateMeta
       return {
         id: d.id,
+        storage: 'legacyOrgDocument' as const,
         title: d.title,
         documentType: meta.documentType,
         documentTypeLabel: TEMPLATE_TYPE_LABEL[meta.documentType] ?? meta.documentType,
@@ -111,7 +141,8 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
         createdAt: d.createdAt.toISOString(),
         updatedAt: d.updatedAt.toISOString(),
       }
-    })
+    }),
+  ]
     .filter((t) => !documentType || t.documentType === documentType)
 
   return NextResponse.json({ data: templates, count: templates.length })
@@ -185,27 +216,19 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     }
   }
 
-  const meta: OrgTemplateMeta = {
-    _schema: 'contract_template_v1',
-    documentType,
-    contractType: body.contractType as OrgTemplateMeta['contractType'],
-    content,
-    placeholders,
-    mappings,
-    notes: body.notes?.trim().slice(0, 1000) || undefined,
-    usageCount: 0,
-  }
-
-  const created = await prisma.orgDocument.create({
+  const created = await prisma.orgTemplate.create({
     data: {
       orgId: ctx.orgId,
-      type: 'OTRO',
       title,
-      description: serializeTemplate(meta),
+      documentType,
+      contractType: body.contractType ?? null,
+      content,
+      placeholders,
+      mappings,
+      notes: body.notes?.trim().slice(0, 1000) || null,
       version: 1,
-      uploadedById: ctx.userId,
-      validUntil: body.validUntil ? new Date(body.validUntil) : null,
-      publishedAt: null,
+      active: true,
+      createdById: ctx.userId,
     },
   })
 
@@ -214,7 +237,8 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       data: {
         id: created.id,
         title: created.title,
-        documentType: meta.documentType,
+        storage: 'orgTemplate',
+        documentType: created.documentType,
         documentTypeLabel: TEMPLATE_TYPE_LABEL[documentType],
         placeholders,
         mappings,
@@ -225,3 +249,14 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     { status: 201 },
   )
 })
+
+function jsonStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function jsonStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  )
+}

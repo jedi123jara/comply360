@@ -24,6 +24,7 @@ import {
   notifyWorkersOfDocUpdate,
   getAcknowledgmentProgress,
 } from '@/lib/documents/acknowledgments'
+import { isOrgTemplate } from '@/lib/templates/org-template-engine'
 
 function extractDocId(req: NextRequest): string | null {
   const url = new URL(req.url)
@@ -59,6 +60,9 @@ export const GET = withRole('MEMBER', async (req: NextRequest, ctx: AuthContext)
     },
   })
   if (!doc) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
+  if (isOrgTemplate(doc)) {
+    return NextResponse.json({ error: 'Usa /api/org-templates para administrar plantillas' }, { status: 409 })
+  }
 
   // Si requiere ack, incluir progreso (cuántos firmaron)
   let progress = null
@@ -97,10 +101,13 @@ export const PATCH = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext
   // Verificar ownership
   const existing = await prisma.orgDocument.findFirst({
     where: { id: documentId, orgId: ctx.orgId },
-    select: { id: true, version: true, acknowledgmentRequired: true, title: true },
+    select: { id: true, version: true, acknowledgmentRequired: true, title: true, description: true },
   })
   if (!existing) {
     return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
+  }
+  if (isOrgTemplate(existing)) {
+    return NextResponse.json({ error: 'Usa /api/org-templates para administrar plantillas' }, { status: 409 })
   }
 
   // Construir el update
