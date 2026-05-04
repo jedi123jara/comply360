@@ -52,8 +52,7 @@ test.describe('POST /api/attendance/clock-by-code', () => {
     expect(body.code).toBe('INVALID_CODE')
   })
 
-  test('credenciales inválidas → mensaje genérico (no filtra existencia)', async ({ request }) => {
-    // DNI random — no existe en DB de test
+  test('código inexistente o expirado se rechaza antes de validar credenciales', async ({ request }) => {
     const res = await postJson(request, {
       dni: '99999999',
       pin: '0000',
@@ -63,7 +62,7 @@ test.describe('POST /api/attendance/clock-by-code', () => {
     expect([401, 429]).toContain(res.status())
     if (res.status() === 401) {
       const body = await res.json()
-      expect(body.error).toMatch(/DNI o PIN incorrectos/)
+      expect(body.code).toBe('CODE_EXPIRED')
     }
   })
 })

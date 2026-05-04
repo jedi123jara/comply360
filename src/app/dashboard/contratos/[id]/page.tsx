@@ -196,6 +196,73 @@ const QUALITY_CONFIG: Record<ContractQualityResult['status'], { label: string; c
   BLOCKED: { label: 'Bloqueado', className: 'bg-red-50 text-red-700 border-red-200' },
 }
 
+const CONTRACT_FIX_FIELDS: Record<string, {
+  label: string
+  placeholder: string
+  helper: string
+  multiline?: boolean
+  type?: string
+}> = {
+  cargo: {
+    label: 'Cargo o puesto',
+    placeholder: 'Ej. Analista de Comercio Exterior',
+    helper: 'Debe coincidir con funciones, categoría y/o MOF.',
+  },
+  fecha_inicio: {
+    label: 'Fecha de inicio',
+    placeholder: '2026-05-04',
+    helper: 'Inicio de vigencia del vínculo.',
+    type: 'date',
+  },
+  fecha_fin: {
+    label: 'Fecha de fin',
+    placeholder: '2026-08-04',
+    helper: 'Obligatorio en contratos a plazo fijo.',
+    type: 'date',
+  },
+  causa_objetiva: {
+    label: 'Causa objetiva',
+    placeholder: 'Describe el incremento temporal, suplencia, obra o necesidad transitoria con evidencia verificable.',
+    helper: 'Para plazo fijo debe ser específica, temporal y sustentable; evita frases genéricas.',
+    multiline: true,
+  },
+  horario: {
+    label: 'Horario',
+    placeholder: 'Ej. Lunes a viernes de 09:00 a 18:00, con 60 minutos de refrigerio',
+    helper: 'Ayuda a cerrar riesgos de jornada, refrigerio y sobretiempo.',
+  },
+  jornada: {
+    label: 'Jornada',
+    placeholder: 'Ej. 48 horas semanales',
+    helper: 'Indica jornada aplicable y límite semanal.',
+  },
+  remuneracion: {
+    label: 'Remuneración',
+    placeholder: 'Ej. 2500',
+    helper: 'Monto mensual bruto en soles, sin símbolo.',
+  },
+  trabajador_nombre: {
+    label: 'Nombre del trabajador',
+    placeholder: 'Nombre completo',
+    helper: 'Debe coincidir con documento de identidad.',
+  },
+  trabajador_dni: {
+    label: 'DNI del trabajador',
+    placeholder: '12345678',
+    helper: 'Documento nacional de identidad.',
+  },
+  empleador_razon_social: {
+    label: 'Razón social del empleador',
+    placeholder: 'Empresa S.A.C.',
+    helper: 'Razón social oficial.',
+  },
+  empleador_ruc: {
+    label: 'RUC del empleador',
+    placeholder: '20123456789',
+    helper: 'RUC de la empresa contratante.',
+  },
+}
+
 function getContractProvenance(contract: Contract): string {
   if (contract.provenance) return contract.provenance
   const contentJson = contract.contentJson ?? {}
@@ -253,6 +320,85 @@ function getContractAnnexCoverage(contract: Contract): ContractAnnexCoverage | n
   if (!coverage || typeof coverage !== 'object') return null
   if (!('missingAnnexes' in coverage) || !Array.isArray(coverage.missingAnnexes)) return null
   return coverage as ContractAnnexCoverage
+}
+
+function normalizeAiReview(value: unknown): AiReviewResult | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<AiReviewResult> & { summary?: unknown; resumenEjecutivo?: unknown }
+  const riskLevel = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(String(raw.riskLevel))
+    ? raw.riskLevel as AiReviewResult['riskLevel']
+    : 'MEDIUM'
+  const risks = Array.isArray(raw.risks)
+    ? raw.risks.filter((item): item is AiRisk => Boolean(item) && typeof item === 'object').map((item, index) => ({
+        id: typeof item.id === 'string' ? item.id : `risk-${index}`,
+        severity: ['HIGH', 'MEDIUM', 'LOW'].includes(String(item.severity)) ? item.severity : 'MEDIUM',
+        title: typeof item.title === 'string' ? item.title : 'Riesgo contractual',
+        description: typeof item.description === 'string' ? item.description : 'Sin descripción disponible.',
+        recommendation: typeof item.recommendation === 'string' ? item.recommendation : 'Revisar con criterio legal.',
+      }))
+    : []
+  return {
+    overallScore: typeof raw.overallScore === 'number' ? raw.overallScore : 0,
+    riskLevel,
+    risks,
+    suggestions: Array.isArray(raw.suggestions) ? raw.suggestions.filter((item): item is string => typeof item === 'string') : [],
+    model: typeof raw.model === 'string' ? raw.model : undefined,
+  }
+}
+
+function qualityFixFields(quality: ContractQualityResult | null, formData: Record<string, unknown> | null): string[] {
+  if (!quality) return []
+  const keys = new Set<string>()
+  for (const key of quality.missingInputs ?? []) keys.add(key)
+  for (const blocker of quality.blockers ?? []) {
+    const quoted = blocker.message.match(/"([^"]+)"/)?.[1]
+    if (quoted) keys.add(normalizeContractFieldKey(quoted))
+  }
+  return [...keys]
+    .map(normalizeContractFieldKey)
+    .filter((key) => CONTRACT_FIX_FIELDS[key])
+    .filter((key) => !hasContractInputValue(formData, key))
+}
+
+function normalizeContractFieldKey(key: string): string {
+  const lower = key
+    .replace(/^contract\.formData\./, '')
+    .replace(/^contract\./, '')
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .toLowerCase()
+  const aliases: Record<string, string> = {
+    position: 'cargo',
+    trabajador_cargo: 'cargo',
+    cause_objective: 'causa_objetiva',
+    causeobjective: 'causa_objetiva',
+    causaobjetiva: 'causa_objetiva',
+    fecha_inicio: 'fecha_inicio',
+    fechainicio: 'fecha_inicio',
+    start_date: 'fecha_inicio',
+    fecha_fin: 'fecha_fin',
+    fechafin: 'fecha_fin',
+    end_date: 'fecha_fin',
+    work_schedule: 'horario',
+    jornada_horas: 'jornada',
+  }
+  return aliases[lower] ?? lower
+}
+
+function hasContractInputValue(formData: Record<string, unknown> | null, key: string): boolean {
+  if (!formData) return false
+  const aliases: Record<string, string[]> = {
+    cargo: ['cargo', 'trabajador_cargo', 'puesto', 'position'],
+    fecha_inicio: ['fecha_inicio', 'fechaInicio', 'inicio_contrato', 'startDate'],
+    fecha_fin: ['fecha_fin', 'fechaFin', 'fin_contrato', 'endDate'],
+    causa_objetiva: ['causa_objetiva', 'causaObjetiva', 'motivo_contratacion', 'causeObjective'],
+    horario: ['horario', 'horario_trabajo', 'workSchedule'],
+    jornada: ['jornada', 'jornada_semanal', 'jornada_horas'],
+    remuneracion: ['remuneracion', 'remuneracion_mensual', 'sueldo', 'salary'],
+  }
+  return (aliases[key] ?? [key]).some((candidate) => {
+    const value = formData[candidate]
+    return value !== undefined && value !== null && String(value).trim() !== ''
+  })
 }
 
 function annexActionFor(annex: string, linkedWorkers: LinkedWorker[], contractId: string): {
@@ -387,6 +533,8 @@ export default function ContratoDetailPage() {
   const [confirmArchive, setConfirmArchive] = useState(false)
   const [activeTab, setActiveTab] = useState<ActiveTab>('detalles')
   const [downloadingExport, setDownloadingExport] = useState<'pdf' | 'docx' | null>(null)
+  const [fixValues, setFixValues] = useState<Record<string, string>>({})
+  const [savingFixes, setSavingFixes] = useState(false)
   // Vincular trabajador
   const [linkedWorkers, setLinkedWorkers] = useState<LinkedWorker[]>([])
   const [workerSearch, setWorkerSearch] = useState('')
@@ -576,6 +724,56 @@ export default function ContratoDetailPage() {
     }
   }
 
+  async function saveCriticalFixes(fields: string[]) {
+    if (!contract || fields.length === 0) return
+    const patch: Record<string, unknown> = {}
+    for (const field of fields) {
+      const value = fixValues[field]?.trim()
+      if (value) patch[field] = value
+    }
+    if (Object.keys(patch).length === 0) {
+      toast({
+        title: 'Completa al menos un dato',
+        description: 'Escribe la corrección antes de guardar.',
+        type: 'error',
+      })
+      return
+    }
+    setSavingFixes(true)
+    try {
+      const res = await fetch(`/api/contracts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          formData: {
+            ...(contract.formData ?? {}),
+            ...patch,
+          },
+        }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(typeof body.error === 'string' ? body.error : 'No se pudo guardar')
+      const updated = body.data as Contract
+      setContract(updated)
+      setFixValues({})
+      await fetch(`/api/contracts/${id}/quality`, { method: 'POST' }).catch(() => null)
+      toast({
+        title: 'Contrato actualizado',
+        description: 'Se regeneró el contenido y se revalidará el gate legal.',
+        type: 'success',
+      })
+      void fetchContract()
+    } catch (error) {
+      toast({
+        title: 'No se pudo corregir el contrato',
+        description: error instanceof Error ? error.message : 'Intenta nuevamente.',
+        type: 'error',
+      })
+    } finally {
+      setSavingFixes(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -593,13 +791,14 @@ export default function ContratoDetailPage() {
     ? WORKFLOW_ORDER[currentWorkflowIndex + 1]
     : null
 
-  const aiReview = contract.aiRisksJson
+  const aiReview = normalizeAiReview(contract.aiRisksJson)
   const riskCfg = aiReview ? (RISK_LEVEL_CONFIG[aiReview.riskLevel] ?? RISK_LEVEL_CONFIG.MEDIUM) : null
   const RiskIcon = riskCfg?.icon
   const provenance = getContractProvenance(contract)
   const quality = getContractQuality(contract)
   const qualityCfg = quality ? QUALITY_CONFIG[quality.status] : null
   const annexCoverage = getContractAnnexCoverage(contract)
+  const fixFields = qualityFixFields(quality, contract.formData)
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -757,7 +956,17 @@ export default function ContratoDetailPage() {
             </div>
 
             {nextStatus && (
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                {quality && !['READY_FOR_SIGNATURE'].includes(quality.status) && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('detalles')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+                  >
+                    <ShieldAlert className="h-4 w-4" />
+                    Corregir bloqueos
+                  </button>
+                )}
                 <button
                   onClick={() => transitionStatus(nextStatus)}
                   disabled={transitioning}
@@ -893,6 +1102,57 @@ export default function ContratoDetailPage() {
                   </p>
                 </div>
               </div>
+
+              {fixFields.length > 0 && (
+                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50/70 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-red-900">Corregir datos críticos</p>
+                      <p className="mt-1 text-xs leading-5 text-red-700">
+                        Completa estos campos para regenerar el contrato y desbloquear aprobación/exportación. El contenido oficial se actualiza en servidor.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void saveCriticalFixes(fixFields)}
+                      disabled={savingFixes}
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+                    >
+                      {savingFixes ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                      Guardar correcciones
+                    </button>
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {fixFields.map((field) => {
+                      const config = CONTRACT_FIX_FIELDS[field]
+                      const value = fixValues[field] ?? ''
+                      return (
+                        <label key={field} className="block rounded-xl border border-red-100 bg-white p-3">
+                          <span className="text-xs font-semibold text-slate-900">{config.label}</span>
+                          {config.multiline ? (
+                            <textarea
+                              value={value}
+                              onChange={(event) => setFixValues((prev) => ({ ...prev, [field]: event.target.value }))}
+                              placeholder={config.placeholder}
+                              rows={4}
+                              className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                            />
+                          ) : (
+                            <input
+                              value={value}
+                              onChange={(event) => setFixValues((prev) => ({ ...prev, [field]: event.target.value }))}
+                              placeholder={config.placeholder}
+                              type={config.type ?? 'text'}
+                              className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                            />
+                          )}
+                          <span className="mt-1 block text-[11px] leading-4 text-slate-500">{config.helper}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {quality.blockers.length > 0 && (
                 <div className="mt-5 space-y-2">

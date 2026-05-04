@@ -17,6 +17,11 @@ import {
   withContractQualityMetadata,
   type ContractQualityResult,
 } from '@/lib/contracts/quality-gate'
+import {
+  buildPremiumContractDocument,
+  renderPremiumContractHtml,
+  withPremiumContractDocument,
+} from '@/lib/contracts/premium-library'
 
 const VALID_STATUSES: ContractStatus[] = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED', 'EXPIRED', 'ARCHIVED']
 
@@ -174,12 +179,25 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
     }
   }
 
+  const nextDataForUpdate = body.formData !== undefined
+    ? buildContractDataPatchAfterFormUpdate({
+        contract,
+        formData: body.formData,
+        contentHtml: body.contentHtml,
+      })
+    : {
+        formData: undefined,
+        contentHtml: body.contentHtml,
+        contentJson: undefined,
+      }
+
   const updated = await prisma.contract.update({
     where: { id: params.id, orgId: ctx.orgId },
     data: {
       ...(body.status ? { status: body.status as ContractStatus } : {}),
-      ...(body.formData !== undefined ? { formData: body.formData as Record<string, string | number | boolean | null> } : {}),
-      ...(body.contentHtml !== undefined ? { contentHtml: body.contentHtml } : {}),
+      ...(nextDataForUpdate.formData !== undefined ? { formData: nextDataForUpdate.formData as Record<string, string | number | boolean | null> } : {}),
+      ...(nextDataForUpdate.contentHtml !== undefined ? { contentHtml: nextDataForUpdate.contentHtml } : {}),
+      ...(nextDataForUpdate.contentJson !== undefined ? { contentJson: nextDataForUpdate.contentJson as object } : {}),
       ...(transitionQuality
         ? { contentJson: withContractQualityMetadata(transitionContentJson ?? contract.contentJson, transitionQuality) as object }
         : {}),
@@ -305,6 +323,41 @@ function withDerivedRenderMetadata<T extends {
     generationMode,
     renderVersion,
     isFallback: firstBoolean(contentJson.isFallback, formData._isFallback, renderMetadata.isFallback),
+  }
+}
+
+function buildContractDataPatchAfterFormUpdate(input: {
+  contract: {
+    title: string
+    type: string
+    formData: unknown
+    contentJson: unknown
+    contentHtml: string | null
+  }
+  formData: Record<string, unknown>
+  contentHtml?: string
+}): {
+  formData: Record<string, unknown>
+  contentHtml?: string
+  contentJson?: Record<string, unknown>
+} {
+  const formData = input.formData
+  const premiumDocument = buildPremiumContractDocument({
+    contractType: input.contract.type,
+    title: input.contract.title,
+    formData,
+  })
+  if (!premiumDocument) {
+    return {
+      formData,
+      contentHtml: input.contentHtml,
+    }
+  }
+  const contentJson = withPremiumContractDocument(input.contract.contentJson, premiumDocument)
+  return {
+    formData,
+    contentJson,
+    contentHtml: renderPremiumContractHtml(premiumDocument),
   }
 }
 

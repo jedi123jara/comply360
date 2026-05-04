@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { evaluarReglasSst, type AlertaProyectada } from '@/lib/sst/calendar-engine'
+import { notifySstAlert } from '@/lib/sst/push-notifications'
 
 // ============================================================
 // GET /api/cron/sst-daily
@@ -252,7 +253,7 @@ async function persistirAlertas(
         workerId = fallback.id
       }
 
-      await prisma.workerAlert.create({
+      const created = await prisma.workerAlert.create({
         data: {
           orgId,
           workerId,
@@ -264,6 +265,16 @@ async function persistirAlertas(
         },
       })
       result.creadas++
+      // Push push para alertas HIGH/CRITICAL recién creadas
+      notifySstAlert({
+        alertId: created.id,
+        orgId,
+        workerId,
+        type: created.type,
+        severity: created.severity,
+        title: created.title,
+        description: created.description,
+      }).catch(() => undefined)
     } else {
       // Existe — actualizar si cambió título/severidad/dueDate
       const sevChanged = existente.severity !== p.severity
@@ -281,6 +292,21 @@ async function persistirAlertas(
           },
         })
         result.actualizadas++
+        // Si la severidad escaló (LOW/MEDIUM → HIGH/CRITICAL), notificar
+        const escalated =
+          (p.severity === 'CRITICAL' || p.severity === 'HIGH') &&
+          existente.severity !== p.severity
+        if (escalated) {
+          notifySstAlert({
+            alertId: existente.id,
+            orgId,
+            workerId: p.workerId,
+            type: p.type as 'EMO_VENCIDO',
+            severity: p.severity as 'HIGH',
+            title: p.title,
+            description: wrappedDesc,
+          }).catch(() => undefined)
+        }
       } else {
         result.reusadas++
       }

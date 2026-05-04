@@ -10,6 +10,7 @@ import {
   Loader2,
   AlertCircle,
   HardHat,
+  Users,
 } from 'lucide-react'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
@@ -194,6 +195,22 @@ export default function SedeDetailPage() {
         <StatCard label="Visitas Field Audit" value={sede._count.visitas} />
       </div>
 
+      <Card>
+        <CardContent className="flex items-center justify-between py-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Mapa de Riesgos</h3>
+            <p className="text-xs text-slate-600">
+              Editor visual con drag-and-drop · Ley 29783 Art. 35.a
+            </p>
+          </div>
+          <Link href={`/dashboard/sst/sedes/${sedeId}/mapa-riesgos`}>
+            <Button size="sm" variant="emerald-soft">
+              Abrir editor
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+
       {/* Puestos */}
       <Card>
         <CardContent className="py-6">
@@ -204,10 +221,20 @@ export default function SedeDetailPage() {
                 Cada puesto activa peligros sugeridos por el motor IPERC según sus flags de exposición.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowPuestoModal(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo puesto
-            </Button>
+            <div className="flex items-center gap-2">
+              {sede.puestos.length > 0 && (
+                <Link href={`/dashboard/sst/sedes/${sedeId}/asignar-puestos`}>
+                  <Button size="sm" variant="ghost">
+                    <Users className="mr-2 h-4 w-4" />
+                    Asignar trabajadores
+                  </Button>
+                </Link>
+              )}
+              <Button size="sm" onClick={() => setShowPuestoModal(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nuevo puesto
+              </Button>
+            </div>
           </div>
 
           {sede.puestos.length === 0 ? (

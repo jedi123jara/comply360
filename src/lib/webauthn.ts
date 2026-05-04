@@ -55,7 +55,11 @@ export interface BiometricCeremonyResult {
 }
 
 export interface ServerChallengeRequest {
-  action: 'sign_contract' | 'sign_payslip'
+  action:
+    | 'sign_contract'
+    | 'sign_payslip'
+    | 'sign_doc_acknowledgment'
+    | 'vote_committee'
   entityId: string
 }
 

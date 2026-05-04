@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { parseAttendanceNotes, deriveJustificationState } from '@/lib/attendance/notes'
 import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
 import { calculateOvertime } from '@/lib/attendance/overtime'
+import { localDateKey, workDateFor } from '@/lib/attendance/local-date'
 
 /**
  * GET /api/attendance?date=YYYY-MM-DD
@@ -12,16 +13,13 @@ import { calculateOvertime } from '@/lib/attendance/overtime'
  */
 export const GET = withAuth(async (req: NextRequest, ctx) => {
   const { searchParams } = new URL(req.url)
-  const dateStr = searchParams.get('date') ?? new Date().toISOString().slice(0, 10)
-
-  // Construir rango del día
-  const dayStart = new Date(`${dateStr}T00:00:00.000Z`)
-  const dayEnd = new Date(`${dateStr}T23:59:59.999Z`)
+  const dateStr = searchParams.get('date') ?? localDateKey()
+  const workDate = new Date(`${dateStr}T00:00:00.000Z`)
 
   const records = await prisma.attendance.findMany({
     where: {
       orgId: ctx.orgId,
-      clockIn: { gte: dayStart, lte: dayEnd },
+      workDate,
     },
     include: {
       worker: {
@@ -29,6 +27,40 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
       },
     },
     orderBy: { clockIn: 'asc' },
+  })
+
+  const monthStartKey = `${dateStr.slice(0, 7)}-01`
+  const [year, monthNum] = dateStr.split('-').map(Number)
+  const monthDays = new Date(Date.UTC(year, monthNum, 0)).getUTCDate()
+  const monthEndKey = `${dateStr.slice(0, 7)}-${String(monthDays).padStart(2, '0')}`
+  const monthStart = new Date(`${monthStartKey}T00:00:00.000Z`)
+  const monthEnd = new Date(`${monthEndKey}T00:00:00.000Z`)
+  const monthlyRows = await prisma.attendance.groupBy({
+    by: ['workDate', 'status'],
+    where: {
+      orgId: ctx.orgId,
+      workDate: { gte: monthStart, lte: monthEnd },
+    },
+    _count: true,
+  }).catch(() => [])
+
+  const monthlyByDay = new Map<string, { total: number; present: number; late: number; absent: number }>()
+  for (const row of monthlyRows) {
+    const key = row.workDate.toISOString().slice(0, 10)
+    const current = monthlyByDay.get(key) ?? { total: 0, present: 0, late: 0, absent: 0 }
+    current.total += row._count
+    if (row.status === 'PRESENT') current.present += row._count
+    if (row.status === 'LATE') current.late += row._count
+    if (row.status === 'ABSENT') current.absent += row._count
+    monthlyByDay.set(key, current)
+  }
+  const monthly = Array.from({ length: monthDays }, (_, i) => {
+    const key = `${dateStr.slice(0, 7)}-${String(i + 1).padStart(2, '0')}`
+    const day = monthlyByDay.get(key) ?? { total: 0, present: 0, late: 0, absent: 0 }
+    const attendanceRate = day.total > 0
+      ? Math.round(((day.present + day.late) / day.total) * 100)
+      : 0
+    return { date: key, ...day, attendanceRate }
   })
 
   // Parsear notes para extraer justificación/aprobación de cada registro
@@ -83,6 +115,7 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
     date: dateStr,
     records: enrichedRecords,
     summary,
+    month: monthly,
   })
 })
 
@@ -141,17 +174,15 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
   }
 
   const now = new Date()
+  const workDate = workDateFor(now)
 
   if (action === 'clock_in') {
     // Verificar que no hay ya una entrada activa hoy
-    const todayStart = new Date(now)
-    todayStart.setHours(0, 0, 0, 0)
-
     const existing = await prisma.attendance.findFirst({
       where: {
         workerId: resolvedWorkerId,
         orgId: ctx.orgId,
-        clockIn: { gte: todayStart },
+        workDate,
         clockOut: null, // entrada sin salida = activo
       },
     })
@@ -172,6 +203,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
       data: {
         orgId: ctx.orgId,
         workerId: resolvedWorkerId,
+        workDate,
         clockIn: now,
         status,
         notes: notes ?? null,
@@ -194,14 +226,11 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
   }
 
   // clock_out
-  const todayStart = new Date(now)
-  todayStart.setHours(0, 0, 0, 0)
-
   const openRecord = await prisma.attendance.findFirst({
     where: {
       workerId: resolvedWorkerId,
       orgId: ctx.orgId,
-      clockIn: { gte: todayStart },
+      workDate,
       clockOut: null,
     },
     orderBy: { clockIn: 'desc' },

@@ -19,6 +19,7 @@ import {
   attendanceDeepLink,
   TOKEN_ROTATION_SECONDS,
 } from '@/lib/attendance/qr-token'
+import { persistAttendanceQrSession } from '@/lib/attendance/qr-session'
 
 export const runtime = 'nodejs'
 
@@ -37,6 +38,16 @@ export const GET = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
     orgId: ctx.orgId,
     mode,
     graceMinutes,
+  })
+
+  await persistAttendanceQrSession({
+    orgId: ctx.orgId,
+    shortCode,
+    token,
+    mode,
+    graceMinutes,
+    expiresAt,
+    createdBy: ctx.userId,
   })
 
   const deepLink = attendanceDeepLink(token)

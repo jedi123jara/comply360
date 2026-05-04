@@ -58,6 +58,10 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/cron/attendance-absences",
+      "schedule": "0 10 * * *"
+    },
+    {
       "path": "/api/cron/orgchart-snapshots",
       "schedule": "0 13 * * 1"
     },
@@ -72,6 +76,10 @@
     {
       "path": "/api/cron/sst-daily",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/sst-retention",
+      "schedule": "0 8 1 * *"
     }
   ]
 }

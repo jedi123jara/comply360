@@ -12,6 +12,7 @@ import {
   Clock,
   UserMinus,
   ScrollText,
+  Download,
 } from 'lucide-react'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
@@ -313,17 +314,26 @@ function ComiteDetail({
                   : 'text-emerald-600'
             }`}
           />
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-semibold text-slate-900">
               Mandato {new Date(comite.mandatoInicio).toLocaleDateString('es-PE')} →{' '}
               {new Date(comite.mandatoFin).toLocaleDateString('es-PE')}
             </p>
             <p className="text-xs text-slate-600">
               {mandatoVencido
-                ? `Vencido hace ${Math.abs(dias)} días — programa elecciones para el nuevo periodo`
-                : `${dias} días restantes${
-                    mandatoVencePronto ? ' — programa elecciones del próximo mandato' : ''
-                  }`}
+                ? `Vencido hace ${Math.abs(dias)} días`
+                : `${dias} días restantes`}
+              {(mandatoVencido || mandatoVencePronto) && (
+                <>
+                  {' · '}
+                  <Link
+                    href="/dashboard/sst/comite/elecciones"
+                    className="font-medium text-amber-700 underline hover:text-amber-800"
+                  >
+                    programar elecciones
+                  </Link>
+                </>
+              )}
             </p>
           </div>
         </CardContent>
@@ -484,18 +494,29 @@ function ComiteDetail({
                 SUNAFIL.
               </p>
             </div>
-            {comite.libroActasUrl ? (
+            <div className="flex items-center gap-3">
               <a
-                href={comite.libroActasUrl}
+                href={`/api/sst/comites/${comite.id}/acta-pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-white px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
               >
-                Abrir libro de actas →
+                <Download className="h-3 w-3" />
+                Acta de instalación
               </a>
-            ) : (
-              <span className="text-xs text-slate-500">Sin URL registrada</span>
-            )}
+              {comite.libroActasUrl ? (
+                <a
+                  href={comite.libroActasUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                >
+                  Libro de actas →
+                </a>
+              ) : (
+                <span className="text-xs text-slate-500">Sin libro de actas</span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

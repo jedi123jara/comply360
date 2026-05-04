@@ -21,6 +21,10 @@ import {
   serializeAttendanceNotes,
   type AttendanceMetadata,
 } from '@/lib/attendance/notes'
+import {
+  recordAttendanceApproval,
+  recordAttendanceJustification,
+} from '@/lib/attendance/structured-records'
 
 export const PATCH = withAuthParams<{ id: string }>(async (
   req: NextRequest,
@@ -77,14 +81,16 @@ export const PATCH = withAuthParams<{ id: string }>(async (
       ? (body.files as unknown[]).filter((f): f is string => typeof f === 'string').slice(0, 5)
       : undefined
 
+    const justification = {
+      reason,
+      ...(files && files.length > 0 ? { files } : {}),
+      requestedAt: new Date().toISOString(),
+      requestedBy: ctx.userId,
+    }
+
     const newMeta: AttendanceMetadata = {
       ...meta,
-      justification: {
-        reason,
-        ...(files && files.length > 0 ? { files } : {}),
-        requestedAt: new Date().toISOString(),
-        requestedBy: ctx.userId,
-      },
+      justification,
       // Si había aprobación previa, la limpiamos — al re-justificar vuelve a quedar
       // pendiente de aprobación.
       approval: undefined,
@@ -95,7 +101,17 @@ export const PATCH = withAuthParams<{ id: string }>(async (
       data: { notes: serializeAttendanceNotes(newMeta) },
     })
 
-    return NextResponse.json({ ok: true, op, justification: newMeta.justification })
+    await recordAttendanceJustification({
+      attendanceId: recordId,
+      orgId: record.orgId,
+      workerId: record.workerId,
+      reason,
+      files,
+      requestedBy: ctx.userId,
+      requestedAt: new Date(justification.requestedAt),
+    })
+
+    return NextResponse.json({ ok: true, op, justification })
   }
 
   if (op === 'approve') {
@@ -130,20 +146,39 @@ export const PATCH = withAuthParams<{ id: string }>(async (
       ? `${adminUser.firstName ?? ''} ${adminUser.lastName ?? ''}`.trim() || undefined
       : undefined
 
+    const approval = {
+      approved,
+      at: new Date().toISOString(),
+      by: ctx.userId,
+      ...(byName ? { byName } : {}),
+      ...(comment ? { comment } : {}),
+    }
+
     const newMeta: AttendanceMetadata = {
       ...meta,
-      approval: {
-        approved,
-        at: new Date().toISOString(),
-        by: ctx.userId,
-        ...(byName ? { byName } : {}),
-        ...(comment ? { comment } : {}),
-      },
+      approval,
     }
 
     await prisma.attendance.update({
       where: { id: recordId },
       data: { notes: serializeAttendanceNotes(newMeta) },
+    })
+
+    const latestJustification = await prisma.attendanceJustification.findFirst({
+      where: { attendanceId: recordId, orgId: ctx.orgId },
+      orderBy: { requestedAt: 'desc' },
+      select: { id: true },
+    }).catch(() => null)
+
+    await recordAttendanceApproval({
+      attendanceId: recordId,
+      orgId: ctx.orgId,
+      approved,
+      comment,
+      justificationId: latestJustification?.id,
+      approvedBy: ctx.userId,
+      approvedByName: byName,
+      approvedAt: new Date(approval.at),
     })
 
     // AuditLog para trazabilidad SUNAFIL
@@ -163,7 +198,7 @@ export const PATCH = withAuthParams<{ id: string }>(async (
       },
     })
 
-    return NextResponse.json({ ok: true, op, approval: newMeta.approval })
+    return NextResponse.json({ ok: true, op, approval })
   }
 
   return NextResponse.json({ error: `Operación no reconocida: ${String(op)}` }, { status: 400 })

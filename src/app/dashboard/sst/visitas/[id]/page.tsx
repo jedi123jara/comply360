@@ -17,7 +17,10 @@ import {
   Building2,
   Calendar,
   MapPin,
+  QrCode,
+  Download,
 } from 'lucide-react'
+import { SealQRModal } from '@/components/sst/seal-qr-modal'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -121,6 +124,7 @@ export default function VisitaDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showHallazgo, setShowHallazgo] = useState(false)
+  const [showSealModal, setShowSealModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   async function reload() {
@@ -226,7 +230,25 @@ export default function VisitaDetailPage() {
         eyebrow="SST · Field Audit"
         title={`Visita en ${visita.sede.nombre}`}
         subtitle={`${visita.sede.direccion} · ${visita.sede.distrito} · Programada para ${new Date(visita.fechaProgramada).toLocaleString('es-PE')}`}
-        actions={<Badge variant={ESTADO_VARIANT[visita.estado]}>{ESTADO_LABEL[visita.estado]}</Badge>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={ESTADO_VARIANT[visita.estado]}>{ESTADO_LABEL[visita.estado]}</Badge>
+            {visita.estado === 'CERRADA' && (
+              <>
+                <a href={`/api/sst/visitas/${id}/pdf`} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="secondary">
+                    <Download className="mr-2 h-4 w-4" />
+                    Informe PDF
+                  </Button>
+                </a>
+                <Button size="sm" variant="secondary" onClick={() => setShowSealModal(true)}>
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Sello QR
+                </Button>
+              </>
+            )}
+          </div>
+        }
       />
 
       {/* Acciones de estado */}
@@ -234,6 +256,14 @@ export default function VisitaDetailPage() {
         <Card>
           <CardContent className="flex flex-wrap items-center gap-2 py-3">
             <span className="mr-2 text-xs font-medium text-slate-500">Acciones rápidas:</span>
+            {(visita.estado === 'EN_CAMPO' || visita.estado === 'PROGRAMADA' || visita.estado === 'PENDIENTE_INGESTA') && (
+              <Link href={`/dashboard/sst/visitas/${id}/captura-offline`}>
+                <Button size="sm" variant="secondary">
+                  <HardHat className="mr-2 h-4 w-4" />
+                  Captura offline (campo)
+                </Button>
+              </Link>
+            )}
             {visita.estado === 'PROGRAMADA' && (
               <Button
                 size="sm"
@@ -458,6 +488,14 @@ export default function VisitaDetailPage() {
           }}
         />
       )}
+
+      <SealQRModal
+        kind="visita"
+        resourceId={id}
+        label={`Visita ${visita.sede.nombre} · ${new Date(visita.fechaProgramada).toLocaleDateString('es-PE')}`}
+        isOpen={showSealModal}
+        onClose={() => setShowSealModal(false)}
+      />
     </div>
   )
 }

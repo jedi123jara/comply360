@@ -14,7 +14,9 @@ import {
   Stethoscope,
   User,
   FileText,
+  QrCode,
 } from 'lucide-react'
+import { SealQRModal } from '@/components/sst/seal-qr-modal'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -76,6 +78,7 @@ export default function EmoDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [revelando, setRevelando] = useState(false)
+  const [showSealModal, setShowSealModal] = useState(false)
 
   async function load(descifrar = false) {
     setLoading(true)
@@ -148,7 +151,15 @@ export default function EmoDetailPage() {
         eyebrow={`SST · EMO ${TIPO_LABEL[emo.tipoExamen] ?? emo.tipoExamen}`}
         title={`${emo.worker.firstName} ${emo.worker.lastName}`}
         subtitle={`DNI ${emo.worker.dni} · Examen del ${new Date(emo.fechaExamen).toLocaleDateString('es-PE')}`}
-        actions={<Badge variant={APTITUD_VARIANT[emo.aptitud]}>{APTITUD_LABEL[emo.aptitud]}</Badge>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={APTITUD_VARIANT[emo.aptitud]}>{APTITUD_LABEL[emo.aptitud]}</Badge>
+            <Button size="sm" variant="secondary" onClick={() => setShowSealModal(true)}>
+              <QrCode className="mr-2 h-4 w-4" />
+              Sello QR
+            </Button>
+          </div>
+        }
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -282,6 +293,14 @@ export default function EmoDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <SealQRModal
+        kind="emo"
+        resourceId={id}
+        label={`EMO ${TIPO_LABEL[emo.tipoExamen] ?? emo.tipoExamen}`}
+        isOpen={showSealModal}
+        onClose={() => setShowSealModal(false)}
+      />
 
       {/* Consentimiento */}
       {emo.consentimientoLey29733 && (

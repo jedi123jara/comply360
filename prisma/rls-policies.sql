@@ -1,4 +1,17 @@
 -- =============================================
+-- ADVERTENCIA OPERACIONAL — 2026-05-04
+-- =============================================
+-- Estas policies están aplicadas pero NO se ejecutan en queries Prisma
+-- del backend porque el rol de la conexión bypassa RLS.
+-- El aislamiento de tenant real lo hace withAuth() + filter orgId en código.
+--
+-- RLS aquí cumple 3 funciones:
+--   1. Protección si alguien usa el cliente Supabase JS directo.
+--   2. Documentación viva de la intención de aislamiento.
+--   3. Activación futura cuando se separe el rol de aplicación.
+-- =============================================
+
+-- =============================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- =============================================
 -- Second layer of defense: even if application code has a bug (missing orgId filter),

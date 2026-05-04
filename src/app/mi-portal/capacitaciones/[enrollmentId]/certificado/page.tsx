@@ -142,6 +142,7 @@ export default async function CertificadoPage({ params }: PageParams) {
           verifyUrl={verifyUrl}
           workerName={cert.workerName}
           courseTitle={cert.courseTitle}
+          certificateCode={cert.code}
         />
       </div>
     </div>

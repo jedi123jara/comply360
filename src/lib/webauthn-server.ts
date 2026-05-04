@@ -32,6 +32,7 @@ export type ChallengeAction =
   | 'sign_doc_acknowledgment' // acuse de recibo de OrgDocument (Idea 1)
   | 'register_credential'     // enrolar nueva passkey
   | 'auth_credential'         // ceremonia de firma con passkey ya registrada
+  | 'vote_committee'          // voto en elecciones del Comité SST (R.M. 245-2021-TR)
 
 export interface ChallengePayload {
   /** Worker ID que solicitó el challenge. */

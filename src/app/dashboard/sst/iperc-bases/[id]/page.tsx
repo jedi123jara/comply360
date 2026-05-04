@@ -13,7 +13,10 @@ import {
   Lock,
   Filter,
   Sparkles,
+  QrCode,
+  Download,
 } from 'lucide-react'
+import { SealQRModal } from '@/components/sst/seal-qr-modal'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -117,6 +120,7 @@ export default function IpercEditorPage() {
   const [error, setError] = useState<string | null>(null)
   const [showFilaModal, setShowFilaModal] = useState(false)
   const [showSugerirModal, setShowSugerirModal] = useState(false)
+  const [showSealModal, setShowSealModal] = useState(false)
   const [approving, setApproving] = useState(false)
   const [filtroClas, setFiltroClas] = useState<Clasificacion | 'TODOS'>('TODOS')
 
@@ -247,6 +251,14 @@ export default function IpercEditorPage() {
               </Button>
             )}
             {editable && (
+              <Link href={`/dashboard/sst/iperc-bases/${iperc.id}/import`}>
+                <Button size="sm" variant="ghost">
+                  <Download className="mr-2 h-4 w-4 rotate-180" />
+                  Importar Excel
+                </Button>
+              </Link>
+            )}
+            {editable && (
               <Button size="sm" onClick={() => setShowFilaModal(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar fila
@@ -261,6 +273,20 @@ export default function IpercEditorPage() {
                 )}
                 Aprobar IPERC
               </Button>
+            )}
+            {iperc.estado === 'VIGENTE' && (
+              <>
+                <a href={`/api/sst/iperc-bases/${ipercId}/pdf`} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="secondary">
+                    <Download className="mr-2 h-4 w-4" />
+                    PDF oficial
+                  </Button>
+                </a>
+                <Button size="sm" variant="secondary" onClick={() => setShowSealModal(true)}>
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Sello QR
+                </Button>
+              </>
             )}
           </div>
         }
@@ -431,6 +457,14 @@ export default function IpercEditorPage() {
           }}
         />
       )}
+
+      <SealQRModal
+        kind="iperc"
+        resourceId={ipercId}
+        label={`IPERC v${iperc.version} · ${iperc.sede.nombre}`}
+        isOpen={showSealModal}
+        onClose={() => setShowSealModal(false)}
+      />
     </div>
   )
 }

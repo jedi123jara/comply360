@@ -1,15 +1,17 @@
 'use client'
 
-import { Printer, Share2, Copy, CheckCircle2 } from 'lucide-react'
+import { Printer, Share2, Copy, CheckCircle2, Download } from 'lucide-react'
 import { useState } from 'react'
 
 interface Props {
   verifyUrl: string
   workerName: string
   courseTitle: string
+  /** Código del certificado para descargar el PDF oficial server-side. */
+  certificateCode?: string | null
 }
 
-export function PrintShareButtons({ verifyUrl, workerName, courseTitle }: Props) {
+export function PrintShareButtons({ verifyUrl, workerName, courseTitle, certificateCode }: Props) {
   const [copied, setCopied] = useState(false)
 
   function handlePrint() {
@@ -43,12 +45,23 @@ export function PrintShareButtons({ verifyUrl, workerName, courseTitle }: Props)
 
   return (
     <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+      {certificateCode && (
+        <a
+          href={`/api/certificates/${certificateCode}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg min-h-[44px] transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+        >
+          <Download className="w-4 h-4" />
+          Descargar PDF oficial
+        </a>
+      )}
       <button
         onClick={handlePrint}
-        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg min-h-[44px] transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+        className="inline-flex items-center gap-2 bg-white border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold text-sm px-4 py-2.5 rounded-lg min-h-[44px] transition-colors"
       >
         <Printer className="w-4 h-4" />
-        Imprimir / Guardar PDF
+        Imprimir
       </button>
       <button
         onClick={handleShareWhatsApp}

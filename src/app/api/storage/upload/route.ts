@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { storageService, StorageError, type StorageBucket } from '@/lib/storage'
+import { validateUpload, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 
 // =============================================
 // POST /api/storage/upload - Upload file
@@ -14,40 +15,32 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     const bucket = (formData.get('bucket') as string) ?? 'documents'
     const subfolder = (formData.get('subfolder') as string) ?? ''
 
-    // ---- Validaciones ----
-    if (!file) {
-      return NextResponse.json(
-        { error: 'No se recibio ningun archivo' },
-        { status: 400 }
-      )
+    // ---- Validación centralizada (Ola 1 — seguridad) ----
+    // Usa el profile genérico: imágenes + PDFs + DOCX + XLSX hasta 20 MB.
+    // Bloquea SVG, JS, EXE, PHP, etc. independiente del MIME reportado.
+    const validation = validateUpload(file, UPLOAD_PROFILES.generic)
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error, code: validation.code }, { status: 400 })
     }
 
-    if (!file.name || file.size === 0) {
-      return NextResponse.json(
-        { error: 'El archivo esta vacio o no tiene nombre' },
-        { status: 400 }
-      )
-    }
-
-    // ---- Generar path unico ----
+    // ---- Generar path unico (usando safeName para evitar path traversal) ----
     const timestamp = Date.now()
     const random = Math.random().toString(36).slice(2, 8)
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
-    const fileName = `${timestamp}-${random}.${ext}`
+    const fileName = `${timestamp}-${random}.${validation.ext}`
 
     const filePath = subfolder
       ? `${ctx.orgId}/${subfolder}/${fileName}`
       : `${ctx.orgId}/${fileName}`
 
-    // ---- Subir archivo ----
+    // ---- Subir archivo (file ya validado arriba) ----
     const result = await storageService.uploadFile(
       bucket as StorageBucket,
       filePath,
-      file,
+      file as File,
       {
         orgId: ctx.orgId,
         userId: ctx.userId,
-        originalName: file.name,
+        originalName: validation.safeName,
       }
     )
 

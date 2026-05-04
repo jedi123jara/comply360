@@ -68,6 +68,72 @@ const STATUS_COLOR: Record<string, { bg: string; ring: string }> = {
   WARNING: { bg: 'bg-amber-100', ring: 'ring-amber-400' },
 }
 
+function normalizeReviewResult(value: unknown): ContractReviewResult | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<ContractReviewResult>
+  const riskLevel = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(String(raw.riskLevel))
+    ? raw.riskLevel as ContractReviewResult['riskLevel']
+    : 'MEDIUM'
+  const risks = Array.isArray(raw.risks)
+    ? raw.risks.filter((item) => Boolean(item) && typeof item === 'object').map((item, index) => {
+        const risk = item as Partial<ContractRisk>
+        return {
+        id: typeof risk.id === 'string' ? risk.id : `risk-${index + 1}`,
+        severity: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(String(risk.severity))
+          ? risk.severity as ContractRisk['severity']
+          : 'MEDIUM',
+        category: typeof risk.category === 'string' ? risk.category : 'Riesgo contractual',
+        title: typeof risk.title === 'string' ? risk.title : 'Riesgo contractual',
+        description: typeof risk.description === 'string' ? risk.description : 'Sin descripción disponible.',
+        clause: typeof risk.clause === 'string' ? risk.clause : 'Contrato',
+        recommendation: typeof risk.recommendation === 'string' ? risk.recommendation : 'Revisar con criterio legal.',
+        legalBasis: typeof risk.legalBasis === 'string' ? risk.legalBasis : undefined,
+        multaUIT: typeof risk.multaUIT === 'number' ? risk.multaUIT : undefined,
+        }
+      })
+    : []
+  const suggestions = Array.isArray(raw.suggestions)
+    ? raw.suggestions.filter(Boolean).map((suggestion, index) => {
+        if (typeof suggestion === 'string') {
+          return {
+            type: 'MODIFY',
+            clause: `Sugerencia ${index + 1}`,
+            suggestion,
+            reason: 'Recomendación generada por revisión previa.',
+            priority: 'MEDIUM',
+          } satisfies ContractReviewResult['suggestions'][number]
+        }
+        const item = suggestion as Partial<ContractReviewResult['suggestions'][number]>
+        return {
+          type: ['ADD', 'MODIFY', 'REMOVE'].includes(String(item.type)) ? item.type as 'ADD' | 'MODIFY' | 'REMOVE' : 'MODIFY',
+          clause: typeof item.clause === 'string' ? item.clause : `Sugerencia ${index + 1}`,
+          suggestion: typeof item.suggestion === 'string' ? item.suggestion : 'Revisar la redacción contractual.',
+          reason: typeof item.reason === 'string' ? item.reason : 'Mejora preventiva.',
+          priority: ['LOW', 'MEDIUM', 'HIGH'].includes(String(item.priority)) ? item.priority as 'LOW' | 'MEDIUM' | 'HIGH' : 'MEDIUM',
+        }
+      })
+    : []
+  return {
+    overallScore: typeof raw.overallScore === 'number' ? raw.overallScore : 0,
+    riskLevel,
+    risks,
+    suggestions,
+    compliance: Array.isArray(raw.compliance) ? raw.compliance : [],
+    clausulasObligatorias: Array.isArray(raw.clausulasObligatorias) ? raw.clausulasObligatorias : [],
+    resumenEjecutivo: typeof raw.resumenEjecutivo === 'string'
+      ? raw.resumenEjecutivo
+      : typeof raw.summary === 'string'
+        ? raw.summary
+        : 'Análisis disponible con datos parciales. Re-ejecuta el análisis para obtener una revisión completa.',
+    summary: typeof raw.summary === 'string'
+      ? raw.summary
+      : typeof raw.resumenEjecutivo === 'string'
+        ? raw.resumenEjecutivo
+        : 'Análisis disponible con datos parciales.',
+    multaEstimadaUIT: typeof raw.multaEstimadaUIT === 'number' ? raw.multaEstimadaUIT : 0,
+  }
+}
+
 // ─── Score ring component ─────────────────────────────────────────────────────
 
 function ScoreRing({ score }: { score: number }) {
@@ -117,7 +183,7 @@ export default function AnalisisContratoPaje() {
     const data = await res.json()
     const c: ContractMeta = data.data
     setContract(c)
-    if (c.aiRisksJson) setResult(c.aiRisksJson as ContractReviewResult)
+    if (c.aiRisksJson) setResult(normalizeReviewResult(c.aiRisksJson))
     setLoading(false)
   }, [id, router])
 
@@ -136,7 +202,9 @@ export default function AnalisisContratoPaje() {
         }),
       })
       const data = await res.json()
-      const r: ContractReviewResult = data.data
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'No se pudo ejecutar el análisis')
+      const r = normalizeReviewResult(data.data)
+      if (!r) throw new Error('El análisis no devolvió un resultado legible')
 
       // Persistir
       await fetch(`/api/contracts/${id}`, {

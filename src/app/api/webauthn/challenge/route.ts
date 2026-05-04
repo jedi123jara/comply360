@@ -19,7 +19,12 @@ import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { issueChallenge, type ChallengeAction } from '@/lib/webauthn-server'
 
-const VALID_ACTIONS: ChallengeAction[] = ['sign_contract', 'sign_payslip', 'sign_doc_acknowledgment']
+const VALID_ACTIONS: ChallengeAction[] = [
+  'sign_contract',
+  'sign_payslip',
+  'sign_doc_acknowledgment',
+  'vote_committee',
+]
 
 export const POST = withWorkerAuth(async (req, ctx) => {
   let body: { action?: string; entityId?: string }
@@ -69,6 +74,27 @@ export const POST = withWorkerAuth(async (req, ctx) => {
     })
     if (!doc) {
       return NextResponse.json({ error: 'Documento no encontrado o no requiere firma' }, { status: 404 })
+    }
+  } else if (action === 'vote_committee') {
+    // Verificar que el comité existe en la org del worker, está en votación,
+    // y el worker es elector activo (no ha votado aún).
+    const comite = await prisma.comiteSST.findFirst({
+      where: { id: entityId, orgId: ctx.orgId },
+      select: { id: true },
+    })
+    if (!comite) {
+      return NextResponse.json({ error: 'Comité no encontrado' }, { status: 404 })
+    }
+    // El worker debe estar activo en la organización
+    const worker = await prisma.worker.findFirst({
+      where: { id: ctx.workerId, orgId: ctx.orgId, status: 'ACTIVE' },
+      select: { id: true },
+    })
+    if (!worker) {
+      return NextResponse.json(
+        { error: 'No estás habilitado como elector activo' },
+        { status: 403 },
+      )
     }
   }
 

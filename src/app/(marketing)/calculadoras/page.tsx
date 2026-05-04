@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Wallet, Gift, ShieldAlert, ArrowRight, Sparkles, Check } from 'lucide-react'
+import { Wallet, Gift, ShieldAlert, ShieldCheck, ArrowRight, Sparkles, Check } from 'lucide-react'
 
 const CALCS = [
   {
@@ -30,6 +30,16 @@ const CALCS = [
     description:
       '¿Cuánto cuesta una infracción? Calcula la multa con descuento por subsanación voluntaria.',
     usage: 'D.S. 019-2006-TR',
+    popular: true,
+  },
+  {
+    slug: 'iperc',
+    icon: ShieldCheck,
+    color: 'from-amber-500 to-amber-600',
+    title: 'Matriz IPERC SST',
+    description:
+      'Calcula el Nivel de Riesgo (NR) de una tarea con la matriz oficial Probabilidad × Severidad. La función pura que usamos en producción.',
+    usage: 'R.M. 050-2013-TR',
     popular: true,
   },
 ]

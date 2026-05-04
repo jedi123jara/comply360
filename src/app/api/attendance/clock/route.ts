@@ -26,6 +26,8 @@ import { deriveAttendanceStatusFromSchedule } from '@/lib/attendance/schedule'
 import { calculateOvertime } from '@/lib/attendance/overtime'
 import { serializeAttendanceNotes, type AttendanceMetadata } from '@/lib/attendance/notes'
 import { logAttempt, extractRequestMetadata } from '@/lib/attendance/log-attempt'
+import { workDateFor } from '@/lib/attendance/local-date'
+import { recordAttendanceEvidence } from '@/lib/attendance/structured-records'
 
 export const runtime = 'nodejs'
 
@@ -191,15 +193,14 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
   }
 
   // ── Determinar action (in / out) ─────────────────────────────────────────
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  const now = new Date()
+  const workDate = workDateFor(now)
 
   const existingToday = await prisma.attendance.findFirst({
     where: {
       workerId: ctx.workerId,
-      clockIn: { gte: today, lt: tomorrow },
+      orgId: ctx.orgId,
+      workDate,
     },
     orderBy: { clockIn: 'desc' },
   })
@@ -222,8 +223,6 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       { status: 400 },
     )
   }
-
-  const now = new Date()
 
   // ── CLOCK-IN ─────────────────────────────────────────────────────────────
   if (action === 'in') {
@@ -284,6 +283,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
         data: {
           orgId: ctx.orgId,
           workerId: ctx.workerId,
+          workDate,
           clockIn: now,
           status,
           // Anti-fraude (PRO+): persistimos coords + selfie hash si vinieron
@@ -339,6 +339,22 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
       geo: geoForLog,
       ...reqMeta,
       metadata: { attendanceId: created.id, action: 'in' },
+    })
+
+    void recordAttendanceEvidence({
+      attendanceId: created.id,
+      orgId: ctx.orgId,
+      workerId: ctx.workerId,
+      type: 'clock_in',
+      metadata: {
+        via: 'qr',
+        geofence: geofenceMatched ?? null,
+        tokenIssuedAt: payload.issuedAt,
+        geo: typeof body.lat === 'number' && typeof body.lng === 'number'
+          ? { lat: body.lat, lng: body.lng, accuracy: body.accuracy ?? null }
+          : null,
+        selfieHash: body.selfieHash ?? null,
+      },
     })
 
     return NextResponse.json({
@@ -451,6 +467,22 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx: WorkerAuthConte
     geo: geoForLog,
     ...reqMeta,
     metadata: { attendanceId: updated.id, action: 'out', hoursWorked, overtime: overtime.isOvertime },
+  })
+
+  void recordAttendanceEvidence({
+    attendanceId: updated.id,
+    orgId: ctx.orgId,
+    workerId: ctx.workerId,
+    type: 'clock_out',
+    metadata: {
+      via: 'qr',
+      geofence: geofenceMatched ?? null,
+      tokenIssuedAt: payload.issuedAt,
+      hoursWorked: Number(hoursWorked.toFixed(2)),
+      geo: typeof body.lat === 'number' && typeof body.lng === 'number'
+        ? { lat: body.lat, lng: body.lng, accuracy: body.accuracy ?? null }
+        : null,
+    },
   })
 
   return NextResponse.json({

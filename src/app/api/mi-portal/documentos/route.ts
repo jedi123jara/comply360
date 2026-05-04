@@ -3,6 +3,7 @@ import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { uploadFile } from '@/lib/storage/upload'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
+import { validateUpload, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 
 export const GET = withWorkerAuth(async (_req, ctx) => {
   // Defense in depth: verifica que el worker pertenece al org correcto via relation filter
@@ -26,9 +27,6 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
   })
 })
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
-const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
-
 export const POST = withWorkerAuth(async (req, ctx) => {
   const formData = await req.formData()
   const documentType = formData.get('documentType')?.toString().trim()
@@ -39,16 +37,16 @@ export const POST = withWorkerAuth(async (req, ctx) => {
     return NextResponse.json({ error: 'Tipo y titulo son obligatorios' }, { status: 400 })
   }
 
-  if (!file || !(file instanceof File)) {
+  if (!(file instanceof File)) {
     return NextResponse.json({ error: 'Archivo requerido' }, { status: 400 })
   }
 
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: 'Archivo muy grande (máximo 5 MB)' }, { status: 400 })
-  }
-
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json({ error: 'Tipo de archivo no permitido. Use PDF, JPG o PNG.' }, { status: 400 })
+  // Validación centralizada (Ola 1 — seguridad).
+  // Profile más restrictivo para portal del trabajador: solo imágenes y PDF, máx 10 MB.
+  // Bloquea SVG, JS, EXE, PHP por dos capas (MIME + extensión).
+  const validation = validateUpload(file, UPLOAD_PROFILES.workerPortalUpload)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error, code: validation.code }, { status: 400 })
   }
 
   // Subir el archivo real (Supabase Storage en prod, filesystem en dev)

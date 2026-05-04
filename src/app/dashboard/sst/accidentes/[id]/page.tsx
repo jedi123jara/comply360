@@ -16,7 +16,12 @@ import {
   User,
   FileText,
   Copy,
+  QrCode,
+  Plus,
+  Trash2,
 } from 'lucide-react'
+import { Modal } from '@/components/ui/modal'
+import { SealQRModal } from '@/components/sst/seal-qr-modal'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -109,6 +114,7 @@ export default function AccidenteDetailPage() {
   const [satFecha, setSatFecha] = useState('')
   const [satCargoUrl, setSatCargoUrl] = useState('')
   const [savingSat, setSavingSat] = useState(false)
+  const [showSealModal, setShowSealModal] = useState(false)
 
   async function reload() {
     setLoading(true)
@@ -210,7 +216,19 @@ export default function AccidenteDetailPage() {
         eyebrow={`SST · ${TIPO_LABEL[accidente.tipo] ?? accidente.tipo}`}
         title={`Accidente del ${new Date(accidente.fechaHora).toLocaleDateString('es-PE')}`}
         subtitle={`${accidente.sede.nombre} · ${accidente.sede.direccion}`}
-        actions={<Badge variant={ESTADO_VARIANT[accidente.satEstado]}>{ESTADO_LABEL[accidente.satEstado]}</Badge>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={ESTADO_VARIANT[accidente.satEstado]}>
+              {ESTADO_LABEL[accidente.satEstado]}
+            </Badge>
+            {(accidente.satEstado === 'NOTIFICADO' || accidente.satEstado === 'CONFIRMADO') && (
+              <Button size="sm" variant="secondary" onClick={() => setShowSealModal(true)}>
+                <QrCode className="mr-2 h-4 w-4" />
+                Sello QR
+              </Button>
+            )}
+          </div>
+        }
       />
 
       {/* Banner de plazo */}
@@ -427,31 +445,484 @@ export default function AccidenteDetailPage() {
         </Card>
       </div>
 
+      <SealQRModal
+        kind="accidente"
+        resourceId={id}
+        label={`${TIPO_LABEL[accidente.tipo] ?? accidente.tipo} · ${accidente.sede.nombre}`}
+        isOpen={showSealModal}
+        onClose={() => setShowSealModal(false)}
+      />
+
       {/* Investigación */}
-      <Card>
-        <CardContent className="py-5">
-          <h2 className="text-base font-semibold text-slate-900">Investigación del accidente</h2>
-          {accidente.investigaciones.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-600">
-              Aún no hay investigación registrada. La Ley 29783 (Art. 58) obliga a investigar
-              todo accidente de trabajo. Esta sección se completará en sprints siguientes con
-              un wizard de causas inmediatas/básicas + acciones correctivas.
-            </p>
-          ) : (
-            <div className="mt-3 divide-y divide-slate-100">
-              {accidente.investigaciones.map((inv) => (
-                <div key={inv.id} className="py-3">
-                  <p className="text-sm font-medium text-slate-900">
-                    Investigación del{' '}
-                    {new Date(inv.fechaInvestigacion).toLocaleDateString('es-PE')}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <InvestigacionSection
+        accidenteId={id}
+        investigaciones={accidente.investigaciones}
+        onChanged={reload}
+      />
     </div>
+  )
+}
+
+// ── Sección Investigación ─────────────────────────────────────────────────
+
+function InvestigacionSection({
+  accidenteId,
+  investigaciones,
+  onChanged,
+}: {
+  accidenteId: string
+  investigaciones: AccidenteDetail['investigaciones']
+  onChanged: () => void
+}) {
+  const [showForm, setShowForm] = useState(false)
+  return (
+    <Card>
+      <CardContent className="py-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">
+              Investigación del accidente
+            </h2>
+            <p className="text-xs text-slate-600">
+              Ley 29783 Art. 58 obliga a investigar todo accidente de trabajo. Documenta causas
+              inmediatas, básicas y acciones correctivas.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva investigación
+          </Button>
+        </div>
+
+        {investigaciones.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50/40 py-8 text-center text-sm text-slate-500">
+            Aún no hay investigación registrada para este accidente.
+          </div>
+        ) : (
+          <div className="mt-4 divide-y divide-slate-100">
+            {investigaciones.map((inv) => (
+              <InvestigacionItem key={inv.id} inv={inv} accidenteId={accidenteId} />
+            ))}
+          </div>
+        )}
+
+        {showForm && (
+          <InvestigacionFormModal
+            accidenteId={accidenteId}
+            onClose={() => setShowForm(false)}
+            onSaved={() => {
+              setShowForm(false)
+              onChanged()
+            }}
+          />
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function InvestigacionItem({
+  inv,
+  accidenteId,
+}: {
+  inv: AccidenteDetail['investigaciones'][number]
+  accidenteId: string
+}) {
+  type Causa = { tipo: string; descripcion: string }
+  type Accion = { accion: string; responsable?: string | null; plazo?: string | null; estado?: string }
+  const inmediatas = (inv.causasInmediatas as Causa[] | null) ?? []
+  const basicas = (inv.causasBasicas as Causa[] | null) ?? []
+  const acciones = (inv.accionesCorrectivas as Accion[] | null) ?? []
+
+  return (
+    <div className="py-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-900">
+          Investigación del {new Date(inv.fechaInvestigacion).toLocaleDateString('es-PE')}
+        </p>
+        <a
+          href={`/api/sst/accidentes/${accidenteId}/investigacion/${inv.id}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-white px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+        >
+          <Download className="h-3 w-3" />
+          PDF formal
+        </a>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-900">
+            Causas inmediatas ({inmediatas.length})
+          </p>
+          {inmediatas.length === 0 ? (
+            <p className="mt-1 text-xs text-slate-500">Sin causas registradas</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {inmediatas.map((c, i) => (
+                <li key={i} className="text-xs text-amber-900">
+                  <Badge variant="warning" size="xs">
+                    {c.tipo === 'ACTO_INSEGURO' ? 'Acto inseguro' : 'Condición insegura'}
+                  </Badge>{' '}
+                  {c.descripcion}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-rose-200 bg-rose-50/40 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-900">
+            Causas básicas ({basicas.length})
+          </p>
+          {basicas.length === 0 ? (
+            <p className="mt-1 text-xs text-slate-500">Sin causas registradas</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {basicas.map((c, i) => (
+                <li key={i} className="text-xs text-rose-900">
+                  <Badge variant="danger" size="xs">
+                    {c.tipo === 'FACTOR_PERSONAL' ? 'Factor personal' : 'Factor trabajo'}
+                  </Badge>{' '}
+                  {c.descripcion}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-900">
+            Acciones correctivas ({acciones.length})
+          </p>
+          {acciones.length === 0 ? (
+            <p className="mt-1 text-xs text-slate-500">Sin acciones registradas</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {acciones.map((a, i) => (
+                <li key={i} className="text-xs text-emerald-900">
+                  <p className="font-medium">{a.accion}</p>
+                  {(a.responsable || a.plazo) && (
+                    <p className="mt-0.5 text-[10px] text-emerald-700">
+                      {a.responsable && `Resp.: ${a.responsable}`}
+                      {a.responsable && a.plazo && ' · '}
+                      {a.plazo &&
+                        `Plazo: ${new Date(a.plazo).toLocaleDateString('es-PE')}`}
+                      {a.estado && ` · ${a.estado}`}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface CausaForm {
+  tipo: string
+  descripcion: string
+}
+interface AccionForm {
+  accion: string
+  responsable: string
+  plazo: string
+}
+
+function InvestigacionFormModal({
+  accidenteId,
+  onClose,
+  onSaved,
+}: {
+  accidenteId: string
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [fechaInvestigacion, setFechaInvestigacion] = useState(
+    new Date().toISOString().slice(0, 10),
+  )
+  const [inmediatas, setInmediatas] = useState<CausaForm[]>([
+    { tipo: 'ACTO_INSEGURO', descripcion: '' },
+  ])
+  const [basicas, setBasicas] = useState<CausaForm[]>([
+    { tipo: 'FACTOR_PERSONAL', descripcion: '' },
+  ])
+  const [acciones, setAcciones] = useState<AccionForm[]>([
+    { accion: '', responsable: '', plazo: '' },
+  ])
+  const [submitting, setSubmitting] = useState(false)
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      const causasInmediatas = inmediatas
+        .filter((c) => c.descripcion.trim().length >= 3)
+        .map((c) => ({ tipo: c.tipo, descripcion: c.descripcion.trim() }))
+      const causasBasicas = basicas
+        .filter((c) => c.descripcion.trim().length >= 3)
+        .map((c) => ({ tipo: c.tipo, descripcion: c.descripcion.trim() }))
+      const accionesCorrectivas = acciones
+        .filter((a) => a.accion.trim().length >= 3)
+        .map((a) => ({
+          accion: a.accion.trim(),
+          responsable: a.responsable.trim() || null,
+          plazo: a.plazo ? `${a.plazo}T00:00:00.000Z` : null,
+          estado: 'PENDIENTE' as const,
+        }))
+
+      const res = await fetch(`/api/sst/accidentes/${accidenteId}/investigacion`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          fechaInvestigacion: `${fechaInvestigacion}T00:00:00.000Z`,
+          causasInmediatas,
+          causasBasicas,
+          accionesCorrectivas,
+        }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(j?.error || 'No se pudo guardar la investigación')
+        return
+      }
+      toast.success('Investigación registrada')
+      onSaved()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose} title="Nueva investigación de accidente" size="lg">
+      <form onSubmit={onSubmit} className="space-y-4">
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-700">
+            Fecha de la investigación <span className="text-rose-500">*</span>
+          </span>
+          <input
+            type="date"
+            required
+            className="input-inv"
+            value={fechaInvestigacion}
+            onChange={(e) => setFechaInvestigacion(e.target.value)}
+          />
+        </label>
+
+        {/* Causas inmediatas */}
+        <fieldset className="rounded-lg border border-amber-200 p-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-amber-900">
+            Causas inmediatas
+          </legend>
+          <p className="text-[11px] text-slate-600">
+            Actos inseguros (lo que el trabajador hizo mal) o condiciones inseguras (lo que el
+            ambiente no debió permitir).
+          </p>
+          <div className="mt-2 space-y-2">
+            {inmediatas.map((c, i) => (
+              <div key={i} className="grid gap-2 md:grid-cols-[160px_1fr_auto]">
+                <select
+                  className="input-inv"
+                  value={c.tipo}
+                  onChange={(e) =>
+                    setInmediatas((arr) =>
+                      arr.map((x, idx) => (idx === i ? { ...x, tipo: e.target.value } : x)),
+                    )
+                  }
+                >
+                  <option value="ACTO_INSEGURO">Acto inseguro</option>
+                  <option value="CONDICION_INSEGURA">Condición insegura</option>
+                </select>
+                <input
+                  type="text"
+                  className="input-inv"
+                  placeholder="Descripción de la causa"
+                  value={c.descripcion}
+                  onChange={(e) =>
+                    setInmediatas((arr) =>
+                      arr.map((x, idx) =>
+                        idx === i ? { ...x, descripcion: e.target.value } : x,
+                      ),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setInmediatas((arr) => arr.filter((_, idx) => idx !== i))
+                  }
+                  className="text-xs text-rose-600 hover:text-rose-700"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setInmediatas((arr) => [...arr, { tipo: 'ACTO_INSEGURO', descripcion: '' }])
+            }
+            className="mt-2 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+          >
+            + Agregar causa inmediata
+          </button>
+        </fieldset>
+
+        {/* Causas básicas */}
+        <fieldset className="rounded-lg border border-rose-200 p-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-rose-900">
+            Causas básicas
+          </legend>
+          <p className="text-[11px] text-slate-600">
+            Factores personales (capacitación, motivación, capacidad) o factores de trabajo
+            (procedimientos, mantenimiento, supervisión).
+          </p>
+          <div className="mt-2 space-y-2">
+            {basicas.map((c, i) => (
+              <div key={i} className="grid gap-2 md:grid-cols-[160px_1fr_auto]">
+                <select
+                  className="input-inv"
+                  value={c.tipo}
+                  onChange={(e) =>
+                    setBasicas((arr) =>
+                      arr.map((x, idx) => (idx === i ? { ...x, tipo: e.target.value } : x)),
+                    )
+                  }
+                >
+                  <option value="FACTOR_PERSONAL">Factor personal</option>
+                  <option value="FACTOR_TRABAJO">Factor de trabajo</option>
+                </select>
+                <input
+                  type="text"
+                  className="input-inv"
+                  placeholder="Descripción de la causa"
+                  value={c.descripcion}
+                  onChange={(e) =>
+                    setBasicas((arr) =>
+                      arr.map((x, idx) =>
+                        idx === i ? { ...x, descripcion: e.target.value } : x,
+                      ),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setBasicas((arr) => arr.filter((_, idx) => idx !== i))}
+                  className="text-xs text-rose-600 hover:text-rose-700"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setBasicas((arr) => [...arr, { tipo: 'FACTOR_PERSONAL', descripcion: '' }])
+            }
+            className="mt-2 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+          >
+            + Agregar causa básica
+          </button>
+        </fieldset>
+
+        {/* Acciones correctivas */}
+        <fieldset className="rounded-lg border border-emerald-200 p-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-emerald-900">
+            Acciones correctivas
+          </legend>
+          <div className="mt-2 space-y-2">
+            {acciones.map((a, i) => (
+              <div key={i} className="grid gap-2 md:grid-cols-[1fr_140px_140px_auto]">
+                <input
+                  type="text"
+                  className="input-inv"
+                  placeholder="Acción a implementar"
+                  value={a.accion}
+                  onChange={(e) =>
+                    setAcciones((arr) =>
+                      arr.map((x, idx) => (idx === i ? { ...x, accion: e.target.value } : x)),
+                    )
+                  }
+                />
+                <input
+                  type="text"
+                  className="input-inv"
+                  placeholder="Responsable"
+                  value={a.responsable}
+                  onChange={(e) =>
+                    setAcciones((arr) =>
+                      arr.map((x, idx) =>
+                        idx === i ? { ...x, responsable: e.target.value } : x,
+                      ),
+                    )
+                  }
+                />
+                <input
+                  type="date"
+                  className="input-inv"
+                  value={a.plazo}
+                  onChange={(e) =>
+                    setAcciones((arr) =>
+                      arr.map((x, idx) => (idx === i ? { ...x, plazo: e.target.value } : x)),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setAcciones((arr) => arr.filter((_, idx) => idx !== i))}
+                  className="text-xs text-rose-600 hover:text-rose-700"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setAcciones((arr) => [...arr, { accion: '', responsable: '', plazo: '' }])
+            }
+            className="mt-2 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+          >
+            + Agregar acción
+          </button>
+        </fieldset>
+
+        <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Guardar investigación
+          </Button>
+        </div>
+
+        <style jsx>{`
+          .input-inv {
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid rgb(226 232 240);
+            background: white;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.85rem;
+          }
+          .input-inv:focus {
+            outline: none;
+            border-color: rgb(16 185 129);
+            box-shadow: 0 0 0 3px rgb(16 185 129 / 0.15);
+          }
+        `}</style>
+      </form>
+    </Modal>
   )
 }
 

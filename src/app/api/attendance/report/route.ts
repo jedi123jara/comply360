@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { generateAttendanceReportPDF } from '@/lib/attendance/report-pdf'
+import { withAuth } from '@/lib/api-auth'
 
 /**
  * GET /api/attendance/report — Reporte de asistencia
@@ -11,10 +11,8 @@ import { generateAttendanceReportPDF } from '@/lib/attendance/report-pdf'
  *     → Libro Digital de Asistencia (R.M. 037-2024-TR Anexo 1) en PDF
  *   - default JSON (summary por trabajador) + startDate + endDate (+ department)
  */
-export async function GET(req: NextRequest) {
-  const { orgId } = await auth()
-  if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
+export const GET = withAuth(async (req: NextRequest, ctx) => {
+  const orgId = ctx.orgId
   const url = new URL(req.url)
   const startDate = url.searchParams.get('startDate')
   const endDate = url.searchParams.get('endDate')
@@ -39,7 +37,7 @@ export async function GET(req: NextRequest) {
     }
     try {
       const start = new Date(`${startDate}T00:00:00.000Z`)
-      const end = new Date(`${endDate}T23:59:59.999Z`)
+      const end = new Date(`${endDate}T00:00:00.000Z`)
 
       const [org, worker, records] = await Promise.all([
         prisma.organization.findUnique({
@@ -57,12 +55,12 @@ export async function GET(req: NextRequest) {
           },
         }),
         prisma.attendance.findMany({
-          where: { orgId, workerId, clockIn: { gte: start, lte: end } },
+          where: { orgId, workerId, workDate: { gte: start, lte: end } },
           select: {
             clockIn: true, clockOut: true, status: true, hoursWorked: true,
             isOvertime: true, overtimeMinutes: true, notes: true,
           },
-          orderBy: { clockIn: 'asc' },
+          orderBy: { workDate: 'asc' },
         }),
       ])
       if (!org) return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 })
@@ -100,11 +98,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const start = new Date(`${startDate}T00:00:00.000Z`)
-    const end = new Date(`${endDate}T23:59:59.999Z`)
+    const end = new Date(`${endDate}T00:00:00.000Z`)
 
     const where: Record<string, unknown> = {
       orgId,
-      clockIn: { gte: start, lte: end },
+      workDate: { gte: start, lte: end },
     }
     if (department) {
       where.worker = { department }
@@ -171,4 +169,4 @@ export async function GET(req: NextRequest) {
     console.error('[attendance/report] Error:', error)
     return NextResponse.json({ error: 'Error al generar reporte' }, { status: 500 })
   }
-}
+})

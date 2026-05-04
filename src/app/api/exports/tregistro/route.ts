@@ -13,6 +13,7 @@ import {
   generateTRegistroFileName,
   type TRegistroRow,
 } from '@/lib/exports/tregistro-generator'
+import { planHasFeature } from '@/lib/plan-features'
 
 export const runtime = 'nodejs'
 
@@ -71,7 +72,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   const org = await prisma.organization.findUnique({
     where: { id: ctx.orgId },
-    select: { ruc: true },
+    select: { ruc: true, plan: true },
   })
   if (!org?.ruc) {
     return NextResponse.json(
@@ -80,8 +81,42 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     )
   }
 
+  // Plan-gate (Ola 4 — decisión 2026-05-04): T-Registro export es gancho de EMPRESA.
+  // STARTER no tiene este feature; lo lleva como upsell.
+  if (!planHasFeature(org.plan, 't_registro_export')) {
+    return NextResponse.json(
+      {
+        error: 'El export T-REGISTRO está disponible desde el plan EMPRESA. Actualiza tu plan para descargar el archivo SUNAT.',
+        code: 'PLAN_UPGRADE_REQUIRED',
+        feature: 't_registro_export',
+        currentPlan: org.plan,
+        upgradeUrl: '/dashboard/planes',
+      },
+      { status: 403 }
+    )
+  }
+
+  // Filtro según operación:
+  //   - A (Alta): solo workers ACTIVE registrados en este periodo
+  //   - B (Baja): solo workers TERMINATED en este periodo
+  //   - M (Modificación): workers ACTIVE con cambios en este periodo (best-effort: todos los activos)
+  // Nunca incluimos soft-deleted (`deletedAt != null`) porque esos no
+  // existieron formalmente para SUNAT.
+  const periodYear = parseInt(periodo.slice(0, 4), 10)
+  const periodMonth = parseInt(periodo.slice(4, 6), 10) - 1
+  const periodStart = new Date(Date.UTC(periodYear, periodMonth, 1))
+  const periodEnd = new Date(Date.UTC(periodYear, periodMonth + 1, 1))
+
+  const baseWhere = { orgId: ctx.orgId, deletedAt: null }
+  const whereByOp =
+    operacion === 'A'
+      ? { ...baseWhere, status: 'ACTIVE' as const, fechaIngreso: { gte: periodStart, lt: periodEnd } }
+      : operacion === 'B'
+        ? { ...baseWhere, status: 'TERMINATED' as const, fechaCese: { gte: periodStart, lt: periodEnd } }
+        : { ...baseWhere, status: 'ACTIVE' as const, updatedAt: { gte: periodStart, lt: periodEnd } }
+
   const workers = await prisma.worker.findMany({
-    where: { orgId: ctx.orgId, status: 'ACTIVE' },
+    where: whereByOp,
     select: {
       dni: true,
       firstName: true,
@@ -100,14 +135,36 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       cuspp: true,
       essaludVida: true,
       sctr: true,
+      // Ola 1+2 — campos compliance peruano
+      discapacidad: true,
+      discapacidadCertificado: true,
+      nivelEducativo: true,
     },
   })
 
   if (workers.length === 0) {
+    const opLabel = operacion === 'A' ? 'altas' : operacion === 'B' ? 'bajas' : 'modificaciones'
     return NextResponse.json(
-      { error: 'No hay trabajadores activos' },
+      { error: `No hay ${opLabel} en el periodo ${periodo}` },
       { status: 404 }
     )
+  }
+
+  // Códigos SUNAT de nivel educativo (Anexo 4 PDT Planilla Electrónica)
+  const NIVEL_EDUCATIVO_MAP: Record<string, string> = {
+    PRIMARIA: '02',
+    SECUNDARIA: '03',
+    TECNICA: '06',
+    UNIVERSITARIA: '08',
+    POSTGRADO: '09',
+  }
+
+  // Normalización de nacionalidad → código ISO 3166-1 alpha-3 simplificado
+  function nationalityCode(raw: string | null | undefined): string {
+    if (!raw) return 'PE'
+    const v = raw.trim().toLowerCase()
+    if (v === 'peruana' || v === 'peruano' || v === 'pe' || v === 'per') return 'PE'
+    return raw.slice(0, 3).toUpperCase()
   }
 
   const rows: TRegistroRow[] = workers.map(w => {
@@ -121,13 +178,19 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       nombres: w.firstName || '',
       sexo: w.gender === 'F' ? 'F' : 'M',
       fechaNacimiento: w.birthDate ? w.birthDate.toISOString().slice(0, 10) : '',
-      nacionalidad: w.nationality === 'peruana' || !w.nationality ? 'PE' : (w.nationality.slice(0, 3).toUpperCase()),
+      nacionalidad: nationalityCode(w.nationality),
       fechaIngreso: w.fechaIngreso.toISOString().slice(0, 10),
       fechaCese: w.fechaCese ? w.fechaCese.toISOString().slice(0, 10) : undefined,
       motivoCese: w.motivoCese || undefined,
       tipoContrato: TIPO_CONTRATO_MAP[String(w.tipoContrato)] || '21',
       ocupacion: w.position || 'NO ESPECIFICADO',
-      discapacidad: 'N',
+      // Discapacidad: usa el campo real (Ola 1+2). 'S' solo si está acreditado por CONADIS.
+      // Reportar 'S' sin certificado real es asignación falsa → multa SUNAFIL.
+      discapacidad: w.discapacidad && w.discapacidadCertificado ? 'S' : 'N',
+      certificadoDiscapacidad: w.discapacidadCertificado ? 'S' : 'N',
+      nivelEducativo: w.nivelEducativo
+        ? NIVEL_EDUCATIVO_MAP[w.nivelEducativo] || '01'
+        : undefined,
       direccion: w.address || undefined,
       regimenLaboral: REGIMEN_LABORAL_MAP[String(w.regimenLaboral)] || '00',
       sistemaPension: SISTEMA_PENSION_MAP[String(w.tipoAporte)] || '03',

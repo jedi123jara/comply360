@@ -21,7 +21,7 @@
 10. [Fase 2.5 — Pivot zero-liability: Biblioteca de plantillas](#fase-25--pivot-zero-liability-biblioteca-de-plantillas-nuevo-2026-04) ✅ NUEVO
 11. [Fase 3 — Compliance Completo](#fase-3--compliance-completo) 🟡
 12. [Fase 3.5 — IA Vision para legajo](#fase-35--ia-vision-para-legajo-nuevo-2026-04) ✅ NUEVO
-13. [Fase 5 — SST Premium](#fase-5--sst-premium-nuevo-2026-05) 🟡 NUEVO
+13. [Fase 5 — SST Premium](#fase-5--sst-premium-nuevo-2026-05) ✅ NUEVO
 14. [Fase 4 — Ecosistema](#fase-4--ecosistema) 🟡
 15. [Mapa de Modulos vs Fases](#6-mapa-de-modulos-vs-fases)
 16. [Convenciones de Codigo](#7-convenciones-de-codigo)
@@ -898,6 +898,76 @@ Este es el modulo MAS CRITICO. Todo el sistema gira alrededor de los trabajadore
 - ❌ App móvil React Native nativa (web responsive cubre el flujo aclarado)
 - ❌ ML predictivo accidentes Ola 2 (cold start, postergar hasta tracción)
 - ❌ API pública + 3 SDKs (premature, solo si cliente enterprise lo pide)
+
+**Estado al 2026-05-04**: módulo SST Premium **20 sprints completados**. Build OK,
+**186 tests verdes** en 9 archivos, ~80 endpoints API + ~25 páginas dashboard.
+Pendiente operacional: aplicar migración + RLS + `MEDICAL_VAULT_KEY` (ver
+[DEPLOY-SST.md](./DEPLOY-SST.md)).
+
+**Resumen de archivos clave entregados:**
+```
+src/lib/sst/
+├── iperc-matrix.ts          # Motor P×S oficial SUNAFIL (38 tests)
+├── peligros-library.ts      # 80 peligros base (17 tests)
+├── sat-deadline.ts          # Plazos D.S. 006-2022-TR (13 tests)
+├── comite-rules.ts          # Composición R.M. 245-2021-TR (23 tests)
+├── calendar-engine.ts       # 6 reglas calendarizador (24 tests)
+├── scoring.ts               # Score 0-100 + exposición S/ (18 tests)
+├── traceability.ts          # Hash chain + slug + verify (19 tests)
+├── medical-vault.ts         # pgcrypto encrypt/decrypt
+├── iperc-llm.ts             # DeepSeek redactor + whitelist
+├── schemas.ts               # Zod schemas (18 tests)
+└── __tests__/integration-flow.test.ts  # 16 tests E2E
+
+src/app/api/sst/
+├── sedes/                   # CRUD + mapa-riesgos
+├── puestos/                 # CRUD
+├── iperc-bases/             # CRUD + filas + sugerir LLM + pdf
+├── accidentes/              # CRUD + investigación + pdf-sat
+├── emo/                     # CRUD + próximos vencimientos
+├── consentimientos/         # POST + GET (Ley 29733)
+├── derechos-arco/           # CRUD ARCO con SLA 20 días
+├── comites/                 # CRUD + miembros + elecciones + voto + acta-pdf
+├── visitas/                 # CRUD + hallazgos + pdf
+├── hallazgos/               # DELETE
+├── colaboradores/           # CRUD super-admin
+├── catalogo/peligros        # GET catálogo
+├── catalogo/controles       # GET catálogo
+├── seal/[kind]/[id]         # Sello QR
+├── plan-anual               # CRUD plan anual
+├── score                    # Score + exposición + recomendaciones
+├── alertas/preview          # Dry-run del cron
+└── onboarding/status        # Status onboarding wizard
+
+src/app/api/cron/sst-daily/  # Cron diario alertas SST
+src/app/api/verify/sst/[slug]/  # Verificación pública sin auth
+
+src/app/dashboard/sst/
+├── sedes/                   # Lista + nueva + detalle + mapa-riesgos
+├── iperc-bases/[id]/        # Editor matriz IPERC con preview live
+├── accidentes/              # Lista + nueva + detalle con investigación
+├── emo/                     # Lista + nueva + detalle con revelado auditado
+├── arco/                    # Lista DPO + workflow
+├── comite/                  # Análisis paritario + miembros
+├── comite/elecciones/       # Votación electrónica + resultados
+├── visitas/                 # Lista + nueva + detalle con hallazgos
+├── plan-anual/              # Editor con cronograma + objetivos
+├── onboarding/              # Wizard 4 steps
+└── score/                   # Score + breakdown + recomendaciones
+
+src/app/admin/colaboradores-sst/  # CRUD super-admin de inspectores
+src/app/verify/sst/[slug]/        # Página pública de verificación
+
+src/components/sst/
+├── seal-qr-modal.tsx        # Modal QR reutilizable
+├── sst-score-widget.tsx     # Widget compacto del score
+└── risk-map-editor.tsx      # Konva.js editor
+
+vercel.json                  # Cron sst-daily 07:00 UTC
+prisma/rls-policies.sql      # RLS para 13 tablas SST
+prisma/seed-sst.ts           # 80 peligros + 40 controles + colaborador demo
+DEPLOY-SST.md                # Runbook operacional completo
+```
 
 #### F5.1 — Schema tabular SST + sub-schema médico cifrado ✅ (Sprint 1, 2026-05)
 

@@ -362,9 +362,31 @@ export default function DenunciasPage() {
                       </div>
                     )}
                     {complaint.triagedAt && complaint.triageJson && !complaint.triageJson.ok && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                        <ShieldAlert className="inline h-3.5 w-3.5 mr-1" />
-                        Triaje IA no disponible ({complaint.triageJson.reason ?? 'error'}). Clasifique manualmente.
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 flex items-start justify-between gap-2">
+                        <div>
+                          <ShieldAlert className="inline h-3.5 w-3.5 mr-1" />
+                          Triaje IA no disponible ({complaint.triageJson.reason ?? 'error'}). Clasifique manualmente.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(
+                                `/api/complaints/${complaint.id}/re-triage`,
+                                { method: 'POST' },
+                              )
+                              if (res.ok) window.location.reload()
+                              else throw new Error('Falló re-triage')
+                            } catch (err) {
+                              alert(
+                                err instanceof Error ? err.message : 'Error en re-triage',
+                              )
+                            }
+                          }}
+                          className="rounded bg-amber-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-amber-700"
+                        >
+                          Reintentar IA
+                        </button>
                       </div>
                     )}
                     {/* Deadline tracker */}

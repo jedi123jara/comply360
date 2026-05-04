@@ -9,6 +9,7 @@ import pg from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../src/generated/prisma/client.js'
 import type { RegimenLaboral, ContractType, WorkerAlertType, TipoContrato } from '../src/generated/prisma/enums.js'
+import { workDateFor } from '../src/lib/attendance/local-date'
 
 const pool = new pg.Pool({ connectionString: process.env.DIRECT_URL })
 const adapter = new PrismaPg(pool)
@@ -371,6 +372,7 @@ async function seedOrg(params: {
       return {
         orgId: org.id,
         workerId: wId,
+        workDate: workDateFor(ci),
         clockIn: ci,
         clockOut: co,
         hoursWorked: 9,

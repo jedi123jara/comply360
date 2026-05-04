@@ -9,6 +9,7 @@ import {
   getAckDeadlines,
   getScheduledCapacitaciones,
 } from '@/lib/calendar/extended-sources'
+import { getAllSstPremiumEvents } from '@/lib/sst/calendar-events'
 
 // =============================================
 // Types
@@ -372,6 +373,8 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       vacations,
       ackDeadlines,
       capacitaciones,
+      // Fase 5 — SST Premium
+      sstPremium,
     ] = await Promise.all([
       Promise.resolve(getFixedLegalEvents(year)),
       getExpiringContracts(orgId),
@@ -384,6 +387,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       getScheduledVacations(orgId),
       getAckDeadlines(orgId),
       getScheduledCapacitaciones(orgId),
+      getAllSstPremiumEvents(orgId, year),
     ])
 
     let events: CalendarEvent[] = [
@@ -399,6 +403,8 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       ...vacations.map(toCalendarEvent),
       ...ackDeadlines.map(toCalendarEvent),
       ...capacitaciones.map(toCalendarEvent),
+      // SST Premium — eventos del módulo Fase 5
+      ...sstPremium,
     ]
 
     // Apply type filter if provided

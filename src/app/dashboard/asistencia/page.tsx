@@ -43,9 +43,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown'
-import { confirm } from '@/components/ui/confirm-dialog'
 import { toast } from 'sonner'
 import { formatOvertime } from '@/lib/attendance/overtime'
+import { localDateKey } from '@/lib/attendance/local-date'
 
 // ── Types ──────────────────────────────────────────
 type JustificationState =
@@ -100,6 +100,15 @@ interface Summary {
   overtimeMinutes: number
 }
 
+interface MonthDay {
+  date: string
+  total: number
+  present: number
+  late: number
+  absent: number
+  attendanceRate: number
+}
+
 // ── Status Config ──────────────────────────────────
 const STATUS_CONFIG = {
   PRESENT: {
@@ -144,15 +153,9 @@ const JUSTIFICATION_BADGE: Record<JustificationState, { label: string; className
   },
 }
 
-// Stable pseudo-random hash usado solo cuando hay datos reales del mes
-function dayHash(day: number, seed: number): number {
-  const x = Math.sin(day * 9301 + seed * 49297 + 233720) * 10000
-  return x - Math.floor(x)
-}
-
 // ── Page Component ─────────────────────────────────
 export default function AsistenciaPage() {
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(localDateKey())
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [summary, setSummary] = useState<Summary>({
     present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
@@ -164,7 +167,6 @@ export default function AsistenciaPage() {
   const [clockError, setClockError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [filter, setFilter] = useState<string>('all')
-  const heatmapSeed = new Date().getFullYear() * 12 + new Date().getMonth()
 
   // Modales para flujo de justificación
   const [approveModal, setApproveModal] = useState<{ record: AttendanceRecord; mode: 'approve' | 'reject' } | null>(null)
@@ -179,9 +181,10 @@ export default function AsistenciaPage() {
   const [pdfWorkerId, setPdfWorkerId] = useState<string>('')
   const [pdfStart, setPdfStart] = useState<string>(() => {
     const d = new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
+    return localDateKey(new Date(d.getFullYear(), d.getMonth(), 1))
   })
-  const [pdfEnd, setPdfEnd] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [monthDays, setMonthDays] = useState<MonthDay[]>([])
+  const [pdfEnd, setPdfEnd] = useState<string>(() => localDateKey())
   const [scanningPatterns, setScanningPatterns] = useState(false)
 
   // Cargar lista de workers cuando se abre el modal de PDF (lazy)
@@ -247,6 +250,7 @@ export default function AsistenciaPage() {
       if (res.ok) {
         const data = await res.json()
         setRecords(data.records ?? [])
+        setMonthDays(data.month ?? [])
         setSummary(data.summary ?? {
           present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
           pendingJustification: 0, pendingApproval: 0, approved: 0,
@@ -254,6 +258,7 @@ export default function AsistenciaPage() {
         })
       } else {
         setRecords([])
+        setMonthDays([])
         setSummary({
           present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
           pendingJustification: 0, pendingApproval: 0, approved: 0,
@@ -262,6 +267,7 @@ export default function AsistenciaPage() {
       }
     } catch {
       setRecords([])
+      setMonthDays([])
       setSummary({
         present: 0, late: 0, absent: 0, onLeave: 0, total: 0,
         pendingJustification: 0, pendingApproval: 0, approved: 0,
@@ -275,8 +281,8 @@ export default function AsistenciaPage() {
 
   // Navigate date
   const changeDate = (delta: number) => {
-    const d = new Date(date)
-    d.setDate(d.getDate() + delta)
+    const [year, month, day] = date.split('-').map(Number)
+    const d = new Date(Date.UTC(year, month - 1, day + delta))
     setDate(d.toISOString().slice(0, 10))
   }
 
@@ -396,7 +402,7 @@ export default function AsistenciaPage() {
     return new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
   }
 
-  const isToday = date === new Date().toISOString().slice(0, 10)
+  const isToday = date === localDateKey()
   const totalUnresolved = summary.pendingJustification + summary.pendingApproval
 
   return (
@@ -655,7 +661,7 @@ export default function AsistenciaPage() {
           </button>
           {!isToday && (
             <button
-              onClick={() => setDate(new Date().toISOString().slice(0, 10))}
+              onClick={() => setDate(localDateKey())}
               className="text-sm text-emerald-600 hover:underline ml-2"
             >
               Hoy
@@ -882,8 +888,9 @@ export default function AsistenciaPage() {
               {d}
             </div>
           ))}
-          {Array.from({ length: 30 }, (_, i) => {
-            if (summary.total === 0) {
+          {Array.from({ length: Math.max(28, monthDays.length || 30) }, (_, i) => {
+            const dayData = monthDays[i]
+            if (!dayData || dayData.total === 0) {
               return (
                 <div
                   key={i}
@@ -892,26 +899,26 @@ export default function AsistenciaPage() {
                 />
               )
             }
-            const intensity = dayHash(i + 1, heatmapSeed)
             const dayNum = i + 1
-            const bg = intensity > 0.8
+            const intensity = dayData.attendanceRate / 100
+            const bg = intensity >= 0.95
               ? 'bg-emerald-600'
-              : intensity > 0.6
+              : intensity >= 0.8
                 ? 'bg-emerald-500'
-                : intensity > 0.3
+                : intensity >= 0.6
                   ? 'bg-emerald-400'
-                  : intensity > 0.1
-                    ? 'bg-emerald-200'
-                    : 'bg-[color:var(--neutral-100)]'
+                  : dayData.absent > 0
+                    ? 'bg-amber-300'
+                    : 'bg-emerald-200'
             return (
               <div
                 key={i}
                 className={cn('aspect-square rounded-sm', bg)}
-                title={`Día ${dayNum}: ${Math.round(intensity * 100)}% asistencia`}
+                title={`Día ${dayNum}: ${dayData.attendanceRate}% asistencia (${dayData.present} presentes, ${dayData.late} tardanzas, ${dayData.absent} ausencias)`}
               />
             )
           })}
-          {summary.total === 0 && !loading && (
+          {monthDays.every(d => d.total === 0) && !loading && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <span className="rounded-full bg-white/95 backdrop-blur-sm border border-gray-200 px-3 py-1 text-[11px] font-medium text-[color:var(--text-secondary)] shadow-sm">
                 Sin datos aún

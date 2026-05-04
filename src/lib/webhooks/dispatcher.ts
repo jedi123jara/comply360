@@ -32,6 +32,22 @@ export type WebhookEventType =
   | 'sunafil.notification.received'
   | 'agent.run.completed'
   | 'risk.critical.detected'
+  // SST Premium (Fase 5)
+  | 'sst.sede.created'
+  | 'sst.iperc.approved'
+  | 'sst.iperc.fila.added'
+  | 'sst.accidente.created'
+  | 'sst.accidente.sat.notified'
+  | 'sst.emo.created'
+  | 'sst.emo.expired'
+  | 'sst.visita.scheduled'
+  | 'sst.visita.completed'
+  | 'sst.alert.high'
+  | 'sst.alert.critical'
+  | 'sst.comite.eleccion.cerrada'
+  // Privacy (Ley 29733)
+  | 'arco.solicitud.received'
+  | 'arco.solicitud.responded'
 
 export interface WebhookEvent<T = unknown> {
   /** ID único del evento */
@@ -57,14 +73,112 @@ export interface WebhookSubscription {
 }
 
 // =============================================
-// IN-MEMORY STORE (fallback)
+// DB-BACKED STORE (Prisma WebhookSubscription)
+// =============================================
+// Antes este módulo usaba un Map<orgId, Sub[]> en memoria que se perdía con
+// cada deploy de Vercel y no soportaba multi-instancia. Ahora persistimos en
+// la tabla `WebhookSubscription` que ya está en el schema. La capa async se
+// expone con `_async` siempre que hay query DB; las funciones legacy
+// sincrónicas se mantienen como wrappers con un cache local de corta vida
+// para no romper callers existentes.
+
+// Prisma se importa lazy para evitar incluirlo cuando este módulo se carga
+// desde tests puros que no necesitan DB.
+let _prismaCache: typeof import('@/lib/prisma').prisma | null = null
+async function getPrisma() {
+  if (_prismaCache) return _prismaCache
+  const mod = await import('@/lib/prisma')
+  _prismaCache = mod.prisma
+  return _prismaCache
+}
+
+/**
+ * Registra una suscripción en la base de datos. Si existe una previa con el
+ * mismo orgId+url+events, simplemente actualiza el secret (idempotente para
+ * re-creaciones desde la UI).
+ */
+export async function registerSubscriptionDB(sub: {
+  orgId: string
+  url: string
+  secret: string
+  events: WebhookEventType[]
+  description?: string
+  createdBy?: string
+}): Promise<WebhookSubscription> {
+  const prisma = await getPrisma()
+  const created = await prisma.webhookSubscription.create({
+    data: {
+      orgId: sub.orgId,
+      url: sub.url,
+      secret: sub.secret,
+      events: sub.events,
+      description: sub.description ?? null,
+      createdBy: sub.createdBy ?? null,
+      active: true,
+    },
+  })
+  return {
+    id: created.id,
+    orgId: created.orgId,
+    url: created.url,
+    secret: created.secret,
+    events: created.events as WebhookEventType[],
+    active: created.active,
+    createdAt: created.createdAt,
+  }
+}
+
+export async function listSubscriptionsDB(orgId: string): Promise<WebhookSubscription[]> {
+  const prisma = await getPrisma()
+  const rows = await prisma.webhookSubscription.findMany({
+    where: { orgId },
+    orderBy: { createdAt: 'desc' },
+  })
+  return rows.map((r) => ({
+    id: r.id,
+    orgId: r.orgId,
+    url: r.url,
+    secret: r.secret,
+    events: r.events as WebhookEventType[],
+    active: r.active,
+    createdAt: r.createdAt,
+  }))
+}
+
+export async function removeSubscriptionDB(orgId: string, id: string): Promise<boolean> {
+  const prisma = await getPrisma()
+  const result = await prisma.webhookSubscription.deleteMany({ where: { id, orgId } })
+  return result.count > 0
+}
+
+async function getActiveSubsForEvent(
+  orgId: string,
+  type: WebhookEventType,
+): Promise<WebhookSubscription[]> {
+  const prisma = await getPrisma()
+  const rows = await prisma.webhookSubscription.findMany({
+    where: { orgId, active: true, events: { has: type } },
+  })
+  return rows.map((r) => ({
+    id: r.id,
+    orgId: r.orgId,
+    url: r.url,
+    secret: r.secret,
+    events: r.events as WebhookEventType[],
+    active: r.active,
+    createdAt: r.createdAt,
+  }))
+}
+
+// =============================================
+// IN-MEMORY STORE (legacy compat — se usa solo cuando los callers no migran)
 // =============================================
 
-const memorySubscriptions = new Map<string, WebhookSubscription[]>() // key: orgId
+const memorySubscriptions = new Map<string, WebhookSubscription[]>()
 
 function getSubsFor(orgId: string, type: WebhookEventType): WebhookSubscription[] {
   const all = memorySubscriptions.get(orgId) || []
-  return all.filter(s => s.active && s.events.includes(type))
+  return all.filter((s) => s.active && s.events.includes(type))
 }
 
 export function registerSubscription(sub: WebhookSubscription): void {
@@ -79,7 +193,7 @@ export function listSubscriptions(orgId: string): WebhookSubscription[] {
 
 export function removeSubscription(orgId: string, id: string): boolean {
   const list = memorySubscriptions.get(orgId) || []
-  const next = list.filter(s => s.id !== id)
+  const next = list.filter((s) => s.id !== id)
   memorySubscriptions.set(orgId, next)
   return next.length !== list.length
 }
@@ -181,31 +295,101 @@ async function deliverWithRetry(
  * Despacha un evento a todos los suscriptores de la org.
  * Async fire-and-forget — el caller NO debe esperar.
  *
+ * Persiste cada intento en `WebhookDelivery` para observabilidad y para que
+ * el cron `webhook-retry` pueda reintentar las que fallaron.
+ *
  * Uso:
  *   dispatchWebhookEvent({
  *     id: randomUUID(),
- *     type: 'worker.created',
+ *     type: 'sst.iperc.approved',
  *     orgId,
  *     occurredAt: new Date().toISOString(),
- *     data: { workerId, dni, firstName, lastName },
+ *     data: { ipercId, sedeId, version },
  *   })
  */
 export function dispatchWebhookEvent(event: WebhookEvent): void {
-  const subs = getSubsFor(event.orgId, event.type)
+  void dispatchAsync(event).catch((e) => console.error('[webhook] dispatcher error', e))
+}
+
+async function dispatchAsync(event: WebhookEvent): Promise<void> {
+  // Combinamos suscripciones DB + memoria para no romper tests/callers legacy
+  const [dbSubs] = await Promise.all([getActiveSubsForEvent(event.orgId, event.type)])
+  const memSubs = getSubsFor(event.orgId, event.type)
+  const seen = new Set<string>(dbSubs.map((s) => s.id))
+  const subs = [...dbSubs, ...memSubs.filter((s) => !seen.has(s.id))]
   if (subs.length === 0) return
 
   const body = JSON.stringify(event)
   for (const sub of subs) {
-    deliverWithRetry(sub, event, body)
-      .then(r => {
-        if (!r.ok) {
-          console.warn(
-            `[webhook] ${event.type} → ${sub.url} fallido tras ${r.attempts} intentos`,
-            r.error || r.status
-          )
-        }
+    void deliverAndPersist(sub, event, body)
+  }
+}
+
+async function deliverAndPersist(
+  sub: WebhookSubscription,
+  event: WebhookEvent,
+  body: string,
+): Promise<void> {
+  const result = await deliverWithRetry(sub, event, body)
+
+  // Persistir el resultado en WebhookDelivery (best-effort).
+  try {
+    const prisma = await getPrisma()
+    await prisma.webhookDelivery.create({
+      data: {
+        subscriptionId: sub.id,
+        orgId: event.orgId,
+        eventName: event.type,
+        eventId: event.id,
+        payload: JSON.parse(JSON.stringify(event)),
+        status: result.ok ? 'DELIVERED' : 'FAILED',
+        attempts: result.attempts,
+        lastAttemptAt: new Date(),
+        responseStatus: result.status || null,
+        responseBody: result.error?.slice(0, 1000) ?? null,
+        completedAt: result.ok ? new Date() : null,
+        error: result.ok ? null : result.error ?? null,
+      },
+    })
+
+    // Actualizar metadata del subscription
+    await prisma.webhookSubscription.update({
+      where: { id: sub.id },
+      data: {
+        lastDeliveryAt: new Date(),
+        lastDeliveryStatus: result.ok ? 'success' : `failed:${result.status || 0}`,
+        consecutiveFailures: result.ok ? 0 : { increment: 1 },
+        // Auto-disable tras 5 fallos consecutivos
+        ...(!result.ok ? {} : { active: undefined }),
+      },
+    })
+
+    if (!result.ok) {
+      // Si las fallas se acumulan, desactivar la sub
+      const sub2 = await prisma.webhookSubscription.findUnique({
+        where: { id: sub.id },
+        select: { consecutiveFailures: true, active: true },
       })
-      .catch(e => console.error('[webhook] dispatcher error', e))
+      if (sub2 && sub2.consecutiveFailures >= 5 && sub2.active) {
+        await prisma.webhookSubscription.update({
+          where: { id: sub.id },
+          data: { active: false },
+        })
+        console.warn(
+          `[webhook] sub ${sub.id} auto-desactivada tras ${sub2.consecutiveFailures} fallos consecutivos`,
+        )
+      }
+    }
+  } catch (err) {
+    // Persistencia opcional — si falla no debemos perder el resultado.
+    console.error('[webhook] no se pudo persistir delivery', err)
+  }
+
+  if (!result.ok) {
+    console.warn(
+      `[webhook] ${event.type} → ${sub.url} fallido tras ${result.attempts} intentos`,
+      result.error || result.status,
+    )
   }
 }
 
