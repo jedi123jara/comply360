@@ -51,21 +51,21 @@ model Organization {
   // Campos que alimentan src/lib/contracts/regime/detect.ts. Todos
   // opcionales para no romper orgs existentes; el detector cae a "GENERAL"
   // cuando faltan datos y avisa por warnings.
-  ciiu                   String?         @map("ciiu") // CIIU rev. 4 a 4 dígitos: ej. "4100" construcción
-  ubigeo                 String?         @map("ubigeo") // 6 dígitos INEI: dept(2)+prov(2)+dist(2)
-  annualSalesPEN         Decimal?        @map("annual_sales_pen") @db.Decimal(14, 2) // ventas anuales
-  groupAnnualSalesPEN    Decimal?        @map("group_annual_sales_pen") @db.Decimal(14, 2) // grupo económico vinculado
-  isPartOfBigGroup       Boolean         @default(false) @map("is_part_of_big_group") // Ley 32353 — vinculados que en consolidado superan 1700 UIT
-  remypeRegistered       Boolean         @default(false) @map("remype_registered") // inscripción REMYPE habilitante
-  exportRatioPct         Decimal?        @map("export_ratio_pct") @db.Decimal(5, 2) // % exportación 0-100
-  currentProjectCostUIT  Decimal?        @map("current_project_cost_uit") @db.Decimal(10, 2) // costo de obra en UIT (construcción civil > 50 UIT)
-  employerType           EmployerType    @default(LEGAL_PERSON) @map("employer_type")
-  domesticPurpose        Boolean         @default(false) @map("domestic_purpose") // empleador persona natural con propósito doméstico → Ley 31047
-  usesAgroInputs         Boolean         @default(false) @map("uses_agro_inputs") // agroindustria con insumos agropecuarios → Ley 31110
-  isPublicEntity         Boolean         @default(false) @map("is_public_entity") // entidad pública → capa Huatuco
+  ciiu                  String?      @map("ciiu") // CIIU rev. 4 a 4 dígitos: ej. "4100" construcción
+  ubigeo                String?      @map("ubigeo") // 6 dígitos INEI: dept(2)+prov(2)+dist(2)
+  annualSalesPEN        Decimal?     @map("annual_sales_pen") @db.Decimal(14, 2) // ventas anuales
+  groupAnnualSalesPEN   Decimal?     @map("group_annual_sales_pen") @db.Decimal(14, 2) // grupo económico vinculado
+  isPartOfBigGroup      Boolean      @default(false) @map("is_part_of_big_group") // Ley 32353 — vinculados que en consolidado superan 1700 UIT
+  remypeRegistered      Boolean      @default(false) @map("remype_registered") // inscripción REMYPE habilitante
+  exportRatioPct        Decimal?     @map("export_ratio_pct") @db.Decimal(5, 2) // % exportación 0-100
+  currentProjectCostUIT Decimal?     @map("current_project_cost_uit") @db.Decimal(10, 2) // costo de obra en UIT (construcción civil > 50 UIT)
+  employerType          EmployerType @default(LEGAL_PERSON) @map("employer_type")
+  domesticPurpose       Boolean      @default(false) @map("domestic_purpose") // empleador persona natural con propósito doméstico → Ley 31047
+  usesAgroInputs        Boolean      @default(false) @map("uses_agro_inputs") // agroindustria con insumos agropecuarios → Ley 31110
+  isPublicEntity        Boolean      @default(false) @map("is_public_entity") // entidad pública → capa Huatuco
 
-  createdAt              DateTime  @default(now()) @map("created_at")
-  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   users                   User[]
   workers                 Worker[]
@@ -141,7 +141,7 @@ enum Plan {
 
 enum EmployerType {
   NATURAL_PERSON // Persona natural — habilita régimen Trabajo del Hogar (Ley 31047) si propósito doméstico
-  LEGAL_PERSON   // Persona jurídica (default, mayoría de tenants)
+  LEGAL_PERSON // Persona jurídica (default, mayoría de tenants)
 }
 
 model User {
@@ -162,15 +162,15 @@ model User {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  organization       Organization?       @relation(fields: [orgId], references: [id])
-  worker             Worker? // Si el User tiene rol WORKER, su perfil de trabajador
-  contracts          Contract[]          @relation("CreatedBy")
-  calculations       Calculation[]
-  auditLogs          AuditLog[]
-  workerRequests     WorkerRequest[]     @relation("RequestReviewer")
-  gamificationEvents GamificationEvent[]
+  organization         Organization?       @relation(fields: [orgId], references: [id])
+  worker               Worker? // Si el User tiene rol WORKER, su perfil de trabajador
+  contracts            Contract[]          @relation("CreatedBy")
+  calculations         Calculation[]
+  auditLogs            AuditLog[]
+  workerRequests       WorkerRequest[]     @relation("RequestReviewer")
+  gamificationEvents   GamificationEvent[]
   // Fase 5 — SST Premium (DPO designado por org para responder solicitudes ARCO)
-  solicitudesArcoAsDpo SolicitudARCO[]   @relation("DpoAsignado")
+  solicitudesArcoAsDpo SolicitudARCO[]     @relation("DpoAsignado")
 
   @@map("users")
 }
@@ -234,93 +234,113 @@ model Invitation {
 // =============================================
 
 model Worker {
-  id                     String         @id @default(cuid())
-  orgId                  String         @map("org_id")
-  userId                 String?        @unique @map("user_id") // Opcional — vincula con User cuando el trabajador activa su portal
+  id                      String         @id @default(cuid())
+  orgId                   String         @map("org_id")
+  userId                  String?        @unique @map("user_id") // Opcional — vincula con User cuando el trabajador activa su portal
   // Datos personales
-  dni                    String
-  firstName              String         @map("first_name")
-  lastName               String         @map("last_name")
-  email                  String?
-  phone                  String?
-  birthDate              DateTime?      @map("birth_date")
-  gender                 String?
-  nationality            String?        @default("peruana")
-  address                String?
+  dni                     String
+  firstName               String         @map("first_name")
+  lastName                String         @map("last_name")
+  email                   String?
+  phone                   String?
+  birthDate               DateTime?      @map("birth_date")
+  gender                  String?
+  nationality             String?        @default("peruana")
+  address                 String?
   // Datos laborales
-  position               String?
-  department             String?
-  regimenLaboral         RegimenLaboral @default(GENERAL) @map("regimen_laboral")
-  tipoContrato           TipoContrato   @default(INDEFINIDO) @map("tipo_contrato")
-  fechaIngreso           DateTime       @map("fecha_ingreso")
-  fechaCese              DateTime?      @map("fecha_cese")
-  motivoCese             String?        @map("motivo_cese")
-  sueldoBruto            Decimal        @map("sueldo_bruto") @db.Decimal(10, 2)
-  asignacionFamiliar     Boolean        @default(false) @map("asignacion_familiar")
-  jornadaSemanal         Int            @default(48) @map("jornada_semanal")
-  tiempoCompleto         Boolean        @default(true) @map("tiempo_completo")
+  position                String?
+  department              String?
+  regimenLaboral          RegimenLaboral @default(GENERAL) @map("regimen_laboral")
+  tipoContrato            TipoContrato   @default(INDEFINIDO) @map("tipo_contrato")
+  fechaIngreso            DateTime       @map("fecha_ingreso")
+  fechaCese               DateTime?      @map("fecha_cese")
+  motivoCese              String?        @map("motivo_cese")
+  sueldoBruto             Decimal        @map("sueldo_bruto") @db.Decimal(10, 2)
+  asignacionFamiliar      Boolean        @default(false) @map("asignacion_familiar")
+  jornadaSemanal          Int            @default(48) @map("jornada_semanal")
+  tiempoCompleto          Boolean        @default(true) @map("tiempo_completo")
   // Horario laboral pactado (R.M. 037-2024-TR exige documentar política de
   // entrada/salida y tolerancia). Defaults conservadores: 8:00-17:00 con 15
   // min de tolerancia. Si la org tiene turnos distintos, se editan por worker
   // o vía bulk action "Asignar horario".
-  expectedClockInHour    Int            @default(8) @map("expected_clock_in_hour")
-  expectedClockInMinute  Int            @default(0) @map("expected_clock_in_minute")
-  expectedClockOutHour   Int            @default(17) @map("expected_clock_out_hour")
-  expectedClockOutMinute Int            @default(0) @map("expected_clock_out_minute")
-  lateToleranceMinutes   Int            @default(15) @map("late_tolerance_minutes")
+  expectedClockInHour     Int            @default(8) @map("expected_clock_in_hour")
+  expectedClockInMinute   Int            @default(0) @map("expected_clock_in_minute")
+  expectedClockOutHour    Int            @default(17) @map("expected_clock_out_hour")
+  expectedClockOutMinute  Int            @default(0) @map("expected_clock_out_minute")
+  lateToleranceMinutes    Int            @default(15) @map("late_tolerance_minutes")
   // Previsional
-  tipoAporte             TipoAporte     @default(AFP) @map("tipo_aporte")
-  afpNombre              String?        @map("afp_nombre")
-  afpComisionTipo        String?        @map("afp_comision_tipo") // "MIXTA" | "FLUJO"
-  cuspp                  String?
-  essaludVida            Boolean        @default(false) @map("essalud_vida")
-  sctr                   Boolean        @default(false)
-  sctrRiesgoNivel        String?        @map("sctr_riesgo_nivel") // "BAJO" | "MEDIO" | "ALTO" — para sectores Ley 26790
+  tipoAporte              TipoAporte     @default(AFP) @map("tipo_aporte")
+  afpNombre               String?        @map("afp_nombre")
+  afpComisionTipo         String?        @map("afp_comision_tipo") // "MIXTA" | "FLUJO"
+  cuspp                   String?
+  essaludVida             Boolean        @default(false) @map("essalud_vida")
+  sctr                    Boolean        @default(false)
+  sctrRiesgoNivel         String?        @map("sctr_riesgo_nivel") // "BAJO" | "MEDIO" | "ALTO" — para sectores Ley 26790
   // Condiciones especiales (peruanas)
   // Ley 29973 — cuota 3% de personas con discapacidad. Reportable a SUNAFIL.
-  discapacidad           Boolean        @default(false)
-  discapacidadTipo       String?        @map("discapacidad_tipo") // "FISICA" | "SENSORIAL" | "INTELECTUAL" | "PSICOSOCIAL" | "MULTIPLE"
+  discapacidad            Boolean        @default(false)
+  discapacidadTipo        String?        @map("discapacidad_tipo") // "FISICA" | "SENSORIAL" | "INTELECTUAL" | "PSICOSOCIAL" | "MULTIPLE"
   // Tipo de jornada — afecta cálculo de horas extras (D.Leg. 854: 25% día, 35% noche)
-  tipoJornada            String         @default("DIURNO") @map("tipo_jornada") // "DIURNO" | "NOCTURNO" | "MIXTO"
+  tipoJornada             String         @default("DIURNO") @map("tipo_jornada") // "DIURNO" | "NOCTURNO" | "MIXTO"
   // PIN 4 dígitos para asistencia sin smartphone (backup del flujo QR).
   // Generado automáticamente al onboarding del worker. Se envía por email.
-  attendancePin          String?        @map("attendance_pin") // hash bcrypt del PIN
+  attendancePin           String?        @map("attendance_pin") // hash bcrypt del PIN
   // ─── Personalización del worker (subido desde el portal) ────────────
   // Foto subida por el trabajador desde /mi-portal/perfil. Si null, el
   // admin ve solo las iniciales como avatar.
-  photoUrl               String?        @map("photo_url")
+  photoUrl                String?        @map("photo_url")
   // Bio breve / hobby / fun fact (max 200 chars). Humaniza el card del
   // admin: en lugar de solo nombre+cargo, ve "Le encanta la cocina coreana".
-  bio                    String?
-  // Estado
-  status                 WorkerStatus   @default(ACTIVE)
-  legajoScore            Int?           @map("legajo_score")
-  createdAt              DateTime       @default(now()) @map("created_at")
-  updatedAt              DateTime       @updatedAt @map("updated_at")
+  bio                     String?
+  // Compliance peruano adicional (Ola 2 — 2026-05)
+  numeroEssalud           String?        @map("numero_essalud")
+  tipoSangre              String?        @map("tipo_sangre") // "ORH+" | "ORH-" | "ARH+" | etc.
+  nivelEducativo          String?        @map("nivel_educativo") // PRIMARIA | SECUNDARIA | TECNICA | UNIVERSITARIA | POSTGRADO
+  condicionEspecial       String?        @map("condicion_especial") // EMBARAZADA | LACTANCIA | MATERNIDAD_EXTENDIDA | NINGUNA
+  discapacidadCertificado Boolean        @default(false) @map("discapacidad_certificado") // CONADIS acreditado (Ley 29973 cuota 3%)
+  conadisCertificadoNum   String?        @map("conadis_certificado_num")
+  // Flags de cumplimiento operacional (alertas SUNAFIL específicas)
+  flagTRegistroPresentado Boolean        @default(false) @map("flag_t_registro_presentado") // T-REGISTRO SUNAT (1 día hábil del ingreso)
+  flagTRegistroFecha      DateTime?      @map("flag_t_registro_fecha")
 
-  organization       Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user               User?                    @relation(fields: [userId], references: [id])
-  documents          WorkerDocument[]
-  workerContracts    WorkerContract[]
-  vacations          VacationRecord[]
-  alerts             WorkerAlert[]
-  attendance         Attendance[]
-  payslips           Payslip[]
-  requests           WorkerRequest[]
-  ceseRecord         CeseRecord?
-  acknowledgments    DocumentAcknowledgment[]
-  orgAssignments     OrgAssignment[]
-  orgComplianceRoles OrgComplianceRole[]
+  // Estado
+  status       WorkerStatus @default(ACTIVE)
+  legajoScore  Int?         @map("legajo_score")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  // Soft delete (Ola 1 — compliance SUNAFIL exige trazabilidad 6 años)
+  deletedAt    DateTime?    @map("deleted_at")
+  deletedBy    String?      @map("deleted_by")
+  deleteReason String?      @map("delete_reason")
+
+  organization            Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user                    User?                    @relation(fields: [userId], references: [id])
+  documents               WorkerDocument[]
+  workerContracts         WorkerContract[]
+  vacations               VacationRecord[]
+  alerts                  WorkerAlert[]
+  attendance              Attendance[]
+  payslips                Payslip[]
+  requests                WorkerRequest[]
+  ceseRecord              CeseRecord?
+  acknowledgments         DocumentAcknowledgment[]
+  orgAssignments          OrgAssignment[]
+  orgComplianceRoles      OrgComplianceRole[]
+  // Ola 1 — dependientes (asignación familiar real con DNI)
+  dependents              WorkerDependent[]
+  // Ola 2 — historial estructurado de cambios laborales
+  historyEvents           WorkerHistoryEvent[]
   // Fase 5 — SST Premium
-  puestosTrabajo     PuestoTrabajo[]
-  accidentes         Accidente[]
-  miembroComites     MiembroComite[]
-  emos               EMO[]
+  puestosTrabajo          PuestoTrabajo[]
+  accidentes              Accidente[]
+  miembroComites          MiembroComite[]
+  emos                    EMO[]
   consentimientosLey29733 ConsentimientoLey29733[]
 
   @@unique([orgId, dni])
   @@index([orgId, status])
   @@index([orgId, regimenLaboral])
+  @@index([orgId, deletedAt]) // listas activas filtran rápido por deletedAt IS NULL
   @@map("workers")
 }
 
@@ -487,6 +507,101 @@ enum WorkerAlertType {
   COMITE_REUNION_PENDIENTE
   COMITE_MANDATO_VENCE
   SIMULACRO_PENDIENTE
+  // Ola 1 — Compliance SUNAFIL hardening (2026-05)
+  T_REGISTRO_NO_PRESENTADO // 1 día hábil tras ingreso sin marca en SUNAT
+  SCTR_VENCIDO // SCTR vencido en sectores de riesgo (construcción/minería/pesca)
+  CAMBIO_REGIMEN_SIN_ADENDA // Cambio de régimen detectado sin adenda firmada
+  LICENCIA_MEDICA_VENCIDA // Descanso médico expirado sin renovación
+}
+
+// ─── WorkerDependent ──────────────────────────────────────────────────────────
+// Ola 1 — Dependientes acreditados para asignación familiar (Ley 25129) y
+// derecho-habientes EsSalud (Ley 27657). Sin esta tabla, `Worker.asignacionFamiliar`
+// es un boolean declarativo sin DNI cruzable → multa SUNAFIL 23.11 UIT por
+// asignación falsa.
+model WorkerDependent {
+  id                    String            @id @default(cuid())
+  workerId              String            @map("worker_id")
+  orgId                 String            @map("org_id") // denormalizado para RLS y queries rápidas
+  relacion              DependentRelation
+  documentoTipo         String            @default("DNI") @map("documento_tipo") // DNI | CE | PASAPORTE | PARTIDA_NACIMIENTO
+  documentoNum          String            @map("documento_num")
+  fullName              String            @map("full_name")
+  birthDate             DateTime          @map("birth_date")
+  actaUrl               String?           @map("acta_url") // URL partida nacimiento / matrimonio
+  esBeneficiarioEsalud  Boolean           @default(true) @map("es_beneficiario_esalud")
+  esBeneficiarioAsigFam Boolean           @default(false) @map("es_beneficiario_asig_fam") // ¿este dependiente justifica asignación familiar?
+  verifiedAt            DateTime?         @map("verified_at")
+  verifiedBy            String?           @map("verified_by")
+  notas                 String?
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  deletedAt             DateTime?         @map("deleted_at")
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, documentoTipo, documentoNum])
+  @@index([workerId, deletedAt])
+  @@index([orgId])
+  @@map("worker_dependents")
+}
+
+enum DependentRelation {
+  CONYUGE
+  CONVIVIENTE // Unión de hecho Ley 30007
+  HIJO
+  HIJO_ADOPTIVO
+  HIJO_DISCAPACITADO // Sin límite de edad para EsSalud
+  PADRE
+  MADRE
+  HERMANO_DISCAPACITADO // Si depende económicamente
+  OTRO
+}
+
+// ─── WorkerHistoryEvent ───────────────────────────────────────────────────────
+// Ola 2 — Historial estructurado de cambios laborales. SUNAFIL exige trazabilidad
+// de modificaciones contractuales (D.S. 019-2006-TR Art. 24). Cambios de sueldo,
+// cargo, régimen o tipo de contrato sin acta = desnaturalización.
+model WorkerHistoryEvent {
+  id          String          @id @default(cuid())
+  workerId    String          @map("worker_id")
+  orgId       String          @map("org_id")
+  type        WorkerEventType
+  before      Json? // snapshot del/los campo(s) antes
+  after       Json? // snapshot del/los campo(s) después
+  reason      String? // motivo declarado por el admin
+  evidenceUrl String?         @map("evidence_url") // adenda firmada / acta / carta
+  triggeredBy String          @map("triggered_by") // userId del admin
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, createdAt])
+  @@index([orgId, type])
+  @@index([orgId, createdAt]) // gating por plan filtra por fecha
+  @@map("worker_history_events")
+}
+
+enum WorkerEventType {
+  ALTA
+  CAMBIO_SUELDO
+  CAMBIO_CARGO
+  CAMBIO_DEPARTAMENTO
+  CAMBIO_REGIMEN
+  CAMBIO_TIPO_CONTRATO
+  CAMBIO_HORARIO
+  CAMBIO_REGIMEN_PREVISIONAL // AFP <-> ONP
+  SUSPENSION
+  REINCORPORACION
+  LICENCIA_MEDICA
+  LICENCIA_MATERNIDAD
+  LICENCIA_PATERNIDAD
+  VACACIONES_INICIO
+  VACACIONES_FIN
+  CESE
+  REINGRESO
+  ACTUALIZACION_LEGAJO // dependientes / discapacidad / condición especial
+  T_REGISTRO_PRESENTADO
 }
 
 enum AlertSeverity {
@@ -536,33 +651,33 @@ enum ContractType {
 }
 
 model Contract {
-  id           String         @id @default(cuid())
-  orgId        String         @map("org_id")
-  createdById  String         @map("created_by_id")
-  templateId   String?        @map("template_id")
-  type         ContractType
-  status       ContractStatus @default(DRAFT)
-  title        String
-  formData     Json?          @map("form_data") // User inputs
-  contentJson  Json?          @map("content_json") // Generated contract structure
-  contentHtml  String?        @map("content_html") // Rendered HTML
-  docxUrl      String?        @map("docx_url")
-  pdfUrl       String?        @map("pdf_url")
-  expiresAt    DateTime?      @map("expires_at")
-  signedAt     DateTime?      @map("signed_at")
-  aiRiskScore  Int?           @map("ai_risk_score") // 0-100
-  aiRisksJson  Json?          @map("ai_risks_json") // Array of detected risks
-  aiReviewedAt DateTime?      @map("ai_reviewed_at")
-  provenance   String         @default("LEGACY")
-  generationMode String       @default("legacy") @map("generation_mode")
-  renderVersion  String?      @map("render_version")
-  isFallback     Boolean      @default(false) @map("is_fallback")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
+  id             String         @id @default(cuid())
+  orgId          String         @map("org_id")
+  createdById    String         @map("created_by_id")
+  templateId     String?        @map("template_id")
+  type           ContractType
+  status         ContractStatus @default(DRAFT)
+  title          String
+  formData       Json?          @map("form_data") // User inputs
+  contentJson    Json?          @map("content_json") // Generated contract structure
+  contentHtml    String?        @map("content_html") // Rendered HTML
+  docxUrl        String?        @map("docx_url")
+  pdfUrl         String?        @map("pdf_url")
+  expiresAt      DateTime?      @map("expires_at")
+  signedAt       DateTime?      @map("signed_at")
+  aiRiskScore    Int?           @map("ai_risk_score") // 0-100
+  aiRisksJson    Json?          @map("ai_risks_json") // Array of detected risks
+  aiReviewedAt   DateTime?      @map("ai_reviewed_at")
+  provenance     String         @default("LEGACY")
+  generationMode String         @default("legacy") @map("generation_mode")
+  renderVersion  String?        @map("render_version")
+  isFallback     Boolean        @default(false) @map("is_fallback")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  organization    Organization      @relation(fields: [orgId], references: [id])
-  createdBy       User              @relation("CreatedBy", fields: [createdById], references: [id])
-  template        ContractTemplate? @relation(fields: [templateId], references: [id])
+  organization    Organization         @relation(fields: [orgId], references: [id])
+  createdBy       User                 @relation("CreatedBy", fields: [createdById], references: [id])
+  template        ContractTemplate?    @relation(fields: [templateId], references: [id])
   workerContracts WorkerContract[]
   validations     ContractValidation[]
   versions        ContractVersion[]
@@ -596,7 +711,7 @@ enum ContractStatus {
 enum ValidationSeverity {
   BLOCKER // Impide emitir / firmar el contrato
   WARNING // Permite emitir si hay acknowledgement explícito
-  INFO    // Sugerencia de mejora
+  INFO // Sugerencia de mejora
 }
 
 model ContractValidationRule {
@@ -656,38 +771,38 @@ model ContractValidation {
 // =============================================
 
 model MerkleAnchor {
-  id             String    @id @default(cuid())
-  orgId          String    @map("org_id")
+  id         String   @id @default(cuid())
+  orgId      String   @map("org_id")
   /// Día calendario UTC (YYYY-MM-DD) — clave junto con orgId.
-  anchorDate     DateTime  @map("anchor_date") @db.Date
+  anchorDate DateTime @map("anchor_date") @db.Date
   /// Total de hojas en el árbol — versions del día para esa org.
-  leafCount      Int       @map("leaf_count")
+  leafCount  Int      @map("leaf_count")
   /// Hojas: [{ versionId, versionHash, leafIndex }]. Permite reconstruir.
-  leaves         Json
+  leaves     Json
   /// Raíz del árbol: SHA-256 hex 64 chars.
-  merkleRoot     String    @map("merkle_root")
+  merkleRoot String   @map("merkle_root")
 
   // ── Anclaje externo (opcional) ─────────────────────────────────────
   /// RFC 3161 TimeStampToken (binary). Serialización CMS según RFC 3161.
-  rfc3161Token   Bytes?    @map("rfc3161_token")
+  rfc3161Token Bytes?    @map("rfc3161_token")
   /// Authority que emitió el token (URL TSA o nombre acreditado).
-  rfc3161Tsa     String?   @map("rfc3161_tsa")
-  rfc3161At      DateTime? @map("rfc3161_at")
+  rfc3161Tsa   String?   @map("rfc3161_tsa")
+  rfc3161At    DateTime? @map("rfc3161_at")
 
   /// OpenTimestamps proof (binary, formato .ots).
-  otsProof       Bytes?    @map("ots_proof")
-  otsCalendar    String?   @map("ots_calendar") // URL del calendar server
-  otsAt          DateTime? @map("ots_at")
+  otsProof           Bytes?    @map("ots_proof")
+  otsCalendar        String?   @map("ots_calendar") // URL del calendar server
+  otsAt              DateTime? @map("ots_at")
   /// Bitcoin block height cuando OTS confirma — null hasta upgrade.
-  bitcoinBlockHeight Int?  @map("bitcoin_block_height")
+  bitcoinBlockHeight Int?      @map("bitcoin_block_height")
 
   /// Estado del anclaje: PENDING | RFC3161_OK | OTS_OK | FULL_OK | FAILED
-  status         String    @default("PENDING")
-  errors         Json?
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  status    String   @default("PENDING")
+  errors    Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  versions       ContractVersion[]
+  versions ContractVersion[]
 
   @@unique([orgId, anchorDate])
   @@index([anchorDate])
@@ -765,30 +880,30 @@ enum JurisprudenceReviewStatus {
 }
 
 model JurisprudenceUpdate {
-  id              String                   @id @default(cuid())
+  id              String                    @id @default(cuid())
   source          JurisprudenceSource
   reference       String // "Cas. Lab. 8912-2023-Lima", "STC 00797-2022-AA/TC"
   title           String
-  publicationDate DateTime                 @map("publication_date")
+  publicationDate DateTime                  @map("publication_date")
   topic           String // "DESNATURALIZACION_MODAL" | "TUTELA_GESTANTE" | etc.
-  summary         String                   @db.Text
-  fullTextUrl     String?                  @map("full_text_url")
+  summary         String                    @db.Text
+  fullTextUrl     String?                   @map("full_text_url")
   /// Acciones a ejecutar sobre ContractValidationRule cuando se haga apply.
   /// Schema: [{ ruleCode, action: "ADD"|"MODIFY"|"DEPRECATE", ruleSpec?, severity?, version? }]
-  affectedRules   Json                     @map("affected_rules")
+  affectedRules   Json                      @map("affected_rules")
   /// Acciones a ejecutar sobre ContractClause cuando se haga apply.
   /// Schema: [{ code, action: "ADD"|"MODIFY"|"DEPRECATE", patch? }]
-  affectedClauses Json                     @map("affected_clauses")
+  affectedClauses Json                      @map("affected_clauses")
   reviewStatus    JurisprudenceReviewStatus @default(PENDING) @map("review_status")
-  reviewedBy      String?                  @map("reviewed_by")
-  reviewedAt      DateTime?                @map("reviewed_at")
+  reviewedBy      String?                   @map("reviewed_by")
+  reviewedAt      DateTime?                 @map("reviewed_at")
   /// Cuando se aplica: snapshot de las acciones y sus resultados (audit trail).
-  applyResult     Json?                    @map("apply_result")
-  appliedAt       DateTime?                @map("applied_at")
-  appliedBy       String?                  @map("applied_by")
-  notes           String?                  @db.Text
-  createdAt       DateTime                 @default(now()) @map("created_at")
-  updatedAt       DateTime                 @updatedAt @map("updated_at")
+  applyResult     Json?                     @map("apply_result")
+  appliedAt       DateTime?                 @map("applied_at")
+  appliedBy       String?                   @map("applied_by")
+  notes           String?                   @db.Text
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
 
   @@index([source, publicationDate])
   @@index([reviewStatus, createdAt])
@@ -835,39 +950,39 @@ model ContractClause {
 // =============================================
 
 model ContractVersion {
-  id             String   @id @default(cuid())
-  orgId          String   @map("org_id") // denormalizado: filtro por tenant
-  contractId     String   @map("contract_id")
-  contract       Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  versionNumber  Int      @map("version_number") // 1, 2, 3... por contrato
+  id            String   @id @default(cuid())
+  orgId         String   @map("org_id") // denormalizado: filtro por tenant
+  contractId    String   @map("contract_id")
+  contract      Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  versionNumber Int      @map("version_number") // 1, 2, 3... por contrato
 
   // Snapshot del contenido al momento de esta versión
-  contentHtml    String?  @map("content_html") @db.Text
-  contentJson    Json?    @map("content_json")
-  formData       Json?    @map("form_data")
+  contentHtml String? @map("content_html") @db.Text
+  contentJson Json?   @map("content_json")
+  formData    Json?   @map("form_data")
 
   // Hash chain (blockchain-style). Genesis prevHash = "0x" + "0"*64.
-  contentSha256  String   @map("content_sha256") // SHA-256 del contenido canonicalizado
-  prevHash       String   @map("prev_hash") // versionHash de la versión anterior
-  versionHash    String   @map("version_hash") // SHA-256(content || prev || canonicalJSON(meta))
+  contentSha256 String @map("content_sha256") // SHA-256 del contenido canonicalizado
+  prevHash      String @map("prev_hash") // versionHash de la versión anterior
+  versionHash   String @map("version_hash") // SHA-256(content || prev || canonicalJSON(meta))
 
   // Diff y trazabilidad
-  diffJson       Json?    @map("diff_json") // RFC 6902 JSON Patch vs versión anterior
-  diffSummary    String?  @map("diff_summary") @db.Text // resumen humano legible
-  changeReason   String   @map("change_reason") @db.Text // por qué cambió
-  changedBy      String   @map("changed_by") // userId
+  diffJson     Json?   @map("diff_json") // RFC 6902 JSON Patch vs versión anterior
+  diffSummary  String? @map("diff_summary") @db.Text // resumen humano legible
+  changeReason String  @map("change_reason") @db.Text // por qué cambió
+  changedBy    String  @map("changed_by") // userId
 
   // Anclaje externo (chunk 8) — null hasta que el cron diario procese.
-  merkleAnchorId String?   @map("merkle_anchor_id")
+  merkleAnchorId String?       @map("merkle_anchor_id")
   merkleAnchor   MerkleAnchor? @relation(fields: [merkleAnchorId], references: [id])
   /// Índice de la hoja dentro del árbol del día.
-  leafIndex      Int?     @map("leaf_index")
+  leafIndex      Int?          @map("leaf_index")
   /// Camino de pruebas (siblings hashes ordenados desde la hoja a la raíz).
   /// Schema: [{ hash: "...", side: "L"|"R" }]. Permite verificar que
   /// `versionHash` está incluido en `MerkleAnchor.merkleRoot` sin recargar todo.
-  merkleProof    Json?    @map("merkle_proof")
+  merkleProof    Json?         @map("merkle_proof")
 
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([contractId, versionNumber])
   @@index([orgId, contractId])
@@ -2952,30 +3067,30 @@ model IPERCBase {
 }
 
 model IPERCFila {
-  id            String           @id @default(cuid())
-  iperBaseId    String           @map("iper_base_id")
-  proceso       String
-  actividad     String
-  tarea         String
-  peligroId     String?          @map("peligro_id") // FK CatalogoPeligro
-  riesgo        String
+  id                  String           @id @default(cuid())
+  iperBaseId          String           @map("iper_base_id")
+  proceso             String
+  actividad           String
+  tarea               String
+  peligroId           String?          @map("peligro_id") // FK CatalogoPeligro
+  riesgo              String
   // Índices Manual IPERC SUNAFIL R.M. 050-2013-TR (Tablas 9, 11, 12)
   // Probabilidad IP = A + B + C + D (rango 4-12)
-  indicePersonas      Int        @map("indice_personas")      // A: 1 (1-3), 2 (4-12), 3 (>12)
-  indiceProcedimiento Int        @map("indice_procedimiento") // B: 1 satisfactorio, 2 parcial, 3 no existe
-  indiceCapacitacion  Int        @map("indice_capacitacion")  // C: 1 entrenado, 2 parcial, 3 no entrenado
-  indiceExposicion    Int        @map("indice_exposicion")    // D: 1 esporádico, 2 eventual, 3 permanente
-  indiceProbabilidad  Int        @map("indice_probabilidad")  // suma A+B+C+D
-  indiceSeveridad     Int        @map("indice_severidad")     // 1 ligeramente dañino, 2 dañino, 3 ext. dañino
-  nivelRiesgo         Int        @map("nivel_riesgo")         // IP × IS (4-36)
+  indicePersonas      Int              @map("indice_personas") // A: 1 (1-3), 2 (4-12), 3 (>12)
+  indiceProcedimiento Int              @map("indice_procedimiento") // B: 1 satisfactorio, 2 parcial, 3 no existe
+  indiceCapacitacion  Int              @map("indice_capacitacion") // C: 1 entrenado, 2 parcial, 3 no entrenado
+  indiceExposicion    Int              @map("indice_exposicion") // D: 1 esporádico, 2 eventual, 3 permanente
+  indiceProbabilidad  Int              @map("indice_probabilidad") // suma A+B+C+D
+  indiceSeveridad     Int              @map("indice_severidad") // 1 ligeramente dañino, 2 dañino, 3 ext. dañino
+  nivelRiesgo         Int              @map("nivel_riesgo") // IP × IS (4-36)
   clasificacion       NivelRiesgoIPERC
-  esSignificativo     Boolean    @map("es_significativo") // true si Moderado, Importante o Intolerable
-  controlesActuales   String[]   @map("controles_actuales")
-  controlesPropuestos Json       @map("controles_propuestos") // jerarquía: eliminación, sustitución, ingeniería, admin, EPP
+  esSignificativo     Boolean          @map("es_significativo") // true si Moderado, Importante o Intolerable
+  controlesActuales   String[]         @map("controles_actuales")
+  controlesPropuestos Json             @map("controles_propuestos") // jerarquía: eliminación, sustitución, ingeniería, admin, EPP
   responsable         String?
-  plazoCierre         DateTime?  @map("plazo_cierre")
-  createdAt           DateTime   @default(now()) @map("created_at")
-  updatedAt           DateTime   @updatedAt @map("updated_at")
+  plazoCierre         DateTime?        @map("plazo_cierre")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
 
   iperBase IPERCBase @relation(fields: [iperBaseId], references: [id], onDelete: Cascade)
 
@@ -2985,31 +3100,31 @@ model IPERCFila {
 }
 
 model Accidente {
-  id                    String        @id @default(cuid())
-  orgId                 String        @map("org_id")
-  sedeId                String        @map("sede_id")
-  workerId              String?       @map("worker_id") // null si afectó a tercero o no-worker
-  tipo                  TipoAccidente
-  fechaHora             DateTime      @map("fecha_hora")
-  descripcion           String
+  id                  String        @id @default(cuid())
+  orgId               String        @map("org_id")
+  sedeId              String        @map("sede_id")
+  workerId            String?       @map("worker_id") // null si afectó a tercero o no-worker
+  tipo                TipoAccidente
+  fechaHora           DateTime      @map("fecha_hora")
+  descripcion         String
   // Plazo legal informativo según D.S. 006-2022-TR:
   //   24 h  — Mortal / Incidente Peligroso (empleador)
   //   720 h — No mortal (centro médico, último día hábil mes siguiente)
   //   120 h — Enfermedad ocupacional (centro médico, 5 días hábiles)
-  plazoLegalHoras       Int           @map("plazo_legal_horas")
+  plazoLegalHoras     Int           @map("plazo_legal_horas")
   // Tracking SAT manual — el cliente notifica en gob.pe/774 y carga su cargo.
   // COMPLY360 NO ejecuta RPA: solo asiste con wizard pre-llenado + recordatorios.
-  satNumeroManual       String?       @map("sat_numero_manual")
-  satFechaEnvioManual   DateTime?     @map("sat_fecha_envio_manual")
-  satCargoArchivoUrl    String?       @map("sat_cargo_archivo_url")
-  satEstado             EstadoSAT     @default(PENDIENTE) @map("sat_estado")
-  createdAt             DateTime      @default(now()) @map("created_at")
-  updatedAt             DateTime      @updatedAt @map("updated_at")
+  satNumeroManual     String?       @map("sat_numero_manual")
+  satFechaEnvioManual DateTime?     @map("sat_fecha_envio_manual")
+  satCargoArchivoUrl  String?       @map("sat_cargo_archivo_url")
+  satEstado           EstadoSAT     @default(PENDIENTE) @map("sat_estado")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
 
-  organization     Organization               @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  sede             Sede                       @relation(fields: [sedeId], references: [id], onDelete: Cascade)
-  worker           Worker?                    @relation(fields: [workerId], references: [id], onDelete: SetNull)
-  investigaciones  InvestigacionAccidente[]
+  organization    Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sede            Sede                     @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  worker          Worker?                  @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  investigaciones InvestigacionAccidente[]
 
   @@index([orgId, satEstado])
   @@index([orgId, fechaHora])
@@ -3021,8 +3136,8 @@ model InvestigacionAccidente {
   id                  String   @id @default(cuid())
   accidenteId         String   @map("accidente_id")
   fechaInvestigacion  DateTime @map("fecha_investigacion")
-  causasInmediatas    Json     @map("causas_inmediatas")    // [{ tipo: "ACTO_INSEGURO" | "CONDICION_INSEGURA", descripcion }]
-  causasBasicas       Json     @map("causas_basicas")       // [{ tipo: "FACTOR_PERSONAL" | "FACTOR_TRABAJO", descripcion }]
+  causasInmediatas    Json     @map("causas_inmediatas") // [{ tipo: "ACTO_INSEGURO" | "CONDICION_INSEGURA", descripcion }]
+  causasBasicas       Json     @map("causas_basicas") // [{ tipo: "FACTOR_PERSONAL" | "FACTOR_TRABAJO", descripcion }]
   accionesCorrectivas Json     @map("acciones_correctivas") // [{ accion, responsable, plazo, estado }]
   responsableId       String?  @map("responsable_id")
   createdAt           DateTime @default(now()) @map("created_at")
@@ -3035,14 +3150,14 @@ model InvestigacionAccidente {
 }
 
 model ComiteSST {
-  id              String        @id @default(cuid())
-  orgId           String        @map("org_id")
-  mandatoInicio   DateTime      @map("mandato_inicio")
-  mandatoFin      DateTime      @map("mandato_fin") // 2 años por R.M. 245-2021-TR
-  estado          EstadoComite  @default(VIGENTE)
-  libroActasUrl   String?       @map("libro_actas_url")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id            String       @id @default(cuid())
+  orgId         String       @map("org_id")
+  mandatoInicio DateTime     @map("mandato_inicio")
+  mandatoFin    DateTime     @map("mandato_fin") // 2 años por R.M. 245-2021-TR
+  estado        EstadoComite @default(VIGENTE)
+  libroActasUrl String?      @map("libro_actas_url")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
 
   organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   miembros     MiembroComite[]
@@ -3052,13 +3167,13 @@ model ComiteSST {
 }
 
 model MiembroComite {
-  id        String          @id @default(cuid())
-  comiteId  String          @map("comite_id")
-  workerId  String          @map("worker_id")
+  id        String        @id @default(cuid())
+  comiteId  String        @map("comite_id")
+  workerId  String        @map("worker_id")
   cargo     CargoComite
   origen    OrigenMiembro
-  fechaAlta DateTime        @default(now()) @map("fecha_alta")
-  fechaBaja DateTime?       @map("fecha_baja")
+  fechaAlta DateTime      @default(now()) @map("fecha_alta")
+  fechaBaja DateTime?     @map("fecha_baja")
 
   comite ComiteSST @relation(fields: [comiteId], references: [id], onDelete: Cascade)
   worker Worker    @relation(fields: [workerId], references: [id], onDelete: Cascade)
@@ -3071,19 +3186,19 @@ model MiembroComite {
 // Inspector/auditor directo de COMPLY360 (empleado o contratista interno).
 // NO es marketplace: queda gestionado por super-admin de la plataforma.
 model ColaboradorSST {
-  id                    String           @id @default(cuid())
+  id                    String          @id @default(cuid())
   nombre                String
   apellido              String
-  dni                   String           @unique
-  email                 String           @unique
+  dni                   String          @unique
+  email                 String          @unique
   telefono              String?
-  tipoColaborador       TipoColaborador  @map("tipo_colaborador")
-  vigenciaContratoHasta DateTime?        @map("vigencia_contrato_hasta")
+  tipoColaborador       TipoColaborador @map("tipo_colaborador")
+  vigenciaContratoHasta DateTime?       @map("vigencia_contrato_hasta")
   disponibilidad        Json? // { lun: "08:00-17:00", mar: "08:00-17:00", ... }
   especialidades        String[] // ["alturas","espacios_confinados","monitoreo_higienico", ...]
-  activo                Boolean          @default(true)
-  createdAt             DateTime         @default(now()) @map("created_at")
-  updatedAt             DateTime         @updatedAt @map("updated_at")
+  activo                Boolean         @default(true)
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
 
   visitas VisitaFieldAudit[]
 
@@ -3095,25 +3210,25 @@ model ColaboradorSST {
 // payloadOfflineJson contiene los datos crudos de la tablet/móvil (IndexedDB
 // volcado) para procesamiento posterior. NO se requiere sync online crítico.
 model VisitaFieldAudit {
-  id                  String        @id @default(cuid())
-  orgId               String        @map("org_id")
-  sedeId              String        @map("sede_id")
-  colaboradorId       String        @map("colaborador_id")
-  fechaProgramada     DateTime      @map("fecha_programada")
-  fechaInicioCampo    DateTime?     @map("fecha_inicio_campo")
-  fechaCierreOficina  DateTime?     @map("fecha_cierre_oficina")
-  lat                 Decimal?      @db.Decimal(9, 6)
-  lng                 Decimal?      @db.Decimal(9, 6)
-  fotoFachadaUrl      String?       @map("foto_fachada_url")
-  estado              EstadoVisita  @default(PROGRAMADA)
-  payloadOfflineJson  Json?         @map("payload_offline_json")
-  notasInspector      String?       @map("notas_inspector")
-  createdAt           DateTime      @default(now()) @map("created_at")
-  updatedAt           DateTime      @updatedAt @map("updated_at")
+  id                 String       @id @default(cuid())
+  orgId              String       @map("org_id")
+  sedeId             String       @map("sede_id")
+  colaboradorId      String       @map("colaborador_id")
+  fechaProgramada    DateTime     @map("fecha_programada")
+  fechaInicioCampo   DateTime?    @map("fecha_inicio_campo")
+  fechaCierreOficina DateTime?    @map("fecha_cierre_oficina")
+  lat                Decimal?     @db.Decimal(9, 6)
+  lng                Decimal?     @db.Decimal(9, 6)
+  fotoFachadaUrl     String?      @map("foto_fachada_url")
+  estado             EstadoVisita @default(PROGRAMADA)
+  payloadOfflineJson Json?        @map("payload_offline_json")
+  notasInspector     String?      @map("notas_inspector")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
 
-  organization Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  sede         Sede                  @relation(fields: [sedeId], references: [id], onDelete: Cascade)
-  colaborador  ColaboradorSST        @relation(fields: [colaboradorId], references: [id])
+  organization Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sede         Sede                 @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  colaborador  ColaboradorSST       @relation(fields: [colaboradorId], references: [id])
   hallazgos    HallazgoFieldAudit[]
 
   @@index([orgId, estado])
@@ -3162,14 +3277,14 @@ model CatalogoPeligro {
 
 // Catálogo de controles tipo según jerarquía R.M. 050-2013-TR.
 model CatalogoControl {
-  id                 String        @id @default(cuid())
-  peligroIdSugerido  String?       @map("peligro_id_sugerido")
+  id                 String       @id @default(cuid())
+  peligroIdSugerido  String?      @map("peligro_id_sugerido")
   nivel              NivelControl
-  codigo             String        @unique // ej: "ING-VENT-001"
+  codigo             String       @unique // ej: "ING-VENT-001"
   descripcion        String
-  costoEstimadoSoles Decimal?      @map("costo_estimado_soles") @db.Decimal(10, 2)
-  fuenteLegal        String?       @map("fuente_legal")
-  createdAt          DateTime      @default(now()) @map("created_at")
+  costoEstimadoSoles Decimal?     @map("costo_estimado_soles") @db.Decimal(10, 2)
+  fuenteLegal        String?      @map("fuente_legal")
+  createdAt          DateTime     @default(now()) @map("created_at")
 
   @@index([nivel])
   @@index([peligroIdSugerido])
@@ -3232,20 +3347,20 @@ model ConsentimientoLey29733 {
 }
 
 model SolicitudARCO {
-  id              String      @id @default(cuid())
-  orgId           String      @map("org_id")
-  solicitanteDni  String      @map("solicitante_dni")
-  solicitanteName String      @map("solicitante_name")
-  tipo            TipoARCO
-  detalleCifrado  Bytes?      @map("detalle_cifrado") // descripción de la solicitud, cifrada
-  estado          EstadoARCO  @default(RECIBIDA)
+  id                  String     @id @default(cuid())
+  orgId               String     @map("org_id")
+  solicitanteDni      String     @map("solicitante_dni")
+  solicitanteName     String     @map("solicitante_name")
+  tipo                TipoARCO
+  detalleCifrado      Bytes?     @map("detalle_cifrado") // descripción de la solicitud, cifrada
+  estado              EstadoARCO @default(RECIBIDA)
   // SLA: 20 días hábiles (Art. 41 Ley 29733 + D.S. 016-2024-JUS)
-  slaHasta        DateTime    @map("sla_hasta")
-  dpoAsignadoId   String?     @map("dpo_asignado_id")
-  respuestaAt     DateTime?   @map("respuesta_at")
-  respuestaArchivoUrl String? @map("respuesta_archivo_url")
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
+  slaHasta            DateTime   @map("sla_hasta")
+  dpoAsignadoId       String?    @map("dpo_asignado_id")
+  respuestaAt         DateTime?  @map("respuesta_at")
+  respuestaArchivoUrl String?    @map("respuesta_archivo_url")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   dpoAsignado  User?        @relation("DpoAsignado", fields: [dpoAsignadoId], references: [id])
@@ -3270,11 +3385,11 @@ enum TipoInstalacion {
 }
 
 enum NivelRiesgoIPERC {
-  TRIVIAL      // 4
-  TOLERABLE    // 5-8
-  MODERADO     // 9-16
-  IMPORTANTE   // 17-24
-  INTOLERABLE  // 25-36
+  TRIVIAL // 4
+  TOLERABLE // 5-8
+  MODERADO // 9-16
+  IMPORTANTE // 17-24
+  INTOLERABLE // 25-36
 }
 
 enum EstadoDocumento {
@@ -3389,7 +3504,6 @@ enum EstadoARCO {
   VENCIDA
 }
 
-
 model UserDraft {
   id        String   @id @default(cuid())
   userId    String
@@ -3404,4 +3518,3 @@ model UserDraft {
   @@index([expiresAt])
   @@map("user_drafts")
 }
-
