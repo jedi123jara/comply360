@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { getAuthContext } from '@/lib/auth'
 import { isRolloutEnabled } from '@/lib/plan-features'
 import OrganigramaClient from './_components/organigrama-client'
+import { V1DeprecationBanner } from './_components/v1-deprecation-banner'
 
 // Wrapper client-side que hace dynamic import del Shell v2.
 // El bundle de @xyflow/react + dagre + d3-hierarchy (~120 kB gzip) solo
@@ -18,13 +19,29 @@ function FallbackSkeleton() {
   return <div className="p-8 text-sm text-slate-500">Cargando organigrama…</div>
 }
 
-export default async function OrganigramaPage() {
+interface PageProps {
+  searchParams: Promise<{ v?: string }>
+}
+
+export default async function OrganigramaPage({ searchParams }: PageProps) {
   const ctx = await getAuthContext()
-  const v2Enabled = isRolloutEnabled('orgchart_v2', ctx?.orgId ?? null)
+  const sp = await searchParams
+  const flagEnabled = isRolloutEnabled('orgchart_v2', ctx?.orgId ?? null)
+  // Opt-in vía query string: cualquier usuario puede probar v2 con ?v=2
+  // sin tocar env vars de Vercel. Útil para piloto suave.
+  const optInV2 = sp.v === '2'
+  const v2Enabled = flagEnabled || optInV2
 
   return (
     <Suspense fallback={<FallbackSkeleton />}>
-      {v2Enabled ? <OrganigramaV2Wrapper /> : <OrganigramaClient />}
+      {v2Enabled ? (
+        <OrganigramaV2Wrapper />
+      ) : (
+        <>
+          <V1DeprecationBanner />
+          <OrganigramaClient />
+        </>
+      )}
     </Suspense>
   )
 }

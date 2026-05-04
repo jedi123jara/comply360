@@ -11,6 +11,7 @@
 import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { NodeProps, Node } from '@xyflow/react'
+import { motion } from 'framer-motion'
 import { Building2, Users, ShieldAlert, AlertTriangle } from 'lucide-react'
 
 import {
@@ -20,6 +21,7 @@ import {
 } from '@/lib/orgchart/coverage-aggregator'
 import type { UnitNodeData } from '../hooks/use-tree-to-flow'
 import { useLOD } from '../hooks/use-lod'
+import { UnitNodeToolbar } from '../overlays/node-toolbar'
 
 const KIND_LABELS: Record<string, string> = {
   GERENCIA: 'Gerencia',
@@ -53,16 +55,18 @@ function UnitNodeInner(props: UnitNodeProps) {
   const ringColor = TONE_COLOR_HEX[tone]
 
   return (
-    <div
-      style={{
-        width: 240,
-        opacity: dimmed ? 0.18 : 1,
-        transition: 'opacity 200ms ease',
-      }}
+    <motion.div
+      layout="position"
+      initial={data.ghost ? { opacity: 0, scale: 0.85 } : false}
+      animate={{ opacity: dimmed ? 0.18 : data.ghost ? 0.7 : 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      transition={{ type: 'spring', stiffness: 220, damping: 28 }}
+      style={{ width: 240 }}
       className={`group relative rounded-2xl border-2 bg-white shadow-sm transition-shadow hover:shadow-lg ${
         selected ? 'shadow-xl' : ''
-      }`}
+      } ${data.ghost ? 'border-dashed border-emerald-400 bg-emerald-50/40' : ''}`}
     >
+      <UnitNodeToolbar nodeId={data.unitId} isVisible={Boolean(selected)} />
       {/* Borde superior coloreado por compliance tone */}
       <div
         className="h-1.5 rounded-t-xl"
@@ -182,7 +186,7 @@ function UnitNodeInner(props: UnitNodeProps) {
         position={Position.Bottom}
         className="!h-2 !w-2 !border-0 !bg-slate-300"
       />
-    </div>
+    </motion.div>
   )
 }
 

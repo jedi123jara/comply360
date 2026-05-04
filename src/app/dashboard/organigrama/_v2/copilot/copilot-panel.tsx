@@ -7,10 +7,11 @@
  */
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useOrgStore } from '../state/org-store'
 import {
   Sparkles,
   Send,
@@ -45,11 +46,18 @@ const PROMPT_SUGGESTIONS = [
 
 export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
   const queryClient = useQueryClient()
+  const setCopilotPreviewPlan = useOrgStore((s) => s.setCopilotPreviewPlan)
   const [prompt, setPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
   const [applying, setApplying] = useState(false)
   const [plan, setPlan] = useState<CopilotPlan | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Sincronizar el plan al store para que el canvas lo dibuje como ghost nodes
+  useEffect(() => {
+    setCopilotPreviewPlan(plan)
+    return () => setCopilotPreviewPlan(null)
+  }, [plan, setCopilotPreviewPlan])
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
@@ -98,6 +106,7 @@ export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
       ])
 
       setPlan(null)
+      setCopilotPreviewPlan(null)
       setPrompt('')
       onClose()
     } catch (err) {

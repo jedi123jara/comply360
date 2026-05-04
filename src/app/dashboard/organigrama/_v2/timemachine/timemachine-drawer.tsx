@@ -259,7 +259,7 @@ function SnapshotCard({ snapshot, isCurrent, isCompare, onClick, index }: Snapsh
           ? `Auto-snapshot · shift+click para comparar`
           : `${snapshot.label} · shift+click para comparar`
       }
-      className={`flex w-44 flex-shrink-0 flex-col items-stretch rounded-lg border-2 px-3 py-2 text-left text-xs transition ${
+      className={`flex w-48 flex-shrink-0 flex-col items-stretch rounded-lg border-2 px-2 py-1.5 text-left text-xs transition ${
         isCurrent
           ? 'border-emerald-500 bg-emerald-50 shadow-md ring-2 ring-emerald-200'
           : isCompare
@@ -267,23 +267,33 @@ function SnapshotCard({ snapshot, isCurrent, isCompare, onClick, index }: Snapsh
             : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
       }`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-          #{index}
-        </span>
-        {snapshot.isAuto && (
-          <span className="rounded bg-slate-100 px-1 text-[8px] font-bold text-slate-600">
-            AUTO
+      {/* Thumbnail SVG del organigrama */}
+      <div className="relative h-12 overflow-hidden rounded bg-slate-50">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/api/orgchart/snapshots/${encodeURIComponent(snapshot.id)}/thumbnail.svg`}
+          alt={`Estructura ${snapshot.label}`}
+          className="h-full w-full object-contain"
+          loading="lazy"
+        />
+        <div className="absolute right-1 top-1 flex items-center gap-0.5">
+          <span className="rounded bg-slate-900/60 px-1 text-[8px] font-bold text-white">
+            #{index}
           </span>
-        )}
+          {snapshot.isAuto && (
+            <span className="rounded bg-slate-200 px-1 text-[8px] font-bold text-slate-700">
+              AUTO
+            </span>
+          )}
+        </div>
       </div>
-      <div className="mt-0.5 truncate text-[12px] font-semibold text-slate-900">
+      <div className="mt-1.5 truncate text-[12px] font-semibold text-slate-900">
         {snapshot.label}
       </div>
       <div className="mt-0.5 text-[10px] text-slate-500">
         {date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}
       </div>
-      <div className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-600">
+      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-600">
         <span title="Trabajadores">
           <strong className="tabular-nums">{snapshot.workerCount}</strong>w
         </span>
@@ -310,10 +320,17 @@ interface SnapshotDiff {
   removedAssignments?: Array<{ workerId: string }>
 }
 
+interface NarrativeData {
+  text: string
+  highlights: string[]
+  source: 'ai' | 'deterministic'
+}
+
 function SnapshotDiffModal({ onClose, snapshots }: SnapshotDiffModalProps) {
   const [fromId, setFromId] = useState(snapshots[0]?.id ?? '')
   const [toId, setToId] = useState(snapshots[snapshots.length - 1]?.id ?? '')
   const [diff, setDiff] = useState<SnapshotDiff | null>(null)
+  const [narrative, setNarrative] = useState<NarrativeData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -324,12 +341,25 @@ function SnapshotDiffModal({ onClose, snapshots }: SnapshotDiffModalProps) {
     }
     setLoading(true)
     setError(null)
+    setNarrative(null)
     try {
-      const url = `/api/orgchart/snapshots/diff?fromId=${encodeURIComponent(fromId)}&toId=${encodeURIComponent(toId)}`
-      const res = await fetch(url, { cache: 'no-store' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.error ?? `Error ${res.status}`)
-      setDiff(data)
+      const [diffRes, narrativeRes] = await Promise.all([
+        fetch(
+          `/api/orgchart/snapshots/diff?fromId=${encodeURIComponent(fromId)}&toId=${encodeURIComponent(toId)}`,
+          { cache: 'no-store' },
+        ),
+        fetch(
+          `/api/orgchart/snapshots/diff/narrative?fromId=${encodeURIComponent(fromId)}&toId=${encodeURIComponent(toId)}`,
+          { cache: 'no-store' },
+        ),
+      ])
+      const diffData = await diffRes.json()
+      if (!diffRes.ok) throw new Error(diffData?.error ?? `Error ${diffRes.status}`)
+      setDiff(diffData)
+      if (narrativeRes.ok) {
+        const narrativeData = (await narrativeRes.json()) as NarrativeData
+        setNarrative(narrativeData)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error obteniendo diff')
     } finally {
@@ -419,7 +449,14 @@ function SnapshotDiffModal({ onClose, snapshots }: SnapshotDiffModalProps) {
                 {error}
               </div>
             )}
-            {!loading && !error && diff && <DiffSummary diff={diff} />}
+            {!loading && !error && diff && (
+              <>
+                {narrative && (
+                  <NarrativeBlock narrative={narrative} />
+                )}
+                <DiffSummary diff={diff} />
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>
@@ -477,6 +514,41 @@ function DiffSummary({ diff }: { diff: SnapshotDiff }) {
           items={removedUnits.map((u) => u.name)}
           tone="rose"
         />
+      )}
+    </div>
+  )
+}
+
+function NarrativeBlock({ narrative }: { narrative: NarrativeData }) {
+  return (
+    <div className="mb-4 rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/40 p-4">
+      <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+        {narrative.source === 'ai' ? (
+          <>
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2L14 8L20 10L14 12L12 18L10 12L4 10L10 8L12 2Z"
+                fill="currentColor"
+              />
+            </svg>
+            Resumen IA
+          </>
+        ) : (
+          'Resumen'
+        )}
+      </div>
+      <p className="text-sm leading-relaxed text-slate-800">{narrative.text}</p>
+      {narrative.highlights.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1">
+          {narrative.highlights.map((h, i) => (
+            <span
+              key={i}
+              className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-emerald-800"
+            >
+              {h}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   )

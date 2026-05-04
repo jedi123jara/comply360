@@ -83,9 +83,13 @@ function OrgCanvasV2Inner({
     return buildCoverageReport(tree, findings)
   }, [tree, doctorReport])
 
+  // Plan del Copiloto IA en preview (ghost nodes).
+  const copilotPreviewPlan = useOrgStore((s) => s.copilotPreviewPlan)
+
   // Nodes/Edges con layout aplicado.
   const { nodes: layoutNodes, edges } = useTreeToFlow(tree, layoutMode, coverage, {
     positionMode,
+    copilotPreviewPlan,
   })
 
   // Foco: set de IDs relacionados al seleccionado (ancestros + descendientes).
@@ -184,6 +188,10 @@ function OrgCanvasV2Inner({
     )
   }
 
+  // Habilitamos conexiones cuando estamos en positionMode y no es read-only:
+  // arrastrar de un handle a otro reparenta el cargo.
+  const allowReparent = positionMode && !readOnly
+
   return (
     <div className="relative h-full w-full bg-slate-50">
       <ReactFlow
@@ -193,12 +201,15 @@ function OrgCanvasV2Inner({
         onNodeClick={handleNodeClick}
         onConnect={handleConnect}
         nodesDraggable={false}
+        nodesConnectable={allowReparent}
+        elementsSelectable
         edgesFocusable={false}
         edgesReconnectable={false}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.2}
         maxZoom={2.5}
+        connectionLineStyle={{ stroke: '#10b981', strokeWidth: 2, strokeDasharray: '6 4' }}
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: 'smoothstep',

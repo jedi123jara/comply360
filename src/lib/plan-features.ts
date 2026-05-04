@@ -36,6 +36,11 @@ export type PlanFeature =
   | 'webhooks_salientes'   // Webhooks API
   | 'white_label'          // Branding white-label
   | 'integracion_planilla' // Integración con Buk, Ofisis, etc.
+  // Ola 1+2 — módulo Trabajadores hardening (2026-05)
+  | 't_registro_export'        // Exportar XML T-REGISTRO SUNAT (gancho EMPRESA)
+  | 'sync_planilla_externa'    // Sync bidireccional Buk/Ofisis (lock-in PRO)
+  | 'historial_extendido_12m'  // WorkerHistoryEvent: ventana 12 meses (EMPRESA)
+  | 'historial_infinito'       // WorkerHistoryEvent: sin límite (PRO)
 
 export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
   FREE: ['calculadoras'],
@@ -59,6 +64,9 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'gamificacion',
     'organigrama',
     'organigrama_completo',
+    // Ola 1+2 — workers hardening
+    't_registro_export',
+    'historial_extendido_12m',
   ],
   PRO: [
     'calculadoras',
@@ -79,6 +87,11 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'gamificacion',
     'attendance_selfie',
     'organigrama',
+    // Ola 1+2 — workers hardening (PRO incluye todo de EMPRESA)
+    't_registro_export',
+    'historial_extendido_12m',
+    'historial_infinito',
+    'sync_planilla_externa',
   ],
   BUSINESS: [
     'calculadoras',
@@ -102,6 +115,11 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'organigrama_completo',
     'multi_empresa',
     'reportes_consolidados',
+    // hereda workers hardening
+    't_registro_export',
+    'historial_extendido_12m',
+    'historial_infinito',
+    'sync_planilla_externa',
   ],
   ENTERPRISE: [
     'calculadoras',
@@ -130,6 +148,11 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'webhooks_salientes',
     'white_label',
     'integracion_planilla',
+    // hereda workers hardening
+    't_registro_export',
+    'historial_extendido_12m',
+    'historial_infinito',
+    'sync_planilla_externa',
   ],
 }
 
@@ -165,6 +188,11 @@ export const FEATURE_MIN_PLAN: Record<PlanFeature, string> = {
   webhooks_salientes: 'ENTERPRISE',
   white_label: 'ENTERPRISE',
   integracion_planilla: 'ENTERPRISE',
+  // Ola 1+2 — workers hardening
+  t_registro_export: 'EMPRESA',
+  sync_planilla_externa: 'PRO',
+  historial_extendido_12m: 'EMPRESA',
+  historial_infinito: 'PRO',
 }
 
 /**
@@ -195,4 +223,51 @@ export function isRouteLocked(plan: string, href: string): boolean {
   const req = ROUTE_FEATURE_MAP[href]
   if (!req) return false
   return !planHasFeature(plan, req)
+}
+
+/**
+ * Rollout flags — banderas de despliegue gradual independientes del plan.
+ *
+ * A diferencia de `PLAN_FEATURES` (que gatea por plan comercial), estas
+ * banderas controlan rollout de UI nueva (canary, beta, opt-in) y se evalúan
+ * por env var + override por organización.
+ *
+ * Uso:
+ *   import { isRolloutEnabled } from '@/lib/plan-features'
+ *   if (isRolloutEnabled('orgchart_v2', orgId)) { ... }
+ *
+ * En cliente, exportamos la lista cruda para que sea tree-shakeable y
+ * funcione en Server Components.
+ */
+export type RolloutFlag = 'orgchart_v2'
+
+export const ROLLOUT_FLAGS: Record<RolloutFlag, { envVar: string; description: string }> = {
+  orgchart_v2: {
+    envVar: 'NEXT_PUBLIC_ORGCHART_V2',
+    description: 'Rediseño visual del organigrama con @xyflow/react + Compliance Heatmap + Smart Nudges',
+  },
+}
+
+/**
+ * Lista de orgIds permitidos por flag (override). Se puede llenar via env var
+ * `ORGCHART_V2_ORGS=orgA,orgB,orgC` o hardcodear durante beta.
+ *
+ * El env-var siempre tiene precedencia: si NEXT_PUBLIC_ORGCHART_V2=true → todos.
+ */
+function getAllowedOrgIds(flag: RolloutFlag): Set<string> {
+  if (flag === 'orgchart_v2') {
+    const raw = process.env.ORGCHART_V2_ORGS ?? ''
+    return new Set(raw.split(',').map(s => s.trim()).filter(Boolean))
+  }
+  return new Set()
+}
+
+export function isRolloutEnabled(flag: RolloutFlag, orgId?: string | null): boolean {
+  const cfg = ROLLOUT_FLAGS[flag]
+  if (!cfg) return false
+  // 1) global env-var → todos los tenants
+  if (process.env[cfg.envVar] === 'true') return true
+  // 2) override por orgId (whitelist)
+  if (orgId && getAllowedOrgIds(flag).has(orgId)) return true
+  return false
 }

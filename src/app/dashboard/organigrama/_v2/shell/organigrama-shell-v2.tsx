@@ -35,11 +35,17 @@ import { useKeyboardShortcuts } from '../canvas/hooks/use-keyboard-shortcuts'
 import { OnboardingWizard } from '../onboarding/onboarding-wizard'
 import { CopilotPanel } from '../copilot/copilot-panel'
 import { TimeMachineDrawer } from '../timemachine/timemachine-drawer'
+import { ModalsContainer } from '../modals/modals-container'
+import { CommandPaletteV2 } from '../command/command-palette'
+import { useIsMobile } from '../mobile/use-is-mobile'
+import { MobileTreeView } from '../mobile/mobile-tree-view'
+import { MobileInspectorSheet } from '../mobile/mobile-inspector-sheet'
 import { buildCoverageReport } from '@/lib/orgchart/coverage-aggregator'
 
 export function OrganigramaShellV2() {
   // --- Hooks de teclado ---
   useKeyboardShortcuts()
+  const isMobile = useIsMobile()
 
   // --- State ---
   const currentSnapshotId = useOrgStore((s) => s.currentSnapshotId)
@@ -165,7 +171,7 @@ export function OrganigramaShellV2() {
 
       {/* Body */}
       <div className="relative flex flex-1 overflow-hidden">
-        {/* Canvas principal */}
+        {/* Canvas principal (desktop) o vista mobile colapsable */}
         <div className="flex-1 overflow-hidden">
           {treeQuery.isLoading ? (
             <div className="flex h-full items-center justify-center">
@@ -177,6 +183,8 @@ export function OrganigramaShellV2() {
             </div>
           ) : tree && tree.units.length === 0 ? (
             <EmptyOnboarding onStart={() => setShowOnboarding(true)} />
+          ) : isMobile && tree ? (
+            <MobileTreeView tree={tree} coverage={coverage} />
           ) : (
             <OrgCanvasV2
               tree={tree}
@@ -186,10 +194,13 @@ export function OrganigramaShellV2() {
           )}
         </div>
 
-        {/* Inspector lateral */}
-        {inspectorOpen && tree && (
+        {/* Inspector lateral — desktop. En mobile usamos bottom-sheet aparte. */}
+        {!isMobile && inspectorOpen && tree && (
           <InspectorPanel tree={tree} coverage={coverage} />
         )}
+
+        {/* Inspector mobile — bottom-sheet draggable */}
+        {isMobile && tree && <MobileInspectorSheet tree={tree} coverage={coverage} />}
 
         {/* Doctor drawer (placeholder mínimo — la versión completa vive en v1) */}
         {doctorOpen && (
@@ -267,6 +278,12 @@ export function OrganigramaShellV2() {
       <AnimatePresenceWrapper>
         {timemachineOpen && <TimeMachineDrawer />}
       </AnimatePresenceWrapper>
+
+      {/* Modales centrales (CreateUnit, CreatePosition, AssignWorker, EditPosition, AssignRole) */}
+      <ModalsContainer />
+
+      {/* Command palette (cmdk) — atajo K */}
+      <CommandPaletteV2 />
     </div>
   )
 }

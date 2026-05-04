@@ -59,7 +59,7 @@
     },
     {
       "path": "/api/cron/orgchart-snapshots",
-      "schedule": "0 3 1 * *"
+      "schedule": "0 13 * * 1"
     },
     {
       "path": "/api/cron/orgchart-alerts",

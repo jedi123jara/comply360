@@ -11,6 +11,7 @@ import type { Node, Edge } from '@xyflow/react'
 
 import type { OrgChartTree } from '@/lib/orgchart/types'
 import type { CoverageReport, UnitCoverage } from '@/lib/orgchart/coverage-aggregator'
+import type { CopilotPlan } from '@/lib/orgchart/copilot/operations'
 import { runLayout } from '../layouts/layout-engine'
 import type { LayoutMode } from '../../state/slices/canvas-slice'
 
@@ -22,6 +23,8 @@ export interface UnitNodeData extends Record<string, unknown> {
   positionsCount: number
   occupantsCount: number
   coverage: UnitCoverage | null
+  /** Si este nodo viene del plan del Copiloto (no del árbol real). */
+  ghost?: boolean
 }
 
 export interface PositionNodeData extends Record<string, unknown> {
@@ -43,10 +46,16 @@ export type OrgFlowNode = Node<UnitNodeData> | Node<PositionNodeData>
 export interface BuildFlowOptions {
   /** Si es true, usa nodos de tipo `positionNode` (cargo individual). Si no, agrupa por unidad. */
   positionMode?: boolean
+  /** Plan del Copiloto IA — si está, se inyectan ghost nodes y edges punteadas para preview. */
+  copilotPreviewPlan?: CopilotPlan | null
 }
 
 /**
  * Convierte un `OrgChartTree` a nodos/aristas de @xyflow y aplica layout.
+ *
+ * Si recibe un plan del Copiloto (`copilotPreviewPlan`), inyecta ghost nodes
+ * (createUnit/createPosition) y edges punteadas verdes para visualizar el
+ * diff propuesto sin tocar el árbol real.
  */
 export function useTreeToFlow(
   tree: OrgChartTree | null,
@@ -57,11 +66,177 @@ export function useTreeToFlow(
   return useMemo(() => {
     if (!tree) return { nodes: [], edges: [] }
 
-    if (opts.positionMode) {
-      return buildPositionFlow(tree, layoutMode, coverage)
+    const base = opts.positionMode
+      ? buildPositionFlow(tree, layoutMode, coverage)
+      : buildUnitFlow(tree, layoutMode, coverage)
+
+    if (!opts.copilotPreviewPlan) return base
+    // Aplica overlay de ghost nodes encima del árbol real
+    return overlayCopilotPreview(base, opts.copilotPreviewPlan, layoutMode, opts.positionMode ?? false)
+  }, [tree, layoutMode, coverage, opts.positionMode, opts.copilotPreviewPlan])
+}
+
+/**
+ * Toma el árbol real ya layouteado y le agrega los ghost nodes del plan
+ * Copiloto sin re-layoutear todo el árbol (mantenemos posiciones reales).
+ *
+ * Para los ghost: layouteamos solo el subgrafo nuevo (createUnit/createPosition)
+ * con dagre LR pequeño y los posicionamos cerca del nodo padre real.
+ */
+function overlayCopilotPreview(
+  base: { nodes: OrgFlowNode[]; edges: Edge[] },
+  plan: CopilotPlan,
+  _layoutMode: LayoutMode,
+  positionMode: boolean,
+): { nodes: OrgFlowNode[]; edges: Edge[] } {
+  const ghostNodes: OrgFlowNode[] = []
+  const ghostEdges: Edge[] = []
+
+  // Mapa de keys/temp → posición (para colocar el ghost donde corresponde)
+  const realPositionByNodeId = new Map<string, { x: number; y: number; w: number; h: number }>()
+  for (const n of base.nodes) {
+    realPositionByNodeId.set(n.id, {
+      x: n.position.x,
+      y: n.position.y,
+      w: (n.width as number | undefined) ?? 240,
+      h: (n.height as number | undefined) ?? 120,
+    })
+  }
+
+  const ghostUnitOps = plan.operations.filter((op) => op.op === 'createUnit')
+  const ghostPositionOps = plan.operations.filter((op) => op.op === 'createPosition')
+
+  // Posicionar ghosts cerca de su parent: si parent es real → bajo el parent.
+  // Si parent es otro ghost → cascada al lado.
+  const ghostPositions = new Map<string, { x: number; y: number }>()
+
+  function findChildOffset(parentX: number, parentY: number, parentH: number, index: number) {
+    return {
+      x: parentX + index * 260,
+      y: parentY + parentH + 90,
     }
-    return buildUnitFlow(tree, layoutMode, coverage)
-  }, [tree, layoutMode, coverage, opts.positionMode])
+  }
+
+  // Layout de ghost units
+  ghostUnitOps.forEach((op, i) => {
+    if (op.op !== 'createUnit') return
+    const parentRef = op.parentRef
+    let baseX = 0
+    let baseY = 0
+    let baseH = 100
+    if (parentRef && realPositionByNodeId.has(parentRef)) {
+      const real = realPositionByNodeId.get(parentRef)!
+      baseX = real.x
+      baseY = real.y
+      baseH = real.h
+    } else if (parentRef && ghostPositions.has(parentRef)) {
+      const ghost = ghostPositions.get(parentRef)!
+      baseX = ghost.x
+      baseY = ghost.y
+      baseH = 100
+    } else {
+      // Sin parent → ponerlo arriba del árbol
+      baseX = -300
+      baseY = -200 + i * 140
+    }
+    const pos = findChildOffset(baseX, baseY, baseH, i)
+    ghostPositions.set(op.tempKey, pos)
+
+    ghostNodes.push({
+      id: `ghost-unit-${op.tempKey}`,
+      type: 'unitNode',
+      position: pos,
+      data: {
+        kind: 'unit',
+        unitId: `ghost-${op.tempKey}`,
+        name: `+ ${op.name}`,
+        unitKind: op.kind,
+        positionsCount: 0,
+        occupantsCount: 0,
+        coverage: null,
+        ghost: true,
+      } satisfies UnitNodeData,
+      style: { opacity: 0.7 },
+      width: 240,
+      height: 120,
+    })
+
+    if (parentRef) {
+      const sourceId = realPositionByNodeId.has(parentRef)
+        ? parentRef
+        : `ghost-unit-${parentRef}`
+      ghostEdges.push({
+        id: `ghost-edge-${parentRef}-${op.tempKey}`,
+        source: sourceId,
+        target: `ghost-unit-${op.tempKey}`,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '6 4' },
+      })
+    }
+  })
+
+  // Ghost positions
+  if (positionMode) {
+    ghostPositionOps.forEach((op, i) => {
+      if (op.op !== 'createPosition') return
+      const parentInGhostUnit = ghostPositions.get(op.unitRef)
+      let baseX = 0
+      let baseY = 0
+      if (parentInGhostUnit) {
+        baseX = parentInGhostUnit.x + 24
+        baseY = parentInGhostUnit.y + 130 + i * 110
+      } else if (realPositionByNodeId.has(op.unitRef)) {
+        const real = realPositionByNodeId.get(op.unitRef)!
+        baseX = real.x + 24
+        baseY = real.y + real.h + 16 + i * 110
+      } else {
+        baseX = -200 + i * 220
+        baseY = 200
+      }
+
+      ghostNodes.push({
+        id: `ghost-pos-${op.tempKey}`,
+        type: 'positionNode',
+        position: { x: baseX, y: baseY },
+        data: {
+          kind: 'position',
+          positionId: `ghost-${op.tempKey}`,
+          unitId: op.unitRef,
+          unitName: null,
+          title: `+ ${op.title}`,
+          occupants: [],
+          vacant: true,
+          isManagerial: op.isManagerial ?? false,
+          isCritical: op.isCritical ?? false,
+          directReports: 0,
+          coverage: null,
+        } satisfies PositionNodeData,
+        style: { opacity: 0.7 },
+        width: 200,
+        height: 90,
+      })
+
+      if (op.reportsToRef) {
+        const sourceId = realPositionByNodeId.has(op.reportsToRef)
+          ? op.reportsToRef
+          : `ghost-pos-${op.reportsToRef}`
+        ghostEdges.push({
+          id: `ghost-edge-${op.reportsToRef}-${op.tempKey}`,
+          source: sourceId,
+          target: `ghost-pos-${op.tempKey}`,
+          type: 'smoothstep',
+          animated: true,
+          style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '6 4' },
+        })
+      }
+    })
+  }
+
+  return {
+    nodes: [...base.nodes, ...ghostNodes],
+    edges: [...base.edges, ...ghostEdges],
+  }
 }
 
 function buildUnitFlow(

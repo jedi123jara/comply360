@@ -8,6 +8,7 @@ import {
 import { prisma } from '@/lib/prisma'
 import type { PublicOrgChartPayload } from '@/lib/orgchart/types'
 import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
+import { buildGuidedTour, type GuidedTour } from '@/lib/orgchart/public-link/guided-tour'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,7 +74,40 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       }))
     : []
 
-  const response: PublicOrgChartPayload & { roleCatalog: typeof COMPLIANCE_ROLES } = {
+  // MOF coverage ratio — para el step #6 del tour guiado.
+  const mofCompletedCount = tree.positions.filter(
+    (p) => Boolean(p.purpose && p.functions && p.responsibilities && p.requirements),
+  ).length
+  const mofCompletedRatio =
+    tree.positions.length === 0 ? 1 : mofCompletedCount / tree.positions.length
+
+  // Worker count del snapshot (para reglas de "≥20 trabajadores → comité formal").
+  // Contamos workers únicos asignados — el snapshot meta no expone workerCount
+  // directo, así que derivamos del tree.
+  const workerCount = new Set(tree.assignments.map((a) => a.workerId)).size
+
+  // Tour guiado modo Inspector SUNAFIL — solo si el token incluye complianceRoles
+  // (sin roles, el tour pierde su valor).
+  const guidedTour: GuidedTour | null = decoded.includeComplianceRoles
+    ? buildGuidedTour(
+        {
+          units: tree.units.map((u) => ({
+            id: u.id,
+            parentId: u.parentId,
+            name: u.name,
+            kind: u.kind,
+          })),
+          positions: positionsWithOccupants,
+          complianceRoles,
+        },
+        { workerCount, mofCompletedRatio },
+      )
+    : null
+
+  const response: PublicOrgChartPayload & {
+    roleCatalog: typeof COMPLIANCE_ROLES
+    guidedTour: GuidedTour | null
+  } = {
     org: { name: org.razonSocial ?? org.name, ruc: org.ruc },
     snapshotLabel: verified.snapshot.label,
     takenAt: verified.snapshot.createdAt.toISOString(),
@@ -88,6 +122,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     positions: positionsWithOccupants,
     complianceRoles,
     roleCatalog: COMPLIANCE_ROLES,
+    guidedTour,
   }
 
   return NextResponse.json(response, {

@@ -9,11 +9,13 @@
 import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { NodeProps, Node } from '@xyflow/react'
+import { motion } from 'framer-motion'
 import { UserCircle2, Crown, AlertTriangle } from 'lucide-react'
 
 import { TONE_COLOR_HEX } from '@/lib/orgchart/coverage-aggregator'
 import type { PositionNodeData } from '../hooks/use-tree-to-flow'
 import { useLOD } from '../hooks/use-lod'
+import { PositionNodeToolbar } from '../overlays/node-toolbar'
 
 interface PositionNodeProps extends NodeProps<Node<PositionNodeData>> {
   dimmed?: boolean
@@ -32,16 +34,18 @@ function PositionNodeInner(props: PositionNodeProps) {
       : '—'
 
   return (
-    <div
-      style={{
-        width: 200,
-        opacity: dimmed ? 0.18 : 1,
-        transition: 'opacity 200ms ease',
-      }}
+    <motion.div
+      layout="position"
+      initial={false}
+      animate={{ opacity: dimmed ? 0.18 : 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      transition={{ type: 'spring', stiffness: 220, damping: 28 }}
+      style={{ width: 200 }}
       className={`relative rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md ${
         data.vacant ? 'border-dashed border-slate-300' : 'border-slate-200'
       } ${selected ? 'shadow-lg' : ''}`}
     >
+      <PositionNodeToolbar nodeId={data.positionId} isVisible={Boolean(selected)} />
       <div
         className="h-1 rounded-t-xl"
         style={{ backgroundColor: ringColor }}
@@ -128,7 +132,7 @@ function PositionNodeInner(props: PositionNodeProps) {
         position={Position.Bottom}
         className="!h-2 !w-2 !border-0 !bg-slate-300"
       />
-    </div>
+    </motion.div>
   )
 }
 
