@@ -51,6 +51,7 @@ import {
   buildWhatIfCostImpact,
   type WhatIfCostImpact,
 } from '@/lib/orgchart/what-if-cost'
+import { buildCsstCompositionSuggestions } from '@/lib/orgchart/csst-suggestions'
 import type {
   SubordinationDossier,
   SubordinationSeverity,
@@ -66,9 +67,9 @@ import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 
 type View = 'hierarchy' | 'committees'
 type OrgLens = 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
-type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'subordinacion' | 'analitica' | 'historial'
+type ModuleTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'alertas' | 'subordinacion' | 'analitica' | 'historial'
 type PendingReparent = { positionId: string; newParentId: string }
-type AssignRoleRequest = { unitId: string | null; roleType?: ComplianceRoleType }
+type AssignRoleRequest = { unitId: string | null; roleType?: ComplianceRoleType; workerId?: string }
 type OrgAlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 type OrgAlertCategory = 'MOF' | 'SST' | 'LEGAL_ROLE' | 'VACANCY' | 'SUBORDINATION' | 'SUCCESSION' | 'STRUCTURE'
 type OrgDraftStatus = 'DRAFT' | 'REVIEWING' | 'APPLIED' | 'DISCARDED'
@@ -174,7 +175,6 @@ export default function OrganigramaClient() {
   const [showDoctor, setShowDoctor] = useState(false)
   const [doctorReport, setDoctorReport] = useState<DoctorReport | null>(null)
   const [doctorLoading, setDoctorLoading] = useState(false)
-  const [showAlerts, setShowAlerts] = useState(false)
   const [alertsReport, setAlertsReport] = useState<OrgAlertsReportDTO | null>(null)
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState<string | null>(null)
@@ -182,7 +182,7 @@ export default function OrganigramaClient() {
   const [alertMonitorLoading, setAlertMonitorLoading] = useState(false)
 
   const [snapshots, setSnapshots] = useState<OrgChartSnapshotDTO[]>([])
-  const [asOf, setAsOf] = useState<string | null>(null)
+  const [snapshotId, setSnapshotId] = useState<string | null>(null)
 
   const [showSeedWizard, setShowSeedWizard] = useState(false)
   const [showImportExcel, setShowImportExcel] = useState(false)
@@ -200,17 +200,17 @@ export default function OrganigramaClient() {
   const [pendingReparent, setPendingReparent] = useState<PendingReparent | null>(null)
   const [reparenting, setReparenting] = useState(false)
 
-  const fetchTree = useCallback(async (asOfStr: string | null) => {
+  const fetchTree = useCallback(async (snapshotIdStr: string | null) => {
     setLoading(true)
     setError(null)
     try {
-      const url = asOfStr ? `/api/orgchart?asOf=${encodeURIComponent(asOfStr)}` : '/api/orgchart'
+      const url = snapshotIdStr ? `/api/orgchart?snapshotId=${encodeURIComponent(snapshotIdStr)}` : '/api/orgchart'
       const res = await fetch(url, { cache: 'no-store' })
       if (!res.ok) throw new Error(`Error ${res.status}`)
       const data = (await res.json()) as OrgChartTree
       setTree(data)
       // si vacío, sugerir wizard
-      if (data.units.length === 0 && !asOfStr) {
+      if (data.units.length === 0 && !snapshotIdStr) {
         setShowSeedWizard(true)
       }
     } catch (err: unknown) {
@@ -247,16 +247,16 @@ export default function OrganigramaClient() {
   }, [])
 
   useEffect(() => {
-    fetchTree(asOf)
-  }, [asOf, fetchTree])
+    fetchTree(snapshotId)
+  }, [snapshotId, fetchTree])
 
   useEffect(() => {
     fetchSnapshots()
   }, [fetchSnapshots])
 
   useEffect(() => {
-    if (!asOf) fetchAlerts()
-  }, [asOf, fetchAlerts])
+    if (!snapshotId) fetchAlerts()
+  }, [snapshotId, fetchAlerts])
 
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get('tab')
@@ -278,6 +278,7 @@ export default function OrganigramaClient() {
     setActiveTab(tab)
     setSelectedUnitId(null)
     setPendingReparent(null)
+    setShowDoctor(false)
     const url = new URL(window.location.href)
     if (tab === 'organigrama') {
       url.searchParams.delete('tab')
@@ -292,13 +293,12 @@ export default function OrganigramaClient() {
     changeTab(result.tab)
     setLens(result.lens)
     setShowDoctor(false)
-    setShowAlerts(false)
     setPendingReparent(null)
     setSelectedUnitId(result.unitId)
   }, [changeTab])
 
-  const openAssignRole = useCallback((unitId: string | null, roleType?: ComplianceRoleType) => {
-    setAssignRoleRequest({ unitId, roleType })
+  const openAssignRole = useCallback((unitId: string | null, roleType?: ComplianceRoleType, workerId?: string) => {
+    setAssignRoleRequest({ unitId, roleType, workerId })
   }, [])
 
   const runDoctor = useCallback(async () => {
@@ -362,8 +362,40 @@ export default function OrganigramaClient() {
     if (!selectedUnitId || !tree) return null
     return tree.units.find(u => u.id === selectedUnitId) ?? null
   }, [selectedUnitId, tree])
+  const selectedSnapshot = useMemo(
+    () => snapshots.find(snapshot => snapshot.id === snapshotId) ?? null,
+    [snapshotId, snapshots],
+  )
+  const timelineSnapshots = useMemo(
+    () => [...snapshots].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()),
+    [snapshots],
+  )
+  const timelineIndex = selectedSnapshot
+    ? Math.max(0, timelineSnapshots.findIndex(snapshot => snapshot.id === selectedSnapshot.id))
+    : timelineSnapshots.length
+  const timelineActiveLabel = selectedSnapshot
+    ? `${new Date(selectedSnapshot.createdAt).toLocaleDateString('es-PE')} · ${selectedSnapshot.label}`
+    : 'Estado actual'
   const structureAnalytics = useMemo(() => (tree ? buildStructureAnalytics(tree) : null), [tree])
-  const isHistorical = Boolean(asOf)
+  const isHistorical = Boolean(snapshotId)
+  const exportHref = useCallback((path: string, params: Record<string, string | null | undefined> = {}) => {
+    const query = new URLSearchParams()
+    if (snapshotId) query.set('snapshotId', snapshotId)
+    for (const [key, value] of Object.entries(params)) {
+      if (value) query.set(key, value)
+    }
+    const serialized = query.toString()
+    return serialized ? `${path}?${serialized}` : path
+  }, [snapshotId])
+  const selectTimelineIndex = useCallback((value: string) => {
+    const index = Number(value)
+    if (!Number.isInteger(index)) return
+    if (index >= timelineSnapshots.length) {
+      setSnapshotId(null)
+      return
+    }
+    setSnapshotId(timelineSnapshots[index]?.id ?? null)
+  }, [timelineSnapshots])
 
   const requestReparentPosition = useCallback((positionId: string, newParentId: string) => {
     if (isHistorical || !tree) return
@@ -393,14 +425,14 @@ export default function OrganigramaClient() {
       }
       toast.success('Línea de mando actualizada')
       setPendingReparent(null)
-      await fetchTree(asOf)
+      await fetchTree(snapshotId)
       fetchAlerts()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al mover el cargo')
     } finally {
       setReparenting(false)
     }
-  }, [asOf, fetchAlerts, fetchTree, pendingReparent, tree])
+  }, [fetchAlerts, fetchTree, pendingReparent, snapshotId, tree])
 
   const renderMainContent = () => {
     if (loading) {
@@ -439,6 +471,7 @@ export default function OrganigramaClient() {
           onEditPosition={setEditPositionId}
           lens={lens}
           readOnly={isHistorical}
+          exportHref={exportHref}
         />
       )
     }
@@ -448,6 +481,20 @@ export default function OrganigramaClient() {
           tree={tree}
           readOnly={isHistorical}
           onAssignRole={(roleType) => openAssignRole(null, roleType)}
+        />
+      )
+    }
+    if (activeTab === 'alertas') {
+      return (
+        <OrgAlertsPanel
+          report={alertsReport}
+          loading={alertsLoading}
+          error={alertsError}
+          monitorReport={alertMonitorReport}
+          monitorLoading={alertMonitorLoading}
+          onRefresh={fetchAlerts}
+          onCreateTasks={runAlertMonitor}
+          onClose={() => changeTab('organigrama')}
         />
       )
     }
@@ -487,7 +534,10 @@ export default function OrganigramaClient() {
     if (view === 'committees') {
       return (
         <div className="flex h-full flex-col bg-slate-50">
-          <CsstGovernancePanel tree={tree} />
+          <CsstGovernancePanel
+            tree={tree}
+            onAssignRole={(roleType, workerId) => openAssignRole(null, roleType, workerId)}
+          />
           <div className="min-h-0 flex-1">{canvas}</div>
         </div>
       )
@@ -544,7 +594,7 @@ export default function OrganigramaClient() {
             </button>
             <button
               onClick={() => {
-                setShowAlerts(true)
+                changeTab('alertas')
                 setShowDoctor(false)
                 setSelectedUnitId(null)
                 fetchAlerts()
@@ -560,10 +610,7 @@ export default function OrganigramaClient() {
               )}
             </button>
             <button
-              onClick={() => {
-                setShowDoctor(true)
-                setShowAlerts(false)
-              }}
+              onClick={() => setShowDoctor(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               <Sparkles className="h-4 w-4 text-emerald-600" />
@@ -592,14 +639,21 @@ export default function OrganigramaClient() {
               Snapshot
             </button>
             <a
-              href={`/api/orgchart/export-pdf${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`}
+              href={exportHref('/api/orgchart/export-pdf')}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               <Download className="h-4 w-4" />
               PDF
             </a>
             <a
-              href={`/api/orgchart/rit${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`}
+              href={exportHref('/api/orgchart/mof')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <ScrollText className="h-4 w-4" />
+              MOF
+            </a>
+            <a
+              href={exportHref('/api/orgchart/rit')}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               <ScrollText className="h-4 w-4" />
@@ -616,38 +670,56 @@ export default function OrganigramaClient() {
         </div>
         {/* Time travel */}
         {snapshots.length > 0 && (
-          <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-            <History className="h-3.5 w-3.5" />
-            <span>Time travel:</span>
-            <select
-              className="rounded-md border border-slate-200 px-2 py-1 text-xs"
-              value={asOf ?? ''}
-              onChange={e => setAsOf(e.target.value || null)}
-            >
-              <option value="">Estado actual</option>
-              {snapshots.map(s => (
-                <option key={s.id} value={s.createdAt}>
-                  {new Date(s.createdAt).toLocaleDateString('es-PE')} · {s.label}
-                </option>
-              ))}
-            </select>
-            {asOf && (
-              <button onClick={() => setAsOf(null)} className="text-emerald-600 hover:underline">
-                Volver al actual
-              </button>
-            )}
-            <button
-              onClick={() => setShowSnapshotDiff(true)}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50"
-            >
-              <History className="h-3.5 w-3.5" />
-              Comparar
-            </button>
+          <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="flex min-w-[150px] items-center gap-2 font-medium text-slate-700">
+                <History className="h-3.5 w-3.5" />
+                <span>Time Machine</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <input
+                  aria-label="Seleccionar snapshot histórico"
+                  type="range"
+                  min={0}
+                  max={timelineSnapshots.length}
+                  step={1}
+                  value={timelineIndex}
+                  onChange={event => selectTimelineIndex(event.target.value)}
+                  className="w-full accent-emerald-600"
+                />
+                <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                  <span className="truncate">
+                    {timelineSnapshots[0]
+                      ? new Date(timelineSnapshots[0].createdAt).toLocaleDateString('es-PE')
+                      : 'Inicio'}
+                  </span>
+                  <span className="truncate text-right">Actual</span>
+                </div>
+              </div>
+              <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                <span className="max-w-[280px] truncate rounded-md bg-slate-50 px-2 py-1 font-medium text-slate-700">
+                  {timelineActiveLabel}
+                </span>
+                {snapshotId && (
+                  <button onClick={() => setSnapshotId(null)} className="text-emerald-600 hover:underline">
+                    Volver al actual
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowSnapshotDiff(true)}
+                  disabled={timelineSnapshots.length < 2}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <History className="h-3.5 w-3.5" />
+                  Comparar
+                </button>
+              </div>
+            </div>
           </div>
         )}
-        {isHistorical && (
+        {isHistorical && selectedSnapshot && (
           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
-            Vista histórica al {new Date(asOf!).toLocaleDateString('es-PE')} — solo lectura.
+            Vista histórica firmada: {selectedSnapshot.label} · {new Date(selectedSnapshot.createdAt).toLocaleDateString('es-PE')} · hash {selectedSnapshot.hash.slice(0, 10)}
           </div>
         )}
         <ModuleTabs
@@ -658,6 +730,7 @@ export default function OrganigramaClient() {
             units: tree?.units.length ?? 0,
             positions: tree?.positions.length ?? 0,
             roles: tree?.complianceRoles.length ?? 0,
+            alerts: alertsReport?.totals.open ?? 0,
             structureScore: structureAnalytics?.score ?? 100,
           }}
         />
@@ -666,23 +739,8 @@ export default function OrganigramaClient() {
       {/* Body */}
       <div className="relative flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-hidden">{renderMainContent()}</div>
-        {/* Drawer Alertas */}
-        {showAlerts && (
-          <div className="w-[420px] border-l border-slate-200">
-            <OrgAlertsPanel
-              report={alertsReport}
-              loading={alertsLoading}
-              error={alertsError}
-              monitorReport={alertMonitorReport}
-              monitorLoading={alertMonitorLoading}
-              onRefresh={fetchAlerts}
-              onCreateTasks={runAlertMonitor}
-              onClose={() => setShowAlerts(false)}
-            />
-          </div>
-        )}
         {/* Drawer Org Doctor */}
-        {showDoctor && !showAlerts && (
+        {showDoctor && (
           <div className="w-[380px] border-l border-slate-200">
             <OrgDoctorPanel
               report={doctorReport}
@@ -694,13 +752,13 @@ export default function OrganigramaClient() {
           </div>
         )}
         {/* Drawer Unit Inspector */}
-        {selectedUnit && !showDoctor && !showAlerts && (
+        {selectedUnit && !showDoctor && (
           <UnitInspector
             unit={selectedUnit}
             tree={tree!}
             onClose={() => setSelectedUnitId(null)}
             onChanged={() => {
-              fetchTree(asOf)
+              fetchTree(snapshotId)
               fetchAlerts()
             }}
             onCreatePosition={(unitId) => setCreatePositionForUnitId(unitId)}
@@ -780,11 +838,11 @@ export default function OrganigramaClient() {
         <CreateUnitModal
           existingUnits={tree.units}
           onClose={() => setShowCreateUnit(false)}
-          onCreated={() => {
-            setShowCreateUnit(false)
-            fetchTree(asOf)
-            fetchAlerts()
-          }}
+            onCreated={() => {
+              setShowCreateUnit(false)
+              fetchTree(snapshotId)
+              fetchAlerts()
+            }}
         />
       )}
       {createPositionForUnitId && tree && !isHistorical && (
@@ -796,7 +854,7 @@ export default function OrganigramaClient() {
           onClose={() => setCreatePositionForUnitId(null)}
           onCreated={() => {
             setCreatePositionForUnitId(null)
-            fetchTree(asOf)
+            fetchTree(snapshotId)
             fetchAlerts()
           }}
         />
@@ -811,7 +869,7 @@ export default function OrganigramaClient() {
           onClose={() => setEditPositionId(null)}
           onCreated={() => {
             setEditPositionId(null)
-            fetchTree(asOf)
+            fetchTree(snapshotId)
             fetchAlerts()
           }}
         />
@@ -823,7 +881,7 @@ export default function OrganigramaClient() {
           onClose={() => setAssignWorkerForPositionId(null)}
           onAssigned={() => {
             setAssignWorkerForPositionId(null)
-            fetchTree(asOf)
+            fetchTree(snapshotId)
             fetchAlerts()
           }}
         />
@@ -833,10 +891,11 @@ export default function OrganigramaClient() {
           unitId={assignRoleRequest.unitId}
           unitName={assignRoleRequest.unitId ? tree.units.find(u => u.id === assignRoleRequest.unitId)?.name ?? 'unidad' : 'organizacion'}
           initialRoleType={assignRoleRequest.roleType}
+          initialWorkerId={assignRoleRequest.workerId}
           onClose={() => setAssignRoleRequest(null)}
           onAssigned={() => {
             setAssignRoleRequest(null)
-            fetchTree(asOf)
+            fetchTree(snapshotId)
             fetchAlerts()
           }}
         />
@@ -919,6 +978,7 @@ function isModuleTab(value: string | null): value is ModuleTab {
     value === 'directorio' ||
     value === 'areas-cargos' ||
     value === 'responsables' ||
+    value === 'alertas' ||
     value === 'subordinacion' ||
     value === 'analitica' ||
     value === 'historial'
@@ -932,13 +992,14 @@ function ModuleTabs({
 }: {
   value: ModuleTab
   onChange: (tab: ModuleTab) => void
-  counts: { assigned: number; units: number; positions: number; roles: number; structureScore: number }
+  counts: { assigned: number; units: number; positions: number; roles: number; alerts: number; structureScore: number }
 }) {
   const items: Array<{ key: ModuleTab; label: string; meta: string; icon: typeof Network }> = [
     { key: 'organigrama', label: 'Organigrama', meta: `${counts.units} áreas`, icon: Network },
     { key: 'directorio', label: 'Directorio', meta: `${counts.assigned} asignados`, icon: FileSpreadsheet },
     { key: 'areas-cargos', label: 'Áreas y cargos', meta: `${counts.positions} cargos`, icon: ListTree },
     { key: 'responsables', label: 'Responsables', meta: `${counts.roles} roles`, icon: ShieldCheck },
+    { key: 'alertas', label: 'Alertas', meta: `${counts.alerts} abiertas`, icon: AlertTriangle },
     { key: 'subordinacion', label: 'Subordinación', meta: 'Civil', icon: AlertTriangle },
     { key: 'analitica', label: 'Analítica', meta: `${counts.structureScore}/100`, icon: Sparkles },
     { key: 'historial', label: 'Historial', meta: 'Auditoría', icon: History },
@@ -971,8 +1032,14 @@ function ModuleTabs({
   )
 }
 
-function CsstGovernancePanel({ tree }: { tree: OrgChartTree }) {
-  const workerIds = new Set(tree.assignments.map(assignment => assignment.workerId))
+function CsstGovernancePanel({
+  tree,
+  onAssignRole,
+}: {
+  tree: OrgChartTree
+  onAssignRole: (roleType: ComplianceRoleType, workerId?: string) => void
+}) {
+  const workerIds = new Set(tree.assignments.filter(assignment => !assignment.endedAt).map(assignment => assignment.workerId))
   const roles = tree.complianceRoles.filter(role => {
     const def = COMPLIANCE_ROLES[role.roleType]
     return def.committeeKind === 'COMITE_SST' || role.roleType === 'SUPERVISOR_SST'
@@ -991,16 +1058,9 @@ function CsstGovernancePanel({ tree }: { tree: OrgChartTree }) {
     const diff = new Date(role.endsAt).getTime() - nowMs
     return diff >= 0 && diff <= 60 * 24 * 60 * 60 * 1000
   }).length
-  const needsCommittee = workerIds.size > 20
-  const missing = needsCommittee
-    ? [
-        president === 0 ? 'Presidente' : null,
-        secretary === 0 ? 'Secretario' : null,
-        workerReps === 0 ? 'Representantes de trabajadores' : null,
-        employerReps === 0 ? 'Representantes del empleador' : null,
-        workerReps < employerReps ? 'Paridad trabajador/empleador' : null,
-      ].filter(Boolean)
-    : [supervisors === 0 ? 'Supervisor SST' : null].filter(Boolean)
+  const suggestionReport = buildCsstCompositionSuggestions(tree)
+  const needsCommittee = suggestionReport.needsCommittee
+  const missing = suggestionReport.missingRoles.map(csstRoleShortLabel)
   const statusOk = missing.length === 0 && expired === 0
 
   return (
@@ -1033,6 +1093,46 @@ function CsstGovernancePanel({ tree }: { tree: OrgChartTree }) {
           </div>
         )}
       </div>
+
+      {suggestionReport.suggestions.length > 0 && (
+        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {suggestionReport.suggestions.slice(0, 6).map(suggestion => (
+            <div key={`${suggestion.roleType}-${suggestion.workerId}`} className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    {COMPLIANCE_ROLES[suggestion.roleType].shortLabel}
+                  </div>
+                  <div className="mt-1 truncate text-sm font-semibold text-slate-900">{suggestion.workerName}</div>
+                  <div className="truncate text-xs text-slate-600">
+                    {suggestion.positionTitle}{suggestion.unitName ? ` · ${suggestion.unitName}` : ''}
+                  </div>
+                </div>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                  {suggestion.score}
+                </span>
+              </div>
+              <div className="mt-2 text-xs leading-relaxed text-emerald-900">{suggestion.reason}</div>
+              {suggestion.evidence.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {suggestion.evidence.map(item => (
+                    <span key={item} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => onAssignRole(suggestion.roleType, suggestion.workerId)}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Designar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -1044,6 +1144,11 @@ function CsstMetric({ label, value, highlight = false }: { label: string; value:
       <div className="text-[10px] font-medium text-slate-500">{label}</div>
     </div>
   )
+}
+
+function csstRoleShortLabel(roleType: ComplianceRoleType) {
+  const label = COMPLIANCE_ROLES[roleType]?.shortLabel ?? formatEnum(roleType)
+  return label.replace(' SST', '')
 }
 
 function StructureAnalyticsView({
@@ -2833,6 +2938,7 @@ function AreasPositionsView({
   onEditPosition,
   lens,
   readOnly,
+  exportHref,
 }: {
   tree: OrgChartTree
   selectedUnitId: string | null
@@ -2842,6 +2948,7 @@ function AreasPositionsView({
   onEditPosition: (positionId: string) => void
   lens: OrgLens
   readOnly: boolean
+  exportHref: (path: string, params?: Record<string, string | null | undefined>) => string
 }) {
   const [search, setSearch] = useState('')
   const unitsById = useMemo(() => new Map(tree.units.map(u => [u.id, u])), [tree.units])
@@ -2953,6 +3060,15 @@ function AreasPositionsView({
               <Plus className="h-4 w-4" />
               Nuevo cargo
             </button>
+            )}
+            {selectedUnit && (
+              <a
+                href={exportHref('/api/orgchart/mof', { unitId: selectedUnit.id })}
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+              >
+              <Download className="h-4 w-4" />
+              MOF área
+            </a>
           )}
         </div>
 
@@ -3784,6 +3900,12 @@ interface OrgTemplateSummary {
   unitCount: number
   positionCount: number
   recommendedFor: string[]
+  recommendation?: {
+    score: number
+    level: 'STRONG' | 'GOOD' | 'NEUTRAL'
+    reasons: string[]
+    signals: string[]
+  }
 }
 
 interface OrgTemplatePreview {
@@ -3906,10 +4028,11 @@ function TemplateLibraryModal({
   }
 
   const selectedTemplate = templates.find(template => template.id === selectedId) ?? null
+  const selectedRecommendation = selectedTemplate?.recommendation ?? null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <div className="flex items-center gap-2">
             <Wand2 className="h-5 w-5 text-emerald-600" />
@@ -3920,8 +4043,8 @@ function TemplateLibraryModal({
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] overflow-hidden">
-          <aside className="overflow-y-auto border-r border-slate-200 bg-slate-50 p-4">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="max-h-72 overflow-y-auto border-b border-slate-200 bg-slate-50 p-4 lg:max-h-none lg:border-b-0 lg:border-r">
             {loading ? (
               <div className="py-8 text-center text-sm text-slate-500">Cargando plantillas…</div>
             ) : (
@@ -3943,11 +4066,19 @@ function TemplateLibraryModal({
                           <div className="text-sm font-semibold text-slate-900">{template.name}</div>
                           <div className="mt-1 text-xs text-slate-500">{template.sector}</div>
                         </div>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                          {template.positionCount} cargos
-                        </span>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <TemplateRecommendationBadge recommendation={template.recommendation} />
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                            {template.positionCount} cargos
+                          </span>
+                        </div>
                       </div>
                       <p className="mt-2 text-xs leading-relaxed text-slate-600">{template.description}</p>
+                      {template.recommendation && template.recommendation.level !== 'NEUTRAL' && (
+                        <div className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                          {template.recommendation.reasons.slice(0, 2).join(' · ')}
+                        </div>
+                      )}
                     </button>
                   )
                 })}
@@ -3974,6 +4105,34 @@ function TemplateLibraryModal({
                         </span>
                       ))}
                     </div>
+                    {selectedRecommendation && (
+                      <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                            Recomendación inteligente
+                          </span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${templateRecommendationClass(selectedRecommendation.level)}`}>
+                            {selectedRecommendation.score}/100
+                          </span>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-xs text-emerald-900 sm:grid-cols-2">
+                          {selectedRecommendation.reasons.map(reason => (
+                            <div key={reason} className="rounded border border-emerald-200 bg-white/70 px-2 py-1.5">
+                              {reason}
+                            </div>
+                          ))}
+                        </div>
+                        {selectedRecommendation.signals.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {selectedRecommendation.signals.map(signal => (
+                              <span key={signal} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                                {signal}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {preview.totals.warnings > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -4058,6 +4217,26 @@ function TemplateLibraryModal({
       </div>
     </div>
   )
+}
+
+function TemplateRecommendationBadge({
+  recommendation,
+}: {
+  recommendation?: OrgTemplateSummary['recommendation']
+}) {
+  if (!recommendation || recommendation.level === 'NEUTRAL') return null
+
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${templateRecommendationClass(recommendation.level)}`}>
+      {recommendation.level === 'STRONG' ? 'Recomendada' : 'Afinidad'} {recommendation.score}
+    </span>
+  )
+}
+
+function templateRecommendationClass(level: 'STRONG' | 'GOOD' | 'NEUTRAL') {
+  if (level === 'STRONG') return 'bg-emerald-100 text-emerald-700'
+  if (level === 'GOOD') return 'bg-sky-100 text-sky-700'
+  return 'bg-slate-100 text-slate-600'
 }
 
 function TemplateStatusBadge({ status }: { status: 'CREATE' | 'REACTIVATE' | 'REUSE' }) {
@@ -4356,6 +4535,7 @@ function isImportApplyResult(value: unknown): value is ImportApplyResult {
 interface SeedPreview {
   unitsToCreate: Array<{ slug: string; name: string }>
   positionsToCreate: Array<{ unitSlug: string; title: string }>
+  positionsToResize: Array<{ unitSlug: string; title: string; currentSeats: number; requiredSeats: number }>
   assignmentsToCreate: number
   totalWorkers: number
   workersWithoutDepartment: number
@@ -4410,9 +4590,12 @@ function SeedWizard({ onClose, onDone }: { onClose: () => void; onDone: () => vo
         ) : (
           <div className="mt-5 space-y-3">
             <Stat label="Trabajadores activos" value={preview.totalWorkers} />
-            <Stat label="Áreas a crear" value={preview.unitsToCreate.length} highlight />
-            <Stat label="Cargos a crear" value={preview.positionsToCreate.length} highlight />
-            <Stat label="Asignaciones" value={preview.assignmentsToCreate} highlight />
+              <Stat label="Áreas a crear" value={preview.unitsToCreate.length} highlight />
+              <Stat label="Cargos a crear" value={preview.positionsToCreate.length} highlight />
+              {preview.positionsToResize.length > 0 && (
+                <Stat label="Cupos a ajustar" value={preview.positionsToResize.length} highlight />
+              )}
+              <Stat label="Asignaciones" value={preview.assignmentsToCreate} highlight />
             {preview.workersWithoutDepartment > 0 && (
               <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
                 ⚠️ {preview.workersWithoutDepartment} trabajadores sin área asignada quedarán en
@@ -5691,18 +5874,20 @@ function AssignComplianceRoleModal({
   unitId,
   unitName,
   initialRoleType,
+  initialWorkerId,
   onClose,
   onAssigned,
 }: {
   unitId: string | null
   unitName: string
   initialRoleType?: ComplianceRoleType
+  initialWorkerId?: string
   onClose: () => void
   onAssigned: () => void
 }) {
   const [workers, setWorkers] = useState<WorkerOption[]>([])
   const [roleType, setRoleType] = useState<ComplianceRoleType>(initialRoleType ?? 'PRESIDENTE_COMITE_SST')
-  const [workerId, setWorkerId] = useState<string | null>(null)
+  const [workerId, setWorkerId] = useState<string | null>(initialWorkerId ?? null)
   const [search, setSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -5713,6 +5898,10 @@ function AssignComplianceRoleModal({
       .catch(() => toast.error('No se pudieron cargar los trabajadores'))
   }, [])
 
+  useEffect(() => {
+    if (initialWorkerId) setWorkerId(initialWorkerId)
+  }, [initialWorkerId])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return workers.slice(0, 30)
@@ -5720,6 +5909,10 @@ function AssignComplianceRoleModal({
       .filter(w => `${w.firstName} ${w.lastName} ${w.dni}`.toLowerCase().includes(q))
       .slice(0, 30)
   }, [workers, search])
+  const selectedWorker = useMemo(
+    () => workers.find(worker => worker.id === workerId) ?? null,
+    [workerId, workers],
+  )
 
   const submit = async () => {
     if (!workerId) return
@@ -5779,7 +5972,7 @@ function AssignComplianceRoleModal({
           <div className="rounded-lg bg-slate-50 p-3 text-xs">
             <div className="font-medium text-slate-700">{def.label}</div>
             <div className="mt-1 text-slate-600">{def.description}</div>
-            <div className="mt-1 font-mono text-[10px] text-slate-500">📜 {def.baseLegal}</div>
+            <div className="mt-1 font-mono text-[10px] text-slate-500">{def.baseLegal}</div>
             {def.defaultDurationMonths && (
               <div className="mt-1 text-[10px] text-slate-500">
                 Vigencia por defecto: {def.defaultDurationMonths} meses
@@ -5794,6 +5987,11 @@ function AssignComplianceRoleModal({
               placeholder="Buscar por nombre o DNI..."
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
             />
+            {selectedWorker && (
+              <div className="mt-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800">
+                Seleccionado: {selectedWorker.firstName} {selectedWorker.lastName} · DNI {selectedWorker.dni}
+              </div>
+            )}
           </div>
           <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200">
             {filtered.length === 0 ? (

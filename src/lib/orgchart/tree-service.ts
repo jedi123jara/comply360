@@ -13,7 +13,7 @@ function slugify(input: string): string {
   return input
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
@@ -102,7 +102,7 @@ export async function createUnit(
   let level = 0
   if (input.parentId) {
     const parent = await prisma.orgUnit.findFirst({
-      where: { id: input.parentId, orgId },
+      where: { id: input.parentId, orgId, isActive: true, validTo: null },
       select: { level: true },
     })
     if (!parent) throw new Error('Unidad padre no existe en esta organización')
@@ -180,23 +180,26 @@ export async function moveUnit(
       throw new Error('No se puede mover: el destino es descendiente de la unidad')
     }
     const parent = await prisma.orgUnit.findFirst({
-      where: { id: newParentId, orgId },
+      where: { id: newParentId, orgId, isActive: true, validTo: null },
       select: { id: true, level: true },
     })
     if (!parent) throw new Error('Unidad padre destino no existe')
   }
 
+  const parentLevel = newParentId
+    ? (
+        await prisma.orgUnit.findUnique({ where: { id: newParentId }, select: { level: true } })
+      )?.level ?? -1
+    : -1
+  const nextRootLevel = parentLevel + 1
   await moveSubtree(unitId, newParentId)
+  await updateSubtreeLevels(unitId, nextRootLevel)
   return prisma.orgUnit.update({
     where: { id: unitId },
     data: {
       parentId: newParentId,
       version: { increment: 1 },
-      level: newParentId
-        ? (
-            await prisma.orgUnit.findUnique({ where: { id: newParentId }, select: { level: true } })
-          )?.level ?? 0
-        : 0,
+      level: nextRootLevel,
     },
   })
 }
@@ -204,7 +207,10 @@ export async function moveUnit(
 export async function deleteUnit(orgId: string, unitId: string) {
   const current = await prisma.orgUnit.findFirst({
     where: { id: unitId, orgId },
-    include: { children: { select: { id: true } }, positions: { select: { id: true } } },
+    include: {
+      children: { where: { isActive: true, validTo: null }, select: { id: true } },
+      positions: { where: { validTo: null }, select: { id: true } },
+    },
   })
   if (!current) throw new Error('Unidad no existe')
   if (current.children.length > 0) {
@@ -220,15 +226,34 @@ export async function deleteUnit(orgId: string, unitId: string) {
 }
 
 async function uniqueSlug(orgId: string, base: string): Promise<string> {
-  let candidate = base || 'unidad'
+  const root = base || 'unidad'
+  let candidate = root
   let n = 1
   while (
     await prisma.orgUnit.findUnique({ where: { orgId_slug: { orgId, slug: candidate } } })
   ) {
     n++
-    candidate = `${base}-${n}`
+    candidate = `${root}-${n}`
   }
   return candidate
+}
+
+async function updateSubtreeLevels(unitId: string, rootLevel: number) {
+  const subtree = await prisma.orgUnitClosure.findMany({
+    where: { ancestorId: unitId },
+    select: { descendantId: true, depth: true },
+  })
+
+  await Promise.all(
+    subtree
+      .filter(row => row.depth > 0)
+      .map(row =>
+        prisma.orgUnit.update({
+          where: { id: row.descendantId },
+          data: { level: rootLevel + row.depth },
+        }),
+      ),
+  )
 }
 
 // ─── DTO mappers ─────────────────────────────────────────────────────────────

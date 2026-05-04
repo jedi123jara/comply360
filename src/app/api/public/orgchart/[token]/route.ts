@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuditorToken } from '@/lib/orgchart/public-link/token'
-import { hashSnapshotPayload } from '@/lib/orgchart/snapshot-service'
+import {
+  getVerifiedSnapshotTree,
+  OrgChartSnapshotIntegrityError,
+  OrgChartSnapshotNotFoundError,
+} from '@/lib/orgchart/snapshot-service'
 import { prisma } from '@/lib/prisma'
-import type { OrgChartTree, PublicOrgChartPayload } from '@/lib/orgchart/types'
+import type { PublicOrgChartPayload } from '@/lib/orgchart/types'
 import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 
 export const dynamic = 'force-dynamic'
@@ -19,18 +23,20 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   }
 
   const orgId = decoded.aud
-  const snap = await prisma.orgChartSnapshot.findFirst({
-    where: { id: decoded.sub, orgId },
-  })
-  if (!snap) {
-    return NextResponse.json({ error: 'Snapshot no encontrado' }, { status: 404 })
+  let verified: Awaited<ReturnType<typeof getVerifiedSnapshotTree>>
+  try {
+    verified = await getVerifiedSnapshotTree(orgId, decoded.sub)
+  } catch (error) {
+    if (error instanceof OrgChartSnapshotNotFoundError) {
+      return NextResponse.json({ error: 'Snapshot no encontrado' }, { status: 404 })
+    }
+    if (error instanceof OrgChartSnapshotIntegrityError) {
+      return NextResponse.json({ error: 'El payload del snapshot no coincide con su hash' }, { status: 409 })
+    }
+    throw error
   }
-  if (snap.hash !== decoded.hash) {
+  if (verified.snapshot.hash !== decoded.hash) {
     return NextResponse.json({ error: 'El snapshot fue modificado — enlace inválido' }, { status: 409 })
-  }
-  const recomputedHash = hashSnapshotPayload(snap.payload as Partial<OrgChartTree>)
-  if (recomputedHash !== snap.hash) {
-    return NextResponse.json({ error: 'El payload del snapshot no coincide con su hash' }, { status: 409 })
   }
 
   const org = await prisma.organization.findUnique({
@@ -41,29 +47,15 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: 'Organización no existe' }, { status: 404 })
   }
 
-  const payload = snap.payload as unknown as {
-    units: Array<{ id: string; parentId: string | null; name: string; kind: PublicOrgChartPayload['units'][number]['kind'] }>
-    positions: Array<{ id: string; orgUnitId: string; title: string }>
-    assignments: Array<{
-      positionId: string
-      isInterim: boolean
-      worker: { firstName: string; lastName: string }
-    }>
-    complianceRoles: Array<{
-      roleType: PublicOrgChartPayload['complianceRoles'][number]['roleType']
-      worker: { firstName: string; lastName: string }
-      unitId: string | null
-      endsAt: string | null
-    }>
-  }
+  const tree = verified.tree
 
   // Construir vista pública redactada (sin sueldos, sin DNI, sin contacto)
-  const positionsWithOccupants = payload.positions.map(p => ({
+  const positionsWithOccupants = tree.positions.map(p => ({
     id: p.id,
     orgUnitId: p.orgUnitId,
     title: p.title,
     occupants: decoded.includeWorkers
-      ? payload.assignments
+      ? tree.assignments
           .filter(a => a.positionId === p.id)
           .map(a => ({
             name: `${a.worker.firstName} ${a.worker.lastName}`,
@@ -73,7 +65,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   }))
 
   const complianceRoles = decoded.includeComplianceRoles
-    ? payload.complianceRoles.map(r => ({
+    ? tree.complianceRoles.map(r => ({
         roleType: r.roleType,
         workerName: `${r.worker.firstName} ${r.worker.lastName}`,
         unitId: r.unitId,
@@ -83,10 +75,16 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
 
   const response: PublicOrgChartPayload & { roleCatalog: typeof COMPLIANCE_ROLES } = {
     org: { name: org.razonSocial ?? org.name, ruc: org.ruc },
-    snapshotLabel: snap.label,
-    takenAt: snap.createdAt.toISOString(),
-    hashShort: snap.hash.slice(0, 12),
-    units: payload.units,
+    snapshotLabel: verified.snapshot.label,
+    takenAt: verified.snapshot.createdAt.toISOString(),
+    hash: verified.snapshot.hash,
+    hashShort: verified.snapshot.hash.slice(0, 12),
+    units: tree.units.map(unit => ({
+      id: unit.id,
+      parentId: unit.parentId,
+      name: unit.name,
+      kind: unit.kind,
+    })),
     positions: positionsWithOccupants,
     complianceRoles,
     roleCatalog: COMPLIANCE_ROLES,

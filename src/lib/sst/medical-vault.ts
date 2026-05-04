@@ -35,7 +35,6 @@ function getVaultKey(): string {
   // Logueamos el aviso una sola vez por proceso.
   if (!devKeyWarned) {
     devKeyWarned = true
-    // eslint-disable-next-line no-console
     console.warn(
       `[medical-vault] ${KEY_ENV_VAR} no configurada — usando clave de desarrollo. ` +
         'Configurar antes de cualquier deploy.',
@@ -52,12 +51,13 @@ let devKeyWarned = false
  *
  * @param prisma  Cliente Prisma activo (de getTenantPrisma o el global).
  * @param plain   Texto plano (UTF-8). Cualquier longitud.
- * @returns       Buffer de bytes opacos para persistir en `Bytes` columns.
+ * @returns       Uint8Array de bytes opacos compatible con `Bytes` columns
+ *                de Prisma (que espera Uint8Array nativo, no Buffer).
  */
 export async function encryptMedical(
   prisma: PrismaClient,
   plain: string,
-): Promise<Buffer> {
+): Promise<Uint8Array<ArrayBuffer>> {
   if (plain == null) {
     throw new Error('[medical-vault] encryptMedical recibió null/undefined')
   }
@@ -65,10 +65,15 @@ export async function encryptMedical(
   const rows = await prisma.$queryRaw<{ ciphertext: Buffer }[]>`
     SELECT pgp_sym_encrypt(${plain}::text, ${key}::text) AS ciphertext
   `
-  if (!rows[0]?.ciphertext) {
+  const buf = rows[0]?.ciphertext
+  if (!buf) {
     throw new Error('[medical-vault] pgp_sym_encrypt no devolvió ciphertext')
   }
-  return rows[0].ciphertext
+  // Prisma 7 tipa `Bytes` como Uint8Array<ArrayBuffer>; Buffer puede venir
+  // con ArrayBufferLike. Copiamos a un Uint8Array nativo para cerrar el tipo.
+  const bytes = new Uint8Array(buf.length)
+  bytes.set(buf)
+  return bytes
 }
 
 /**

@@ -4,7 +4,7 @@ import type { OrgChartTree, OrgPositionDTO } from './types'
 
 export type OrgCommandKind = 'worker' | 'position' | 'unit' | 'role' | 'insight'
 export type OrgCommandLens = 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
-export type OrgCommandTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'subordinacion' | 'analitica' | 'historial'
+export type OrgCommandTab = 'organigrama' | 'directorio' | 'areas-cargos' | 'responsables' | 'alertas' | 'subordinacion' | 'analitica' | 'historial'
 
 export interface OrgCommandResult {
   id: string
@@ -128,6 +128,7 @@ function buildInsightResults(
   const wantsSpan = queryEmpty || includesAny(normalizedQuery, ['span', 'reportes', 'sobrecarga', 'jefes'])
   const wantsCivil = queryEmpty || includesAny(normalizedQuery, ['locador', 'locacion', 'servicio', 'civil', 'subordinacion'])
   const wantsRoles = includesAny(normalizedQuery, ['responsable', 'responsables', 'roles legales', 'comite', 'comites', 'dpo'])
+  const wantsAlerts = queryEmpty || includesAny(normalizedQuery, ['alerta', 'alertas', 'hallazgo', 'hallazgos', 'tarea', 'tareas'])
   const wantsAnalytics = queryEmpty || includesAny(normalizedQuery, ['analitica', 'analytics', 'score', 'salud', 'kpi', 'indicador', 'indicadores'])
   const analytics = wantsSpan || wantsAnalytics ? buildStructureAnalytics(tree) : null
 
@@ -194,6 +195,25 @@ function buildInsightResults(
         'general',
         82,
         'responsables',
+      ),
+    )
+  }
+
+  if (wantsAlerts) {
+    const missingMof = tree.positions.filter(position => !hasMof(position)).length
+    const vacancies = tree.positions.reduce((sum, position) => {
+      const occupied = assignmentsByPosition.get(position.id)?.length ?? 0
+      return sum + Math.max(0, position.seats - occupied)
+    }, 0)
+    const sensitive = tree.positions.filter(position => position.isCritical || isSstSensitive(position)).length
+    results.push(
+      insight(
+        'alerts',
+        'Alertas laborales',
+        `${missingMof + vacancies + sensitive} señal(es) estructurales estimadas`,
+        'compliance',
+        85,
+        'alertas',
       ),
     )
   }

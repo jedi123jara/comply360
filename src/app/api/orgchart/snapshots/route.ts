@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, withRole } from '@/lib/api-auth'
+import { withRole } from '@/lib/api-auth'
 import { createSnapshotSchema } from '@/lib/orgchart/zod-schemas'
 import { takeSnapshot, listSnapshots } from '@/lib/orgchart/snapshot-service'
 
-export const GET = withAuth(async (_req, ctx) => {
+export const GET = withRole('MEMBER', async (_req, ctx) => {
   const list = await listSnapshots(ctx.orgId, 100)
   return NextResponse.json({ snapshots: list })
 })

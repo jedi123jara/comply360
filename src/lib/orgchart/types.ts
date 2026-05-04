@@ -152,6 +152,7 @@ export interface PublicOrgChartPayload {
   }
   snapshotLabel: string
   takenAt: string
+  hash: string
   hashShort: string
   units: Array<{
     id: string

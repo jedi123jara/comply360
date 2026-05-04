@@ -68,6 +68,10 @@
     {
       "path": "/api/cron/anchor-versions",
       "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/sst-daily",
+      "schedule": "0 7 * * *"
     }
   ]
 }

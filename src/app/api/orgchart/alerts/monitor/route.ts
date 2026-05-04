@@ -5,7 +5,7 @@ import { monitorOrgAlerts } from '@/lib/orgchart/alert-monitor'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export const POST = withRole('MEMBER', async (req, ctx) => {
+export const POST = withRole('ADMIN', async (req, ctx) => {
   const body = await req.json().catch(() => ({}))
   const includeMedium = body?.includeMedium === true
   const report = await monitorOrgAlerts(ctx.orgId, {

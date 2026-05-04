@@ -5,7 +5,7 @@ import { syncSubordinationRiskEvents } from '@/lib/orgchart/subordination-risk-s
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export const POST = withRole('MEMBER', async (req, ctx) => {
+export const POST = withRole('ADMIN', async (req, ctx) => {
   const body = await req.json().catch(() => ({}))
   const report = await syncSubordinationRiskEvents(ctx.orgId, {
     actorUserId: ctx.userId,

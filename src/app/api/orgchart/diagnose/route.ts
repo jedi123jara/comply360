@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { hasMinRole, withRole } from '@/lib/api-auth'
 import { runOrgDoctor, findingToTaskPayload } from '@/lib/orgchart/org-doctor'
 import { prisma } from '@/lib/prisma'
 
@@ -11,6 +11,9 @@ export const POST = withRole('MEMBER', async (req, ctx) => {
 
   let createdTasks = 0
   if (createTasks) {
+    if (!hasMinRole(ctx.role, 'ADMIN')) {
+      return NextResponse.json({ error: 'Se requiere rol ADMIN o superior para generar tareas.' }, { status: 403 })
+    }
     const critical = report.findings.filter(f => f.severity === 'CRITICAL' || f.severity === 'HIGH')
     for (const f of critical) {
       const taskTitle = f.suggestedTaskTitle ?? f.title

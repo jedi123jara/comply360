@@ -9,6 +9,11 @@ const protectedGetEndpoints = [
     contentType:
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   },
+  {
+    url: "/api/orgchart/mof",
+    contentType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  },
   { url: "/api/orgchart/snapshots", contentType: "application/json" },
   { url: "/api/orgchart/subordination", contentType: "application/json" },
 ];

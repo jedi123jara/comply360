@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-auth'
 import {
   applyOrgChartImport,
+  ORGCHART_IMPORT_MAX_BYTES,
+  OrgChartImportFileError,
   OrgChartImportValidationError,
   orgChartImportTemplateCsv,
   previewOrgChartImport,
+  validateOrgChartImportFileMetadata,
 } from '@/lib/orgchart/import-excel'
 import { requestIp } from '@/lib/orgchart/change-log'
 import { takeSnapshot } from '@/lib/orgchart/snapshot-service'
@@ -27,20 +30,32 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     return NextResponse.json({ error: 'Adjunta un archivo Excel o CSV.' }, { status: 400 })
   }
 
+  const metadataErrors = validateOrgChartImportFileMetadata({
+    fileName: upload.name,
+    mimeType: upload.type,
+    size: upload.size,
+  })
+  if (metadataErrors.length > 0) {
+    return NextResponse.json({ error: metadataErrors[0], errors: metadataErrors }, { status: 400 })
+  }
+
   const buffer = Buffer.from(await upload.arrayBuffer())
   if (buffer.byteLength === 0) {
     return NextResponse.json({ error: 'El archivo está vacío.' }, { status: 400 })
+  }
+  if (buffer.byteLength > ORGCHART_IMPORT_MAX_BYTES) {
+    return NextResponse.json({ error: 'El archivo supera el tamaño máximo permitido.' }, { status: 413 })
   }
 
   const fileName = upload.name || 'import-organigrama.xlsx'
   const shouldApply = formData.get('apply') === 'true' || formData.get('mode') === 'apply'
 
-  if (!shouldApply) {
-    const preview = await previewOrgChartImport(ctx.orgId, buffer, { fileName })
-    return NextResponse.json(preview)
-  }
-
   try {
+    if (!shouldApply) {
+      const preview = await previewOrgChartImport(ctx.orgId, buffer, { fileName })
+      return NextResponse.json(preview)
+    }
+
     const result = await applyOrgChartImport(ctx.orgId, buffer, {
       fileName,
       userId: ctx.userId,
@@ -58,6 +73,9 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
   } catch (error) {
     if (error instanceof OrgChartImportValidationError) {
       return NextResponse.json(error.preview, { status: 422 })
+    }
+    if (error instanceof OrgChartImportFileError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
     throw error
   }

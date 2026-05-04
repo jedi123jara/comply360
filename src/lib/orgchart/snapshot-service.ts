@@ -90,6 +90,41 @@ export async function getSnapshot(orgId: string, snapshotId: string) {
   })
 }
 
+export class OrgChartSnapshotNotFoundError extends Error {
+  constructor() {
+    super('Snapshot no encontrado')
+  }
+}
+
+export class OrgChartSnapshotIntegrityError extends Error {
+  constructor() {
+    super('Snapshot alterado o corrupto')
+  }
+}
+
+export async function getVerifiedSnapshotTree(orgId: string, snapshotId: string) {
+  const snapshot = await getSnapshot(orgId, snapshotId)
+  if (!snapshot) throw new OrgChartSnapshotNotFoundError()
+
+  const payload = snapshot.payload as Partial<OrgChartTree>
+  const computedHash = hashSnapshotPayload(payload)
+  if (computedHash !== snapshot.hash) {
+    throw new OrgChartSnapshotIntegrityError()
+  }
+
+  return {
+    snapshot: {
+      id: snapshot.id,
+      label: snapshot.label,
+      reason: snapshot.reason,
+      hash: snapshot.hash,
+      createdAt: snapshot.createdAt,
+      isAuto: snapshot.isAuto,
+    },
+    tree: coerceSnapshotTree(payload, snapshot.createdAt),
+  }
+}
+
 export function computeSnapshotMetrics(tree: Pick<OrgChartTree, 'units' | 'assignments'> & Partial<OrgChartTree>) {
   const canonical = canonicalizeSnapshotPayload(tree)
   const hash = createHash('sha256').update(canonical).digest('hex')
@@ -123,6 +158,23 @@ export function canonicalizeSnapshotPayload(payload: Partial<OrgChartTree>) {
 
 function sortedById<T extends { id?: string }>(items: T[]) {
   return [...items].sort((a, b) => (a.id ?? '').localeCompare(b.id ?? ''))
+}
+
+function coerceSnapshotTree(payload: Partial<OrgChartTree>, createdAt: Date): OrgChartTree {
+  const units = Array.isArray(payload.units) ? payload.units : []
+  const rootUnitIds = Array.isArray(payload.rootUnitIds)
+    ? payload.rootUnitIds
+    : units.filter(unit => !unit.parentId).map(unit => unit.id)
+
+  return {
+    rootUnitIds,
+    units,
+    positions: Array.isArray(payload.positions) ? payload.positions : [],
+    assignments: Array.isArray(payload.assignments) ? payload.assignments : [],
+    complianceRoles: Array.isArray(payload.complianceRoles) ? payload.complianceRoles : [],
+    generatedAt: createdAt.toISOString(),
+    asOf: createdAt.toISOString(),
+  }
 }
 
 function stableStringify(value: unknown): string {

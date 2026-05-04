@@ -13,7 +13,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
 
   // Validar que la unit pertenece a la org
   const unit = await prisma.orgUnit.findFirst({
-    where: { id: parsed.data.orgUnitId, orgId: ctx.orgId },
+    where: { id: parsed.data.orgUnitId, orgId: ctx.orgId, isActive: true },
     select: { id: true },
   })
   if (!unit) {
@@ -28,6 +28,35 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     if (!parent) {
       return NextResponse.json({ error: 'Jefe inmediato inválido' }, { status: 400 })
     }
+  }
+
+  if (parsed.data.backupPositionId) {
+    const backup = await prisma.orgPosition.findFirst({
+      where: { id: parsed.data.backupPositionId, orgId: ctx.orgId, validTo: null },
+      select: { id: true },
+    })
+    if (!backup) {
+      return NextResponse.json({ error: 'Backup inválido' }, { status: 400 })
+    }
+  }
+
+  const validFrom = parsed.data.validFrom ? new Date(parsed.data.validFrom) : new Date()
+  const validTo = parsed.data.validTo ? new Date(parsed.data.validTo) : null
+  if (validTo && validTo <= validFrom) {
+    return NextResponse.json({ error: 'La vigencia final debe ser posterior al inicio del cargo.' }, { status: 400 })
+  }
+
+  const duplicate = await prisma.orgPosition.findFirst({
+    where: {
+      orgId: ctx.orgId,
+      orgUnitId: parsed.data.orgUnitId,
+      title: { equals: parsed.data.title, mode: 'insensitive' },
+      validTo: null,
+    },
+    select: { id: true },
+  })
+  if (duplicate) {
+    return NextResponse.json({ error: 'Ya existe un cargo vigente con ese nombre en la unidad.' }, { status: 409 })
   }
 
   const position = await prisma.orgPosition.create({
@@ -53,8 +82,8 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
       reportsToPositionId: parsed.data.reportsToPositionId ?? null,
       backupPositionId: parsed.data.backupPositionId ?? null,
       seats: parsed.data.seats,
-      validFrom: parsed.data.validFrom ? new Date(parsed.data.validFrom) : new Date(),
-      validTo: parsed.data.validTo ? new Date(parsed.data.validTo) : null,
+      validFrom,
+      validTo,
     },
   })
   await recordStructureChange({

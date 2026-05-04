@@ -1,6 +1,8 @@
 import JSZip from 'jszip'
 import { prisma } from '@/lib/prisma'
+import { getTree } from './tree-service'
 import { analyzeMof } from './mof-analysis'
+import type { OrgAssignmentDTO, OrgChartTree, OrgPositionDTO, OrgUnitDTO } from './types'
 
 export interface PositionMofDocx {
   buffer: Buffer
@@ -9,10 +11,263 @@ export interface PositionMofDocx {
   positionId: string
 }
 
+export interface OrgChartMofDocx {
+  buffer: Buffer
+  fileName: string
+  title: string
+  asOf: string | null
+  unitId: string | null
+  positionCount: number
+  missingMofCount: number
+}
+
+export interface OrgChartMofSummary {
+  unitCount: number
+  positionCount: number
+  assignmentCount: number
+  vacancyCount: number
+  completeCount: number
+  usableCount: number
+  incompleteCount: number
+  criticalCount: number
+  missingMofCount: number
+  averageScore: number
+}
+
+interface MofOrganization {
+  name: string
+  razonSocial: string | null
+  ruc: string | null
+  sector: string | null
+}
+
 export class MofPositionNotFoundError extends Error {
   constructor() {
     super('Cargo no encontrado')
   }
+}
+
+export class MofOrganizationNotFoundError extends Error {
+  constructor() {
+    super('Organizacion no encontrada')
+  }
+}
+
+export class MofUnitNotFoundError extends Error {
+  constructor() {
+    super('Unidad no encontrada')
+  }
+}
+
+export async function generateOrgChartMofDocx(
+  orgId: string,
+  options: { asOf?: Date | null; unitId?: string | null; tree?: OrgChartTree } = {},
+): Promise<OrgChartMofDocx> {
+  const asOf = options.asOf ?? null
+  const unitId = options.unitId ?? null
+  const [tree, organization] = await Promise.all([
+    options.tree ? Promise.resolve(options.tree) : getTree(orgId, asOf),
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true, razonSocial: true, ruc: true, sector: true },
+    }),
+  ])
+
+  if (!organization) throw new MofOrganizationNotFoundError()
+
+  const unitsById = new Map(tree.units.map(unit => [unit.id, unit]))
+  const scopedUnit = unitId ? unitsById.get(unitId) ?? null : null
+  if (unitId && !scopedUnit) throw new MofUnitNotFoundError()
+
+  const includedUnitIds = unitId ? descendantUnitIds(tree.units, unitId) : new Set(tree.units.map(unit => unit.id))
+  const positions = tree.positions
+    .filter(position => includedUnitIds.has(position.orgUnitId))
+    .sort((a, b) => {
+      const unitA = unitsById.get(a.orgUnitId)
+      const unitB = unitsById.get(b.orgUnitId)
+      return (
+        (unitA?.level ?? 0) - (unitB?.level ?? 0) ||
+        (unitA?.name ?? '').localeCompare(unitB?.name ?? '', 'es') ||
+        a.title.localeCompare(b.title, 'es')
+      )
+    })
+  const summary = buildOrgChartMofSummary(tree, includedUnitIds)
+  const generatedAt = new Date()
+  const companyName = organization.razonSocial ?? organization.name
+  const title = scopedUnit
+    ? `MOF por area - ${scopedUnit.name}`
+    : `MOF integral - ${companyName}`
+  const body = buildOrgChartMofBody({
+    tree,
+    organization,
+    positions,
+    scopedUnit,
+    summary,
+    generatedAt,
+    asOf,
+  })
+  const buffer = await buildDocxBuffer({
+    title,
+    subject: 'Manual de Organización y Funciones',
+    creator: 'COMPLY360',
+    documentXml: documentXml(body),
+  })
+
+  return {
+    buffer,
+    fileName: `${safeFileName(title)}${asOf ? `-${formatDateForFile(asOf)}` : ''}.docx`,
+    title,
+    asOf: asOf?.toISOString() ?? null,
+    unitId,
+    positionCount: summary.positionCount,
+    missingMofCount: summary.missingMofCount,
+  }
+}
+
+export function buildOrgChartMofSummary(
+  tree: OrgChartTree,
+  includedUnitIds: Set<string> = new Set(tree.units.map(unit => unit.id)),
+): OrgChartMofSummary {
+  const positions = tree.positions.filter(position => includedUnitIds.has(position.orgUnitId))
+  const positionIds = new Set(positions.map(position => position.id))
+  const assignments = tree.assignments.filter(assignment => positionIds.has(assignment.positionId))
+  const reports = positions.map(position => analyzeMof(position))
+  const totalScore = reports.reduce((sum, report) => sum + report.score, 0)
+  const assignmentCountByPosition = new Map<string, number>()
+  for (const assignment of assignments) {
+    assignmentCountByPosition.set(
+      assignment.positionId,
+      (assignmentCountByPosition.get(assignment.positionId) ?? 0) + 1,
+    )
+  }
+
+  return {
+    unitCount: tree.units.filter(unit => includedUnitIds.has(unit.id)).length,
+    positionCount: positions.length,
+    assignmentCount: assignments.length,
+    vacancyCount: positions.reduce((sum, position) => {
+      const occupied = assignmentCountByPosition.get(position.id) ?? 0
+      return sum + Math.max(0, position.seats - occupied)
+    }, 0),
+    completeCount: reports.filter(report => report.status === 'complete').length,
+    usableCount: reports.filter(report => report.status === 'usable').length,
+    incompleteCount: reports.filter(report => report.status === 'incomplete').length,
+    criticalCount: reports.filter(report => report.status === 'critical').length,
+    missingMofCount: reports.filter(report => report.status !== 'complete').length,
+    averageScore: reports.length ? Math.round(totalScore / reports.length) : 100,
+  }
+}
+
+function buildOrgChartMofBody(input: {
+  tree: OrgChartTree
+  organization: MofOrganization
+  positions: OrgPositionDTO[]
+  scopedUnit: OrgUnitDTO | null
+  summary: OrgChartMofSummary
+  generatedAt: Date
+  asOf: Date | null
+}) {
+  const { tree, organization, positions, scopedUnit, summary, generatedAt, asOf } = input
+  const companyName = organization.razonSocial ?? organization.name
+  const unitsById = new Map(tree.units.map(unit => [unit.id, unit]))
+  const positionsById = new Map(tree.positions.map(position => [position.id, position]))
+  const assignmentsByPosition = groupAssignmentsByPosition(tree.assignments)
+  const reportCountByPosition = countReportsByPosition(tree.positions)
+  const title = scopedUnit
+    ? `Manual de Organizacion y Funciones - ${scopedUnit.name}`
+    : 'Manual de Organizacion y Funciones Integral'
+
+  return [
+    heading(title, 'Title'),
+    paragraph('Documento generado desde el modulo Estructura Organizacional de COMPLY360.', true),
+    paragraph('Base documentaria para revision interna, aprobacion, comunicacion a trabajadores y atencion de requerimientos inspectivos.'),
+    spacer(),
+    heading('1. Identificacion del documento'),
+    keyValue('Empresa', companyName),
+    keyValue('RUC', organization.ruc),
+    keyValue('Sector', organization.sector),
+    keyValue('Alcance', scopedUnit ? `${scopedUnit.name} y subunidades` : 'Toda la estructura organizacional vigente'),
+    keyValue('Fecha de generacion', formatDate(generatedAt)),
+    keyValue('Corte del organigrama', asOf ? formatDate(asOf) : 'Vigente a la fecha de generacion'),
+    spacer(),
+    heading('2. Resumen ejecutivo MOF'),
+    keyValue('Unidades incluidas', String(summary.unitCount)),
+    keyValue('Puestos formales incluidos', String(summary.positionCount)),
+    keyValue('Asignaciones vigentes', String(summary.assignmentCount)),
+    keyValue('Vacantes formales', String(summary.vacancyCount)),
+    keyValue('Score promedio MOF', `${summary.averageScore}/100`),
+    keyValue('MOF completos', String(summary.completeCount)),
+    keyValue('MOF usables', String(summary.usableCount)),
+    keyValue('MOF incompletos', String(summary.incompleteCount)),
+    keyValue('MOF criticos', String(summary.criticalCount)),
+    keyValue('Puestos con MOF pendiente', String(summary.missingMofCount)),
+    spacer(),
+    heading('3. Alertas de completitud'),
+    listOrMissing(buildMofCompletenessLines(positions, unitsById), 'alertas de completitud MOF'),
+    spacer(),
+    heading('4. Indice de puestos'),
+    listOrMissing(
+      positions.map(position => {
+        const unit = unitsById.get(position.orgUnitId)?.name ?? 'Unidad no encontrada'
+        const report = analyzeMof(position)
+        const parent = position.reportsToPositionId ? positionsById.get(position.reportsToPositionId)?.title : null
+        return `${position.title} | ${unit} | ${report.score}/100 (${mofStatusLabel(report.status)}) | jefe inmediato: ${parent ?? 'sin jefe inmediato'}`
+      }),
+      'puestos incluidos',
+    ),
+    spacer(),
+    ...positions.flatMap((position, index) => {
+      const unit = unitsById.get(position.orgUnitId)
+      const parent = position.reportsToPositionId ? positionsById.get(position.reportsToPositionId) : null
+      const backup = position.backupPositionId ? positionsById.get(position.backupPositionId) : null
+      const assignments = assignmentsByPosition.get(position.id) ?? []
+      const report = analyzeMof(position)
+      return [
+        heading(`${index + 1}. ${position.title}`),
+        keyValue('Area / unidad', unit ? `${unit.name} (${formatEnum(unit.kind)})` : null),
+        keyValue('Codigo', position.code),
+        keyValue('Descripcion general', position.description),
+        keyValue('Score MOF', `${report.score}/100 (${mofStatusLabel(report.status)})`),
+        keyValue('Jefe inmediato', parent ? parent.title : null),
+        keyValue('Backup / sucesor', backup ? backup.title : null),
+        keyValue('Nivel', position.level),
+        keyValue('Categoria', position.category),
+        keyValue('Cupos aprobados', String(position.seats)),
+        keyValue('Ocupantes vigentes', assignments.length ? assignments.map(workerLine).join('; ') : 'Vacante'),
+        keyValue('Reportes directos', String(reportCountByPosition.get(position.id) ?? 0)),
+        keyValue('Banda salarial', formatSalaryBandText(position.salaryBandMin, position.salaryBandMax)),
+        paragraph('Proposito del cargo', true),
+        paragraph(position.purpose ?? missing('proposito del cargo')),
+        paragraph('Funciones principales', true),
+        listOrMissing(listFromJson(position.functions), 'funciones principales'),
+        paragraph('Responsabilidades', true),
+        listOrMissing(listFromJson(position.responsibilities), 'responsabilidades'),
+        paragraph('Requisitos del puesto', true),
+        listOrMissing(listFromJson(position.requirements), 'requisitos del puesto'),
+        paragraph('Condiciones SST y cumplimiento', true),
+        keyValue('Nivel de riesgo SST', position.riskCategory),
+        keyValue('Requiere SCTR', position.requiresSctr ? 'Si' : 'No'),
+        keyValue('Requiere examen medico ocupacional', position.requiresMedicalExam ? 'Si' : 'No'),
+        keyValue('Cargo critico', position.isCritical ? 'Si' : 'No'),
+        keyValue('Cargo con mando', position.isManagerial ? 'Si' : 'No'),
+        ...(report.issues.length > 0
+          ? [
+              paragraph('Observaciones de completitud', true),
+              listOrMissing(
+                report.issues.map(issue => `${issue.label}: ${issue.detail}`),
+                'observaciones de completitud',
+              ),
+            ].flat()
+          : [paragraph('MOF completo para uso documental y evidencia interna.')]),
+        spacer(),
+      ].flat()
+    }),
+    heading('Control documentario'),
+    keyValue('Fuente', 'Modulo Organigrama COMPLY360'),
+    keyValue('Fecha tecnica de extraccion', tree.generatedAt),
+    keyValue('Modo de consulta', tree.asOf ? 'Historico' : 'Vigente'),
+    paragraph('Este documento es un entregable de trabajo. La fuente maestra permanece en el organigrama versionado; toda modificacion estructural debe registrarse en COMPLY360 para conservar trazabilidad.'),
+  ].flat()
 }
 
 export async function generatePositionMofDocx(
@@ -170,6 +425,57 @@ export async function generatePositionMofDocx(
   }
 }
 
+function descendantUnitIds(units: OrgUnitDTO[], rootId: string) {
+  const ids = new Set<string>([rootId])
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const unit of units) {
+      if (unit.parentId && ids.has(unit.parentId) && !ids.has(unit.id)) {
+        ids.add(unit.id)
+        changed = true
+      }
+    }
+  }
+  return ids
+}
+
+function groupAssignmentsByPosition(assignments: OrgAssignmentDTO[]) {
+  const grouped = new Map<string, OrgAssignmentDTO[]>()
+  for (const assignment of assignments) {
+    grouped.set(assignment.positionId, [...(grouped.get(assignment.positionId) ?? []), assignment])
+  }
+  return grouped
+}
+
+function countReportsByPosition(positions: OrgPositionDTO[]) {
+  const counts = new Map<string, number>()
+  for (const position of positions) {
+    if (!position.reportsToPositionId) continue
+    counts.set(position.reportsToPositionId, (counts.get(position.reportsToPositionId) ?? 0) + 1)
+  }
+  return counts
+}
+
+function buildMofCompletenessLines(positions: OrgPositionDTO[], unitsById: Map<string, OrgUnitDTO>) {
+  return positions
+    .map(position => ({ position, report: analyzeMof(position) }))
+    .filter(item => item.report.status !== 'complete')
+    .sort((a, b) => a.report.score - b.report.score || a.position.title.localeCompare(b.position.title, 'es'))
+    .slice(0, 40)
+    .map(({ position, report }) => {
+      const unit = unitsById.get(position.orgUnitId)?.name ?? 'Unidad no encontrada'
+      const issue = report.issues[0]
+      const issueText = issue ? ` | principal: ${issue.label}` : ''
+      return `${position.title} | ${unit} | ${report.score}/100 (${mofStatusLabel(report.status)})${issueText}`
+    })
+}
+
+function workerLine(assignment: OrgAssignmentDTO) {
+  const worker = assignment.worker
+  return `${worker.firstName} ${worker.lastName} - DNI ${worker.dni} - ${formatEnum(worker.tipoContrato)}`
+}
+
 function documentXml(body: string[]) {
   return xmlDeclaration(`<?mso-application progid="Word.Document"?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
@@ -297,11 +603,22 @@ function formatDate(date: Date) {
   return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
 }
 
+function formatDateForFile(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
 function formatSalaryBand(min: { toString(): string } | null, max: { toString(): string } | null) {
   if (!min && !max) return null
   if (min && max) return `${min.toString()} - ${max.toString()}`
   if (min) return `Desde ${min.toString()}`
   return `Hasta ${max!.toString()}`
+}
+
+function formatSalaryBandText(min: string | null | undefined, max: string | null | undefined) {
+  if (!min && !max) return null
+  if (min && max) return `${min} - ${max}`
+  if (min) return `Desde ${min}`
+  return `Hasta ${max}`
 }
 
 function mofStatusLabel(status: 'complete' | 'usable' | 'incomplete' | 'critical') {

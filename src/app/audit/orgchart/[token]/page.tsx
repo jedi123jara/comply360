@@ -73,7 +73,7 @@ export default async function AuditorOrgChartPage({ params }: PageProps) {
               <FileSignature className="h-3.5 w-3.5" />
               <span>Hash de verificación</span>
             </div>
-            <code className="mt-1 block font-mono text-slate-900">{data.hashShort}…</code>
+            <code className="mt-1 block break-all font-mono text-slate-900">{data.hash}</code>
             <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
               <Calendar className="h-3 w-3" />
               {new Date(data.takenAt).toLocaleString('es-PE')}

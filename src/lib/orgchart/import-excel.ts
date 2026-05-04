@@ -62,6 +62,10 @@ interface ApplyOptions extends ImportOptions {
   ipAddress?: string | null
 }
 
+export const ORGCHART_IMPORT_MAX_BYTES = 5 * 1024 * 1024
+export const ORGCHART_IMPORT_MAX_ROWS = 500
+export const ORGCHART_IMPORT_ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.csv'] as const
+
 interface ParsedWorkbook {
   sheetName: string | null
   columns: string[]
@@ -158,6 +162,48 @@ const COLUMN_ALIASES = {
 } satisfies Record<string, string[]>
 
 const ACTIVE_WORKER_STATUSES = ['ACTIVE', 'ON_LEAVE', 'SUSPENDED'] as const
+const ORGCHART_IMPORT_ALLOWED_MIME_TYPES = new Set([
+  'text/csv',
+  'application/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+])
+const ORGCHART_IMPORT_GENERIC_MIME_TYPES = new Set([
+  'application/octet-stream',
+  'binary/octet-stream',
+])
+
+export function validateOrgChartImportFileMetadata(input: {
+  fileName?: string | null
+  mimeType?: string | null
+  size?: number | null
+}) {
+  const errors: string[] = []
+  const extension = importFileExtension(input.fileName)
+  if (!extension || !(ORGCHART_IMPORT_ALLOWED_EXTENSIONS as readonly string[]).includes(extension)) {
+    errors.push('Formato no soportado. Usa un archivo .xlsx, .xls o .csv.')
+  }
+
+  if (typeof input.size === 'number') {
+    if (input.size <= 0) {
+      errors.push('El archivo está vacío.')
+    }
+    if (input.size > ORGCHART_IMPORT_MAX_BYTES) {
+      errors.push(`El archivo supera el límite de ${formatMegabytes(ORGCHART_IMPORT_MAX_BYTES)} MB.`)
+    }
+  }
+
+  const mimeType = normalizeMimeType(input.mimeType)
+  if (
+    mimeType &&
+    !ORGCHART_IMPORT_ALLOWED_MIME_TYPES.has(mimeType) &&
+    !ORGCHART_IMPORT_GENERIC_MIME_TYPES.has(mimeType)
+  ) {
+    errors.push('El tipo de archivo no coincide con Excel o CSV.')
+  }
+
+  return errors
+}
 
 export async function previewOrgChartImport(
   orgId: string,
@@ -363,6 +409,15 @@ export class OrgChartImportValidationError extends Error {
   }
 }
 
+export class OrgChartImportFileError extends Error {
+  constructor(
+    message: string,
+    public statusCode = 400,
+  ) {
+    super(message)
+  }
+}
+
 async function prepareImport(
   orgId: string,
   file: Buffer,
@@ -525,16 +580,31 @@ async function prepareImport(
 }
 
 function parseWorkbook(file: Buffer): ParsedWorkbook {
-  const workbook = XLSX.read(file, { type: 'buffer', cellDates: true })
+  let workbook: XLSX.WorkBook
+  try {
+    workbook = XLSX.read(file, { type: 'buffer', cellDates: true })
+  } catch {
+    throw new OrgChartImportFileError('No se pudo leer el archivo. Verifica que sea un Excel o CSV válido.')
+  }
+
   const sheetName = workbook.SheetNames[0] ?? null
   if (!sheetName) {
-    return { sheetName: null, columns: [], rows: [] }
+    throw new OrgChartImportFileError('El archivo no contiene hojas para importar.')
   }
 
   const sheet = workbook.Sheets[sheetName]
   if (!sheet) {
-    return { sheetName, columns: [], rows: [] }
+    throw new OrgChartImportFileError('No se pudo leer la primera hoja del archivo.')
   }
+
+  const dataRowsInRange = worksheetDataRowCount(sheet)
+  if (dataRowsInRange > ORGCHART_IMPORT_MAX_ROWS) {
+    throw new OrgChartImportFileError(
+      `El archivo contiene ${dataRowsInRange} filas. El máximo permitido es ${ORGCHART_IMPORT_MAX_ROWS}.`,
+      413,
+    )
+  }
+
   const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: '',
     raw: false,
@@ -545,6 +615,16 @@ function parseWorkbook(file: Buffer): ParsedWorkbook {
   const rows = rawRows
     .map((raw, index) => parseRow(raw, index + 2))
     .filter(row => row.areaName || row.positionTitle || row.dni || row.workerName || row.managerRef)
+
+  if (rows.length === 0) {
+    throw new OrgChartImportFileError('El archivo no contiene filas de estructura para importar.')
+  }
+  if (rows.length > ORGCHART_IMPORT_MAX_ROWS) {
+    throw new OrgChartImportFileError(
+      `El archivo contiene ${rows.length} filas útiles. El máximo permitido es ${ORGCHART_IMPORT_MAX_ROWS}.`,
+      413,
+    )
+  }
 
   return { sheetName, columns, rows }
 }
@@ -945,6 +1025,26 @@ function uniqueStrings(values: string[]) {
 
 function isManagerialTitle(title: string) {
   return /(gerente|jefe|director|coordinador|supervisor|lider|líder|head|chief|presidente|ceo|cfo|cto)/i.test(title)
+}
+
+function importFileExtension(fileName: string | null | undefined) {
+  const match = (fileName ?? '').toLowerCase().trim().match(/\.[a-z0-9]+$/)
+  return match?.[0] ?? null
+}
+
+function normalizeMimeType(mimeType: string | null | undefined) {
+  return (mimeType ?? '').split(';')[0].trim().toLowerCase()
+}
+
+function worksheetDataRowCount(sheet: XLSX.WorkSheet) {
+  const ref = sheet['!ref']
+  if (!ref) return 0
+  const range = XLSX.utils.decode_range(ref)
+  return Math.max(0, range.e.r - range.s.r)
+}
+
+function formatMegabytes(bytes: number) {
+  return Math.round(bytes / 1024 / 1024)
 }
 
 function structureChangeTypeForImport(result: {

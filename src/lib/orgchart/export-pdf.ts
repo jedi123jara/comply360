@@ -10,13 +10,17 @@ export interface OrgChartPdfExport {
   fileName: string
 }
 
-export async function exportOrgChartPdf(orgId: string, asOf?: Date | null): Promise<OrgChartPdfExport> {
+export async function exportOrgChartPdf(
+  orgId: string,
+  asOf?: Date | null,
+  treeOverride?: OrgChartTree,
+): Promise<OrgChartPdfExport> {
   const [org, tree] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
       select: { name: true, razonSocial: true, ruc: true, sector: true },
     }),
-    getTree(orgId, asOf ?? null),
+    treeOverride ? Promise.resolve(treeOverride) : getTree(orgId, asOf ?? null),
   ])
 
   const doc = await PDFDocument.create()

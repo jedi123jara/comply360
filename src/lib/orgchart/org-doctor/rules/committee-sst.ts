@@ -5,11 +5,11 @@ import type { DoctorContext } from '../index'
  * Comité SST — Ley 29783 art. 29 / D.S. 005-2012-TR
  *
  * Reglas mínimas:
- *   - Empresas con > 20 trabajadores deben tener Comité SST (no solo Supervisor).
+ *   - Empresas con 20 o más trabajadores deben tener Comité SST (no solo Supervisor).
  *   - Composición paritaria: al menos 1 representante de trabajadores por cada
  *     representante del empleador.
  *   - Debe haber Presidente y Secretario designados.
- *   - Si hay 20 o menos trabajadores, basta con un Supervisor SST (Ley 29783 art. 30).
+ *   - Si hay menos de 20 trabajadores, basta con un Supervisor SST (Ley 29783 art. 30).
  */
 export function ruleCommitteeSST(ctx: DoctorContext): DoctorFinding[] {
   const out: DoctorFinding[] = []
@@ -21,7 +21,7 @@ export function ruleCommitteeSST(ctx: DoctorContext): DoctorFinding[] {
   const repEmpl = roles.filter(r => r.roleType === 'REPRESENTANTE_EMPLEADOR_SST')
   const supervisores = roles.filter(r => r.roleType === 'SUPERVISOR_SST')
 
-  if (ctx.workerCount > 20) {
+  if (ctx.workerCount >= 20) {
     if (presidentes.length === 0) {
       out.push({
         rule: 'committee-sst-no-president',
@@ -48,13 +48,13 @@ export function ruleCommitteeSST(ctx: DoctorContext): DoctorFinding[] {
         suggestedFix: null,
       })
     }
-    if (repTrab.length === 0) {
+    if (repTrab.length < 2) {
       out.push({
         rule: 'committee-sst-no-worker-rep',
         severity: 'CRITICAL',
         title: 'Comité SST sin representantes de trabajadores',
         description:
-          'El Comité SST debe estar conformado por igual número de representantes del empleador y de los trabajadores. La elección es por votación directa y secreta.',
+          'El Comité SST debe estar conformado por igual número de representantes del empleador y de los trabajadores, con mínimo 2 representantes de trabajadores. La elección es por votación directa y secreta.',
         baseLegal: 'Ley 29783 art. 29 inc. 4',
         affectedUnitIds: [],
         affectedWorkerIds: [],
@@ -75,8 +75,21 @@ export function ruleCommitteeSST(ctx: DoctorContext): DoctorFinding[] {
         suggestedFix: null,
       })
     }
+    if (repEmpl.length < 2) {
+      out.push({
+        rule: 'committee-sst-no-employer-rep',
+        severity: 'HIGH',
+        title: 'Comité SST sin representantes suficientes del empleador',
+        description: 'El Comité SST debe tener al menos 2 representantes del empleador para completar el mínimo legal paritario.',
+        baseLegal: 'Ley 29783 art. 29',
+        affectedUnitIds: [],
+        affectedWorkerIds: [],
+        suggestedTaskTitle: 'Designar representantes del empleador en el Comité SST',
+        suggestedFix: 'Formaliza la designación por decisión del empleador y deja constancia en acta.',
+      })
+    }
   } else {
-    // ≤ 20 trabajadores: basta con Supervisor SST
+    // <20 trabajadores: basta con Supervisor SST
     if (supervisores.length === 0) {
       out.push({
         rule: 'sst-no-supervisor',

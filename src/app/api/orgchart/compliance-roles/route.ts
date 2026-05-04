@@ -5,6 +5,17 @@ import { prisma } from '@/lib/prisma'
 import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 import { recordStructureChange, requestIp } from '@/lib/orgchart/change-log'
 
+const SINGLE_HOLDER_ROLE_TYPES = new Set([
+  'DPO_LEY_29733',
+  'RT_PLANILLA',
+  'RESPONSABLE_IGUALDAD_SALARIAL',
+  'ENCARGADO_LIBRO_RECLAMACIONES',
+  'MEDICO_OCUPACIONAL',
+  'ASISTENTA_SOCIAL',
+  'RESPONSABLE_LACTARIO',
+  'ENCARGADO_NUTRICION',
+])
+
 export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
   const body = await req.json().catch(() => ({}))
   const parsed = createComplianceRoleSchema.safeParse(body)
@@ -29,10 +40,49 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
   const def = COMPLIANCE_ROLES[parsed.data.roleType]
 
   // si no se pasa endsAt y el rol tiene duración default, calcularla
+  const startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : new Date()
   let endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null
   if (!endsAt && def.defaultDurationMonths) {
-    endsAt = new Date()
+    endsAt = new Date(startsAt)
     endsAt.setMonth(endsAt.getMonth() + def.defaultDurationMonths)
+  }
+  if (endsAt && endsAt <= startsAt) {
+    return NextResponse.json({ error: 'La vigencia final debe ser posterior al inicio del rol.' }, { status: 400 })
+  }
+
+  const duplicateForWorker = await prisma.orgComplianceRole.findFirst({
+    where: {
+      orgId: ctx.orgId,
+      workerId: parsed.data.workerId,
+      roleType: parsed.data.roleType,
+      unitId: parsed.data.unitId ?? null,
+      OR: [{ endsAt: null }, { endsAt: { gt: startsAt } }],
+    },
+    select: { id: true },
+  })
+  if (duplicateForWorker) {
+    return NextResponse.json(
+      { error: 'El trabajador ya tiene este rol legal vigente en el mismo alcance.' },
+      { status: 409 },
+    )
+  }
+
+  if (SINGLE_HOLDER_ROLE_TYPES.has(parsed.data.roleType)) {
+    const duplicateRole = await prisma.orgComplianceRole.findFirst({
+      where: {
+        orgId: ctx.orgId,
+        roleType: parsed.data.roleType,
+        unitId: parsed.data.unitId ?? null,
+        OR: [{ endsAt: null }, { endsAt: { gt: startsAt } }],
+      },
+      select: { id: true },
+    })
+    if (duplicateRole) {
+      return NextResponse.json(
+        { error: 'Ya existe una designación vigente para este rol legal en el mismo alcance.' },
+        { status: 409 },
+      )
+    }
   }
 
   const role = await prisma.orgComplianceRole.create({
@@ -41,7 +91,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
       workerId: parsed.data.workerId,
       roleType: parsed.data.roleType,
       unitId: parsed.data.unitId ?? null,
-      startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : new Date(),
+      startsAt,
       endsAt,
       electedAt: parsed.data.electedAt ? new Date(parsed.data.electedAt) : null,
       actaUrl: parsed.data.actaUrl ?? null,

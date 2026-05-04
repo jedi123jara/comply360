@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-auth'
 import {
   applyOrgTemplate,
-  listOrgTemplates,
   OrgTemplateNotFoundError,
   previewOrgTemplate,
+  recommendOrgTemplates,
 } from '@/lib/orgchart/templates'
 import { requestIp } from '@/lib/orgchart/change-log'
 import { takeSnapshot } from '@/lib/orgchart/snapshot-service'
@@ -12,7 +12,8 @@ import { takeSnapshot } from '@/lib/orgchart/snapshot-service'
 export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
   const templateId = req.nextUrl.searchParams.get('templateId')
   if (!templateId) {
-    return NextResponse.json({ templates: listOrgTemplates() })
+    const templates = await recommendOrgTemplates(ctx.orgId)
+    return NextResponse.json({ templates })
   }
 
   try {

@@ -150,7 +150,13 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       return null
     }
   }
-  if (!clerkId) return null
+  if (!clerkId) {
+    if (process.env.NODE_ENV === 'development') {
+      clerkId = 'demo-clerk-id'
+    } else {
+      return null
+    }
+  }
 
   const user = await prisma.user.findUnique({
     where: { clerkId },

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { evaluatePositionReparentScenario, WhatIfScenarioError } from '../what-if'
+import {
+  assertWhatIfDraftStillMatchesCurrentParent,
+  evaluatePositionReparentScenario,
+  WhatIfScenarioError,
+} from '../what-if'
 import type { OrgChartTree, OrgPositionDTO } from '../types'
 
 function position(partial: Partial<OrgPositionDTO> & Pick<OrgPositionDTO, 'id' | 'orgUnitId' | 'title'>): OrgPositionDTO {
@@ -92,5 +96,18 @@ describe('What-If organigrama', () => {
     const base = tree([position({ id: 'p1', orgUnitId: 'u1', title: 'Gerente' })])
 
     expect(() => evaluatePositionReparentScenario(base, 'missing', 'p1')).toThrow(WhatIfScenarioError)
+  })
+
+  it('rechaza aplicar un escenario si la estructura base ya cambió', () => {
+    const base = tree([
+      position({ id: 'p1', orgUnitId: 'u1', title: 'Gerente' }),
+      position({ id: 'p2', orgUnitId: 'u1', title: 'Jefe Legal', reportsToPositionId: 'p1' }),
+      position({ id: 'p3', orgUnitId: 'u1', title: 'Analista', reportsToPositionId: 'p2' }),
+      position({ id: 'p4', orgUnitId: 'u1', title: 'Jefe Operaciones', reportsToPositionId: 'p1' }),
+    ])
+    const result = evaluatePositionReparentScenario(base, 'p3', 'p1')
+
+    expect(() => assertWhatIfDraftStillMatchesCurrentParent(result.impact, 'p2')).not.toThrow()
+    expect(() => assertWhatIfDraftStillMatchesCurrentParent(result.impact, 'p4')).toThrow(WhatIfScenarioError)
   })
 })

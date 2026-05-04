@@ -374,3 +374,147 @@ export const arcoUpdateSchema = z.object({
 
 export type ArcoCreateInput = z.infer<typeof arcoCreateSchema>
 export type ArcoUpdateInput = z.infer<typeof arcoUpdateSchema>
+
+// ── Comité SST (R.M. 245-2021-TR) ────────────────────────────────────────
+
+export const comiteCreateSchema = z.object({
+  mandatoInicio: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/)),
+  /** Si no se envía, se calcula como mandatoInicio + 2 años. */
+  mandatoFin: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/))
+    .optional()
+    .nullable(),
+  libroActasUrl: z.string().url().optional().nullable(),
+})
+
+export const comiteUpdateSchema = z.object({
+  estado: z.enum(['VIGENTE', 'EN_ELECCION', 'INACTIVO']).optional(),
+  libroActasUrl: z.string().url().optional().nullable(),
+  mandatoFin: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/))
+    .optional(),
+})
+
+export const miembroCreateSchema = z.object({
+  workerId: z.string().min(1, 'workerId requerido'),
+  cargo: z.enum(['PRESIDENTE', 'SECRETARIO', 'MIEMBRO']),
+  origen: z.enum(['REPRESENTANTE_EMPLEADOR', 'REPRESENTANTE_TRABAJADORES']),
+  fechaAlta: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/))
+    .optional(),
+})
+
+export const miembroUpdateSchema = z.object({
+  cargo: z.enum(['PRESIDENTE', 'SECRETARIO', 'MIEMBRO']).optional(),
+  origen: z
+    .enum(['REPRESENTANTE_EMPLEADOR', 'REPRESENTANTE_TRABAJADORES'])
+    .optional(),
+  fechaBaja: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/))
+    .nullable()
+    .optional(),
+})
+
+export type ComiteCreateInput = z.infer<typeof comiteCreateSchema>
+export type ComiteUpdateInput = z.infer<typeof comiteUpdateSchema>
+export type MiembroCreateInput = z.infer<typeof miembroCreateSchema>
+export type MiembroUpdateInput = z.infer<typeof miembroUpdateSchema>
+
+// ── ColaboradorSST (interno COMPLY360) ──────────────────────────────────
+
+export const colaboradorCreateSchema = z.object({
+  nombre: z.string().min(2).max(100),
+  apellido: z.string().min(2).max(100),
+  dni: z.string().regex(/^\d{8}$/, 'DNI debe ser 8 dígitos'),
+  email: z.string().email(),
+  telefono: z.string().min(7).max(20).optional().nullable(),
+  tipoColaborador: z.enum(['EMPLEADO_INTERNO', 'CONTRATISTA']),
+  vigenciaContratoHasta: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/))
+    .optional()
+    .nullable(),
+  especialidades: z.array(z.string().max(60)).default([]),
+})
+
+export const colaboradorUpdateSchema = colaboradorCreateSchema.partial().extend({
+  activo: z.boolean().optional(),
+})
+
+export type ColaboradorCreateInput = z.infer<typeof colaboradorCreateSchema>
+export type ColaboradorUpdateInput = z.infer<typeof colaboradorUpdateSchema>
+
+// ── VisitaFieldAudit ─────────────────────────────────────────────────────
+
+export const visitaCreateSchema = z.object({
+  sedeId: z.string().min(1, 'sedeId requerido'),
+  colaboradorId: z.string().min(1, 'colaboradorId requerido'),
+  fechaProgramada: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/)),
+  notasInspector: z.string().max(2000).optional().nullable(),
+})
+
+export const visitaUpdateSchema = z.object({
+  estado: z
+    .enum(['PROGRAMADA', 'EN_CAMPO', 'PENDIENTE_INGESTA', 'EN_INGESTA', 'CERRADA', 'CANCELADA'])
+    .optional(),
+  fechaInicioCampo: z.string().datetime({ offset: true }).optional().nullable(),
+  fechaCierreOficina: z.string().datetime({ offset: true }).optional().nullable(),
+  lat: z.number().min(-90).max(90).optional().nullable(),
+  lng: z.number().min(-180).max(180).optional().nullable(),
+  fotoFachadaUrl: z.string().url().optional().nullable(),
+  payloadOfflineJson: z.unknown().optional(),
+  notasInspector: z.string().max(2000).optional().nullable(),
+})
+
+export type VisitaCreateInput = z.infer<typeof visitaCreateSchema>
+export type VisitaUpdateInput = z.infer<typeof visitaUpdateSchema>
+
+// ── HallazgoFieldAudit ───────────────────────────────────────────────────
+
+export const hallazgoCreateSchema = z.object({
+  tipo: z.enum([
+    'PELIGRO_NUEVO',
+    'PROCEDIMIENTO_INCUMPLIDO',
+    'EPP_AUSENTE',
+    'SENALIZACION_FALTANTE',
+    'EXTINTOR_VENCIDO',
+    'RUTA_EVACUACION_BLOQUEADA',
+    'OTRO',
+  ]),
+  severidad: z.enum(['TRIVIAL', 'TOLERABLE', 'MODERADO', 'IMPORTANTE', 'INTOLERABLE']),
+  descripcion: z.string().min(5).max(1000),
+  fotoUrl: z.string().url().optional().nullable(),
+  coordenadasGps: z
+    .object({
+      lat: z.number(),
+      lng: z.number(),
+      accuracy: z.number().optional(),
+    })
+    .optional()
+    .nullable(),
+  accionPropuesta: z.string().min(5).max(1000),
+  responsable: z.string().max(150).optional().nullable(),
+  plazoCierre: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/))
+    .optional()
+    .nullable(),
+})
+
+export type HallazgoCreateInput = z.infer<typeof hallazgoCreateSchema>

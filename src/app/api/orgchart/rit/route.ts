@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { generateOrgChartRitDocx, RitOrganizationNotFoundError } from '@/lib/orgchart/rit-docx'
+import {
+  getVerifiedSnapshotTree,
+  OrgChartSnapshotIntegrityError,
+  OrgChartSnapshotNotFoundError,
+} from '@/lib/orgchart/snapshot-service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+  const snapshotId = req.nextUrl.searchParams.get('snapshotId')
   const asOfStr = req.nextUrl.searchParams.get('asOf')
   const asOf = asOfStr ? new Date(asOfStr) : null
   if (asOfStr && Number.isNaN(asOf!.getTime())) {
@@ -14,7 +20,12 @@ export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
   }
 
   try {
-    const doc = await generateOrgChartRitDocx(ctx.orgId, asOf)
+    const snapshotExport = snapshotId ? await getVerifiedSnapshotTree(ctx.orgId, snapshotId) : null
+    const doc = await generateOrgChartRitDocx(
+      ctx.orgId,
+      snapshotExport?.snapshot.createdAt ?? asOf,
+      snapshotExport?.tree,
+    )
 
     await prisma.auditLog.create({
       data: {
@@ -22,7 +33,12 @@ export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
         userId: ctx.userId,
         action: 'orgchart.rit_downloaded',
         entityType: 'OrgChart',
-        metadataJson: { fileName: doc.fileName, asOf: doc.asOf } as object,
+        metadataJson: {
+          fileName: doc.fileName,
+          asOf: doc.asOf,
+          snapshotId: snapshotExport?.snapshot.id ?? null,
+          snapshotHash: snapshotExport?.snapshot.hash ?? null,
+        } as object,
       },
     }).catch(() => {})
 
@@ -36,6 +52,12 @@ export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
   } catch (error) {
     if (error instanceof RitOrganizationNotFoundError) {
       return NextResponse.json({ error: 'Organizacion no encontrada' }, { status: 404 })
+    }
+    if (error instanceof OrgChartSnapshotNotFoundError) {
+      return NextResponse.json({ error: 'Snapshot no encontrado' }, { status: 404 })
+    }
+    if (error instanceof OrgChartSnapshotIntegrityError) {
+      return NextResponse.json({ error: 'Snapshot alterado o corrupto' }, { status: 409 })
     }
     throw error
   }

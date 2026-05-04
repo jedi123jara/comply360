@@ -8,11 +8,19 @@ export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (req, ctx, p
     where: { id: params.id, orgId: ctx.orgId },
   })
   if (!current) return NextResponse.json({ error: 'Asignación no existe' }, { status: 404 })
+  if (current.endedAt) {
+    return NextResponse.json({ error: 'La asignación ya fue cesada.' }, { status: 409 })
+  }
+
+  const endedAt = new Date()
+  if (endedAt < current.startedAt) {
+    endedAt.setTime(current.startedAt.getTime())
+  }
 
   // Cesar (no borrar) — preservamos historial
   const updated = await prisma.orgAssignment.update({
     where: { id: params.id },
-    data: { endedAt: new Date() },
+    data: { endedAt },
   })
   await recordStructureChange({
     orgId: ctx.orgId,

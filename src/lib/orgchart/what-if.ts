@@ -170,10 +170,13 @@ export async function applyWhatIfDraft(orgId: string, draftId: string, opts: { u
   const impact = draft.impactReport as unknown as WhatIfImpactReport | null
   const positionId = impact?.scenario.positionId
   const newParentId = impact?.scenario.toParentId
-  if (!positionId || !newParentId) throw new WhatIfScenarioError('El escenario no contiene una acción aplicable.')
+  if (!impact || !positionId || !newParentId) {
+    throw new WhatIfScenarioError('El escenario no contiene una acción aplicable.')
+  }
 
   const currentPosition = await prisma.orgPosition.findFirst({ where: { id: positionId, orgId, validTo: null } })
   if (!currentPosition) throw new WhatIfScenarioError('El cargo del escenario ya no existe o no está vigente.')
+  assertWhatIfDraftStillMatchesCurrentParent(impact, currentPosition.reportsToPositionId)
 
   const parent = await prisma.orgPosition.findFirst({
     where: { id: newParentId, orgId, validTo: null },
@@ -186,9 +189,23 @@ export async function applyWhatIfDraft(orgId: string, draftId: string, opts: { u
     throw new WhatIfScenarioError('No se puede aplicar: crearía un ciclo jerárquico.')
   }
 
-  const updatedPosition = await prisma.orgPosition.update({
-    where: { id: positionId },
-    data: { reportsToPositionId: newParentId },
+  const appliedAt = new Date()
+  const { updatedPosition, updatedDraft } = await prisma.$transaction(async tx => {
+    const updatedPosition = await tx.orgPosition.update({
+      where: { id: positionId },
+      data: { reportsToPositionId: newParentId },
+    })
+
+    const updatedDraft = await tx.orgChartDraft.update({
+      where: { id: draft.id },
+      data: {
+        status: 'APPLIED',
+        appliedAt,
+        appliedById: opts.userId,
+      },
+    })
+
+    return { updatedPosition, updatedDraft }
   })
 
   await recordStructureChange({
@@ -203,15 +220,6 @@ export async function applyWhatIfDraft(orgId: string, draftId: string, opts: { u
     reason: `Aplicación de escenario What-If: ${draft.name}`,
   }).catch(() => {})
 
-  const updatedDraft = await prisma.orgChartDraft.update({
-    where: { id: draft.id },
-    data: {
-      status: 'APPLIED',
-      appliedAt: new Date(),
-      appliedById: opts.userId,
-    },
-  })
-
   await recordStructureChange({
     orgId,
     type: 'DRAFT_APPLY',
@@ -222,6 +230,13 @@ export async function applyWhatIfDraft(orgId: string, draftId: string, opts: { u
     performedById: opts.userId,
     ipAddress: opts.ipAddress ?? null,
     reason: 'Escenario What-If aplicado',
+  }).catch(() => {})
+
+  await takeSnapshot(orgId, {
+    label: `Aplicación What-If - ${draft.name}`.slice(0, 120),
+    reason: 'Snapshot automático posterior a aplicación de escenario What-If',
+    takenById: opts.userId,
+    isAuto: true,
   }).catch(() => {})
 
   return updatedDraft
@@ -244,6 +259,21 @@ export function evaluatePositionReparentScenario(tree: OrgChartTree, positionId:
   const impact = buildImpactReport(tree, position, newParent)
 
   return { simulatedTree, diff, impact }
+}
+
+export function assertWhatIfDraftStillMatchesCurrentParent(
+  impact: Pick<WhatIfImpactReport, 'blocked' | 'scenario'>,
+  currentParentId: string | null,
+) {
+  if (impact.blocked) {
+    throw new WhatIfScenarioError('No se puede aplicar un escenario bloqueado.')
+  }
+
+  if (currentParentId !== impact.scenario.fromParentId) {
+    throw new WhatIfScenarioError(
+      'La estructura cambió desde que se creó el escenario. Vuelve a simularlo antes de aplicarlo.',
+    )
+  }
 }
 
 function buildImpactReport(tree: OrgChartTree, position: OrgPositionDTO, newParent: OrgPositionDTO): WhatIfImpactReport {

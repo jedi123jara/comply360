@@ -38,6 +38,63 @@ export const PATCH = withRoleParams<{ id: string }>('ADMIN', async (req, ctx, pa
     }
   }
 
+  if (parsed.data.backupPositionId !== undefined && parsed.data.backupPositionId !== null) {
+    if (parsed.data.backupPositionId === params.id) {
+      return NextResponse.json({ error: 'Un cargo no puede ser backup de sí mismo' }, { status: 400 })
+    }
+    const backup = await prisma.orgPosition.findFirst({
+      where: { id: parsed.data.backupPositionId, orgId: ctx.orgId, validTo: null },
+      select: { id: true },
+    })
+    if (!backup) return NextResponse.json({ error: 'Backup inválido' }, { status: 400 })
+  }
+
+  const nextValidFrom = parsed.data.validFrom ? new Date(parsed.data.validFrom) : current.validFrom
+  const nextValidTo = parsed.data.validTo === undefined
+    ? current.validTo
+    : parsed.data.validTo === null
+      ? null
+      : new Date(parsed.data.validTo)
+  if (nextValidTo && nextValidTo <= nextValidFrom) {
+    return NextResponse.json({ error: 'La vigencia final debe ser posterior al inicio del cargo.' }, { status: 400 })
+  }
+
+  const nextOrgUnitId = parsed.data.orgUnitId ?? current.orgUnitId
+  const nextTitle = parsed.data.title ?? current.title
+  if (nextOrgUnitId !== current.orgUnitId || nextTitle.toLowerCase() !== current.title.toLowerCase()) {
+    const duplicate = await prisma.orgPosition.findFirst({
+      where: {
+        orgId: ctx.orgId,
+        orgUnitId: nextOrgUnitId,
+        title: { equals: nextTitle, mode: 'insensitive' },
+        validTo: null,
+        id: { not: params.id },
+      },
+      select: { id: true },
+    })
+    if (duplicate) {
+      return NextResponse.json({ error: 'Ya existe un cargo vigente con ese nombre en la unidad.' }, { status: 409 })
+    }
+  }
+
+  if (parsed.data.seats !== undefined || (parsed.data.validTo !== undefined && parsed.data.validTo !== null)) {
+    const activeAssignments = await prisma.orgAssignment.count({
+      where: { orgId: ctx.orgId, positionId: params.id, endedAt: null },
+    })
+    if (parsed.data.seats !== undefined && parsed.data.seats < activeAssignments) {
+      return NextResponse.json(
+        { error: `El cargo tiene ${activeAssignments} ocupante(s) vigente(s). No puedes dejar menos cupos.` },
+        { status: 409 },
+      )
+    }
+    if (parsed.data.validTo !== undefined && parsed.data.validTo !== null && activeAssignments > 0) {
+      return NextResponse.json(
+        { error: 'El cargo tiene ocupantes vigentes. Cesa primero las asignaciones.' },
+        { status: 409 },
+      )
+    }
+  }
+
   const { validFrom, validTo, functions, responsibilities, requirements, ...positionPatch } = parsed.data
   const data: Prisma.OrgPositionUncheckedUpdateInput = {
     ...positionPatch,
@@ -70,11 +127,17 @@ export const PATCH = withRoleParams<{ id: string }>('ADMIN', async (req, ctx, pa
 export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (req, ctx, params) => {
   const current = await prisma.orgPosition.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
-    include: { assignments: { where: { endedAt: null } } },
+    include: {
+      assignments: { where: { endedAt: null } },
+      reportees: { where: { validTo: null }, select: { id: true } },
+    },
   })
   if (!current) return NextResponse.json({ error: 'Cargo no existe' }, { status: 404 })
   if (current.assignments.length > 0) {
     return NextResponse.json({ error: 'El cargo tiene ocupantes vigentes. Cesa primero las asignaciones.' }, { status: 409 })
+  }
+  if (current.reportees.length > 0) {
+    return NextResponse.json({ error: 'El cargo tiene reportes directos vigentes. Reasigna la línea de mando antes de eliminarlo.' }, { status: 409 })
   }
   const updated = await prisma.orgPosition.update({
     where: { id: params.id },

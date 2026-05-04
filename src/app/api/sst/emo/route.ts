@@ -126,7 +126,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   }
 
   // Cifrar restricciones si vienen
-  let restriccionesCifrado: Buffer | null = null
+  let restriccionesCifrado: Uint8Array<ArrayBuffer> | null = null
   if (data.restricciones && data.restricciones.trim().length > 0) {
     restriccionesCifrado = await encryptMedical(prisma, data.restricciones.trim())
   }

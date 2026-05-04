@@ -9,6 +9,31 @@ export interface OrgTemplateSummary {
   unitCount: number
   positionCount: number
   recommendedFor: string[]
+  recommendation?: OrgTemplateRecommendation
+}
+
+export interface OrgTemplateRecommendation {
+  score: number
+  level: 'STRONG' | 'GOOD' | 'NEUTRAL'
+  reasons: string[]
+  signals: string[]
+}
+
+export interface OrgTemplateRecommendationSignals {
+  organizationSector?: string | null
+  ciiu?: string | null
+  sizeRange?: string | null
+  usesAgroInputs?: boolean | null
+  currentProjectCostUIT?: number | string | null
+  declaredWorkers?: number | null
+  workerCount?: number | null
+  departments?: string[]
+  workerPositions?: string[]
+  existingUnitNames?: string[]
+  existingPositionTitles?: string[]
+  sctrWorkerCount?: number
+  highRiskWorkerCount?: number
+  sstPositionCount?: number
 }
 
 export interface OrgTemplatePreview {
@@ -118,6 +143,89 @@ export class OrgTemplateNotFoundError extends Error {
 
 export function listOrgTemplates(): OrgTemplateSummary[] {
   return ORG_TEMPLATES.map(toSummary)
+}
+
+export async function recommendOrgTemplates(orgId: string): Promise<OrgTemplateSummary[]> {
+  const [organization, workers, existingUnits, existingPositions] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: {
+        sector: true,
+        sizeRange: true,
+        ciiu: true,
+        usesAgroInputs: true,
+        currentProjectCostUIT: true,
+        totalWorkersDeclared: true,
+      },
+    }),
+    prisma.worker.findMany({
+      where: { orgId, status: 'ACTIVE' },
+      select: {
+        department: true,
+        position: true,
+        sctr: true,
+        sctrRiesgoNivel: true,
+      },
+    }),
+    prisma.orgUnit.findMany({
+      where: { orgId, isActive: true, validTo: null },
+      select: { name: true },
+    }),
+    prisma.orgPosition.findMany({
+      where: { orgId, validTo: null },
+      select: {
+        title: true,
+        requiresSctr: true,
+        requiresMedicalExam: true,
+        isCritical: true,
+        riskCategory: true,
+      },
+    }),
+  ])
+
+  if (!organization) return listOrgTemplates()
+
+  return recommendOrgTemplatesFromSignals({
+    organizationSector: organization.sector,
+    sizeRange: organization.sizeRange,
+    ciiu: organization.ciiu,
+    usesAgroInputs: organization.usesAgroInputs,
+    currentProjectCostUIT: organization.currentProjectCostUIT?.toString() ?? null,
+    declaredWorkers: organization.totalWorkersDeclared,
+    workerCount: workers.length,
+    departments: workers.map(worker => worker.department).filter(isNonEmptyString),
+    workerPositions: workers.map(worker => worker.position).filter(isNonEmptyString),
+    existingUnitNames: existingUnits.map(unit => unit.name),
+    existingPositionTitles: existingPositions.map(position => position.title),
+    sctrWorkerCount: workers.filter(worker => worker.sctr).length,
+    highRiskWorkerCount: workers.filter(worker => normalizeKey(worker.sctrRiesgoNivel ?? '').includes('alto')).length,
+    sstPositionCount: existingPositions.filter(
+      position =>
+        position.requiresSctr ||
+        position.requiresMedicalExam ||
+        position.isCritical ||
+        normalizeKey(position.riskCategory ?? '').includes('alto'),
+    ).length,
+  })
+}
+
+export function recommendOrgTemplatesFromSignals(
+  signals: OrgTemplateRecommendationSignals,
+): OrgTemplateSummary[] {
+  const signalBag = buildRecommendationSignalBag(signals)
+
+  return ORG_TEMPLATES.map((template, index) => ({
+    summary: {
+      ...toSummary(template),
+      recommendation: scoreTemplateRecommendation(template, signals, signalBag),
+    },
+    index,
+  }))
+    .sort((left, right) => {
+      const scoreDiff = (right.summary.recommendation?.score ?? 0) - (left.summary.recommendation?.score ?? 0)
+      return scoreDiff || left.index - right.index
+    })
+    .map(item => item.summary)
 }
 
 export async function previewOrgTemplate(orgId: string, templateId: string): Promise<OrgTemplatePreview> {
@@ -447,6 +555,170 @@ function normalizeKey(input: string) {
     .trim()
 }
 
+function isNonEmptyString(value: string | null | undefined): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function buildRecommendationSignalBag(signals: OrgTemplateRecommendationSignals) {
+  const values = [
+    signals.organizationSector,
+    signals.ciiu,
+    signals.sizeRange,
+    ...(signals.departments ?? []),
+    ...(signals.workerPositions ?? []),
+    ...(signals.existingUnitNames ?? []),
+    ...(signals.existingPositionTitles ?? []),
+  ].filter(isNonEmptyString)
+
+  return normalizeKey(values.join(' '))
+}
+
+function scoreTemplateRecommendation(
+  template: OrgTemplate,
+  signals: OrgTemplateRecommendationSignals,
+  signalBag: string,
+): OrgTemplateRecommendation {
+  const profile = TEMPLATE_RECOMMENDATION_PROFILES[template.id]
+  let score = 35
+  const reasons: string[] = []
+  const detectedSignals: string[] = []
+
+  const sectorMatch = matchesAny(signalBag, profile.sectorKeywords)
+  if (sectorMatch) {
+    score += 26
+    reasons.push(`Sector compatible: ${sectorMatch}`)
+    detectedSignals.push('sector')
+  }
+
+  const keywordMatches = unique(profile.contextKeywords.filter(keyword => signalBag.includes(normalizeKey(keyword))))
+  if (keywordMatches.length > 0) {
+    score += Math.min(30, keywordMatches.length * 6)
+    reasons.push(`Coincidencias operativas: ${keywordMatches.slice(0, 4).join(', ')}`)
+    detectedSignals.push('cargos/departamentos')
+  }
+
+  const ciiu = normalizeKey(signals.ciiu ?? '').replace(/\s+/g, '')
+  if (ciiu && profile.ciiuPrefixes.some(prefix => ciiu.startsWith(prefix))) {
+    score += 22
+    reasons.push(`CIIU compatible (${signals.ciiu})`)
+    detectedSignals.push('CIIU')
+  }
+
+  if (profile.prefersAgro && signals.usesAgroInputs) {
+    score += 24
+    reasons.push('Marca agroindustrial activa en la organización')
+    detectedSignals.push('agro')
+  }
+
+  if (profile.prefersConstructionProject && Number(signals.currentProjectCostUIT ?? 0) > 50) {
+    score += 20
+    reasons.push('Proyecto de construcción supera 50 UIT')
+    detectedSignals.push('obra')
+  }
+
+  const declaredWorkers = signals.declaredWorkers ?? signals.workerCount ?? 0
+  const workerCount = Math.max(declaredWorkers, signals.workerCount ?? 0)
+  if (workerCount >= profile.minWorkerCount) {
+    score += 8
+    reasons.push(`Escala compatible con ${workerCount} trabajador(es)`)
+    detectedSignals.push('tamaño')
+  }
+
+  if (profile.prefersSst && hasSstExposure(signals)) {
+    score += 15
+    reasons.push('Tiene exposición SST/SCTR o cargos de riesgo')
+    detectedSignals.push('SST')
+  }
+
+  if (!profile.prefersSst && hasSstExposure(signals)) score -= 8
+  if (!profile.prefersAgro && signals.usesAgroInputs) score -= 8
+  if (!profile.prefersConstructionProject && Number(signals.currentProjectCostUIT ?? 0) > 50) score -= 8
+
+  const normalizedScore = Math.max(20, Math.min(100, Math.round(score)))
+  const fallbackReason = template.recommendedFor[0] ? `Aplicable a ${template.recommendedFor[0].toLowerCase()}` : template.sector
+  const level: OrgTemplateRecommendation['level'] =
+    normalizedScore >= 78 ? 'STRONG' : normalizedScore >= 60 ? 'GOOD' : 'NEUTRAL'
+
+  return {
+    score: normalizedScore,
+    level,
+    reasons: unique(reasons).slice(0, 4).length > 0 ? unique(reasons).slice(0, 4) : [fallbackReason],
+    signals: unique(detectedSignals).slice(0, 5),
+  }
+}
+
+function hasSstExposure(signals: OrgTemplateRecommendationSignals) {
+  return Boolean(
+    (signals.sctrWorkerCount ?? 0) > 0 ||
+      (signals.highRiskWorkerCount ?? 0) > 0 ||
+      (signals.sstPositionCount ?? 0) > 0,
+  )
+}
+
+function matchesAny(signalBag: string, keywords: string[]) {
+  return keywords.find(keyword => signalBag.includes(normalizeKey(keyword))) ?? null
+}
+
+function unique<T>(items: T[]) {
+  return Array.from(new Set(items))
+}
+
+const TEMPLATE_RECOMMENDATION_PROFILES: Record<
+  string,
+  {
+    sectorKeywords: string[]
+    contextKeywords: string[]
+    ciiuPrefixes: string[]
+    minWorkerCount: number
+    prefersSst?: boolean
+    prefersAgro?: boolean
+    prefersConstructionProject?: boolean
+  }
+> = {
+  'retail-operaciones': {
+    sectorKeywords: ['retail', 'comercio', 'restaurante', 'tienda', 'sucursal'],
+    contextKeywords: ['ventas', 'vendedor', 'caja', 'tienda', 'sucursal', 'atencion', 'cliente', 'operaciones'],
+    ciiuPrefixes: ['47', '56'],
+    minWorkerCount: 8,
+  },
+  'manufactura-sst': {
+    sectorKeywords: ['manufactura', 'industria', 'planta', 'produccion'],
+    contextKeywords: ['planta', 'produccion', 'mantenimiento', 'calidad', 'almacen', 'operario', 'supervisor'],
+    ciiuPrefixes: ['10', '11', '12', '13', '14', '15', '16', '17', '18', '20', '22', '25', '28', '31', '32'],
+    minWorkerCount: 20,
+    prefersSst: true,
+  },
+  'servicios-profesionales': {
+    sectorKeywords: ['servicios', 'consultoria', 'software', 'agencia', 'estudio'],
+    contextKeywords: ['proyecto', 'consultor', 'comercial', 'administracion', 'personas', 'cultura', 'software'],
+    ciiuPrefixes: ['62', '63', '69', '70', '71', '73', '74'],
+    minWorkerCount: 3,
+  },
+  'transporte-logistica': {
+    sectorKeywords: ['transporte', 'logistica', 'courier', 'distribucion'],
+    contextKeywords: ['flota', 'conductor', 'despacho', 'gps', 'almacen', 'vehicular', 'distribucion'],
+    ciiuPrefixes: ['49', '50', '51', '52', '53'],
+    minWorkerCount: 12,
+    prefersSst: true,
+  },
+  'construccion-obras': {
+    sectorKeywords: ['construccion', 'obra', 'contratista', 'civil'],
+    contextKeywords: ['obra', 'ssoma', 'residente', 'maestro', 'prevencionista', 'almacen de obra', 'proyecto'],
+    ciiuPrefixes: ['41', '42', '43'],
+    minWorkerCount: 10,
+    prefersSst: true,
+    prefersConstructionProject: true,
+  },
+  'agroindustria-campo': {
+    sectorKeywords: ['agro', 'agrario', 'agricola', 'agroindustria', 'campo'],
+    contextKeywords: ['campo', 'packing', 'fundo', 'cosecha', 'cuadrilla', 'agricola', 'inocuidad', 'temporada'],
+    ciiuPrefixes: ['01', '02', '03'],
+    minWorkerCount: 15,
+    prefersSst: true,
+    prefersAgro: true,
+  },
+}
+
 const ORG_TEMPLATES: OrgTemplate[] = [
   {
     id: 'retail-operaciones',
@@ -543,6 +815,147 @@ const ORG_TEMPLATES: OrgTemplate[] = [
       basePosition('responsable-compliance', 'Responsable de Cumplimiento', 'compliance', 'gerente-general', 'Compliance', true, {
         isCritical: true,
       }),
+    ],
+  },
+  {
+    id: 'transporte-logistica',
+    name: 'Transporte y logística',
+    description: 'Estructura base para flotas, despachos, almacenes, mantenimiento vehicular y control SST.',
+    sector: 'Transporte',
+    recommendedFor: ['Transporte terrestre', 'Courier', 'Distribución', 'Operadores logísticos'],
+    units: [
+      { key: 'direccion', name: 'Dirección General', kind: 'GERENCIA' },
+      { key: 'operaciones', name: 'Operaciones de Transporte', kind: 'GERENCIA', parentKey: 'direccion' },
+      { key: 'flota', name: 'Flota y Conductores', kind: 'AREA', parentKey: 'operaciones' },
+      { key: 'despacho', name: 'Despacho y Monitoreo', kind: 'AREA', parentKey: 'operaciones' },
+      { key: 'almacen', name: 'Almacén y Distribución', kind: 'AREA', parentKey: 'operaciones' },
+      { key: 'mantenimiento', name: 'Mantenimiento Vehicular', kind: 'AREA', parentKey: 'operaciones' },
+      { key: 'sst', name: 'SST y Seguridad Vial', kind: 'AREA', parentKey: 'direccion' },
+      { key: 'admin', name: 'Administración y Finanzas', kind: 'AREA', parentKey: 'direccion' },
+    ],
+    positions: [
+      basePosition('gerente-general', 'Gerente General', 'direccion', undefined, 'Dirección', true),
+      basePosition('gerente-operaciones', 'Gerente de Operaciones de Transporte', 'operaciones', 'gerente-general', 'Gerencia', true, { isCritical: true }),
+      basePosition('jefe-flota', 'Jefe de Flota', 'flota', 'gerente-operaciones', 'Jefatura', true, { isCritical: true }),
+      basePosition('conductor', 'Conductor Profesional', 'flota', 'jefe-flota', 'Operativo', false, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+        seats: 6,
+      }),
+      basePosition('coordinador-despacho', 'Coordinador de Despacho', 'despacho', 'gerente-operaciones', 'Coordinación', true),
+      basePosition('monitor-gps', 'Monitor GPS', 'despacho', 'coordinador-despacho', 'Operativo', false),
+      basePosition('jefe-almacen', 'Jefe de Almacén', 'almacen', 'gerente-operaciones', 'Jefatura', true, { requiresMedicalExam: true }),
+      basePosition('tecnico-mantenimiento', 'Técnico de Mantenimiento Vehicular', 'mantenimiento', 'gerente-operaciones', 'Técnico', false, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+      }),
+      basePosition('responsable-sst', 'Responsable SST y Seguridad Vial', 'sst', 'gerente-general', 'Compliance', true, {
+        isCritical: true,
+        requiresMedicalExam: true,
+      }),
+      basePosition('responsable-admin', 'Responsable de Administración y Finanzas', 'admin', 'gerente-general', 'Administrativo', true),
+    ],
+  },
+  {
+    id: 'construccion-obras',
+    name: 'Construcción y obras',
+    description: 'Organigrama para obras, residentes, supervisión en campo, almacén, SSOMA y administración de proyecto.',
+    sector: 'Construcción',
+    recommendedFor: ['Constructoras', 'Contratistas', 'Obras civiles', 'Mantenimiento industrial'],
+    units: [
+      { key: 'direccion', name: 'Dirección General', kind: 'GERENCIA' },
+      { key: 'proyectos', name: 'Gestión de Proyectos', kind: 'GERENCIA', parentKey: 'direccion' },
+      { key: 'obra', name: 'Obra y Producción', kind: 'AREA', parentKey: 'proyectos' },
+      { key: 'ssoma', name: 'SSOMA', kind: 'AREA', parentKey: 'proyectos' },
+      { key: 'calidad', name: 'Calidad y Oficina Técnica', kind: 'AREA', parentKey: 'proyectos' },
+      { key: 'almacen', name: 'Almacén de Obra', kind: 'AREA', parentKey: 'proyectos' },
+      { key: 'adminobra', name: 'Administración de Obra', kind: 'AREA', parentKey: 'direccion' },
+    ],
+    positions: [
+      basePosition('gerente-general', 'Gerente General', 'direccion', undefined, 'Dirección', true),
+      basePosition('gerente-proyectos', 'Gerente de Proyectos', 'proyectos', 'gerente-general', 'Gerencia', true, { isCritical: true }),
+      basePosition('residente-obra', 'Residente de Obra', 'obra', 'gerente-proyectos', 'Jefatura', true, {
+        isCritical: true,
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+      }),
+      basePosition('maestro-obra', 'Maestro de Obra', 'obra', 'residente-obra', 'Supervisión', true, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+      }),
+      basePosition('operario-construccion', 'Operario de Construcción Civil', 'obra', 'maestro-obra', 'Operativo', false, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+        seats: 8,
+      }),
+      basePosition('jefe-ssoma', 'Jefe SSOMA', 'ssoma', 'gerente-proyectos', 'Compliance', true, {
+        isCritical: true,
+        requiresMedicalExam: true,
+      }),
+      basePosition('prevencionista', 'Prevencionista de Riesgos', 'ssoma', 'jefe-ssoma', 'Técnico', false, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+      }),
+      basePosition('responsable-calidad', 'Responsable de Calidad', 'calidad', 'gerente-proyectos', 'Especialista', true),
+      basePosition('almacenero-obra', 'Almacenero de Obra', 'almacen', 'residente-obra', 'Operativo', false, { requiresMedicalExam: true }),
+      basePosition('administrador-obra', 'Administrador de Obra', 'adminobra', 'gerente-general', 'Administrativo', true),
+    ],
+  },
+  {
+    id: 'agroindustria-campo',
+    name: 'Agroindustria y campo',
+    description: 'Base para operaciones agrícolas, packing, calidad, mantenimiento, SST y administración de temporada.',
+    sector: 'Agroindustria',
+    recommendedFor: ['Empresas agrarias', 'Packing', 'Fundos', 'Procesamiento de alimentos'],
+    units: [
+      { key: 'direccion', name: 'Dirección General', kind: 'GERENCIA' },
+      { key: 'campo', name: 'Operaciones de Campo', kind: 'GERENCIA', parentKey: 'direccion' },
+      { key: 'packing', name: 'Packing y Planta', kind: 'AREA', parentKey: 'campo' },
+      { key: 'calidad', name: 'Calidad e Inocuidad', kind: 'AREA', parentKey: 'campo' },
+      { key: 'mantenimiento', name: 'Mantenimiento Agrícola', kind: 'AREA', parentKey: 'campo' },
+      { key: 'sst', name: 'SST y Salud Ocupacional', kind: 'AREA', parentKey: 'direccion' },
+      { key: 'rrhh', name: 'Recursos Humanos y Campaña', kind: 'AREA', parentKey: 'direccion' },
+    ],
+    positions: [
+      basePosition('gerente-general', 'Gerente General', 'direccion', undefined, 'Dirección', true),
+      basePosition('gerente-campo', 'Gerente de Campo', 'campo', 'gerente-general', 'Gerencia', true, { isCritical: true }),
+      basePosition('jefe-campo', 'Jefe de Campo', 'campo', 'gerente-campo', 'Jefatura', true, {
+        requiresMedicalExam: true,
+        riskCategory: 'MEDIO',
+      }),
+      basePosition('supervisor-cuadrilla', 'Supervisor de Cuadrilla', 'campo', 'jefe-campo', 'Supervisión', true, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+      }),
+      basePosition('operario-agricola', 'Operario Agrícola', 'campo', 'supervisor-cuadrilla', 'Operativo', false, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+        seats: 12,
+      }),
+      basePosition('jefe-packing', 'Jefe de Packing', 'packing', 'gerente-campo', 'Jefatura', true, { requiresMedicalExam: true }),
+      basePosition('operario-packing', 'Operario de Packing', 'packing', 'jefe-packing', 'Operativo', false, {
+        requiresMedicalExam: true,
+        seats: 10,
+      }),
+      basePosition('responsable-calidad', 'Responsable de Calidad e Inocuidad', 'calidad', 'gerente-campo', 'Especialista', true),
+      basePosition('tecnico-mantenimiento', 'Técnico de Mantenimiento Agrícola', 'mantenimiento', 'gerente-campo', 'Técnico', false, {
+        requiresMedicalExam: true,
+        requiresSctr: true,
+        riskCategory: 'ALTO',
+      }),
+      basePosition('responsable-sst', 'Responsable SST y Salud Ocupacional', 'sst', 'gerente-general', 'Compliance', true, {
+        isCritical: true,
+        requiresMedicalExam: true,
+      }),
+      basePosition('jefe-rrhh-campana', 'Jefe de RRHH y Campaña', 'rrhh', 'gerente-general', 'Jefatura', true),
     ],
   },
 ]

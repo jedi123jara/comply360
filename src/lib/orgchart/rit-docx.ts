@@ -45,9 +45,13 @@ export class RitOrganizationNotFoundError extends Error {
   }
 }
 
-export async function generateOrgChartRitDocx(orgId: string, asOf?: Date | null): Promise<OrgChartRitDocx> {
+export async function generateOrgChartRitDocx(
+  orgId: string,
+  asOf?: Date | null,
+  treeOverride?: OrgChartTree,
+): Promise<OrgChartRitDocx> {
   const [tree, organization] = await Promise.all([
-    getTree(orgId, asOf),
+    treeOverride ? Promise.resolve(treeOverride) : getTree(orgId, asOf),
     prisma.organization.findUnique({
       where: { id: orgId },
       select: {

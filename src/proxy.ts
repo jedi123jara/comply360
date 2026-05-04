@@ -27,6 +27,7 @@ const isPublicRoute = createRouteMatcher([
   '/firmar(.*)',             // Firma biométrica por link público (mobile deep link)
   '/mi-portal/registrarse',  // Worker self-serve signup (sin invitación de empresa)
   '/audit/orgchart(.*)',     // Auditor Link público del organigrama (token JWT)
+  '/verify(.*)',             // Verificación pública de sellos SST + contratos (slug en URL)
 
   // APIs de bajo privilegio o protegidas por secret
   '/api/calculations(.*)',   // Public calculator API (no auth needed for demo)
@@ -37,6 +38,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/public/orgchart(.*)', // API pública del Auditor Link (token JWT validado en route)
   '/api/leads',              // POST leads desde /diagnostico-gratis
   '/api/integrations/sunat-sol/receive', // Chrome Extension endpoint (CORS preflight)
+  '/api/verify(.*)',         // Verificación pública de sellos SST y contratos
 
   // Dev-only UI showcase
   '/dev(.*)',
@@ -104,6 +106,13 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
   }
 
   if (!isPublicRoute(request)) {
+    if (isDev) {
+      const response = NextResponse.next()
+      for (const [key, value] of Object.entries(securityHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
     await auth.protect()
   }
 
