@@ -10,6 +10,14 @@ import {
   type ContractProvenance,
   type ContractRenderSourceKind,
 } from './rendering'
+import {
+  runContractQualityGate,
+  withContractQualityMetadata,
+} from './quality-gate'
+import {
+  buildPremiumContractDocument,
+  withPremiumContractDocument,
+} from './premium-library'
 
 export interface CreateContractWithSideEffectsInput {
   orgId: string
@@ -45,20 +53,41 @@ const AI_LABOR_TYPES = new Set<ContractType>([
 export async function createContractWithSideEffects(input: CreateContractWithSideEffectsInput) {
   const userId = await resolveExistingUserId(input.orgId, input.userId)
   const sourceKind = input.sourceKind ?? inferSourceKind(input)
+  const inputFormData = input.formData ?? null
+  const premiumDocument = shouldBuildPremiumDocument(sourceKind, input)
+    ? buildPremiumContractDocument({
+        contractType: input.type,
+        title: input.title,
+        formData: inputFormData,
+      })
+    : null
+  const sourceContentJson = withPremiumContractDocument(input.contentJson, premiumDocument)
   const rendered = renderContract({
     title: input.title,
     contractType: input.type,
     sourceKind,
     provenance: input.provenance,
     templateId: input.templateId,
-    formData: input.formData,
+    formData: inputFormData,
     contentHtml: input.contentHtml,
-    contentJson: input.contentJson,
+    contentJson: sourceContentJson,
     renderedText: input.renderedText,
   })
 
-  const formData = withContractProvenanceFormData(input.formData, rendered.renderMetadata)
-  const contentJson = withContractRenderMetadata(input.contentJson, rendered.renderMetadata)
+  const formData = withContractProvenanceFormData(inputFormData, rendered.renderMetadata)
+  const renderedContentJson = withContractRenderMetadata(sourceContentJson, rendered.renderMetadata)
+  const initialQuality = runContractQualityGate({
+    type: input.type,
+    status: input.status ?? 'DRAFT',
+    title: input.title,
+    contentHtml: rendered.renderedHtml,
+    contentJson: renderedContentJson,
+    formData,
+    provenance: rendered.renderMetadata.provenance,
+    renderVersion: rendered.renderMetadata.renderVersion,
+    isFallback: rendered.renderMetadata.isFallback,
+  })
+  const contentJson = withContractQualityMetadata(renderedContentJson, initialQuality)
   const dbTemplateId = input.templateId
     ? await resolveContractTemplateId(input.templateId)
     : null
@@ -234,6 +263,16 @@ function inferSourceKind(input: CreateContractWithSideEffectsInput): ContractRen
   if (input.templateId) return 'template-based'
   if (input.contentHtml) return 'html-based'
   return 'template-based'
+}
+
+function shouldBuildPremiumDocument(
+  sourceKind: ContractRenderSourceKind,
+  input: CreateContractWithSideEffectsInput,
+): boolean {
+  if (sourceKind === 'org-template-based') return false
+  if (sourceKind === 'html-based' && input.contentHtml) return false
+  return ['template-based', 'bulk-row-based', 'ai-draft-based'].includes(sourceKind)
+    || (!input.contentHtml && !input.renderedText)
 }
 
 function hasGeneratedContractShape(value: unknown): boolean {

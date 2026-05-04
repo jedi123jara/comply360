@@ -30,6 +30,12 @@ import type {
   ValidationContext,
 } from '@/lib/contracts/validation/types'
 import type { ContractType, RegimenLaboral } from '@/generated/prisma/client'
+import {
+  buildPremiumContractDocument,
+  renderPremiumContractHtml,
+  withPremiumContractDocument,
+} from '@/lib/contracts/premium-library'
+import { runContractQualityGate } from '@/lib/contracts/quality-gate'
 
 export const runtime = 'nodejs'
 
@@ -281,6 +287,32 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const blockers = failed.filter(r => r.severity === 'BLOCKER').length
   const warnings = failed.filter(r => r.severity === 'WARNING').length
   const infos = failed.filter(r => r.severity === 'INFO').length
+  const premiumDocument = buildPremiumContractDocument({
+    contractType: body.contract.type,
+    title: body.contract.title ?? 'Contrato',
+    formData: body.contract.formData as Record<string, unknown> | null,
+  })
+  const contentJson = withPremiumContractDocument({}, premiumDocument)
+  const contentHtml = premiumDocument
+    ? renderPremiumContractHtml(premiumDocument)
+    : body.contract.contentHtml
+  const quality = runContractQualityGate({
+    type: body.contract.type,
+    title: body.contract.title ?? 'Contrato',
+    contentHtml,
+    contentJson,
+    formData: body.contract.formData as Record<string, unknown> | null,
+    provenance: 'MANUAL_TEMPLATE',
+    renderVersion: 'contract-render-v1',
+    validationBlockers: failed
+      .filter(r => r.severity === 'BLOCKER')
+      .map(r => ({
+        ruleCode: r.ruleCode,
+        title: r.title,
+        legalBasis: r.legalBasis,
+        message: r.message,
+      })),
+  })
 
   return NextResponse.json({
     totalRules: results.length,
@@ -289,5 +321,6 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     infos,
     passed: results.filter(r => r.passed).length,
     results,
+    quality,
   })
 })

@@ -13,6 +13,7 @@ import {
   Layers,
   Loader2,
   RefreshCw,
+  ShieldCheck,
   Table,
 } from 'lucide-react'
 import { PageHeader } from '@/components/comply360/editorial-title'
@@ -29,6 +30,10 @@ interface OpsResponse {
     templatesWithGaps: number
     failedBulkJobs: number
     ackPendingDocuments: number
+    qualityBlocked: number
+    qualityReady: number
+    qualityReviewRequired: number
+    qualityMissingAnnexes: number
   }
   warnings?: string[]
   schema?: {
@@ -93,6 +98,35 @@ interface OpsResponse {
       updatedAt: string
     }>
   }
+  quality: {
+    sampled: number
+    withPersistedQuality: number
+    blocked: QualityOpsItem[]
+    ready: QualityOpsItem[]
+    missingAnnexes: QualityOpsItem[]
+    reviewRequired: QualityOpsItem[]
+  }
+  aiReviewRequired: Array<{
+    id: string
+    title: string
+    type: string
+    status: string
+    provenance: string | null
+    isFallback: boolean | null
+    updatedAt: string
+  }>
+}
+
+interface QualityOpsItem {
+  id: string
+  title: string
+  type: string
+  status: string
+  qualityStatus: string
+  qualityScore: number
+  blockers: number
+  missingAnnexes: string[]
+  updatedAt: string
 }
 
 const PROVENANCE_LABELS: Record<string, string> = {
@@ -128,8 +162,8 @@ export default function ContractOpsPage() {
 
   const healthLevel = useMemo(() => {
     if (!data) return 'ok'
+    if (data.health.blockerContracts > 0 || data.health.failedBulkJobs > 0 || data.health.qualityBlocked > 0) return 'risk'
     if (data.warnings && data.warnings.length > 0) return 'watch'
-    if (data.health.blockerContracts > 0 || data.health.failedBulkJobs > 0) return 'risk'
     if (data.health.fallbackCount > 0 || data.health.templatesWithGaps > 0) return 'watch'
     return 'ok'
   }, [data])
@@ -152,6 +186,20 @@ export default function ContractOpsPage() {
       </div>
     )
   }
+
+  const qualityOps = {
+    sampled: data.quality?.sampled ?? 0,
+    withPersistedQuality: data.quality?.withPersistedQuality ?? 0,
+    blocked: data.quality?.blocked ?? [],
+    ready: data.quality?.ready ?? [],
+    missingAnnexes: data.quality?.missingAnnexes ?? [],
+    reviewRequired: data.quality?.reviewRequired ?? [],
+  }
+  const aiReviewRequired = data.aiReviewRequired ?? []
+  const recentBlockers = data.recentBlockers ?? []
+  const templateGaps = data.templates?.withGaps ?? []
+  const bulkJobs = data.bulkJobs ?? []
+  const acknowledgmentDocuments = data.acknowledgments?.documents ?? []
 
   return (
     <div className="space-y-6">
@@ -184,7 +232,7 @@ export default function ContractOpsPage() {
         healthLevel === 'ok' && 'border-emerald-200 bg-emerald-50 text-emerald-800',
       )}>
         {healthLevel === 'risk'
-          ? 'Hay bloqueos o corridas masivas fallidas que requieren atención antes de avanzar a firma.'
+          ? 'Hay bloqueos o contratos detenidos por calidad legal que requieren atención antes de avanzar a firma.'
           : healthLevel === 'watch'
             ? 'El módulo está operativo, con elementos para revisar antes de confiar en todos los indicadores.'
             : 'El módulo no muestra bloqueos operativos en este momento.'}
@@ -263,11 +311,13 @@ export default function ContractOpsPage() {
         </section>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <KpiCard icon={FileText} label="Activos" value={data.health.totalActive} tone="neutral" />
         <KpiCard icon={AlertTriangle} label="Contratos bloqueados" value={data.health.blockerContracts} tone={data.health.blockerContracts ? 'danger' : 'ok'} />
-        <KpiCard icon={Bot} label="Fallback IA" value={data.health.fallbackCount} tone={data.health.fallbackCount ? 'warn' : 'ok'} />
-        <KpiCard icon={ClipboardCheck} label="Docs con acuse pendiente" value={data.health.ackPendingDocuments} tone={data.health.ackPendingDocuments ? 'warn' : 'ok'} />
+        <KpiCard icon={ShieldCheck} label="Bloqueados calidad" value={data.health.qualityBlocked} tone={data.health.qualityBlocked ? 'danger' : 'ok'} />
+        <KpiCard icon={AlertTriangle} label="Anexos faltantes" value={data.health.qualityMissingAnnexes ?? 0} tone={data.health.qualityMissingAnnexes ? 'warn' : 'ok'} />
+        <KpiCard icon={Bot} label="IA requiere revisión" value={data.health.unreviewedAiCount ?? 0} tone={data.health.unreviewedAiCount ? 'warn' : 'ok'} />
+        <KpiCard icon={ClipboardCheck} label="Listos para firma" value={data.health.qualityReady ?? 0} tone="ok" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -279,11 +329,11 @@ export default function ContractOpsPage() {
             </div>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </div>
-          {data.recentBlockers.length === 0 ? (
+          {recentBlockers.length === 0 ? (
             <EmptyLine text="No hay blockers sin reconocer." />
           ) : (
             <div className="space-y-3">
-              {data.recentBlockers.map((item) => (
+              {recentBlockers.map((item) => (
                 <Link key={item.id} href={`/dashboard/contratos/${item.contract.id}`} className="block rounded-lg border border-red-100 bg-red-50/60 p-3 hover:border-red-300">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -316,10 +366,54 @@ export default function ContractOpsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
+        <Panel title="Calidad legal premium" icon={ShieldCheck} href="/dashboard/contratos">
+          {qualityOps.blocked.length === 0 ? (
+            <EmptyLine text="No hay contratos bloqueados por calidad persistida." />
+          ) : qualityOps.blocked.map((item) => (
+            <Link key={item.id} href={`/dashboard/contratos/${item.id}`} className="block rounded-lg border border-red-100 bg-red-50/70 p-3 hover:border-red-300">
+              <div className="flex items-center justify-between gap-2">
+                <p className="line-clamp-1 text-sm font-semibold text-red-900">{item.title}</p>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-red-700">{item.qualityScore}/100</span>
+              </div>
+              <p className="mt-1 text-xs text-red-700">{item.blockers} blocker(s) · {item.missingAnnexes.length} anexo(s) faltante(s)</p>
+            </Link>
+          ))}
+        </Panel>
+
+        <Panel title="Anexos faltantes" icon={AlertTriangle} href="/dashboard/contratos">
+          {qualityOps.missingAnnexes.length === 0 ? (
+            <EmptyLine text="No hay anexos críticos faltantes en contratos con calidad persistida." />
+          ) : qualityOps.missingAnnexes.map((item) => (
+            <Link key={item.id} href={`/dashboard/contratos/${item.id}`} className="block rounded-lg border border-amber-100 bg-amber-50/70 p-3 hover:border-amber-300">
+              <div className="flex items-center justify-between gap-2">
+                <p className="line-clamp-1 text-sm font-semibold text-amber-900">{item.title}</p>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-700">{item.missingAnnexes.length}</span>
+              </div>
+              <p className="mt-1 line-clamp-2 text-xs text-amber-700">{item.missingAnnexes.join(', ')}</p>
+            </Link>
+          ))}
+        </Panel>
+
+        <Panel title="IA requiere revisión" icon={Bot} href="/dashboard/contratos">
+          {aiReviewRequired.length === 0 ? (
+            <EmptyLine text="No hay contratos IA pendientes de revisión normativa." />
+          ) : aiReviewRequired.map((item) => (
+            <Link key={item.id} href={`/dashboard/contratos/${item.id}`} className="block rounded-lg border border-amber-100 bg-amber-50/70 p-3 hover:border-amber-300">
+              <div className="flex items-center justify-between gap-2">
+                <p className="line-clamp-1 text-sm font-semibold text-amber-900">{item.title}</p>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  {item.isFallback ? 'Fallback' : 'IA'}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-amber-700">{item.status} · {PROVENANCE_LABELS[item.provenance ?? ''] ?? item.provenance}</p>
+            </Link>
+          ))}
+        </Panel>
+
         <Panel title="Plantillas con placeholders faltantes" icon={Layers} href="/dashboard/generadores">
-          {data.templates.withGaps.length === 0 ? (
+          {templateGaps.length === 0 ? (
             <EmptyLine text="Todas las plantillas activas tienen mappings completos." />
-          ) : data.templates.withGaps.map((template) => (
+          ) : templateGaps.map((template) => (
             <div key={template.id} className="rounded-lg border border-amber-100 bg-amber-50/70 p-3">
               <p className="text-sm font-semibold text-amber-900">{template.title}</p>
               <p className="mt-1 text-xs text-amber-700">{template.unmappedCount} sin mapear · v{template.version} · {template.storage === 'legacyOrgDocument' ? 'legacy' : 'dedicada'}</p>
@@ -329,9 +423,9 @@ export default function ContractOpsPage() {
         </Panel>
 
         <Panel title="Generación masiva reciente" icon={Table} href="/dashboard/contratos/bulk">
-          {data.bulkJobs.length === 0 ? (
+          {bulkJobs.length === 0 ? (
             <EmptyLine text="No hay corridas masivas recientes." />
-          ) : data.bulkJobs.map((job) => (
+          ) : bulkJobs.map((job) => (
             <div key={job.id} className="rounded-lg border border-[color:var(--border-subtle)] p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate text-sm font-semibold text-[color:var(--text-primary)]">{job.sourceFileName ?? job.contractType}</p>
@@ -343,9 +437,9 @@ export default function ContractOpsPage() {
         </Panel>
 
         <Panel title="Acuses institucionales" icon={ClipboardCheck} href="/dashboard/documentos-firma">
-          {data.acknowledgments.documents.length === 0 ? (
+          {acknowledgmentDocuments.length === 0 ? (
             <EmptyLine text="No hay documentos publicados con acuse requerido." />
-          ) : data.acknowledgments.documents.map((doc) => (
+          ) : acknowledgmentDocuments.map((doc) => (
             <Link key={doc.id} href={`/dashboard/documentos-firma`} className="block rounded-lg border border-[color:var(--border-subtle)] p-3 hover:border-emerald-300">
               <div className="flex items-center justify-between gap-2">
                 <p className="line-clamp-1 text-sm font-semibold text-[color:var(--text-primary)]">{doc.title}</p>

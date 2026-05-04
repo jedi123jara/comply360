@@ -37,6 +37,29 @@ export interface LiveValidationResponse {
   infos: number
   passed: number
   results: LiveValidationResult[]
+  quality?: ContractQualityResult
+}
+
+export interface ContractQualityIssue {
+  code: string
+  title: string
+  message: string
+  severity: 'BLOCKER' | 'WARNING' | 'INFO'
+  category: string
+}
+
+export interface ContractQualityResult {
+  status: 'DRAFT_INCOMPLETE' | 'READY_FOR_REVIEW' | 'LEGAL_REVIEW_REQUIRED' | 'READY_FOR_SIGNATURE' | 'BLOCKED'
+  score: number
+  qualityGateVersion: string
+  checkedAt: string
+  blockers: ContractQualityIssue[]
+  warnings: ContractQualityIssue[]
+  requiredActions: string[]
+  missingInputs: string[]
+  missingAnnexes: string[]
+  failedLegalRules: string[]
+  legalCoverage: Array<{ key: string; label: string; covered: boolean; required: boolean; baseLegalRequired: boolean }>
 }
 
 export interface InlineWorkerInput {
@@ -66,6 +89,7 @@ export interface UseLiveValidationReturn {
   infos: LiveValidationResult[]
   passed: LiveValidationResult[]
   results: LiveValidationResult[]
+  quality: ContractQualityResult | null
   totalRules: number
   loading: boolean
   error: string | null
@@ -77,6 +101,7 @@ const EMPTY_RETURN: UseLiveValidationReturn = {
   infos: [],
   passed: [],
   results: [],
+  quality: null,
   totalRules: 0,
   loading: false,
   error: null,
@@ -109,15 +134,22 @@ export function useLiveValidation(
   })
 
   useEffect(() => {
-    if (!enabled || !contractType) {
+    const snapshot = JSON.parse(serialized) as {
+      contractType: string | null
+      formData: Record<string, string | number | boolean> | null
+      workerIds?: string[]
+      inlineWorker?: InlineWorkerInput | null
+    }
+
+    if (!enabled || !snapshot.contractType) {
       setData(null)
       return
     }
     // Sin workers ni datos minimos: no validar
     const hasMeaningful =
-      (workerIds && workerIds.length > 0) ||
-      !!inlineWorker ||
-      (formData && Object.keys(formData).length > 0)
+      (snapshot.workerIds && snapshot.workerIds.length > 0) ||
+      !!snapshot.inlineWorker ||
+      (snapshot.formData && Object.keys(snapshot.formData).length > 0)
     if (!hasMeaningful) {
       setData(null)
       return
@@ -138,11 +170,11 @@ export function useLiveValidation(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contract: {
-              type: contractType,
-              formData,
+              type: snapshot.contractType,
+              formData: snapshot.formData,
             },
-            workerIds: workerIds ?? [],
-            inlineWorker: inlineWorker ?? undefined,
+            workerIds: snapshot.workerIds ?? [],
+            inlineWorker: snapshot.inlineWorker ?? undefined,
           }),
           signal: controller.signal,
         })
@@ -164,7 +196,7 @@ export function useLiveValidation(
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [serialized, contractType, debounceMs, enabled])
+  }, [serialized, debounceMs, enabled])
 
   if (!data) {
     return { ...EMPTY_RETURN, loading, error }
@@ -176,6 +208,7 @@ export function useLiveValidation(
     infos: data.results.filter(r => !r.passed && r.severity === 'INFO'),
     passed: data.results.filter(r => r.passed),
     results: data.results,
+    quality: data.quality ?? null,
     totalRules: data.totalRules,
     loading,
     error,

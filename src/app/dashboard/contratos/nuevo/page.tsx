@@ -21,6 +21,7 @@ import {
   ScrollText,
   History,
   Eye,
+  ShieldCheck,
 } from 'lucide-react'
 import {
   Sheet,
@@ -36,9 +37,11 @@ import { useCloudDraft } from '@/hooks/use-cloud-draft'
 import { useCostEmployer } from '@/hooks/use-cost-employer'
 import { CostSummaryPill } from '@/components/contracts/cost-summary-pill'
 import { WorkerPicker, type WorkerSummary } from '@/components/contracts/worker-picker'
-import { useLiveValidation } from '@/hooks/use-live-validation'
+import { useLiveValidation, type ContractQualityResult } from '@/hooks/use-live-validation'
 import { LiveValidationPanel } from '@/components/contracts/live-validation-panel'
 import { ContractPreview } from '@/components/contracts/contract-preview'
+import { PremiumContractPreview } from '@/components/contracts/premium-contract-preview'
+import { buildPremiumContractDocument } from '@/lib/contracts/premium-library'
 import { AiStep } from './_components/ai-modal'
 
 // ─── Types for AI generated contract (mirror of contract-generator.ts) ──────
@@ -177,6 +180,11 @@ function exportErrorDescription(payload: unknown): string {
     error?: unknown
     code?: unknown
     details?: { unresolvedPlaceholders?: unknown }
+    quality?: ContractQualityResult
+  }
+  if (data.code === 'DOCUMENT_QUALITY_BLOCKED' && data.quality) {
+    return data.quality.blockers[0]?.message
+      ?? `El contrato no pasa calidad legal (${data.quality.score}/100).`
   }
   const unresolved = Array.isArray(data.details?.unresolvedPlaceholders)
     ? data.details.unresolvedPlaceholders.filter((item): item is string => typeof item === 'string')
@@ -192,6 +200,85 @@ function exportErrorDescription(payload: unknown): string {
 function fileNameFromDisposition(disposition: string | null, fallback: string): string {
   const match = disposition?.match(/filename="?([^";]+)"?/i)
   return match?.[1] ?? fallback
+}
+
+const QUALITY_LABELS: Record<ContractQualityResult['status'], { label: string; tone: string }> = {
+  DRAFT_INCOMPLETE: { label: 'Borrador incompleto', tone: 'border-red-200 bg-red-50 text-red-800' },
+  READY_FOR_REVIEW: { label: 'Listo para revisión', tone: 'border-blue-200 bg-blue-50 text-blue-800' },
+  LEGAL_REVIEW_REQUIRED: { label: 'Revisión legal requerida', tone: 'border-amber-200 bg-amber-50 text-amber-800' },
+  READY_FOR_SIGNATURE: { label: 'Listo para documento oficial', tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+  BLOCKED: { label: 'Bloqueado', tone: 'border-red-200 bg-red-50 text-red-800' },
+}
+
+function PremiumQualityPanel({ quality }: { quality: ContractQualityResult | null }) {
+  if (!quality) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="flex items-start gap-2 text-slate-600">
+          <ShieldCheck className="h-4 w-4 mt-0.5" aria-hidden="true" />
+          <p className="text-xs">El control premium aparecerá al completar datos esenciales.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const cfg = QUALITY_LABELS[quality.status]
+  const covered = quality.legalCoverage.filter(item => item.required && item.covered).length
+  const required = quality.legalCoverage.filter(item => item.required).length
+
+  return (
+    <section className={`rounded-2xl border p-4 ${cfg.tone}`} aria-label="Control premium del contrato">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2">
+          <ShieldCheck className="h-4 w-4 mt-0.5" aria-hidden="true" />
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide">Documento oficial</p>
+            <p className="text-sm font-semibold">{cfg.label} · {quality.score}/100</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold">
+          {covered}/{required} cláusulas
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="rounded-xl bg-white/70 p-2">
+          <p className="text-[10px] font-semibold uppercase">Blockers</p>
+          <p className="text-lg font-bold">{quality.blockers.length}</p>
+        </div>
+        <div className="rounded-xl bg-white/70 p-2">
+          <p className="text-[10px] font-semibold uppercase">Anexos</p>
+          <p className="text-lg font-bold">{quality.missingAnnexes.length}</p>
+        </div>
+        <div className="rounded-xl bg-white/70 p-2">
+          <p className="text-[10px] font-semibold uppercase">Datos</p>
+          <p className="text-lg font-bold">{quality.missingInputs.length}</p>
+        </div>
+      </div>
+
+      {quality.blockers.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {quality.blockers.slice(0, 3).map((blocker, index) => (
+            <div key={`${blocker.code}-${index}`} className="rounded-xl bg-white/80 p-2">
+              <p className="text-xs font-semibold">{blocker.title}</p>
+              <p className="mt-0.5 text-[11px] opacity-80">{blocker.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {quality.missingAnnexes.length > 0 && (
+        <p className="mt-3 text-[11px] font-medium">
+          Anexos pendientes: {quality.missingAnnexes.slice(0, 3).join(', ')}
+          {quality.missingAnnexes.length > 3 ? ` +${quality.missingAnnexes.length - 3}` : ''}
+        </p>
+      )}
+    </section>
+  )
+}
+
+function isQualityReadyForOfficial(quality: ContractQualityResult | null): boolean {
+  return !quality || quality.status === 'READY_FOR_SIGNATURE'
 }
 
 function NuevoContratoInner() {
@@ -871,8 +958,15 @@ function NuevoContratoInner() {
           nationality: 'peruana',
         }
       : null,
-    enabled: step === 'ai-generate' || step === 'form',
+    enabled: step === 'ai-generate' || step === 'form' || step === 'preview',
   })
+  const premiumPreviewDocument = liveContractType
+    ? buildPremiumContractDocument({
+        contractType: liveContractType,
+        title: selectedTemplate?.name ?? 'Contrato',
+        formData: liveFormData,
+      })
+    : null
 
   const handleResetAi = () => {
     setStep('select')
@@ -932,46 +1026,6 @@ function NuevoContratoInner() {
     if (!selectedTemplate || templateSavedId || templateAutoSaveStatus === 'saving') return
     setTemplateAutoSaveStatus('saving')
     try {
-      // Construir el HTML del contrato a partir de los bloques de contenido
-      const blocksHtml = selectedTemplate.contentBlocks
-        .map(block => {
-          if (block.condition) {
-            try {
-              const condFn = new Function(...Object.keys(formData), `return ${block.condition}`)
-              if (!condFn(...Object.values(formData))) return ''
-            } catch {
-              return ''
-            }
-          }
-          let text = block.text
-          Object.entries(formData).forEach(([key, value]) => {
-            text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(value ?? '___'))
-          })
-          const titleHtml = block.title ? `<h3 style="font-size:13px;font-weight:bold;text-transform:uppercase;margin:18px 0 6px 0;">${block.title}</h3>` : ''
-          return `${titleHtml}<p style="font-size:12px;line-height:1.75;text-align:justify;white-space:pre-line;">${text}</p>`
-        })
-        .filter(Boolean)
-        .join('\n')
-
-      const contentHtml = `
-<div style="font-family:Georgia,'Times New Roman',serif;max-width:780px;margin:0 auto;padding:32px;color:#1f2937;">
-  <h1 style="text-align:center;font-size:18px;font-weight:bold;border-bottom:3px double #1e293b;padding-bottom:12px;margin-bottom:24px;">${selectedTemplate.name.toUpperCase()}</h1>
-  ${blocksHtml}
-  <table style="width:100%;margin-top:60px;">
-    <tr>
-      <td style="text-align:center;border-top:1px solid #1e293b;padding-top:8px;width:45%;">
-        <strong style="font-size:12px;">EL EMPLEADOR</strong>
-        <div style="font-size:11px;margin-top:4px;">${String(formData.empleador_razon_social || '___')}</div>
-      </td>
-      <td style="width:10%;"></td>
-      <td style="text-align:center;border-top:1px solid #1e293b;padding-top:8px;width:45%;">
-        <strong style="font-size:12px;">EL TRABAJADOR</strong>
-        <div style="font-size:11px;margin-top:4px;">${String(formData.trabajador_nombre || '___')}</div>
-      </td>
-    </tr>
-  </table>
-</div>`.trim()
-
       const res = await fetch('/api/contracts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -979,8 +1033,9 @@ function NuevoContratoInner() {
           templateId: selectedTemplate.id,
           type: selectedTemplate.type,
           title: selectedTemplate.name,
-          formData,
-          contentHtml,
+          formData: liveFormData,
+          sourceKind: 'template-based',
+          provenance: 'MANUAL_TEMPLATE',
         }),
       })
       if (!res.ok) {
@@ -1005,6 +1060,14 @@ function NuevoContratoInner() {
 
   const handleDownloadDocx = async () => {
     if (!selectedTemplate) return
+    if (!isQualityReadyForOfficial(liveValidation.quality)) {
+      toast({
+        title: 'DOCX oficial bloqueado',
+        description: liveValidation.quality?.blockers[0]?.message ?? 'Resuelve el control premium antes de emitir.',
+        type: 'error',
+      })
+      return
+    }
     if (!templateSavedId) {
       toast({
         title: 'Primero guarda el borrador',
@@ -1454,24 +1517,36 @@ function NuevoContratoInner() {
               </div>
             </div>
 
-            {/* COLUMNA 2: Preview en vivo (QW6 split view) */}
+            {/* COLUMNA 2: Preview premium en vivo (QW6 split view) */}
             <div className="lg:col-span-4">
               <div className="lg:sticky lg:top-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-slate-900">Vista previa en vivo</h2>
+                  <h2 className="text-base font-bold text-slate-900">Preview oficial premium</h2>
                   <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
                     Actualizado
                   </span>
                 </div>
+                <p className="text-xs text-slate-500">
+                  Refleja el render canónico que alimenta PDF/DOCX. El archivo oficial sigue bloqueado hasta pasar calidad legal.
+                </p>
                 <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
                   <div className="max-h-[600px] overflow-y-auto p-2 [transform:scale(0.85)] [transform-origin:top_left] [width:117.6%]">
-                    <ContractPreview
-                      template={selectedTemplate}
-                      formData={formData}
-                      isDraft
-                      className="!shadow-none !p-6"
-                    />
+                    {premiumPreviewDocument ? (
+                      <PremiumContractPreview
+                        document={premiumPreviewDocument}
+                        isDraft
+                        compact
+                        className="!shadow-none"
+                      />
+                    ) : (
+                      <ContractPreview
+                        template={selectedTemplate}
+                        formData={formData}
+                        isDraft
+                        className="!shadow-none !p-6"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -1480,6 +1555,7 @@ function NuevoContratoInner() {
             {/* COLUMNA 3: Sidebar con cost + validation (Desktop) */}
             <aside className="hidden lg:block lg:col-span-3 space-y-4 lg:sticky lg:top-4 lg:self-start">
               <CostSummaryPill result={costoEmpleador} />
+              <PremiumQualityPanel quality={liveValidation.quality} />
               <LiveValidationPanel
                 blockers={liveValidation.blockers}
                 warnings={liveValidation.warnings}
@@ -1513,6 +1589,7 @@ function NuevoContratoInner() {
                   </SheetHeader>
                   <div className="space-y-4 pb-12">
                     <CostSummaryPill result={costoEmpleador} />
+                    <PremiumQualityPanel quality={liveValidation.quality} />
                     <LiveValidationPanel
                       blockers={liveValidation.blockers}
                       warnings={liveValidation.warnings}
@@ -1538,12 +1615,21 @@ function NuevoContratoInner() {
                     <SheetTitle>Vista Previa</SheetTitle>
                   </SheetHeader>
                   <div className="pb-12">
-                    <ContractPreview
-                      template={selectedTemplate!}
-                      formData={formData}
-                      isDraft
-                      className="!shadow-none !p-6"
-                    />
+                    {premiumPreviewDocument ? (
+                      <PremiumContractPreview
+                        document={premiumPreviewDocument}
+                        isDraft
+                        compact
+                        className="!shadow-none !p-6"
+                      />
+                    ) : (
+                      <ContractPreview
+                        template={selectedTemplate!}
+                        formData={formData}
+                        isDraft
+                        className="!shadow-none !p-6"
+                      />
+                    )}
                   </div>
                 </SheetContent>
               </Sheet>
@@ -1614,10 +1700,42 @@ function NuevoContratoInner() {
             tabIndex={-1}
             className="text-xl font-bold text-slate-900 outline-none"
           >
-            Vista Previa del Contrato
+            Revisión final del borrador
           </h1>
 
-          <ContractPreview template={selectedTemplate} formData={formData} isDraft />
+          <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Preview borrador</p>
+                  <p className="text-sm text-slate-700">Sirve para revisar redacción y datos. No es documento oficial.</p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                  BORRADOR
+                </span>
+              </div>
+              {premiumPreviewDocument ? (
+                <PremiumContractPreview document={premiumPreviewDocument} isDraft />
+              ) : (
+                <ContractPreview template={selectedTemplate} formData={formData} isDraft />
+              )}
+            </div>
+
+            <aside className="space-y-4">
+              <PremiumQualityPanel quality={liveValidation.quality} />
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Documento oficial</p>
+                <p className="mt-1 text-sm text-slate-700">
+                  PDF/DOCX oficial se emite desde el contrato guardado y vuelve a ejecutar el gate legal premium en servidor.
+                </p>
+                {!isQualityReadyForOfficial(liveValidation.quality) && (
+                  <div className="mt-3 rounded-xl border border-red-100 bg-red-50 p-3 text-xs text-red-800">
+                    El archivo oficial quedará bloqueado hasta resolver los blockers, anexos o datos críticos.
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
 
 
           {/* Auto-save status */}
@@ -1689,13 +1807,17 @@ function NuevoContratoInner() {
               )}
               <button
                 onClick={() => void handleDownloadDocx()}
-                disabled={downloadingDocx}
+                disabled={downloadingDocx || !isQualityReadyForOfficial(liveValidation.quality)}
                 className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {downloadingDocx
                   ? <Loader2 className="w-4 h-4 animate-spin" />
                   : <Download className="w-4 h-4" />}
-                {downloadingDocx ? 'Generando DOCX...' : 'Descargar DOCX'}
+                {downloadingDocx
+                  ? 'Generando DOCX...'
+                  : isQualityReadyForOfficial(liveValidation.quality)
+                    ? 'Descargar DOCX oficial'
+                    : 'DOCX oficial bloqueado'}
               </button>
               <button
                 onClick={() => setStep('review')}

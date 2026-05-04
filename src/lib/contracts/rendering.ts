@@ -4,10 +4,15 @@ import {
   addContractHeader,
   addCoverPage,
   addSignatureBlock,
+  checkContractPageBreak,
   contractPDFBuffer,
   createContractPDFDoc,
+  drawJustifiedParagraph,
+  CONTRACT_LAYOUT,
   loadOrgLogoBytes,
   renderContractBody,
+  type ContractHeaderOpts,
+  type JsPDFContractDoc,
 } from '@/lib/pdf/contract-pdf'
 import {
   getTemplateById,
@@ -15,6 +20,11 @@ import {
   type ContractTemplateDefinition,
   type ContentBlock,
 } from '@/lib/legal-engine/contracts/templates'
+import {
+  readPremiumContractDocument,
+  renderPremiumContractHtml,
+  type PremiumContractDocument,
+} from './premium-library'
 
 export type ContractRenderSourceKind =
   | 'template-based'
@@ -81,7 +91,7 @@ export interface ContractRenderResult {
 const RENDER_VERSION: ContractRenderMetadata['renderVersion'] = 'contract-render-v1'
 
 export class ContractRenderError extends Error {
-  code: 'EMPTY_RENDER' | 'UNRESOLVED_PLACEHOLDERS'
+  code: 'EMPTY_RENDER' | 'UNRESOLVED_PLACEHOLDERS' | 'INCOMPLETE_OFFICIAL_RENDER'
   details: Record<string, unknown>
 
   constructor(
@@ -134,8 +144,12 @@ export function renderContract(input: ContractRenderInput): ContractRenderResult
 
   let renderedHtml = ''
   let renderedText = ''
+  const premiumDocument = readPremiumContractDocument(input.contentJson)
 
-  if (input.sourceKind === 'template-based' && template) {
+  if (premiumDocument) {
+    renderedHtml = renderPremiumContractHtml(premiumDocument)
+    renderedText = htmlToPlainText(renderedHtml)
+  } else if (input.sourceKind === 'template-based' && template) {
     renderedHtml = renderTemplateHtml(template, formData)
     renderedText = htmlToPlainText(renderedHtml)
   } else if (input.sourceKind === 'bulk-row-based') {
@@ -182,9 +196,8 @@ export async function renderContractDocxBuffer(input: ContractRenderInput): Prom
   return htmlToDocxBuffer({
     title: input.title,
     contentHtml: rendered.renderedHtml,
-    author: 'COMPLY360',
-    company: input.orgContext?.razonSocial ?? input.orgContext?.name ?? 'COMPLY360',
-    footer: 'Generado por COMPLY360',
+    author: input.orgContext?.razonSocial ?? input.orgContext?.name ?? 'Documento legal',
+    company: input.orgContext?.razonSocial ?? input.orgContext?.name ?? 'Documento legal',
   })
 }
 
@@ -196,6 +209,7 @@ export async function renderContractPdfBuffer(input: ContractRenderInput): Promi
   const logo = await loadOrgLogoBytes(org.logoUrl)
   const headerOpts = { org, logo }
   const doc = await createContractPDFDoc()
+  const premiumDocument = readPremiumContractDocument(input.contentJson)
 
   addCoverPage(doc, {
     title: input.title,
@@ -205,13 +219,21 @@ export async function renderContractPdfBuffer(input: ContractRenderInput): Promi
     workerDni: worker.dni ?? '',
     ciudad: String((input.formData ?? {}).ciudad ?? 'Lima'),
     fechaIngreso: worker.fechaIngreso ?? null,
+    contractType: input.contractType,
+    legalFamily: premiumDocument?.legalFamily ?? null,
+    documentVersion: premiumDocument?.version ?? RENDER_VERSION,
   })
   doc.addPage()
   addContractHeader(doc, headerOpts)
-  const bodyEndY = renderContractBody(doc, cleanContractContent(htmlToPlainText(rendered.renderedHtml)), {
-    startY: 36,
-    headerOpts,
-  })
+  const bodyEndY = premiumDocument
+    ? renderPremiumContractPdfBody(doc, premiumDocument, {
+        startY: 36,
+        headerOpts,
+      })
+    : renderContractBody(doc, cleanContractContent(htmlToPlainText(rendered.renderedHtml)), {
+        startY: 36,
+        headerOpts,
+      })
   addSignatureBlock(doc, bodyEndY, {
     empleador: {
       razonSocial: org.razonSocial ?? org.name ?? '',
@@ -224,6 +246,256 @@ export async function renderContractPdfBuffer(input: ContractRenderInput): Promi
   })
 
   return Buffer.from(contractPDFBuffer(doc))
+}
+
+function renderPremiumContractPdfBody(
+  doc: JsPDFContractDoc,
+  premiumDocument: PremiumContractDocument,
+  opts: { startY: number; headerOpts: ContractHeaderOpts },
+): number {
+  const W = doc.internal.pageSize.getWidth()
+  const x = CONTRACT_LAYOUT.marginX
+  const maxWidth = W - CONTRACT_LAYOUT.marginX * 2
+  const lh = CONTRACT_LAYOUT.lineHeight
+  let y = opts.startY
+  let clauseNumber = 1
+
+  doc.setFont('times', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+  doc.text('CUERPO CONTRACTUAL', x, y)
+  y += 7
+  doc.setDrawColor(220, 220, 220)
+  doc.line(x, y, x + maxWidth, y)
+  y += 9
+
+  for (const section of premiumDocument.sections) {
+    y = checkContractPageBreak(doc, y + 4, lh * 4, opts.headerOpts)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(12)
+    doc.setTextColor(20, 70, 60)
+    doc.text(section.title.toUpperCase(), x, y)
+    y += 7
+
+    for (const clause of section.clauses) {
+      y = checkContractPageBreak(doc, y + 4, lh * 4, opts.headerOpts)
+      doc.setFont('times', 'bold')
+      doc.setFontSize(CONTRACT_LAYOUT.clauseTitleFontSize)
+      doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+      doc.text(`${clauseNumber}. ${clause.title}`, x, y)
+      y += lh + 1
+
+      doc.setFont('times', 'normal')
+      doc.setFontSize(CONTRACT_LAYOUT.bodyFontSize)
+      doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+      for (const paragraph of clause.body.split(/\n\s*\n+/).filter(Boolean)) {
+        y = checkContractPageBreak(doc, y, undefined, opts.headerOpts)
+        y = drawJustifiedParagraph(doc, paragraph, x, y, maxWidth, lh)
+        y += CONTRACT_LAYOUT.paragraphGap
+      }
+
+      y = checkContractPageBreak(doc, y, undefined, opts.headerOpts)
+      doc.setFont('times', 'italic')
+      doc.setFontSize(CONTRACT_LAYOUT.baseLegalFontSize)
+      doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+      const basis = `Base legal: ${clause.legalBasis.join('; ')}`
+      const basisLines = doc.splitTextToSize(basis, maxWidth)
+      doc.text(basisLines, x, y)
+      y += basisLines.length * 4 + 3
+      clauseNumber += 1
+    }
+  }
+
+  y = renderPremiumAnnexes(doc, y + 6, premiumDocument, opts.headerOpts)
+  y = renderPremiumProtectionMatrix(doc, y + 8, premiumDocument, opts.headerOpts)
+  y = renderPremiumDocumentControl(doc, y + 8, premiumDocument, opts.headerOpts)
+  return y
+}
+
+function renderPremiumAnnexes(
+  doc: JsPDFContractDoc,
+  y: number,
+  premiumDocument: PremiumContractDocument,
+  headerOpts: ContractHeaderOpts,
+): number {
+  if (premiumDocument.annexes.length === 0) return y
+  const W = doc.internal.pageSize.getWidth()
+  const x = CONTRACT_LAYOUT.marginX
+  const maxWidth = W - CONTRACT_LAYOUT.marginX * 2
+  const lh = CONTRACT_LAYOUT.lineHeight
+  y = checkContractPageBreak(doc, y, lh * 5, headerOpts)
+  doc.setFont('times', 'bold')
+  doc.setFontSize(12)
+  doc.setTextColor(20, 70, 60)
+  doc.text('ANEXOS INTEGRANTES', x, y)
+  y += 8
+
+  doc.setFont('times', 'normal')
+  doc.setFontSize(CONTRACT_LAYOUT.bodyFontSize)
+  doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+  y = drawJustifiedParagraph(
+    doc,
+    'Los anexos listados forman parte integrante del contrato y deben conservarse como evidencia verificable para sustentar la emisión, firma y fiscalización del documento.',
+    x,
+    y,
+    maxWidth,
+    lh,
+  )
+  y += 5
+
+  premiumDocument.annexes.forEach((annex, index) => {
+    y = checkContractPageBreak(doc, y, lh * 4, headerOpts)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(10.5)
+    doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+    doc.text(`${index + 1}. ${annex.title}`, x, y)
+    y += lh
+
+    doc.setFont('times', 'normal')
+    doc.setFontSize(10)
+    y = drawJustifiedParagraph(doc, annex.reason, x + 4, y, maxWidth - 4, lh)
+    y += 1
+
+    doc.setFont('times', 'italic')
+    doc.setFontSize(CONTRACT_LAYOUT.baseLegalFontSize)
+    doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+    doc.text(doc.splitTextToSize(`Base legal: ${annex.legalBasis.join('; ')}`, maxWidth - 4), x + 4, y)
+    y += 7
+  })
+
+  return y
+}
+
+function renderPremiumProtectionMatrix(
+  doc: JsPDFContractDoc,
+  y: number,
+  premiumDocument: PremiumContractDocument,
+  headerOpts: ContractHeaderOpts,
+): number {
+  const W = doc.internal.pageSize.getWidth()
+  const x = CONTRACT_LAYOUT.marginX
+  const maxWidth = W - CONTRACT_LAYOUT.marginX * 2
+  const lh = CONTRACT_LAYOUT.lineHeight
+  y = checkContractPageBreak(doc, y, lh * 8, headerOpts)
+
+  doc.setFont('times', 'bold')
+  doc.setFontSize(12)
+  doc.setTextColor(20, 70, 60)
+  doc.text('MATRIZ DE PROTECCIÓN LEGAL', x, y)
+  y += 8
+
+  doc.setFont('times', 'normal')
+  doc.setFontSize(CONTRACT_LAYOUT.bodyFontSize)
+  doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+  y = drawJustifiedParagraph(
+    doc,
+    'Esta matriz resume los frentes de protección incorporados al contrato para reducir riesgos de nulidad, desnaturalización, contingencia inspectiva y pérdida de evidencia.',
+    x,
+    y,
+    maxWidth,
+    lh,
+  )
+  y += 5
+
+  const criticalClauses = premiumDocument.riskControls.filter((control) => control.severity === 'BLOCKER')
+  const requiredAnnexes = premiumDocument.annexes.filter((annex) => annex.required)
+  const rows = [
+    ['Cláusulas críticas', `${criticalClauses.length} controles determinísticos`, criticalClauses.slice(0, 4).map((item) => item.label).join('; ')],
+    ['Anexos obligatorios', `${requiredAnnexes.length} anexos requeridos`, requiredAnnexes.map((item) => item.title).join('; ')],
+    ['Base legal', `${premiumDocument.legalBasis.length} referencias trazables`, premiumDocument.legalBasis.slice(0, 5).join('; ')],
+  ]
+
+  const col1 = 38
+  const col2 = 42
+  const col3 = maxWidth - col1 - col2
+  y = drawMatrixRow(doc, y, ['Frente', 'Cobertura', 'Evidencia'], [col1, col2, col3], true, headerOpts)
+  for (const row of rows) {
+    y = drawMatrixRow(doc, y, row, [col1, col2, col3], false, headerOpts)
+  }
+
+  return y + 3
+}
+
+function drawMatrixRow(
+  doc: JsPDFContractDoc,
+  y: number,
+  cells: string[],
+  widths: number[],
+  header: boolean,
+  headerOpts: ContractHeaderOpts,
+): number {
+  const x = CONTRACT_LAYOUT.marginX
+  const padding = 2.5
+  const lineHeight = 4.3
+  const wrapped = cells.map((cell, index) => doc.splitTextToSize(cell, widths[index] - padding * 2))
+  const height = Math.max(...wrapped.map((lines) => lines.length)) * lineHeight + padding * 2
+  y = checkContractPageBreak(doc, y, height + 6, headerOpts)
+
+  let cellX = x
+  doc.setDrawColor(...CONTRACT_LAYOUT.hairlineColor)
+  if (header) doc.setFillColor(244, 246, 245)
+  widths.forEach((width, index) => {
+    if (header) doc.rect(cellX, y, width, height, 'FD')
+    else doc.rect(cellX, y, width, height)
+    doc.setFont('times', header ? 'bold' : 'normal')
+    doc.setFontSize(header ? 8.8 : 8.5)
+    doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+    doc.text(wrapped[index], cellX + padding, y + padding + 3)
+    cellX += width
+  })
+  return y + height
+}
+
+function renderPremiumDocumentControl(
+  doc: JsPDFContractDoc,
+  y: number,
+  premiumDocument: PremiumContractDocument,
+  headerOpts: ContractHeaderOpts,
+): number {
+  const W = doc.internal.pageSize.getWidth()
+  const x = CONTRACT_LAYOUT.marginX
+  const maxWidth = W - CONTRACT_LAYOUT.marginX * 2
+  const lh = CONTRACT_LAYOUT.lineHeight
+  y = checkContractPageBreak(doc, y, lh * 6, headerOpts)
+
+  doc.setFont('times', 'bold')
+  doc.setFontSize(12)
+  doc.setTextColor(20, 70, 60)
+  doc.text('CONTROL DOCUMENTAL', x, y)
+  y += 8
+
+  const rows = [
+    ['Versión canónica', premiumDocument.version],
+    ['Jurisdicción', premiumDocument.jurisdiction],
+    ['Familia legal', premiumDocument.legalFamily],
+    ['Cláusulas críticas', String(premiumDocument.clauses.length)],
+    ['Anexos requeridos', String(premiumDocument.annexes.filter((annex) => annex.required).length)],
+  ]
+
+  for (const [label, value] of rows) {
+    y = checkContractPageBreak(doc, y, lh * 2, headerOpts)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(9.5)
+    doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+    doc.text(`${label}:`, x, y)
+    doc.setFont('times', 'normal')
+    doc.text(value, x + 42, y)
+    y += 5.5
+  }
+
+  y += 3
+  doc.setFont('times', 'italic')
+  doc.setFontSize(8.5)
+  doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+  y = drawJustifiedParagraph(
+    doc,
+    'La emisión oficial de este contrato se encuentra condicionada a la validación de datos críticos, ausencia de placeholders, cobertura legal mínima, anexos requeridos y trazabilidad del motor de render.',
+    x,
+    y,
+    maxWidth,
+    4.4,
+  )
+  return y + 4
 }
 
 export function withContractRenderMetadata(
@@ -422,6 +694,19 @@ function assertOfficialRenderReady(
 
   if (input.allowUnresolvedPlaceholders) return
 
+  const incompleteMarkers = findIncompleteOfficialMarkers(`${rendered.renderedHtml}\n${rendered.renderedText}`)
+  if (incompleteMarkers.length > 0) {
+    throw new ContractRenderError(
+      'INCOMPLETE_OFFICIAL_RENDER',
+      'El contrato contiene campos incompletos o marcadores de edición y no puede exportarse como artefacto oficial.',
+      {
+        sourceKind: input.sourceKind,
+        provenance: rendered.renderMetadata.provenance,
+        incompleteMarkers,
+      },
+    )
+  }
+
   const unresolved = uniqueStrings([
     ...rendered.renderMetadata.unresolvedPlaceholders,
     ...missingPlaceholdersFrom(input.contentJson),
@@ -437,6 +722,18 @@ function assertOfficialRenderReady(
       },
     )
   }
+}
+
+function findIncompleteOfficialMarkers(text: string): string[] {
+  const markers = new Set<string>()
+  if (/\[\s*por\s+completar\s*\]/i.test(text)) markers.add('Por completar')
+  const labeledBlankRe = /_{6,}\s*\[([^\]]+)\]\s*_{6,}/g
+  let match: RegExpExecArray | null
+  while ((match = labeledBlankRe.exec(text)) !== null) {
+    const label = match[1]?.trim()
+    if (label) markers.add(label)
+  }
+  return [...markers]
 }
 
 function missingPlaceholdersFrom(value: unknown): string[] {

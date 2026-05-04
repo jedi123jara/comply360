@@ -236,6 +236,9 @@ const CLOSING_HINTS = [
   /^en\s+fe\s+de\s+lo\s+cual/i,
 ]
 
+const PLATFORM_BRANDING_RE =
+  /^generado\s+por\s+comply360\b|^comply360\s*[—-]\s*plataforma\b/i
+
 function looksLikePreamble(text: string): boolean {
   return PREAMBLE_HINTS.some((re) => re.test(text.trim()))
 }
@@ -281,7 +284,7 @@ export function cleanContractContent(rendered: string): CleanedContract {
   const blocks = text
     .split(/\n\s*\n+/)
     .map((b) => b.trim())
-    .filter(Boolean)
+    .filter((block) => Boolean(block) && !PLATFORM_BRANDING_RE.test(block))
 
   let preamble = ''
   let closingParagraph = ''

@@ -134,6 +134,17 @@ describe('cleanContractContent — particionado en bloques', () => {
   })
 })
 
+describe('cleanContractContent — limpieza de artefactos internos', () => {
+  it('elimina branding interno de plataforma del cuerpo contractual', () => {
+    const input =
+      'PRIMERA.- OBJETO\n\nCuerpo.\n\n' +
+      'Generado por COMPLY360 — Plataforma de compliance laboral peruano'
+    const r = cleanContractContent(input)
+    expect(r.clauses[0].body).toBe('Cuerpo.')
+    expect(JSON.stringify(r)).not.toContain('COMPLY360')
+  })
+})
+
 describe('cleanContractContent — formato real del usuario (inline)', () => {
   it('procesa el formato problemático completo de un solo bloque', () => {
     const input =

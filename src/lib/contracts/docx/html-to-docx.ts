@@ -28,7 +28,7 @@ export interface HtmlToDocxInput {
   title: string
   /** Contenido HTML — mantén marcado simple (sin scripts ni inline styles). */
   contentHtml: string
-  /** Pie de página opcional (ej: "Generado por COMPLY360"). */
+  /** Pie de página opcional. Evitar marca SaaS en documentos oficiales. */
   footer?: string
   /** Metadatos OOXML. */
   author?: string
@@ -258,7 +258,7 @@ function stripTags(text: string): string {
  */
 export async function htmlToDocxBuffer(input: HtmlToDocxInput): Promise<Buffer> {
   const blocks = htmlToBlocks(input.contentHtml)
-  const company = input.company?.trim() || 'COMPLY360'
+  const company = input.company?.trim() || 'Documento legal'
   const titleParagraph = new Paragraph({
     heading: HeadingLevel.TITLE,
     alignment: AlignmentType.CENTER,
@@ -303,11 +303,11 @@ export async function htmlToDocxBuffer(input: HtmlToDocxInput): Promise<Buffer> 
     : null
 
   const doc = new Document({
-    creator: input.author ?? 'COMPLY360',
+    creator: input.author ?? 'Documento legal',
     title: input.title,
     description: input.company
-      ? `Contrato laboral generado por COMPLY360 - ${input.company}`
-      : 'Contrato laboral generado por COMPLY360',
+      ? `Contrato laboral oficial - ${input.company}`
+      : 'Contrato laboral oficial',
     styles: {
       default: {
         document: { run: { font: FONT, size: 22 } },

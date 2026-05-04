@@ -92,6 +92,45 @@ interface AiReviewResult {
   model?: string
 }
 
+interface ContractQualityIssue {
+  code: string
+  title: string
+  message: string
+  severity: 'BLOCKER' | 'WARNING' | 'INFO'
+  category: string
+}
+
+interface ContractQualityResult {
+  status: 'DRAFT_INCOMPLETE' | 'READY_FOR_REVIEW' | 'LEGAL_REVIEW_REQUIRED' | 'READY_FOR_SIGNATURE' | 'BLOCKED'
+  score: number
+  qualityGateVersion: string
+  checkedAt: string
+  blockers: ContractQualityIssue[]
+  warnings: ContractQualityIssue[]
+  requiredActions: string[]
+  missingInputs: string[]
+  missingAnnexes: string[]
+  annexEvidence?: Array<{
+    annexId: string
+    annexTitle: string
+    source: 'ORG_DOCUMENT' | 'WORKER_DOCUMENT'
+    documentId: string
+    documentTitle: string
+    documentType: string
+    status: string
+  }>
+  failedLegalRules: string[]
+  legalCoverage: Array<{ key: string; label: string; covered: boolean; required: boolean; baseLegalRequired: boolean }>
+}
+
+interface ContractAnnexCoverage {
+  checkedAt: string
+  workerLinked: boolean
+  requiredAnnexes: Array<{ id: string; title: string; required: boolean }>
+  coveredAnnexes: NonNullable<ContractQualityResult['annexEvidence']>
+  missingAnnexes: string[]
+}
+
 // =============================================
 // Constants
 // =============================================
@@ -149,6 +188,14 @@ const PROVENANCE_LABELS: Record<string, string> = {
   LEGACY: 'Legacy',
 }
 
+const QUALITY_CONFIG: Record<ContractQualityResult['status'], { label: string; className: string }> = {
+  DRAFT_INCOMPLETE: { label: 'Borrador incompleto', className: 'bg-red-50 text-red-700 border-red-200' },
+  READY_FOR_REVIEW: { label: 'Listo para revisión', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+  LEGAL_REVIEW_REQUIRED: { label: 'Revisión legal requerida', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  READY_FOR_SIGNATURE: { label: 'Listo para firma', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  BLOCKED: { label: 'Bloqueado', className: 'bg-red-50 text-red-700 border-red-200' },
+}
+
 function getContractProvenance(contract: Contract): string {
   if (contract.provenance) return contract.provenance
   const contentJson = contract.contentJson ?? {}
@@ -175,6 +222,13 @@ function exportErrorDescription(payload: unknown): string {
     error?: unknown
     code?: unknown
     details?: { unresolvedPlaceholders?: unknown }
+    quality?: ContractQualityResult
+  }
+  if (data.code === 'DOCUMENT_QUALITY_BLOCKED' && data.quality) {
+    const first = data.quality.blockers[0]?.message ?? data.quality.requiredActions[0]
+    return first
+      ? `${first} Score legal: ${data.quality.score}/100.`
+      : `El contrato no pasa el control de calidad legal (${data.quality.score}/100).`
   }
   const unresolved = Array.isArray(data.details?.unresolvedPlaceholders)
     ? data.details.unresolvedPlaceholders.filter((item): item is string => typeof item === 'string')
@@ -187,9 +241,133 @@ function exportErrorDescription(payload: unknown): string {
     : 'El contrato todavía no está listo para exportarse.'
 }
 
+function getContractQuality(contract: Contract): ContractQualityResult | null {
+  const quality = contract.contentJson?.quality
+  if (!quality || typeof quality !== 'object') return null
+  if (!('status' in quality) || !('score' in quality)) return null
+  return quality as ContractQualityResult
+}
+
+function getContractAnnexCoverage(contract: Contract): ContractAnnexCoverage | null {
+  const coverage = contract.contentJson?.annexCoverage
+  if (!coverage || typeof coverage !== 'object') return null
+  if (!('missingAnnexes' in coverage) || !Array.isArray(coverage.missingAnnexes)) return null
+  return coverage as ContractAnnexCoverage
+}
+
+function annexActionFor(annex: string, linkedWorkers: LinkedWorker[], contractId: string): {
+  title: string
+  description: string
+  href: string
+  cta: string
+  scope: 'EMPRESA' | 'TRABAJADOR' | 'CONTRATO'
+} {
+  const normalized = normalizeText(annex)
+  const firstWorker = linkedWorkers[0]
+  if (normalized.includes('seguridad y salud') || normalized.includes('sst')) {
+    return {
+      title: 'Publicar o subir política SST',
+      description: 'Debe existir como documento de empresa publicado o con archivo vigente.',
+      href: `/dashboard/documentos?tipo=REGLAMENTO_SST&contractId=${contractId}`,
+      cta: 'Ir a documentos',
+      scope: 'EMPRESA',
+    }
+  }
+  if (normalized.includes('hostigamiento')) {
+    return {
+      title: 'Publicar política de hostigamiento',
+      description: 'Debe acreditarse la política preventiva y sus canales internos.',
+      href: `/dashboard/documentos?tipo=POLITICA_HOSTIGAMIENTO&contractId=${contractId}`,
+      cta: 'Ir a documentos',
+      scope: 'EMPRESA',
+    }
+  }
+  if (normalized.includes('datos personales') || normalized.includes('consentimiento')) {
+    return {
+      title: 'Acreditar consentimiento de datos',
+      description: 'Sube o publica el consentimiento/aviso de tratamiento de datos personales.',
+      href: firstWorker ? `/dashboard/trabajadores/${firstWorker.id}` : `/dashboard/documentos?tipo=OTRO&contractId=${contractId}`,
+      cta: firstWorker ? 'Abrir legajo' : 'Ir a documentos',
+      scope: firstWorker ? 'TRABAJADOR' : 'EMPRESA',
+    }
+  }
+  if (normalized.includes('puesto') || normalized.includes('funciones') || normalized.includes('mof')) {
+    return {
+      title: firstWorker ? 'Completar descripción en legajo' : 'Vincular trabajador o subir MOF',
+      description: firstWorker
+        ? 'El legajo del trabajador debe tener descripción de puesto, funciones o perfil verificable.'
+        : 'Vincula un trabajador para validar su legajo o publica un MOF/perfil de puesto de empresa.',
+      href: firstWorker ? `/dashboard/trabajadores/${firstWorker.id}` : '/dashboard/trabajadores',
+      cta: firstWorker ? 'Abrir legajo' : 'Buscar trabajador',
+      scope: firstWorker ? 'TRABAJADOR' : 'TRABAJADOR',
+    }
+  }
+  if (normalized.includes('causa objetiva')) {
+    return {
+      title: 'Adjuntar sustento de causa objetiva',
+      description: 'Contrato modal exige evidencia específica: proyecto, suplencia, incremento temporal o sustento operativo.',
+      href: `/dashboard/documentos?tipo=OTRO&contractId=${contractId}`,
+      cta: 'Subir sustento',
+      scope: 'CONTRATO',
+    }
+  }
+  if (normalized.includes('iperc') || normalized.includes('epp')) {
+    return {
+      title: 'Acreditar IPERC/EPP',
+      description: 'Debe existir IPERC aplicable y constancia de entrega de EPP cuando el puesto lo exige.',
+      href: firstWorker ? `/dashboard/trabajadores/${firstWorker.id}` : `/dashboard/documentos?tipo=PLAN_SST&contractId=${contractId}`,
+      cta: firstWorker ? 'Abrir legajo' : 'Ir a SST',
+      scope: firstWorker ? 'TRABAJADOR' : 'EMPRESA',
+    }
+  }
+  if (normalized.includes('teletrabajo')) {
+    return {
+      title: 'Completar acuerdo de teletrabajo',
+      description: 'Debe acreditarse el acuerdo, autoevaluación SST, equipos, compensación y desconexión digital.',
+      href: firstWorker ? `/dashboard/trabajadores/${firstWorker.id}` : `/dashboard/documentos?tipo=OTRO&contractId=${contractId}`,
+      cta: firstWorker ? 'Abrir legajo' : 'Subir acuerdo',
+      scope: firstWorker ? 'TRABAJADOR' : 'CONTRATO',
+    }
+  }
+  if (normalized.includes('alcance') || normalized.includes('servicios') || normalized.includes('entregables')) {
+    return {
+      title: 'Adjuntar alcance de servicios',
+      description: 'La locación debe tener entregables, hitos y criterios de aceptación para reducir riesgo laboral.',
+      href: `/dashboard/documentos?tipo=OTRO&contractId=${contractId}`,
+      cta: 'Subir alcance',
+      scope: 'CONTRATO',
+    }
+  }
+  if (normalized.includes('plan formativo') || normalized.includes('centro de estudios')) {
+    return {
+      title: 'Adjuntar evidencia formativa',
+      description: 'Convenios de prácticas requieren plan formativo y respaldo del centro de estudios.',
+      href: firstWorker ? `/dashboard/trabajadores/${firstWorker.id}` : `/dashboard/documentos?tipo=OTRO&contractId=${contractId}`,
+      cta: firstWorker ? 'Abrir legajo' : 'Subir evidencia',
+      scope: firstWorker ? 'TRABAJADOR' : 'CONTRATO',
+    }
+  }
+  return {
+    title: 'Acreditar anexo',
+    description: 'Sube o publica un documento que coincida con este anexo obligatorio.',
+    href: `/dashboard/documentos?contractId=${contractId}`,
+    cta: 'Ir a documentos',
+    scope: 'CONTRATO',
+  }
+}
+
 function fileNameFromDisposition(disposition: string | null, fallback: string): string {
   const match = disposition?.match(/filename="?([^";]+)"?/i)
   return match?.[1] ?? fallback
+}
+
+function normalizeText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 // =============================================
@@ -297,6 +475,19 @@ export default function ContratoDetailPage() {
       })
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
+        if (res.status === 422 && errBody.code === 'DOCUMENT_QUALITY_BLOCKED') {
+          const quality = errBody.quality as ContractQualityResult | undefined
+          toast({
+            title: newStatus === 'SIGNED' ? 'Firma bloqueada por calidad legal' : 'Aprobación bloqueada por calidad legal',
+            description: quality?.blockers?.[0]?.message ?? 'Revisa la matriz de Protección legal.',
+            type: 'error',
+          })
+          setContract(prev => prev && quality
+            ? { ...prev, contentJson: { ...(prev.contentJson ?? {}), quality } }
+            : prev)
+          setActiveTab('detalles')
+          return
+        }
         if (res.status === 409 && errBody.code === 'CONTRACT_BLOCKERS_PENDING') {
           toast({
             title: 'Firma bloqueada por validaciones legales',
@@ -309,7 +500,7 @@ export default function ContratoDetailPage() {
         throw new Error('Error al actualizar')
       }
       const data = await res.json()
-      setContract(prev => prev ? { ...prev, status: data.data.status, signedAt: data.data.signedAt } : prev)
+      setContract(prev => prev ? { ...prev, ...data.data } : prev)
       toast({ title: `Contrato movido a "${STATUS_CONFIG[newStatus]?.label}"`, type: 'success' })
     } catch {
       toast({ title: 'Error al cambiar estado', type: 'error' })
@@ -347,7 +538,14 @@ export default function ContratoDetailPage() {
           description: exportErrorDescription(errBody),
           type: 'error',
         })
-        if (errBody?.code === 'UNRESOLVED_PLACEHOLDERS') setActiveTab('detalles')
+        if (errBody?.code === 'UNRESOLVED_PLACEHOLDERS' || errBody?.code === 'DOCUMENT_QUALITY_BLOCKED') {
+          if (errBody?.quality) {
+            setContract(prev => prev
+              ? { ...prev, contentJson: { ...(prev.contentJson ?? {}), quality: errBody.quality } }
+              : prev)
+          }
+          setActiveTab('detalles')
+        }
         return
       }
 
@@ -399,6 +597,9 @@ export default function ContratoDetailPage() {
   const riskCfg = aiReview ? (RISK_LEVEL_CONFIG[aiReview.riskLevel] ?? RISK_LEVEL_CONFIG.MEDIUM) : null
   const RiskIcon = riskCfg?.icon
   const provenance = getContractProvenance(contract)
+  const quality = getContractQuality(contract)
+  const qualityCfg = quality ? QUALITY_CONFIG[quality.status] : null
+  const annexCoverage = getContractAnnexCoverage(contract)
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -439,6 +640,12 @@ export default function ContratoDetailPage() {
                   <Scroll className="w-3 h-3" />
                   {PROVENANCE_LABELS[provenance] ?? provenance}
                 </span>
+                {quality && qualityCfg && (
+                  <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border', qualityCfg.className)}>
+                    <ShieldCheck className="w-3 h-3" />
+                    {qualityCfg.label} · {quality.score}/100
+                  </span>
+                )}
                 {/* Risk badge — Generador de Contratos / Chunk 5 */}
                 <ContractRiskBadge contractId={id as string} refreshKey={contract.updatedAt} />
               </div>
@@ -652,6 +859,130 @@ export default function ContratoDetailPage() {
               </dl>
             </div>
           </div>
+
+          {quality && qualityCfg && (
+            <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <h2 className="text-sm font-semibold text-white">Protección legal</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Gate premium {quality.qualityGateVersion} · última revisión {new Date(quality.checkedAt).toLocaleString('es-PE')}
+                  </p>
+                </div>
+                <div className={cn('rounded-xl border px-3 py-2 text-sm font-semibold', qualityCfg.className)}>
+                  {qualityCfg.label} · {quality.score}/100
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-red-100 bg-red-50/70 p-4">
+                  <p className="text-xs font-semibold text-red-800">Blockers</p>
+                  <p className="mt-1 text-2xl font-bold text-red-900">{quality.blockers.length}</p>
+                </div>
+                <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-4">
+                  <p className="text-xs font-semibold text-amber-800">Advertencias</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-900">{quality.warnings.length}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+                  <p className="text-xs font-semibold text-emerald-800">Cobertura crítica</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-900">
+                    {quality.legalCoverage.filter(item => item.required && item.covered).length}/{quality.legalCoverage.filter(item => item.required).length}
+                  </p>
+                </div>
+              </div>
+
+              {quality.blockers.length > 0 && (
+                <div className="mt-5 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-red-500">Riesgos abiertos</p>
+                  {quality.blockers.slice(0, 6).map((blocker, index) => (
+                    <div key={`${blocker.code}-${index}`} className="rounded-xl border border-red-100 bg-red-50/70 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold text-red-900">{blocker.title}</p>
+                        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-red-700">{blocker.category}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-red-700">{blocker.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {quality.requiredActions.length > 0 && (
+                <div className="mt-5 rounded-xl border border-amber-100 bg-amber-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Acciones pendientes</p>
+                  <ul className="mt-2 space-y-1">
+                    {quality.requiredActions.map((action) => (
+                      <li key={action} className="text-xs text-amber-800">• {action}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {quality.missingAnnexes.length > 0 && (
+                <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Evidencia documental faltante</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Estos anexos bloquean exportación oficial, aprobación o firma hasta que exista evidencia real.
+                      </p>
+                    </div>
+                    {annexCoverage && (
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
+                        {annexCoverage.workerLinked ? 'Con trabajador vinculado' : 'Sin trabajador vinculado'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {quality.missingAnnexes.map((annex) => {
+      const action = annexActionFor(annex, linkedWorkers, contract.id)
+                      return (
+                        <div key={annex} className="rounded-xl border border-slate-200 bg-white p-3">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                  {action.scope}
+                                </span>
+                                <p className="text-sm font-semibold text-slate-900">{annex}</p>
+                              </div>
+                              <p className="mt-1 text-xs font-medium text-slate-700">{action.title}</p>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">{action.description}</p>
+                            </div>
+                            <Link
+                              href={action.href}
+                              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+                            >
+                              {action.cta}
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(quality.annexEvidence?.length ?? 0) > 0 && (
+                <div className="mt-5 rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Anexos acreditados</p>
+                  <div className="mt-3 space-y-2">
+                    {quality.annexEvidence?.map((evidence) => (
+                      <div key={`${evidence.source}-${evidence.documentId}-${evidence.annexId}`} className="rounded-lg border border-emerald-100 bg-white p-3">
+                        <p className="text-xs font-semibold text-emerald-900">{evidence.annexTitle}</p>
+                        <p className="mt-1 text-xs text-emerald-700">
+                          {evidence.documentTitle} · {evidence.source === 'ORG_DOCUMENT' ? 'documento empresa' : 'documento trabajador'} · {evidence.status}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Vincular Trabajador ── */}
           <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-6">

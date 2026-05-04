@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import {
   FileText, ShieldCheck, BookOpen, Users, Download, Loader2,
   ChevronRight, Info, CheckCircle2, AlertCircle, X, Eye,
@@ -57,7 +59,7 @@ const TEMPLATE_META: Record<string, {
     badge: 'Obligatorio',
     badgeColor: 'bg-red-100 text-red-700',
   },
-  'plan-sst-anual': {
+  'plan-anual-sst': {
     icon: ClipboardList,
     color: 'bg-emerald-50 border-emerald-200',
     badge: 'SST — Ley 29783',
@@ -82,6 +84,24 @@ const DEFAULT_META = {
   color: 'bg-[color:var(--neutral-50)] border-white/[0.08]',
   badge: 'Documento',
   badgeColor: 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]',
+}
+
+const TEMPLATE_BY_QUERY_TYPE: Record<string, string> = {
+  REGLAMENTO_SST: 'plan-anual-sst',
+  PLAN_SST: 'plan-anual-sst',
+  POLITICA_HOSTIGAMIENTO: 'politica-hostigamiento-sexual',
+  POLITICA_IGUALDAD: 'ccf-ley-30709',
+  CCF: 'ccf-ley-30709',
+  RIT: 'reglamento-interno-trabajo',
+}
+
+const QUERY_TYPE_LABELS: Record<string, string> = {
+  REGLAMENTO_SST: 'SST',
+  PLAN_SST: 'Plan anual SST',
+  POLITICA_HOSTIGAMIENTO: 'Política de hostigamiento sexual',
+  POLITICA_IGUALDAD: 'Igualdad salarial',
+  CCF: 'Cuadro de categorías y funciones',
+  RIT: 'Reglamento Interno de Trabajo',
 }
 
 // ─── Render a single form field ───────────────────────────────────────────────
@@ -210,6 +230,9 @@ function FieldInput({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DocumentosPage() {
+  const searchParams = useSearchParams()
+  const requestedType = searchParams.get('tipo')?.trim() ?? ''
+  const contractId = searchParams.get('contractId')?.trim() ?? ''
   const [templates, setTemplates] = useState<DocumentTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<DocumentTemplate | null>(null)
@@ -217,6 +240,13 @@ export default function DocumentosPage() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [autoSelectedType, setAutoSelectedType] = useState<string | null>(null)
+  const [qualityRefresh, setQualityRefresh] = useState<{
+    status: 'idle' | 'running' | 'done' | 'failed'
+    passing?: boolean
+    score?: number
+    blockers?: number
+  }>({ status: 'idle' })
 
   // Load templates on mount
   useEffect(() => {
@@ -232,13 +262,30 @@ export default function DocumentosPage() {
     setFormValues({})
     setError(null)
     setSuccess(false)
+    setQualityRefresh({ status: 'idle' })
   }, [])
 
   const closeTemplate = useCallback(() => {
     setSelected(null)
     setError(null)
     setSuccess(false)
+    setAutoSelectedType(null)
+    setQualityRefresh({ status: 'idle' })
   }, [])
+
+  useEffect(() => {
+    if (loading || templates.length === 0 || selected || autoSelectedType === requestedType) return
+    const templateId = TEMPLATE_BY_QUERY_TYPE[requestedType]
+    if (!templateId) return
+    const template = templates.find((item) => item.id === templateId || item.type === requestedType)
+    if (!template) return
+    setAutoSelectedType(requestedType)
+    setSelected(template)
+    setFormValues({})
+    setError(null)
+    setSuccess(false)
+    setQualityRefresh({ status: 'idle' })
+  }, [autoSelectedType, loading, requestedType, selected, templates])
 
   const handleFieldChange = useCallback((id: string, val: string) => {
     setFormValues(prev => ({ ...prev, [id]: val }))
@@ -283,6 +330,25 @@ export default function DocumentosPage() {
           win.print()
         }, 500)
         setSuccess(true)
+        if (contractId) {
+          setQualityRefresh({ status: 'running' })
+          const qualityRes = await fetch(`/api/contracts/${contractId}/quality`, {
+            method: 'POST',
+          })
+          const qualityData = await qualityRes.json().catch(() => null)
+          if (qualityRes.ok && qualityData?.data?.quality) {
+            setQualityRefresh({
+              status: 'done',
+              passing: Boolean(qualityData.data.passing),
+              score: Number(qualityData.data.quality.score ?? 0),
+              blockers: Array.isArray(qualityData.data.quality.blockers)
+                ? qualityData.data.quality.blockers.length
+                : 0,
+            })
+          } else {
+            setQualityRefresh({ status: 'failed' })
+          }
+        }
       } else {
         setError('El navegador bloqueó la ventana emergente. Permite ventanas emergentes para este sitio.')
       }
@@ -291,7 +357,7 @@ export default function DocumentosPage() {
     } finally {
       setGenerating(false)
     }
-  }, [selected, formValues])
+  }, [contractId, selected, formValues])
 
   // ── Loading state ────────────────────────────────────────────────────────────
   if (loading) {
@@ -310,6 +376,7 @@ export default function DocumentosPage() {
   // ── Form modal / sidebar ──────────────────────────────────────────────────────
   if (selected) {
     const meta = TEMPLATE_META[selected.id] ?? DEFAULT_META
+    const requestedLabel = requestedType ? QUERY_TYPE_LABELS[requestedType] ?? requestedType : ''
 
     return (
       <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -333,6 +400,17 @@ export default function DocumentosPage() {
         </div>
 
         {/* Legal basis */}
+        {requestedLabel && (
+          <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <div className="text-xs text-emerald-800">
+              <span className="font-semibold">Acción desde contrato: </span>
+              estás generando evidencia para desbloquear {requestedLabel}. Al generar, quedará persistida como documento de empresa.
+            </div>
+          </div>
+        )}
+
+        {/* Legal basis */}
         <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
           <Scale className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
           <div className="text-xs text-blue-800">
@@ -349,11 +427,51 @@ export default function DocumentosPage() {
           </div>
         )}
         {success && (
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <p className="text-sm text-emerald-700 font-medium">
-              Documento generado. Se abrió en una ventana nueva lista para imprimir o guardar como PDF.
-            </p>
+          <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <p className="text-sm text-emerald-700 font-medium">
+                Documento generado y persistido. Se abrió en una ventana nueva lista para imprimir o guardar como PDF.
+              </p>
+            </div>
+            {contractId && (
+              <div className="rounded-md border border-emerald-200 bg-white p-3">
+                {qualityRefresh.status === 'running' && (
+                  <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Recalculando calidad del contrato...
+                  </div>
+                )}
+                {qualityRefresh.status === 'done' && (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-emerald-800">
+                      Calidad recalculada: <span className="font-semibold">{qualityRefresh.score}/100</span>
+                      {' '}· {qualityRefresh.blockers} blocker(s)
+                      {qualityRefresh.passing ? ' · listo para emisión oficial' : ' · aún requiere acciones'}
+                    </p>
+                    <Link
+                      href={`/dashboard/contratos/${contractId}`}
+                      className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+                    >
+                      Volver al contrato
+                    </Link>
+                  </div>
+                )}
+                {qualityRefresh.status === 'failed' && (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-amber-700">
+                      El documento se generó, pero no se pudo recalcular la calidad automáticamente.
+                    </p>
+                    <Link
+                      href={`/dashboard/contratos/${contractId}`}
+                      className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                    >
+                      Volver y revisar
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

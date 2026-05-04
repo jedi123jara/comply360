@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { createContractWithSideEffects } from '@/lib/contracts/create'
+import type { ContractRenderSourceKind } from '@/lib/contracts/rendering'
 
 // =============================================
 // GET /api/contracts - List contracts from DB
@@ -199,6 +200,8 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       )
     }
     const normalizedType = String(type) as PrismaContractType
+    const normalizedSourceKind = isContractRenderSourceKind(sourceKind) ? sourceKind : undefined
+    const isControlledTemplate = normalizedSourceKind === 'template-based' || (!!templateId && !normalizedSourceKind)
 
     const { contract } = await createContractWithSideEffects({
       orgId: ctx.orgId,
@@ -207,9 +210,9 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       type: normalizedType,
       title,
       formData: formData && typeof formData === 'object' ? formData : null,
-      contentHtml: typeof contentHtml === 'string' ? contentHtml : null,
+      contentHtml: isControlledTemplate ? null : (typeof contentHtml === 'string' ? contentHtml : null),
       contentJson: contentJson ?? null,
-      sourceKind,
+      sourceKind: normalizedSourceKind,
       provenance,
       expiresAt: expiresAt ?? null,
     })
@@ -225,3 +228,8 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 })
+
+function isContractRenderSourceKind(value: unknown): value is ContractRenderSourceKind {
+  return typeof value === 'string'
+    && ['template-based', 'org-template-based', 'ai-draft-based', 'html-based', 'bulk-row-based'].includes(value)
+}

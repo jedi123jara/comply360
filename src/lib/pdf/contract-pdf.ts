@@ -129,12 +129,17 @@ export interface CoverPageOpts {
   workerDni: string
   ciudad: string
   fechaIngreso?: string | Date | null
+  contractType?: string | null
+  legalFamily?: string | null
+  documentVersion?: string | null
 }
 
 export function addCoverPage(doc: JsPDFContractDoc, opts: CoverPageOpts): void {
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
   const cx = W / 2
+  const x = CONTRACT_LAYOUT.marginX
+  const maxWidth = W - CONTRACT_LAYOUT.marginX * 2
 
   // Logo centrado en el tercio superior si existe
   if (opts.logo) {
@@ -145,15 +150,22 @@ export function addCoverPage(doc: JsPDFContractDoc, opts: CoverPageOpts): void {
 
   // Título centrado en negrita mayúsculas
   doc.setFont('times', 'bold')
-  doc.setFontSize(CONTRACT_LAYOUT.pageTitleFontSize)
+  doc.setFontSize(19)
   doc.setTextColor(...CONTRACT_LAYOUT.textColor)
   const titleUpper = opts.title.toUpperCase()
-  const titleY = opts.logo ? 78 : 90
-  doc.text(titleUpper, cx, titleY, { align: 'center' })
+  const titleLines = doc.splitTextToSize(titleUpper, maxWidth - 18)
+  const titleY = opts.logo ? 72 : 82
+  doc.text(titleLines, cx, titleY, { align: 'center' })
 
   // Línea decorativa bajo el título
+  const titleLineY = titleY + titleLines.length * 7 + 2
   doc.setDrawColor(...CONTRACT_LAYOUT.hairlineColor)
-  doc.line(cx - 60, titleY + 5, cx + 60, titleY + 5)
+  doc.line(cx - 58, titleLineY, cx + 58, titleLineY)
+
+  doc.setFont('times', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+  doc.text('DOCUMENTO LEGAL LABORAL | PERÚ', cx, titleLineY + 7, { align: 'center' })
 
   // Bloque "ENTRE … Y …" en el medio de la página
   const empleador = opts.org.razonSocial ?? opts.org.name ?? ''
@@ -189,7 +201,33 @@ export function addCoverPage(doc: JsPDFContractDoc, opts: CoverPageOpts): void {
   doc.setFont('times', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
-  doc.text(`DNI ${opts.workerDni}`, cx, blockY + 39, { align: 'center' })
+  if (opts.workerDni) doc.text(`DNI ${opts.workerDni}`, cx, blockY + 39, { align: 'center' })
+
+  // Ficha de control sobria: suficiente para archivo legal sin convertir la
+  // portada en una pantalla de sistema.
+  const controlY = blockY + 56
+  const rowH = 8
+  const labelW = 38
+  const valueW = maxWidth - labelW
+  const rows = [
+    ['Tipo documental', opts.contractType ?? 'Contrato'],
+    ['Jurisdicción', 'Perú'],
+    ['Familia legal', opts.legalFamily ?? 'Laboral'],
+    ['Versión de emisión', opts.documentVersion ?? 'contract-render-v1'],
+  ]
+  doc.setDrawColor(222, 222, 222)
+  rows.forEach(([label, value], index) => {
+    const rowY = controlY + index * rowH
+    doc.rect(x, rowY, labelW, rowH)
+    doc.rect(x + labelW, rowY, valueW, rowH)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(8.5)
+    doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+    doc.text(label, x + 3, rowY + 5.3)
+    doc.setFont('times', 'normal')
+    doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+    doc.text(String(value), x + labelW + 3, rowY + 5.3)
+  })
 
   // Pie de portada: ciudad y fecha en cursiva
   doc.setFont('times', 'italic')
@@ -197,6 +235,13 @@ export function addCoverPage(doc: JsPDFContractDoc, opts: CoverPageOpts): void {
   doc.setTextColor(...CONTRACT_LAYOUT.textColor)
   const fecha = opts.fechaIngreso ? new Date(opts.fechaIngreso) : new Date()
   doc.text(`${opts.ciudad}, ${fechaEnLetras(fecha)}`, cx, H - 40, { align: 'center' })
+
+  doc.setDrawColor(230, 230, 230)
+  doc.line(x, H - 24, W - x, H - 24)
+  doc.setFont('times', 'normal')
+  doc.setFontSize(7)
+  doc.setTextColor(...CONTRACT_LAYOUT.mutedColor)
+  doc.text('Documento preparado para suscripción y archivo en legajo laboral.', cx, H - 19, { align: 'center' })
 
   // Resetear estilos
   doc.setFont('times', 'normal')
@@ -313,6 +358,15 @@ export function renderContractBody(
   const maxWidth = W - CONTRACT_LAYOUT.marginX * 2
   const lh = CONTRACT_LAYOUT.lineHeight
   let y = opts.startY
+
+  doc.setFont('times', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(...CONTRACT_LAYOUT.textColor)
+  doc.text('CUERPO CONTRACTUAL', x, y)
+  y += 7
+  doc.setDrawColor(220, 220, 220)
+  doc.line(x, y, x + maxWidth, y)
+  y += 9
 
   // Preámbulo
   if (cleaned.preamble) {

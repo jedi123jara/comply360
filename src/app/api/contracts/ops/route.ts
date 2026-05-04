@@ -52,6 +52,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     recentBulkJobs,
     activeWorkers,
     ackDocs,
+    qualityContracts,
+    recentUnreviewedAi,
   ] = await Promise.all([
     prisma.contractValidation.findMany({
       where: {
@@ -145,6 +147,38 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
         _count: { select: { acknowledgments: true } },
       },
     }),
+    optionalQuery(() => prisma.contract.findMany({
+      where: { orgId, status: { in: [...activeStatuses] } },
+      orderBy: { updatedAt: 'desc' },
+      take: 80,
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        contentJson: true,
+        updatedAt: true,
+      },
+    }), []),
+    optionalQuery(() => prisma.contract.findMany({
+      where: {
+        orgId,
+        status: { not: 'ARCHIVED' },
+        provenance: { in: ['AI_GENERATED', 'AI_FALLBACK'] },
+        aiReviewedAt: null,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 8,
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        provenance: true,
+        isFallback: true,
+        updatedAt: true,
+      },
+    }), []),
   ])
 
   const byProvenance = Object.fromEntries(
@@ -212,6 +246,28 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
   })
 
   const failedBulkJobs = recentBulkJobs.filter((job) => job.status === 'FAILED' || job.failedRows > 0).length
+  const qualityRows = qualityContracts
+    .map((contract) => {
+      const quality = readPersistedQuality(contract.contentJson)
+      return quality
+        ? {
+            id: contract.id,
+            title: contract.title,
+            type: contract.type,
+            status: contract.status,
+            qualityStatus: quality.status,
+            qualityScore: quality.score,
+            blockers: quality.blockers,
+            missingAnnexes: quality.missingAnnexes,
+            updatedAt: contract.updatedAt.toISOString(),
+          }
+        : null
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+  const qualityBlocked = qualityRows.filter((row) => row.qualityStatus === 'BLOCKED' || row.qualityStatus === 'DRAFT_INCOMPLETE').length
+  const qualityReady = qualityRows.filter((row) => row.qualityStatus === 'READY_FOR_SIGNATURE').length
+  const qualityReviewRequired = qualityRows.filter((row) => row.qualityStatus === 'LEGAL_REVIEW_REQUIRED' || row.qualityStatus === 'READY_FOR_REVIEW').length
+  const qualityMissingAnnexes = qualityRows.filter((row) => row.missingAnnexes.length > 0).length
 
   const uniqueWarnings = [...new Set(warnings)]
 
@@ -226,6 +282,10 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       templatesWithGaps: templatesWithGaps.length,
       failedBulkJobs,
       ackPendingDocuments: ackDocuments.filter((doc) => doc.pending > 0).length,
+      qualityBlocked,
+      qualityReady,
+      qualityReviewRequired,
+      qualityMissingAnnexes,
     },
     warnings: uniqueWarnings,
     schema: buildSchemaDiagnostic(uniqueWarnings),
@@ -253,6 +313,26 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
       activeWorkers,
       documents: ackDocuments,
     },
+    quality: {
+      sampled: qualityContracts.length,
+      withPersistedQuality: qualityRows.length,
+      blocked: qualityRows
+        .filter((row) => row.qualityStatus === 'BLOCKED' || row.qualityStatus === 'DRAFT_INCOMPLETE')
+        .slice(0, 8),
+      ready: qualityRows
+        .filter((row) => row.qualityStatus === 'READY_FOR_SIGNATURE')
+        .slice(0, 8),
+      missingAnnexes: qualityRows
+        .filter((row) => row.missingAnnexes.length > 0)
+        .slice(0, 8),
+      reviewRequired: qualityRows
+        .filter((row) => row.qualityStatus === 'LEGAL_REVIEW_REQUIRED' || row.qualityStatus === 'READY_FOR_REVIEW')
+        .slice(0, 8),
+    },
+    aiReviewRequired: recentUnreviewedAi.map((contract) => ({
+      ...contract,
+      updatedAt: contract.updatedAt.toISOString(),
+    })),
   })
 })
 
@@ -298,6 +378,17 @@ async function safeQuery<T>(
   }
 }
 
+async function optionalQuery<T>(
+  fn: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await fn()
+  } catch {
+    return fallback
+  }
+}
+
 function jsonStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }
@@ -307,4 +398,25 @@ function jsonStringRecord(value: unknown): Record<string, string> {
   return Object.fromEntries(
     Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
   )
+}
+
+function readPersistedQuality(value: unknown): null | {
+  status: string
+  score: number
+  blockers: number
+  missingAnnexes: string[]
+} {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const quality = (value as Record<string, unknown>).quality
+  if (!quality || typeof quality !== 'object' || Array.isArray(quality)) return null
+  const record = quality as Record<string, unknown>
+  if (typeof record.status !== 'string' || typeof record.score !== 'number') return null
+  return {
+    status: record.status,
+    score: record.score,
+    blockers: Array.isArray(record.blockers) ? record.blockers.length : 0,
+    missingAnnexes: Array.isArray(record.missingAnnexes)
+      ? record.missingAnnexes.filter((item): item is string => typeof item === 'string')
+      : [],
+  }
 }

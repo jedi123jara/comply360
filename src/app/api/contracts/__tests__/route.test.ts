@@ -96,4 +96,24 @@ describe('POST /api/contracts', () => {
     expect(json.error).toMatch(/Invalid contract type/i)
     expect(mockCreateContractWithSideEffects).not.toHaveBeenCalled()
   })
+
+  it('ignores client HTML for controlled template creation', async () => {
+    const res = await POST(makeRequest({
+      title: 'Contrato plantilla',
+      type: 'LABORAL_INDEFINIDO',
+      templateId: 'laboral-indefinido',
+      sourceKind: 'template-based',
+      provenance: 'MANUAL_TEMPLATE',
+      contentHtml: '<article>legacy html</article>',
+      formData: { trabajador_nombre: 'Ana Perez' },
+    }))
+
+    expect(res.status).toBe(201)
+    expect(mockCreateContractWithSideEffects).toHaveBeenCalledWith(expect.objectContaining({
+      templateId: 'laboral-indefinido',
+      sourceKind: 'template-based',
+      provenance: 'MANUAL_TEMPLATE',
+      contentHtml: null,
+    }))
+  })
 })

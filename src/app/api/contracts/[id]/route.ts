@@ -6,6 +6,17 @@ import type { AuthContext } from '@/lib/auth'
 import type { ContractStatus } from '@/generated/prisma/client'
 import { emit } from '@/lib/events'
 import { runValidationPipeline } from '@/lib/contracts/validation/engine'
+import {
+  resolveContractAnnexCoverage,
+  withContractAnnexCoverageMetadata,
+} from '@/lib/contracts/annex-coverage'
+import {
+  isContractQualityPassing,
+  readContractRenderQualityMetadata,
+  runContractQualityGate,
+  withContractQualityMetadata,
+  type ContractQualityResult,
+} from '@/lib/contracts/quality-gate'
 
 const VALID_STATUSES: ContractStatus[] = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED', 'EXPIRED', 'ARCHIVED']
 
@@ -68,6 +79,10 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
       status: true,
       title: true,
       type: true,
+      formData: true,
+      contentJson: true,
+      contentHtml: true,
+      aiReviewedAt: true,
     },
   })
 
@@ -79,10 +94,13 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
     return NextResponse.json({ error: `Estado invalido: ${body.status}` }, { status: 400 })
   }
 
-  if (body.status === 'SIGNED' && contract.status !== 'SIGNED') {
+  let transitionQuality: ContractQualityResult | null = null
+  let transitionContentJson: Record<string, unknown> | null = null
+  const isLegalEmissionTransition = body.status === 'APPROVED' || body.status === 'SIGNED'
+  if (isLegalEmissionTransition && body.status !== contract.status) {
     await runValidationPipeline(params.id, ctx.orgId, {
       triggeredBy: ctx.userId,
-      trigger: 'sign',
+      trigger: body.status === 'SIGNED' ? 'sign' : 'manual',
     })
     const blockers = await prisma.contractValidation.findMany({
       where: {
@@ -105,20 +123,53 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
       },
       orderBy: { createdAt: 'asc' },
     })
-    if (blockers.length > 0) {
+    const nextContentHtml = body.contentHtml ?? contract.contentHtml
+    const nextFormData = (body.formData ?? contract.formData) as Record<string, unknown> | null
+    const renderMetadata = readContractRenderQualityMetadata(contract.contentJson, nextFormData)
+    const annexCoverage = await resolveContractAnnexCoverage({
+      contractId: contract.id,
+      orgId: ctx.orgId,
+      contentJson: contract.contentJson,
+    })
+    const contentJsonWithAnnexCoverage = withContractAnnexCoverageMetadata(contract.contentJson, annexCoverage)
+    transitionContentJson = contentJsonWithAnnexCoverage
+    transitionQuality = runContractQualityGate({
+      id: contract.id,
+      type: contract.type,
+      status: body.status,
+      title: contract.title,
+      contentHtml: nextContentHtml,
+      contentJson: contentJsonWithAnnexCoverage,
+      formData: nextFormData,
+      provenance: renderMetadata.provenance,
+      renderVersion: renderMetadata.renderVersion,
+      isFallback: renderMetadata.isFallback,
+      aiReviewedAt: body.aiReviewedAt ? new Date(body.aiReviewedAt) : contract.aiReviewedAt,
+      annexCoverage,
+      validationBlockers: blockers.map((b) => ({
+        ruleCode: b.ruleCode,
+        title: b.rule.title,
+        legalBasis: b.rule.legalBasis,
+        message: b.message,
+      })),
+    })
+    if (!isContractQualityPassing(transitionQuality)) {
+      await prisma.contract.update({
+        where: { id: params.id, orgId: ctx.orgId },
+        data: {
+          contentJson: withContractQualityMetadata(contentJsonWithAnnexCoverage, transitionQuality) as object,
+        },
+        select: { id: true },
+      })
       return NextResponse.json(
         {
-          error: 'No se puede firmar el contrato con bloqueos legales pendientes.',
-          code: 'CONTRACT_BLOCKERS_PENDING',
-          blockers: blockers.map((b) => ({
-            id: b.id,
-            ruleCode: b.ruleCode,
-            title: b.rule.title,
-            legalBasis: b.rule.legalBasis,
-            message: b.message,
-          })),
+          error: body.status === 'SIGNED'
+            ? 'No se puede firmar el contrato: no pasa el control de calidad legal premium.'
+            : 'No se puede aprobar el contrato: no pasa el control de calidad legal premium.',
+          code: 'DOCUMENT_QUALITY_BLOCKED',
+          quality: transitionQuality,
         },
-        { status: 409 },
+        { status: 422 },
       )
     }
   }
@@ -129,6 +180,9 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx
       ...(body.status ? { status: body.status as ContractStatus } : {}),
       ...(body.formData !== undefined ? { formData: body.formData as Record<string, string | number | boolean | null> } : {}),
       ...(body.contentHtml !== undefined ? { contentHtml: body.contentHtml } : {}),
+      ...(transitionQuality
+        ? { contentJson: withContractQualityMetadata(transitionContentJson ?? contract.contentJson, transitionQuality) as object }
+        : {}),
       ...(body.aiRiskScore !== undefined ? { aiRiskScore: body.aiRiskScore } : {}),
       ...(body.aiRisksJson !== undefined ? { aiRisksJson: body.aiRisksJson as object } : {}),
       ...(body.aiReviewedAt ? { aiReviewedAt: new Date(body.aiReviewedAt) } : {}),
