@@ -35,9 +35,17 @@ import { TabSST } from './tabs/tab-sst'
 export interface WorkerProfileProps {
   worker: WorkerSummary
   legajoDocs?: LegajoDoc[]
+  /**
+   * Resumen agregado de VacationRecord para el tab Beneficios (Ola 2).
+   * La página padre (server component) lo computa con prisma.vacationRecord.aggregate.
+   */
+  vacationsSummary?: {
+    diasGozados: number
+    periodosNoGozados?: number
+  }
 }
 
-export function WorkerProfile({ worker, legajoDocs = [] }: WorkerProfileProps) {
+export function WorkerProfile({ worker, legajoDocs = [], vacationsSummary }: WorkerProfileProps) {
   return (
     <div className="space-y-5">
       <WorkerProfileHeader worker={worker} />
@@ -107,7 +115,7 @@ export function WorkerProfile({ worker, legajoDocs = [] }: WorkerProfileProps) {
         </TabsContent>
 
         <TabsContent value="beneficios">
-          <TabBeneficios worker={worker} />
+          <TabBeneficios worker={worker} vacationsSummary={vacationsSummary} />
         </TabsContent>
 
         <TabsContent value="historial">

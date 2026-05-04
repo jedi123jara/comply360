@@ -31,6 +31,11 @@ export interface WorkerSummary {
   status?: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED' | string
   legajoScore?: number | null
   sueldoBruto?: number | null
+  // Ola 1+2 — compliance hardening
+  asignacionFamiliar?: boolean
+  flagTRegistroPresentado?: boolean
+  flagTRegistroFecha?: string | null
+  deletedAt?: string | null
 }
 
 const STATUS_META: Record<

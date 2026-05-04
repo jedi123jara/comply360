@@ -4,6 +4,7 @@ import { withAuthParams, withRoleParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
+import { logWorkerChanges, logWorkerCese } from '@/lib/workers/history'
 
 // =============================================
 // GET /api/workers/[id] - Get worker detail
@@ -14,9 +15,15 @@ import { syncComplianceScore } from '@/lib/compliance/sync-score'
 // el query completo; si falla por columnas faltantes, cae a un select explícito
 // con SOLO los campos legacy que sabemos que existen.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
   const { id } = params
   const orgId = ctx.orgId
+  // Soft delete bypass: solo OWNER/SUPER_ADMIN pueden abrir el perfil de un
+  // trabajador con `deletedAt != null`. Lo demás reciben 404.
+  const url = new URL(req.url)
+  const requestedIncluirCesados = url.searchParams.get('incluirCesados') === 'true'
+  const canSeeDeleted = ctx.role === 'OWNER' || ctx.role === 'SUPER_ADMIN'
+  const includeDeleted = requestedIncluirCesados && canSeeDeleted
 
   // Fields legacy que existían antes de las migrations de Fase 1.2/1.3.
   // Si las nuevas columnas no están en la DB, este select sigue funcionando.
@@ -135,6 +142,13 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
   if (!worker || worker.orgId !== orgId) {
     return NextResponse.json({ error: 'Worker not found' }, { status: 404 })
   }
+  // Soft delete: ocultar si está borrado y el caller no tiene permiso ni opt-in.
+  // `worker as any` porque `SAFE_WORKER_SELECT` no incluye deletedAt para DBs
+  // pre-migration; la columna nueva siempre vendrá vía include.
+  const deletedAt = (worker as { deletedAt?: Date | null }).deletedAt ?? null
+  if (deletedAt && !includeDeleted) {
+    return NextResponse.json({ error: 'Worker not found' }, { status: 404 })
+  }
 
   return NextResponse.json({
     data: {
@@ -145,6 +159,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
       birthDate: worker.birthDate?.toISOString() ?? null,
       createdAt: worker.createdAt.toISOString(),
       updatedAt: worker.updatedAt.toISOString(),
+      deletedAt: deletedAt?.toISOString() ?? null,
     },
   })
 })
@@ -283,6 +298,40 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
     }
   }
 
+  // Capturar snapshot ANTES del update para el hook de history.
+  // Best-effort: si falla, seguimos con el update sin loguear historia.
+  let beforeSnapshot: Record<string, unknown> | null = null
+  try {
+    beforeSnapshot = await prisma.worker.findUnique({
+      where: { id },
+      select: {
+        sueldoBruto: true,
+        position: true,
+        department: true,
+        regimenLaboral: true,
+        tipoContrato: true,
+        tipoAporte: true,
+        afpNombre: true,
+        jornadaSemanal: true,
+        tiempoCompleto: true,
+        expectedClockInHour: true,
+        expectedClockInMinute: true,
+        expectedClockOutHour: true,
+        expectedClockOutMinute: true,
+        lateToleranceMinutes: true,
+        status: true,
+        asignacionFamiliar: true,
+        discapacidad: true,
+        discapacidadCertificado: true,
+        condicionEspecial: true,
+        flagTRegistroPresentado: true,
+      },
+    }) as Record<string, unknown> | null
+  } catch {
+    // pre-migration DB → no logueamos historia esta vez, sin bloquear PUT
+    beforeSnapshot = null
+  }
+
   let worker
   try {
     worker = await prisma.worker.update({
@@ -343,6 +392,24 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
     console.error('[workers/PUT] generateWorkerAlerts failed', { workerId: worker.id, err })
   }
 
+  // Hook de historia (Ola 2): registra cambios trackeados en WorkerHistoryEvent.
+  // Best-effort: si falla, no bloquea la respuesta.
+  if (beforeSnapshot) {
+    try {
+      await logWorkerChanges({
+        workerId: worker.id,
+        orgId,
+        before: beforeSnapshot,
+        after: worker as unknown as Record<string, unknown>,
+        triggeredBy: ctx.userId,
+        reason: typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined,
+        evidenceUrl: typeof body.evidenceUrl === 'string' ? body.evidenceUrl : undefined,
+      })
+    } catch (err) {
+      console.error('[workers/PUT] logWorkerChanges failed', { workerId: worker.id, err })
+    }
+  }
+
   // Fire-and-forget compliance score recalculation
   syncComplianceScore(orgId).catch(() => {})
 
@@ -350,29 +417,68 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
 })
 
 // =============================================
-// DELETE /api/workers/[id] - Delete worker
+// DELETE /api/workers/[id] - Soft delete worker (Ola 1, 2026-05)
+//
+// Comportamiento:
+//   1. Marca status = TERMINATED + fechaCese (compatibilidad con código legacy)
+//   2. Marca deletedAt + deletedBy + deleteReason (Ley 27444, trazabilidad 6 años)
+//   3. Limpia alertas no resueltas (un cesado no sigue alertando)
+//   4. Registra evento CESE en WorkerHistoryEvent
+//   5. Cascade soft: documents/contracts/payslips siguen accesibles solo en
+//      vista filtrada de OWNER/SUPER_ADMIN. La huella legal (boletas/contratos
+//      firmados con biometría) NUNCA se borra — su hash en AuditLog persiste.
 // =============================================
-export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (_req: NextRequest, ctx: AuthContext, params) => {
+export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (req: NextRequest, ctx: AuthContext, params) => {
   const { id } = params
   const orgId = ctx.orgId
 
-  const existing = await prisma.worker.findUnique({ where: { id } })
+  // Permite ?reason=... (querystring) o body { reason } para registrar el motivo.
+  const url = new URL(req.url)
+  let reason = url.searchParams.get('reason') ?? undefined
+  if (!reason) {
+    try {
+      const body = await req.json().catch(() => null)
+      if (body && typeof body.reason === 'string') reason = body.reason.slice(0, 500)
+    } catch {
+      // ignore — body opcional
+    }
+  }
+
+  const existing = await prisma.worker.findUnique({
+    where: { id },
+    select: { id: true, orgId: true, deletedAt: true },
+  })
   if (!existing || existing.orgId !== orgId) {
     return NextResponse.json({ error: 'Worker not found' }, { status: 404 })
   }
+  if (existing.deletedAt) {
+    // Ya está soft-deleted — idempotencia
+    return NextResponse.json({ success: true, alreadyDeleted: true })
+  }
 
-  // Soft delete — mark as terminated
+  const now = new Date()
   await prisma.worker.update({
     where: { id },
     data: {
       status: 'TERMINATED',
-      fechaCese: new Date(),
+      fechaCese: now,
+      deletedAt: now,
+      deletedBy: ctx.userId,
+      deleteReason: reason ?? null,
     },
   })
 
-  // Clear unresolved alerts — a terminated worker no longer triggers compliance deadlines.
+  // Limpia alertas activas — el cesado no sigue triggereando deadlines.
   await prisma.workerAlert.deleteMany({
     where: { workerId: id, resolvedAt: null },
+  })
+
+  // Registra evento CESE en historia (Ola 2). Best-effort.
+  await logWorkerCese({
+    workerId: id,
+    orgId,
+    triggeredBy: ctx.userId,
+    reason,
   })
 
   return NextResponse.json({ success: true })

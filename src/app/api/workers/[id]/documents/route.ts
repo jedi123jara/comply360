@@ -8,6 +8,7 @@ import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
 import { emit } from '@/lib/events'
+import { validateUpload, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 
 // =============================================
 // GET /api/workers/[id]/documents - List worker documents
@@ -153,12 +154,14 @@ export const POST = withAuthParams<{ id: string }>(
     const isRequired = formData.get('isRequired') === 'true'
     const expiresAt = formData.get('expiresAt') as string | null
 
-    // Validate required fields
-    if (!file || !(file instanceof File) || file.size === 0) {
-      return NextResponse.json(
-        { error: 'Se requiere un archivo' },
-        { status: 400 }
-      )
+    // Validación centralizada (Ola 1 — seguridad).
+    // Profile workerDocument: imágenes + PDF + DOCX hasta 20 MB. Bloquea SVG/JS/EXE.
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: 'Se requiere un archivo' }, { status: 400 })
+    }
+    const validation = validateUpload(file, UPLOAD_PROFILES.workerDocument)
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error, code: validation.code }, { status: 400 })
     }
 
     if (!category || !VALID_CATEGORIES.includes(category as DocCategory)) {

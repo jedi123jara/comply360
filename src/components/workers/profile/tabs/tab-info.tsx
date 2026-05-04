@@ -1,9 +1,12 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import type { WorkerSummary } from '../worker-profile-header'
 import { OnboardingCascadeCard } from '../onboarding-cascade-card'
 import { ScheduleCard } from '../schedule-card'
+import { DependentsCard } from '../dependents-card'
+import { TRegistroCard } from '../t-registro-card'
 import Link from 'next/link'
 import { Pencil } from 'lucide-react'
 
@@ -27,12 +30,22 @@ function DataRow({
 }
 
 export function TabInfo({ worker }: { worker: WorkerSummary }) {
+  const router = useRouter()
   return (
     <div className="space-y-4">
       <OnboardingCascadeCard
         workerId={worker.id}
         workerFirstName={worker.firstName}
         hasEmail={Boolean(worker.email)}
+      />
+
+      {/* T-REGISTRO SUNAT (Ola 1) — visible siempre, prioridad alta cuando vencido */}
+      <TRegistroCard
+        workerId={worker.id}
+        fechaIngreso={worker.fechaIngreso}
+        flagTRegistroPresentado={worker.flagTRegistroPresentado ?? false}
+        flagTRegistroFecha={worker.flagTRegistroFecha}
+        onChanged={() => router.refresh()}
       />
 
       <div className="flex justify-end">
@@ -104,6 +117,13 @@ export function TabInfo({ worker }: { worker: WorkerSummary }) {
         </CardContent>
       </Card>
       </div>
+
+      {/* Dependientes acreditados (Ola 1) — DNI cruzable para asignación familiar */}
+      <DependentsCard
+        workerId={worker.id}
+        workerHasAsignacionFamiliar={worker.asignacionFamiliar ?? false}
+      />
+
       <ScheduleCard workerId={worker.id} />
     </div>
   )

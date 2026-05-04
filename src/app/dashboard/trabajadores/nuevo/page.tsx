@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -16,8 +16,11 @@ import {
   FileUp,
   Sparkles,
   FileText,
+  ShieldAlert,
+  Info,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { validateWorkerLegality } from '@/lib/legal-engine/validators/worker'
 
 const REGIMENES = [
   { value: 'GENERAL', label: 'General (D.Leg. 728)' },
@@ -240,6 +243,35 @@ export default function NuevoTrabajadorPage() {
     }
   }, [])
 
+  // ─── Validación legal en vivo (Ola 1, 2026-05) ──────────────────────────────
+  // Cruza régimen × tipo × sueldo × jornada × edad × SCTR contra reglas peruanas.
+  // No corre el validador hasta que el usuario haya tocado los campos básicos
+  // — evita mostrar "sueldo < RMV" cuando todavía está vacío.
+  const legality = useMemo(() => {
+    const sueldoNum = Number(form.sueldoBruto)
+    const jornadaNum = Number(form.jornadaSemanal)
+    if (!form.regimenLaboral || !form.tipoContrato || !sueldoNum || isNaN(sueldoNum)) {
+      return { valid: true, errors: [], warnings: [] } as ReturnType<typeof validateWorkerLegality>
+    }
+    return validateWorkerLegality({
+      regimen: form.regimenLaboral,
+      tipoContrato: form.tipoContrato,
+      sueldoBruto: sueldoNum,
+      jornadaSemanal: isNaN(jornadaNum) ? 48 : jornadaNum,
+      birthDate: form.birthDate || null,
+      sctr: form.sctr,
+      fechaIngreso: form.fechaIngreso || undefined,
+    })
+  }, [
+    form.regimenLaboral,
+    form.tipoContrato,
+    form.sueldoBruto,
+    form.jornadaSemanal,
+    form.birthDate,
+    form.sctr,
+    form.fechaIngreso,
+  ])
+
   const validate = (): boolean => {
     const e: Partial<Record<keyof FormData, string>> = {}
     if (!form.dni.trim()) e.dni = 'Requerido'
@@ -337,6 +369,22 @@ export default function NuevoTrabajadorPage() {
 
   const handleSubmit = async () => {
     if (!validate()) return
+    // Validación legal: bloquea si hay ERRORS, deja pasar warnings.
+    if (legality.errors.length > 0) {
+      setApiError(
+        `No puedes guardar: hay ${legality.errors.length} ${legality.errors.length === 1 ? 'error legal' : 'errores legales'}. Corrige los campos marcados en rojo.`,
+      )
+      // Si los errores apuntan a sección distinta, salta a la primera
+      const firstField = legality.errors[0]?.field
+      if (firstField === 'sueldoBruto' || firstField === 'jornadaSemanal' || firstField === 'tipoContrato') {
+        setSection('laboral')
+      } else if (firstField === 'sctr') {
+        setSection('previsional')
+      } else if (firstField === 'birthDate') {
+        setSection('personal')
+      }
+      return
+    }
     setSubmitting(true)
     setApiError('')
 
@@ -749,6 +797,73 @@ export default function NuevoTrabajadorPage() {
         )}
       </div>
 
+      {/* Validación legal — panel en vivo (Ola 1) */}
+      {(legality.errors.length > 0 || legality.warnings.length > 0) && (
+        <div
+          className={cn(
+            'rounded-2xl border p-5 space-y-3',
+            legality.errors.length > 0
+              ? 'border-red-300 bg-red-50'
+              : 'border-amber-300 bg-amber-50',
+          )}
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-2">
+            {legality.errors.length > 0 ? (
+              <ShieldAlert className="h-4 w-4 text-red-600 shrink-0" />
+            ) : (
+              <Info className="h-4 w-4 text-amber-600 shrink-0" />
+            )}
+            <span
+              className={cn(
+                'text-sm font-bold',
+                legality.errors.length > 0 ? 'text-red-800' : 'text-amber-800',
+              )}
+            >
+              {legality.errors.length > 0
+                ? `${legality.errors.length} ${legality.errors.length === 1 ? 'error de cumplimiento legal' : 'errores de cumplimiento legal'}`
+                : `${legality.warnings.length} ${legality.warnings.length === 1 ? 'observación' : 'observaciones'}`}
+            </span>
+          </div>
+
+          {legality.errors.length > 0 && (
+            <ul className="space-y-2 pl-6">
+              {legality.errors.map((err, i) => (
+                <li key={`err-${i}`} className="text-xs text-red-700">
+                  <span className="font-semibold">• {err.message}</span>
+                  {err.baseLegal && (
+                    <span className="block ml-2 text-[10px] text-red-600 mt-0.5">
+                      Base legal: {err.baseLegal}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {legality.warnings.length > 0 && (
+            <ul className="space-y-2 pl-6">
+              {legality.warnings.map((warn, i) => (
+                <li key={`warn-${i}`} className="text-xs text-amber-700">
+                  <span className="font-semibold">• {warn.message}</span>
+                  {warn.baseLegal && (
+                    <span className="block ml-2 text-[10px] text-amber-600 mt-0.5">
+                      Base legal: {warn.baseLegal}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {legality.errors.length > 0 && (
+            <p className="text-[11px] text-red-600 italic pt-1 border-t border-red-200">
+              No puedes guardar hasta corregir estos errores. Las observaciones (ámbar) no bloquean.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Submit */}
       <div className="flex items-center justify-between">
         <Link href="/dashboard/trabajadores" className="text-sm text-gray-500 hover:text-[color:var(--text-secondary)]">
@@ -757,13 +872,23 @@ export default function NuevoTrabajadorPage() {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={submitting}
-          className="flex items-center gap-2 px-6 py-2.5 bg-emerald-700 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary/20 disabled:opacity-60"
+          disabled={submitting || legality.errors.length > 0}
+          className="flex items-center gap-2 px-6 py-2.5 bg-emerald-700 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+          title={
+            legality.errors.length > 0
+              ? `Corrige los ${legality.errors.length} errores legales antes de guardar`
+              : undefined
+          }
         >
           {submitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               Guardando...
+            </>
+          ) : legality.errors.length > 0 ? (
+            <>
+              <ShieldAlert className="w-4 h-4" />
+              Corrige {legality.errors.length} {legality.errors.length === 1 ? 'error' : 'errores'}
             </>
           ) : (
             <>

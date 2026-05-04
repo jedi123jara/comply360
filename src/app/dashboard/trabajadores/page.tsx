@@ -141,6 +141,9 @@ export default function TrabajadoresPage() {
   const [departmentFilter, setDepartmentFilter] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 0, limit: 20 })
+  // Ola 1 — toggle "Ver cesados" para OWNER/SUPER_ADMIN (auditoría)
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [incluirCesados, setIncluirCesados] = useState(false)
 
   // Org-wide stats (fetched separately, independent of pagination/filters)
   const [stats, setStats] = useState<WorkerStats | null>(null)
@@ -161,6 +164,7 @@ export default function TrabajadoresPage() {
     if (statusFilter) params.set('status', statusFilter)
     if (regimenFilter) params.set('regimen', regimenFilter)
     if (departmentFilter) params.set('department', departmentFilter)
+    if (incluirCesados) params.set('incluirCesados', 'true')
     params.set('page', String(pagination.page))
     params.set('limit', '20')
     params.set('sortBy', sortBy)
@@ -186,9 +190,21 @@ export default function TrabajadoresPage() {
         setWorkers([])
       })
       .finally(() => setLoading(false))
-  }, [search, statusFilter, regimenFilter, departmentFilter, pagination.page, sortBy, sortDir])
+  }, [search, statusFilter, regimenFilter, departmentFilter, incluirCesados, pagination.page, sortBy, sortDir])
 
   useEffect(() => { fetchWorkers() }, [fetchWorkers])
+
+  // Cargar rol del usuario (define si puede ver cesados)
+  useEffect(() => {
+    fetch('/api/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then((d: { role?: string } | null) => {
+        if (d?.role) setUserRole(d.role)
+      })
+      .catch(() => {
+        /* ignore — el toggle simplemente no aparece */
+      })
+  }, [])
 
   // Load org-wide stats once on mount (and after imports)
   const fetchStats = useCallback(() => {
@@ -798,6 +814,30 @@ export default function TrabajadoresPage() {
             >
               Limpiar filtros
             </button>
+          )}
+
+          {/* Toggle "Ver cesados" — solo OWNER/SUPER_ADMIN (auditoría SUNAFIL Ley 27444) */}
+          {(userRole === 'OWNER' || userRole === 'SUPER_ADMIN') && (
+            <label
+              className={cn(
+                'inline-flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-colors text-xs font-medium',
+                incluirCesados
+                  ? 'border-amber-300 bg-amber-50 text-amber-800'
+                  : 'border-[color:var(--border-default)] bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] hover:border-amber-300',
+              )}
+              title="Incluir trabajadores eliminados (soft-delete) en la lista. Solo visible para OWNER/SUPER_ADMIN."
+            >
+              <input
+                type="checkbox"
+                checked={incluirCesados}
+                onChange={e => {
+                  setIncluirCesados(e.target.checked)
+                  setPagination(p => ({ ...p, page: 1 }))
+                }}
+                className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500/20"
+              />
+              <span>Ver eliminados (auditoría)</span>
+            </label>
           )}
         </div>
       )}

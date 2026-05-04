@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
+import { runWorkerSstHook } from '@/lib/sst/worker-hooks'
 import { checkWorkerLimit } from '@/lib/plan-gate'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { emit } from '@/lib/events'
@@ -28,6 +29,13 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
 
+  // Soft delete (Ola 1): por defecto SOLO se devuelven workers no eliminados.
+  // OWNER/SUPER_ADMIN pueden pasar ?incluirCesados=true para auditoría.
+  const requestedIncluirCesados = searchParams.get('incluirCesados') === 'true'
+  const canSeeDeleted = ctx.role === 'OWNER' || ctx.role === 'SUPER_ADMIN'
+  const includeDeleted = requestedIncluirCesados && canSeeDeleted
+  const softDeleteFilter = includeDeleted ? {} : { deletedAt: null }
+
   // ── Aggregate stats mode ──────────────────────────────────────
   if (searchParams.get('stats') === '1') {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -35,28 +43,28 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     const [statusGroups, regimenGroups, aggregates, departments, recentCount] = await Promise.all([
       prisma.worker.groupBy({
         by: ['status'],
-        where: { orgId },
+        where: { orgId, ...softDeleteFilter },
         _count: { id: true },
       }),
       prisma.worker.groupBy({
         by: ['regimenLaboral'],
-        where: { orgId, status: { not: 'TERMINATED' } },
+        where: { orgId, status: { not: 'TERMINATED' }, ...softDeleteFilter },
         _count: { id: true },
       }),
       prisma.worker.aggregate({
-        where: { orgId, status: { not: 'TERMINATED' } },
+        where: { orgId, status: { not: 'TERMINATED' }, ...softDeleteFilter },
         _avg: { sueldoBruto: true, legajoScore: true },
         _sum: { sueldoBruto: true },
         _count: { id: true },
       }),
       prisma.worker.findMany({
-        where: { orgId, department: { not: null } },
+        where: { orgId, department: { not: null }, ...softDeleteFilter },
         select: { department: true },
         distinct: ['department'],
         orderBy: { department: 'asc' },
       }),
       prisma.worker.count({
-        where: { orgId, createdAt: { gte: thirtyDaysAgo } },
+        where: { orgId, createdAt: { gte: thirtyDaysAgo }, ...softDeleteFilter },
       }),
     ])
 
@@ -67,7 +75,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
       regimenGroups.map(g => [g.regimenLaboral, g._count.id])
     )
     const lowLegajoCount = await prisma.worker.count({
-      where: { orgId, status: { not: 'TERMINATED' }, legajoScore: { lt: 50 } },
+      where: { orgId, status: { not: 'TERMINATED' }, legajoScore: { lt: 50 }, ...softDeleteFilter },
     })
 
     return NextResponse.json({
@@ -103,6 +111,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   const where = {
     orgId,
+    ...softDeleteFilter,
     ...(status
       ? status.includes(',')
         ? { status: { in: status.split(',').map(s => s.trim()) as ('ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED')[] } }
@@ -317,6 +326,12 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   } catch (err) {
     console.error('[workers/POST] generateWorkerAlerts failed', { workerId: worker.id, err })
   }
+
+  // Hook SST: alertas automáticas si requiere SCTR, no tiene EMO o la org
+  // no tiene IPERC vigente. Fire-and-forget — nunca bloquea el alta.
+  runWorkerSstHook({ workerId: worker.id, orgId }).catch((err: unknown) => {
+    console.error('[workers/POST] runWorkerSstHook failed', { workerId: worker.id, err })
+  })
 
   // Fire-and-forget compliance score recalculation
   syncComplianceScore(orgId).catch(() => {})

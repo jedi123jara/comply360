@@ -18,6 +18,8 @@ interface WorkerData {
   essaludVida: boolean
   status: string
   legajoScore: number | null
+  // Ola 1 — flag de cumplimiento operacional
+  flagTRegistroPresentado: boolean
   documents: { documentType: string; status: string; expiresAt: Date | null }[]
   workerContracts: { contract: { expiresAt: Date | null; status: string } }[]
   vacations: { diasPendientes: number; esDoble: boolean; periodoFin: Date }[]
@@ -54,9 +56,9 @@ export async function generateWorkerAlerts(workerId: string): Promise<number> {
     },
   })
 
-  // worker now includes tipoAporte, afpNombre, sctr, essaludVida
+  // worker now includes tipoAporte, afpNombre, sctr, essaludVida, flagTRegistroPresentado
 
-  if (!worker || worker.status === 'TERMINATED') return 0
+  if (!worker || worker.status === 'TERMINATED' || worker.deletedAt) return 0
 
   const workerData: WorkerData = {
     ...worker,
@@ -65,6 +67,7 @@ export async function generateWorkerAlerts(workerId: string): Promise<number> {
     afpNombre: worker.afpNombre ?? null,
     sctr: worker.sctr ?? false,
     essaludVida: worker.essaludVida ?? false,
+    flagTRegistroPresentado: worker.flagTRegistroPresentado ?? false,
   }
 
   const alerts = computeAlerts(workerData)
@@ -95,10 +98,11 @@ export async function generateWorkerAlerts(workerId: string): Promise<number> {
 
 /**
  * Generate alerts for ALL active workers in an organization.
+ * Excluye soft-deleted (deletedAt != null).
  */
 export async function generateOrgAlerts(orgId: string): Promise<{ total: number; workers: number }> {
   const workers = await prisma.worker.findMany({
-    where: { orgId, status: { not: 'TERMINATED' } },
+    where: { orgId, status: { not: 'TERMINATED' }, deletedAt: null },
     select: { id: true },
   })
 
@@ -445,6 +449,73 @@ function computeAlerts(w: WorkerData): AlertInput[] {
       })
     }
   }
+
+  // ─── 12. T-REGISTRO no presentado (Ola 1 — compliance SUNAFIL) ──────────
+  // SUNAT exige registrar al trabajador dentro de 1 día hábil del ingreso
+  // (D.S. 003-97-TR Art. 60). Sin marca → multa 2.35 UIT.
+  if (w.status === 'ACTIVE' && !w.flagTRegistroPresentado) {
+    const diasDesdeIngreso = Math.floor(
+      (now.getTime() - new Date(w.fechaIngreso).getTime()) / (1000 * 60 * 60 * 24),
+    )
+    // Aproximación: 1 día hábil se cumple si ya pasaron al menos 2 días calendario
+    if (diasDesdeIngreso >= 2) {
+      alerts.push({
+        type: 'T_REGISTRO_NO_PRESENTADO',
+        severity: diasDesdeIngreso >= 7 ? 'CRITICAL' : 'HIGH',
+        title: `T-REGISTRO no presentado — ${w.firstName} ${w.lastName}`,
+        description: `Han pasado ${diasDesdeIngreso} días desde el ingreso sin registro en T-REGISTRO SUNAT. Plazo legal: 1 día hábil. Multa SUNAFIL 2.35 UIT.`,
+        multaEstimada: UIT * 2.35,
+      })
+    }
+  }
+
+  // ─── 13. SCTR vencido (sectores de riesgo, Ola 1) ───────────────────────
+  // Construcción civil, minería y pesca exigen SCTR vigente. Sin él, multa
+  // grave + responsabilidad solidaria del empleador en accidentes (Ley 26790).
+  const sectoresRiesgo = ['CONSTRUCCION_CIVIL', 'MINERO', 'PESQUERO']
+  if (sectoresRiesgo.includes(w.regimenLaboral) || w.sctr) {
+    const sctrDocs = w.documents.filter(d => d.documentType === 'sctr' || d.documentType === 'sctr_vigencia')
+    const sctrVigente = sctrDocs.some(d => {
+      if (!d.expiresAt) return false
+      return new Date(d.expiresAt) > now
+    })
+    if (!sctrVigente) {
+      alerts.push({
+        type: 'SCTR_VENCIDO',
+        severity: 'CRITICAL',
+        title: `SCTR vencido — ${w.firstName} ${w.lastName}`,
+        description: `${sectoresRiesgo.includes(w.regimenLaboral)
+          ? `Régimen ${w.regimenLaboral} obliga SCTR vigente.`
+          : 'SCTR marcado como activo pero sin póliza vigente cargada.'} Renovar inmediatamente. Multa SUNAFIL 6.63 UIT.`,
+        multaEstimada: UIT * 6.63,
+      })
+    }
+  }
+
+  // ─── 14. Licencia médica vencida (Ola 1) ────────────────────────────────
+  // Si hay un descanso médico cargado y ya expiró sin renovación, riesgo de
+  // pérdida del derecho de licencia + cuestionamiento ante EsSalud.
+  const licenciaDocs = w.documents.filter(d =>
+    d.documentType === 'licencia_medica' || d.documentType === 'descanso_medico'
+  )
+  for (const lic of licenciaDocs) {
+    if (lic.expiresAt && new Date(lic.expiresAt) < now && lic.status !== 'EXPIRED') {
+      const diasVencido = Math.floor(
+        (now.getTime() - new Date(lic.expiresAt).getTime()) / (1000 * 60 * 60 * 24),
+      )
+      alerts.push({
+        type: 'LICENCIA_MEDICA_VENCIDA',
+        severity: diasVencido >= 7 ? 'HIGH' : 'MEDIUM',
+        title: `Licencia médica vencida (${diasVencido}d) — ${w.firstName} ${w.lastName}`,
+        description: `El descanso médico expiró hace ${diasVencido} días sin renovación. Verifica si el trabajador volvió a labores o tiene continuación CITT.`,
+      })
+      break // una sola alerta por trabajador, aunque haya múltiples
+    }
+  }
+
+  // CAMBIO_REGIMEN_SIN_ADENDA es disparada desde el hook PATCH /api/workers/[id]
+  // (no acá), porque requiere comparación before/after que sólo el endpoint
+  // tiene en el momento de la mutación. Ver src/app/api/workers/[id]/route.ts.
 
   return alerts
 }

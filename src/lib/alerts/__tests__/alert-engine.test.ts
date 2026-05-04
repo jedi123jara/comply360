@@ -68,7 +68,12 @@ interface MockWorkerOpts {
   vacations?: { diasPendientes: number; esDoble: boolean; periodoFin: Date }[]
 }
 
-function buildMockWorker(overrides: MockWorkerOpts = {}) {
+interface MockWorkerOptsExt extends MockWorkerOpts {
+  flagTRegistroPresentado?: boolean
+  deletedAt?: Date | null
+}
+
+function buildMockWorker(overrides: MockWorkerOptsExt = {}) {
   return {
     id: overrides.id ?? 'w1',
     orgId: overrides.orgId ?? 'org1',
@@ -86,6 +91,9 @@ function buildMockWorker(overrides: MockWorkerOpts = {}) {
     essaludVida: overrides.essaludVida ?? false,
     status: overrides.status ?? 'ACTIVE',
     legajoScore: overrides.legajoScore !== undefined ? overrides.legajoScore : 90,
+    // Ola 1 — soft delete + flag T-REGISTRO
+    flagTRegistroPresentado: overrides.flagTRegistroPresentado ?? true,
+    deletedAt: overrides.deletedAt ?? null,
     documents: overrides.documents ?? allRequiredDocs(),
     workerContracts: overrides.workerContracts ?? [],
     vacations: overrides.vacations ?? [],
@@ -455,5 +463,181 @@ describe('generateOrgAlerts', () => {
     const result = await generateOrgAlerts('org1')
 
     expect(result).toEqual({ total: 0, workers: 0 })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Ola 1 — Compliance hardening (T-REGISTRO + SCTR + Licencia médica)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Ola 1 — T_REGISTRO_NO_PRESENTADO', () => {
+  it('genera alerta CRITICAL si han pasado >7 días sin marca de T-Registro', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        fechaIngreso: daysFromNow(-14),
+        flagTRegistroPresentado: false,
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0].data as Array<{ type: string; severity: string }>
+    const tReg = alerts.find(a => a.type === 'T_REGISTRO_NO_PRESENTADO')
+    expect(tReg).toBeDefined()
+    expect(tReg!.severity).toBe('CRITICAL')
+  })
+
+  it('genera alerta HIGH si entre 2 y 7 días sin marca', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        fechaIngreso: daysFromNow(-3),
+        flagTRegistroPresentado: false,
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0].data as Array<{ type: string; severity: string }>
+    const tReg = alerts.find(a => a.type === 'T_REGISTRO_NO_PRESENTADO')
+    expect(tReg).toBeDefined()
+    expect(tReg!.severity).toBe('HIGH')
+  })
+
+  it('NO alerta si flagTRegistroPresentado=true', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        fechaIngreso: daysFromNow(-30),
+        flagTRegistroPresentado: true,
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    expect(alerts?.some(a => a.type === 'T_REGISTRO_NO_PRESENTADO')).toBeFalsy()
+  })
+
+  it('NO alerta si solo pasó 1 día desde ingreso', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        fechaIngreso: daysFromNow(-1),
+        flagTRegistroPresentado: false,
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    expect(alerts?.some(a => a.type === 'T_REGISTRO_NO_PRESENTADO')).toBeFalsy()
+  })
+})
+
+describe('Ola 1 — SCTR_VENCIDO', () => {
+  it('genera alerta CRITICAL en CONSTRUCCION_CIVIL sin SCTR vigente', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        regimenLaboral: 'CONSTRUCCION_CIVIL',
+        sctr: true,
+        documents: allRequiredDocs(), // sin doc 'sctr'
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0].data as Array<{ type: string; severity: string }>
+    const sctr = alerts.find(a => a.type === 'SCTR_VENCIDO')
+    expect(sctr).toBeDefined()
+    expect(sctr!.severity).toBe('CRITICAL')
+  })
+
+  it.each(['MINERO', 'PESQUERO'])('alerta también en %s', async (regimen) => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        regimenLaboral: regimen,
+        sctr: false,
+        documents: allRequiredDocs(),
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0].data as Array<{ type: string }>
+    expect(alerts.some(a => a.type === 'SCTR_VENCIDO')).toBe(true)
+  })
+
+  it('NO alerta si SCTR doc tiene expiresAt en el futuro', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        regimenLaboral: 'CONSTRUCCION_CIVIL',
+        sctr: true,
+        documents: [
+          ...allRequiredDocs(),
+          { documentType: 'sctr', status: 'UPLOADED', expiresAt: daysFromNow(60) },
+        ],
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    expect(alerts?.some(a => a.type === 'SCTR_VENCIDO')).toBeFalsy()
+  })
+
+  it('NO alerta en GENERAL sin sctr=true', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({ regimenLaboral: 'GENERAL', sctr: false }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    expect(alerts?.some(a => a.type === 'SCTR_VENCIDO')).toBeFalsy()
+  })
+})
+
+describe('Ola 1 — LICENCIA_MEDICA_VENCIDA', () => {
+  it('alerta cuando licencia_medica expiró sin renovación', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        documents: [
+          ...allRequiredDocs(),
+          {
+            documentType: 'licencia_medica',
+            status: 'UPLOADED',
+            expiresAt: daysFromNow(-3),
+          },
+        ],
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0].data as Array<{ type: string; severity: string }>
+    const lic = alerts.find(a => a.type === 'LICENCIA_MEDICA_VENCIDA')
+    expect(lic).toBeDefined()
+    expect(lic!.severity).toBe('MEDIUM')
+  })
+
+  it('severity HIGH si vencida hace 7+ días', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({
+        documents: [
+          ...allRequiredDocs(),
+          {
+            documentType: 'descanso_medico',
+            status: 'UPLOADED',
+            expiresAt: daysFromNow(-15),
+          },
+        ],
+      }),
+    )
+
+    await generateWorkerAlerts('w1')
+    const alerts = mockCreateMany.mock.calls[0][0].data as Array<{ type: string; severity: string }>
+    const lic = alerts.find(a => a.type === 'LICENCIA_MEDICA_VENCIDA')
+    expect(lic?.severity).toBe('HIGH')
+  })
+})
+
+describe('Ola 1 — soft delete', () => {
+  it('returns 0 for soft-deleted worker (deletedAt != null)', async () => {
+    mockFindUnique.mockResolvedValue(
+      buildMockWorker({ deletedAt: new Date() }),
+    )
+
+    const result = await generateWorkerAlerts('w1')
+    expect(result).toBe(0)
+    expect(mockDeleteMany).not.toHaveBeenCalled()
   })
 })

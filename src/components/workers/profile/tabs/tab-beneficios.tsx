@@ -30,11 +30,22 @@ import type { WorkerSummary } from '../worker-profile-header'
 
 interface TabBeneficiosProps {
   worker: WorkerSummary
+  /**
+   * Resumen real de vacaciones del trabajador (Ola 2 — 2026-05).
+   * Si se provee, se usa para `diasGozados` en lugar del default 0.
+   * Lo carga la página server-side desde `VacationRecord`.
+   */
+  vacationsSummary?: {
+    diasGozados: number
+    periodosNoGozados?: number
+  }
 }
 
-export function TabBeneficios({ worker }: TabBeneficiosProps) {
+export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) {
   const sueldo = worker.sueldoBruto ?? 0
   const fechaIngreso = worker.fechaIngreso ?? null
+  // Días reales gozados de VacationRecord (cae a 0 si no hay datos)
+  const diasGozadosReales = vacationsSummary?.diasGozados ?? 0
 
   // ── Cálculos (DEBEN declararse ANTES de cualquier early return para cumplir rules-of-hooks) ──
   // `hasData` gobierna si los cálculos son significativos. Los hooks igual corren siempre.
@@ -90,7 +101,9 @@ export function TabBeneficios({ worker }: TabBeneficiosProps) {
     }
   }, [hasData, sueldo, fechaIngreso, nextGratiPeriodo, mesesParaGrati])
 
-  // Vacaciones — estado actual (si cesara hoy)
+  // Vacaciones — estado actual (si cesara hoy).
+  // `diasGozados` viene de `VacationRecord` agregados (Ola 2). Si la página
+  // padre aún no los carga, cae a 0 sin romper.
   const vacaciones = useMemo(() => {
     if (!hasData || !fechaIngreso) return null
     try {
@@ -98,13 +111,13 @@ export function TabBeneficios({ worker }: TabBeneficiosProps) {
         sueldoBruto: sueldo,
         fechaIngreso,
         fechaCese: now.toISOString().slice(0, 10),
-        diasGozados: 0, // TODO: traer de VacationRecord
+        diasGozados: diasGozadosReales,
         asignacionFamiliar: false,
       })
     } catch {
       return null
     }
-  }, [hasData, sueldo, fechaIngreso, now])
+  }, [hasData, sueldo, fechaIngreso, now, diasGozadosReales])
 
   // Indemnización — si fuera despido arbitrario hoy
   const indemnizacion = useMemo(() => {

@@ -69,6 +69,7 @@ model Organization {
 
   users                   User[]
   workers                 Worker[]
+  attendanceQrSessions    AttendanceQrSession[]
   contracts               Contract[]
   calculations            Calculation[]
   orgAlerts               OrgAlert[]
@@ -1779,6 +1780,9 @@ model Attendance {
   id              String           @id @default(cuid())
   orgId           String           @map("org_id")
   workerId        String           @map("worker_id")
+  // Dia laboral en zona horaria de la empresa (America/Lima por ahora).
+  // Evita errores UTC al consultar "hoy" y habilita control anti-duplicados.
+  workDate        DateTime         @map("work_date") @db.Date
   clockIn         DateTime         @map("clock_in")
   clockOut        DateTime?        @map("clock_out")
   hoursWorked     Decimal?         @map("hours_worked") @db.Decimal(5, 2)
@@ -1800,10 +1804,15 @@ model Attendance {
   selfieHash      String?          @map("selfie_hash")
   createdAt       DateTime         @default(now()) @map("created_at")
 
-  worker Worker @relation(fields: [workerId], references: [id])
+  worker         Worker                    @relation(fields: [workerId], references: [id])
+  justifications AttendanceJustification[]
+  approvals      AttendanceApproval[]
+  evidence       AttendanceEvidence[]
 
+  @@unique([orgId, workerId, workDate])
   @@index([orgId, clockIn])
   @@index([workerId, clockIn])
+  @@index([orgId, workerId, workDate])
   @@map("attendance")
 }
 
@@ -1841,6 +1850,81 @@ model Geofence {
 enum GeofenceType {
   CIRCLE
   POLYGON
+}
+
+/// Sesiones QR emitidas por el admin para asistencia.
+/// Persistirlas permite que el fallback de codigo corto valide org, vigencia
+/// y modo; antes el shortCode solo validaba formato.
+model AttendanceQrSession {
+  id           String    @id @default(cuid())
+  orgId        String    @map("org_id")
+  shortCode    String    @map("short_code")
+  tokenHash    String    @map("token_hash")
+  mode         String    @default("both")
+  graceMinutes Int       @default(15) @map("grace_minutes")
+  issuedAt     DateTime  @default(now()) @map("issued_at")
+  expiresAt    DateTime  @map("expires_at")
+  createdBy    String?   @map("created_by")
+  revokedAt    DateTime? @map("revoked_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, shortCode, expiresAt])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("attendance_qr_sessions")
+}
+
+model AttendanceJustification {
+  id           String   @id @default(cuid())
+  attendanceId String   @map("attendance_id")
+  orgId        String   @map("org_id")
+  workerId     String   @map("worker_id")
+  reason       String   @db.Text
+  files        Json?
+  requestedBy  String   @map("requested_by")
+  requestedAt  DateTime @default(now()) @map("requested_at")
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, workerId, requestedAt])
+  @@index([attendanceId])
+  @@map("attendance_justifications")
+}
+
+model AttendanceApproval {
+  id              String   @id @default(cuid())
+  attendanceId    String   @map("attendance_id")
+  orgId           String   @map("org_id")
+  approved        Boolean
+  comment         String?  @db.Text
+  justificationId String?  @map("justification_id")
+  approvedBy      String   @map("approved_by")
+  approvedByName  String?  @map("approved_by_name")
+  approvedAt      DateTime @default(now()) @map("approved_at")
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, approvedAt])
+  @@index([attendanceId])
+  @@map("attendance_approvals")
+}
+
+model AttendanceEvidence {
+  id           String   @id @default(cuid())
+  attendanceId String   @map("attendance_id")
+  orgId        String   @map("org_id")
+  workerId     String   @map("worker_id")
+  type         String
+  value        String?  @db.Text
+  metadataJson Json?    @map("metadata_json")
+  capturedAt   DateTime @default(now()) @map("captured_at")
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, workerId, capturedAt])
+  @@index([attendanceId])
+  @@map("attendance_evidence")
 }
 
 /// Log de intentos de fichado (Fase 4 — anti-fraude).
