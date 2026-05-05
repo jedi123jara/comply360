@@ -6,7 +6,7 @@
  *   1. Intenta `prisma migrate deploy` (lo correcto si la DB tiene
  *      historial de migrations en _prisma_migrations).
  *   2. Si falla con P3005 ("schema not empty, baseline needed"), cae a
- *      `prisma db push --skip-generate` que aplica el schema directamente
+ *      `prisma db push` que aplica el schema directamente
  *      sin requerir baseline de migrations.
  *
  * P3005 ocurre cuando la DB de prod fue creada sin pasar por el sistema
@@ -40,7 +40,7 @@ try {
   console.warn(`[db-sync] Detalle: ${msg.slice(0, 200)}`)
 
   try {
-    run('npx prisma db push --skip-generate')
+    run('npx prisma db push')
     console.log('[db-sync] ✅ Schema sincronizado vía db push')
   } catch (err2) {
     console.error('[db-sync] ❌ db push también falló')
