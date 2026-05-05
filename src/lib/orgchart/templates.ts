@@ -751,6 +751,20 @@ const TEMPLATE_RECOMMENDATION_PROFILES: Record<
     ciiuPrefixes: [],
     minWorkerCount: 1,
   },
+  'equipo-auditoria-sunafil': {
+    sectorKeywords: ['sunafil', 'inspeccion', 'auditoria', 'cumplimiento'],
+    contextKeywords: ['sunafil', 'inspeccion', 'auditoria', 'evidencia', 'legajo', 'documental'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+    prefersSst: true,
+  },
+  'comision-risst': {
+    sectorKeywords: ['risst', 'reglamento', 'sst', 'seguridad'],
+    contextKeywords: ['risst', 'reglamento interno', 'sst', 'capacitacion', 'consulta', 'aprobacion'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+    prefersSst: true,
+  },
 }
 
 const ORG_TEMPLATES: OrgTemplate[] = [
@@ -1093,6 +1107,58 @@ const ORG_TEMPLATES: OrgTemplate[] = [
         isCritical: true,
       }),
       basePosition('responsable-documental', 'Responsable documental', 'equipo-auditoria', 'lider-equipo', 'Proyecto', false),
+    ],
+  },
+  {
+    id: 'equipo-auditoria-sunafil',
+    name: 'Equipo auditoría SUNAFIL',
+    description: 'Equipo temporal para preparar una inspección: responsables de documentos, entrevistas, SST y evidencias.',
+    sector: 'Comisiones',
+    recommendedFor: ['Inspección SUNAFIL', 'Auditoría preventiva', 'Evidencias'],
+    units: [
+      {
+        key: 'equipo-sunafil',
+        name: 'Equipo Temporal de Auditoría SUNAFIL',
+        kind: 'PROYECTO',
+        description: 'Objetivo: preparar, centralizar y cerrar evidencias ante una auditoría o inspección SUNAFIL. Estado sugerido: activa.',
+      },
+    ],
+    positions: [
+      basePosition('lider-sunafil', 'Líder de auditoría SUNAFIL', 'equipo-sunafil', undefined, 'Proyecto', true, {
+        isCritical: true,
+      }),
+      basePosition('responsable-legajos', 'Responsable de legajos y contratos', 'equipo-sunafil', 'lider-sunafil', 'Proyecto', false),
+      basePosition('responsable-sst-sunafil', 'Responsable SST y evidencias', 'equipo-sunafil', 'lider-sunafil', 'Proyecto', false, {
+        isCritical: true,
+      }),
+      basePosition('responsable-entrevistas', 'Responsable de entrevistas', 'equipo-sunafil', 'lider-sunafil', 'Proyecto', false),
+      basePosition('responsable-actas', 'Responsable de actas y descargos', 'equipo-sunafil', 'lider-sunafil', 'Proyecto', false),
+    ],
+  },
+  {
+    id: 'comision-risst',
+    name: 'Comisión RISST',
+    description: 'Equipo temporal para elaborar, revisar, socializar y aprobar el Reglamento Interno de SST.',
+    sector: 'Comisiones',
+    recommendedFor: ['RISST', 'Reglamento interno SST', 'Implementación SST'],
+    units: [
+      {
+        key: 'comision-risst',
+        name: 'Comisión de Implementación del RISST',
+        kind: 'PROYECTO',
+        description: 'Objetivo: elaborar o actualizar el RISST, gestionar revisión legal, aprobación, difusión y evidencias de entrega. Estado sugerido: activa.',
+      },
+    ],
+    positions: [
+      basePosition('lider-risst', 'Líder de implementación RISST', 'comision-risst', undefined, 'Proyecto', true, {
+        isCritical: true,
+      }),
+      basePosition('responsable-legal-risst', 'Responsable legal', 'comision-risst', 'lider-risst', 'Proyecto', false),
+      basePosition('responsable-sst-risst', 'Responsable SST', 'comision-risst', 'lider-risst', 'Proyecto', false, {
+        isCritical: true,
+      }),
+      basePosition('responsable-rrhh-risst', 'Responsable RR.HH. y comunicación', 'comision-risst', 'lider-risst', 'Proyecto', false),
+      basePosition('responsable-evidencias-risst', 'Responsable de evidencias', 'comision-risst', 'lider-risst', 'Proyecto', false),
     ],
   },
 ]

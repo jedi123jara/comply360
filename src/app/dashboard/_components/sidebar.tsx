@@ -46,6 +46,9 @@ import {
   Clock,
   Laptop2,
   ClipboardList,
+  CheckSquare,
+  ListChecks,
+  Network,
   ChevronDown,
   Lock,
   Shield,
@@ -112,6 +115,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Clock,
   Laptop2,
   ClipboardList,
+  CheckSquare,
+  ListChecks,
+  Network,
   Shield,
 }
 

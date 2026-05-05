@@ -8,6 +8,7 @@ export type LayoutMode = 'top-down' | 'left-right' | 'radial' | 'grouped-by-area
 export type OrgLens = 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
 export type View = 'hierarchy' | 'committees'
 export type DisplayMode = 'units' | 'positions'
+export type CommissionFilter = 'all' | 'sst' | 'legal' | 'brigade' | 'temporary'
 
 export interface CanvasSlice {
   // Layout
@@ -16,6 +17,8 @@ export interface CanvasSlice {
   // Vista
   view: View
   setView: (view: View) => void
+  commissionFilter: CommissionFilter
+  setCommissionFilter: (filter: CommissionFilter) => void
   // Nivel visual
   displayMode: DisplayMode
   setDisplayMode: (mode: DisplayMode) => void
@@ -36,6 +39,8 @@ export const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> =
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   view: 'hierarchy',
   setView: (view) => set({ view }),
+  commissionFilter: 'all',
+  setCommissionFilter: (commissionFilter) => set({ commissionFilter }),
   displayMode: 'units',
   setDisplayMode: (displayMode) => set({ displayMode }),
   lens: 'general',

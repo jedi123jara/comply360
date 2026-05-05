@@ -76,7 +76,7 @@ describe('Pricing consistency: PLANS vs CULQI_PLANS', () => {
   // -----------------------------------------
 
   it('priceInCentimos === price * 100 for each PLANS entry with price > 0', () => {
-    for (const [key, plan] of Object.entries(PLANS)) {
+    for (const plan of Object.values(PLANS)) {
       if (plan.price > 0) {
         expect(plan.priceInCentimos).toBe(plan.price * 100)
       }

@@ -24,7 +24,7 @@ describe('CULQI_PLANS', () => {
   })
 
   it('each plan has priceInCentimos === priceDisplay * 100', () => {
-    for (const [key, plan] of Object.entries(CULQI_PLANS)) {
+    for (const plan of Object.values(CULQI_PLANS)) {
       expect(plan.priceInCentimos).toBe(plan.priceDisplay * 100)
     }
   })
@@ -257,13 +257,6 @@ describe('CulqiService (prod mode)', () => {
     await expect(
       service.createCharge(12900, 'PEN', 'fail@example.com', 'tok_bad', 'Test')
     ).rejects.toThrow(CulqiPaymentError)
-
-    try {
-      await service.createCharge(12900, 'PEN', 'fail@example.com', 'tok_bad', 'Test')
-    } catch (err) {
-      // The fetch was already consumed above, so we need a fresh mock for the second call
-    }
-
     // Re-mock and verify error properties
     mockFetch.mockResolvedValueOnce({
       ok: false,

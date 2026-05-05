@@ -44,6 +44,8 @@ const COMMISSION_TEMPLATE_IDS = new Set([
   'brigada-emergencia',
   'comision-investigadora',
   'equipo-temporal-auditoria',
+  'equipo-auditoria-sunafil',
+  'comision-risst',
 ])
 
 export function TemplatesModal() {

@@ -34,15 +34,15 @@ export interface CulqiPlan {
 //  - FREE: $0, no requiere Culqi.
 //  - ENTERPRISE: contact-sales (precio negociado caso por caso). El UI
 //    redirige a WhatsApp/email para cotizar — ver /dashboard/planes.
-export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan> = {
+export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'BUSINESS' | 'ENTERPRISE'>, CulqiPlan> = {
   STARTER: {
     key: 'STARTER',
     name: 'Starter',
-    priceInCentimos: 19900,
-    priceDisplay: 199,
+    priceInCentimos: 24900,
+    priceDisplay: 249,
     currency: 'PEN',
     interval: 'month',
-    description: 'Gestor de planilla + calculadoras. Para MYPEs que arrancan su compliance.',
+    description: 'Compliance laboral esencial para PYMEs de hasta 20 trabajadores.',
     features: [
       'Hasta 20 trabajadores (S/12 por trabajador adicional)',
       'Gestor de planilla + legajo digital',
@@ -56,12 +56,11 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
   EMPRESA: {
     key: 'EMPRESA',
     name: 'Empresa',
-    priceInCentimos: 59900,
-    priceDisplay: 599,
+    priceInCentimos: 189900,
+    priceDisplay: 1899,
     currency: 'PEN',
     interval: 'month',
-    description: 'Compliance SUNAFIL completo para pequeñas empresas.',
-    highlighted: true,
+    description: 'Suite avanzada para empresas medianas con multi-empresa y portal del trabajador.',
     features: [
       'Hasta 100 trabajadores (S/8 por trabajador adicional)',
       'Todo del plan Starter',
@@ -76,11 +75,12 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
   PRO: {
     key: 'PRO',
     name: 'Pro',
-    priceInCentimos: 149900,
-    priceDisplay: 1499,
+    priceInCentimos: 69900,
+    priceDisplay: 699,
     currency: 'PEN',
     interval: 'month',
-    description: 'IA + portal biométrico para medianas empresas.',
+    description: 'Compliance SUNAFIL completo con IA y SST para empresas en crecimiento.',
+    highlighted: true,
     features: [
       'Hasta 300 trabajadores (S/5 por trabajador adicional)',
       'Todo del plan Empresa',
@@ -94,25 +94,6 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'ENTERPRISE'>, CulqiPlan
       'SST integral',
       '15 usuarios admin',
       'Soporte dedicado',
-    ],
-  },
-  BUSINESS: {
-    key: 'BUSINESS',
-    name: 'Business',
-    priceInCentimos: 399900,
-    priceDisplay: 3999,
-    currency: 'PEN',
-    interval: 'month',
-    description: 'Multi-empresa + cuota IA ampliada para empresas grandes.',
-    features: [
-      'Hasta 750 trabajadores (S/4 por trabajador adicional)',
-      'Todo del plan Pro',
-      'Multi-empresa básico (hasta 3 sucursales)',
-      'Cuota IA ampliada (5,000 consultas/mes)',
-      'Onboarding asistido',
-      'Soporte prioritario < 8h',
-      '30 usuarios admin',
-      'Reportes consolidados multi-empresa',
     ],
   },
 }
@@ -506,7 +487,7 @@ export async function getChargeStatus(
 /**
  * Validate that a plan key is Culqi-charged (excluye FREE + ENTERPRISE contact-sales)
  */
-export function isValidPaidPlan(planKey: string): planKey is Exclude<Plan, 'FREE' | 'ENTERPRISE'> {
+export function isValidPaidPlan(planKey: string): planKey is Exclude<Plan, 'FREE' | 'BUSINESS' | 'ENTERPRISE'> {
   return planKey in CULQI_PLANS
 }
 

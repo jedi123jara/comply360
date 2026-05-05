@@ -28,7 +28,7 @@ describe('NAV_HUBS / estructura', () => {
       'cockpit',
       'equipo',
       'riesgo',
-      'calendario',
+      'sst',
       'contratos-docs',
       'ia-laboral',
       'config',
@@ -52,14 +52,23 @@ describe('resolveActiveHub', () => {
     expect(resolveActiveHub('/dashboard/simulacro').key).toBe('riesgo')
   })
 
-  it('/dashboard/calendario mapea a Calendario', () => {
-    expect(resolveActiveHub('/dashboard/calendario').key).toBe('calendario')
+  it('/dashboard/calendario mapea a Cockpit (sub-item del Panel)', () => {
+    expect(resolveActiveHub('/dashboard/calendario').key).toBe('cockpit')
+  })
+
+  it('/dashboard/sst y subrutas mapean al hub SST', () => {
+    expect(resolveActiveHub('/dashboard/sst').key).toBe('sst')
+    expect(resolveActiveHub('/dashboard/sst/sedes').key).toBe('sst')
+    expect(resolveActiveHub('/dashboard/sst/comite/elecciones').key).toBe('sst')
+    expect(resolveActiveHub('/dashboard/sst/iperc').key).toBe('sst')
+    expect(resolveActiveHub('/dashboard/sst/arco').key).toBe('sst')
   })
 
   it('/dashboard/contratos mapea a Contratos & Docs', () => {
     expect(resolveActiveHub('/dashboard/contratos').key).toBe('contratos-docs')
     expect(resolveActiveHub('/dashboard/documentos').key).toBe('contratos-docs')
-    expect(resolveActiveHub('/dashboard/sst').key).toBe('contratos-docs')
+    expect(resolveActiveHub('/dashboard/sunafil-ready').key).toBe('contratos-docs')
+    expect(resolveActiveHub('/dashboard/generadores').key).toBe('contratos-docs')
   })
 
   it('/dashboard/ia-laboral y calculadoras mapean a IA Laboral', () => {

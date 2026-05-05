@@ -30,10 +30,13 @@ describe('plan-features / coverage por tier', () => {
     expect(PLAN_FEATURES.EMPRESA).not.toContain('api_access')
   })
 
-  it('PRO incluye todas las features', () => {
-    const allFeatures = Object.keys(FEATURE_MIN_PLAN)
-    for (const f of allFeatures) {
-      expect(PLAN_FEATURES.PRO).toContain(f)
+  it('PRO incluye las features cuyo plan minimo es PRO o menor', () => {
+    const proAndBelow = Object.entries(FEATURE_MIN_PLAN)
+      .filter(([, minPlan]) => ['FREE', 'STARTER', 'PRO'].includes(minPlan))
+      .map(([feature]) => feature)
+
+    for (const feature of proAndBelow) {
+      expect(PLAN_FEATURES.PRO).toContain(feature)
     }
   })
 

@@ -54,6 +54,13 @@ import { MobileTreeView } from '../mobile/mobile-tree-view'
 import { MobileInspectorSheet } from '../mobile/mobile-inspector-sheet'
 import { buildCoverageReport } from '@/lib/orgchart/coverage-aggregator'
 import type { OrgChartTree } from '@/lib/orgchart/types'
+import {
+  COMMISSION_FILTERS,
+  classifyCommissionUnit,
+  commissionTypeLabel,
+  isCommissionUnit,
+  matchesCommissionFilter,
+} from '../utils/commission-classification'
 
 export function OrganigramaShellV2() {
   // --- Hooks de teclado ---
@@ -71,6 +78,8 @@ export function OrganigramaShellV2() {
   const timemachineOpen = useOrgStore((s) => s.timemachineOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
   const view = useOrgStore((s) => s.view)
+  const commissionFilter = useOrgStore((s) => s.commissionFilter)
+  const setCommissionFilter = useOrgStore((s) => s.setCommissionFilter)
   const displayMode = useOrgStore((s) => s.displayMode)
   const setDisplayMode = useOrgStore((s) => s.setDisplayMode)
 
@@ -84,7 +93,10 @@ export function OrganigramaShellV2() {
   const createSnapshotMutation = useCreateSnapshotMutation()
 
   const rawTree = treeQuery.data ?? null
-  const tree = useMemo(() => filterTreeByView(rawTree, view), [rawTree, view])
+  const tree = useMemo(
+    () => filterTreeByView(rawTree, view, commissionFilter),
+    [commissionFilter, rawTree, view],
+  )
   const doctorReport = doctorQuery.data ?? null
 
   // Coverage report consolidado para inspector y heatmap.
@@ -114,9 +126,42 @@ export function OrganigramaShellV2() {
       if (seenRoleKeys.has(key)) duplicateRoleKeys.add(key)
       seenRoleKeys.add(key)
     }
+    const commissionUnits = tree.units.filter(isCommissionUnit)
+    const rolesByUnit = new Map<string, typeof tree.complianceRoles>()
+    for (const role of tree.complianceRoles) {
+      if (!role.unitId) continue
+      rolesByUnit.set(role.unitId, [...(rolesByUnit.get(role.unitId) ?? []), role])
+    }
+    const committeesWithoutActa = commissionUnits.filter((unit) => {
+      if (unit.kind === 'PROYECTO') return false
+      const roles = rolesByUnit.get(unit.id) ?? []
+      return roles.length > 0 && roles.some((role) => !role.actaUrl)
+    })
+    const expiringCommissions = commissionUnits.filter((unit) => {
+      const roles = rolesByUnit.get(unit.id) ?? []
+      return roles.some((role) => role.endsAt && daysUntil(role.endsAt) <= 60 && daysUntil(role.endsAt) >= 0)
+    })
+    const temporaryWithoutLeader = commissionUnits.filter((unit) => {
+      if (classifyCommissionUnit(unit) !== 'temporary') return false
+      const unitPositions = tree.positions.filter((position) => position.orgUnitId === unit.id)
+      const leader = unitPositions.find((position) => position.isManagerial || /líder|lider|responsable/i.test(position.title))
+      if (!leader) return true
+      return (assignmentsByPosition.get(leader.id) ?? 0) === 0
+    })
+    const countsByCommissionType = commissionUnits.reduce(
+      (acc, unit) => {
+        acc[classifyCommissionUnit(unit)]++
+        return acc
+      },
+      { sst: 0, legal: 0, brigade: 0, temporary: 0 },
+    )
     return {
       criticalVacancies,
       duplicateRoles: duplicateRoleKeys.size,
+      committeesWithoutActa,
+      expiringCommissions,
+      temporaryWithoutLeader,
+      countsByCommissionType,
     }
   }, [tree])
 
@@ -192,6 +237,36 @@ export function OrganigramaShellV2() {
           </div>
         </div>
 
+        {view === 'committees' && operationalSummary && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {COMMISSION_FILTERS.map((filter) => {
+              const active = commissionFilter === filter.id
+              const count =
+                filter.id === 'all'
+                  ? Object.values(operationalSummary.countsByCommissionType).reduce((sum, item) => sum + item, 0)
+                  : operationalSummary.countsByCommissionType[filter.id]
+              return (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setCommissionFilter(filter.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? 'border-teal-300 bg-teal-50 text-teal-800 shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                  title={filter.description}
+                >
+                  {filter.label}
+                  <span className="rounded bg-white/80 px-1.5 py-0.5 text-[10px] tabular-nums ring-1 ring-black/5">
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Time machine — botón que abre drawer cinemático */}
         {(snapshotsQuery.data?.length ?? 0) > 0 && (
           <div className="mt-3 flex items-center gap-2 text-xs">
@@ -226,7 +301,10 @@ export function OrganigramaShellV2() {
 
         {operationalSummary &&
           (operationalSummary.criticalVacancies.length > 0 ||
-            operationalSummary.duplicateRoles > 0) && (
+            operationalSummary.duplicateRoles > 0 ||
+            operationalSummary.committeesWithoutActa.length > 0 ||
+            operationalSummary.expiringCommissions.length > 0 ||
+            operationalSummary.temporaryWithoutLeader.length > 0) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
               {operationalSummary.criticalVacancies.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 font-medium">
@@ -243,6 +321,26 @@ export function OrganigramaShellV2() {
                   {operationalSummary.duplicateRoles === 1 ? '' : 'es'} legal
                   {operationalSummary.duplicateRoles === 1 ? '' : 'es'} duplicado
                   {operationalSummary.duplicateRoles === 1 ? '' : 's'}
+                </span>
+              )}
+              {operationalSummary.committeesWithoutActa.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  {operationalSummary.committeesWithoutActa.length} comisión
+                  {operationalSummary.committeesWithoutActa.length === 1 ? '' : 'es'} sin acta completa
+                </span>
+              )}
+              {operationalSummary.expiringCommissions.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {operationalSummary.expiringCommissions.length} comisión
+                  {operationalSummary.expiringCommissions.length === 1 ? '' : 'es'} por vencer
+                </span>
+              )}
+              {operationalSummary.temporaryWithoutLeader.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <UsersRound className="h-3.5 w-3.5" />
+                  {operationalSummary.temporaryWithoutLeader.length} equipo temporal sin líder asignado
                 </span>
               )}
               {operationalSummary.criticalVacancies.length > 0 && (
@@ -274,6 +372,7 @@ export function OrganigramaShellV2() {
             view === 'committees' ? (
               <EmptyCommittees
                 onCreateCommission={() => useOrgStore.getState().openModal('templates')}
+                filterLabel={commissionTypeLabel(commissionFilter)}
               />
             ) : (
               <EmptyOnboarding onStart={() => setShowOnboarding(true)} />
@@ -418,7 +517,13 @@ function EmptyOnboarding({ onStart }: { onStart: () => void }) {
   )
 }
 
-function EmptyCommittees({ onCreateCommission }: { onCreateCommission: () => void }) {
+function EmptyCommittees({
+  filterLabel,
+  onCreateCommission,
+}: {
+  filterLabel: string
+  onCreateCommission: () => void
+}) {
   return (
     <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-sky-50/50 p-8 text-center">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-emerald-700 shadow-lg shadow-slate-200 ring-1 ring-emerald-100">
@@ -428,9 +533,9 @@ function EmptyCommittees({ onCreateCommission }: { onCreateCommission: () => voi
         Crea comisiones fuera de la jerarquía
       </h2>
       <p className="mt-2 max-w-md text-sm text-slate-600">
-        Usa plantillas para Comité SST, brigadas, comisión investigadora o equipos
-        temporales. Los miembros pueden venir de distintas gerencias sin alterar la
-        línea principal de mando.
+        No hay registros en {filterLabel}. Usa plantillas para Comité SST,
+        brigadas, comisión investigadora o equipos temporales. Los miembros pueden
+        venir de distintas gerencias sin alterar la línea principal de mando.
       </p>
       <button
         type="button"
@@ -444,17 +549,19 @@ function EmptyCommittees({ onCreateCommission }: { onCreateCommission: () => voi
   )
 }
 
-const COMMISSION_KINDS = new Set(['COMITE_LEGAL', 'BRIGADA', 'PROYECTO'])
-
-function filterTreeByView(tree: OrgChartTree | null, view: 'hierarchy' | 'committees') {
+function filterTreeByView(
+  tree: OrgChartTree | null,
+  view: 'hierarchy' | 'committees',
+  commissionFilter: Parameters<typeof matchesCommissionFilter>[1],
+) {
   if (!tree) return null
 
   const unitIds = new Set(
     tree.units
       .filter((unit) =>
         view === 'committees'
-          ? COMMISSION_KINDS.has(unit.kind)
-          : !COMMISSION_KINDS.has(unit.kind),
+          ? matchesCommissionFilter(unit, commissionFilter)
+          : !isCommissionUnit(unit),
       )
       .map((unit) => unit.id),
   )
@@ -482,4 +589,11 @@ function filterTreeByView(tree: OrgChartTree | null, view: 'hierarchy' | 'commit
       (role) => !role.unitId || unitIds.has(role.unitId),
     ),
   } satisfies OrgChartTree
+}
+
+function daysUntil(date: string) {
+  const target = new Date(date).getTime()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.ceil((target - today.getTime()) / (1000 * 60 * 60 * 24))
 }

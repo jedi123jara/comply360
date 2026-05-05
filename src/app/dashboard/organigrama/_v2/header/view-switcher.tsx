@@ -13,6 +13,7 @@ const VIEWS: Array<{ view: View; label: string; icon: typeof Building2 }> = [
 export function ViewSwitcher() {
   const view = useOrgStore((s) => s.view)
   const setView = useOrgStore((s) => s.setView)
+  const setCommissionFilter = useOrgStore((s) => s.setCommissionFilter)
   const clearSelection = useOrgStore((s) => s.clearSelection)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
 
@@ -32,6 +33,7 @@ export function ViewSwitcher() {
             aria-selected={active}
             onClick={() => {
               setView(itemView)
+              if (itemView === 'committees') setCommissionFilter('all')
               clearSelection()
               setInspectorOpen(false)
             }}

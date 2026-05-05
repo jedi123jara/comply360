@@ -89,11 +89,30 @@ describe('planHasFeature', () => {
 // ---------------------------------------------------------------------------
 
 describe('getPlanFeatures', () => {
-  it('Returns correct array length per plan (FREE=1, STARTER=5, EMPRESA=9, PRO=15)', () => {
-    expect(getPlanFeatures('FREE')).toHaveLength(1)
-    expect(getPlanFeatures('STARTER')).toHaveLength(5)
-    expect(getPlanFeatures('EMPRESA')).toHaveLength(9)
-    expect(getPlanFeatures('PRO')).toHaveLength(15)
+  it('Returns configured feature arrays per plan', () => {
+    expect(getPlanFeatures('FREE')).toEqual(['calculadoras'])
+    expect(getPlanFeatures('STARTER')).toEqual(expect.arrayContaining([
+      'calculadoras',
+      'workers',
+      'alertas_basicas',
+      'calendario',
+      'contratos',
+    ]))
+    expect(getPlanFeatures('EMPRESA')).toEqual(expect.arrayContaining([
+      'diagnostico',
+      'simulacro_basico',
+      'reportes_pdf',
+      'ia_contratos',
+      'organigrama_completo',
+    ]))
+    expect(getPlanFeatures('PRO')).toEqual(expect.arrayContaining([
+      'asistente_ia',
+      'review_ia',
+      'simulacro_completo',
+      'denuncias',
+      'sst_completo',
+      'api_access',
+    ]))
   })
 
   it('Unknown plan returns FREE features', () => {
@@ -116,12 +135,12 @@ describe('getMaxWorkers', () => {
     expect(getMaxWorkers('STARTER')).toBe(20)
   })
 
-  it('EMPRESA = 100', () => {
-    expect(getMaxWorkers('EMPRESA')).toBe(100)
+  it('EMPRESA = 250', () => {
+    expect(getMaxWorkers('EMPRESA')).toBe(250)
   })
 
-  it('PRO = 300', () => {
-    expect(getMaxWorkers('PRO')).toBe(300)
+  it('PRO = 75', () => {
+    expect(getMaxWorkers('PRO')).toBe(75)
   })
 
   it('ENTERPRISE = 999999', () => {
@@ -146,12 +165,12 @@ describe('getMaxUsers', () => {
     expect(getMaxUsers('STARTER')).toBe(2)
   })
 
-  it('EMPRESA = 5', () => {
-    expect(getMaxUsers('EMPRESA')).toBe(5)
+  it('EMPRESA = 15', () => {
+    expect(getMaxUsers('EMPRESA')).toBe(15)
   })
 
-  it('PRO = 15', () => {
-    expect(getMaxUsers('PRO')).toBe(15)
+  it('PRO = 5', () => {
+    expect(getMaxUsers('PRO')).toBe(5)
   })
 })
 

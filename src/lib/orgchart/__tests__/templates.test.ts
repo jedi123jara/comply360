@@ -40,6 +40,8 @@ describe('plantillas organizacionales', () => {
       'brigada-emergencia',
       'comision-investigadora',
       'equipo-temporal-auditoria',
+      'equipo-auditoria-sunafil',
+      'comision-risst',
     ])
     expect(commissionTemplates.every(template => template.unitCount >= 1)).toBe(true)
     expect(commissionTemplates.every(template => template.positionCount >= 2)).toBe(true)

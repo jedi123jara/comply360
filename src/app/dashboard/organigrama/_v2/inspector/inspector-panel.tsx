@@ -41,6 +41,11 @@ import { useOrgStore } from '../state/org-store'
 import type { InspectorTab } from '../state/slices/inspector-slice'
 import { alertsKey } from '../data/queries/use-alerts'
 import { treeKey } from '../data/queries/use-tree'
+import {
+  classifyCommissionUnit,
+  commissionTypeLabel,
+  isCommissionUnit,
+} from '../utils/commission-classification'
 
 const TABS: Array<{ id: InspectorTab; label: string }> = [
   { id: 'info', label: 'Información' },
@@ -101,6 +106,8 @@ export function InspectorPanel({ tree, coverage }: InspectorPanelProps) {
     return tree.complianceRoles.filter((role) => role.unitId === unit.id)
   }, [tree.complianceRoles, unit])
   const unitSupportsLegalRoles = unit?.kind === 'COMITE_LEGAL' || unit?.kind === 'BRIGADA'
+  const unitIsCommission = unit ? isCommissionUnit(unit) : false
+  const unitCommissionType = unit ? classifyCommissionUnit(unit) : null
 
   const duplicateLegalRoleIds = useMemo(() => {
     const roleIds = new Set<string>()
@@ -214,7 +221,9 @@ export function InspectorPanel({ tree, coverage }: InspectorPanelProps) {
       <header className="flex items-start justify-between gap-2 border-b border-slate-200 px-4 py-3">
         <div className="min-w-0">
           <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-            {unit.kind}
+            {unitIsCommission && unitCommissionType
+              ? `${commissionTypeLabel(unitCommissionType)} · ${unit.kind}`
+              : unit.kind}
           </div>
           <h2 className="truncate text-sm font-semibold text-slate-900">{unit.name}</h2>
           {unitCoverage && (
@@ -292,10 +301,18 @@ export function InspectorPanel({ tree, coverage }: InspectorPanelProps) {
             {unit.description && (
               <div>
                 <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                  Descripción
+                  {unitIsCommission ? 'Objetivo / encargo' : 'Descripción'}
                 </div>
                 <p className="mt-1 text-sm text-slate-700">{unit.description}</p>
               </div>
+            )}
+            {unitIsCommission && (
+              <CommissionOperatingBlock
+                positions={positions}
+                occupants={occupants}
+                legalRoles={unitLegalRoles}
+                commissionType={unitCommissionType ?? 'legal'}
+              />
             )}
             {positions.length > 0 && (
               <section className="space-y-2">
@@ -896,6 +913,97 @@ function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
       {icon}
       {label}
     </h3>
+  )
+}
+
+function CommissionOperatingBlock({
+  commissionType,
+  legalRoles,
+  occupants,
+  positions,
+}: {
+  commissionType: Exclude<ReturnType<typeof classifyCommissionUnit>, never>
+  legalRoles: OrgChartTree['complianceRoles']
+  occupants: OrgChartTree['assignments']
+  positions: OrgChartTree['positions']
+}) {
+  const totalSeats = positions.reduce((sum, position) => sum + (position.seats ?? 1), 0)
+  const occupiedSeats = occupants.length
+  const missingActas = legalRoles.filter((role) => !role.actaUrl).length
+  const leaderPosition = positions.find(
+    (position) => position.isManagerial || /líder|lider|responsable|presidente|jefe/i.test(position.title),
+  )
+  const leaderAssigned = leaderPosition
+    ? occupants.some((assignment) => assignment.positionId === leaderPosition.id)
+    : false
+  const nextTasks =
+    commissionType === 'temporary'
+      ? [
+          'Definir objetivo y fecha de cierre',
+          'Asignar líder del equipo',
+          'Asignar responsables por tarea',
+          'Adjuntar evidencias de cierre',
+        ]
+      : [
+          'Confirmar miembros titulares',
+          'Adjuntar acta de designación',
+          'Revisar fecha de vigencia',
+          'Retirar duplicados si existen',
+        ]
+
+  return (
+    <section className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <SectionTitle icon={<Users className="h-3.5 w-3.5" />} label="Control operativo" />
+      <div className="grid grid-cols-2 gap-2">
+        <MiniStatus label="Tipo" value={commissionTypeLabel(commissionType)} />
+        <MiniStatus label="Cobertura" value={`${occupiedSeats}/${Math.max(totalSeats, 1)}`} />
+        <MiniStatus
+          label="Líder"
+          value={leaderAssigned ? 'Asignado' : 'Pendiente'}
+          tone={leaderAssigned ? 'ok' : 'warn'}
+        />
+        <MiniStatus
+          label="Actas"
+          value={missingActas === 0 ? 'OK' : `${missingActas} pendiente${missingActas === 1 ? '' : 's'}`}
+          tone={missingActas === 0 ? 'ok' : 'warn'}
+        />
+      </div>
+      <div className="rounded-lg border border-white bg-white p-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          Siguientes pasos
+        </div>
+        <ul className="mt-1.5 space-y-1 text-[11px] text-slate-600">
+          {nextTasks.map((task) => (
+            <li key={task} className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {task}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+function MiniStatus({
+  label,
+  tone = 'neutral',
+  value,
+}: {
+  label: string
+  tone?: 'neutral' | 'ok' | 'warn'
+  value: string
+}) {
+  const toneClass = {
+    neutral: 'border-slate-200 bg-white text-slate-800',
+    ok: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    warn: 'border-amber-200 bg-amber-50 text-amber-800',
+  }[tone]
+  return (
+    <div className={`rounded-lg border px-2 py-1.5 ${toneClass}`}>
+      <div className="text-[9px] font-bold uppercase tracking-wide opacity-70">{label}</div>
+      <div className="mt-0.5 truncate text-[11px] font-semibold">{value}</div>
+    </div>
   )
 }
 

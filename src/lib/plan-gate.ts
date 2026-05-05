@@ -3,75 +3,24 @@ import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { PLANS } from '@/lib/constants'
+import {
+  FEATURE_MIN_PLAN,
+  PLAN_FEATURES,
+  planHasFeature,
+  type PlanFeature,
+} from '@/lib/plan-features'
 
 // =============================================
 // PLAN FEATURES & LIMITS
 // Defines what each plan can access
 // =============================================
 
-export type PlanFeature =
-  | 'calculadoras'
-  | 'workers'
-  | 'alertas_basicas'
-  | 'calendario'
-  | 'contratos'
-  | 'diagnostico'
-  | 'simulacro_basico'
-  | 'reportes_pdf'
-  | 'ia_contratos'
-  | 'asistente_ia'
-  | 'review_ia'
-  | 'simulacro_completo'
-  | 'denuncias'
-  | 'sst_completo'
-  | 'api_access'
-
-const PLAN_FEATURES: Record<string, PlanFeature[]> = {
-  FREE: ['calculadoras'],
-  STARTER: [
-    'calculadoras', 'workers', 'alertas_basicas', 'calendario', 'contratos',
-  ],
-  EMPRESA: [
-    'calculadoras', 'workers', 'alertas_basicas', 'calendario', 'contratos',
-    'diagnostico', 'simulacro_basico', 'reportes_pdf', 'ia_contratos',
-  ],
-  PRO: [
-    'calculadoras', 'workers', 'alertas_basicas', 'calendario', 'contratos',
-    'diagnostico', 'simulacro_basico', 'reportes_pdf', 'ia_contratos',
-    'asistente_ia', 'review_ia', 'simulacro_completo', 'denuncias', 'sst_completo', 'api_access',
-  ],
-}
-
-// Feature → minimum plan required (for UI display)
-export const FEATURE_MIN_PLAN: Record<PlanFeature, string> = {
-  calculadoras: 'FREE',
-  workers: 'STARTER',
-  alertas_basicas: 'STARTER',
-  calendario: 'STARTER',
-  contratos: 'STARTER',
-  diagnostico: 'EMPRESA',
-  simulacro_basico: 'EMPRESA',
-  reportes_pdf: 'EMPRESA',
-  ia_contratos: 'EMPRESA',
-  asistente_ia: 'PRO',
-  review_ia: 'PRO',
-  simulacro_completo: 'PRO',
-  denuncias: 'PRO',
-  sst_completo: 'PRO',
-  api_access: 'PRO',
-}
+export { FEATURE_MIN_PLAN, PLAN_FEATURES, planHasFeature }
+export type { PlanFeature }
 
 // =============================================
 // PLAN CHECKS
 // =============================================
-
-/**
- * Check if a plan has access to a specific feature
- */
-export function planHasFeature(plan: string, feature: PlanFeature): boolean {
-  const features = PLAN_FEATURES[plan] ?? PLAN_FEATURES.FREE
-  return features.includes(feature)
-}
 
 /**
  * Get all features available for a plan (for sidebar UI)
@@ -130,7 +79,8 @@ export function withPlanGate(
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean)
-    if (founderEmails.includes(ctx.email.toLowerCase())) {
+    const ctxEmail = typeof ctx.email === 'string' ? ctx.email.toLowerCase() : ''
+    if (ctxEmail && founderEmails.includes(ctxEmail)) {
       return handler(req, ctx)
     }
 
