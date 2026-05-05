@@ -1,6 +1,7 @@
 @AGENTS.md
 
-# COMPLY360 PERU — Plan Maestro de Desarrollo
+# LegaliaPro Platform - Guía de Desarrollo
+<!-- Last deploy trigger: 2026-05-04 19:02 -->
 
 > Plataforma SaaS de Compliance Laboral Integral para el mercado peruano.
 > Este documento es la guia definitiva de desarrollo. Cada sesion de trabajo debe consultarlo.
