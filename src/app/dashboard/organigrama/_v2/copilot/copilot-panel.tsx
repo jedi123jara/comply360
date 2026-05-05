@@ -8,7 +8,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useOrgStore } from '../state/org-store'
@@ -120,7 +120,7 @@ export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
 
   return (
     <AnimatePresence>
-      <motion.aside
+      <m.aside
         initial={{ x: 480 }}
         animate={{ x: 0 }}
         exit={{ x: 480 }}
@@ -262,7 +262,7 @@ export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
             </div>
           )}
         </footer>
-      </motion.aside>
+      </m.aside>
     </AnimatePresence>
   )
 }

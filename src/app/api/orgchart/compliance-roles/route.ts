@@ -6,6 +6,10 @@ import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 import { recordStructureChange, requestIp } from '@/lib/orgchart/change-log'
 
 const SINGLE_HOLDER_ROLE_TYPES = new Set([
+  'PRESIDENTE_COMITE_SST',
+  'SECRETARIO_COMITE_SST',
+  'SUPERVISOR_SST',
+  'PRESIDENTE_COMITE_HOSTIGAMIENTO',
   'DPO_LEY_29733',
   'RT_PLANILLA',
   'RESPONSABLE_IGUALDAD_SALARIAL',

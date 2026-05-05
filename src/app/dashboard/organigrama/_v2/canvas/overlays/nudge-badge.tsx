@@ -8,7 +8,7 @@
  */
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { AlertCircle, X, ChevronRight } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 
@@ -115,7 +115,7 @@ export function NudgeBadgeList({ findings, onFocusUnit }: NudgeBadgeListProps) {
     <div className="pointer-events-none absolute bottom-20 left-4 z-20 flex flex-col-reverse gap-2">
       <AnimatePresence>
         {visibleNudges.map((f) => (
-          <motion.div
+          <m.div
             key={fingerprintFinding(f)}
             layout
             initial={{ opacity: 0, x: -20, scale: 0.9 }}
@@ -167,7 +167,7 @@ export function NudgeBadgeList({ findings, onFocusUnit }: NudgeBadgeListProps) {
             >
               <X className="h-3.5 w-3.5" />
             </button>
-          </motion.div>
+          </m.div>
         ))}
       </AnimatePresence>
     </div>

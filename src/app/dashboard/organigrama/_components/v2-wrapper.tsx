@@ -1,6 +1,5 @@
 /**
- * Wrapper client-side que hace el dynamic import del Shell v2 y monta los
- * providers necesarios.
+ * Wrapper client-side que monta el Shell v2 y sus providers necesarios.
  *
  * Importante: el v2 usa `@tanstack/react-query` para todos los hooks de
  * data (`useTreeQuery`, `useSnapshotsQuery`, etc.). El dashboard layout NO
@@ -10,16 +9,8 @@
  */
 'use client'
 
-import dynamic from 'next/dynamic'
 import { QueryProvider } from '@/providers/query-provider'
-
-const OrganigramaShellV2 = dynamic(
-  () => import('../_v2/shell/organigrama-shell-v2').then((m) => m.OrganigramaShellV2),
-  {
-    ssr: false,
-    loading: () => <div className="p-8 text-sm text-slate-500">Cargando organigrama…</div>,
-  },
-)
+import { OrganigramaShellV2 } from '../_v2/shell/organigrama-shell-v2'
 
 export function OrganigramaV2Wrapper() {
   return (

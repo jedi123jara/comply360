@@ -15,7 +15,7 @@
 
 import { Command } from 'cmdk'
 import { useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import {
   Building2,
   Briefcase,
@@ -257,7 +257,7 @@ export function CommandPaletteV2() {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -265,7 +265,7 @@ export function CommandPaletteV2() {
           onClick={() => setOpen(false)}
           className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/40 p-4 pt-[15vh] backdrop-blur-sm"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.96, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
@@ -354,8 +354,8 @@ export function CommandPaletteV2() {
                 </span>
               </div>
             </Command>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   )

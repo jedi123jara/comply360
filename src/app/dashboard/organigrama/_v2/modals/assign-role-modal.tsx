@@ -15,7 +15,7 @@ import { ModalShell } from './modal-shell'
 import { useOrgStore } from '../state/org-store'
 import { useTreeQuery, treeKey } from '../data/queries/use-tree'
 import { alertsKey } from '../data/queries/use-alerts'
-import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
+import { COMMITTEE_GROUPS, COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 import type { ComplianceRoleType } from '@/lib/orgchart/types'
 
 interface WorkerOption {
@@ -35,7 +35,7 @@ export function AssignRoleModal() {
 
   const queryClient = useQueryClient()
   const treeQuery = useTreeQuery(null)
-  const units = treeQuery.data?.units ?? []
+  const units = useMemo(() => treeQuery.data?.units ?? [], [treeQuery.data?.units])
 
   const presetRole = modalProps.roleType as ComplianceRoleType | undefined
   const presetUnit = modalProps.unitId as string | undefined
@@ -54,6 +54,11 @@ export function AssignRoleModal() {
   const [search, setSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const selectedUnit = useMemo(
+    () => units.find((unit) => unit.id === unitId) ?? null,
+    [unitId, units],
+  )
+
   useEffect(() => {
     if (!open) return
     setRoleType(presetRole ?? 'PRESIDENTE_COMITE_SST')
@@ -67,12 +72,29 @@ export function AssignRoleModal() {
     fetch('/api/workers?limit=500')
       .then((r) => r.json())
       .then((data) => {
-        setWorkers(data.workers ?? data.items ?? data ?? [])
+        const items = data.workers ?? data.items ?? data.data ?? data
+        setWorkers(Array.isArray(items) ? items : [])
       })
       .catch(() => toast.error('No se pudieron cargar trabajadores'))
       .finally(() => setLoadingWorkers(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  const roleTypesForUnit = useMemo(() => {
+    if (!selectedUnit) return ALL_ROLE_TYPES
+    if (selectedUnit.kind === 'BRIGADA') return COMMITTEE_GROUPS.BRIGADA_EMERGENCIA
+    const name = selectedUnit.name.toLowerCase()
+    if (name.includes('hostigamiento')) return COMMITTEE_GROUPS.COMITE_HOSTIGAMIENTO
+    if (name.includes('seguridad') || name.includes('salud') || name.includes('sst')) {
+      return [...COMMITTEE_GROUPS.COMITE_SST, 'SUPERVISOR_SST'] as ComplianceRoleType[]
+    }
+    return ALL_ROLE_TYPES.filter((type) => COMPLIANCE_ROLES[type].committeeKind !== 'INDIVIDUAL')
+  }, [selectedUnit])
+
+  useEffect(() => {
+    if (!open || roleTypesForUnit.includes(roleType)) return
+    setRoleType(roleTypesForUnit[0] ?? 'PRESIDENTE_COMITE_SST')
+  }, [open, roleType, roleTypesForUnit])
 
   const def = COMPLIANCE_ROLES[roleType]
 
@@ -165,7 +187,7 @@ export function AssignRoleModal() {
             onChange={(e) => setRoleType(e.target.value as ComplianceRoleType)}
             className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
-            {ALL_ROLE_TYPES.map((rt) => (
+            {roleTypesForUnit.map((rt) => (
               <option key={rt} value={rt}>
                 {COMPLIANCE_ROLES[rt].label}
               </option>

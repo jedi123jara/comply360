@@ -7,7 +7,7 @@
  */
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 
 import type { OrgChartTree } from '@/lib/orgchart/types'
@@ -24,19 +24,22 @@ export function MobileInspectorSheet({ tree, coverage }: MobileInspectorSheetPro
   const open = useOrgStore((s) => s.inspectorOpen)
   const setOpen = useOrgStore((s) => s.setInspectorOpen)
   const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
+  const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
+  const selectedWorkerId = useOrgStore((s) => s.selectedWorkerId)
+  const hasSelection = Boolean(selectedUnitId || selectedPositionId || selectedWorkerId)
 
   return (
     <AnimatePresence>
-      {open && selectedUnitId && (
+      {open && hasSelection && (
         <>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-40 bg-slate-950/40"
           />
-          <motion.div
+          <m.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -66,7 +69,7 @@ export function MobileInspectorSheet({ tree, coverage }: MobileInspectorSheetPro
                 <InspectorPanel tree={tree} coverage={coverage} />
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

@@ -25,6 +25,7 @@ import {
   BookMarked,
   Users,
   MessageSquare,
+  UserPlus,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -56,6 +57,20 @@ export function OrgToolbar({
   const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
   const openModal = useOrgStore((s) => s.openModal)
+  const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
+  const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
+
+  const openContextualAssignment = () => {
+    if (selectedPositionId) {
+      openModal('assign-worker', { positionId: selectedPositionId })
+      return
+    }
+    if (selectedUnitId) {
+      openModal('assign-worker', { unitId: selectedUnitId })
+      return
+    }
+    openModal('assign-worker')
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -110,9 +125,35 @@ export function OrgToolbar({
               <ScrollText className="h-3.5 w-3.5" />
               Nuevo cargo
             </button>
+            <div className="my-1 border-t border-slate-100" />
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openContextualAssignment()
+                setCreateOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Asignar trabajador
+            </button>
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        onMouseDown={(e) => {
+          e.preventDefault()
+          openContextualAssignment()
+        }}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        title="Asignar trabajador a un cargo"
+      >
+        <UserPlus className="h-4 w-4" />
+        <span className="hidden md:inline">Asignar</span>
+      </button>
 
       {/* Copiloto IA — destacado */}
       <button

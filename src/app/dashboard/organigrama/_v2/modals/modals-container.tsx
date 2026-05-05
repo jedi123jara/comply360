@@ -12,6 +12,8 @@ import { CreatePositionModal } from './create-position-modal'
 import { AssignWorkerModal } from './assign-worker-modal'
 import { EditPositionModal } from './edit-position-modal'
 import { AssignRoleModal } from './assign-role-modal'
+import { TemplatesModal } from './templates-modal'
+import { RoleEvidenceModal } from './role-evidence-modal'
 
 export function ModalsContainer() {
   return (
@@ -21,6 +23,8 @@ export function ModalsContainer() {
       <AssignWorkerModal />
       <EditPositionModal />
       <AssignRoleModal />
+      <RoleEvidenceModal />
+      <TemplatesModal />
     </>
   )
 }

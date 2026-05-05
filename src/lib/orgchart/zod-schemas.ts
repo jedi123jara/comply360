@@ -144,6 +144,12 @@ export const createComplianceRoleSchema = z.object({
   actaUrl: z.string().url().optional().nullable(),
 })
 
+export const updateComplianceRoleSchema = z.object({
+  endsAt: z.string().datetime().optional().nullable(),
+  electedAt: z.string().datetime().optional().nullable(),
+  actaUrl: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+})
+
 export const createSnapshotSchema = z.object({
   label: z.string().min(2).max(120),
   reason: z.string().max(500).optional().nullable(),
@@ -169,5 +175,6 @@ export type MoveUnitInput = z.infer<typeof moveUnitSchema>
 export type CreatePositionInput = z.infer<typeof createPositionSchema>
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>
 export type CreateComplianceRoleInput = z.infer<typeof createComplianceRoleSchema>
+export type UpdateComplianceRoleInput = z.infer<typeof updateComplianceRoleSchema>
 export type CreateSnapshotInput = z.infer<typeof createSnapshotSchema>
 export type PublicLinkInput = z.infer<typeof publicLinkSchema>

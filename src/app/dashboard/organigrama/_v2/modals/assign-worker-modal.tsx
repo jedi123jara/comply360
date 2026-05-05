@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { UserPlus, Loader2, CheckCircle2, Search } from 'lucide-react'
+import { UserPlus, Loader2, CheckCircle2, Search, BriefcaseBusiness } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { ModalShell } from './modal-shell'
@@ -27,6 +27,7 @@ interface WorkerOption {
 export function AssignWorkerModal() {
   const activeModal = useOrgStore((s) => s.activeModal)
   const modalProps = useOrgStore((s) => s.modalProps)
+  const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
   const closeModal = useOrgStore((s) => s.closeModal)
   const open = activeModal === 'assign-worker'
 
@@ -36,31 +37,110 @@ export function AssignWorkerModal() {
     () => treeQuery.data?.positions ?? [],
     [treeQuery.data?.positions],
   )
+  const units = useMemo(() => treeQuery.data?.units ?? [], [treeQuery.data?.units])
+  const assignments = useMemo(
+    () => treeQuery.data?.assignments ?? [],
+    [treeQuery.data?.assignments],
+  )
 
-  const presetPositionId = modalProps.positionId as string | undefined
+  const explicitPositionId = modalProps.positionId as string | undefined
+  const explicitUnitId = modalProps.unitId as string | undefined
+  const presetPositionId =
+    explicitPositionId ?? (!explicitUnitId ? selectedPositionId : undefined) ?? undefined
 
   const [positionId, setPositionId] = useState<string | null>(presetPositionId ?? null)
   const [workers, setWorkers] = useState<WorkerOption[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [positionSearch, setPositionSearch] = useState('')
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null)
   const [isPrimary, setIsPrimary] = useState(true)
   const [isInterim, setIsInterim] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  const positionOptions = useMemo(() => {
+    const unitsById = new Map(units.map((unit) => [unit.id, unit]))
+    const assignmentsByPosition = new Map<string, number>()
+    for (const assignment of assignments) {
+      assignmentsByPosition.set(
+        assignment.positionId,
+        (assignmentsByPosition.get(assignment.positionId) ?? 0) + 1,
+      )
+    }
+
+    return positions
+      .filter((position) => !explicitUnitId || position.orgUnitId === explicitUnitId)
+      .map((position) => {
+        const unit = unitsById.get(position.orgUnitId)
+        const occupantCount = assignmentsByPosition.get(position.id) ?? 0
+        const seats = position.seats ?? 1
+        const vacancies = Math.max(0, seats - occupantCount)
+        const haystack = `${position.title} ${unit?.name ?? ''} ${position.code ?? ''}`.toLowerCase()
+
+        return {
+          position,
+          unit,
+          occupantCount,
+          vacancies,
+          isVacant: vacancies > 0,
+          isSst: haystack.includes('sst') || haystack.includes('seguridad y salud'),
+          isSupervisorSst:
+            haystack.includes('supervisor sst') ||
+            (haystack.includes('supervisor') && haystack.includes('seguridad y salud')),
+          searchText: haystack,
+        }
+      })
+      .sort((a, b) => {
+        if (a.isVacant !== b.isVacant) return a.isVacant ? -1 : 1
+        if (a.isSupervisorSst !== b.isSupervisorSst) return a.isSupervisorSst ? -1 : 1
+        if (a.isSst !== b.isSst) return a.isSst ? -1 : 1
+        return a.position.title.localeCompare(b.position.title, 'es')
+      })
+  }, [assignments, explicitUnitId, positions, units])
+
+  const recommendedPositionId = useMemo(() => {
+    const supervisorSst = positionOptions.find((option) => option.isVacant && option.isSupervisorSst)
+    const sstVacant = positionOptions.find((option) => option.isVacant && option.isSst)
+    const anyVacant = positionOptions.find((option) => option.isVacant)
+    return (
+      supervisorSst?.position.id ??
+      sstVacant?.position.id ??
+      anyVacant?.position.id ??
+      positionOptions[0]?.position.id
+    )
+  }, [positionOptions])
+
+  const filteredPositions = useMemo(() => {
+    const q = positionSearch.trim().toLowerCase()
+    if (!q) return positionOptions.slice(0, 12)
+    return positionOptions.filter((option) => option.searchText.includes(q)).slice(0, 20)
+  }, [positionOptions, positionSearch])
+
+  const selectedPosition = useMemo(
+    () => positionOptions.find((option) => option.position.id === positionId) ?? null,
+    [positionId, positionOptions],
+  )
+
   useEffect(() => {
     if (!open) return
     setPositionId(presetPositionId ?? null)
+    setPositionSearch('')
     setLoading(true)
     fetch('/api/workers?limit=500')
       .then((r) => r.json())
       .then((data) => {
-        setWorkers(data.workers ?? data.items ?? data ?? [])
+        const items = data.workers ?? data.items ?? data.data ?? data
+        setWorkers(Array.isArray(items) ? items : [])
       })
       .catch(() => toast.error('No se pudieron cargar trabajadores'))
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  useEffect(() => {
+    if (!open || positionId || !recommendedPositionId) return
+    setPositionId(recommendedPositionId)
+  }, [open, positionId, recommendedPositionId])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -82,6 +162,7 @@ export function AssignWorkerModal() {
   const reset = () => {
     setSelectedWorkerId(null)
     setSearch('')
+    setPositionSearch('')
     setIsPrimary(true)
     setIsInterim(false)
   }
@@ -158,23 +239,83 @@ export function AssignWorkerModal() {
       }
     >
       <div className="space-y-3">
-        {!presetPositionId && (
+        {explicitPositionId ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+            <div className="flex items-start gap-2">
+              <BriefcaseBusiness className="mt-0.5 h-4 w-4 text-emerald-700" />
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                  Cargo seleccionado
+                </div>
+                <div className="mt-0.5 text-sm font-semibold text-slate-900">
+                  {selectedPosition?.position.title ?? positionLabel}
+                </div>
+                {selectedPosition?.unit && (
+                  <div className="mt-0.5 text-xs text-slate-600">
+                    {selectedPosition.unit.name}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Cargo
+              {explicitUnitId ? 'Cargo de esta unidad' : 'Cargo a cubrir'}
             </label>
-            <select
-              value={positionId ?? ''}
-              onChange={(e) => setPositionId(e.target.value || null)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            >
-              <option value="">—</option>
-              {positions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+            <div className="relative mt-1">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={positionSearch}
+                onChange={(e) => setPositionSearch(e.target.value)}
+                placeholder="Buscar cargo, gerencia o SST..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+              {filteredPositions.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-500">
+                  No encontramos cargos con ese criterio
+                </div>
+              ) : (
+                filteredPositions.map((option) => (
+                  <button
+                    key={option.position.id}
+                    type="button"
+                    onClick={() => setPositionId(option.position.id)}
+                    className={`flex w-full items-start justify-between gap-3 border-b border-slate-100 px-3 py-2.5 text-left transition last:border-b-0 hover:bg-slate-50 ${
+                      positionId === option.position.id ? 'bg-emerald-50' : ''
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-sm font-semibold text-slate-900">
+                          {option.position.title}
+                        </span>
+                        {option.isSst && (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            SST
+                          </span>
+                        )}
+                        {option.isVacant && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                            Vacante
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-500">
+                        {option.unit?.name ?? 'Sin unidad'} · {option.occupantCount}/
+                        {option.position.seats ?? 1} ocupantes
+                      </div>
+                    </div>
+                    {positionId === option.position.id && (
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
         )}
 

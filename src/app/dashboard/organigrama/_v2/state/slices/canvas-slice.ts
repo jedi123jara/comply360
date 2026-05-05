@@ -7,6 +7,7 @@ import type { StateCreator } from 'zustand'
 export type LayoutMode = 'top-down' | 'left-right' | 'radial' | 'grouped-by-area'
 export type OrgLens = 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
 export type View = 'hierarchy' | 'committees'
+export type DisplayMode = 'units' | 'positions'
 
 export interface CanvasSlice {
   // Layout
@@ -15,6 +16,9 @@ export interface CanvasSlice {
   // Vista
   view: View
   setView: (view: View) => void
+  // Nivel visual
+  displayMode: DisplayMode
+  setDisplayMode: (mode: DisplayMode) => void
   // Lente
   lens: OrgLens
   setLens: (lens: OrgLens) => void
@@ -32,6 +36,8 @@ export const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> =
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   view: 'hierarchy',
   setView: (view) => set({ view }),
+  displayMode: 'units',
+  setDisplayMode: (displayMode) => set({ displayMode }),
   lens: 'general',
   setLens: (lens) => set({ lens }),
   focusEnabled: false,

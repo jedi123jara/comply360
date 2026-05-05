@@ -9,13 +9,14 @@
 import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { NodeProps, Node } from '@xyflow/react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { UserCircle2, Crown, AlertTriangle } from 'lucide-react'
 
 import { TONE_COLOR_HEX } from '@/lib/orgchart/coverage-aggregator'
 import type { PositionNodeData } from '../hooks/use-tree-to-flow'
 import { useLOD } from '../hooks/use-lod'
 import { PositionNodeToolbar } from '../overlays/node-toolbar'
+import { useOrgStore } from '../../state/org-store'
 
 interface PositionNodeProps extends NodeProps<Node<PositionNodeData>> {
   dimmed?: boolean
@@ -27,6 +28,10 @@ function PositionNodeInner(props: PositionNodeProps) {
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
   const primary = data.occupants[0]
+  const setSelectedWorker = useOrgStore((s) => s.setSelectedWorker)
+  const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
+  const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
+  const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
   const occupantName = primary
     ? primary.name
     : data.vacant
@@ -34,17 +39,23 @@ function PositionNodeInner(props: PositionNodeProps) {
       : '—'
 
   return (
-    <motion.div
+    <m.div
       layout="position"
       initial={false}
       animate={{ opacity: dimmed ? 0.18 : 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.85 }}
       transition={{ type: 'spring', stiffness: 220, damping: 28 }}
       style={{ width: 200 }}
-      className={`relative rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md ${
+      onClick={() => {
+        setSelectedPosition(data.positionId)
+        setSelectedUnit(data.unitId)
+        setInspectorOpen(true)
+      }}
+      className={`relative overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md ${
         data.vacant ? 'border-dashed border-slate-300' : 'border-slate-200'
       } ${selected ? 'shadow-lg' : ''}`}
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-slate-50 to-white" />
       <PositionNodeToolbar nodeId={data.positionId} isVisible={Boolean(selected)} />
       <div
         className="h-1 rounded-t-xl"
@@ -66,7 +77,7 @@ function PositionNodeInner(props: PositionNodeProps) {
         className="!h-2 !w-2 !border-0 !bg-slate-300"
       />
 
-      <div className="px-2.5 pt-2 pb-2.5">
+      <div className="relative px-2.5 pt-2 pb-2.5">
         {data.unitName && lod !== 'tiny' && (
           <div className="truncate text-[9px] font-medium uppercase tracking-wide text-slate-400">
             {data.unitName}
@@ -74,7 +85,26 @@ function PositionNodeInner(props: PositionNodeProps) {
         )}
 
         {/* Avatar + nombre */}
-        <div className="mt-1 flex items-center gap-2">
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (!primary) {
+              setSelectedPosition(data.positionId)
+              setSelectedUnit(data.unitId)
+              setInspectorOpen(true)
+              return
+            }
+            setSelectedWorker(primary.workerId)
+            setInspectorOpen(true)
+          }}
+          className={`nodrag nopan mt-1 flex w-full items-center gap-2 rounded-md text-left ${
+            primary ? 'cursor-pointer' : 'cursor-default'
+          }`}
+          title={primary ? 'Ver ficha del trabajador' : 'Cargo vacante'}
+        >
           {(lod === 'detailed' || lod === 'verbose') && (
             <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
               <UserCircle2 className="h-5 w-5" />
@@ -95,7 +125,7 @@ function PositionNodeInner(props: PositionNodeProps) {
           {data.isManagerial && (lod === 'detailed' || lod === 'verbose') && (
             <Crown className="h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
           )}
-        </div>
+        </button>
 
         {/* Footer: reportes + score */}
         {(lod === 'detailed' || lod === 'verbose') && (
@@ -132,7 +162,7 @@ function PositionNodeInner(props: PositionNodeProps) {
         position={Position.Bottom}
         className="!h-2 !w-2 !border-0 !bg-slate-300"
       />
-    </motion.div>
+    </m.div>
   )
 }
 

@@ -13,7 +13,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import {
   Sparkles,
   Building2,
@@ -131,7 +131,7 @@ export function OnboardingWizard({ onClose, onApplied }: OnboardingWizardProps) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -186,7 +186,7 @@ export function OnboardingWizard({ onClose, onApplied }: OnboardingWizardProps) 
         <div className="flex-1 overflow-y-auto p-6">
           <AnimatePresence mode="wait">
             {step === 'input' && (
-              <motion.div
+              <m.div
                 key="input"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -321,11 +321,11 @@ export function OnboardingWizard({ onClose, onApplied }: OnboardingWizardProps) 
                     className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
-              </motion.div>
+              </m.div>
             )}
 
             {step === 'preview' && proposal && (
-              <motion.div
+              <m.div
                 key="preview"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -406,11 +406,11 @@ export function OnboardingWizard({ onClose, onApplied }: OnboardingWizardProps) 
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             )}
 
             {step === 'applied' && (
-              <motion.div
+              <m.div
                 key="applied"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -426,7 +426,7 @@ export function OnboardingWizard({ onClose, onApplied }: OnboardingWizardProps) 
                   Ya puedes ajustar unidades, asignar trabajadores y designar roles
                   legales. Revisa el Compliance Heatmap para ver dónde estás expuesto.
                 </p>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -503,7 +503,7 @@ export function OnboardingWizard({ onClose, onApplied }: OnboardingWizardProps) 
             </button>
           )}
         </footer>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

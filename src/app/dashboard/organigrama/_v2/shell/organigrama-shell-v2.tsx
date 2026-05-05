@@ -17,8 +17,18 @@
  */
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Network, Sparkles, History, Loader2, Wand2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  Network,
+  Sparkles,
+  History,
+  Loader2,
+  Wand2,
+  UsersRound,
+  LayoutTemplate,
+  AlertTriangle,
+  ShieldAlert,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import {
@@ -30,6 +40,8 @@ import {
 import { useOrgStore } from '../state/org-store'
 import { OrgCanvasV2 } from '../canvas/org-canvas-v2'
 import { OrgToolbar } from '../header/org-toolbar'
+import { ViewSwitcher } from '../header/view-switcher'
+import { DisplayModeSwitcher } from '../header/display-mode-switcher'
 import { InspectorPanel } from '../inspector/inspector-panel'
 import { useKeyboardShortcuts } from '../canvas/hooks/use-keyboard-shortcuts'
 import { OnboardingWizard } from '../onboarding/onboarding-wizard'
@@ -41,6 +53,7 @@ import { useIsMobile } from '../mobile/use-is-mobile'
 import { MobileTreeView } from '../mobile/mobile-tree-view'
 import { MobileInspectorSheet } from '../mobile/mobile-inspector-sheet'
 import { buildCoverageReport } from '@/lib/orgchart/coverage-aggregator'
+import type { OrgChartTree } from '@/lib/orgchart/types'
 
 export function OrganigramaShellV2() {
   // --- Hooks de teclado ---
@@ -57,6 +70,9 @@ export function OrganigramaShellV2() {
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
   const timemachineOpen = useOrgStore((s) => s.timemachineOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
+  const view = useOrgStore((s) => s.view)
+  const displayMode = useOrgStore((s) => s.displayMode)
+  const setDisplayMode = useOrgStore((s) => s.setDisplayMode)
 
   // --- Onboarding wizard ---
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -67,7 +83,8 @@ export function OrganigramaShellV2() {
   const doctorQuery = useDoctorReportQuery(true) // arranca enabled para tener heatmap/nudges desde el inicio
   const createSnapshotMutation = useCreateSnapshotMutation()
 
-  const tree = treeQuery.data ?? null
+  const rawTree = treeQuery.data ?? null
+  const tree = useMemo(() => filterTreeByView(rawTree, view), [rawTree, view])
   const doctorReport = doctorQuery.data ?? null
 
   // Coverage report consolidado para inspector y heatmap.
@@ -75,6 +92,33 @@ export function OrganigramaShellV2() {
     if (!tree) return null
     return buildCoverageReport(tree, doctorReport?.findings ?? [])
   }, [tree, doctorReport])
+
+  const operationalSummary = useMemo(() => {
+    if (!tree) return null
+    const assignmentsByPosition = new Map<string, number>()
+    for (const assignment of tree.assignments) {
+      assignmentsByPosition.set(
+        assignment.positionId,
+        (assignmentsByPosition.get(assignment.positionId) ?? 0) + 1,
+      )
+    }
+    const criticalVacancies = tree.positions.filter((position) => {
+      const occupants = assignmentsByPosition.get(position.id) ?? 0
+      const vacant = occupants < (position.seats ?? 1)
+      return vacant && (position.isCritical || position.isManagerial)
+    })
+    const duplicateRoleKeys = new Set<string>()
+    const seenRoleKeys = new Set<string>()
+    for (const role of tree.complianceRoles) {
+      const key = `${role.roleType}:${role.unitId ?? 'global'}`
+      if (seenRoleKeys.has(key)) duplicateRoleKeys.add(key)
+      seenRoleKeys.add(key)
+    }
+    return {
+      criticalVacancies,
+      duplicateRoles: duplicateRoleKeys.size,
+    }
+  }, [tree])
 
   // --- Actions ---
   const exportHref = useCallback(
@@ -126,6 +170,18 @@ export function OrganigramaShellV2() {
             </span>
           </div>
           <div className="ml-auto flex flex-1 flex-wrap items-center justify-end gap-2">
+            <ViewSwitcher />
+            <DisplayModeSwitcher />
+            {view === 'committees' && (
+              <button
+                type="button"
+                onClick={() => useOrgStore.getState().openModal('templates')}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-800 transition hover:bg-teal-100"
+              >
+                <LayoutTemplate className="h-4 w-4" />
+                <span className="hidden sm:inline">Plantillas</span>
+              </button>
+            )}
             <OrgToolbar
               exportHref={exportHref}
               onSnapshot={handleSnapshot}
@@ -167,6 +223,39 @@ export function OrganigramaShellV2() {
             )}
           </div>
         )}
+
+        {operationalSummary &&
+          (operationalSummary.criticalVacancies.length > 0 ||
+            operationalSummary.duplicateRoles > 0) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              {operationalSummary.criticalVacancies.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {operationalSummary.criticalVacancies.length} cargo
+                  {operationalSummary.criticalVacancies.length === 1 ? '' : 's'} crítico
+                  {operationalSummary.criticalVacancies.length === 1 ? '' : 's'} vacante
+                </span>
+              )}
+              {operationalSummary.duplicateRoles > 0 && (
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  {operationalSummary.duplicateRoles} rol
+                  {operationalSummary.duplicateRoles === 1 ? '' : 'es'} legal
+                  {operationalSummary.duplicateRoles === 1 ? '' : 'es'} duplicado
+                  {operationalSummary.duplicateRoles === 1 ? '' : 's'}
+                </span>
+              )}
+              {operationalSummary.criticalVacancies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setDisplayMode('positions')}
+                  className="ml-auto rounded-md bg-white px-2 py-1 font-semibold text-amber-800 ring-1 ring-amber-200 transition hover:bg-amber-100"
+                >
+                  Ver cargos
+                </button>
+              )}
+            </div>
+          )}
       </header>
 
       {/* Body */}
@@ -182,7 +271,13 @@ export function OrganigramaShellV2() {
               Error al cargar: {String(treeQuery.error)}
             </div>
           ) : tree && tree.units.length === 0 ? (
-            <EmptyOnboarding onStart={() => setShowOnboarding(true)} />
+            view === 'committees' ? (
+              <EmptyCommittees
+                onCreateCommission={() => useOrgStore.getState().openModal('templates')}
+              />
+            ) : (
+              <EmptyOnboarding onStart={() => setShowOnboarding(true)} />
+            )
           ) : isMobile && tree ? (
             <MobileTreeView tree={tree} coverage={coverage} />
           ) : (
@@ -190,6 +285,7 @@ export function OrganigramaShellV2() {
               tree={tree}
               doctorReport={doctorReport}
               readOnly={Boolean(currentSnapshotId)}
+              positionMode={displayMode === 'positions'}
             />
           )}
         </div>
@@ -289,7 +385,7 @@ export function OrganigramaShellV2() {
 }
 
 // Lightweight wrapper to keep the import side clean
-function AnimatePresenceWrapper({ children }: { children: React.ReactNode }) {
+function AnimatePresenceWrapper({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
@@ -320,4 +416,70 @@ function EmptyOnboarding({ onStart }: { onStart: () => void }) {
       </p>
     </div>
   )
+}
+
+function EmptyCommittees({ onCreateCommission }: { onCreateCommission: () => void }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-sky-50/50 p-8 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-emerald-700 shadow-lg shadow-slate-200 ring-1 ring-emerald-100">
+        <UsersRound className="h-7 w-7" />
+      </div>
+      <h2 className="text-xl font-semibold text-slate-900">
+        Crea comisiones fuera de la jerarquía
+      </h2>
+      <p className="mt-2 max-w-md text-sm text-slate-600">
+        Usa plantillas para Comité SST, brigadas, comisión investigadora o equipos
+        temporales. Los miembros pueden venir de distintas gerencias sin alterar la
+        línea principal de mando.
+      </p>
+      <button
+        type="button"
+        onClick={onCreateCommission}
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700 hover:shadow-lg"
+      >
+        <LayoutTemplate className="h-4 w-4" />
+        Ver plantillas de comisiones
+      </button>
+    </div>
+  )
+}
+
+const COMMISSION_KINDS = new Set(['COMITE_LEGAL', 'BRIGADA', 'PROYECTO'])
+
+function filterTreeByView(tree: OrgChartTree | null, view: 'hierarchy' | 'committees') {
+  if (!tree) return null
+
+  const unitIds = new Set(
+    tree.units
+      .filter((unit) =>
+        view === 'committees'
+          ? COMMISSION_KINDS.has(unit.kind)
+          : !COMMISSION_KINDS.has(unit.kind),
+      )
+      .map((unit) => unit.id),
+  )
+  const positionIds = new Set(
+    tree.positions
+      .filter((position) => unitIds.has(position.orgUnitId))
+      .map((position) => position.id),
+  )
+
+  const units = tree.units
+    .filter((unit) => unitIds.has(unit.id))
+    .map((unit) => ({
+      ...unit,
+      parentId: unit.parentId && unitIds.has(unit.parentId) ? unit.parentId : null,
+      level: unit.parentId && unitIds.has(unit.parentId) ? unit.level : 0,
+    }))
+
+  return {
+    ...tree,
+    rootUnitIds: units.filter((unit) => !unit.parentId).map((unit) => unit.id),
+    units,
+    positions: tree.positions.filter((position) => positionIds.has(position.id)),
+    assignments: tree.assignments.filter((assignment) => positionIds.has(assignment.positionId)),
+    complianceRoles: tree.complianceRoles.filter(
+      (role) => !role.unitId || unitIds.has(role.unitId),
+    ),
+  } satisfies OrgChartTree
 }

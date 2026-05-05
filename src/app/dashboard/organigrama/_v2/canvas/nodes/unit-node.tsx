@@ -11,8 +11,17 @@
 import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { NodeProps, Node } from '@xyflow/react'
-import { motion } from 'framer-motion'
-import { Building2, Users, ShieldAlert, AlertTriangle } from 'lucide-react'
+import { m } from 'framer-motion'
+import {
+  Building2,
+  Users,
+  ShieldAlert,
+  AlertTriangle,
+  UsersRound,
+  BriefcaseBusiness,
+  ShieldCheck,
+  Landmark,
+} from 'lucide-react'
 
 import {
   TONE_COLOR_HEX,
@@ -37,10 +46,20 @@ const KIND_ICON_BG: Record<string, string> = {
   GERENCIA: 'bg-emerald-100 text-emerald-700',
   AREA: 'bg-sky-100 text-sky-700',
   DEPARTAMENTO: 'bg-slate-100 text-slate-700',
-  EQUIPO: 'bg-violet-100 text-violet-700',
-  COMITE_LEGAL: 'bg-emerald-100 text-emerald-800',
+  EQUIPO: 'bg-indigo-100 text-indigo-700',
+  COMITE_LEGAL: 'bg-teal-100 text-teal-800',
   BRIGADA: 'bg-amber-100 text-amber-700',
-  PROYECTO: 'bg-rose-100 text-rose-700',
+  PROYECTO: 'bg-cyan-100 text-cyan-700',
+}
+
+const KIND_ICON: Record<string, typeof Building2> = {
+  GERENCIA: Landmark,
+  AREA: Building2,
+  DEPARTAMENTO: Building2,
+  EQUIPO: UsersRound,
+  COMITE_LEGAL: ShieldCheck,
+  BRIGADA: ShieldAlert,
+  PROYECTO: BriefcaseBusiness,
 }
 
 interface UnitNodeProps extends NodeProps<Node<UnitNodeData>> {
@@ -53,20 +72,26 @@ function UnitNodeInner(props: UnitNodeProps) {
   const lod = useLOD()
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
+  const Icon = KIND_ICON[data.unitKind] ?? Building2
 
   return (
-    <motion.div
+    <m.div
       layout="position"
       initial={data.ghost ? { opacity: 0, scale: 0.85 } : false}
       animate={{ opacity: dimmed ? 0.18 : data.ghost ? 0.7 : 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.85 }}
       transition={{ type: 'spring', stiffness: 220, damping: 28 }}
       style={{ width: 240 }}
-      className={`group relative rounded-2xl border-2 bg-white shadow-sm transition-shadow hover:shadow-lg ${
+      className={`group relative overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-lg ${
         selected ? 'shadow-xl' : ''
       } ${data.ghost ? 'border-dashed border-emerald-400 bg-emerald-50/40' : ''}`}
     >
-      <UnitNodeToolbar nodeId={data.unitId} isVisible={Boolean(selected)} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-slate-50 to-white" />
+      <UnitNodeToolbar
+        nodeId={data.unitId}
+        unitKind={data.unitKind}
+        isVisible={Boolean(selected)}
+      />
       {/* Borde superior coloreado por compliance tone */}
       <div
         className="h-1.5 rounded-t-xl"
@@ -89,15 +114,15 @@ function UnitNodeInner(props: UnitNodeProps) {
         className="!h-2 !w-2 !border-0 !bg-slate-300"
       />
 
-      <div className="px-3 pt-2 pb-3">
+      <div className="relative px-3 pt-2 pb-3">
         {/* Header: kind + name */}
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${
+          className={`relative inline-flex h-7 w-7 items-center justify-center rounded-md ${
               KIND_ICON_BG[data.unitKind] ?? 'bg-slate-100 text-slate-600'
             }`}
           >
-            <Building2 className="h-3.5 w-3.5" />
+            <Icon className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[10px] font-medium uppercase tracking-wide text-slate-500">
@@ -186,7 +211,7 @@ function UnitNodeInner(props: UnitNodeProps) {
         position={Position.Bottom}
         className="!h-2 !w-2 !border-0 !bg-slate-300"
       />
-    </motion.div>
+    </m.div>
   )
 }
 

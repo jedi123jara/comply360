@@ -10,7 +10,8 @@
 'use client'
 
 import { NodeToolbar, Position } from '@xyflow/react'
-import { Pencil, UserPlus, Plus, Trash2, X, Loader2 } from 'lucide-react'
+import { Pencil, UserPlus, Plus, Trash2, X, Loader2, ShieldCheck } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -21,19 +22,21 @@ import { alertsKey } from '../../data/queries/use-alerts'
 
 interface UnitNodeToolbarProps {
   nodeId: string
+  unitKind: string
   isVisible: boolean
 }
 
 /**
  * Toolbar para nodos de tipo unidad.
  */
-export function UnitNodeToolbar({ nodeId, isVisible }: UnitNodeToolbarProps) {
+export function UnitNodeToolbar({ nodeId, unitKind, isVisible }: UnitNodeToolbarProps) {
   const openModal = useOrgStore((s) => s.openModal)
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const isLegalUnit = unitKind === 'COMITE_LEGAL' || unitKind === 'BRIGADA'
 
   const handleDelete = async () => {
     if (!confirming) {
@@ -88,11 +91,22 @@ export function UnitNodeToolbar({ nodeId, isVisible }: UnitNodeToolbarProps) {
         />
         <ToolbarBtn
           icon={UserPlus}
-          title="Designar rol legal"
+          title="Asignar trabajador a un cargo de esta unidad"
           onClick={() => {
-            openModal('assign-role', { unitId: nodeId })
+            setSelectedUnit(nodeId)
+            openModal('assign-worker', { unitId: nodeId })
           }}
         />
+        {isLegalUnit && (
+          <ToolbarBtn
+            icon={ShieldCheck}
+            title="Designar responsable legal del comité"
+            onClick={() => {
+              setSelectedUnit(nodeId)
+              openModal('assign-role', { unitId: nodeId })
+            }}
+          />
+        )}
         <div className="mx-0.5 h-5 w-px bg-slate-200" />
         <ToolbarBtn
           icon={confirming ? X : Trash2}
@@ -146,7 +160,7 @@ function ToolbarBtn({
   tone = 'neutral',
   loading = false,
 }: {
-  icon: typeof Pencil
+  icon: LucideIcon
   title: string
   onClick: () => void
   tone?: 'neutral' | 'rose'

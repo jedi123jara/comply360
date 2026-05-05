@@ -10,6 +10,7 @@ export type UiModal =
   | 'edit-position'
   | 'assign-worker'
   | 'assign-role'
+  | 'role-evidence'
   | 'import-excel'
   | 'templates'
   | 'snapshot-diff'

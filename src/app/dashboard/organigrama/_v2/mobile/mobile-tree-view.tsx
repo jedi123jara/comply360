@@ -11,7 +11,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import {
   Building2,
   Users,
@@ -39,6 +39,8 @@ interface MobileTreeViewProps {
 
 export function MobileTreeView({ tree, coverage }: MobileTreeViewProps) {
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
+  const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
+  const setSelectedWorker = useOrgStore((s) => s.setSelectedWorker)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
   const setCommandPaletteOpen = useOrgStore((s) => s.setCommandPaletteOpen)
   const openModal = useOrgStore((s) => s.openModal)
@@ -186,6 +188,14 @@ export function MobileTreeView({ tree, coverage }: MobileTreeViewProps) {
               setSelectedUnit(unitId)
               setInspectorOpen(true)
             }}
+            onSelectPosition={(positionId) => {
+              setSelectedPosition(positionId)
+              setInspectorOpen(true)
+            }}
+            onSelectWorker={(workerId) => {
+              setSelectedWorker(workerId)
+              setInspectorOpen(true)
+            }}
           />
         ))}
         {roots.length === 0 && (
@@ -223,6 +233,8 @@ interface UnitRowProps {
   onToggle: (unitId: string) => void
   coverage: CoverageReport | null
   onSelectUnit: (unitId: string) => void
+  onSelectPosition: (positionId: string) => void
+  onSelectWorker: (workerId: string) => void
 }
 
 function UnitRow({
@@ -236,6 +248,8 @@ function UnitRow({
   onToggle,
   coverage,
   onSelectUnit,
+  onSelectPosition,
+  onSelectWorker,
 }: UnitRowProps) {
   const visible = !visibleUnitIds || visibleUnitIds.has(unit.id)
   if (!visible) return null
@@ -251,9 +265,7 @@ function UnitRow({
 
   return (
     <div className="mb-1.5">
-      <button
-        type="button"
-        onClick={() => onToggle(unit.id)}
+      <div
         className={`flex w-full items-center gap-2 rounded-lg border bg-white px-3 py-2 text-left shadow-sm transition active:bg-slate-50 ${
           cov ? '' : 'border-slate-200'
         }`}
@@ -263,12 +275,22 @@ function UnitRow({
           borderLeftWidth: cov ? 4 : 1,
         }}
       >
-        <ChevronRight
-          className={`h-4 w-4 flex-shrink-0 text-slate-400 transition-transform ${
-            isOpen ? 'rotate-90' : ''
-          }`}
-        />
-        <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={() => onToggle(unit.id)}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition active:bg-slate-100"
+          aria-label={isOpen ? 'Contraer unidad' : 'Expandir unidad'}
+          aria-expanded={isOpen}
+        >
+          <ChevronRight
+            className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+          />
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelectUnit(unit.id)}
+          className="min-w-0 flex-1 text-left"
+        >
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-semibold text-slate-900">
               {unit.name}
@@ -294,27 +316,24 @@ function UnitRow({
                   color: TONE_COLOR_HEX[cov.tone],
                 }}
               >
-                {cov.score}
-              </span>
+              {cov.score}
+            </span>
             )}
           </div>
-        </div>
-        <div
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelectUnit(unit.id)
-          }}
-          className="flex-shrink-0 rounded p-1 text-emerald-600 transition active:bg-emerald-50"
-          role="button"
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelectUnit(unit.id)}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-emerald-600 transition active:bg-emerald-50"
           aria-label="Ver detalle"
         >
           <ChevronRight className="h-3.5 w-3.5" />
-        </div>
-      </button>
+        </button>
+      </div>
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -332,25 +351,37 @@ function UnitRow({
                       key={p.id}
                       className="rounded-md bg-white px-2 py-1.5 text-[11px] text-slate-700 shadow-sm"
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium">{p.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => onSelectPosition(p.id)}
+                        className="flex w-full items-center gap-1.5 text-left"
+                      >
+                        <span className="font-medium text-slate-800">{p.title}</span>
                         {p.isManagerial && (
                           <Crown className="h-3 w-3 text-amber-500" />
                         )}
                         {p.isCritical && (
                           <AlertTriangle className="h-3 w-3 text-rose-500" />
                         )}
-                      </div>
+                      </button>
                       {occupants.length === 0 ? (
                         <div className="text-[10px] italic text-slate-400">Vacante</div>
                       ) : (
-                        <div className="text-[10px] text-slate-500">
-                          {occupants
-                            .map(
-                              (o) =>
-                                `${o.worker.firstName} ${o.worker.lastName}${o.isInterim ? ' (interino)' : ''}`,
-                            )
-                            .join(', ')}
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {occupants.map((o) => (
+                            <button
+                              key={o.id}
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                onSelectWorker(o.workerId)
+                              }}
+                              className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 transition active:bg-emerald-50 active:text-emerald-700"
+                            >
+                              {o.worker.firstName} {o.worker.lastName}
+                              {o.isInterim ? ' (interino)' : ''}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -373,9 +404,11 @@ function UnitRow({
                 onToggle={onToggle}
                 coverage={coverage}
                 onSelectUnit={onSelectUnit}
+                onSelectPosition={onSelectPosition}
+                onSelectWorker={onSelectWorker}
               />
             ))}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

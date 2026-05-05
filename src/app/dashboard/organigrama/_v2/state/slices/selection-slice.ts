@@ -7,9 +7,11 @@ import type { StateCreator } from 'zustand'
 export interface SelectionSlice {
   selectedUnitId: string | null
   selectedPositionId: string | null
+  selectedWorkerId: string | null
   multiSelectIds: string[]
   setSelectedUnit: (id: string | null) => void
   setSelectedPosition: (id: string | null) => void
+  setSelectedWorker: (id: string | null) => void
   clearSelection: () => void
   toggleMultiSelect: (id: string) => void
 }
@@ -17,10 +19,12 @@ export interface SelectionSlice {
 export const createSelectionSlice: StateCreator<SelectionSlice, [], [], SelectionSlice> = (set) => ({
   selectedUnitId: null,
   selectedPositionId: null,
+  selectedWorkerId: null,
   multiSelectIds: [],
-  setSelectedUnit: (id) => set({ selectedUnitId: id, selectedPositionId: null }),
-  setSelectedPosition: (id) => set({ selectedPositionId: id }),
-  clearSelection: () => set({ selectedUnitId: null, selectedPositionId: null, multiSelectIds: [] }),
+  setSelectedUnit: (id) => set({ selectedUnitId: id, selectedPositionId: null, selectedWorkerId: null }),
+  setSelectedPosition: (id) => set({ selectedPositionId: id, selectedWorkerId: null }),
+  setSelectedWorker: (id) => set({ selectedWorkerId: id }),
+  clearSelection: () => set({ selectedUnitId: null, selectedPositionId: null, selectedWorkerId: null, multiSelectIds: [] }),
   toggleMultiSelect: (id) =>
     set((s) => {
       const exists = s.multiSelectIds.includes(id)

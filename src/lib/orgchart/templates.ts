@@ -717,6 +717,40 @@ const TEMPLATE_RECOMMENDATION_PROFILES: Record<
     prefersSst: true,
     prefersAgro: true,
   },
+  'comite-sst-paritario': {
+    sectorKeywords: ['sst', 'seguridad', 'salud', 'comite'],
+    contextKeywords: ['sst', 'seguridad', 'salud', 'comite', 'prevencion', 'trabajadores'],
+    ciiuPrefixes: [],
+    minWorkerCount: 20,
+    prefersSst: true,
+  },
+  'supervisor-sst': {
+    sectorKeywords: ['sst', 'seguridad', 'salud', 'supervisor'],
+    contextKeywords: ['sst', 'seguridad', 'salud', 'supervisor', 'prevencion'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+    prefersSst: true,
+  },
+  'brigada-emergencia': {
+    sectorKeywords: ['sst', 'seguridad', 'emergencia', 'brigada'],
+    contextKeywords: ['brigada', 'emergencia', 'evacuacion', 'primeros auxilios', 'incendio', 'simulacro'],
+    ciiuPrefixes: [],
+    minWorkerCount: 5,
+    prefersSst: true,
+  },
+  'comision-investigadora': {
+    sectorKeywords: ['accidente', 'incidente', 'investigacion', 'sst'],
+    contextKeywords: ['accidente', 'incidente', 'investigacion', 'acta', 'rrhh', 'sst'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+    prefersSst: true,
+  },
+  'equipo-temporal-auditoria': {
+    sectorKeywords: ['auditoria', 'cumplimiento', 'compliance', 'proyecto'],
+    contextKeywords: ['auditoria', 'cumplimiento', 'compliance', 'documental', 'implementacion', 'proyecto'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+  },
 }
 
 const ORG_TEMPLATES: OrgTemplate[] = [
@@ -956,6 +990,109 @@ const ORG_TEMPLATES: OrgTemplate[] = [
         requiresMedicalExam: true,
       }),
       basePosition('jefe-rrhh-campana', 'Jefe de RRHH y Campaña', 'rrhh', 'gerente-general', 'Jefatura', true),
+    ],
+  },
+  {
+    id: 'comite-sst-paritario',
+    name: 'Comité SST paritario',
+    description: 'Comisión legal para empresas con representantes del empleador y trabajadores, con presidencia, secretaría y miembros.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 29783', 'Comité SST', 'Empresas con 20+ trabajadores'],
+    units: [
+      { key: 'comite-sst', name: 'Comité de Seguridad y Salud en el Trabajo', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('presidente-sst', 'Presidente del Comité SST', 'comite-sst', undefined, 'Comité', true, {
+        isCritical: true,
+        riskCategory: 'MEDIO',
+      }),
+      basePosition('secretario-sst', 'Secretario del Comité SST', 'comite-sst', 'presidente-sst', 'Comité', true, {
+        isCritical: true,
+      }),
+      basePosition('rep-empleador-sst', 'Representante del empleador SST', 'comite-sst', 'presidente-sst', 'Comité', false, {
+        seats: 2,
+      }),
+      basePosition('rep-trabajadores-sst', 'Representante de trabajadores SST', 'comite-sst', 'presidente-sst', 'Comité', false, {
+        seats: 2,
+      }),
+    ],
+  },
+  {
+    id: 'supervisor-sst',
+    name: 'Supervisor SST',
+    description: 'Estructura ligera para designar un supervisor de seguridad y salud cuando no corresponde comité paritario.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 29783', 'Empresas pequeñas', 'SST'],
+    units: [
+      { key: 'supervision-sst', name: 'Supervisión de Seguridad y Salud en el Trabajo', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('supervisor-sst', 'Supervisor SST', 'supervision-sst', undefined, 'Compliance', true, {
+        isCritical: true,
+        requiresMedicalExam: true,
+        riskCategory: 'MEDIO',
+      }),
+      basePosition('apoyo-sst', 'Apoyo operativo SST', 'supervision-sst', 'supervisor-sst', 'Apoyo', false),
+    ],
+  },
+  {
+    id: 'brigada-emergencia',
+    name: 'Brigada de emergencia',
+    description: 'Equipo paralelo para evacuación, primeros auxilios y amago de incendio, sin alterar la jerarquía laboral.',
+    sector: 'Comisiones',
+    recommendedFor: ['SST', 'Simulacros', 'Emergencias'],
+    units: [
+      { key: 'brigada-emergencia', name: 'Brigada de Emergencia', kind: 'BRIGADA' },
+    ],
+    positions: [
+      basePosition('jefe-brigada', 'Jefe de brigada', 'brigada-emergencia', undefined, 'Brigada', true, {
+        isCritical: true,
+      }),
+      basePosition('brigadista-evacuacion', 'Brigadista de evacuación', 'brigada-emergencia', 'jefe-brigada', 'Brigada', false, {
+        seats: 3,
+      }),
+      basePosition('brigadista-primeros-auxilios', 'Brigadista de primeros auxilios', 'brigada-emergencia', 'jefe-brigada', 'Brigada', false, {
+        seats: 2,
+      }),
+      basePosition('brigadista-incendio', 'Brigadista de amago de incendio', 'brigada-emergencia', 'jefe-brigada', 'Brigada', false, {
+        seats: 2,
+      }),
+    ],
+  },
+  {
+    id: 'comision-investigadora',
+    name: 'Comisión investigadora',
+    description: 'Equipo temporal para investigar accidentes, incidentes o hechos internos con roles claros y evidencia documental.',
+    sector: 'Comisiones',
+    recommendedFor: ['Accidentes', 'Incidentes', 'Investigación interna'],
+    units: [
+      { key: 'comision-investigadora', name: 'Comisión Investigadora', kind: 'PROYECTO' },
+    ],
+    positions: [
+      basePosition('lider-investigacion', 'Líder de investigación', 'comision-investigadora', undefined, 'Proyecto', true, {
+        isCritical: true,
+      }),
+      basePosition('miembro-tecnico', 'Miembro técnico', 'comision-investigadora', 'lider-investigacion', 'Proyecto', false),
+      basePosition('miembro-rrhh', 'Miembro RR.HH.', 'comision-investigadora', 'lider-investigacion', 'Proyecto', false),
+      basePosition('secretario-actas', 'Secretario de actas', 'comision-investigadora', 'lider-investigacion', 'Proyecto', false),
+    ],
+  },
+  {
+    id: 'equipo-temporal-auditoria',
+    name: 'Equipo temporal de auditoría',
+    description: 'Comisión de trabajo para una tarea específica: auditoría interna, adecuación normativa o implementación de mejoras.',
+    sector: 'Comisiones',
+    recommendedFor: ['Auditoría interna', 'Tareas específicas', 'Implementación'],
+    units: [
+      { key: 'equipo-auditoria', name: 'Equipo Temporal de Auditoría Interna', kind: 'PROYECTO' },
+    ],
+    positions: [
+      basePosition('lider-equipo', 'Líder del equipo', 'equipo-auditoria', undefined, 'Proyecto', true),
+      basePosition('responsable-legal', 'Responsable legal', 'equipo-auditoria', 'lider-equipo', 'Proyecto', false),
+      basePosition('responsable-sst-equipo', 'Responsable SST', 'equipo-auditoria', 'lider-equipo', 'Proyecto', false, {
+        isCritical: true,
+      }),
+      basePosition('responsable-documental', 'Responsable documental', 'equipo-auditoria', 'lider-equipo', 'Proyecto', false),
     ],
   },
 ]

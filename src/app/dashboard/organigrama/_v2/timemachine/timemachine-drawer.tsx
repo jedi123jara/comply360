@@ -16,7 +16,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import {
   History,
   X,
@@ -90,7 +90,7 @@ export function TimeMachineDrawer() {
 
   return (
     <>
-      <motion.div
+      <m.div
         initial={{ y: 240 }}
         animate={{ y: 0 }}
         exit={{ y: 240 }}
@@ -231,7 +231,7 @@ export function TimeMachineDrawer() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
       {showDiffModal && (
         <SnapshotDiffModal onClose={() => setShowDiffModal(false)} snapshots={sorted} />
@@ -374,14 +374,14 @@ function SnapshotDiffModal({ onClose, snapshots }: SnapshotDiffModalProps) {
 
   return (
     <AnimatePresence>
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm"
         onClick={onClose}
       >
-        <motion.div
+        <m.div
           initial={{ scale: 0.95, y: 8 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.95, y: 8 }}
@@ -458,8 +458,8 @@ function SnapshotDiffModal({ onClose, snapshots }: SnapshotDiffModalProps) {
               </>
             )}
           </div>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </AnimatePresence>
   )
 }
