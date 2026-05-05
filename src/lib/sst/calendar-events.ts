@@ -169,7 +169,7 @@ export async function getComiteMandatoEnd(orgId: string): Promise<SstCalendarEve
     where: {
       orgId,
       estado: 'VIGENTE',
-      mandatoFin: { not: null, lte: ninetyDaysFromNow },
+      mandatoFin: { lte: ninetyDaysFromNow },
     },
     select: {
       id: true,
@@ -179,7 +179,6 @@ export async function getComiteMandatoEnd(orgId: string): Promise<SstCalendarEve
   })
 
   return comites
-    .filter((c): c is typeof c & { mandatoFin: Date } => c.mandatoFin !== null)
     .map((c) => {
       const daysLeft = Math.ceil((c.mandatoFin.getTime() - today.getTime()) / 86400_000)
       return {

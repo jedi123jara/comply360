@@ -119,7 +119,7 @@ export default function WebhooksConfigPage() {
       title: 'Eliminar webhook',
       description: `¿Seguro de eliminar la suscripción a ${url}? No podrás revertir.`,
       confirmLabel: 'Eliminar',
-      variant: 'danger',
+      tone: 'danger',
     })
     if (!confirmed) return
 

@@ -109,7 +109,7 @@ async function resolveRecipients(orgId: string): Promise<string[]> {
     where: {
       orgId,
       role: { in: ['OWNER', 'ADMIN'] },
-      pushSubscription: { not: null },
+      pushSubscription: { not: null as any },
     },
     select: { id: true },
     take: 5, // No envías a los 50 admins de una multi-tenant
