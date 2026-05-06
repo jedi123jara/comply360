@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { NAV_HUBS, NAV_ITEMS, resolveActiveHub } from '@/lib/constants'
 
 describe('NAV_HUBS / estructura', () => {
-  it('tiene exactamente 7 hubs', () => {
-    expect(NAV_HUBS).toHaveLength(7)
+  it('tiene exactamente 6 hubs (post eliminación de ia-laboral)', () => {
+    expect(NAV_HUBS).toHaveLength(6)
   })
 
-  it('los 7 hubs tienen llave, label, icon, rootHref y description', () => {
+  it('los 6 hubs tienen llave, label, icon, rootHref y description', () => {
     for (const hub of NAV_HUBS) {
       expect(hub.key).toBeTruthy()
       expect(hub.label).toBeTruthy()
@@ -22,7 +22,7 @@ describe('NAV_HUBS / estructura', () => {
     expect(new Set(keys).size).toBe(keys.length)
   })
 
-  it('contiene los 7 hubs esperados de la revolucion', () => {
+  it('contiene los 6 hubs esperados (sin ia-laboral)', () => {
     const keys = NAV_HUBS.map((h) => h.key)
     expect(keys).toEqual([
       'cockpit',
@@ -30,9 +30,21 @@ describe('NAV_HUBS / estructura', () => {
       'riesgo',
       'sst',
       'contratos-docs',
-      'ia-laboral',
       'config',
     ])
+  })
+
+  it('hub equipo absorbe Capacitaciones', () => {
+    const equipo = NAV_HUBS.find((h) => h.key === 'equipo')!
+    const hrefs = equipo.items.map((i) => i.href)
+    expect(hrefs).toContain('/dashboard/capacitaciones')
+  })
+
+  it('hub config absorbe Agentes y Workflows en sub-grupo Automatizaciones', () => {
+    const config = NAV_HUBS.find((h) => h.key === 'config')!
+    const hrefs = config.items.map((i) => i.href)
+    expect(hrefs).toContain('/dashboard/configuracion/automatizaciones/agentes')
+    expect(hrefs).toContain('/dashboard/configuracion/automatizaciones/workflows')
   })
 })
 
@@ -56,6 +68,10 @@ describe('resolveActiveHub', () => {
     expect(resolveActiveHub('/dashboard/calendario').key).toBe('cockpit')
   })
 
+  it('/dashboard/plan-accion mapea a Cockpit (sub-ruta del Panel)', () => {
+    expect(resolveActiveHub('/dashboard/plan-accion').key).toBe('cockpit')
+  })
+
   it('/dashboard/sst y subrutas mapean al hub SST', () => {
     expect(resolveActiveHub('/dashboard/sst').key).toBe('sst')
     expect(resolveActiveHub('/dashboard/sst/sedes').key).toBe('sst')
@@ -71,10 +87,9 @@ describe('resolveActiveHub', () => {
     expect(resolveActiveHub('/dashboard/generadores').key).toBe('contratos-docs')
   })
 
-  it('/dashboard/ia-laboral y calculadoras mapean a IA Laboral', () => {
-    expect(resolveActiveHub('/dashboard/ia-laboral').key).toBe('ia-laboral')
-    expect(resolveActiveHub('/dashboard/calculadoras').key).toBe('ia-laboral')
-    expect(resolveActiveHub('/dashboard/calculadoras/cts').key).toBe('ia-laboral')
+  it('/dashboard/capacitaciones mapea a Equipo (movido desde IA Laboral)', () => {
+    expect(resolveActiveHub('/dashboard/capacitaciones').key).toBe('equipo')
+    expect(resolveActiveHub('/dashboard/capacitaciones/curso-x').key).toBe('equipo')
   })
 
   it('/dashboard/configuracion mapea a Config', () => {
@@ -82,6 +97,11 @@ describe('resolveActiveHub', () => {
     expect(resolveActiveHub('/dashboard/reportes').key).toBe('config')
     expect(resolveActiveHub('/dashboard/planes').key).toBe('config')
     expect(resolveActiveHub('/dashboard/integraciones').key).toBe('config')
+  })
+
+  it('/dashboard/configuracion/automatizaciones/* mapea a Config', () => {
+    expect(resolveActiveHub('/dashboard/configuracion/automatizaciones/agentes').key).toBe('config')
+    expect(resolveActiveHub('/dashboard/configuracion/automatizaciones/workflows').key).toBe('config')
   })
 
   it('ruta fuera de conocidos retorna Cockpit como fallback', () => {

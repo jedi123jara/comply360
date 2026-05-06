@@ -1,179 +1,102 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
-import {
-  Calculator,
-  Landmark,
-  Gift,
-  Scale,
-  Clock,
-  Palmtree,
-  AlertTriangle,
-  Percent,
-  ArrowRight,
-  Sparkles,
-  DollarSign,
-} from 'lucide-react'
+import { Calculator, ArrowRight, Sparkles } from 'lucide-react'
+import { useCalculatorDrawer } from '@/components/ui/calculator-drawer'
 
-const CALCULADORAS = [
-  {
-    id: 'liquidacion',
-    name: 'Liquidación Total',
-    description: 'Calcula todos los beneficios sociales: CTS, vacaciones, gratificaciones, indemnización y más.',
-    icon: Calculator,
-    color: 'from-blue-600 to-blue-800',
-    badge: 'Más usado',
-    badgeColor: 'bg-amber-500/15 text-amber-400',
-    href: '/dashboard/calculadoras/liquidacion',
-    available: true,
-  },
-  {
-    id: 'cts',
-    name: 'CTS',
-    description: 'Compensación por Tiempo de Servicios. Incluye cálculo de intereses.',
-    icon: Landmark,
-    color: 'from-emerald-600 to-emerald-800',
-    href: '/dashboard/calculadoras/cts',
-    available: true,
-  },
-  {
-    id: 'gratificacion',
-    name: 'Gratificaciones',
-    description: 'Julio y diciembre, truncas incluidas. Con bonificación extraordinaria del 9%.',
-    icon: Gift,
-    color: 'from-purple-600 to-purple-800',
-    href: '/dashboard/calculadoras/gratificacion',
-    available: true,
-  },
-  {
-    id: 'indemnizacion',
-    name: 'Indemnización',
-    description: 'Por despido arbitrario. Indefinido y plazo fijo con topes legales.',
-    icon: Scale,
-    color: 'from-red-600 to-red-800',
-    href: '/dashboard/calculadoras/indemnizacion',
-    available: true,
-  },
-  {
-    id: 'horas-extras',
-    name: 'Horas Extras',
-    description: 'Sobretasas del 25%, 35% y 100%. Cálculo por período acumulado.',
-    icon: Clock,
-    color: 'from-orange-600 to-orange-800',
-    href: '/dashboard/calculadoras/horas-extras',
-    available: true,
-  },
-  {
-    id: 'vacaciones',
-    name: 'Vacaciones',
-    description: 'Truncas, no gozadas e indemnización vacacional. Triple pago incluido.',
-    icon: Palmtree,
-    color: 'from-cyan-600 to-cyan-800',
-    href: '/dashboard/calculadoras/vacaciones',
-    available: true,
-  },
-  {
-    id: 'multa-sunafil',
-    name: 'Multas SUNAFIL',
-    description: 'Estima el riesgo de multa según tipo de infracción y número de trabajadores.',
-    icon: AlertTriangle,
-    color: 'from-yellow-600 to-yellow-800',
-    badge: 'Empresas',
-    badgeColor: 'bg-blue-500/15 text-emerald-600',
-    href: '/dashboard/calculadoras/multa-sunafil',
-    available: true,
-  },
-  {
-    id: 'intereses',
-    name: 'Intereses Legales',
-    description: 'Calcula intereses laborales con tasa del BCRP actualizada.',
-    icon: Percent,
-    color: 'from-slate-600 to-slate-800',
-    href: '/dashboard/calculadoras/intereses-legales',
-    available: true,
-  },
-  {
-    id: 'costo-empleador',
-    name: 'Costo Total Empleador',
-    description: 'Calcula el costo REAL de un trabajador: sueldo + EsSalud + CTS + gratificaciones + vacaciones + SCTR.',
-    icon: DollarSign,
-    color: 'from-gold/80 to-amber-800',
-    badge: 'Nuevo',
-    badgeColor: 'bg-amber-500/15 text-amber-400',
-    href: '/dashboard/calculadoras/costo-empleador',
-    available: true,
-  },
-]
+/**
+ * /dashboard/calculadoras
+ *
+ * Página índice reducida tras la reorganización (eliminación del hub IA Laboral).
+ * Las calculadoras dejaron de tener una grilla dedicada y se invocan desde:
+ *
+ *  1. Drawer global accesible vía botón Calculator del topbar (recomendado).
+ *  2. Widgets contextuales embebidos en perfil de trabajador, boletas,
+ *     liquidaciones, y wizards de Decisiones Laborales (Fase 2+).
+ *
+ * Esta página solo existe como fallback para bookmarks/links externos.
+ * Abre automáticamente el drawer al cargar y ofrece atajos rápidos.
+ */
+export default function CalculadorasIndexPage() {
+  const calculator = useCalculatorDrawer()
 
-export default function CalculadorasPage() {
+  useEffect(() => {
+    calculator.open()
+    // Solo abrir al montar — no en cada cambio del provider.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-white">Calculadoras Legales</h1>
-        <p className="text-gray-400 mt-1">
-          Herramientas de cálculo basadas en la normativa laboral peruana vigente.
-          Todas las fórmulas se actualizan automáticamente con cambios normativos.
-        </p>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="rounded-xl bg-emerald-50 p-3">
+            <Calculator className="h-6 w-6 text-emerald-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Calculadoras laborales</h1>
+            <p className="text-sm text-[color:var(--text-tertiary)]">13 calculadoras peruanas con UIT 2026 y RMV vigente.</p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
+          <p className="text-sm text-[color:var(--text-secondary)] leading-relaxed">
+            Las calculadoras ahora viven como <strong>panel lateral</strong> accesible desde
+            cualquier página. Haz clic en el botón <Calculator className="inline h-3.5 w-3.5 text-emerald-600 mx-0.5" /> del
+            topbar para abrirlo, o usa los widgets embebidos en el perfil del trabajador,
+            boletas y liquidaciones.
+          </p>
+          <button
+            type="button"
+            onClick={() => calculator.open()}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+          >
+            <Calculator className="h-4 w-4" />
+            Abrir panel de calculadoras
+          </button>
+        </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {CALCULADORAS.map(calc => {
-          const Icon = calc.icon
-          const isAvailable = calc.available
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-tertiary)] mb-3">
+          Acceso directo a calculadoras frecuentes
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {QUICK_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="group flex items-center justify-between rounded-xl border border-[color:var(--border-default)] bg-white p-4 hover:border-emerald-300 transition-colors"
+            >
+              <div>
+                <p className="text-sm font-semibold text-[color:var(--text-primary)]">{link.name}</p>
+                <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">{link.legalBase}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-[color:var(--text-tertiary)] group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+            </Link>
+          ))}
+        </div>
+      </div>
 
-          return (
-            <div key={calc.id} className="relative group">
-              {isAvailable ? (
-                <Link
-                  href={calc.href}
-                  className="block bg-surface/75 backdrop-blur-xl rounded-2xl border border-white/[0.08] p-6 hover:shadow-lg hover:border-primary/30 transition-all duration-300 h-full"
-                >
-                  <CalcCardContent calc={calc} Icon={Icon} />
-                  <div className="flex items-center gap-1.5 mt-4 text-sm font-semibold text-primary">
-                    <span>Calcular ahora</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </Link>
-              ) : (
-                <div className="block bg-surface/75 backdrop-blur-xl rounded-2xl border border-white/[0.08] p-6 opacity-60 h-full">
-                  <CalcCardContent calc={calc} Icon={Icon} />
-                  <div className="flex items-center gap-1.5 mt-4 text-sm font-medium text-slate-500">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Próximamente</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
+      <div className="rounded-xl border border-dashed border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-4 text-center">
+        <Sparkles className="inline h-4 w-4 text-emerald-600 mr-1.5" />
+        <span className="text-xs text-[color:var(--text-tertiary)]">
+          ¿Vas a contratar a alguien? Usa el wizard <strong>Contratar trabajador</strong> del Panel — incluye costo total empleador y régimen recomendado.
+        </span>
       </div>
     </div>
   )
 }
 
-function CalcCardContent({
-  calc,
-  Icon,
-}: {
-  calc: (typeof CALCULADORAS)[number]
-  Icon: (typeof CALCULADORAS)[number]['icon']
-}) {
-  return (
-    <>
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${calc.color} flex items-center justify-center shadow-lg`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-        {calc.badge && (
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${calc.badgeColor}`}>
-            {calc.badge}
-          </span>
-        )}
-      </div>
-      <h3 className="text-base font-bold text-white mb-1">{calc.name}</h3>
-      <p className="text-sm text-gray-400 leading-relaxed">{calc.description}</p>
-    </>
-  )
-}
+const QUICK_LINKS = [
+  { name: 'Liquidación total', href: '/dashboard/calculadoras/liquidacion', legalBase: 'D.Leg. 728' },
+  { name: 'CTS', href: '/dashboard/calculadoras/cts', legalBase: 'D.S. 001-97-TR' },
+  { name: 'Gratificaciones', href: '/dashboard/calculadoras/gratificacion', legalBase: 'Ley 27735' },
+  { name: 'Vacaciones', href: '/dashboard/calculadoras/vacaciones', legalBase: 'D.Leg. 713' },
+  { name: 'Indemnización', href: '/dashboard/calculadoras/indemnizacion', legalBase: 'D.Leg. 728' },
+  { name: 'Horas extras', href: '/dashboard/calculadoras/horas-extras', legalBase: 'D.S. 007-2002-TR' },
+  { name: 'Multa SUNAFIL', href: '/dashboard/calculadoras/multa-sunafil', legalBase: 'D.S. 019-2006-TR' },
+  { name: 'Costo total empleador', href: '/dashboard/calculadoras/costo-empleador', legalBase: 'Multi-norma' },
+  { name: 'Aportes (AFP/ONP)', href: '/dashboard/calculadoras/aportes', legalBase: 'D.S. 054-97-EF' },
+] as const

@@ -319,9 +319,12 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     key: "ia-admin",
     label: "IA & Admin",
     items: [
-      { label: "Agentes IA", href: "/dashboard/agentes", icon: "Sparkles" },
-      { label: "Asistente IA", href: "/dashboard/asistente-ia", icon: "Bot" },
-      { label: "Workflows", href: "/dashboard/workflows", icon: "Workflow" },
+      // Agentes y Workflows ahora viven bajo Configuración → Automatizaciones.
+      // El Asistente IA dejó de tener entrada propia en command palette: el
+      // copilot global se invoca con Cmd+I desde cualquier página.
+      { label: "Agentes IA", href: "/dashboard/configuracion/automatizaciones/agentes", icon: "Sparkles" },
+      { label: "Workflows", href: "/dashboard/configuracion/automatizaciones/workflows", icon: "Workflow" },
+      { label: "Historial Asistente", href: "/dashboard/asistente-ia", icon: "Bot" },
       { label: "Certificacion", href: "/dashboard/certificacion", icon: "Award" },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: "Store" },
       { label: "Integraciones", href: "/dashboard/integraciones", icon: "Plug" },
@@ -378,6 +381,11 @@ export const NAV_HUBS: readonly NavHub[] = [
     description: "Panorama general de compliance",
     items: [
       { label: "Vista general", href: "/dashboard", icon: "LayoutDashboard" },
+      // Plan de Acción: vista agregadora de tareas/alertas/capacitaciones vencidas.
+      // Vive como sub-ruta del Panel (no como hub principal del sidebar) para
+      // mantener el sidebar limpio. Si en 3-6 meses analytics muestran alta
+      // frecuencia (>30% sesiones), se promueve a entrada principal.
+      { label: "Plan de Acción", href: "/dashboard/plan-accion", icon: "ListChecks" },
       // Calendario absorbido aquí: una sola página no merece hub propio,
       // pero sigue accesible y visible como sub-item del Panel.
       { label: "Calendario compliance", href: "/dashboard/calendario", icon: "Calendar" },
@@ -405,6 +413,10 @@ export const NAV_HUBS: readonly NavHub[] = [
       { label: "Honorarios", href: "/dashboard/honorarios", icon: "ScrollText" },
       { label: "Prestadores de servicios", href: "/dashboard/prestadores", icon: "Briefcase" },
       { label: "Terceros y contratistas", href: "/dashboard/terceros", icon: "Building2" },
+      // Capacitaciones absorbida desde el ex-hub "IA Laboral" (eliminado).
+      // Es gestión de personas, no infraestructura IA. Acceso filtrado SST
+      // disponible vía /dashboard/capacitaciones?category=SST.
+      { label: "Capacitaciones", href: "/dashboard/capacitaciones", icon: "GraduationCap" },
       // "Portal empleado" se removió: el trabajador accede a su PROPIO portal
       // (/mi-portal) con su login. El empleador no tiene por qué ver/usar ese
       // portal, son experiencias separadas. La invitación se manda por email
@@ -479,27 +491,20 @@ export const NAV_HUBS: readonly NavHub[] = [
       { label: "Normas", href: "/dashboard/normas", icon: "Newspaper" },
     ],
   },
-  {
-    key: "ia-laboral",
-    label: "IA Laboral",
-    icon: "Sparkles",
-    rootHref: "/dashboard/ia-laboral",
-    description: "Asistente, agentes, workflows y calculadoras",
-    items: [
-      { label: "Hub IA", href: "/dashboard/ia-laboral", icon: "Sparkles" },
-      { label: "Asistente IA", href: "/dashboard/asistente-ia", icon: "Bot" },
-      { label: "Agentes IA", href: "/dashboard/agentes", icon: "Sparkles" },
-      { label: "Workflows", href: "/dashboard/workflows", icon: "Workflow" },
-      { label: "Calculadoras laborales", href: "/dashboard/calculadoras", icon: "Calculator" },
-      { label: "Capacitaciones", href: "/dashboard/capacitaciones", icon: "GraduationCap" },
-    ],
-  },
+  // Hub "IA Laboral" eliminado. Sus 6 funciones se redistribuyeron así:
+  //  - Hub IA (landing) → eliminado, redirige a /dashboard
+  //  - Asistente IA → /dashboard/asistente-ia se reconvierte en historial de threads
+  //    (el chat vive global vía Cmd+I en cualquier página)
+  //  - Agentes IA → movido a config/automatizaciones (sub-grupo)
+  //  - Workflows → movido a config/automatizaciones (sub-grupo)
+  //  - Calculadoras laborales → drawer global + widgets contextuales (página índice eliminada)
+  //  - Capacitaciones → movido a hub Equipo (es gestión de personas, no IA)
   {
     key: "config",
     label: "Config",
     icon: "Settings",
     rootHref: "/dashboard/configuracion",
-    description: "Organización, plan, reportes e integraciones",
+    description: "Organización, plan, reportes, integraciones y automatizaciones",
     items: [
       { label: "Configuración", href: "/dashboard/configuracion", icon: "Settings" },
       { label: "Reportes", href: "/dashboard/reportes", icon: "BarChart3" },
@@ -509,6 +514,11 @@ export const NAV_HUBS: readonly NavHub[] = [
       { label: "Certificación", href: "/dashboard/certificacion", icon: "Award" },
       { label: "Gamificación", href: "/dashboard/gamificacion", icon: "Trophy" },
       { label: "API Docs", href: "/dashboard/api-docs", icon: "Code2" },
+      // Sub-grupo Automatizaciones — antes vivían como hub IA Laboral aparte.
+      // Son infraestructura, no flujos diarios. Las invocaciones contextuales
+      // (revisar contrato con IA, auditar boleta con IA) viven en cada módulo.
+      { label: "Agentes IA", href: "/dashboard/configuracion/automatizaciones/agentes", icon: "Sparkles" },
+      { label: "Workflows", href: "/dashboard/configuracion/automatizaciones/workflows", icon: "Workflow" },
     ],
   },
 ] as const;
