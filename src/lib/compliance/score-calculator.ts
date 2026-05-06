@@ -9,6 +9,8 @@ export interface ComplianceScoreResult {
   scoreDocumentos: number
   scoreSst: number
   scoreVacaciones: number  // was computed but not exported before
+  /** % de capacitaciones obligatorias completadas (Fase 1, 2026-05) */
+  scoreCapacitaciones: number
   totalWorkers: number
   multaPotencial: number
   breakdown: {
@@ -59,7 +61,7 @@ function getMultaMultiplierByRegimen(regimen: string | null | undefined, totalWo
 export async function calculateComplianceScore(orgId: string): Promise<ComplianceScoreResult> {
   const now = new Date()
 
-  // 7 lightweight aggregate queries instead of 3 heavy findMany + includes
+  // 9 lightweight aggregate queries (incluye capacitaciones obligatorias — Fase 1)
   const [
     totalWorkers,
     workersWithContract,
@@ -68,6 +70,8 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
     totalExpirable,
     workersWithAccumulatedVacations,
     totalMultaFromAlerts,
+    obligatoryEnrollmentsTotal,
+    obligatoryEnrollmentsCompleted,
   ] = await Promise.all([
     prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } }),
     prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' }, workerContracts: { some: { contract: { status: { in: ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED'] } } } } } }),
@@ -76,6 +80,9 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
     prisma.contract.count({ where: { orgId, expiresAt: { not: null }, status: { notIn: ['ARCHIVED'] } } }),
     prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' }, vacations: { some: { diasPendientes: { gt: 0 } } } } }),
     prisma.workerAlert.aggregate({ where: { orgId, resolvedAt: null }, _sum: { multaEstimada: true } }),
+    // Fase 1: capacitaciones obligatorias asignadas (toda inscripción a curso obligatorio activo)
+    prisma.enrollment.count({ where: { orgId, course: { isObligatory: true, isActive: true } } }),
+    prisma.enrollment.count({ where: { orgId, status: 'PASSED', course: { isObligatory: true, isActive: true } } }),
   ])
 
   if (totalWorkers === 0) {
@@ -87,6 +94,7 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
       scoreDocumentos: 0,
       scoreSst: 0,
       scoreVacaciones: 100,
+      scoreCapacitaciones: 100,
       totalWorkers: 0,
       multaPotencial: 0,
       breakdown: [],
@@ -124,14 +132,25 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
   // 6. Vacaciones sin acumulacion (weight: 15%)
   const scoreVacaciones = Math.round(((totalWorkers - workersWithAccumulatedVacations) / totalWorkers) * 100)
 
-  // Weighted global score (20/15/20/15/15/15)
+  // 7. Capacitaciones obligatorias completadas (weight: 5%, Fase 1)
+  // Si no hay capacitaciones obligatorias asignadas, score = 100 (sin datos no penaliza).
+  // Si hay alguna, score = % completadas.
+  const scoreCapacitaciones = obligatoryEnrollmentsTotal > 0
+    ? Math.round((obligatoryEnrollmentsCompleted / obligatoryEnrollmentsTotal) * 100)
+    : 100
+
+  // Weighted global score (20/15/20/15/10/15/5 = 100)
+  // SST baja de 15% a 10% para hacer espacio a capacitaciones (5%) sin alterar
+  // el resto de pesos. Capacitaciones SST cuentan dos veces (en SST via score
+  // separado y aquí como % obligatorias completas).
   const scoreGlobal = Math.round(
     scoreContratos * 0.20 +
     scoreLegajos * 0.15 +
     scoreVencimientos * 0.20 +
     scoreDocumentos * 0.15 +
-    scoreSst * 0.15 +
-    scoreVacaciones * 0.15
+    scoreSst * 0.10 +
+    scoreVacaciones * 0.15 +
+    scoreCapacitaciones * 0.05
   )
 
   // Calculate potential fines from aggregated alert sum
@@ -159,8 +178,16 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
     { label: 'Legajos completos', score: scoreLegajos, weight: 15, detail: `Promedio ${scoreLegajos}% de documentos basicos` },
     { label: 'Vencimientos al dia', score: scoreVencimientos, weight: 20, detail: `${expiredContracts} contratos vencidos` },
     { label: 'Documentos obligatorios', score: scoreDocumentos, weight: 15, detail: `Promedio ${scoreDocumentos}% de documentos completos` },
-    { label: 'SST basico', score: scoreSst, weight: 15, detail: `Promedio ${scoreSst}% de documentos SST` },
+    { label: 'SST basico', score: scoreSst, weight: 10, detail: `Promedio ${scoreSst}% de documentos SST` },
     { label: 'Vacaciones al dia', score: scoreVacaciones, weight: 15, detail: `${workersWithAccumulatedVacations} trabajadores con vacaciones acumuladas` },
+    {
+      label: 'Capacitaciones obligatorias',
+      score: scoreCapacitaciones,
+      weight: 5,
+      detail: obligatoryEnrollmentsTotal > 0
+        ? `${obligatoryEnrollmentsCompleted}/${obligatoryEnrollmentsTotal} capacitaciones obligatorias completadas`
+        : 'Sin capacitaciones obligatorias asignadas',
+    },
   ]
 
   // Persist snapshot to ComplianceScore table for trend tracking
@@ -205,6 +232,7 @@ export async function calculateComplianceScore(orgId: string): Promise<Complianc
     scoreDocumentos,
     scoreSst,
     scoreVacaciones,
+    scoreCapacitaciones,
     totalWorkers,
     multaPotencial: Math.round(multaPotencial * 100) / 100,
     breakdown,
