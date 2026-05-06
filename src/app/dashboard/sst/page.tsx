@@ -143,9 +143,9 @@ export default function SstHub() {
           <TabBody
             icon={GraduationCap}
             title="Capacitaciones SST"
-            description="4 capacitaciones obligatorias por año. Registro de asistencia, evaluación y certificado con QR."
-            actionLabel="Ver capacitaciones"
-            actionHref="/dashboard/capacitaciones"
+            description="4 capacitaciones obligatorias por año. Registro de asistencia, evaluación y certificado con QR. El módulo de Capacitaciones vive en hub Equipo; este enlace filtra solo categoría SST."
+            actionLabel="Ver capacitaciones SST"
+            actionHref="/dashboard/capacitaciones?category=SST"
           />
         </TabsContent>
         <TabsContent value="accidentes">
@@ -291,6 +291,14 @@ function Overview({
           <Button asChild>
             <Link href="/dashboard/diagnostico">
               Diagnóstico completo <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+          {/* Acceso filtrado a capacitaciones SST: el módulo vive en hub Equipo,
+              pero desde SST es prioritario verlas pre-filtradas por la Ley 29783. */}
+          <Button variant="secondary" asChild>
+            <Link href="/dashboard/capacitaciones?category=SST">
+              <GraduationCap className="h-3.5 w-3.5" />
+              Capacitaciones SST
             </Link>
           </Button>
         </div>

@@ -9,6 +9,7 @@ import {
   HardHat,
   Calculator,
   History,
+  GraduationCap,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { WorkerProfileHeader, type WorkerSummary } from './worker-profile-header'
@@ -20,6 +21,7 @@ import { TabContratos } from './tabs/tab-contratos'
 import { TabRemuneraciones } from './tabs/tab-remuneraciones'
 import { TabVacaciones } from './tabs/tab-vacaciones'
 import { TabSST } from './tabs/tab-sst'
+import { TabCapacitaciones } from './tabs/tab-capacitaciones'
 
 /**
  * WorkerProfile — Super-Perfil v2.
@@ -76,6 +78,10 @@ export function WorkerProfile({ worker, legajoDocs = [], vacationsSummary }: Wor
             <HardHat className="h-3.5 w-3.5" />
             SST
           </TabsTrigger>
+          <TabsTrigger variant="underline" value="capacitaciones">
+            <GraduationCap className="h-3.5 w-3.5" />
+            Capacitaciones
+          </TabsTrigger>
           <TabsTrigger variant="underline" value="beneficios">
             <Calculator className="h-3.5 w-3.5" />
             Beneficios
@@ -112,6 +118,10 @@ export function WorkerProfile({ worker, legajoDocs = [], vacationsSummary }: Wor
             workerFirstName={worker.firstName}
             legajoDocs={legajoDocs}
           />
+        </TabsContent>
+
+        <TabsContent value="capacitaciones">
+          <TabCapacitaciones workerId={worker.id} workerFirstName={worker.firstName} />
         </TabsContent>
 
         <TabsContent value="beneficios">

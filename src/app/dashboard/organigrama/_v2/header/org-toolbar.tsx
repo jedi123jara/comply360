@@ -26,12 +26,19 @@ import {
   Users,
   MessageSquare,
   UserPlus,
+  Zap,
+  FolderClock,
+  ShieldCheck,
+  Activity,
+  Scale,
+  History,
 } from 'lucide-react'
 import { useState } from 'react'
 
 import { useOrgStore } from '../state/org-store'
 import { LayoutSwitcher } from './layout-switcher'
 import { LensSelector } from './lens-selector'
+import { AlertsButton } from './alerts-button'
 
 interface OrgToolbarProps {
   /** href base para exports (PDF, MOF, RIT) — incluye snapshotId si aplica. */
@@ -138,6 +145,25 @@ export function OrgToolbar({
               <UserPlus className="h-3.5 w-3.5" />
               Asignar trabajador
             </button>
+            <div className="my-1 border-t border-slate-100" />
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('bootstrap-from-workers')
+                setCreateOpen(false)
+              }}
+              className="flex w-full items-start gap-2 rounded-md bg-emerald-50/60 px-2 py-1.5 text-left text-sm text-emerald-800 transition hover:bg-emerald-100"
+              title="Crea áreas, cargos y asignaciones automáticamente desde la planilla"
+            >
+              <Zap className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
+              <span className="flex-1">
+                <span className="block font-semibold">Generar desde planilla</span>
+                <span className="block text-[10px] font-normal text-emerald-700">
+                  Usa cargos y áreas de tus trabajadores
+                </span>
+              </span>
+            </button>
           </div>
         )}
       </div>
@@ -166,6 +192,9 @@ export function OrgToolbar({
         <span className="hidden md:inline">Copiloto IA</span>
         <Sparkles className="h-3 w-3 text-emerald-600" />
       </button>
+
+      {/* Alertas */}
+      <AlertsButton />
 
       {/* Lente */}
       <LensSelector />
@@ -291,6 +320,78 @@ export function OrgToolbar({
             >
               <ListTree className="h-3.5 w-3.5" />
               What-If
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('drafts')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <FolderClock className="h-3.5 w-3.5" />
+              Escenarios guardados
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('legal-responsibles')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Responsables legales
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('structure-analytics')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <Activity className="h-3.5 w-3.5" />
+              Analítica
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('directory')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <Users className="h-3.5 w-3.5" />
+              Directorio
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('subordination')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <Scale className="h-3.5 w-3.5" />
+              Subordinación
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('change-history')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <History className="h-3.5 w-3.5" />
+              Historial
             </button>
             <button
               type="button"

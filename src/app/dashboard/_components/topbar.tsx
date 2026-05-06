@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   TrendingUp,
   TrendingDown,
+  Calculator,
 } from 'lucide-react'
 import { NAV_ITEMS, resolveActiveHub } from '@/lib/constants'
 import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
@@ -42,6 +43,7 @@ import {
   PopoverContent,
 } from '@/components/ui/popover'
 import { useCopilot } from '@/providers/copilot-provider'
+import { useCalculatorDrawer } from '@/components/ui/calculator-drawer'
 import { complianceScoreColor } from '@/lib/brand'
 
 interface TopbarProps {
@@ -234,6 +236,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
   const { user } = useUser()
   const { signOut } = useClerk()
   const copilot = useCopilot()
+  const calculator = useCalculatorDrawer()
   const modKey = usePlatformModKey()
 
   const { score, delta } = useComplianceScore()
@@ -366,6 +369,17 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
               ) : null}
             </Link>
           ) : null}
+
+          {/* Calculator drawer trigger — reemplaza la página índice /dashboard/calculadoras */}
+          <Button
+            size="icon-sm"
+            variant={calculator.isOpen ? 'emerald-soft' : 'ghost'}
+            onClick={() => calculator.open()}
+            aria-label="Abrir calculadoras laborales"
+            title="Calculadoras laborales"
+          >
+            <Calculator className="h-4 w-4" />
+          </Button>
 
           {/* AI Copilot trigger */}
           <Button

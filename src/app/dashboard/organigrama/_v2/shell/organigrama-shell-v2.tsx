@@ -28,6 +28,8 @@ import {
   LayoutTemplate,
   AlertTriangle,
   ShieldAlert,
+  Zap,
+  ArrowRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -36,6 +38,8 @@ import {
   useSnapshotsQuery,
   useDoctorReportQuery,
   useCreateSnapshotMutation,
+  useBootstrapPreviewQuery,
+  pendingBootstrapCount,
 } from '../data'
 import { useOrgStore } from '../state/org-store'
 import { OrgCanvasV2 } from '../canvas/org-canvas-v2'
@@ -49,6 +53,7 @@ import { CopilotPanel } from '../copilot/copilot-panel'
 import { TimeMachineDrawer } from '../timemachine/timemachine-drawer'
 import { ModalsContainer } from '../modals/modals-container'
 import { CommandPaletteV2 } from '../command/command-palette'
+import { AlertsDrawer } from '../drawers/alerts-drawer'
 import { useIsMobile } from '../mobile/use-is-mobile'
 import { MobileTreeView } from '../mobile/mobile-tree-view'
 import { MobileInspectorSheet } from '../mobile/mobile-inspector-sheet'
@@ -77,6 +82,7 @@ export function OrganigramaShellV2() {
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
   const timemachineOpen = useOrgStore((s) => s.timemachineOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
+  const alertsOpen = useOrgStore((s) => s.alertsOpen)
   const view = useOrgStore((s) => s.view)
   const commissionFilter = useOrgStore((s) => s.commissionFilter)
   const setCommissionFilter = useOrgStore((s) => s.setCommissionFilter)
@@ -91,6 +97,11 @@ export function OrganigramaShellV2() {
   const snapshotsQuery = useSnapshotsQuery()
   const doctorQuery = useDoctorReportQuery(true) // arranca enabled para tener heatmap/nudges desde el inicio
   const createSnapshotMutation = useCreateSnapshotMutation()
+  // Solo calculamos el preview de bootstrap cuando estamos viendo el organigrama
+  // actual (no un snapshot histórico) — no tiene sentido sugerir cambios sobre
+  // una vista de solo lectura.
+  const bootstrapPreviewQuery = useBootstrapPreviewQuery(!currentSnapshotId)
+  const bootstrapPending = pendingBootstrapCount(bootstrapPreviewQuery.data)
 
   const rawTree = treeQuery.data ?? null
   const tree = useMemo(
@@ -204,6 +215,14 @@ export function OrganigramaShellV2() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col">
+      {/* Banner de auto-bootstrap — visible cuando la planilla tiene workers
+          aún no vinculados al organigrama. Tap → abre el modal de preview. */}
+      {!currentSnapshotId && bootstrapPending > 0 && bootstrapPreviewQuery.data && (
+        <BootstrapBanner
+          preview={bootstrapPreviewQuery.data}
+          onOpen={() => useOrgStore.getState().openModal('bootstrap-from-workers')}
+        />
+      )}
       {/* Header */}
       <header className="border-b border-slate-200 bg-white px-4 py-3 md:px-6">
         <div className="flex flex-wrap items-center gap-3">
@@ -396,6 +415,9 @@ export function OrganigramaShellV2() {
 
         {/* Inspector mobile — bottom-sheet draggable */}
         {isMobile && tree && <MobileInspectorSheet tree={tree} coverage={coverage} />}
+
+        {/* Alertas drawer */}
+        {alertsOpen && <AlertsDrawer />}
 
         {/* Doctor drawer (placeholder mínimo — la versión completa vive en v1) */}
         {doctorOpen && (
@@ -596,4 +618,54 @@ function daysUntil(date: string) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return Math.ceil((target - today.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+function BootstrapBanner({
+  preview,
+  onOpen,
+}: {
+  preview: { assignmentsToCreate: number; unitsToCreate: unknown[]; positionsToCreate: unknown[] }
+  onOpen: () => void
+}) {
+  const headlineParts: string[] = []
+  if (preview.assignmentsToCreate > 0) {
+    headlineParts.push(
+      `${preview.assignmentsToCreate} trabajador${preview.assignmentsToCreate === 1 ? '' : 'es'} sin vincular`,
+    )
+  }
+  if (preview.unitsToCreate.length > 0) {
+    headlineParts.push(
+      `${preview.unitsToCreate.length} área${preview.unitsToCreate.length === 1 ? '' : 's'} nueva${preview.unitsToCreate.length === 1 ? '' : 's'}`,
+    )
+  }
+  if (preview.positionsToCreate.length > 0) {
+    headlineParts.push(
+      `${preview.positionsToCreate.length} cargo${preview.positionsToCreate.length === 1 ? '' : 's'} nuevo${preview.positionsToCreate.length === 1 ? '' : 's'}`,
+    )
+  }
+  const headline = headlineParts.join(' · ')
+
+  return (
+    <div className="border-b border-emerald-200 bg-gradient-to-r from-emerald-50 via-emerald-50 to-white px-4 py-2.5 md:px-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
+          <Zap className="h-3.5 w-3.5 text-emerald-700" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="text-sm font-medium text-emerald-900">
+            Tu planilla puede poblar el organigrama
+          </span>
+          <span className="ml-1.5 hidden text-xs text-emerald-700 md:inline">· {headline}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+        >
+          Generar ahora
+          <ArrowRight className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  )
 }

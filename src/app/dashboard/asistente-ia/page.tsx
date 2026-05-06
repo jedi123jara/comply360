@@ -391,7 +391,7 @@ export default function AsistenteIAPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
               <Bot className="h-4 w-4 text-white" />
             </div>
-            <span className="text-sm font-semibold text-white text-gray-100">Consultas</span>
+            <span className="text-sm font-semibold text-white text-gray-100">Historial</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -520,12 +520,13 @@ export default function AsistenteIAPage() {
             </div>
             <div>
               <h1 className="text-sm font-semibold text-white text-gray-100">
-                Asistente Legal COMPLY360
+                Historial del asistente IA
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
                 <p className="text-xs text-gray-400">
-                  Especializado en legislación laboral peruana
+                  Tus consultas guardadas. El chat principal se abre con{' '}
+                  <kbd className="rounded bg-[color:var(--neutral-100)] px-1 py-0.5 text-[10px] font-mono">Cmd+I</kbd>
                   {model && (
                     <span className="ml-1.5 rounded bg-[color:var(--neutral-100)] px-1.5 py-0.5 text-[10px] bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]">
                       {model}
@@ -560,15 +561,17 @@ export default function AsistenteIAPage() {
               </div>
 
               <h2 className="mt-4 text-xl font-bold text-white text-gray-100">
-                Asistente Legal COMPLY360
+                Historial de consultas IA
               </h2>
               <p className="mt-1 text-sm text-gray-400">
-                Especializado en legislación laboral peruana
+                Aquí se guardan todas tus consultas. Para abrir el chat rápido en cualquier página usa{' '}
+                <kbd className="rounded bg-[color:var(--neutral-100)] px-1.5 py-0.5 text-[11px] font-mono">Cmd+I</kbd>{' '}
+                (o el botón Sparkles del topbar).
               </p>
 
               <div className="mt-5 w-full max-w-lg rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 border-amber-800/50 bg-amber-900/20">
                 <p className="mb-2 text-sm font-medium text-amber-700">
-                  Soy tu consultor legal 24/7. Puedo ayudarte con:
+                  Empieza una nueva consulta o revisa las anteriores en el panel lateral. Temas frecuentes:
                 </p>
                 <ul className="space-y-1.5 text-sm text-amber-400">
                   {[

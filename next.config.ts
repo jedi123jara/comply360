@@ -16,29 +16,33 @@ const nextConfig: NextConfig = {
         destination: '/mi-portal/:path*',
         permanent: true,
       },
-      // ── Revolución UX Fase B/C: consolidación de 7 hubs ───────────────
-      // Los 3 chatbots IA unificados en /ia-laboral
+      // ── Reorganización 2026-05: eliminación del hub IA Laboral ────────
+      // El hub /dashboard/ia-laboral se eliminó. Sus 6 funciones se
+      // redistribuyeron contextualmente. Aquí solo manejamos las rutas que
+      // NO tienen page.tsx que haga redirect (las que sí tienen page.tsx
+      // con permanentRedirect están en src/app/dashboard/<ruta>/page.tsx).
       {
-        source: '/dashboard/asistente-ia',
-        destination: '/dashboard/ia-laboral',
+        source: '/dashboard/ia-laboral',
+        destination: '/dashboard',
         permanent: true,
       },
       {
-        source: '/dashboard/asistente-ia/:path*',
-        destination: '/dashboard/ia-laboral',
+        source: '/dashboard/ia-laboral/:path*',
+        destination: '/dashboard',
         permanent: true,
       },
-      {
-        source: '/dashboard/agentes',
-        destination: '/dashboard/ia-laboral?mode=agents',
-        permanent: true,
-      },
-      {
-        source: '/dashboard/analizar-contrato',
-        destination: '/dashboard/ia-laboral?mode=review',
-        permanent: true,
-      },
-      // Documentos y expedientes fusionados
+      // /dashboard/asistente-ia ya NO redirige a /ia-laboral. La página se
+      // reconvierte en historial de threads del copilot global (Cmd+I).
+      // (El redirect anterior aquí se eliminó.)
+      //
+      // /dashboard/agentes y /dashboard/workflows tienen su propio
+      // permanentRedirect server-side en sus page.tsx — no se necesitan
+      // entradas aquí porque el page.tsx se ejecuta primero.
+      //
+      // /dashboard/analizar-contrato se mantiene como ruta funcional propia
+      // (no redirige más al hub IA Laboral eliminado).
+
+      // Documentos y expedientes fusionados (decisión previa, sigue vigente)
       {
         source: '/dashboard/expedientes',
         destination: '/dashboard/documentos',

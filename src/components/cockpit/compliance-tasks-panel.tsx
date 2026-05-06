@@ -123,7 +123,7 @@ export function ComplianceTasksPanel({
           </CardDescription>
         </div>
         <Link
-          href="/dashboard/tareas"
+          href="/dashboard/plan-accion"
           className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
         >
           Ver todas
@@ -165,7 +165,7 @@ export function ComplianceTasksPanel({
             {top.map((t) => (
               <li key={t.id}>
                 <Link
-                  href="/dashboard/tareas"
+                  href="/dashboard/plan-accion"
                   className="flex items-start gap-3 rounded-lg border border-[color:var(--border-subtle)] bg-white px-3 py-2.5 hover:border-emerald-300 transition-colors"
                 >
                   <span
