@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   GraduationCap, BookOpen, Award, Users, Clock, ChevronRight,
   Loader2, AlertTriangle, Shield, Scale, HardHat,
   FileText, BarChart3, Zap, Search, SlidersHorizontal, Flame,
   Star, Trophy, Target, Play, Eye,
   ChevronDown, X, Sparkles,
+  Headphones,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -235,13 +237,18 @@ function CourseCard({ course, userProgress }: { course: CourseData; userProgress
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CapacitacionesPage() {
+  const searchParams = useSearchParams()
+  // Permite que rutas externas pre-filtren el catálogo, ej. el hub SST
+  // usa `?category=SST` para mostrar solo las capacitaciones SST.
+  const initialCategory = searchParams?.get('category') ?? ''
+
   const [courses, setCourses] = useState<CourseData[]>([])
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
 
   // Filters
   const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState(initialCategory)
   const [diffFilter, setDiffFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sortBy, setSortBy] = useState('obligatorio')
@@ -730,6 +737,255 @@ export default function CapacitacionesPage() {
           </div>
         </>
       )}
+
+      {/* ── CTA: Capacitación a medida (presencial / virtual) ───────────── */}
+      {/*
+        Fase 4: el CTA ahora abre un modal con formulario que guarda la
+        solicitud como AuditLog. Reemplaza el `mailto` original.
+      */}
+      <CapacitacionAMedidaCTA />
     </div>
+  )
+}
+
+function CapacitacionAMedidaCTA() {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6">
+        <div className="flex items-start gap-4">
+          <div className="rounded-xl bg-emerald-100 p-3 shrink-0">
+            <Headphones className="h-6 w-6 text-emerald-700" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-[color:var(--text-primary)]">
+              ¿No encuentras lo que buscas?
+            </h3>
+            <p className="mt-1 text-sm text-[color:var(--text-secondary)] leading-relaxed">
+              Solicita una capacitación a medida — presencial o virtual — para temas
+              específicos de tu sector o necesidades particulares de tu empresa.
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
+            >
+              Solicitar capacitación
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+      {open && <SolicitarCapacitacionModal onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
+function SolicitarCapacitacionModal({ onClose }: { onClose: () => void }) {
+  const [tema, setTema] = useState('')
+  const [modalidad, setModalidad] = useState<'presencial' | 'virtual' | 'mixta'>('virtual')
+  const [fechaTentativa, setFechaTentativa] = useState('')
+  const [cantidadTrabajadores, setCantidadTrabajadores] = useState<number | ''>(10)
+  const [objetivoLegal, setObjetivoLegal] = useState('')
+  const [contactoNombre, setContactoNombre] = useState('')
+  const [contactoEmail, setContactoEmail] = useState('')
+  const [contactoTelefono, setContactoTelefono] = useState('')
+  const [notas, setNotas] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  const submit = async () => {
+    setError(null)
+    if (!tema.trim() || tema.trim().length < 3) return setError('Tema debe tener al menos 3 caracteres.')
+    if (!contactoNombre.trim()) return setError('Nombre de contacto requerido.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactoEmail)) return setError('Email inválido.')
+    const cant = Number(cantidadTrabajadores)
+    if (!Number.isFinite(cant) || cant <= 0) return setError('Cantidad de trabajadores debe ser mayor a 0.')
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/capacitaciones/solicitar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tema: tema.trim(),
+          modalidad,
+          fechaTentativa: fechaTentativa || null,
+          cantidadTrabajadores: cant,
+          objetivoLegal: objetivoLegal.trim() || null,
+          contactoNombre: contactoNombre.trim(),
+          contactoEmail: contactoEmail.trim(),
+          contactoTelefono: contactoTelefono.trim() || null,
+          notasAdicionales: notas.trim() || null,
+        }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `Error ${res.status}`)
+      setSuccess(body.data?.message ?? 'Solicitud enviada. Te contactaremos pronto.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error desconocido')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-900">Solicitar capacitación a medida</h2>
+          <button
+            onClick={onClose}
+            className="p-1 rounded hover:bg-slate-100 text-slate-500"
+            aria-label="Cerrar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {success ? (
+          <div className="p-6 text-center space-y-3">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <p className="text-sm text-slate-700">{success}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+            >
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <div className="p-5 space-y-3">
+            <FormField label="Tema de la capacitación *">
+              <input
+                type="text"
+                value={tema}
+                onChange={(e) => setTema(e.target.value)}
+                maxLength={200}
+                placeholder="Ej: Manejo seguro de montacargas"
+                className={inputCls}
+              />
+            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Modalidad *">
+                <select
+                  value={modalidad}
+                  onChange={(e) => setModalidad(e.target.value as 'presencial' | 'virtual' | 'mixta')}
+                  className={inputCls}
+                >
+                  <option value="virtual">Virtual</option>
+                  <option value="presencial">Presencial</option>
+                  <option value="mixta">Mixta</option>
+                </select>
+              </FormField>
+              <FormField label="Fecha tentativa">
+                <input
+                  type="date"
+                  value={fechaTentativa}
+                  onChange={(e) => setFechaTentativa(e.target.value)}
+                  className={inputCls}
+                />
+              </FormField>
+            </div>
+            <FormField label="Cantidad de trabajadores *">
+              <input
+                type="number"
+                min={1}
+                value={cantidadTrabajadores}
+                onChange={(e) => setCantidadTrabajadores(e.target.value === '' ? '' : Number(e.target.value))}
+                className={inputCls}
+              />
+            </FormField>
+            <FormField label="Objetivo legal / sustento">
+              <textarea
+                value={objetivoLegal}
+                onChange={(e) => setObjetivoLegal(e.target.value)}
+                maxLength={500}
+                rows={2}
+                placeholder="Ej: Cumplir Ley 29783 Art. 27 — capacitación SST"
+                className={inputCls}
+              />
+            </FormField>
+            <hr className="border-slate-200" />
+            <FormField label="Contacto — Nombre completo *">
+              <input
+                type="text"
+                value={contactoNombre}
+                onChange={(e) => setContactoNombre(e.target.value)}
+                className={inputCls}
+              />
+            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Email *">
+                <input
+                  type="email"
+                  value={contactoEmail}
+                  onChange={(e) => setContactoEmail(e.target.value)}
+                  className={inputCls}
+                />
+              </FormField>
+              <FormField label="Teléfono">
+                <input
+                  type="tel"
+                  value={contactoTelefono}
+                  onChange={(e) => setContactoTelefono(e.target.value)}
+                  className={inputCls}
+                />
+              </FormField>
+            </div>
+            <FormField label="Notas adicionales">
+              <textarea
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={2}
+                maxLength={1000}
+                className={inputCls}
+              />
+            </FormField>
+
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                {error}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={submit}
+                disabled={submitting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-lg hover:bg-emerald-800 disabled:opacity-50"
+              >
+                {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Enviar solicitud
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const inputCls =
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500'
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-xs font-semibold text-slate-700 mb-1">{label}</span>
+      {children}
+    </label>
   )
 }
