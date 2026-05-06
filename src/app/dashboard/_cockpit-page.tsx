@@ -29,6 +29,7 @@ import {
   QuickActions,
   ComplianceTasksPanel,
 } from '@/components/cockpit'
+import { DecisionesLaborales } from './_components/decisiones-laborales'
 
 // SectorRadar usa `recharts` (~102KB gzipped). Lo cargamos dinámicamente
 // para que no infle el bundle inicial del dashboard. ssr:false porque
@@ -562,6 +563,11 @@ export default function CockpitPage() {
       </section>
 
       <QuickActions actions={quickActions} />
+
+      {/* Decisiones Laborales — Fase 2: sección destacada con wizards
+          orquestadores. Reemplaza el viejo Hub IA Laboral feature-oriented
+          por flujos task-oriented. Solo "Contratar" activo en Fase 2. */}
+      <DecisionesLaborales />
 
       {/* ─── BENTO GRID — Apple-style asimétrico ──────────────────────────
        * Layout 12-col en desktop:
