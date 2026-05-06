@@ -14,6 +14,15 @@ import { EditPositionModal } from './edit-position-modal'
 import { AssignRoleModal } from './assign-role-modal'
 import { TemplatesModal } from './templates-modal'
 import { RoleEvidenceModal } from './role-evidence-modal'
+import { BootstrapFromWorkersModal } from './bootstrap-from-workers-modal'
+import { WhatIfModal } from './whatif-modal'
+import { DraftsListModal } from './drafts-list-modal'
+import { LegalResponsiblesModal } from './legal-responsibles-modal'
+import { AuditorLinkModal } from './auditor-link-modal'
+import { StructureAnalyticsModal } from './structure-analytics-modal'
+import { DirectoryModal } from './directory-modal'
+import { SubordinationModal } from './subordination-modal'
+import { ChangeHistoryModal } from './change-history-modal'
 
 export function ModalsContainer() {
   return (
@@ -25,6 +34,15 @@ export function ModalsContainer() {
       <AssignRoleModal />
       <RoleEvidenceModal />
       <TemplatesModal />
+      <BootstrapFromWorkersModal />
+      <WhatIfModal />
+      <DraftsListModal />
+      <LegalResponsiblesModal />
+      <AuditorLinkModal />
+      <StructureAnalyticsModal />
+      <DirectoryModal />
+      <SubordinationModal />
+      <ChangeHistoryModal />
     </>
   )
 }

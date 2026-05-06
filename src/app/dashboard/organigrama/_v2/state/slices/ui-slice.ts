@@ -18,6 +18,12 @@ export type UiModal =
   | 'drafts'
   | 'auditor-link'
   | 'seed-wizard'
+  | 'bootstrap-from-workers'
+  | 'legal-responsibles'
+  | 'structure-analytics'
+  | 'directory'
+  | 'subordination'
+  | 'change-history'
 
 export interface UiSlice {
   commandPaletteOpen: boolean
@@ -33,6 +39,9 @@ export interface UiSlice {
 
   timemachineOpen: boolean
   setTimemachineOpen: (open: boolean) => void
+
+  alertsOpen: boolean
+  setAlertsOpen: (open: boolean) => void
 
   activeModal: UiModal
   modalProps: Record<string, unknown>
@@ -54,6 +63,9 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
 
   timemachineOpen: false,
   setTimemachineOpen: (timemachineOpen) => set({ timemachineOpen }),
+
+  alertsOpen: false,
+  setAlertsOpen: (alertsOpen) => set({ alertsOpen }),
 
   activeModal: null,
   modalProps: {},
