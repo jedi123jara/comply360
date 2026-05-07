@@ -9,10 +9,11 @@
  * /api/cron/norm-updates).
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { getLimaParts } from '@/lib/time/lima'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 // Matcher cron timezone-aware (Lima). Expone el mismo comportamiento que
 // `matchesCron` original pero evalúa con parts Lima, no UTC.
@@ -44,18 +45,8 @@ function matchCronField(pattern: string, value: number): boolean {
   return parseInt(pattern, 10) === value
 }
 
-export async function GET(req: NextRequest) {
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  const authHeader = req.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) {
-    console.error('[scheduled-reports cron] CRON_SECRET no configurado')
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-  }
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// FIX #5.A: idempotencia horaria (los matches por cron evalúan cada hora).
+export const GET = withCronIdempotency('scheduled-reports', 60, async () => {
   const startedAt = new Date()
   const active = await prisma.scheduledReport.findMany({ where: { active: true } })
 
@@ -80,7 +71,7 @@ export async function GET(req: NextRequest) {
     total: active.length,
     durationMs: Date.now() - startedAt.getTime(),
   })
-}
+})
 
 async function runAndSendReport(reportId: string): Promise<void> {
   const report = await prisma.scheduledReport.findUnique({ where: { id: reportId } })

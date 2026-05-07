@@ -17,23 +17,16 @@
  * Schedule: vercel.json `0 13 * * *` (8am Lima)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { notifyWorkersOfDocUpdate } from '@/lib/documents/acknowledgments'
 import { sendEmail } from '@/lib/email'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 const REMINDER_INTERVALS_DAYS = [3, 7, 14] // Días desde lastNotifiedAt
 
-export async function GET(req: NextRequest) {
-  // Auth check
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) {
-    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 })
-  }
-  if (req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// FIX #5.A: idempotencia diaria.
+export const GET = withCronIdempotency('ack-reminders', 1440, async () => {
   try {
     const now = new Date()
 
@@ -175,7 +168,7 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     )
   }
-}
+})
 
 function buildEscalationEmailHtml(opts: {
   orgName: string

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
 
 // =============================================
 // GET /api/cron/check-trials
@@ -21,6 +22,12 @@ export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // FIX #5.A: idempotencia diaria.
+  const claim = await claimCronRun('check-trials', { bucketMinutes: 1440 })
+  if (!claim.acquired) {
+    return NextResponse.json({ ok: true, duplicate: true, bucket: claim.bucket })
   }
 
   try {
@@ -137,14 +144,17 @@ export async function GET(req: NextRequest) {
       downgraded++
     }
 
-    return NextResponse.json({
+    const summary = {
       remindersSent,
       checked: expiredTrials.length,
       downgraded,
       timestamp: now.toISOString(),
-    })
+    }
+    await completeCronRun(claim.runId, summary)
+    return NextResponse.json(summary)
   } catch (error) {
     console.error('[check-trials] Error:', error)
+    await failCronRun(claim.runId, error)
     return NextResponse.json({ error: 'Failed to check trials' }, { status: 500 })
   }
 }

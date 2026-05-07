@@ -11,23 +11,15 @@
  * si ya existe una alerta abierta del mismo tipo para el worker.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { scanAttendancePatterns } from '@/lib/alerts/attendance-patterns'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 export const runtime = 'nodejs'
 
-export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) {
-    console.error('CRON_SECRET no configurado — attendance-patterns cron deshabilitado')
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-  }
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// FIX #5.A: idempotencia diaria.
+export const GET = withCronIdempotency('attendance-patterns', 1440, async () => {
   const startedAt = new Date()
   const orgs = await prisma.organization.findMany({
     where: { onboardingCompleted: true },
@@ -70,4 +62,4 @@ export async function GET(request: NextRequest) {
     elapsedMs: elapsed,
     results,
   })
-}
+})

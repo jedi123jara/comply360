@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { runRetentionJob } from '@/lib/sst/retention'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 /**
  * GET /api/cron/sst-retention
@@ -18,19 +19,9 @@ import { runRetentionJob } from '@/lib/sst/retention'
  * Auth: header `Authorization: Bearer ${CRON_SECRET}`.
  */
 
-export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) {
-    console.error('CRON_SECRET no configurado — sst-retention deshabilitado')
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Soporte de modo dry-run vía query param para preview manual
+// FIX #5.A: idempotencia mensual (43200 min = 30d). El cron corre día 1,
+// si Vercel reintenta dentro del mes el claim falla.
+export const GET = withCronIdempotency('sst-retention', 43200, async (request) => {
   const url = new URL(request.url)
   const dryRun = url.searchParams.get('dry-run') === 'true'
 
@@ -44,4 +35,4 @@ export async function GET(request: NextRequest) {
     durationMs,
     ...result,
   })
-}
+})

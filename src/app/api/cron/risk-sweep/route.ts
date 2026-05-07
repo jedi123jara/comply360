@@ -10,20 +10,16 @@
  * Protección: requiere header `Authorization: Bearer ${CRON_SECRET}`.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { runAgent } from '@/lib/agents/runtime'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
-export async function GET(req: NextRequest) {
-  const auth = req.headers.get('authorization') || ''
-  const expected = `Bearer ${process.env.CRON_SECRET || ''}`
-  if (!process.env.CRON_SECRET || auth !== expected) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
-
+// FIX #5.A: idempotencia diaria.
+export const GET = withCronIdempotency('risk-sweep', 1440, async () => {
   let orgs: Array<{ id: string }> = []
   try {
     orgs = await prisma.organization.findMany({
@@ -66,4 +62,4 @@ export async function GET(req: NextRequest) {
     summary,
     runAt: new Date().toISOString(),
   })
-}
+})
