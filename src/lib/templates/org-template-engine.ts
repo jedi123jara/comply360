@@ -270,11 +270,17 @@ export function numberToWords(n: number): string {
     return r === 0 ? CENTENAS[c] : `${CENTENAS[c]} ${below100(r)}`
   }
 
-  // Bloque genérico: convierte 1..999 con sufijo (MILLON/MIL/etc.)
-  function bloque(x: number, singular: string, plural: string): string {
+  // Cubre 0..999_999 — descompone en miles + unidades.
+  // En español "1500 millones" = "MIL QUINIENTOS MILLONES" (no "MIL MILLONES
+  // + 500 MILLONES"). Por eso el grupo de millones se trata como un único
+  // número de 0..999_999_999 que se convierte con esta función recursiva.
+  function thousandsAndUnits(x: number): string {
     if (x === 0) return ''
-    if (x === 1) return singular
-    return `${below1000(x)} ${plural}`
+    if (x < 1000) return below1000(x)
+    const m = Math.floor(x / 1000)
+    const r = x % 1000
+    const milesPart = m === 1 ? 'MIL' : `${below1000(m)} MIL`
+    return r === 0 ? milesPart : `${milesPart} ${below1000(r)}`
   }
 
   const entero = Math.floor(n)
@@ -284,24 +290,18 @@ export function numberToWords(n: number): string {
     return `CERO CON ${String(centavos).padStart(2, '0')}/100 SOLES`
   }
 
-  // Descomponer en mil-millones / millones / miles / unidades
-  const milMillones = Math.floor(entero / 1_000_000_000)
-  const millones = Math.floor((entero % 1_000_000_000) / 1_000_000)
-  const miles = Math.floor((entero % 1_000_000) / 1000)
-  const unidades = entero % 1000
+  // Descomponer en grupo de millones (0..999_999) + resto (0..999_999).
+  // Soporta hasta 999,999,999,999 (cuasi-billones) en sueldos.
+  const millones = Math.floor(entero / 1_000_000)
+  const resto = entero % 1_000_000
 
   const partes: string[] = []
-  if (milMillones > 0) {
-    partes.push(bloque(milMillones, 'MIL MILLONES', 'MIL MILLONES'))
-  }
   if (millones > 0) {
-    partes.push(bloque(millones, 'UN MILLON', 'MILLONES'))
+    if (millones === 1) partes.push('UN MILLON')
+    else partes.push(`${thousandsAndUnits(millones)} MILLONES`)
   }
-  if (miles > 0) {
-    partes.push(bloque(miles, 'MIL', 'MIL'))
-  }
-  if (unidades > 0) {
-    partes.push(below1000(unidades))
+  if (resto > 0) {
+    partes.push(thousandsAndUnits(resto))
   }
 
   const text = partes.filter(Boolean).join(' ').trim()
