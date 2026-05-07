@@ -3,22 +3,37 @@
 > Plan de remediación post-auditoría. 102 hallazgos en 8 olas. ~10 semanas full-time o ~5 con 2 devs en paralelo.
 > Branch base: `audit/remediation`.
 
-## ESTADO POST-SESIÓN (2026-05-07)
+## ESTADO POST-SESIÓN (2026-05-07, segundo bloque)
 
-**Cerrados en esta sesión: 30 hallazgos** (ver commits de `audit/remediation`).
-- Ola 0: 10/10 ✅
-- Ola 1: 5/5 ✅
-- Ola 3: 1 (3.E)
-- Ola 4: 4 (4.A, 4.B, 4.E, 4.G)
-- Ola 5: 4 (5.A en daily-alerts/morning-briefing/weekly-digest/founder-digest, 5.B parcial, 5.E, 5.H)
-- Ola 6: 4 (6.A, 6.B, 6.F, 6.G)
-- Ola 7: 3 (7.A, 7.G, 7.H)
+**Cerrados: 50 hallazgos** (~50% del audit total).
 
-**Pendiente migración Prisma** (cuando se aplique `prisma migrate dev`):
-- 7.A `Worker.organization onDelete: Restrict`
-- 7.G `AiUsage.evalScore` Float → Decimal(5,4)
+| Ola | Cerrados | Pendientes principales |
+|---|---|---|
+| 0 | 10/10 ✅ | — |
+| 1 | 5/5 ✅ | — |
+| 2 | 6/9 (B,D,E1-4) | 2.A decimal.js, 2.C 12 regímenes, 2.F tests |
+| 3 | 5/5 ✅ | (3.A apply masivo a 258 rutas — script de detección listo) |
+| 4 | 6/8 (A,B,E,G,H,I) | 4.C download server, 4.D stream re-validate, 4.F /verify, 4.J UI |
+| 5 | 6/8 (A×4 crons,B×3,E,H) | 5.A 14 crons, 5.C Redis, 5.D magic bytes, 5.F logger, 5.G CSP |
+| 6 | 7/8 (A,B,C,E,F,G,H) | 6.D bulk import streaming |
+| 7 | 4/8 (A,E,G,H) | 7.B 28 modelos huérfanos, 7.C 39 RLS, 7.D AuditLog hash, 7.F |
+| 8 | 0/3 | tests integración + observabilidad |
 
-**Tests pasados:** 1949 verdes en cada commit incremental.
+**Migrations aplicadas a la DB real:**
+- `20260507120000_audit_remediation_schema` — workers RESTRICT + eval_score Decimal
+- `20260507130000_audit_indexes_and_fk` — leads/calculations indexes
+
+**Tests:** 1949 verdes. Smoke contra DB real: 32/32.
+
+**Pendientes que requieren refactor mayor (próxima sesión):**
+- 2.A `decimal.js` migration (13 calculadoras)
+- 2.C 12 regímenes en costo-empleador/vacaciones/boleta/liquidacion
+- 3.A `withPlanGate` apply masivo a 258 rutas
+- 4.J UI WebAuthn (cablear `tryStrongBiometricCeremony` en BiometricCeremonyModal)
+- 5.C migrar rate-limit a Upstash Redis
+- 7.B agregar relación `organization` a 28 modelos huérfanos
+- 7.C policies RLS para 39 tablas faltantes
+- 7.D AuditLog hash chain
 
 ## Principios
 

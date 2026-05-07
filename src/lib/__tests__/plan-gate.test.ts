@@ -188,7 +188,8 @@ describe('checkWorkerLimit', () => {
 
     const result = await checkWorkerLimit('org-1', 'STARTER')
 
-    expect(result).toEqual({ allowed: true, current: 19, max: 20 })
+    // FIX #3.B: ahora el resultado incluye `inViolation` y `excess`.
+    expect(result).toEqual({ allowed: true, current: 19, max: 20, inViolation: false, excess: 0 })
     expect(mockedWorkerCount).toHaveBeenCalledWith({
       where: { orgId: 'org-1', status: { not: 'TERMINATED' } },
     })
@@ -199,7 +200,8 @@ describe('checkWorkerLimit', () => {
 
     const result = await checkWorkerLimit('org-2', 'STARTER')
 
-    expect(result).toEqual({ allowed: false, current: 20, max: 20 })
+    // current === max → no permite alta nueva pero NO en violación.
+    expect(result).toEqual({ allowed: false, current: 20, max: 20, inViolation: false, excess: 0 })
   })
 
   it('0 workers on FREE -> allowed: true, current: 0, max: 5', async () => {
@@ -207,7 +209,21 @@ describe('checkWorkerLimit', () => {
 
     const result = await checkWorkerLimit('org-3', 'FREE')
 
-    expect(result).toEqual({ allowed: true, current: 0, max: 5 })
+    expect(result).toEqual({ allowed: true, current: 0, max: 5, inViolation: false, excess: 0 })
+  })
+
+  it('FIX #3.B: 100 workers en plan FREE → inViolation con excess=95', async () => {
+    mockedWorkerCount.mockResolvedValue(100)
+
+    const result = await checkWorkerLimit('org-downgrade', 'FREE')
+
+    expect(result).toEqual({
+      allowed: false,
+      current: 100,
+      max: 5,
+      inViolation: true,
+      excess: 95,
+    })
   })
 })
 

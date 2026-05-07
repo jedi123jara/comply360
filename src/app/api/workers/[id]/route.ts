@@ -490,9 +490,16 @@ export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (req: NextRe
     },
   })
 
-  // Limpia alertas activas — el cesado no sigue triggereando deadlines.
-  await prisma.workerAlert.deleteMany({
+  // FIX #6.H: las alertas no se borran (hard delete) — se RESUELVEN con
+  // marca de "auto-resuelto por cese del worker" para preservar histórico
+  // legal (SUNAFIL exige trazabilidad 6 años — D.S. 019-2006-TR Art. 23).
+  // Antes se hacía deleteMany → se perdían alertas críticas pasadas.
+  await prisma.workerAlert.updateMany({
     where: { workerId: id, resolvedAt: null },
+    data: {
+      resolvedAt: now,
+      resolvedBy: ctx.userId,
+    },
   })
 
   // Registra evento CESE en historia (Ola 2). Best-effort.
