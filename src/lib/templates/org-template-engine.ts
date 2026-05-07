@@ -227,22 +227,36 @@ function formatMoney(v: number | string): string {
 }
 
 /**
- * Convierte número a letras — solo para monetos laborales (hasta millones).
- * Implementación simplificada para soles peruanos.
+ * Convierte número a letras para sueldos peruanos (hasta miles de millones).
+ *
+ * FIX #0.7: la versión anterior tenía bugs serios que producían contratos
+ * con sueldos en letras incorrectos:
+ *   - x===20 caía al else y devolvía "VEINTI" sin "VEINTE"
+ *   - x===21..29 mezclaba mayúsculas/minúsculas: "VEINTIuno"
+ *   - Negativos generaban "CON -50/100 SOLES"
+ *   - NaN/Infinity no se validaban
+ *   - Faltaba rama para mil millones
+ *
+ * @throws si n no es un número finito y no negativo
  */
-function numberToWords(n: number): string {
+export function numberToWords(n: number): string {
+  if (typeof n !== 'number' || !isFinite(n) || n < 0) {
+    throw new Error(`numberToWords: monto inválido ${n}. Debe ser número finito >= 0.`)
+  }
+
   const UNIDADES = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE']
   const ESPECIALES: Record<number, string> = {
     10: 'DIEZ', 11: 'ONCE', 12: 'DOCE', 13: 'TRECE', 14: 'CATORCE', 15: 'QUINCE',
     16: 'DIECISEIS', 17: 'DIECISIETE', 18: 'DIECIOCHO', 19: 'DIECINUEVE', 20: 'VEINTE',
+    21: 'VEINTIUNO', 22: 'VEINTIDOS', 23: 'VEINTITRES', 24: 'VEINTICUATRO', 25: 'VEINTICINCO',
+    26: 'VEINTISEIS', 27: 'VEINTISIETE', 28: 'VEINTIOCHO', 29: 'VEINTINUEVE',
   }
-  const DECENAS = ['', '', 'VEINTI', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA']
+  const DECENAS = ['', '', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA']
   const CENTENAS = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS']
 
   function below100(x: number): string {
     if (ESPECIALES[x]) return ESPECIALES[x]
     if (x < 10) return UNIDADES[x]
-    if (x < 30 && x > 20) return DECENAS[2] + UNIDADES[x - 20].toLowerCase() // VEINTIUNO, VEINTIDOS...
     const t = Math.floor(x / 10)
     const u = x % 10
     return u === 0 ? DECENAS[t] : `${DECENAS[t]} Y ${UNIDADES[u]}`
@@ -256,30 +270,42 @@ function numberToWords(n: number): string {
     return r === 0 ? CENTENAS[c] : `${CENTENAS[c]} ${below100(r)}`
   }
 
-  if (n === 0) return 'CERO'
+  // Bloque genérico: convierte 1..999 con sufijo (MILLON/MIL/etc.)
+  function bloque(x: number, singular: string, plural: string): string {
+    if (x === 0) return ''
+    if (x === 1) return singular
+    return `${below1000(x)} ${plural}`
+  }
+
   const entero = Math.floor(n)
   const centavos = Math.round((n - entero) * 100)
 
-  let text = ''
-  if (entero >= 1_000_000) {
-    const m = Math.floor(entero / 1_000_000)
-    const rest = entero % 1_000_000
-    text += (m === 1 ? 'UN MILLON' : `${below1000(m)} MILLONES`)
-    if (rest > 0) text += ' '
+  if (entero === 0) {
+    return `CERO CON ${String(centavos).padStart(2, '0')}/100 SOLES`
   }
-  const entero1m = entero % 1_000_000
-  if (entero1m >= 1000) {
-    const m = Math.floor(entero1m / 1000)
-    const rest = entero1m % 1000
-    text += (m === 1 ? 'MIL' : `${below1000(m)} MIL`)
-    if (rest > 0) text += ' '
-    if (rest > 0) text += below1000(rest)
-  } else if (entero1m > 0) {
-    text += below1000(entero1m)
-  }
-  if (entero === 0) text = 'CERO'
 
-  return `${text.trim()} CON ${String(centavos).padStart(2, '0')}/100 SOLES`
+  // Descomponer en mil-millones / millones / miles / unidades
+  const milMillones = Math.floor(entero / 1_000_000_000)
+  const millones = Math.floor((entero % 1_000_000_000) / 1_000_000)
+  const miles = Math.floor((entero % 1_000_000) / 1000)
+  const unidades = entero % 1000
+
+  const partes: string[] = []
+  if (milMillones > 0) {
+    partes.push(bloque(milMillones, 'MIL MILLONES', 'MIL MILLONES'))
+  }
+  if (millones > 0) {
+    partes.push(bloque(millones, 'UN MILLON', 'MILLONES'))
+  }
+  if (miles > 0) {
+    partes.push(bloque(miles, 'MIL', 'MIL'))
+  }
+  if (unidades > 0) {
+    partes.push(below1000(unidades))
+  }
+
+  const text = partes.filter(Boolean).join(' ').trim()
+  return `${text} CON ${String(centavos).padStart(2, '0')}/100 SOLES`
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

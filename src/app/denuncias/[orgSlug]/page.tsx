@@ -49,11 +49,12 @@ export default function DenunciaPublicaPage({ params }: { params: Promise<{ orgS
 
     setSubmitting(true)
     try {
-      const res = await fetch('/api/complaints', {
+      // FIX #0.3: orgId va por query (?org=), NO en body. El backend rechaza
+      // requests sin ?org y valida la organización.
+      const res = await fetch(`/api/complaints?org=${encodeURIComponent(orgSlug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orgId: orgSlug,
           type: form.type,
           description: form.description.trim(),
           isAnonymous: form.isAnonymous,

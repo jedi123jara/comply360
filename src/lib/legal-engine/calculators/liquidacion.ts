@@ -62,16 +62,24 @@ function calcularCTSLiquidacion(
   const fechaCese = new Date(input.fechaCese)
   const mesCese = fechaCese.getMonth() + 1
 
-  // Determinar último depósito
+  // Determinar último depósito y meses truncos desde ese depósito
+  // FIX #0.6: la rama ene-abr tenía off-by-one. El último depósito antes de
+  // un cese en ene-abr es el de noviembre (semestre nov-abr en curso). De
+  // noviembre a fin de enero son **3 meses completos** (nov, dic, ene), no 2.
+  // Antes: `mesCese + 1` daba 2 para cese en enero. Ahora: `mesCese + 2`.
   let mesesTruncos: number
   if (mesCese >= 5 && mesCese <= 10) {
-    // Último depósito: mayo, trunca desde mayo
+    // Último depósito: 15-may. Trunca desde mayo (mes 5 = 0 truncos).
     mesesTruncos = mesCese - 5
   } else if (mesCese >= 11) {
+    // Último depósito: 15-nov. Trunca desde noviembre (mes 11 = 0 truncos).
     mesesTruncos = mesCese - 11
   } else {
-    // Ene-Abr, último depósito noviembre anterior
-    mesesTruncos = mesCese + 1
+    // Ene-Abr: último depósito 15-nov del año anterior. Nov+Dic ya pasaron
+    // (2 meses) + meses transcurridos del año actual (mesCese).
+    // Cese fin-ene → 3 meses (nov + dic + ene)
+    // Cese fin-feb → 4 meses, etc.
+    mesesTruncos = mesCese + 2
   }
 
   const diasTruncos = fechaCese.getDate()

@@ -161,6 +161,12 @@ export interface VacacionesInput {
   fechaCese: string
   diasGozados: number
   asignacionFamiliar: boolean
+  /**
+   * Régimen laboral del trabajador (Prisma enum). Determina los días anuales
+   * de vacaciones que corresponden. Default `'GENERAL'` (30 días) si no se
+   * provee. FIX #0.10: antes se asumía 30 días para todos los regímenes.
+   */
+  regimenLaboral?: string
 }
 
 export interface VacacionesResult {

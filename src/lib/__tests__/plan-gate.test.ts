@@ -321,10 +321,12 @@ describe('withPlanGate', () => {
     const res = await (gated as (req: unknown, ctx: unknown) => Promise<Response>)(req, mockCtx)
     const body = await res.json()
 
-    // asistente_ia requires PRO, but expired trial downgrades to STARTER
+    // FIX #0.4: asistente_ia requires PRO; expired trial degrada a FREE
+    // (antes degradaba a STARTER, regalando un escape valve gratuito hasta
+    // que corriera el cron). Ahora fail closed → FREE.
     expect(res.status).toBe(403)
     expect(body.code).toBe('PLAN_UPGRADE_REQUIRED')
-    expect(body.currentPlan).toBe('STARTER')
+    expect(body.currentPlan).toBe('FREE')
     expect(handler).not.toHaveBeenCalled()
   })
 })

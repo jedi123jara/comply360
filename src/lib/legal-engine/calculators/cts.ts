@@ -23,10 +23,24 @@ export function calcularCTS(input: CTSInput): CTSResult {
   const fechaIngreso = new Date(input.fechaIngreso)
   const fechaCorte = new Date(input.fechaCorte)
 
-  // Determinar inicio del periodo semestral
-  const mesCorte = fechaCorte.getMonth() + 1 // 1-12
-  let inicioSemestre: Date
+  if (isNaN(fechaIngreso.getTime()) || isNaN(fechaCorte.getTime())) {
+    throw new Error('CTS: fechaIngreso y fechaCorte deben ser fechas válidas (YYYY-MM-DD).')
+  }
 
+  // FIX #0.5: el motor solo soporta los DOS cortes legales del D.S. 001-97-TR:
+  // 15 de mayo (semestre nov-abr) y 15 de noviembre (semestre may-oct).
+  // Antes, cualquier mes distinto caía al `else` y devolvía un cálculo
+  // silenciosamente incorrecto (semestre may-oct asumido). Para cese mid-año
+  // se usa la calculadora de LIQUIDACIÓN (CTS trunca), no esta.
+  const mesCorte = fechaCorte.getMonth() + 1 // 1-12
+  if (mesCorte !== 5 && mesCorte !== 11) {
+    throw new Error(
+      `CTS: fechaCorte debe ser 15 de mayo (5) o 15 de noviembre (11). ` +
+      `Recibido: mes ${mesCorte}. Para cálculo de cese parcial use la calculadora de liquidación.`
+    )
+  }
+
+  let inicioSemestre: Date
   if (mesCorte === 5) {
     // Corte mayo 15 → semestre nov-abr (nov del año anterior)
     inicioSemestre = new Date(fechaCorte.getFullYear() - 1, 10, 1) // Nov 1

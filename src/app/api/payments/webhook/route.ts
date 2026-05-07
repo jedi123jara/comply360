@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createHmac } from 'crypto'
+import { CULQI_PLANS } from '@/lib/payments/culqi'
 
 // =============================================
 // POST /api/payments/webhook
@@ -216,6 +217,21 @@ async function handleChargeSuccess(data: CulqiWebhookPayload['data']): Promise<v
   if (!orgId || !planId) {
     console.warn('[Webhook] charge.success sin orgId o planId en metadata')
     return
+  }
+
+  // FIX #0.8: validar que el monto cobrado coincida con el precio del plan.
+  // Defense-in-depth aún con HMAC OK: si la metadata se manipula (o el
+  // secret se filtra), un atacante podría pagar S/1 y activar PRO. La
+  // validación amount === priceInCentimos cierra ese vector.
+  const planConfig = CULQI_PLANS[planId as keyof typeof CULQI_PLANS]
+  if (!planConfig) {
+    throw new Error(`[Webhook] Plan desconocido en metadata: ${planId}`)
+  }
+  if (typeof data.amount !== 'number' || data.amount !== planConfig.priceInCentimos) {
+    throw new Error(
+      `[Webhook] Monto inconsistente para plan ${planId}: ` +
+      `recibido=${data.amount} esperado=${planConfig.priceInCentimos}. Charge ${data.id} rechazado.`
+    )
   }
 
   const now = new Date()

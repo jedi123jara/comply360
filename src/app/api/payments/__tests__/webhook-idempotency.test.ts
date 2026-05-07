@@ -64,12 +64,15 @@ describe('POST /api/payments/webhook — idempotency', () => {
     mockPrisma.organization.update.mockResolvedValue({})
     mockPrisma.subscription.upsert.mockResolvedValue({})
 
+    // FIX #0.8: el monto debe coincidir con CULQI_PLANS[planId].priceInCentimos.
+    // STARTER = 24900 (S/249). Antes el test pasaba con 12900 porque no había
+    // validación → vector de bypass si la metadata se manipulaba.
     const req = signedRequest({
       type: 'charge.success',
       data: {
         id: 'chr_NEW_1',
         object: 'charge',
-        amount: 12900,
+        amount: 24900,
         currency: 'PEN',
         metadata: { orgId: 'org_1', planId: 'STARTER', userId: 'u1' },
       },

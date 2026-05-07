@@ -98,10 +98,12 @@ export function withPlanGate(
     }
 
     // Check if trial expired (downgrade should have happened via cron, but double-check)
+    // FIX #0.4: si planExpiresAt vencido, degradamos a FREE (no STARTER).
+    // Antes, una org cuyo trial PRO expiraba sin que corra el cron mantenía
+    // STARTER de regalo (S/249/mes equivalente) hasta 24h. Fail closed.
     let effectivePlan = org.plan
     if (org.planExpiresAt && new Date(org.planExpiresAt) < new Date()) {
-      // Trial expired but cron hasn't run yet — treat as STARTER
-      effectivePlan = 'STARTER'
+      effectivePlan = 'FREE'
     }
 
     // Check feature access
