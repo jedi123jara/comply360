@@ -40,7 +40,7 @@ const UIT = 5500 // 2026
  * - MYPE_PEQUENA (11-100): 0.30
  * - GENERAL y otros (>100): 1.00 (referencia base)
  */
-function getMultaMultiplierByRegimen(regimen: string | null | undefined, totalWorkers: number): number {
+export function getMultaMultiplierByRegimen(regimen: string | null | undefined, totalWorkers: number): number {
   if (!regimen) {
     // Sin régimen declarado, usar tamaño como proxy
     if (totalWorkers <= 10) return 0.10
