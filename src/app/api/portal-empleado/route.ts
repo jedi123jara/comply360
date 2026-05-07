@@ -4,6 +4,7 @@ import {
   portalEmpleadoLimiter,
   withRateLimitHeaders,
 } from '@/lib/rate-limit'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 
 // ---------------------------------------------------------------------------
 // Abuse tracking — in-memory failed-attempt counter per IP
@@ -85,7 +86,27 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { dni, companyCode } = body as { dni?: string; companyCode?: string }
+    const { dni, companyCode, recaptchaToken } = body as {
+      dni?: string
+      companyCode?: string
+      recaptchaToken?: string
+    }
+
+    // FIX #5.B: reCAPTCHA en endpoint público de lookup por DNI.
+    // Previene enumeración masiva de DNIs (attacker que prueba miles de
+    // combinaciones DNI+orgSlug para descubrir trabajadores).
+    if (process.env.RECAPTCHA_SECRET_KEY) {
+      const recaptcha = await verifyRecaptcha(recaptchaToken ?? '', { threshold: 0.4 })
+      if (!recaptcha.success) {
+        return withRateLimitHeaders(
+          NextResponse.json(
+            { error: 'Validación anti-bot falló. Recarga la página e intenta de nuevo.' },
+            { status: 403 }
+          ),
+          rateLimitResult
+        )
+      }
+    }
 
     // 2. Input validation
     if (!dni || !companyCode) {

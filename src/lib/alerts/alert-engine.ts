@@ -105,6 +105,16 @@ export async function generateWorkerAlerts(workerId: string): Promise<number> {
 /**
  * Generate alerts for ALL active workers in an organization.
  * Excluye soft-deleted (deletedAt != null).
+ *
+ * FIX #6.C: paralelización con cap de concurrencia (8 workers a la vez).
+ * Antes el loop era totalmente secuencial → 500 workers × ~5 queries cada uno
+ * = 2,500+ queries serializadas; el cron daily-alerts tardaba minutos en
+ * orgs medianas. Con concurrencia 8, el tiempo wallclock baja ~8x sin
+ * agotar el connection pool de Postgres (Supabase free-tier).
+ *
+ * La versión batch (1 query findMany con includes + procesamiento en memoria
+ * + 1 transaction grande) requiere refactor mayor del shape de WorkerData
+ * y queda como mejora futura.
  */
 export async function generateOrgAlerts(orgId: string): Promise<{ total: number; workers: number }> {
   const workers = await prisma.worker.findMany({
@@ -112,9 +122,17 @@ export async function generateOrgAlerts(orgId: string): Promise<{ total: number;
     select: { id: true },
   })
 
+  const CONCURRENCY = 8
   let total = 0
-  for (const w of workers) {
-    total += await generateWorkerAlerts(w.id)
+  for (let i = 0; i < workers.length; i += CONCURRENCY) {
+    const batch = workers.slice(i, i + CONCURRENCY)
+    const counts = await Promise.all(
+      batch.map((w) => generateWorkerAlerts(w.id).catch((err) => {
+        console.error(`[alert-engine] worker ${w.id} failed:`, err)
+        return 0
+      }))
+    )
+    total += counts.reduce((a, b) => a + b, 0)
   }
 
   return { total, workers: workers.length }
