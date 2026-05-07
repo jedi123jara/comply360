@@ -150,12 +150,127 @@ export type ValidateUploadErr = {
   ok: false
   error: string
   /** Código estable para que el frontend pueda diferenciar */
-  code: 'NO_FILE' | 'EMPTY' | 'TOO_LARGE' | 'BLOCKED_MIME' | 'BLOCKED_EXT' | 'MIME_NOT_ALLOWED'
+  code: 'NO_FILE' | 'EMPTY' | 'TOO_LARGE' | 'BLOCKED_MIME' | 'BLOCKED_EXT' | 'MIME_NOT_ALLOWED' | 'MAGIC_BYTES_MISMATCH'
 }
 
 export type ValidateUploadResult = ValidateUploadOk | ValidateUploadErr
 
 // ─── Sanitización de nombres ─────────────────────────────────────────────────
+
+// ─── Magic bytes detection (FIX #5.D) ────────────────────────────────────────
+//
+// Antes el validador solo confiaba en `file.type` (MIME reportado por el
+// browser). Un atacante puede subir un PHP/EXE renombrado a `.pdf` con MIME
+// `application/pdf` falso, y el validador lo aceptaba. Ahora cruzamos con
+// los magic bytes reales del primer chunk del archivo.
+//
+// Tabla de magic bytes (hex de los primeros bytes):
+//   PDF:    25 50 44 46            ("%PDF")
+//   PNG:    89 50 4E 47 0D 0A 1A 0A
+//   JPEG:   FF D8 FF
+//   WebP:   52 49 46 46 ?? ?? ?? ?? 57 45 42 50  (RIFF...WEBP)
+//   HEIC:   00 00 00 ?? 66 74 79 70 68 65 69 63  (...ftypheic)
+//   ZIP/DOCX/XLSX: 50 4B 03 04
+//   CSV/text: sin magic — fallback a heurística
+
+interface MagicByteSignature {
+  mimeFamily: 'pdf' | 'png' | 'jpeg' | 'webp' | 'heic' | 'zip-office' | 'text'
+  mimes: readonly string[]
+  bytes: number[]
+  /** Posición desde donde matchear (default 0). */
+  offset?: number
+}
+
+const MAGIC_SIGNATURES: MagicByteSignature[] = [
+  { mimeFamily: 'pdf', mimes: ['application/pdf'], bytes: [0x25, 0x50, 0x44, 0x46] },
+  { mimeFamily: 'png', mimes: ['image/png'], bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
+  { mimeFamily: 'jpeg', mimes: ['image/jpeg'], bytes: [0xff, 0xd8, 0xff] },
+  // ZIP — usado por DOCX, XLSX, ODT, PPTX (todos OOXML/zip).
+  {
+    mimeFamily: 'zip-office',
+    mimes: [
+      'application/zip',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel', // a veces .xlsx legacy MIME
+      'application/msword', // a veces .docx legacy MIME
+    ],
+    bytes: [0x50, 0x4b, 0x03, 0x04],
+  },
+]
+
+function bytesMatch(buf: Uint8Array, sig: MagicByteSignature): boolean {
+  const offset = sig.offset ?? 0
+  if (buf.length < offset + sig.bytes.length) return false
+  for (let i = 0; i < sig.bytes.length; i++) {
+    if (buf[offset + i] !== sig.bytes[i]) return false
+  }
+  return true
+}
+
+/**
+ * Lee los primeros 32 bytes del File y los compara con la tabla de magic
+ * bytes. Devuelve la familia detectada o null si no matchea ninguna.
+ */
+async function detectMagicBytes(file: File): Promise<MagicByteSignature | null> {
+  // Leemos solo los primeros 32 bytes — suficiente para todos los signatures
+  const slice = file.slice(0, 32)
+  const buf = new Uint8Array(await slice.arrayBuffer())
+
+  for (const sig of MAGIC_SIGNATURES) {
+    if (bytesMatch(buf, sig)) return sig
+  }
+
+  // Caso especial: WebP requiere check de "RIFF...WEBP" en offset 8
+  if (
+    buf.length >= 12 &&
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+  ) {
+    return { mimeFamily: 'webp', mimes: ['image/webp'], bytes: [] }
+  }
+
+  // Caso especial: HEIC tiene "ftypheic" o "ftypmif1" en offset 4-12
+  if (
+    buf.length >= 12 &&
+    buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70
+  ) {
+    return { mimeFamily: 'heic', mimes: ['image/heic', 'image/heif'], bytes: [] }
+  }
+
+  return null
+}
+
+/**
+ * Verifica si el MIME reportado matchea con los magic bytes detectados.
+ * Para text/csv (sin magic bytes) se acepta sin chequeo de bytes.
+ */
+async function verifyMagicBytes(
+  file: File,
+  reportedMime: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  // CSV / text: no tienen magic bytes — confiamos en MIME + extension
+  if (reportedMime === 'text/csv' || reportedMime.startsWith('text/')) {
+    return { ok: true }
+  }
+
+  const detected = await detectMagicBytes(file)
+  if (!detected) {
+    return {
+      ok: false,
+      reason: `El archivo no tiene magic bytes válidos (no es PDF, imagen ni Office). MIME reportado: ${reportedMime}`,
+    }
+  }
+
+  if (!detected.mimes.includes(reportedMime)) {
+    return {
+      ok: false,
+      reason: `El MIME reportado (${reportedMime}) no coincide con el contenido real (${detected.mimeFamily}). Posible archivo renombrado.`,
+    }
+  }
+
+  return { ok: true }
+}
 
 /**
  * Sanitiza un nombre de archivo para uso seguro en paths.
@@ -181,7 +296,12 @@ export function sanitizeFileName(name: string): string {
 /**
  * Valida un File contra un UploadProfile. Devuelve un Result tipado.
  *
- * NO confía en `file.type` ciegamente: cruza con extensión y blocklist absoluta.
+ * NO confía en `file.type` ciegamente: cruza con extensión, blocklist
+ * absoluta, MIME del profile, Y magic bytes reales del archivo (#5.D).
+ *
+ * Para chequear los magic bytes (que requieren leer bytes del archivo) usa
+ * `validateUploadWithMagicBytes` (async). `validateUpload` (sync) solo hace
+ * los chequeos rápidos sin leer bytes.
  */
 export function validateUpload(
   file: File | null | undefined,
@@ -241,6 +361,37 @@ export function validateUpload(
     mime: reportedMime,
     size: file.size,
   }
+}
+
+/**
+ * FIX #5.D — Versión async que TAMBIÉN valida magic bytes del contenido.
+ * Úsalo en endpoints que reciben uploads sensibles (legajo, contratos,
+ * boletas) donde el costo extra de leer 32 bytes vale la pena.
+ *
+ * Magic bytes verifican que el archivo realmente sea del tipo que dice ser:
+ *   - PDF tiene `%PDF` al inicio
+ *   - PNG tiene `89 50 4E 47`
+ *   - DOCX/XLSX tiene `PK\x03\x04` (zip header)
+ * Si renombran un .exe a .pdf, los magic bytes lo detectan.
+ */
+export async function validateUploadWithMagicBytes(
+  file: File | null | undefined,
+  profile: UploadProfile,
+): Promise<ValidateUploadResult> {
+  const baseResult = validateUpload(file, profile)
+  if (!baseResult.ok) return baseResult
+  if (!file) return baseResult // type guard
+
+  const magicCheck = await verifyMagicBytes(file, baseResult.mime)
+  if (!magicCheck.ok) {
+    return {
+      ok: false,
+      error: `Validación de contenido falló: ${magicCheck.reason}`,
+      code: 'MAGIC_BYTES_MISMATCH',
+    }
+  }
+
+  return baseResult
 }
 
 /**

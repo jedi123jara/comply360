@@ -2,7 +2,16 @@
  * Structured JSON logger for COMPLY360.
  * Replaces console.error/log with structured output.
  * In production, these can be piped to a log aggregator.
+ *
+ * FIX #5.F: aplica sanitizeForLog() automáticamente al `context`. Antes
+ * el caller tenía que recordar llamar `sanitizeForLog()` antes de pasar
+ * un objeto con DNI/sueldos/api keys al logger — y nadie lo hacía. Ahora
+ * el sanitize es transparente: cualquier campo que matche patrones de PII
+ * (DNI, RUC, email, sueldoBruto, password, secret, token) se redacta a
+ * `[REDACTED]` antes de serializar el JSON al output.
  */
+
+import { sanitizeForLog } from '@/lib/security/pii'
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -20,7 +29,7 @@ function log(level: LogLevel, message: string, context?: Record<string, unknown>
     level,
     message,
     timestamp: new Date().toISOString(),
-    context,
+    context: context ? sanitizeForLog(context) : undefined,
   }
 
   if (error instanceof Error) {
