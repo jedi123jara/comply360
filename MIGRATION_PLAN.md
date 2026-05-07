@@ -14,16 +14,18 @@
 | 2 | 6/9 (B,D,E1-4) | 2.A decimal.js, 2.C 12 regímenes, 2.F tests |
 | 3 | 5/5 ✅ | (3.A apply masivo a 258 rutas — script de detección listo) |
 | 4 | 6/8 (A,B,E,G,H,I) | 4.C download server, 4.D stream re-validate, 4.F /verify, 4.J UI |
-| 5 | 6/8 (A×4 crons,B×3,E,H) | 5.A 14 crons, 5.C Redis, 5.D magic bytes, 5.F logger, 5.G CSP |
+| 5 | 8/8 ✅ | — (5.A 100% via wrapper, 5.D magic bytes, 5.F logger sanit) |
 | 6 | 7/8 (A,B,C,E,F,G,H) | 6.D bulk import streaming |
 | 7 | 6/8 (A,B,C,E,G,H) | 7.D AuditLog hash, 7.F migration cleanup |
-| 8 | 0/3 | tests integración + observabilidad |
+| 8 | 1/3 (A parcial) | 8.B integración DB real, 8.C observabilidad |
 
 **Migrations aplicadas a la DB real:**
 - `20260507120000_audit_remediation_schema` — workers RESTRICT + eval_score Decimal
 - `20260507130000_audit_indexes_and_fk` — leads/calculations indexes
 - `20260507140000_orphan_models_fk` — 32 FKs nuevas a organizations(id)
 - `20260507150000_rls_policies_full` — RLS+policy en 47 tablas tenant-scoped
+
+**Tests:** 1988 verdes (39 nuevos en último bloque). Smoke contra DB: 32/32.
 
 **Tests:** 1949 verdes. Smoke contra DB real: 32/32.
 
