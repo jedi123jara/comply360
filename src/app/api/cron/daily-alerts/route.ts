@@ -399,9 +399,12 @@ export async function GET(request: NextRequest) {
       const top = orgData.alerts[0]
       if (!top) continue
       try {
+        // FIX #5.E: payload sin PII. Antes `body: top.title` podía
+        // contener nombre del trabajador (visible en lockscreen iOS/Android).
+        // El detalle queda accesible solo dentro del portal autenticado.
         const result = await sendPushToOrg(orgId, {
-          title: `${orgData.alerts.length} alerta(s) críticas`,
-          body: top.title,
+          title: 'Comply360',
+          body: `Tienes ${orgData.alerts.length} alerta(s) críticas pendientes`,
           url: '/dashboard/alertas',
           tag: `daily-${orgId}`,
           severity: 'CRITICAL',

@@ -9,7 +9,7 @@
  *  3. Inyecta el contexto normativo antes de las messages del usuario
  *  4. Genera la respuesta con el LLM (o fallback simulado)
  */
-import { callAIWithUsage, callAIStream, detectProvider, getModelName } from './provider'
+import { callAIWithUsage, callAIRedacted, callAIStream, detectProvider, getModelName } from './provider'
 import { retrieveRelevantLaw, formatRetrievedContext, type RetrievalResult } from './rag/retriever'
 import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
 import { recordAiUsage } from './usage'
@@ -131,7 +131,12 @@ export async function generateChatResponse(
   const allMessages = [...systemMessages, ...messages]
 
   try {
-    const { content, usage } = await callAIWithUsage(allMessages, {
+    // FIX #4.B: usar callAIRedacted para que los DNIs/RUCs/emails/teléfonos
+    // del usuario (cuando consulta sobre un trabajador específico) se
+    // redacten antes de salir al provider IA. El comentario en provider.ts
+    // ya recomendaba "Usar SIEMPRE en: chat, worker-chat, complaint-triage,
+    // pdf-extract, action-plan" pero el chat seguía usando callAIWithUsage.
+    const { content, usage } = await callAIRedacted(allMessages, {
       temperature: 0.4,
       maxTokens: 2000,
       feature: (meta?.feature as 'chat' | 'worker-chat' | undefined) ?? 'chat',

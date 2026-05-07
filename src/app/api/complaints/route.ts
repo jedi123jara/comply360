@@ -280,6 +280,25 @@ export const PUT = withAuth(async (req, ctx) => {
       return NextResponse.json({ error: 'Denuncia no encontrada' }, { status: 404 })
     }
 
+    // FIX #3.E: validar que assignedTo (si viene) pertenezca a un User de
+    // la misma org. Antes se aceptaba cualquier string → era posible asignar
+    // denuncias a usuarios ajenos o a strings arbitrarios.
+    if (assignedTo) {
+      if (typeof assignedTo !== 'string') {
+        return NextResponse.json({ error: 'assignedTo debe ser string' }, { status: 400 })
+      }
+      const assignee = await prisma.user.findFirst({
+        where: { id: assignedTo, orgId: ctx.orgId },
+        select: { id: true },
+      })
+      if (!assignee) {
+        return NextResponse.json(
+          { error: 'assignedTo no es un usuario válido de esta organización' },
+          { status: 400 },
+        )
+      }
+    }
+
     const updateData: Record<string, unknown> = {}
     if (status) updateData.status = status
     if (assignedTo) updateData.assignedTo = assignedTo
