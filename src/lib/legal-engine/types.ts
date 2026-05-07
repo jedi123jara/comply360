@@ -122,6 +122,12 @@ export interface IndemnizacionResult {
   topeMaximo: number
   formula: string
   baseLegal: string
+  /**
+   * Advertencia legal opcional: zonas grises o criterios jurisprudenciales
+   * divergentes que el caller (UI) debe mostrar al usuario para que tome
+   * decisión informada. Empezó con FIX #2.E.1 (1.5x vs 1x plazo fijo).
+   */
+  legalWarning?: string
 }
 
 // =============================================
@@ -134,6 +140,14 @@ export interface HorasExtrasInput {
   mesesAcumulados: number
   incluyeDomingos: boolean
   horasDomingo: number
+  /**
+   * Distribución diaria opcional (horas trabajadas por día, hasta 6 días).
+   * Si se provee, el cálculo es exacto día por día (FIX #2.E.2). Si NO se
+   * provee, asume distribución óptima al 25% (ej. 4h extras se computan
+   * 2h@25% + 2h@35% si vinieron en un mismo día; sin distribución asume
+   * 4h@25% que subestima en favor del empleador).
+   */
+  horasDiarias?: number[]
 }
 
 export interface HorasExtrasResult {

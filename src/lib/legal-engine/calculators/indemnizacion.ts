@@ -137,6 +137,17 @@ function calcularIndemnizacionPlazoFijo(
     topeMaximo,
     formula,
     baseLegal: config.BASE_LEGAL,
+    // FIX #2.E.1: warning sobre criterio jurisprudencial divergente.
+    // Art. 76 D.S. 003-97-TR dice "una remuneración y media ordinaria mensual
+    // por cada mes dejado de laborar" (factor 1.5×). Las Casaciones Laborales
+    // 1724-2013-Lima y 6437-2017-Lima han aplicado 1.0× en supuestos
+    // similares. Es zona gris — el caller debe mostrar este warning en UI.
+    legalWarning:
+      `El factor 1.5× usado es la lectura literal del Art. 76 D.S. 003-97-TR. ` +
+      `Las Casaciones Laborales 1724-2013-Lima y 6437-2017-Lima han aplicado factor 1.0× ` +
+      `en supuestos similares. Si liquidas con 1.5× y la corte ordena 1.0×, hay sobrepago ` +
+      `no reembolsable; si pagas 1.0× y te ordenan 1.5×, hay multa SUNAFIL + intereses. ` +
+      `Consulta criterio del juzgado correspondiente antes de pagar.`,
   }
 }
 

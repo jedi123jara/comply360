@@ -1,5 +1,6 @@
 import {
   PERU_LABOR,
+  calcularMultaSunafil as calcularMultaSunafilGranular,
 } from '../peru-labor'
 
 // =============================================
@@ -66,65 +67,85 @@ const MYPE_DESCUENTO: Record<RegimenMype, number | null> = {
   MICROEMPRESA: 0.50,
 }
 
+/**
+ * FIX #2.B: reconciliación de los dos motores de multa SUNAFIL.
+ *
+ * Antes esta función usaba interpolación lineal entre `rango.min` y `rango.max`
+ * según un "factor de gravedad" derivado del número de trabajadores. Eso NO
+ * respeta la escala oficial del D.S. 019-2006-TR, que define **10 tramos
+ * discretos** por número de trabajadores afectados (no interpolación).
+ *
+ * Diferencia documentada en el audit:
+ *   GRAVE × 75 trabajadores en NO_MYPE
+ *     - granular oficial: 10.51 UIT (S/ 57,805)
+ *     - interpolada: ~33.42 UIT (S/ 183,810)
+ *     - delta: S/ 126,005
+ *
+ * Ahora delegamos al motor granular `calcularMultaSunafilGranular()` que
+ * existe en peru-labor.ts (los tramos están en `PERU_LABOR.MULTAS_SUNAFIL.
+ * ESCALA_GRANULAR`). Mantenemos el mismo shape de input/output para no
+ * romper callers (UI, AI, reports).
+ */
 export function calcularMultaSunafil(input: MultaSunafilInput): MultaSunafilResult {
   const config = PERU_LABOR.MULTAS_SUNAFIL
   const uit = PERU_LABOR.UIT
   const regimen: RegimenMype = input.regimenMype || 'GENERAL'
   const escalaKey = ESCALA_KEY[regimen]
 
-  // 1. Rango de UITs directo de la tabla oficial por tipo de empresa
-  //    (NO aplicamos un factor porcentual sobre NO_MYPE; los rangos son independientes)
+  // Rango oficial (min/max del tipo de infracción) — para UI informativa
   const rango = config.ESCALA[escalaKey][input.tipoInfraccion]
   const rangoMin = rango.min
   const rangoMax = rango.max
 
-  // 2. Factor de gravedad por número de trabajadores (interpolación dentro del rango)
-  const factorGravedad = calcularFactorPorTrabajadores(input.numeroTrabajadores)
+  // Motor granular: devuelve UITs ya con reincidencia + descuento aplicados.
+  // Calculamos en 3 pasos para poder reportar cada componente:
+  const multaBaseUit = calcularMultaSunafilGranular(
+    escalaKey,
+    input.tipoInfraccion,
+    input.numeroTrabajadores,
+    false, // sin reincidencia
+    null,  // sin descuento
+  )
+  const multaConReincidenciaUit = calcularMultaSunafilGranular(
+    escalaKey,
+    input.tipoInfraccion,
+    input.numeroTrabajadores,
+    input.reincidente,
+    null,
+  )
+  const subsanacion: 'VOLUNTARIA' | 'DURANTE_INSPECCION' | null =
+    input.subsanacionVoluntaria ? 'VOLUNTARIA'
+    : input.subsanacionDuranteInspeccion ? 'DURANTE_INSPECCION'
+    : null
 
-  // 3. Multa estimada en UITs
-  const multaEstimadaUITs = rangoMin + (rangoMax - rangoMin) * factorGravedad
-  const multaEstimadaUITsRedondeada = Math.round(multaEstimadaUITs * 100) / 100
-
-  // 4. Tope máximo
-  const multaEstimadaUITsFinal = Math.min(multaEstimadaUITsRedondeada, config.TOPE_MAXIMO_UIT)
-
-  // 5. Convertir a soles
+  // Conversión a soles + tope absoluto (52.53 UIT)
   const multaMinima = Math.round(rangoMin * uit * 100) / 100
   const multaMaxima = Math.round(rangoMax * uit * 100) / 100
-  let multaEstimada = Math.round(multaEstimadaUITsFinal * uit * 100) / 100
+  const topeSoles = config.TOPE_MAXIMO_UIT * uit
+  const multaEstimada = Math.min(Math.round(multaConReincidenciaUit * uit * 100) / 100, topeSoles)
 
-  // 6. Reincidencia: +50% (Art. 40 Ley 28806)
-  if (input.reincidente) {
-    multaEstimada = Math.round(multaEstimada * (1 + config.RECARGO_REINCIDENCIA) * 100) / 100
-    const topeSoles = config.TOPE_MAXIMO_UIT * uit
-    if (multaEstimada > topeSoles) multaEstimada = topeSoles
-  }
-
-  // 7. Descuentos por subsanación (Art. 40 Ley 28806)
-  //    - Voluntaria antes de inspección:  -90% (prevalece si ambos flags = true)
-  //    - Durante inspección:              -70%
+  // Multa con descuento — aplicamos el % en soles para evitar pérdida de
+  // precisión por redondeo intermedio en UITs (cuando la base es < 1 UIT).
   let multaConDescuento: number | null = null
   let descuentoTipo: MultaSunafilResult['descuentoTipo'] = null
-  if (input.subsanacionVoluntaria) {
-    multaConDescuento = Math.round(
-      multaEstimada * (1 - config.DESCUENTOS.SUBSANACION_VOLUNTARIA) * 100
-    ) / 100
+  if (subsanacion === 'VOLUNTARIA') {
+    const factor = 1 - config.DESCUENTOS.SUBSANACION_VOLUNTARIA
+    multaConDescuento = Math.min(Math.round(multaEstimada * factor * 100) / 100, topeSoles)
     descuentoTipo = 'voluntaria_90'
-  } else if (input.subsanacionDuranteInspeccion) {
-    multaConDescuento = Math.round(
-      multaEstimada * (1 - config.DESCUENTOS.SUBSANACION_DURANTE_INSPECCION) * 100
-    ) / 100
+  } else if (subsanacion === 'DURANTE_INSPECCION') {
+    const factor = 1 - config.DESCUENTOS.SUBSANACION_DURANTE_INSPECCION
+    multaConDescuento = Math.min(Math.round(multaEstimada * factor * 100) / 100, topeSoles)
     descuentoTipo = 'durante_inspeccion_70'
   }
 
-  // 8. UITs de referencia (para UI)
+  // UITs de referencia (para UI)
   const enUITs = {
     min: rangoMin,
     max: rangoMax,
     estimada: Math.round((multaEstimada / uit) * 100) / 100,
   }
 
-  // 9. Fórmula descriptiva
+  // Tipo y régimen labels
   const tipoLabel = input.tipoInfraccion === 'LEVE' ? 'Leve'
     : input.tipoInfraccion === 'GRAVE' ? 'Grave' : 'Muy Grave'
 
@@ -140,13 +161,18 @@ export function calcularMultaSunafil(input: MultaSunafilInput): MultaSunafilResu
 
   const formula =
     `Infracción ${tipoLabel} con ${input.numeroTrabajadores} trabajador(es).${regimenNote} ` +
-    `Rango: ${rangoMin} - ${rangoMax} UITs. ` +
-    `Factor de gravedad: ${(factorGravedad * 100).toFixed(1)}% del rango. ` +
-    `Multa estimada: ${multaEstimadaUITsFinal} UITs × ${fmt(uit)} (UIT) = ${fmt(multaEstimada)}` +
-    (input.reincidente ? '. Reincidencia: +50% aplicado' : '') +
+    `Rango oficial: ${rangoMin}-${rangoMax} UITs. ` +
+    `Tramo aplicable (D.S. 019-2006-TR escala granular): ${multaBaseUit} UITs. ` +
+    `Multa: ${multaBaseUit} UIT × ${fmt(uit)} = ${fmt(multaBaseUit * uit)}` +
+    (input.reincidente ? `. Con reincidencia +50%: ${fmt(multaEstimada)}` : '') +
     descuentoNote + '.'
 
-  // 10. Recomendaciones
+  // factorGravedad ya no aplica con tramos discretos. Devolvemos posición
+  // dentro del rango como aproximación para que la UI no rompa.
+  const factorGravedad = rangoMax > rangoMin
+    ? (multaBaseUit - rangoMin) / (rangoMax - rangoMin)
+    : 0
+
   const recomendaciones = generarRecomendaciones(input, multaEstimada, multaConDescuento, regimen)
 
   return {
@@ -165,27 +191,9 @@ export function calcularMultaSunafil(input: MultaSunafilInput): MultaSunafilResu
   }
 }
 
-// =============================================
-// Factor de gravedad por número de trabajadores
-// =============================================
-function calcularFactorPorTrabajadores(numTrabajadores: number): number {
-  if (numTrabajadores <= 0) return 0
-
-  if (numTrabajadores <= 10) {
-    // 1-10 → factor 0.00 a 0.25
-    return (numTrabajadores / 10) * 0.25
-  } else if (numTrabajadores <= 50) {
-    // 11-50 → factor 0.25 a 0.50
-    return 0.25 + ((numTrabajadores - 10) / 40) * 0.25
-  } else if (numTrabajadores <= 100) {
-    // 51-100 → factor 0.50 to 0.75
-    return 0.50 + ((numTrabajadores - 50) / 50) * 0.25
-  } else {
-    // 100+ → factor 0.75 to 1.00 (capped at 200 workers for scaling)
-    const exceso = Math.min(numTrabajadores - 100, 100)
-    return 0.75 + (exceso / 100) * 0.25
-  }
-}
+// FIX #2.B: `calcularFactorPorTrabajadores` ELIMINADA. Era la fuente del bug —
+// interpolación lineal entre rangos cuando la norma define 10 tramos discretos.
+// El motor granular en peru-labor.ts es ahora la fuente única de verdad.
 
 // =============================================
 // Recomendaciones legales
