@@ -16,12 +16,14 @@
 | 4 | 6/8 (A,B,E,G,H,I) | 4.C download server, 4.D stream re-validate, 4.F /verify, 4.J UI |
 | 5 | 6/8 (A×4 crons,B×3,E,H) | 5.A 14 crons, 5.C Redis, 5.D magic bytes, 5.F logger, 5.G CSP |
 | 6 | 7/8 (A,B,C,E,F,G,H) | 6.D bulk import streaming |
-| 7 | 4/8 (A,E,G,H) | 7.B 28 modelos huérfanos, 7.C 39 RLS, 7.D AuditLog hash, 7.F |
+| 7 | 6/8 (A,B,C,E,G,H) | 7.D AuditLog hash, 7.F migration cleanup |
 | 8 | 0/3 | tests integración + observabilidad |
 
 **Migrations aplicadas a la DB real:**
 - `20260507120000_audit_remediation_schema` — workers RESTRICT + eval_score Decimal
 - `20260507130000_audit_indexes_and_fk` — leads/calculations indexes
+- `20260507140000_orphan_models_fk` — 32 FKs nuevas a organizations(id)
+- `20260507150000_rls_policies_full` — RLS+policy en 47 tablas tenant-scoped
 
 **Tests:** 1949 verdes. Smoke contra DB real: 32/32.
 
