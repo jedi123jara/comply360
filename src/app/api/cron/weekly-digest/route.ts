@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
+import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
 
 // ==============================================
 // GET /api/cron/weekly-digest
@@ -23,6 +24,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // FIX #5.A: idempotencia bucket semanal (10080 min = 7d).
+  const claim = await claimCronRun('weekly-digest', { bucketMinutes: 10080 })
+  if (!claim.acquired) {
+    return NextResponse.json({ ok: true, duplicate: true, bucket: claim.bucket })
+  }
+
+  try {
   const now = new Date()
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
   const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -145,13 +153,20 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    processed: orgs.length,
-    sent,
-    errors,
-    timestamp: now.toISOString(),
-  })
+    const summary = {
+      ok: true,
+      processed: orgs.length,
+      sent,
+      errors,
+      timestamp: now.toISOString(),
+    }
+    await completeCronRun(claim.runId, summary)
+    return NextResponse.json(summary)
+  } catch (err) {
+    console.error('[weekly-digest] cron error', err)
+    await failCronRun(claim.runId, err)
+    return NextResponse.json({ error: 'Cron job failed' }, { status: 500 })
+  }
 }
 
 /* ============================

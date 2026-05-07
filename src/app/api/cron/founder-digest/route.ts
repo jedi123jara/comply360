@@ -3,6 +3,7 @@ import { sendEmail } from '@/lib/email/client'
 import { founderDigestEmail } from '@/lib/email/templates'
 import { computeFounderMetrics } from '@/lib/metrics/founder-metrics'
 import { notifySlackRaw } from '@/lib/notifications/slack'
+import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
 
 /**
  * GET /api/cron/founder-digest
@@ -31,6 +32,9 @@ export async function GET(request: NextRequest) {
     console.error('[founder-digest] CRON_SECRET no configurado')
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
   }
+  // FIX #5.A: idempotencia bucket diario.
+  // (auth check sigue antes — la firma protege el endpoint, idempotencia
+  // protege contra retry de Vercel.)
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -39,6 +43,11 @@ export async function GET(request: NextRequest) {
   if (!founderEmail) {
     console.warn('[founder-digest] FOUNDER_EMAIL no configurado — saltando envío')
     return NextResponse.json({ skipped: true, reason: 'FOUNDER_EMAIL missing' })
+  }
+
+  const claim = await claimCronRun('founder-digest', { bucketMinutes: 1440 })
+  if (!claim.acquired) {
+    return NextResponse.json({ ok: true, duplicate: true, bucket: claim.bucket })
   }
 
   try {
@@ -97,16 +106,19 @@ export async function GET(request: NextRequest) {
       .join('\n')
     await notifySlackRaw(slackSummary)
 
-    return NextResponse.json({
+    const summary = {
       ok: true,
       emailSent: ok,
       to: founderEmail,
       generatedAt: metrics.generatedAt,
       mrr: metrics.business.mrr,
       newOrgs7d: metrics.growth.newOrgs7d,
-    })
+    }
+    await completeCronRun(claim.runId, summary)
+    return NextResponse.json(summary)
   } catch (err) {
     console.error('[founder-digest] failed:', err)
+    await failCronRun(claim.runId, err)
     return NextResponse.json(
       {
         ok: false,

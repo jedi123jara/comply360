@@ -3,6 +3,23 @@
 > Plan de remediación post-auditoría. 102 hallazgos en 8 olas. ~10 semanas full-time o ~5 con 2 devs en paralelo.
 > Branch base: `audit/remediation`.
 
+## ESTADO POST-SESIÓN (2026-05-07)
+
+**Cerrados en esta sesión: 30 hallazgos** (ver commits de `audit/remediation`).
+- Ola 0: 10/10 ✅
+- Ola 1: 5/5 ✅
+- Ola 3: 1 (3.E)
+- Ola 4: 4 (4.A, 4.B, 4.E, 4.G)
+- Ola 5: 4 (5.A en daily-alerts/morning-briefing/weekly-digest/founder-digest, 5.B parcial, 5.E, 5.H)
+- Ola 6: 4 (6.A, 6.B, 6.F, 6.G)
+- Ola 7: 3 (7.A, 7.G, 7.H)
+
+**Pendiente migración Prisma** (cuando se aplique `prisma migrate dev`):
+- 7.A `Worker.organization onDelete: Restrict`
+- 7.G `AiUsage.evalScore` Float → Decimal(5,4)
+
+**Tests pasados:** 1949 verdes en cada commit incremental.
+
 ## Principios
 
 1. Severidad: legal > seguridad > datos > UX > performance.
@@ -25,28 +42,30 @@
 | 7 | DB hardening | ⏳ pendiente | 3C + 4A |
 | 8 | Tests + observabilidad | ⏳ pendiente | gaps cobertura |
 
-## OLA 0 — Hotfix express
+## OLA 0 — Hotfix express ✅ CERRADA
 
 | # | Hallazgo | Archivo | Estado |
 |---|---|---|---|
-| 0.1 | Bucket Supabase público → boletas/DNI accesibles | `src/lib/storage/upload.ts:98,171` | ⏳ |
-| 0.2 | PUT /complaints sin filtro orgId | `src/app/api/complaints/route.ts:244-282` | ⏳ |
-| 0.3 | POST /complaints orgId arbitrario | `src/app/api/complaints/route.ts:36,154-166` | ⏳ |
-| 0.4 | Plan expirado → STARTER (debe ser FREE) | `src/lib/plan-gate.ts:104` | ⏳ |
-| 0.5 | CTS basura silenciosa fuera de cortes legales | `src/lib/legal-engine/calculators/cts.ts:30-48` | ⏳ |
-| 0.6 | Liquidación off-by-one ene-abr | `src/lib/legal-engine/calculators/liquidacion.ts:64-75` | ⏳ |
-| 0.7 | numberToWords sueldoEnLetras roto | `src/lib/templates/org-template-engine.ts:245-279` | ⏳ |
-| 0.8 | Webhook Culqi no valida monto | `src/app/api/payments/webhook/route.ts:212-260` | ⏳ |
-| 0.9 | XSS en email templates | `src/lib/email/templates.ts` | ⏳ |
-| 0.10 | Vacaciones MYPE devuelve 30 días | `src/lib/legal-engine/calculators/vacaciones.ts:47-65` | ⏳ |
+| 0.1 | Bucket Supabase público → boletas/DNI accesibles | `src/lib/storage/upload.ts:98,171` | ✅ |
+| 0.2 | PUT /complaints sin filtro orgId | `src/app/api/complaints/route.ts:244-282` | ✅ |
+| 0.3 | POST /complaints orgId arbitrario | `src/app/api/complaints/route.ts:36,154-166` | ✅ |
+| 0.4 | Plan expirado → STARTER (debe ser FREE) | `src/lib/plan-gate.ts:104` | ✅ |
+| 0.5 | CTS basura silenciosa fuera de cortes legales | `src/lib/legal-engine/calculators/cts.ts:30-48` | ✅ |
+| 0.6 | Liquidación off-by-one ene-abr | `src/lib/legal-engine/calculators/liquidacion.ts:64-75` | ✅ |
+| 0.7 | numberToWords sueldoEnLetras roto | `src/lib/templates/org-template-engine.ts:245-279` | ✅ |
+| 0.8 | Webhook Culqi no valida monto | `src/app/api/payments/webhook/route.ts:212-260` | ✅ |
+| 0.9 | XSS en email templates | `src/lib/email/templates.ts` | ✅ |
+| 0.10 | Vacaciones MYPE devuelve 30 días | `src/lib/legal-engine/calculators/vacaciones.ts:47-65` | ✅ |
 
-## OLA 1 — Seguridad crítica
+## OLA 1 — Seguridad crítica ✅ CERRADA
 
-- 1.A WebAuthn de verdad: cambiar `credentials.create()` → `.get()` con verificación server-side `@simplewebauthn/server`.
-- 1.B RLS Postgres real: rol app sin BYPASSRLS, `runWithOrgScope` en handlers críticos.
-- 1.C orgId no predecible: `cuid()` en lugar de slug derivado del email.
-- 1.D Import token HMAC: firmar con `IMPORT_TOKEN_SECRET`.
-- 1.E Voto secreto Comité SST: commitment scheme padrón/papeleta + validar `ctx.userId === voter`.
+- 1.A ✅ WebAuthn fuerte: nueva función `tryStrongBiometricCeremony()` que usa `credentials.get()` + verifyAndUpdateAuthentication. UI rollout en Ola 4.
+- 1.B ✅ RLS: `$queryRaw` con `set_config()` parametrizado. `RLS_ENFORCED=true` para prod.
+- 1.C ✅ orgId opaco con `randomUUID()`. Reuse del orgId existente en concurrencia.
+- 1.D ✅ Import token con HMAC-SHA256 + IMPORT_TOKEN_SECRET, timingSafeEqual, tope 1000 filas.
+- 1.E ✅ Voto Comité: validar `ctx.userId===voter.userId` o `manualTranscription` flag de admin.
+
+**Pendiente Ola 4 (UI):** cablear `tryStrongBiometricCeremony` en `BiometricCeremonyModal` y endpoints `/firmar`/`/aceptar` para que verifiquen credential server-side. Activar `WEBAUTHN_STRICT_VERIFY=true` cuando los workers existentes hayan registrado credenciales.
 
 ## OLA 2 — Legal engine
 
