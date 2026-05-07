@@ -145,9 +145,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           await handleSubscriptionCancelled(data)
           break
 
+        // FIX #3.C: handlers para refund y dispute.
+        case 'charge.refunded':
+          await handleChargeRefunded(data)
+          break
+
+        case 'charge.disputed':
+          await handleChargeDisputed(data)
+          break
+
         default:
           console.log(`[Culqi Webhook] Evento no manejado: ${type}`)
-          // No es DLQ: es evento válido que no procesamos (ej: charge.refunded en el futuro)
       }
     } catch (err) {
       handlerError = err
@@ -234,6 +242,25 @@ async function handleChargeSuccess(data: CulqiWebhookPayload['data']): Promise<v
     )
   }
 
+  // FIX #3.D: race condition checkout↔webhook.
+  // El checkout endpoint ya activa el plan + crea Subscription ACTIVE para
+  // dar UX inmediato al cliente. Cuando el webhook llega luego (1-30s),
+  // antes hacía un segundo upsert que extendía `currentPeriodEnd` un mes
+  // adicional (regalando tiempo). Ahora chequeamos:
+  //   - Si ya existe Subscription con este externalSubscriptionId y está
+  //     ACTIVE → NO-OP idempotente (el checkout ya hizo el trabajo).
+  //   - Si NO existe (caso flow webhook puro sin checkout previo) → crear.
+  const existingSub = await prisma.subscription.findFirst({
+    where: { externalSubscriptionId: data.id, status: 'ACTIVE' },
+    select: { id: true, orgId: true, currentPeriodEnd: true },
+  })
+  if (existingSub) {
+    console.log(
+      `[Webhook] charge.success ${data.id} ya activado por checkout (sub ${existingSub.id}). No-op idempotente.`
+    )
+    return
+  }
+
   const now = new Date()
   const periodEnd = new Date(now)
   periodEnd.setMonth(periodEnd.getMonth() + 1)
@@ -308,6 +335,104 @@ async function handleChargeFailed(data: CulqiWebhookPayload['data']): Promise<vo
     console.error('[Webhook] Error registrando charge.failed:', err)
     throw err
   }
+}
+
+/**
+ * FIX #3.C: charge.refunded
+ *
+ * Cliente pidió reembolso (Culqi lo procesó). Bajamos el plan a FREE y
+ * registramos en AuditLog. La org pierde acceso al plan pago hasta que
+ * pague de nuevo.
+ */
+async function handleChargeRefunded(data: CulqiWebhookPayload['data']): Promise<void> {
+  // Resolver org desde la subscription que matchea charge.id
+  const subscription = await prisma.subscription.findFirst({
+    where: { externalSubscriptionId: data.id },
+    select: { id: true, orgId: true, plan: true },
+  })
+
+  if (!subscription) {
+    console.warn(`[Webhook] charge.refunded sin subscription para ${data.id}`)
+    return
+  }
+
+  await prisma.$transaction([
+    prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { status: 'CANCELLED', cancelledAt: new Date() },
+    }),
+    prisma.organization.update({
+      where: { id: subscription.orgId },
+      data: { plan: 'FREE', planExpiresAt: null },
+    }),
+  ])
+
+  await prisma.auditLog
+    .create({
+      data: {
+        orgId: subscription.orgId,
+        userId: 'system',
+        action: 'payment.refunded',
+        entityType: 'Subscription',
+        entityId: data.id,
+        metadataJson: {
+          chargeId: data.id,
+          previousPlan: subscription.plan,
+          amount: data.amount ?? null,
+        },
+      },
+    })
+    .catch((err) => console.error('[Webhook] audit refund failed:', err))
+
+  console.log(`[Webhook] charge.refunded → org ${subscription.orgId} downgraded to FREE`)
+}
+
+/**
+ * FIX #3.C: charge.disputed
+ *
+ * El cliente disputó el cargo (chargeback). NO bajamos el plan
+ * automáticamente porque la disputa puede resolverse a favor de Comply360.
+ * En su lugar marcamos `Subscription.status='DISPUTED'` y notificamos via
+ * AuditLog (admin debe revisar manualmente).
+ */
+async function handleChargeDisputed(data: CulqiWebhookPayload['data']): Promise<void> {
+  const subscription = await prisma.subscription.findFirst({
+    where: { externalSubscriptionId: data.id },
+    select: { id: true, orgId: true, plan: true },
+  })
+
+  if (!subscription) {
+    console.warn(`[Webhook] charge.disputed sin subscription para ${data.id}`)
+    return
+  }
+
+  // Marcamos como PAST_DUE para alertar al admin sin perder data del plan.
+  // Cuando se resuelva la disputa, admin debe restaurar a ACTIVE manualmente
+  // (vía endpoint de cancelación o resolución manual en DB).
+  await prisma.subscription.update({
+    where: { id: subscription.id },
+    data: { status: 'PAST_DUE' },
+  })
+
+  await prisma.auditLog
+    .create({
+      data: {
+        orgId: subscription.orgId,
+        userId: 'system',
+        action: 'payment.disputed',
+        entityType: 'Subscription',
+        entityId: data.id,
+        metadataJson: {
+          chargeId: data.id,
+          plan: subscription.plan,
+          amount: data.amount ?? null,
+          requiresManualReview: true,
+        },
+      },
+    })
+    .catch((err) => console.error('[Webhook] audit dispute failed:', err))
+
+  console.warn(`[Webhook] ⚠️  charge.disputed → org ${subscription.orgId} marcada PAST_DUE — REVIEW MANUAL`)
 }
 
 async function handleSubscriptionCancelled(data: CulqiWebhookPayload['data']): Promise<void> {

@@ -164,10 +164,10 @@ async function main() {
   const liq = calcularLiquidacion({
     sueldoBruto: 3000,
     asignacionFamiliar: false,
+    comisionesPromedio: 0,
     fechaIngreso: '2025-11-01',
     fechaCese: '2026-01-31',
     motivoCese: 'renuncia',
-    diasGozados: 0,
     vacacionesNoGozadas: 0,
     horasExtrasPendientes: 0,
     ultimaGratificacion: 3000,
