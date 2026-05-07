@@ -1081,6 +1081,8 @@ model Calculation {
 
   @@index([orgId, type])
   @@index([createdAt])
+  // FIX #7.E: timeline queries del cockpit ("últimos 30 días por org").
+  @@index([orgId, createdAt])
   @@map("calculations")
 }
 
@@ -2376,6 +2378,8 @@ model Lead {
 
   @@index([email])
   @@index([source, createdAt])
+  // FIX #7.E: convertedOrgId queries para reportes de conversión.
+  @@index([convertedOrgId])
   @@map("leads")
 }
 
