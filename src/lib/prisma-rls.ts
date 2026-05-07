@@ -60,16 +60,17 @@ export async function runWithOrgScope<T>(
   }
 
   return prisma.$transaction(async (tx) => {
-    // SET LOCAL aplica solo dentro de la tx actual; al COMMIT/ROLLBACK se
-    // descarta. Usamos $executeRawUnsafe porque SET no admite parámetros
-    // bind ($1) en Postgres. Validamos orgId arriba para evitar SQL injection.
-    // orgId viene de Clerk (cuid), no de input de usuario.
+    // FIX #1.B: cambiamos $executeRawUnsafe por set_config(), que SÍ acepta
+    // parámetros bind. Antes interpolábamos orgId en string crudo (con sanity
+    // regex como única defensa). Ahora la firma es:
+    //   SELECT set_config('app.current_org_id', $1, true)
+    // donde el `true` lo hace LOCAL (solo afecta la tx actual). Defense in
+    // depth: la regex de validación se mantiene aunque ya no es necesaria.
     if (RLS_ENFORCED) {
-      // Sanity check: solo caracteres seguros (cuid alfanumérico + guiones).
       if (!/^[A-Za-z0-9_-]+$/.test(orgId)) {
         throw new Error(`runWithOrgScope: orgId con caracteres inválidos: ${orgId}`)
       }
-      await tx.$executeRawUnsafe(`SET LOCAL app.current_org_id = '${orgId}'`)
+      await tx.$queryRaw`SELECT set_config('app.current_org_id', ${orgId}, true)`
     }
     return fn(tx)
   })
