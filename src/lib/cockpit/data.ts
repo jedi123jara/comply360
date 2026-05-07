@@ -87,7 +87,7 @@ export interface ComplianceTaskTeaser {
   id: string
   title: string
   area: string
-  gravedad: string
+  gravedad: 'LEVE' | 'GRAVE' | 'MUY_GRAVE'
   priority: number
   multaEvitable: number | null
   dueDate: string | null
@@ -616,7 +616,7 @@ export async function getComplianceTaskStats(orgId: string): Promise<ComplianceT
         id: t.id,
         title: t.title,
         area: t.area,
-        gravedad: t.gravedad,
+        gravedad: t.gravedad as 'LEVE' | 'GRAVE' | 'MUY_GRAVE',
         priority: t.priority,
         multaEvitable: t.multaEvitable ? Number(t.multaEvitable) : null,
         dueDate: t.dueDate?.toISOString() ?? null,
