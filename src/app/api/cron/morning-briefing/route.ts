@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { morningBriefingEmail } from '@/lib/email/templates'
+import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -35,6 +36,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // FIX #5.A: idempotencia bucket diario.
+  const claim = await claimCronRun('morning-briefing', { bucketMinutes: 1440 })
+  if (!claim.acquired) {
+    return NextResponse.json({
+      ok: true,
+      duplicate: true,
+      bucket: claim.bucket,
+      reason: claim.reason,
+    })
+  }
+
+  try {
   const now = new Date()
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
@@ -145,13 +158,17 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    summary: {
+    const summary = {
       totalOrgs: orgs.length,
       sent,
       skipped,
       failed,
-    },
-  })
+    }
+    await completeCronRun(claim.runId, summary)
+    return NextResponse.json({ ok: true, summary })
+  } catch (err) {
+    console.error('[morning-briefing] cron error', err)
+    await failCronRun(claim.runId, err)
+    return NextResponse.json({ error: 'Cron job failed' }, { status: 500 })
+  }
 }

@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email/client'
 import { alertEmail } from '@/lib/email/templates'
 import { sendPushToOrg } from '@/lib/notifications/web-push-server'
 import { diasLaborables } from '@/lib/legal-engine/feriados-peru'
+import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
 
 // ==============================================
 // GET /api/cron/daily-alerts
@@ -24,6 +25,19 @@ export async function GET(request: NextRequest) {
 
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // FIX #5.A: idempotencia. Vercel a veces reintenta crons por timeout,
+  // redeploy mid-run, o disparo manual con curl. Sin esta guarda los
+  // emails de alerta se mandan duplicados. Bucket diario (1440 minutos).
+  const claim = await claimCronRun('daily-alerts', { bucketMinutes: 1440 })
+  if (!claim.acquired) {
+    return NextResponse.json({
+      ok: true,
+      duplicate: true,
+      bucket: claim.bucket,
+      reason: claim.reason,
+    })
   }
 
   try {
@@ -399,24 +413,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      ok: true,
-      summary: {
-        contractsAutoExpired: expiredCount,
-        expiringContracts: expiringContracts.length,
-        overdueSst: overdueSst.length,
-        ctsDeadlineActive: ctsDeadline !== null,
-        complaintDeadlineAlerts: complaintAlerts.length,
-        orgsNotified: orgAlerts.size,
-        sectionErrors: sectionErrors.length > 0 ? sectionErrors : undefined,
-        emailsSent,
-        emailsFailed,
-        pushesSent,
-        pushesFailed,
-      },
-    })
+    const summary = {
+      contractsAutoExpired: expiredCount,
+      expiringContracts: expiringContracts.length,
+      overdueSst: overdueSst.length,
+      ctsDeadlineActive: ctsDeadline !== null,
+      complaintDeadlineAlerts: complaintAlerts.length,
+      orgsNotified: orgAlerts.size,
+      sectionErrors: sectionErrors.length > 0 ? sectionErrors : undefined,
+      emailsSent,
+      emailsFailed,
+      pushesSent,
+      pushesFailed,
+    }
+
+    await completeCronRun(claim.runId, summary)
+    return NextResponse.json({ ok: true, summary })
   } catch (error) {
     console.error('Daily alerts cron error:', error)
+    await failCronRun(claim.runId, error)
     return NextResponse.json({ error: 'Cron job failed' }, { status: 500 })
   }
 }

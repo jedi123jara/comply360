@@ -285,9 +285,17 @@ export const PATCH = withAuthParams<{ id: string }>(
       return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
     }
 
+    // FIX #6.F: reject pone status='MISSING' (no 'PENDING'). Antes el doc
+    // rechazado quedaba en PENDING:
+    //  - Alert engine filtraba `status !== 'MISSING'`, entonces NO disparaba
+    //    DOCUMENTO_FALTANTE → estado fantasma sin alerta.
+    //  - Legajo score solo cuenta UPLOADED/VERIFIED, así que el score bajaba
+    //    pero el problema era invisible al admin.
+    // Usar MISSING alinea ambos: admin ve alerta de doc faltante y legajo
+    // refleja la realidad (cuando exista enum REJECTED en Ola 7, migrar).
     const updateData: Record<string, unknown> = action === 'verify'
       ? { status: 'VERIFIED' as DocStatus, verifiedAt: new Date(), verifiedBy: ctx.userId }
-      : { status: 'PENDING' as DocStatus, verifiedAt: null, verifiedBy: null }
+      : { status: 'MISSING' as DocStatus, verifiedAt: null, verifiedBy: null }
 
     const updated = await prisma.workerDocument.update({
       where: { id: documentId },

@@ -72,26 +72,32 @@ export async function generateWorkerAlerts(workerId: string): Promise<number> {
 
   const alerts = computeAlerts(workerData)
 
-  // Clear existing unresolved alerts for this worker
-  await prisma.workerAlert.deleteMany({
-    where: { workerId, resolvedAt: null },
-  })
-
-  // Create new alerts
-  if (alerts.length > 0) {
-    await prisma.workerAlert.createMany({
-      data: alerts.map(a => ({
-        workerId,
-        orgId: worker.orgId,
-        type: a.type as 'CONTRATO_POR_VENCER',
-        severity: a.severity as 'CRITICAL',
-        title: a.title,
-        description: a.description,
-        dueDate: a.dueDate ?? null,
-        multaEstimada: a.multaEstimada ?? null,
-      })),
-    })
-  }
+  // FIX #6.B: deleteMany + createMany dentro de la MISMA transacción.
+  // Antes corrían en pasos separados, abriendo race condition: si dos
+  // triggers (PUT worker + cron daily-alerts) se ejecutaban en paralelo,
+  // ambos borraban las alertas y ambos creaban → duplicados o pérdida de
+  // `resolvedAt` en alertas que el otro acababa de resolver.
+  await prisma.$transaction([
+    prisma.workerAlert.deleteMany({
+      where: { workerId, resolvedAt: null },
+    }),
+    ...(alerts.length > 0
+      ? [
+          prisma.workerAlert.createMany({
+            data: alerts.map(a => ({
+              workerId,
+              orgId: worker.orgId,
+              type: a.type as 'CONTRATO_POR_VENCER',
+              severity: a.severity as 'CRITICAL',
+              title: a.title,
+              description: a.description,
+              dueDate: a.dueDate ?? null,
+              multaEstimada: a.multaEstimada ?? null,
+            })),
+          }),
+        ]
+      : []),
+  ])
 
   return alerts.length
 }
