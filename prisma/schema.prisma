@@ -314,7 +314,13 @@ model Worker {
   deletedBy    String?      @map("deleted_by")
   deleteReason String?      @map("delete_reason")
 
-  organization            Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  // FIX #7.A: Restrict en lugar de Cascade. Antes borrar una Organization
+  // arrastraba TODA la cadena de WorkerDocument, VacationRecord, Payslip,
+  // Attendance, EMO, ConsentimientoLey29733, etc. — incumple SUNAFIL Art. 23
+  // D.S. 019-2006-TR (retención obligatoria 6 años) + Ley 29733 (datos
+  // médicos cifrados). Soft-delete a nivel Organization es lo correcto;
+  // si realmente hay que purgar, requiere proceso explícito.
+  organization            Organization             @relation(fields: [orgId], references: [id], onDelete: Restrict)
   user                    User?                    @relation(fields: [userId], references: [id])
   documents               WorkerDocument[]
   workerContracts         WorkerContract[]
@@ -2662,7 +2668,9 @@ model AiUsage {
   /**
    * Score producido por el eval harness (si esta llamada vino de un eval run).
    */
-  evalScore        Float?   @map("eval_score")
+  // FIX #7.G: era el único Float del schema (resto usa Decimal). Score 0..1
+  // con 4 decimales de precisión cubre cualquier eval realista.
+  evalScore        Decimal? @map("eval_score") @db.Decimal(5, 4)
   /**
    * Costo estimado en USD calculado con la pricing table local.
    * NO refleja ningún descuento de volumen ni precio enterprise — sirve

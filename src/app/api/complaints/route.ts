@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 import { sendEmail } from '@/lib/email/client'
 import { complaintNotification } from '@/lib/email/templates'
 import type { ComplaintType, ComplaintStatus } from '@/generated/prisma/client'
@@ -42,6 +43,9 @@ const complaintSchema = z.object({
     .min(10, 'La descripción debe tener al menos 10 caracteres')
     .max(5000, 'La descripción no puede exceder 5000 caracteres'),
   isAnonymous: z.boolean().default(true),
+  /** Token de reCAPTCHA v3 desde el cliente (FIX #5.B). Opcional sin
+   *  RECAPTCHA_SECRET_KEY (dev), obligatorio en producción. */
+  recaptchaToken: z.string().optional(),
   reporterName: z.string().max(200).optional().nullable(),
   reporterEmail: z.string().email('El correo electrónico no es válido').optional().nullable(),
   reporterPhone: z.string().max(30).optional().nullable(),
@@ -149,6 +153,25 @@ export async function POST(request: NextRequest) {
       reporterName, reporterEmail, reporterPhone,
       accusedName, accusedPosition, evidenceUrls,
     } = parsed.data
+
+    // FIX #5.B: validar reCAPTCHA antes de procesar. Si la clave no está
+    // configurada (dev), el helper hace bypass con success=true. En prod
+    // exige token válido + score >= threshold.
+    if (process.env.RECAPTCHA_SECRET_KEY) {
+      const recaptcha = await verifyRecaptcha(parsed.data.recaptchaToken ?? '', {
+        expectedAction: 'submit_complaint',
+        threshold: 0.4, // un poco más permisivo que default — denunciantes legítimos a veces tienen scores bajos
+      })
+      if (!recaptcha.success) {
+        return NextResponse.json(
+          {
+            error: 'Validación anti-bot falló. Recarga la página e intenta de nuevo.',
+            details: recaptcha.errorCodes,
+          },
+          { status: 403 }
+        )
+      }
+    }
 
     // 3. Anti-spam check
     if (looksLikeSpam(description)) {
