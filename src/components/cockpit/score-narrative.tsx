@@ -15,7 +15,8 @@ import { complianceScoreColor } from '@/lib/brand'
  *   - Two CTAs: open plan of action / ask copilot
  */
 export interface ScoreNarrativeProps {
-  score: number
+  /** Score 0-100. null = aún no se corrió el diagnóstico. */
+  score: number | null
   /** Delta vs previous period (positive means improved). */
   delta?: number
   /** Estimated multa evitada en soles. */
@@ -37,9 +38,17 @@ export function ScoreNarrative({
   onOpenActionPlan,
   onAskCopilot,
 }: ScoreNarrativeProps) {
-  const color = complianceScoreColor(score)
-  const mood: 'critical' | 'warning' | 'good' | 'great' =
-    score >= 90 ? 'great' : score >= 80 ? 'good' : score >= 60 ? 'warning' : 'critical'
+  const isPending = score === null
+  const color = isPending ? '#94a0b4' : complianceScoreColor(score as number)
+  const mood: 'pending' | 'critical' | 'warning' | 'good' | 'great' = isPending
+    ? 'pending'
+    : (score as number) >= 90
+      ? 'great'
+      : (score as number) >= 80
+        ? 'good'
+        : (score as number) >= 60
+          ? 'warning'
+          : 'critical'
   const deltaLabel =
     delta > 0 ? `+${delta} pts` : delta < 0 ? `${delta} pts` : 'sin cambio'
 
@@ -57,16 +66,16 @@ export function ScoreNarrative({
   return (
     <section className="relative grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-8 items-center rounded-2xl border border-[color:var(--border-default)] bg-white p-6 lg:p-8 shadow-[var(--elevation-3)] motion-fade-in-up overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-[4px] before:bg-[image:var(--accent-bar-emerald)]">
       <div className="flex items-center justify-center">
-        <ProgressRing value={score} size={220} stroke={14}>
+        <ProgressRing value={isPending ? 0 : (score as number)} size={220} stroke={14}>
           <div className="text-center">
             <div
               className="text-[64px] leading-none font-bold tracking-tight"
               style={{ color }}
             >
-              {score}
+              {isPending ? '—' : score}
             </div>
             <div className="mt-1 text-[10px] uppercase tracking-widest text-[color:var(--text-tertiary)]">
-              Score compliance
+              {isPending ? 'Sin diagnóstico aún' : 'Score compliance'}
             </div>
           </div>
         </ProgressRing>
@@ -90,7 +99,11 @@ export function ScoreNarrative({
         </div>
 
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
-          {mood === 'great' ? (
+          {mood === 'pending' ? (
+            <>
+              Tu <span style={{ color }}>score aún no se calculó</span>. Corramos el diagnóstico.
+            </>
+          ) : mood === 'great' ? (
             <>
               Tu compliance está{' '}
               <span style={{ color }}>en rango élite</span>.
@@ -115,7 +128,13 @@ export function ScoreNarrative({
         </h1>
 
         <p className="text-[color:var(--text-secondary)] max-w-2xl leading-relaxed">
-          {topRisk ? (
+          {isPending ? (
+            <>
+              Toma 3 minutos. Te preguntamos lo esencial sobre contratos, SST,
+              vacaciones y planilla, y al terminar tendrás tu score real con
+              brechas priorizadas.
+            </>
+          ) : topRisk ? (
             <>
               Tu mayor riesgo es <strong className="text-[color:var(--text-primary)]">{topRisk}</strong>.
               {topRiskImpact ? (
@@ -143,7 +162,9 @@ export function ScoreNarrative({
         </p>
 
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button onClick={onOpenActionPlan}>Ver plan de acción</Button>
+          <Button onClick={onOpenActionPlan}>
+            {isPending ? 'Iniciar diagnóstico' : 'Ver plan de acción'}
+          </Button>
           <Button
             variant="secondary"
             icon={<Sparkles className="h-4 w-4" />}
