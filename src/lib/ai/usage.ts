@@ -126,24 +126,55 @@ async function bumpBudgetCounter(params: {
   const now = new Date()
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
 
-  await prisma.aiBudgetCounter.upsert({
+  // FIX #4.A: hourly throttle reset.
+  // Antes solo había `hourlyCalls: { increment: 1 }`. Una vez que `hourlyCalls`
+  // pasaba 1000, quedaba bloqueado el resto del mes — el comentario en
+  // capacity.ts decía "el reset lo hace recordAiUsage" pero NUNCA pasaba.
+  // Ahora: leemos el counter, si la ventana expiró (>=1h desde hourlyResetAt)
+  // lo reseteamos a 1; sino incrementamos. Hacemos un primer SELECT y luego
+  // el upsert con valores calculados (no es 100% atómico contra otros
+  // bumpers concurrentes, pero el peor caso es subcontar 1-2 llamadas).
+  const existing = await prisma.aiBudgetCounter.findUnique({
     where: { orgId_monthStart: { orgId: params.orgId, monthStart } },
-    create: {
-      orgId: params.orgId,
-      monthStart,
-      totalCalls: 1,
-      totalTokens: params.totalTokens,
-      totalCostUsd: params.costUsd,
-      hourlyCalls: 1,
-      hourlyResetAt: now,
-    },
-    update: {
-      totalCalls: { increment: 1 },
-      totalTokens: { increment: params.totalTokens },
-      totalCostUsd: { increment: params.costUsd },
-      hourlyCalls: { increment: 1 },
-    },
+    select: { hourlyResetAt: true, hourlyCalls: true },
   })
+
+  const HOUR_MS = 60 * 60 * 1000
+  const shouldResetHourly =
+    !existing?.hourlyResetAt || now.getTime() - existing.hourlyResetAt.getTime() >= HOUR_MS
+
+  if (shouldResetHourly) {
+    // Path explícito: setear hourlyCalls=1 y hourlyResetAt=now
+    await prisma.aiBudgetCounter.upsert({
+      where: { orgId_monthStart: { orgId: params.orgId, monthStart } },
+      create: {
+        orgId: params.orgId,
+        monthStart,
+        totalCalls: 1,
+        totalTokens: params.totalTokens,
+        totalCostUsd: params.costUsd,
+        hourlyCalls: 1,
+        hourlyResetAt: now,
+      },
+      update: {
+        totalCalls: { increment: 1 },
+        totalTokens: { increment: params.totalTokens },
+        totalCostUsd: { increment: params.costUsd },
+        hourlyCalls: 1,
+        hourlyResetAt: now,
+      },
+    })
+  } else {
+    await prisma.aiBudgetCounter.update({
+      where: { orgId_monthStart: { orgId: params.orgId, monthStart } },
+      data: {
+        totalCalls: { increment: 1 },
+        totalTokens: { increment: params.totalTokens },
+        totalCostUsd: { increment: params.costUsd },
+        hourlyCalls: { increment: 1 },
+      },
+    })
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

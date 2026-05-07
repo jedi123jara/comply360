@@ -190,8 +190,12 @@ export async function processWebhookDelivery(deliveryId: string): Promise<Delive
     newStatus = 'DEAD_LETTER'
   } else {
     newStatus = 'FAILED'
+    // FIX #5.H: jitter ±20% para evitar thundering herd. Si caen N webhooks
+    // al mismo tiempo (ej. el receiver del cliente quedó offline 10 min),
+    // sin jitter todos retroretrigan al mismo segundo y vuelven a saturar.
     const backoffSec = RETRY_BACKOFF_SEC[Math.min(attempts - 1, RETRY_BACKOFF_SEC.length - 1)]
-    nextRetryAt = new Date(Date.now() + backoffSec * 1000)
+    const jitterFactor = 0.8 + Math.random() * 0.4 // 0.8 .. 1.2
+    nextRetryAt = new Date(Date.now() + backoffSec * 1000 * jitterFactor)
   }
 
   await prisma.webhookDelivery.update({
