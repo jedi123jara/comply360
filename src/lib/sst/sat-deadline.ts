@@ -29,10 +29,19 @@ export interface PlazoSAT {
   formularioSat: 'FORM_01_MORTAL' | 'FORM_02_INCIDENTE_PELIGROSO' | 'FORM_03_NO_MORTAL' | 'FORM_04_ENF_OCUPACIONAL'
 }
 
+import { isFeriado } from '@/lib/legal-engine/feriados-peru'
+
 /**
- * Suma N días hábiles (lun-vie) a una fecha. NO descuenta feriados peruanos
- * (en una iteración futura se puede integrar con el calendario MTPE para
- * descontar Feriados Nacionales — D.Leg. 713 + leyes específicas).
+ * Suma N días hábiles (lun-vie) a una fecha, descontando feriados peruanos
+ * declarados (Año Nuevo, Semana Santa, Fiestas Patrias, etc.).
+ *
+ * FIX #4.G: antes solo descontaba sábado/domingo, ignorando los feriados
+ * MTPE. Para enfermedad ocupacional declarada un viernes 26-jul (víspera
+ * de Fiestas Patrias), el plazo legal real era ~10 días calendario (5
+ * hábiles + 28-jul + 29-jul + fin de semana), no 5 calendario.
+ *
+ * Soporta feriados fijos y variables (Semana Santa) gracias a `isFeriado`
+ * de feriados-peru.ts.
  */
 function addBusinessDays(from: Date, days: number): Date {
   const result = new Date(from)
@@ -40,22 +49,26 @@ function addBusinessDays(from: Date, days: number): Date {
   while (added < days) {
     result.setDate(result.getDate() + 1)
     const dow = result.getDay()
-    if (dow !== 0 && dow !== 6) added++
+    if (dow === 0 || dow === 6) continue // Sáb/Dom
+    if (isFeriado(result).isFeriado) continue // Feriado MTPE
+    added++
   }
   return result
 }
 
 /**
- * Último día hábil del mes siguiente al de la fecha.
- * Si el último día del mes siguiente cae sábado o domingo, retrocede al
- * viernes hábil más cercano.
+ * Último día hábil del mes siguiente al de la fecha. FIX #4.G: descuenta
+ * sábado/domingo Y feriados peruanos. Antes solo retrocedía si caía
+ * sábado/domingo, ignorando feriados que también son inhábiles.
  */
 function lastBusinessDayOfNextMonth(from: Date): Date {
-  // Día 1 del mes siguiente al siguiente — luego restamos un día = último día del mes siguiente
+  // Último día del mes siguiente
   const lastDay = new Date(from.getFullYear(), from.getMonth() + 2, 0, 23, 59, 59, 999)
-  const dow = lastDay.getDay()
-  if (dow === 0) lastDay.setDate(lastDay.getDate() - 2) // Domingo → viernes
-  else if (dow === 6) lastDay.setDate(lastDay.getDate() - 1) // Sábado → viernes
+  while (true) {
+    const dow = lastDay.getDay()
+    if (dow !== 0 && dow !== 6 && !isFeriado(lastDay).isFeriado) break
+    lastDay.setDate(lastDay.getDate() - 1)
+  }
   return lastDay
 }
 

@@ -150,15 +150,37 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
     return NextResponse.json({ error: 'Worker not found' }, { status: 404 })
   }
 
+  // FIX #6.G: mascarar PII para rol VIEWER. Antes el GET devolvía DNI
+  // completo, dirección, teléfono, sueldo, CUSPP, fecha de nacimiento a
+  // cualquier auth — incluyendo VIEWER (auditor externo, contador
+  // tercerizado). Riesgo Ley 29733.
+  //
+  // Reglas:
+  //   - VIEWER: DNI mascarado a 'XXXX****', sin sueldo/dirección/phone/cuspp.
+  //   - MEMBER+: ver todo (rol interno con NDA implícito).
+  const isViewer = ctx.role === 'VIEWER'
+  const w = worker as Record<string, unknown> & { dni: string; sueldoBruto: unknown; fechaIngreso: Date; fechaCese?: Date | null; birthDate?: Date | null; createdAt: Date; updatedAt: Date }
+  const data: Record<string, unknown> = isViewer
+    ? {
+        ...w,
+        dni: w.dni ? `${w.dni.slice(0, 4)}****` : null,
+        address: null,
+        phone: null,
+        cuspp: null,
+        birthDate: null,
+        sueldoBruto: null,
+        sueldoMaskedReason: 'VIEWER role — campos sensibles ocultos',
+      }
+    : { ...w, sueldoBruto: Number(w.sueldoBruto) }
+
   return NextResponse.json({
     data: {
-      ...worker,
-      sueldoBruto: Number(worker.sueldoBruto),
-      fechaIngreso: worker.fechaIngreso.toISOString(),
-      fechaCese: worker.fechaCese?.toISOString() ?? null,
-      birthDate: worker.birthDate?.toISOString() ?? null,
-      createdAt: worker.createdAt.toISOString(),
-      updatedAt: worker.updatedAt.toISOString(),
+      ...data,
+      fechaIngreso: w.fechaIngreso.toISOString(),
+      fechaCese: w.fechaCese?.toISOString() ?? null,
+      birthDate: isViewer ? null : (w.birthDate?.toISOString() ?? null),
+      createdAt: w.createdAt.toISOString(),
+      updatedAt: w.updatedAt.toISOString(),
       deletedAt: deletedAt?.toISOString() ?? null,
     },
   })
