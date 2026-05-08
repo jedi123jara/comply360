@@ -11,11 +11,11 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 import { getAcknowledgmentProgress } from '@/lib/documents/acknowledgments'
 
-export const GET = withAuth(async (_req, ctx) => {
+export const GET = withPlanGate('contratos', async (_req, ctx) => {
   const docs = await prisma.orgDocument.findMany({
     where: {
       orgId: ctx.orgId,
@@ -57,3 +57,4 @@ export const GET = withAuth(async (_req, ctx) => {
     },
   })
 })
+

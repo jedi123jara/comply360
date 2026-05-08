@@ -13,12 +13,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@/generated/prisma/client'
 import { isOrgTemplate } from '@/lib/templates/org-template-engine'
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = withPlanGate('contratos', async (req: NextRequest, ctx) => {
   const { searchParams } = new URL(req.url)
   const excludeAck = searchParams.get('excludeAck') !== 'false'
   const type = searchParams.get('type')
@@ -56,3 +56,4 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
     total: documents.length,
   })
 })
+

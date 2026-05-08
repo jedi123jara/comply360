@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth, hasMinRole } from '@/lib/api-auth'
+import { hasMinRole } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
 
@@ -8,7 +9,7 @@ import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators
 // POST /api/payslips/batch — Generate payslips for multiple workers
 // Body: { periodo: "2026-04", workerIds?: string[] }
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   if (!hasMinRole(ctx.role, 'ADMIN')) {
     return NextResponse.json({ error: 'Se requiere rol ADMIN' }, { status: 403 })
   }
@@ -136,3 +137,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     errors: errors.length > 0 ? errors : undefined,
   })
 })
+

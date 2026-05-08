@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { planHasFeature } from '@/lib/plan-gate'
 import {
@@ -65,7 +65,7 @@ async function assertPlanAccess(orgId: string): Promise<{ ok: true } | { ok: fal
 // =============================================
 // GET /api/org-templates — Lista templates
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('ia_contratos', async (req: NextRequest, ctx: AuthContext) => {
   const gate = await assertPlanAccess(ctx.orgId)
   if (!gate.ok) return gate.response
 
@@ -151,7 +151,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // POST /api/org-templates — Crear template
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: AuthContext) => {
   const gate = await assertPlanAccess(ctx.orgId)
   if (!gate.ok) return gate.response
 
@@ -260,3 +260,4 @@ function jsonStringRecord(value: unknown): Record<string, string> {
     Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
   )
 }
+

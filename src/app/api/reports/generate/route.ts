@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { exportLimiter } from '@/lib/rate-limit'
 import type { AuthContext } from '@/lib/auth'
 
@@ -9,7 +9,7 @@ import type { AuthContext } from '@/lib/auth'
 // Returns structured data for client-side PDF generation
 // =============================================
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('reportes_pdf', async (req: NextRequest, ctx: AuthContext) => {
   // Rate limit: export tier — 5 req/min per orgId
   const rl = await exportLimiter.check(req, `org:${ctx.orgId}`)
   if (!rl.success) return rl.response!
@@ -265,3 +265,4 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   return NextResponse.json({ error: `Tipo de reporte no reconocido: ${type}` }, { status: 400 })
 })
+

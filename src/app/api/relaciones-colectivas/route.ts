@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { z } from 'zod'
 
 const VALID_TYPES = ['SINDICATO', 'CONVENIO_COLECTIVO', 'NEGOCIACION', 'PLIEGO_RECLAMOS', 'FUERO_SINDICAL', 'HUELGA'] as const
@@ -23,7 +23,7 @@ const UpdateSchema = CreateSchema.partial().extend({
 // =============================================
 // GET /api/relaciones-colectivas
 // =============================================
-export const GET = withAuth(async (_req, ctx) => {
+export const GET = withPlanGate('workers', async (_req, ctx) => {
   const records = await prisma.sindicalRecord.findMany({
     where: { orgId: ctx.orgId },
     orderBy: [{ type: 'asc' }, { createdAt: 'desc' }],
@@ -52,7 +52,7 @@ export const GET = withAuth(async (_req, ctx) => {
 // =============================================
 // POST /api/relaciones-colectivas
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('workers', async (req, ctx) => {
   const body = await req.json()
   const parsed = CreateSchema.safeParse(body)
   if (!parsed.success) {
@@ -77,7 +77,7 @@ export const POST = withAuth(async (req, ctx) => {
 // =============================================
 // PUT /api/relaciones-colectivas
 // =============================================
-export const PUT = withAuth(async (req, ctx) => {
+export const PUT = withPlanGate('workers', async (req, ctx) => {
   const body = await req.json()
   const parsed = UpdateSchema.safeParse(body)
   if (!parsed.success) {
@@ -108,7 +108,7 @@ export const PUT = withAuth(async (req, ctx) => {
 // =============================================
 // DELETE /api/relaciones-colectivas?id=xxx
 // =============================================
-export const DELETE = withAuth(async (req, ctx) => {
+export const DELETE = withPlanGate('workers', async (req, ctx) => {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
@@ -119,3 +119,4 @@ export const DELETE = withAuth(async (req, ctx) => {
   await prisma.sindicalRecord.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 })
+

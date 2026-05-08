@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   createPDFDoc,
@@ -32,7 +32,7 @@ function fmtPeriodo(p: string): string {
   return `${MESES[parseInt(m ?? '1', 10)]} ${y}`
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const periodo = searchParams.get('periodo') ?? ''
 
@@ -210,3 +210,4 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const fileName = `planilla-${periodo}.pdf`
   return finalizePDF(doc, fileName)
 })
+

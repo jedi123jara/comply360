@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   SUNAFIL_READY_DOCS,
@@ -116,7 +116,7 @@ function deriveStatus(args: {
 
 /* ── Main handler ────────────────────────────────────────────────────── */
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('diagnostico', async (_req: NextRequest, ctx: AuthContext) => {
   try {
     const orgId = ctx.orgId
     const now = new Date()
@@ -347,3 +347,4 @@ function isRiskSector(sector: string | null | undefined): boolean {
   ]
   return risky.some((r) => s.includes(r))
 }
+

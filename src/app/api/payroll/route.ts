@@ -12,13 +12,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
 
 // ─── GET /api/payroll ────────────────────────────────────────────────────────
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const periodo = searchParams.get('periodo') ?? ''
 
@@ -139,7 +139,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
 // ─── POST /api/payroll — Generación masiva ───────────────────────────────────
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('t_registro_export', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const body = await req.json()
   const { periodo, soloFaltantes = true } = body as {
@@ -270,3 +270,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 function round(n: number) {
   return Math.round(n * 100) / 100
 }
+
