@@ -2,6 +2,7 @@ import {
   PERU_LABOR,
   calcularRemuneracionComputable,
 } from '../peru-labor'
+import { money, sumMoney } from '../money'
 
 // =============================================
 // APORTES PREVISIONALES - AFP/ONP/EsSalud/SCTR
@@ -75,37 +76,39 @@ export function calcularAportesPrevisionales(input: AportesInput): AportesResult
   let sistema = ''
   let baseLegal = ''
 
+  // FIX #2.A aritmética decimal precisa.
+  const remM = money(remuneracionComputable)
+
   if (input.tipoAporte === 'AFP') {
     const afpKey = (input.afpNombre ?? 'PRIMA').toUpperCase()
     const afpRates = AFP_RATES[afpKey] ?? AFP_RATES.PRIMA
 
-    aporteObligatorio = round(remuneracionComputable * afpRates.aporte)
-    seguroInvalidez = round(remuneracionComputable * afpRates.seguro)
-    comisionAfp = round(remuneracionComputable * afpRates.comision_flujo)
+    aporteObligatorio = remM.mul(afpRates.aporte).toNumber()
+    seguroInvalidez = remM.mul(afpRates.seguro).toNumber()
+    comisionAfp = remM.mul(afpRates.comision_flujo).toNumber()
     sistema = `AFP ${capitalize(afpKey)}`
     baseLegal = PERU_LABOR.APORTES.BASE_LEGAL_AFP
   } else if (input.tipoAporte === 'ONP') {
-    aporteObligatorio = round(remuneracionComputable * ONP_RATE)
+    aporteObligatorio = remM.mul(ONP_RATE).toNumber()
     seguroInvalidez = 0
     comisionAfp = 0
     sistema = 'ONP (Sistema Nacional de Pensiones)'
     baseLegal = PERU_LABOR.APORTES.BASE_LEGAL_ONP
   } else {
-    // SIN_APORTE - no pension deductions
     sistema = 'Sin aporte previsional'
     baseLegal = ''
   }
 
-  const totalDescuentoTrabajador = round(aporteObligatorio + seguroInvalidez + comisionAfp)
+  const totalDescuentoTrabajador = sumMoney([aporteObligatorio, seguroInvalidez, comisionAfp]).toNumber()
 
   // 3. Employer contributions
-  const essalud = round(remuneracionComputable * ESSALUD_RATE)
-  const sctr = input.sctr ? round(remuneracionComputable * SCTR_RATE) : 0
-  const totalAporteEmpleador = round(essalud + sctr)
+  const essalud = remM.mul(ESSALUD_RATE).toNumber()
+  const sctr = input.sctr ? remM.mul(SCTR_RATE).toNumber() : 0
+  const totalAporteEmpleador = money(essalud).add(sctr).toNumber()
 
   // 4. Net salary and total employer cost
-  const sueldoNeto = round(remuneracionComputable - totalDescuentoTrabajador)
-  const costoTotalEmpleador = round(remuneracionComputable + totalAporteEmpleador)
+  const sueldoNeto = remM.sub(totalDescuentoTrabajador).toNumber()
+  const costoTotalEmpleador = remM.add(totalAporteEmpleador).toNumber()
 
   // 5. Combine base legal references
   const baseLegalCompleta = [

@@ -2,6 +2,7 @@ import {
   PERU_LABOR,
   calcularMultaSunafil as calcularMultaSunafilGranular,
 } from '../peru-labor'
+import { money } from '../money'
 
 // =============================================
 // MULTA SUNAFIL - Cálculo de multas laborales
@@ -118,23 +119,24 @@ export function calcularMultaSunafil(input: MultaSunafilInput): MultaSunafilResu
     : input.subsanacionDuranteInspeccion ? 'DURANTE_INSPECCION'
     : null
 
-  // Conversión a soles + tope absoluto (52.53 UIT)
-  const multaMinima = Math.round(rangoMin * uit * 100) / 100
-  const multaMaxima = Math.round(rangoMax * uit * 100) / 100
+  // Conversión a soles + tope absoluto (52.53 UIT) — FIX #2.A.
+  const uitM = money(uit)
+  const multaMinima = uitM.mul(rangoMin).toNumber()
+  const multaMaxima = uitM.mul(rangoMax).toNumber()
   const topeSoles = config.TOPE_MAXIMO_UIT * uit
-  const multaEstimada = Math.min(Math.round(multaConReincidenciaUit * uit * 100) / 100, topeSoles)
+  const multaEstimada = Math.min(uitM.mul(multaConReincidenciaUit).toNumber(), topeSoles)
 
   // Multa con descuento — aplicamos el % en soles para evitar pérdida de
-  // precisión por redondeo intermedio en UITs (cuando la base es < 1 UIT).
+  // precisión por redondeo intermedio en UITs.
   let multaConDescuento: number | null = null
   let descuentoTipo: MultaSunafilResult['descuentoTipo'] = null
   if (subsanacion === 'VOLUNTARIA') {
     const factor = 1 - config.DESCUENTOS.SUBSANACION_VOLUNTARIA
-    multaConDescuento = Math.min(Math.round(multaEstimada * factor * 100) / 100, topeSoles)
+    multaConDescuento = Math.min(money(multaEstimada).mul(factor).toNumber(), topeSoles)
     descuentoTipo = 'voluntaria_90'
   } else if (subsanacion === 'DURANTE_INSPECCION') {
     const factor = 1 - config.DESCUENTOS.SUBSANACION_DURANTE_INSPECCION
-    multaConDescuento = Math.min(Math.round(multaEstimada * factor * 100) / 100, topeSoles)
+    multaConDescuento = Math.min(money(multaEstimada).mul(factor).toNumber(), topeSoles)
     descuentoTipo = 'durante_inspeccion_70'
   }
 

@@ -24,6 +24,7 @@
  */
 
 import { PERU_LABOR } from '../peru-labor'
+import { money } from '../money'
 
 // ── Escala progresiva (tramos en UIT) ───────────────────────────────────────
 
@@ -91,14 +92,12 @@ export function calcularRentaQuinta(input: RentaQuintaInput): RentaQuintaResult 
     otrosIngresosAnuales = 0,
   } = input
 
-  // 1. Proyectar Renta Bruta Anual (RBA)
-  //    Fórmula Art. 40 literal a):
-  //    Remuneración × 12 meses + gratificaciones anuales + otros
-  const rentaBrutaAnualProyectada = round(
-    remuneracionMensual * 12
-    + gratificacionesAnuales
-    + otrosIngresosAnuales
-  )
+  // 1. Proyectar Renta Bruta Anual (RBA) — FIX #2.A.
+  const rentaBrutaAnualProyectada = money(remuneracionMensual)
+    .mul(12)
+    .add(gratificacionesAnuales)
+    .add(otrosIngresosAnuales)
+    .toNumber()
 
   // 2. Deducción 7 UIT
   const deduccion7UIT = DEDUCCION_UIT * UIT  // S/ 38,500
@@ -110,12 +109,10 @@ export function calcularRentaQuinta(input: RentaQuintaInput): RentaQuintaResult 
   const { impuesto: impuestoAnualProyectado, detalleEscala } =
     aplicarEscalaProgresiva(rentaNetaAnualImponible)
 
-  // 5. Retención del mes actual (Art. 40 literal b y c):
-  //    Retención mes = (impuesto anual proyectado - ya retenido) / meses restantes
-  //    Si el resultado es negativo → no retener este mes (exceso ya corregido).
+  // 5. Retención del mes actual (Art. 40 literal b y c) — FIX #2.A.
   const mesesRestantes = 13 - mes  // ej: mes 4 → quedan 9 meses (abril a diciembre)
   const pendiente = Math.max(0, impuestoAnualProyectado - retenidoAcumulado)
-  const retencionMesActual = round(pendiente / mesesRestantes)
+  const retencionMesActual = money(pendiente).div(mesesRestantes).toNumber()
 
   return {
     rentaBrutaAnualProyectada,
