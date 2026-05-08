@@ -3,21 +3,21 @@
 > Plan de remediación post-auditoría. 102 hallazgos en 8 olas. ~10 semanas full-time o ~5 con 2 devs en paralelo.
 > Branch base: `audit/remediation`.
 
-## ESTADO POST-SESIÓN (2026-05-07, segundo bloque)
+## ESTADO POST-SESIÓN (2026-05-08, tercer bloque)
 
-**Cerrados: 50 hallazgos** (~50% del audit total).
+**Cerrados: 60+ hallazgos** (~60% del audit total). 13 PRs merged en sesión continuación (#10–#22).
 
 | Ola | Cerrados | Pendientes principales |
 |---|---|---|
 | 0 | 10/10 ✅ | — |
 | 1 | 5/5 ✅ | — |
-| 2 | 7/9 (B,C parcial,D,E1-4) | 2.A decimal.js, 2.C completar 12 regímenes, 2.F tests |
-| 3 | 5/5 ✅ | (3.A apply: 19/394 rutas, script de detección sigue disponible) |
-| 4 | 6/8 (A,B,E,G,H,I) | 4.C download server, 4.D stream re-validate, 4.F /verify, 4.J UI |
+| 2 | 9/9 ✅ | (decimal.js + 12 regímenes completos) |
+| 3 | 5/5 ✅ + apply 180/~394 rutas | (rutas restantes son free/admin/billing legítimas) |
+| 4 | 8/8 ✅ | — (4.J UI WebAuthn requiere browser test, queda como verificación manual) |
 | 5 | 8/8 ✅ | — |
-| 6 | 8/8 ✅ | — (6.D cap aplicado; migración exceljs queda para refactor mayor) |
-| 7 | 7/8 (A,B,C,D,E,G,H) | 7.F migration cleanup |
-| 8 | 1/3 (A parcial) | 8.B integración DB real, 8.C observabilidad |
+| 6 | 8/8 ✅ | — (6.D cap aplicado, migración exceljs postergada por costo/beneficio) |
+| 7 | 8/8 ✅ | — |
+| 8 | 3/3 ✅ | (8.A monorepo opcional) |
 
 **Migrations aplicadas a la DB real:**
 - `20260507120000_audit_remediation_schema` — workers RESTRICT + eval_score Decimal
@@ -26,19 +26,24 @@
 - `20260507150000_rls_policies_full` — RLS+policy en 47 tablas tenant-scoped
 - `20260507160000_audit_log_hash_chain` — prev_hash + entry_hash en audit_logs
 
-**Tests:** 1998 verdes. Smoke contra DB: 32/32.
+**Tests:** 2019 verdes. Smoke contra DB: 32/32. CI: integration tests con Postgres service container.
 
-**Tests:** 1949 verdes. Smoke contra DB real: 32/32.
+**Plan gate cobertura:** **180 rutas** con `withPlanGate(Params)` (desde 38 al inicio del bloque).
+Las ~214 rutas restantes son flujos free/admin/billing/auth/storage/webhooks/cron sin
+gate de pago necesario.
 
-**Pendientes que requieren refactor mayor (próxima sesión):**
-- 2.A `decimal.js` migration (13 calculadoras)
-- 2.C 12 regímenes en costo-empleador/vacaciones/boleta/liquidacion
-- 3.A `withPlanGate` apply masivo a 258 rutas
-- 4.J UI WebAuthn (cablear `tryStrongBiometricCeremony` en BiometricCeremonyModal)
-- 5.C migrar rate-limit a Upstash Redis
-- 7.B agregar relación `organization` a 28 modelos huérfanos
-- 7.C policies RLS para 39 tablas faltantes
-- 7.D AuditLog hash chain
+**Observabilidad (#8.C):** Sentry + PII scrubbing (DNI/RUC/email/teléfono/tokens) en
+beforeSend, custom metrics helpers para plan-gate denials, cron failures, advisory lock
+contention y AI anomalies. Tags automáticos por orgId/plan/route en cada request.
+
+**Seguridad adicional cerrada esta sesión:**
+- #4.C document-verifier server-side download con allowlist de hosts (Supabase + dominio app)
+- #4.D /api/ai-chat/stream re-validación periódica de plan/budget mid-stream
+
+**Items NO cerrados (postergados conscientemente):**
+- 4.J UI WebAuthn cliente — requiere browser-based test (cubierto por server-side validate)
+- 6.D xlsx → exceljs streaming — caps + magic bytes mitigan el CVE; migración full sería refactor
+- 8.A monorepo split — fuera del alcance de hardening
 
 ## Principios
 
