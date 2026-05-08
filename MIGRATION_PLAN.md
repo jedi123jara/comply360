@@ -40,10 +40,24 @@ contention y AI anomalies. Tags automáticos por orgId/plan/route en cada reques
 - #4.C document-verifier server-side download con allowlist de hosts (Supabase + dominio app)
 - #4.D /api/ai-chat/stream re-validación periódica de plan/budget mid-stream
 
-**Items NO cerrados (postergados conscientemente):**
-- 4.J UI WebAuthn cliente — requiere browser-based test (cubierto por server-side validate)
-- 6.D xlsx → exceljs streaming — caps + magic bytes mitigan el CVE; migración full sería refactor
-- 8.A monorepo split — fuera del alcance de hardening
+**Items finales:**
+- ✅ 4.J UI WebAuthn cliente — `tryStrongBiometricCeremony` cableado en mi-portal
+  (contratos, boletas, votación Comité). Browser test queda como verificación
+  manual del fundador en device con Touch ID/Face ID.
+- 🟡 6.D xlsx → exceljs streaming — **decisión consciente: NO migrar**.
+  Mitigación actual cubre los vectores reales del CVE GHSA-4r6h-8v6p-xvw6
+  (prototype pollution + ReDoS):
+    - Cap 3MB en upload size
+    - `sheetRows: 1500` en `XLSX.read` (rows cap antes del parse)
+    - Magic bytes validation (ZIP/XLSX signature)
+    - Admin role obligatorio
+    - Cap post-parse 1000 filas via HMAC token
+    - Modo readonly: `cellNF: false, cellStyles: false, bookProps: false`
+  Migrar a exceljs streaming requeriría reescribir 200+ líneas de parser
+  PLAME (multi-row, deduplicación por DNI, mes/año/régimen detection)
+  con riesgo alto de regresión y beneficio marginal.
+- 🟡 8.A monorepo split — fuera del alcance de hardening, mejora de DX
+  pendiente para sprint dedicado.
 
 ## Principios
 
