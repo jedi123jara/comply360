@@ -12,11 +12,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, hasMinRole } from '@/lib/api-auth'
+import { hasMinRole } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { scanAttendancePatterns } from '@/lib/alerts/attendance-patterns'
 
-export const POST = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('attendance_selfie', async (_req: NextRequest, ctx: AuthContext) => {
   if (!hasMinRole(ctx.role, 'ADMIN')) {
     return NextResponse.json({ error: 'Se requiere rol ADMIN o superior' }, { status: 403 })
   }

@@ -11,7 +11,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, hasMinRole } from '@/lib/api-auth'
+import { hasMinRole } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import type { AttendanceAttemptResult } from '@/generated/prisma/client'
@@ -22,7 +23,7 @@ const VALID_RESULTS: AttendanceAttemptResult[] = [
   'ALREADY_CLOCKED', 'WORKER_NOT_FOUND', 'ERROR',
 ]
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('attendance_selfie', async (req: NextRequest, ctx: AuthContext) => {
   if (!hasMinRole(ctx.role, 'ADMIN')) {
     return NextResponse.json({ error: 'Se requiere rol ADMIN o superior' }, { status: 403 })
   }

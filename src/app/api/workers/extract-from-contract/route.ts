@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { callAI, extractJson } from '@/lib/ai/provider'
 import { cleanContractText } from '@/lib/agents/text-cleaner'
 import { buildExtractionPrompt, SYSTEM_PROMPT } from '@/lib/agents/extraction-prompt'
@@ -57,7 +57,7 @@ async function extractTextFromDocx(buffer: Buffer): Promise<string> {
 
 // ─── Route handler ────────────────────────────────────────────────────────
 
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest) => {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null

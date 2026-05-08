@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { evaluateRule } from '@/lib/contracts/validation/rule-evaluator'
 import {
@@ -136,7 +136,7 @@ function ruleApplies(
 // Handler
 // =============================================
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   let body: z.infer<typeof draftBodySchema>
   try {
     const json = await req.json()

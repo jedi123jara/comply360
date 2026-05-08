@@ -10,7 +10,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, hasMinRole } from '@/lib/api-auth'
+import { hasMinRole } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   addFence, listFences, removeFence, updateFence, type Geofence,
@@ -19,12 +20,12 @@ import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('attendance_selfie', async (_req: NextRequest, ctx: AuthContext) => {
   const fences = await listFences(ctx.orgId)
   return NextResponse.json({ fences })
 })
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('attendance_selfie', async (req: NextRequest, ctx: AuthContext) => {
   if (!hasMinRole(ctx.role, 'ADMIN')) {
     return NextResponse.json({ error: 'Se requiere rol ADMIN o superior' }, { status: 403 })
   }
@@ -80,7 +81,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   return NextResponse.json({ fence: created }, { status: 201 })
 })
 
-export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const PATCH = withPlanGate('attendance_selfie', async (req: NextRequest, ctx: AuthContext) => {
   if (!hasMinRole(ctx.role, 'ADMIN')) {
     return NextResponse.json({ error: 'Se requiere rol ADMIN o superior' }, { status: 403 })
   }
@@ -98,7 +99,7 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   return NextResponse.json({ updated: true })
 })
 
-export const DELETE = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const DELETE = withPlanGate('attendance_selfie', async (req: NextRequest, ctx: AuthContext) => {
   if (!hasMinRole(ctx.role, 'ADMIN')) {
     return NextResponse.json({ error: 'Se requiere rol ADMIN o superior' }, { status: 403 })
   }
