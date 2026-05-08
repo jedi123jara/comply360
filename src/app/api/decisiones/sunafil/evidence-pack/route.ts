@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import JSZip from 'jszip'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 export const runtime = 'nodejs'
@@ -41,7 +41,7 @@ function rowsToCsv(headers: string[], rows: Array<(string | number | null)[]>): 
   return lines.join('\r\n') + '\r\n'
 }
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('ia_contratos', async (_req: NextRequest, ctx: AuthContext) => {
   const generatedAt = new Date()
 
   const [org, workers, enrollments] = await Promise.all([

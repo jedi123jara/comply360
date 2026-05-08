@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateOrgAlerts, generateWorkerAlerts } from '@/lib/alerts/alert-engine'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 import type { AuthContext } from '@/lib/auth'
 import { emit } from '@/lib/events'
@@ -10,7 +10,7 @@ import { emit } from '@/lib/events'
 // ?stats=1           → aggregate counts only (fast, no pagination)
 // ?includeResolved   → include resolved alerts in list
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
 
@@ -72,7 +72,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // PATCH /api/workers/alerts - Resolve an alert
 // =============================================
 // Body: { alertId: string, resolvedBy?: string }
-export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const PATCH = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
 
   let body: unknown
@@ -128,7 +128,7 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // POST /api/workers/alerts - Generate alerts
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
 
   let body: unknown

@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   getDocumentTemplateById,
@@ -21,7 +21,7 @@ import {
 import { prisma } from '@/lib/prisma'
 import type { OrgDocType } from '@/generated/prisma/client'
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   let body: { templateId?: string; variables?: Record<string, unknown>; persist?: boolean }
 
   try {
@@ -176,7 +176,7 @@ function mapDocumentTypeToOrgDocType(type: string): OrgDocType {
 /**
  * GET /api/documentos/generar — List available templates (metadata only, no blocks)
  */
-export const GET = withAuth(async () => {
+export const GET = withPlanGate('contratos', async () => {
   const { DOCUMENT_TEMPLATES } = await import('@/lib/legal-engine/documents')
 
   const templates = DOCUMENT_TEMPLATES.map(t => ({

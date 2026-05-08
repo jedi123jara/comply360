@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
@@ -57,7 +57,7 @@ const ContratarSchema = z.object({
   trainingCourseIds: z.array(z.string()).default([]),
 })
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: AuthContext) => {
   let body: unknown
   try {
     body = await req.json()
