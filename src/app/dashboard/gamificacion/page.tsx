@@ -83,7 +83,7 @@ function CircularProgress({ score, size = 200, strokeWidth = 14 }: { score: numb
 
 /* ── Score Level Helpers ──────────────────────────────────────────── */
 function getScoreLevel(score: number) {
-  if (score >= 85) return { name: 'Platino', color: 'text-emerald-500', bg: 'bg-emerald-900/40', border: 'border-emerald-700', gradient: 'from-emerald-500 to-teal-400', emoji: '💎' }
+  if (score >= 85) return { name: 'Platino', color: 'text-emerald-500', bg: 'bg-emerald-900/40', border: 'border-emerald-700', gradient: 'from-emerald-500 to-sky-400', emoji: '💎' }
   if (score >= 70) return { name: 'Oro', color: 'text-yellow-500', bg: 'bg-yellow-900/40', border: 'border-yellow-700', gradient: 'from-yellow-500 to-amber-400', emoji: '🥇' }
   if (score >= 50) return { name: 'Plata', color: 'text-[color:var(--text-tertiary)]', bg: 'bg-[color:var(--neutral-100)] bg-gray-800', border: 'border-white/10 border-gray-700', gradient: 'from-gray-400 to-gray-300', emoji: '🥈' }
   return { name: 'Bronce', color: 'text-amber-700', bg: 'bg-amber-900/40', border: 'border-amber-700', gradient: 'from-amber-700 to-amber-500', emoji: '🥉' }

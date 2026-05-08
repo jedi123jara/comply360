@@ -557,7 +557,7 @@ export default function BenchmarkSectorial({
 
       {/* ---- Top performer badge ---- */}
       {companyScore >= benchmark.top25 && (
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5">
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-sky-50 p-5">
           <Award className="h-8 w-8 text-emerald-600" />
           <div>
             <p className="text-sm font-semibold text-emerald-900">

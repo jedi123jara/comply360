@@ -192,7 +192,7 @@ export default function CostoEmpleadorPage() {
                     ...(result.seguroVida > 0 ? [{ label: 'Seguro Vida Ley', value: result.seguroVida, color: 'text-purple-400' }] : []),
                     { label: 'Provision CTS', value: result.provisionCTS, color: 'text-emerald-600' },
                     { label: 'Provision Gratificacion', value: result.provisionGratificacion, color: 'text-green-400' },
-                    { label: 'Bonificacion Extraordinaria (9%)', value: result.provisionBonifExtraordinaria, color: 'text-teal-400' },
+                    { label: 'Bonificacion Extraordinaria (9%)', value: result.provisionBonifExtraordinaria, color: 'text-sky-400' },
                     { label: 'Provision Vacaciones', value: result.provisionVacaciones, color: 'text-cyan-400' },
                   ].filter(item => item.value > 0).map((item, i) => (
                     <div key={i} className="flex justify-between items-center py-1">
