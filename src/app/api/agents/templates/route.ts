@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { listTemplates, getTemplate, type IndustrySlug } from '@/lib/agents/templates'
 
 export const runtime = 'nodejs'
 
-export const GET = withAuth(async (req: NextRequest) => {
+export const GET = withPlanGate('asistente_ia', async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)
   const agentSlug = searchParams.get('agentSlug') || undefined
   const slug = searchParams.get('slug') as IndustrySlug | null

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 
 // =============================================
 // GET /api/diagnostics/[id] — Get diagnostic detail
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
+export const GET = withPlanGateParams<{ id: string }>('diagnostico', async (_req, ctx, params) => {
   try {
     const { id } = params
     const orgId = ctx.orgId

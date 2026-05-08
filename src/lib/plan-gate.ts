@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withAuth, withAuthParams } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { PLANS } from '@/lib/constants'
 import {
@@ -142,5 +142,61 @@ export function withPlanGate(
     }
 
     return handler(req, ctx)
+  })
+}
+
+/**
+ * Versión con params dinámicos para rutas como `/api/sst/sedes/[id]`.
+ * Usage: export const PATCH = withPlanGateParams<{id:string}>('sst_completo', async (req, ctx, {id}) => {...})
+ */
+export function withPlanGateParams<P extends Record<string, string>>(
+  requiredFeature: PlanFeature,
+  handler: (req: NextRequest, ctx: AuthContext, params: P) => Promise<NextResponse>,
+) {
+  return withAuthParams<P>(async (req: NextRequest, ctx: AuthContext, params: P) => {
+    if (ctx.role === 'SUPER_ADMIN') {
+      return handler(req, ctx, params)
+    }
+    const founderEmails = (process.env.FOUNDER_EMAILS ?? process.env.FOUNDER_EMAIL ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+    const ctxEmail = typeof ctx.email === 'string' ? ctx.email.toLowerCase() : ''
+    if (ctxEmail && founderEmails.includes(ctxEmail)) {
+      return handler(req, ctx, params)
+    }
+
+    const org = await prisma.organization.findUnique({
+      where: { id: ctx.orgId },
+      select: { plan: true, planExpiresAt: true },
+    })
+
+    if (!org) {
+      return NextResponse.json(
+        { error: 'Organizacion no encontrada', code: 'ORG_NOT_FOUND' },
+        { status: 404 },
+      )
+    }
+
+    let effectivePlan = org.plan
+    if (org.planExpiresAt && new Date(org.planExpiresAt) < new Date()) {
+      effectivePlan = 'FREE'
+    }
+
+    if (!planHasFeature(effectivePlan, requiredFeature)) {
+      const minPlan = FEATURE_MIN_PLAN[requiredFeature]
+      return NextResponse.json(
+        {
+          error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+          code: 'PLAN_UPGRADE_REQUIRED',
+          requiredPlan: minPlan,
+          currentPlan: effectivePlan,
+          upgradeUrl: '/dashboard/planes',
+        },
+        { status: 403 },
+      )
+    }
+
+    return handler(req, ctx, params)
   })
 }

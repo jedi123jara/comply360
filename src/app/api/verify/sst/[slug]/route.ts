@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
 import {
   parsePublicSlug,
   computeFingerprint,
@@ -8,6 +9,16 @@ import {
   emoPayload,
   visitaPayload,
 } from '@/lib/sst/traceability'
+
+// FIX #4.F: rate limit estricto en endpoint público de verificación.
+// Antes el endpoint era enumerable (atacante con un slug válido prueba
+// prefijos hex). Ahora 5 req/min/IP + reducción de info expuesta.
+const verifyLimiter = rateLimit({ interval: 60_000, limit: 5 })
+
+// Defensive cap: reducido de 200 → 50. Con prefijo SHA-256 de 11 hex chars,
+// la probabilidad de colisión es ~1/16^11 = 1 en 17 trillones. 50 candidatos
+// es más que suficiente.
+const VERIFY_CANDIDATES_CAP = 50
 
 // =============================================
 // GET /api/verify/sst/[slug]
@@ -24,9 +35,13 @@ import {
 // =============================================
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<{ slug: string }> },
 ) {
+  // FIX #4.F: rate limit anti-enumeración.
+  const rl = await verifyLimiter.check(req)
+  if (!rl.success) return rl.response!
+
   const { slug } = await ctx.params
 
   const parsed = parsePublicSlug(slug)
@@ -51,7 +66,7 @@ export async function GET(
         },
         organization: { select: { razonSocial: true, name: true, ruc: true } },
       },
-      take: 200, // limite defensivo
+      take: VERIFY_CANDIDATES_CAP,
     })
 
     for (const c of candidates) {
@@ -104,7 +119,7 @@ export async function GET(
         sede: { select: { nombre: true, distrito: true } },
         organization: { select: { razonSocial: true, name: true, ruc: true } },
       },
-      take: 200,
+      take: VERIFY_CANDIDATES_CAP,
     })
 
     for (const c of candidates) {
@@ -143,7 +158,7 @@ export async function GET(
         restriccionesCifrado: true,
         organization: { select: { razonSocial: true, name: true, ruc: true } },
       },
-      take: 200,
+      take: VERIFY_CANDIDATES_CAP,
     })
 
     for (const c of candidates) {
@@ -154,11 +169,15 @@ export async function GET(
           kind: 'EMO',
           fingerprint: fp,
           issuedAt: c.fechaExamen.toISOString(),
+          // FIX #4.F: respuesta pública SIN centroMedicoNombre.
+          // Razón: el centro médico + aptitud + worker conforma "datos
+          // personales sensibles" Ley 29733. La verificación pública SOLO
+          // confirma que el sello existe, no expone qué clínica atendió a
+          // qué trabajador. Para el detalle clínico, el caller debe loguearse.
           summary: {
             tipo: 'Examen Médico Ocupacional',
             tipoExamen: c.tipoExamen,
             aptitud: c.aptitud,
-            centroMedico: c.centroMedicoNombre,
             empresa: c.organization.razonSocial ?? c.organization.name,
             ruc: c.organization.ruc ?? null,
           },
@@ -180,7 +199,7 @@ export async function GET(
         colaborador: { select: { nombre: true, apellido: true } },
         organization: { select: { razonSocial: true, name: true, ruc: true } },
       },
-      take: 200,
+      take: VERIFY_CANDIDATES_CAP,
     })
 
     for (const c of candidates) {
@@ -196,12 +215,13 @@ export async function GET(
           kind: 'VISITA',
           fingerprint: fp,
           issuedAt: c.fechaCierreOficina?.toISOString() ?? c.fechaProgramada.toISOString(),
+          // FIX #4.F: respuesta pública SIN nombre del inspector.
+          // El nombre completo es PII (Ley 29733). Para audit trail, el
+          // caller autenticado puede ver el detalle desde el dashboard.
           summary: {
             tipo: 'Visita Field Audit',
             estado: c.estado,
             sede: c.sede.nombre,
-            distrito: c.sede.distrito,
-            inspector: `${c.colaborador.nombre} ${c.colaborador.apellido}`,
             empresa: c.organization.razonSocial ?? c.organization.name,
             ruc: c.organization.ruc ?? null,
             hallazgosCount: hallazgos.length,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { visitaCreateSchema } from '@/lib/sst/schemas'
 
@@ -11,7 +11,7 @@ import { visitaCreateSchema } from '@/lib/sst/schemas'
 //   sedeId, colaboradorId, estado
 //   from, to    — rango de fechaProgramada
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const sedeId = searchParams.get('sedeId')
   const colaboradorId = searchParams.get('colaboradorId')
@@ -66,7 +66,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // POST /api/sst/visitas
 // Programa una visita Field Audit en una sede de la org.
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = visitaCreateSchema.safeParse(body)
   if (!parsed.success) {

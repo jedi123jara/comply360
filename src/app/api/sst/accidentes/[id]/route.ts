@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { accidenteSatUpdateSchema } from '@/lib/sst/schemas'
 import { calcularPlazoSat, type TipoAccidente } from '@/lib/sst/sat-deadline'
@@ -8,7 +8,7 @@ import { calcularPlazoSat, type TipoAccidente } from '@/lib/sst/sat-deadline'
 // =============================================
 // GET /api/sst/accidentes/[id]
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo',
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const accidente = await prisma.accidente.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -56,7 +56,7 @@ export const GET = withAuthParams<{ id: string }>(
 // COMPLY360 NO ejecuta RPA: el cliente notifica en gob.pe/774 manualmente y
 // luego registra aquí su número de cargo + fecha de envío + foto del cargo.
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = accidenteSatUpdateSchema.safeParse(body)
