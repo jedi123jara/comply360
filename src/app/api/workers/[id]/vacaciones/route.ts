@@ -5,12 +5,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 const MYPE_REGIMENS = ['MYPE_MICRO', 'MYPE_PEQUENA']
 
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId } = params
 
@@ -100,7 +100,7 @@ export const GET = withAuthParams<{ id: string }>(
   },
 )
 
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('workers', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId } = params
 
@@ -159,3 +159,4 @@ export const POST = withAuthParams<{ id: string }>(
     return NextResponse.json(record, { status: 201 })
   },
 )
+

@@ -5,10 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
-export const PATCH = withAuthParams<{ id: string; recordId: string }>(
+export const PATCH = withPlanGateParams<{ id: string; recordId: string }>('workers', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId, recordId } = params
 
@@ -56,7 +56,7 @@ export const PATCH = withAuthParams<{ id: string; recordId: string }>(
   },
 )
 
-export const DELETE = withAuthParams<{ id: string; recordId: string }>(
+export const DELETE = withPlanGateParams<{ id: string; recordId: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId, recordId } = params
 
@@ -75,3 +75,4 @@ export const DELETE = withAuthParams<{ id: string; recordId: string }>(
     return NextResponse.json({ ok: true })
   },
 )
+

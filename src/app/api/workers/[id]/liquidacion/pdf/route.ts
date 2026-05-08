@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularLiquidacion } from '@/lib/legal-engine/calculators/liquidacion'
 import type { LiquidacionInput, LiquidacionResult, MotivoCese } from '@/lib/legal-engine/types'
@@ -47,7 +47,7 @@ function fmtDate(d: string | Date): string {
 // =============================================
 // GET /api/workers/[id]/liquidacion/pdf
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id } = params
     const orgId = ctx.orgId
@@ -262,3 +262,4 @@ export const GET = withAuthParams<{ id: string }>(
     return finalizePDF(doc, filename)
   },
 )
+

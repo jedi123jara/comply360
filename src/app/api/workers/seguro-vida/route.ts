@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 /**
@@ -66,7 +66,7 @@ function getSeguroVidaStatus(yearsOfService: number, hasPolicy: boolean): Seguro
 // GET /api/workers/seguro-vida
 // List workers with Seguro Vida Ley status
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const filterStatus = searchParams.get('status') // COMPLIANT, NON_COMPLIANT, APPROACHING, all
   const includeAll = searchParams.get('includeAll') === 'true'
@@ -145,3 +145,4 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   return NextResponse.json(response)
 })
+

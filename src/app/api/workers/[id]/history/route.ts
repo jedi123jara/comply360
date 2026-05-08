@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { planHasFeature } from '@/lib/plan-features'
 
@@ -35,7 +35,7 @@ interface UnifiedEvent {
   createdAt: string
 }
 
-export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('workers', async (req: NextRequest, ctx: AuthContext, params) => {
   const { id: workerId } = params
   const orgId = ctx.orgId
 
@@ -161,3 +161,4 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
     },
   })
 })
+

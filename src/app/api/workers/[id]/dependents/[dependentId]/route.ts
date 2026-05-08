@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 type RouteParams = {
@@ -20,7 +20,7 @@ type RouteParams = {
 // =============================================
 // PATCH /api/workers/[id]/dependents/[dependentId]
 // =============================================
-export const PATCH = withAuthParams<RouteParams>(async (req: NextRequest, ctx: AuthContext, params) => {
+export const PATCH = withPlanGateParams<RouteParams>('workers',async (req: NextRequest, ctx: AuthContext, params) => {
   const { id: workerId, dependentId } = params
   const orgId = ctx.orgId
 
@@ -82,7 +82,7 @@ export const PATCH = withAuthParams<RouteParams>(async (req: NextRequest, ctx: A
 // DELETE /api/workers/[id]/dependents/[dependentId]
 // (Soft delete — mantiene trazabilidad)
 // =============================================
-export const DELETE = withAuthParams<RouteParams>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const DELETE = withPlanGateParams<RouteParams>('workers',async (_req: NextRequest, ctx: AuthContext, params) => {
   const { id: workerId, dependentId } = params
   const orgId = ctx.orgId
 
@@ -108,3 +108,4 @@ export const DELETE = withAuthParams<RouteParams>(async (_req: NextRequest, ctx:
 
   return NextResponse.json({ success: true })
 })
+

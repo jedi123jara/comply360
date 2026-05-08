@@ -9,12 +9,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId } = params
 
@@ -95,3 +95,4 @@ export const GET = withAuthParams<{ id: string }>(
     return NextResponse.json({ worker, items, summary })
   },
 )
+
