@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateAttendanceReportPDF } from '@/lib/attendance/report-pdf'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 
 /**
  * GET /api/attendance/report — Reporte de asistencia
@@ -11,7 +11,7 @@ import { withAuth } from '@/lib/api-auth'
  *     → Libro Digital de Asistencia (R.M. 037-2024-TR Anexo 1) en PDF
  *   - default JSON (summary por trabajador) + startDate + endDate (+ department)
  */
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = withPlanGate('attendance_selfie', async (req: NextRequest, ctx) => {
   const orgId = ctx.orgId
   const url = new URL(req.url)
   const startDate = url.searchParams.get('startDate')

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { listContractsRiskSummary } from '@/lib/contracts/risk/service'
 
@@ -14,7 +14,7 @@ import { listContractsRiskSummary } from '@/lib/contracts/risk/service'
 //   ?limit=N  (default 100)
 //   ?orderBy=score|level         ordenar por riesgo (default: actualizado)
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
   const limit = parseInt(searchParams.get('limit') ?? '100', 10)

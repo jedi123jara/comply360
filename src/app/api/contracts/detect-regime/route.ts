@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { detectRegimeForOrg } from '@/lib/contracts/regime/service'
 
@@ -9,7 +9,7 @@ import { detectRegimeForOrg } from '@/lib/contracts/regime/service'
 // Útil al abrir el wizard de creación de contratos para sugerir tipo
 // y filtrar plantillas aplicables.
 // =============================================
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('contratos', async (_req: NextRequest, ctx: AuthContext) => {
   try {
     const result = await detectRegimeForOrg(ctx.orgId)
 

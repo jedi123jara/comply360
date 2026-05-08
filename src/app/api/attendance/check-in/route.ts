@@ -6,13 +6,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { checkAttendance, listFences } from '@/lib/attendance/geofence'
 
 export const runtime = 'nodejs'
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('attendance_selfie', async (req: NextRequest, ctx: AuthContext) => {
   let body: { lat?: number; lng?: number; accuracyMeters?: number; photoHash?: string }
   try {
     body = await req.json()

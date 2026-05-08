@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { callAI, extractJson } from '@/lib/ai/provider'
 import {
@@ -165,7 +165,7 @@ async function runWithConcurrency<T, R>(
   return results
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const form = await req.formData()
     const file = form.get('file') as File | null

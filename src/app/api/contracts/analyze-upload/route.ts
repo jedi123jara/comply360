@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import {
   analizarDocumento,
   TIPOS_DOCUMENTO_LABELS,
@@ -163,7 +163,7 @@ function calcularVeredicto(
 
 // ── POST handler ─────────────────────────────────────────────────────────────
 
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest) => {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null

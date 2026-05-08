@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { parseAttendanceNotes, deriveJustificationState } from '@/lib/attendance/notes'
@@ -11,7 +11,7 @@ import { localDateKey, workDateFor } from '@/lib/attendance/local-date'
  * GET /api/attendance?date=YYYY-MM-DD
  * Devuelve los registros de asistencia de todos los trabajadores de la org para una fecha.
  */
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = withPlanGate('attendance_selfie', async (req: NextRequest, ctx) => {
   const { searchParams } = new URL(req.url)
   const dateStr = searchParams.get('date') ?? localDateKey()
   const workDate = new Date(`${dateStr}T00:00:00.000Z`)
@@ -129,7 +129,7 @@ const clockSchema = z.object({
  * POST /api/attendance
  * Registra entrada o salida. Si workerId = 'current', usa el worker vinculado al usuario autenticado.
  */
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = withPlanGate('attendance_selfie', async (req: NextRequest, ctx) => {
   const body = await req.json().catch(() => ({}))
   const parsed = clockSchema.safeParse(body)
   if (!parsed.success) {
