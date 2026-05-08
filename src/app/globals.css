@@ -1,57 +1,16 @@
 @import "tailwindcss";
-/* Vault Pro fonts — General Sans (UI) + JetBrains Mono (data). */
-@import url('https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "../styles/tokens.css";
 @import "../styles/motion.css";
+/* Nota: Instrument Serif se carga via next/font/google en layout.tsx
+   (expone --font-instrument-serif), consumido por --font-serif en tokens.css.
+   Geist sigue siendo workhorse; serif solo en momentos drama. */
 
 /* =============================================================================
- * COMPLY360 — Global styles v5 "Vault Pro"
+ * COMPLY360 — Global styles v3 "Emerald Light"
  *
- * Dark por defecto + Light toggle (data-theme="light" en <html>).
- * General Sans (UI) + JetBrains Mono (data). Background con grid de puntos.
+ * LIGHT-first. Base blanca, emerald como acento. Inspiración: Stripe / Linear.
  * =============================================================================
  */
-
-/* ─── Body con grid de puntos sutil (sello visual Vault Pro) ─── */
-html, body {
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 13.5px;
-  line-height: 1.45;
-  letter-spacing: -0.005em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
-  background-size: 24px 24px;
-  transition: background-color var(--t-med) var(--ease-vp), color var(--t-med) var(--ease-vp);
-}
-
-/* ─── Vault Pro typography helpers ─── */
-.vp-lbl,
-.lbl {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-.vp-num,
-.num {
-  font-family: var(--font-mono);
-  font-feature-settings: 'tnum' 1, 'cv02' 1, 'cv11' 1;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.vp-h-display,
-.h-display { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
-.vp-h-1,
-.h-1 { font-size: 18px; font-weight: 600; letter-spacing: -0.012em; }
-.vp-h-2,
-.h-2 { font-size: 14px; font-weight: 600; letter-spacing: -0.008em; }
-.vp-caption { font-size: 12px; color: var(--text-secondary); }
 
 @theme inline {
   /* Emerald palette → Tailwind utilities */
@@ -1211,125 +1170,4 @@ body.c360-canvas {
 [class*="rounded-full"][class*="bg-emerald"][class*="text-white"],
 [class*="rounded-full"][class*="bg-crimson"][class*="text-white"] {
   color: #ffffff;
-}
-
-/* =============================================================================
- *  VAULT PRO DARK MODE — UNIVERSAL ADAPTER
- *
- *  Reemplazos automáticos para componentes que usan utility classes
- *  hardcoded (`bg-white`, `text-slate-900`, `border-gray-200`, etc.).
- *  Sin esto, en dark mode esos componentes se verían blancos sobre fondo
- *  oscuro. Esto los mapea a tokens semánticos Vault Pro.
- *
- *  Migrar componente-por-componente a tokens es lo correcto a largo plazo,
- *  pero esta capa permite ver Vault Pro funcional en TODO el SaaS sin
- *  reescribir 100s de archivos.
- * =============================================================================
- */
-[data-theme="dark"] .bg-white {
-  background-color: var(--bg-2);
-}
-[data-theme="dark"] .bg-slate-50,
-[data-theme="dark"] .bg-gray-50,
-[data-theme="dark"] .bg-neutral-50 {
-  background-color: var(--bg-1);
-}
-[data-theme="dark"] .bg-slate-100,
-[data-theme="dark"] .bg-gray-100,
-[data-theme="dark"] .bg-neutral-100 {
-  background-color: var(--bg-3);
-}
-[data-theme="dark"] .bg-slate-200,
-[data-theme="dark"] .bg-gray-200,
-[data-theme="dark"] .bg-neutral-200 {
-  background-color: var(--bg-3);
-}
-
-[data-theme="dark"] .text-slate-900,
-[data-theme="dark"] .text-gray-900,
-[data-theme="dark"] .text-neutral-900,
-[data-theme="dark"] .text-black {
-  color: var(--text-primary);
-}
-[data-theme="dark"] .text-slate-800,
-[data-theme="dark"] .text-gray-800,
-[data-theme="dark"] .text-neutral-800,
-[data-theme="dark"] .text-slate-700,
-[data-theme="dark"] .text-gray-700,
-[data-theme="dark"] .text-neutral-700 {
-  color: var(--text-primary);
-}
-[data-theme="dark"] .text-slate-600,
-[data-theme="dark"] .text-gray-600,
-[data-theme="dark"] .text-neutral-600,
-[data-theme="dark"] .text-slate-500,
-[data-theme="dark"] .text-gray-500,
-[data-theme="dark"] .text-neutral-500 {
-  color: var(--text-secondary);
-}
-[data-theme="dark"] .text-slate-400,
-[data-theme="dark"] .text-gray-400,
-[data-theme="dark"] .text-neutral-400,
-[data-theme="dark"] .text-slate-300,
-[data-theme="dark"] .text-gray-300,
-[data-theme="dark"] .text-neutral-300 {
-  color: var(--text-tertiary);
-}
-
-[data-theme="dark"] .border-slate-200,
-[data-theme="dark"] .border-gray-200,
-[data-theme="dark"] .border-neutral-200,
-[data-theme="dark"] .border-slate-100,
-[data-theme="dark"] .border-gray-100,
-[data-theme="dark"] .border-neutral-100 {
-  border-color: var(--border-default);
-}
-[data-theme="dark"] .border-slate-300,
-[data-theme="dark"] .border-gray-300,
-[data-theme="dark"] .border-neutral-300 {
-  border-color: var(--border-strong);
-}
-
-/* Backgrounds explícitos en hero-style con gradients suaves */
-[data-theme="dark"] .from-slate-50,
-[data-theme="dark"] .from-white,
-[data-theme="dark"] .from-gray-50 {
-  --tw-gradient-from: var(--bg-1);
-}
-[data-theme="dark"] .to-slate-50,
-[data-theme="dark"] .to-white,
-[data-theme="dark"] .to-gray-50 {
-  --tw-gradient-to: var(--bg-1);
-}
-
-/* Cards y paneles con backgrounds claros explícitos */
-[data-theme="dark"] [class*="bg-white/"] {
-  background-color: rgba(24, 28, 35, 0.95);
-}
-[data-theme="dark"] [class*="bg-slate-50/"] {
-  background-color: rgba(17, 20, 26, 0.95);
-}
-
-/* Inputs y forms */
-[data-theme="dark"] input.bg-white,
-[data-theme="dark"] textarea.bg-white,
-[data-theme="dark"] select.bg-white {
-  background-color: var(--bg-1);
-  color: var(--text-primary);
-}
-
-/* Color emerald-* en dark se mantiene neon (los valores de tokens.css ya
-   se ajustan al tema). Pero hay clases con tints suaves bg-emerald-50/100
-   que en dark hay que mostrar como tints dark-mode-friendly. */
-[data-theme="dark"] .bg-emerald-50,
-[data-theme="dark"] .bg-blue-50,
-[data-theme="dark"] .bg-amber-50,
-[data-theme="dark"] .bg-crimson-50 {
-  background-color: var(--bg-2);
-}
-
-/* Shadow lifts hardcoded (shadow-[0_1px_2px_rgba(15,23,42,0.X)]) */
-[data-theme="dark"] [class*="shadow-[0_1px_2px_rgba(15"],
-[data-theme="dark"] [class*="shadow-[0_2px_8px_rgba(15"] {
-  box-shadow: var(--elevation-1);
 }

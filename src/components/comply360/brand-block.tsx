@@ -1,51 +1,37 @@
 'use client'
 
-import { BrandLogo } from '@/components/ui/brand-logo'
-
 /**
- * BrandBlockA — Vault Pro brand block del sidebar.
+ * BrandBlockA — "Sello notarial" (Variant A del prototipo).
  *
- * Escudo emerald con check ✓ animado (rise + draw 850ms) + wordmark con
- * gradient white→emerald + badge "360" mono. Caption mínima con live dot.
+ * Escudo compacto esmeralda gradiente con icono shield-check blanco,
+ * wordmark "Comply" Geist bold + badge "360" monospace emerald tenue,
+ * caption "COMPLIANCE · PERÚ" con dot pulsante.
  *
- * Visual upgrade Vault Pro (2026-05-08):
- *   El logo viejo era un shield 16px estático. Ahora 32px con animación de
- *   entrada (escudo se eleva + check se dibuja trazo a trazo) y glow emerald.
- *   La caption "COMPLIANCE · PERÚ" se mantiene con su dot pulsante.
+ * Variant A es la final después del feedback del usuario en el chat:
+ * "me referia que me gusta la opcion A"
  */
 export function BrandBlockA() {
   return (
     <div className="c360-sb-brand">
-      <BrandLogo size={32} />
-      <div className="c360-sb-brand-wordmark">
-        <div
-          className="brand-name"
-          style={{
-            fontSize: 16,
-            fontWeight: 600,
-            letterSpacing: '-0.018em',
-            background:
-              'linear-gradient(180deg, var(--text) 35%, color-mix(in srgb, var(--accent) 60%, var(--text)) 130%)',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            color: 'transparent',
-          }}
+      <div className="brand-mark">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
         >
-          Comply
-          <span
-            className="num-tag"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 500,
-              fontSize: 13,
-              letterSpacing: 0,
-              marginLeft: 1,
-              color: 'var(--accent)',
-              WebkitTextFillColor: 'var(--accent)',
-            }}
-          >
-            360
-          </span>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      </div>
+      <div className="c360-sb-brand-wordmark">
+        <div className="brand-name">
+          Comply<span className="num-tag">360</span>
         </div>
         <div className="brand-meta">
           <span className="dot" />
