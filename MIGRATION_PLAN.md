@@ -11,12 +11,12 @@
 |---|---|---|
 | 0 | 10/10 ✅ | — |
 | 1 | 5/5 ✅ | — |
-| 2 | 6/9 (B,D,E1-4) | 2.A decimal.js, 2.C 12 regímenes, 2.F tests |
-| 3 | 5/5 ✅ | (3.A apply masivo a 258 rutas — script de detección listo) |
+| 2 | 7/9 (B,C parcial,D,E1-4) | 2.A decimal.js, 2.C completar 12 regímenes, 2.F tests |
+| 3 | 5/5 ✅ | (3.A apply: 19/394 rutas, script de detección sigue disponible) |
 | 4 | 6/8 (A,B,E,G,H,I) | 4.C download server, 4.D stream re-validate, 4.F /verify, 4.J UI |
-| 5 | 8/8 ✅ | — (5.A 100% via wrapper, 5.D magic bytes, 5.F logger sanit) |
-| 6 | 7/8 (A,B,C,E,F,G,H) | 6.D bulk import streaming |
-| 7 | 6/8 (A,B,C,E,G,H) | 7.D AuditLog hash, 7.F migration cleanup |
+| 5 | 8/8 ✅ | — |
+| 6 | 8/8 ✅ | — (6.D cap aplicado; migración exceljs queda para refactor mayor) |
+| 7 | 7/8 (A,B,C,D,E,G,H) | 7.F migration cleanup |
 | 8 | 1/3 (A parcial) | 8.B integración DB real, 8.C observabilidad |
 
 **Migrations aplicadas a la DB real:**
@@ -24,8 +24,9 @@
 - `20260507130000_audit_indexes_and_fk` — leads/calculations indexes
 - `20260507140000_orphan_models_fk` — 32 FKs nuevas a organizations(id)
 - `20260507150000_rls_policies_full` — RLS+policy en 47 tablas tenant-scoped
+- `20260507160000_audit_log_hash_chain` — prev_hash + entry_hash en audit_logs
 
-**Tests:** 1988 verdes (39 nuevos en último bloque). Smoke contra DB: 32/32.
+**Tests:** 1998 verdes. Smoke contra DB: 32/32.
 
 **Tests:** 1949 verdes. Smoke contra DB real: 32/32.
 
