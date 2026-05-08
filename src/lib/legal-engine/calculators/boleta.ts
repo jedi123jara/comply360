@@ -16,6 +16,7 @@
 import { PERU_LABOR, calcularRemuneracionComputable } from '../peru-labor'
 import { calcularAportesPrevisionales, type AportesInput } from './aportes-previsionales'
 import { calcularRentaQuinta, type RentaQuintaInput } from './renta-quinta'
+import { money } from '../money'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -368,6 +369,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
   }
 }
 
+// FIX #2.A: round usa Money para precisión decimal.
 function round(n: number): number {
-  return Math.round(n * 100) / 100
+  return money(n).toNumber()
 }

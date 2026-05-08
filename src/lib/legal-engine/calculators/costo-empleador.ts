@@ -1,4 +1,5 @@
 import { PERU_LABOR } from '../peru-labor'
+import { money, sumMoney } from '../money'
 
 // =============================================
 // COSTO TOTAL EMPLEADOR
@@ -233,6 +234,8 @@ export function calcularCostoEmpleador(input: CostoEmpleadorInput): CostoEmplead
   }
 }
 
+// FIX #2.A: round usa Money para evitar acumulación de errores de coma
+// flotante. Cada operación que usa round() ahora pasa por decimal.js.
 function round(n: number): number {
-  return Math.round(n * 100) / 100
+  return money(n).toNumber()
 }
