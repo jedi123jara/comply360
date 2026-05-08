@@ -401,7 +401,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
         }}
       />
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="c360-grid-enter grid grid-cols-1 md:grid-cols-3 gap-4">
         <MomentCard
           variant="closed"
           label="Lo que cerraste"

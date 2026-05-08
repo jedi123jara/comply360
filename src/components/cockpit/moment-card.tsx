@@ -61,7 +61,7 @@ export function MomentCard({
       variant={styles.card}
       padding="md"
       interactive={!!href}
-      className="h-full flex flex-col"
+      className="h-full flex flex-col c360-hover-lift"
     >
       <div className="flex items-center gap-2 mb-3">
         <span
