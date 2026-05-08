@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth, hasMinRole } from '@/lib/api-auth'
+import { hasMinRole } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import type { WorkerStatus, RegimenLaboral, TipoCese } from '@/generated/prisma/client'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
@@ -63,7 +64,7 @@ const MAX_BATCH = 200
  * Todas las acciones excepto change-status excluyen workers ya TERMINATED.
  * Se reportan los workers saltados con razón en `skipped[]`.
  */
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   if (!hasMinRole(ctx.role, 'ADMIN')) {
     return NextResponse.json({ error: 'Se requiere rol ADMIN o superior' }, { status: 403 })
   }

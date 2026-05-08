@@ -22,6 +22,9 @@ const { mockGetAuthContext, mockPrisma } = vi.hoisted(() => {
     worker: {
       count: vi.fn(),
     },
+    organization: {
+      findUnique: vi.fn(),
+    },
   }
   return { mockGetAuthContext, mockPrisma }
 })
@@ -52,6 +55,11 @@ describe('GET /api/contracts/ops', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetAuthContext.mockResolvedValue(AUTH_CTX)
+    mockPrisma.organization.findUnique.mockResolvedValue({
+      plan: 'PRO',
+      planExpiresAt: null,
+      planTrialUntil: null,
+    })
 
     mockPrisma.contract.count
       .mockResolvedValueOnce(12)

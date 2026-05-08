@@ -15,7 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import {
   getDocumentTemplateById,
   renderDocumentToText,
@@ -32,7 +32,7 @@ type GenerateBody = {
   saveToOrg?: boolean
 }
 
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withPlanGate('contratos', async (req: NextRequest) => {
   let body: GenerateBody
   try {
     body = (await req.json()) as GenerateBody
@@ -165,7 +165,7 @@ export const POST = withAuth(async (req: NextRequest) => {
  * GET /api/documents/generate
  * List all available document templates
  */
-export const GET = withAuth(async () => {
+export const GET = withPlanGate('contratos', async () => {
   const { DOCUMENT_TEMPLATES } = await import('@/lib/legal-engine/documents')
   const { CONTRACT_TEMPLATES } = await import('@/lib/legal-engine/contracts/templates')
 

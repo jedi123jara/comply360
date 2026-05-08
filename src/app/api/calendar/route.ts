@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   getWorkerAnniversaries,
@@ -346,7 +346,7 @@ async function getActiveWorkerAlerts(orgId: string): Promise<CalendarEvent[]> {
 // GET /api/calendar
 // =============================================
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('calendario', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const { searchParams } = new URL(req.url)
     const yearParam = searchParams.get('year')

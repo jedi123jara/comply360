@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isOrgTemplate, parseTemplate } from '@/lib/templates/org-template-engine'
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('contratos', async (_req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const activeStatuses = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIGNED'] as const
   const warnings: string[] = []

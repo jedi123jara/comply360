@@ -21,7 +21,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 import { buildICalFeed, type ICalEvent } from '@/lib/calendar/ical-builder'
 import {
@@ -34,7 +34,7 @@ import {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe'
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = withPlanGate('calendario', async (req: NextRequest, ctx) => {
   const { searchParams } = new URL(req.url)
   const yearParam = searchParams.get('year')
   const year = yearParam ? parseInt(yearParam) : new Date().getFullYear()

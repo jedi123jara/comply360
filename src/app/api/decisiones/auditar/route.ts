@@ -20,7 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 export const runtime = 'nodejs'
@@ -53,7 +53,7 @@ function near(a: number, b: number, tol = TOLERANCE): boolean {
   return Math.abs(a - b) <= tol
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: AuthContext) => {
   let body: unknown
   try {
     body = await req.json()

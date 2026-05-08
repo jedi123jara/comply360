@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import type { InfracGravedad } from '@/generated/prisma/client'
 
@@ -59,7 +59,7 @@ const TIPOS_RIESGO_ALTO = new Set<typeof TIPO_CESE[number]>([
   'DESPIDO_CAUSA_JUSTA',
 ])
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: AuthContext) => {
   let body: unknown
   try {
     body = await req.json()

@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 export const runtime = 'nodejs'
@@ -97,12 +97,12 @@ async function buildSnapshot(orgId: string): Promise<SunafilSnapshot> {
   }
 }
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('ia_contratos', async (_req: NextRequest, ctx: AuthContext) => {
   const snapshot = await buildSnapshot(ctx.orgId)
   return NextResponse.json({ data: snapshot })
 })
 
-export const POST = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('ia_contratos', async (_req: NextRequest, ctx: AuthContext) => {
   const snapshot = await buildSnapshot(ctx.orgId)
 
   const description = snapshot.lastDiagnostic
