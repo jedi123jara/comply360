@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
@@ -67,7 +67,7 @@ const memoriaTitle = (ano: number) => `memoria-${ano}`
 // =============================================
 // GET /api/sst/memoria-anual?ano=2026
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const ano = parseInt(searchParams.get('ano') ?? new Date().getFullYear().toString(), 10)
   if (!Number.isFinite(ano)) {
@@ -146,7 +146,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // POST /api/sst/memoria-anual — crear/actualizar
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = memoriaSchema.safeParse(body)
   if (!parsed.success) {

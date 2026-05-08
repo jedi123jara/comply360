@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
@@ -9,7 +9,7 @@ import type { AuthContext } from '@/lib/auth'
 // Devuelve un snapshot del estado actual del módulo SST para guiar al
 // usuario por el wizard. Idempotente y barato (5 counts agregados).
 // =============================================
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
 
   const [sedes, puestos, iperBases, ipercVigentes, accidentes] = await Promise.all([

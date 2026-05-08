@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularScoreSst, type SstScoreSnapshot } from '@/lib/sst/scoring'
 
@@ -14,7 +14,7 @@ import { calcularScoreSst, type SstScoreSnapshot } from '@/lib/sst/scoring'
 //   - exposición económica en S/ (D.S. 019-2006-TR + UIT 2026)
 //   - recomendaciones priorizadas
 // =============================================
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const now = new Date()
   const ult12meses = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)

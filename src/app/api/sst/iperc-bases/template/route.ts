@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 /**
@@ -13,7 +13,7 @@ import type { AuthContext } from '@/lib/auth'
  *
  * No es un endpoint público — requiere auth para evitar scraping.
  */
-export const GET = withAuth(async (_req: NextRequest, _ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (_req: NextRequest, _ctx: AuthContext) => {
   const wb = XLSX.utils.book_new()
 
   // ── Hoja 1: Instrucciones ─────────────────────────────────────────────

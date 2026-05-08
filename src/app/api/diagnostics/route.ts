@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
 import { withPlanGate } from '@/lib/plan-gate'
 import { ALL_QUESTIONS, EXPRESS_QUESTIONS, getFilteredQuestions } from '@/lib/compliance/questions'
 import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
@@ -12,7 +11,7 @@ import { emit } from '@/lib/events'
 // =============================================
 // GET /api/diagnostics — List diagnostics + get questions
 // =============================================
-export const GET = withAuth(async (req, ctx) => {
+export const GET = withPlanGate('diagnostico', async (req, ctx) => {
   try {
     const { searchParams } = new URL(req.url)
     const action = searchParams.get('action')

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { SstRecordType, SstStatus } from '@/generated/prisma/client'
 
 // =============================================
 // GET /api/sst — List SST records
 // =============================================
-export const GET = withAuth(async (req, ctx) => {
+export const GET = withPlanGate('sst_completo', async (req, ctx) => {
   try {
     const { searchParams } = new URL(req.url)
     const orgId = ctx.orgId
@@ -58,7 +58,7 @@ export const GET = withAuth(async (req, ctx) => {
 // =============================================
 // POST /api/sst — Create SST record
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('sst_completo', async (req, ctx) => {
   try {
     const body = await req.json()
     const { type, title, description, data, responsibleId, dueDate } = body
@@ -91,7 +91,7 @@ export const POST = withAuth(async (req, ctx) => {
 // =============================================
 // PUT /api/sst — Update SST record
 // =============================================
-export const PUT = withAuth(async (req, ctx) => {
+export const PUT = withPlanGate('sst_completo', async (req, ctx) => {
   try {
     const body = await req.json()
     const { id, status, title, description, data, completedAt } = body
