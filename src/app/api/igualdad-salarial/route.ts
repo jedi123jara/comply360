@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 
 // =============================================
 // Igualdad Salarial — Ley 30709
@@ -30,7 +30,7 @@ interface GenderGroup {
 // =============================================
 // GET /api/igualdad-salarial — Aggregate salary data by gender
 // =============================================
-export const GET = withAuth(async (req, ctx) => {
+export const GET = withPlanGate('reportes_pdf', async (req, ctx) => {
   try {
     const orgId = ctx.orgId
 
@@ -220,7 +220,7 @@ export const GET = withAuth(async (req, ctx) => {
 // =============================================
 // POST /api/igualdad-salarial — Save cuadro de categorias
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('reportes_pdf', async (req, ctx) => {
   try {
     const body = await req.json()
     const orgId = ctx.orgId
