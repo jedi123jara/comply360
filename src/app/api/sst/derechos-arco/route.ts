@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { arcoCreateSchema } from '@/lib/sst/schemas'
 import { encryptMedical } from '@/lib/sst/medical-vault'
@@ -10,7 +10,7 @@ import { encryptMedical } from '@/lib/sst/medical-vault'
 // Lista solicitudes ARCO para el DPO con SLA visible (20 días hábiles
 // según Art. 41 Ley 29733).
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const estado = searchParams.get('estado')
   const tipo = searchParams.get('tipo')
@@ -72,7 +72,7 @@ function addBusinessDays(from: Date, days: number): Date {
   return r
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = arcoCreateSchema.safeParse(body)
   if (!parsed.success) {

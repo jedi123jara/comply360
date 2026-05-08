@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
@@ -59,7 +59,7 @@ interface EleccionData {
 // =============================================
 // GET — Estado actual
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo',
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const comite = await prisma.comiteSST.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -119,7 +119,7 @@ export const GET = withAuthParams<{ id: string }>(
 // =============================================
 // POST — Iniciar elección
 // =============================================
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = eleccionCreateSchema.safeParse(body)
@@ -239,7 +239,7 @@ export const POST = withAuthParams<{ id: string }>(
 // =============================================
 // PATCH — Cerrar elección y calcular ganadores
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo',
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const comite = await prisma.comiteSST.findFirst({
       where: { id, orgId: ctx.orgId },

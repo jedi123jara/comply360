@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { consentimientoCreateSchema } from '@/lib/sst/schemas'
 import { encryptMedical } from '@/lib/sst/medical-vault'
@@ -11,7 +11,7 @@ import { encryptMedical } from '@/lib/sst/medical-vault'
 // El texto y firma siempre quedan cifrados — sólo se descifran en operaciones
 // específicas auditadas.
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const workerId = searchParams.get('workerId')
 
@@ -43,7 +43,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // POST /api/sst/consentimientos — Registrar consentimiento expreso
 // El texto y la firma se cifran con pgcrypto antes de persistir.
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = consentimientoCreateSchema.safeParse(body)
   if (!parsed.success) {

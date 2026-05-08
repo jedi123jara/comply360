@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import { logAudit } from '@/lib/audit'
 import type { AuthContext } from '@/lib/auth'
 import type { ContractStatus } from '@/generated/prisma/client'
@@ -28,7 +28,7 @@ const VALID_STATUSES: ContractStatus[] = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'SIG
 // =============================================
 // GET /api/contracts/[id]
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
     select: {
@@ -66,7 +66,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
 // =============================================
 // PATCH /api/contracts/[id] — update status, formData, AI review
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
+export const PATCH = withPlanGateParams<{ id: string }>('contratos', async (req: NextRequest, ctx: AuthContext, params) => {
   const body = await req.json() as {
     status?: string
     formData?: Record<string, unknown>
@@ -423,7 +423,7 @@ async function triggerOnboardingCascadeForContract(
 // =============================================
 // DELETE /api/contracts/[id] — archive (soft delete)
 // =============================================
-export const DELETE = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const DELETE = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
     select: { id: true, status: true },

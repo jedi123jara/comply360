@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { ipercFilaCreateSchema } from '@/lib/sst/schemas'
 import { calcularNivelRiesgo } from '@/lib/sst/iperc-matrix'
@@ -8,7 +8,7 @@ import { calcularNivelRiesgo } from '@/lib/sst/iperc-matrix'
 // =============================================
 // GET /api/sst/iperc-bases/[id]/filas — Listar filas de un IPERC
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo',
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const base = await prisma.iPERCBase.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -33,7 +33,7 @@ export const GET = withAuthParams<{ id: string }>(
 // El cliente envía los 5 índices crudos; el server NUNCA confía en valores
 // calculados que vengan del frontend (defensa en profundidad).
 // =============================================
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = ipercFilaCreateSchema.safeParse(body)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { runBulkGeneration } from '@/lib/contracts/bulk/runner'
 import type { ContractType } from '@/generated/prisma/client'
@@ -37,7 +37,7 @@ const BodySchema = z.object({
   sourceFileName: z.string().optional(),
 })
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => null)
   const parsed = BodySchema.safeParse(body)
   if (!parsed.success) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { ContractRenderError, renderContractPdfBuffer } from '@/lib/contracts/rendering'
 import {
@@ -18,7 +18,7 @@ import { runValidationPipeline } from '@/lib/contracts/validation/engine'
 // =============================================
 // GET /api/contracts/[id]/pdf — Download contract as PDF
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('contratos',
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const orgId = ctx.orgId
 
