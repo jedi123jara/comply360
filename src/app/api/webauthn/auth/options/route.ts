@@ -18,7 +18,7 @@ import { prisma } from '@/lib/prisma'
 import { buildAuthenticationOptions } from '@/lib/webauthn-credentials'
 import { issueChallenge, type ChallengeAction } from '@/lib/webauthn-server'
 
-const VALID_ACTIONS: ChallengeAction[] = ['sign_contract', 'sign_payslip']
+const VALID_ACTIONS: ChallengeAction[] = ['sign_contract', 'sign_payslip', 'vote_committee']
 
 export const POST = withWorkerAuth(async (req, ctx) => {
   let body: { action?: string; entityId?: string }

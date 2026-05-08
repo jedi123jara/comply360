@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import {
   tryBiometricCeremony,
+  tryStrongBiometricCeremony,
   hasBiometricHardware,
 } from '@/lib/webauthn'
 
@@ -154,11 +155,30 @@ function EleccionCard({ eleccion }: { eleccion: EleccionActiva }) {
 
     try {
       setState('asking-challenge')
-      // 1) Pedir challenge server-side
-      const ceremony = await tryBiometricCeremony({
+      // FIX #4.J — strong ceremony (server challenge + verify) preferida.
+      // Fallback al legacy si el user no tiene credential todavía.
+      const strong = await tryStrongBiometricCeremony({
         action: 'vote_committee',
         entityId: eleccion.comiteId,
       })
+      let ceremony: Awaited<ReturnType<typeof tryBiometricCeremony>>
+      if (strong.verified) {
+        ceremony = {
+          verified: true,
+          credentialId: strong.credentialId,
+          challenge: strong.challenge,
+          challengeToken: strong.challengeToken,
+          userAgent: strong.userAgent,
+        }
+      } else if (strong.reason === 'user-cancelled' || strong.reason === 'timeout') {
+        setState('idle')
+        return
+      } else {
+        ceremony = await tryBiometricCeremony({
+          action: 'vote_committee',
+          entityId: eleccion.comiteId,
+        })
+      }
 
       if (!ceremony.verified) {
         if (ceremony.reason === 'user-cancelled') {

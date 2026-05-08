@@ -26,7 +26,7 @@ import { verifyAndUpdateAuthentication } from '@/lib/webauthn-credentials'
 import { logAudit } from '@/lib/audit'
 import type { AuthenticationResponseJSON } from '@simplewebauthn/server'
 
-const VALID_ACTIONS: ChallengeAction[] = ['sign_contract', 'sign_payslip']
+const VALID_ACTIONS: ChallengeAction[] = ['sign_contract', 'sign_payslip', 'vote_committee']
 
 export const POST = withWorkerAuth(async (req, ctx) => {
   let body: {

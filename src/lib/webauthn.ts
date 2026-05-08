@@ -243,7 +243,7 @@ export async function hasBiometricHardware(): Promise<boolean> {
 // solo cablea el cliente.
 
 export interface StrongCeremonyRequest {
-  action: 'sign_contract' | 'sign_payslip'
+  action: 'sign_contract' | 'sign_payslip' | 'vote_committee'
   entityId: string
 }
 
