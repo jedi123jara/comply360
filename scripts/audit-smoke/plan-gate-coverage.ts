@@ -14,11 +14,39 @@
  * Output: tabla TSV con ruta + estado + sugerencia de feature.
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { glob } from 'glob'
 
 const PROJECT_ROOT = join(__dirname, '..', '..')
+
+/**
+ * Walk recursivo zero-deps que reemplaza `glob('**\/route.ts')`.
+ * (Antes usábamos `glob` package pero rompía el build de Vercel
+ *  porque no estaba en dependencies.)
+ */
+function findRouteFiles(dir: string, out: string[] = []): string[] {
+  let entries: string[]
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return out
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry)
+    let stat
+    try {
+      stat = statSync(full)
+    } catch {
+      continue
+    }
+    if (stat.isDirectory()) {
+      findRouteFiles(full, out)
+    } else if (entry === 'route.ts' || entry === 'route.tsx') {
+      out.push(full)
+    }
+  }
+  return out
+}
 
 // Heurísticas de feature por path prefix
 const PATH_FEATURE_HINTS: Array<{ pattern: RegExp; feature: string }> = [
@@ -84,10 +112,7 @@ interface RouteAudit {
 }
 
 async function main() {
-  const routeFiles = await glob('src/app/api/**/route.ts', {
-    cwd: PROJECT_ROOT,
-    absolute: true,
-  })
+  const routeFiles = findRouteFiles(join(PROJECT_ROOT, 'src/app/api'))
 
   const audits: RouteAudit[] = []
 
