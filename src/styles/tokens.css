@@ -1,48 +1,67 @@
 /* =============================================================================
- * COMPLY360 — Design Tokens v4 "Blue Authority" (Westlaw / Stripe / Linear)
+ * COMPLY360 — Design Tokens v5 "Vault Pro"
  *
- * LIGHT-first. Paleta: blanco/grises neutros + AZUL NAVY como acento brand
- * + GOLD para premium/PRO + rojo crimson para alertas críticas.
+ * Sistema visual: Bloomberg-meets-Linear oscuro + light premium.
+ *   - General Sans (UI) + JetBrains Mono (data/labels)
+ *   - DARK por defecto, LIGHT con toggle (data-theme="light" en <html>)
+ *   - Emerald neon como acento brand
+ *   - Densidad alta (radius 6/8/12, padding compacto)
+ *   - Background con grid de puntos sutil
  *
- * Migración v3→v4 (2026-05-08):
- *   El namespace `--emerald-*` se mantiene por compatibilidad pero ahora
- *   contiene la rampa NAVY/BLUE AUTHORITY. Esto hace que las 2962+
- *   utilidades Tailwind `bg-emerald-XXX`/`text-emerald-XXX` cambien
- *   automáticamente al brand nuevo sin tocar componentes.
- *
- *   Para "success" semántico (✓ checks, vigente, OK) usamos `--color-success`
- *   apuntando a verde nativo `#16a34a`. NUNCA usar `bg-emerald-*` para success
- *   en código nuevo — el verde brand ya no existe.
+ * Migración v4 (Blue Authority navy) → v5 (Vault Pro):
+ *   - El namespace --emerald-* vuelve a EMERALD (no navy).
+ *   - Los valores son tonos que funcionan tanto en dark como en light:
+ *     dark:  acentos neon (#00e5a0)
+ *     light: acentos profundos (#008f5d)
+ *   - Light mode disponible vía data-theme="light" en <html>.
  *
  * Consumido vía:
- *   - @theme inline en globals.css → utilidades Tailwind
- *   - `var(--token)` directo en componentes
+ *   - @theme inline en globals.css → utilidades Tailwind (bg-emerald-XXX, etc.)
+ *   - var(--token) directo en componentes
  *
  * No hardcodear colores en componentes. Referenciar tokens.
  * =============================================================================
  */
 
 :root {
-  /* ─── Brand Navy (acento principal — antes "emerald") ───────────────────
-   * Rampa coherente con paleta A "SUNAFIL Authority":
-   *   - 50-200 → fondos suaves (cards, badges info)
-   *   - 300-400 → ilustraciones, accents
-   *   - 500-600 → CTAs, links, brand surface
-   *   - 700-800 → headings, navy authority
-   *   - 900    → deep navy (hero overlays, modals headers)
-   */
-  --emerald-50: #eff6ff;
-  --emerald-100: #dbeafe;
-  --emerald-200: #bfdbfe;
-  --emerald-300: #93c5fd;
-  --emerald-400: #60a5fa;
-  --emerald-500: #2563eb; /* CTA principal sobre blanco — antes #2563eb */
-  --emerald-600: #1d4ed8; /* CTA hover, navy strong — antes #1d4ed8 */
-  --emerald-700: #1e40af;
-  --emerald-800: #1e3a8a; /* navy authority — heading hero */
-  --emerald-900: #172554; /* deep navy — overlays */
+  /* ─── Tipografía ─────────────────────────────────────────────────────── */
+  --font-ui: 'General Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: var(--font-ui);
+  /* Mantenemos legacy serif para casos de drama editorial (cocooning, hero quote). */
+  --font-serif: var(--font-instrument-serif, Georgia, 'Times New Roman', serif);
 
-  /* Alias semántico moderno (sin nombre legacy) */
+  /* ─── Motion (vault pro easing — calmado, decisivo) ──────────────────── */
+  --ease-vp: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms;
+  --t-med: 220ms;
+  --t-slow: 380ms;
+
+  /* ─── Radii (densidad mayor que v4) ──────────────────────────────────── */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  /* ─── Emerald (rampa brand — funciona en dark y light) ─────────────────
+   * En Vault Pro:
+   *   - 50/100/200 → tints sobre superficie
+   *   - 500 → CTA y brand surface (verde neon en dark, verde profundo en light)
+   *   - 600/700 → texto sobre tint, hover de CTA
+   *   - 800/900 → headings y deep accents
+   */
+  --emerald-50: #ecfdf5;
+  --emerald-100: #d1fae5;
+  --emerald-200: #a7f3d0;
+  --emerald-300: #6ee7b7;
+  --emerald-400: #34d399;
+  --emerald-500: #10b981; /* brand — visible sobre dark y light */
+  --emerald-600: #059669; /* CTA hover, link strong */
+  --emerald-700: #047857;
+  --emerald-800: #065f46;
+  --emerald-900: #064e3b;
+
+  /* Brand alias semántico moderno */
   --brand-50: var(--emerald-50);
   --brand-100: var(--emerald-100);
   --brand-200: var(--emerald-200);
@@ -54,7 +73,7 @@
   --brand-800: var(--emerald-800);
   --brand-900: var(--emerald-900);
 
-  /* ─── Crimson (riesgo, alertas críticas) ────────────────────────────── */
+  /* ─── Crimson (alertas críticas) ────────────────────────────────────── */
   --crimson-50: #fef2f2;
   --crimson-100: #fee2e2;
   --crimson-300: #fca5a5;
@@ -63,7 +82,7 @@
   --crimson-600: #dc2626;
   --crimson-700: #b91c1c;
 
-  /* ─── Amber (advertencias, pendientes) ──────────────────────────────── */
+  /* ─── Amber (advertencias) ──────────────────────────────────────────── */
   --amber-50: #fffbeb;
   --amber-100: #fef3c7;
   --amber-300: #fcd34d;
@@ -71,54 +90,38 @@
   --amber-500: #f59e0b;
   --amber-600: #d97706;
 
-  /* ─── Gold (acento premium reforzado v4 — Plan PRO, certificados, badges) ─
-   * En la paleta "Blue Authority", el gold es el SEGUNDO acento.
-   * Se usa para:
-   *   - Badge "Plan PRO" / "Plan EMPRESA" en sidebar
-   *   - Sello "Compliance certificado" en reportes
-   *   - Estrellas de score, logros del trabajador
-   *   - Bordes de cards premium
-   * Rampa expandida vs v3 (antes solo 400/500/600).
-   */
+  /* ─── Gold (Plan PRO, sellos, certificados) ──────────────────────────── */
   --gold-50: #fefce8;
   --gold-100: #fef9c3;
   --gold-200: #fef08a;
   --gold-300: #fde047;
   --gold-400: #facc15;
-  --gold-500: #d4a853; /* gold principal — premium subtle */
-  --gold-600: #b45309; /* gold dark — sobre fondos claros */
+  --gold-500: #d4a853;
+  --gold-600: #b45309;
   --gold-700: #92400e;
 
-  /* ─── Cyan (info, links) ────────────────────────────────────────────── */
+  /* ─── Cyan/Info ───────────────────────────────────────────────────────── */
   --cyan-50: #ecfeff;
   --cyan-400: #22d3ee;
   --cyan-500: #06b6d4;
   --cyan-600: #0891b2;
 
-  /* ─── Blue (alias del brand, mantenido por compat — antes "fiscal SUNAT") ─
-   * En v4 el brand principal ES azul, así que este namespace queda como
-   * alias del brand. Cuando un componente usa `bg-blue-700` se ve igual
-   * que `bg-emerald-700` (ambos navy).
-   */
-  --blue-50: var(--emerald-50);
-  --blue-100: var(--emerald-100);
-  --blue-500: var(--emerald-500);
-  --blue-600: var(--emerald-600);
-  --blue-700: var(--emerald-700);
-  --blue-800: var(--emerald-800);
+  /* ─── Blue (alias info) ─────────────────────────────────────────────── */
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e3a8a;
 
-  /* ─── Success Green (semántico — ✓ checks, vigente, OK) ──────────────
-   * Mantenido como verde nativo deliberado: en el rebrand a Blue Authority,
-   * los success states no deben confundirse con el brand. Verde clásico
-   * (#16a34a / Tailwind green-600) sigue siendo la convención SaaS para "OK".
-   */
+  /* ─── Success Green semántico (igual al brand en Vault Pro) ──────────── */
   --success-green-50: #f0fdf4;
   --success-green-100: #dcfce7;
   --success-green-500: #22c55e;
   --success-green-600: #16a34a;
   --success-green-700: #15803d;
 
-  /* ─── Neutral scale (Stripe-like grays) ─────────────────────────────── */
+  /* ─── Neutral scale ─────────────────────────────────────────────────── */
   --neutral-50: #f8fafc;
   --neutral-100: #f1f5f9;
   --neutral-150: #e9eef5;
@@ -131,7 +134,7 @@
   --neutral-800: #1e293b;
   --neutral-900: #0f172a;
 
-  /* Legacy aliases (no eliminar — muchos componentes referencian `obsidian-*`) */
+  /* Legacy obsidian aliases (algunos componentes los referencian) */
   --obsidian-50: var(--neutral-800);
   --obsidian-100: var(--neutral-800);
   --obsidian-200: var(--neutral-800);
@@ -142,313 +145,251 @@
   --obsidian-700: var(--neutral-100);
   --obsidian-800: var(--neutral-150);
   --obsidian-900: var(--neutral-900);
+}
 
-  /* ─── Semantic intent tokens ────────────────────────────────────────────
-   * Aliases con intención semántica para usar en componentes en lugar de
-   * referenciar paleta cruda (emerald-XXX, crimson-XXX, etc.). Cuando el
-   * equipo decida cambiar el color de "success" o "danger" globalmente,
-   * se cambia solo aquí.
-   *
-   * Convención:
-   *   - success / warning / danger / info → estándar SaaS
-   *   - compliance-trust → azul fiscal/SUNAT (cuando el contexto es legal)
-   *   - compliance-critical → rojo multa SUNAFIL (más fuerte que danger)
-   */
-  /* Success usa verde nativo, NO brand navy — para no confundir checks ✓ */
-  --color-success: var(--success-green-600);
-  --color-success-bg: var(--success-green-50);
-  --color-success-border: rgba(34, 197, 94, 0.35);
-  --color-success-text: var(--success-green-700);
+/* =============================================================================
+ *  DARK THEME (default)
+ * =============================================================================
+ * data-theme="dark" o ausencia de data-theme.
+ * Vault Pro → obsidian profundo + neon emerald.
+ */
+:root,
+[data-theme="dark"] {
+  /* Surfaces */
+  --bg: #0a0c0f;           /* canvas raíz */
+  --bg-1: #11141a;         /* sidebar, nav */
+  --bg-2: #181c23;         /* cards, paneles */
+  --bg-3: #20252e;         /* hover, sub-paneles */
+  --bg-base: var(--bg);
+  --bg-elevated: var(--bg-2);
+  --bg-surface: var(--bg-2);
+  --bg-surface-hover: var(--bg-3);
+  --bg-surface-active: var(--bg-3);
+  --bg-inset: var(--bg-1);
+  --bg-muted: var(--bg-1);
+  --bg-canvas: var(--bg);
 
-  --color-warning: var(--amber-500);
-  --color-warning-bg: var(--amber-50);
-  --color-warning-border: var(--border-amber);
-  --color-warning-text: #b45309;
-
-  --color-danger: var(--crimson-500);
-  --color-danger-bg: var(--crimson-50);
-  --color-danger-border: var(--border-crimson);
-  --color-danger-text: var(--crimson-700);
-
-  --color-info: var(--cyan-500);
-  --color-info-bg: var(--cyan-50);
-  --color-info-text: var(--cyan-600);
-
-  --color-compliance-trust: var(--blue-700);
-  --color-compliance-trust-bg: var(--blue-50);
-  --color-compliance-trust-text: var(--blue-700);
-
-  --color-compliance-critical: var(--crimson-600);
-  --color-compliance-critical-bg: var(--crimson-50);
-  --color-compliance-critical-text: var(--crimson-700);
-
-  /* ─── Semantic surfaces (LIGHT) ─────────────────────────────────────── */
-  --bg-base: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-surface-hover: var(--neutral-50);
-  --bg-surface-active: var(--neutral-100);
-  --bg-inset: var(--neutral-50);
-  --bg-muted: var(--neutral-100);
-  /* Canvas más marcado (slate-100 en vez de slate-50) para que las cards
-     blancas destaquen con más contraste sin ser oscuro. */
-  --bg-canvas: #eef2f7;
-
-  /* ─── Text hierarchy ────────────────────────────────────────────────── */
-  --text-primary: var(--neutral-900);
-  --text-secondary: var(--neutral-600);
-  --text-tertiary: var(--neutral-500);
-  --text-disabled: var(--neutral-400);
-  --text-inverse: #ffffff;
-  --text-accent: var(--emerald-600);
-  --text-link: var(--emerald-600);
-
-  /* ─── Borders ───────────────────────────────────────────────────────── */
-  --border-subtle: rgba(15, 23, 42, 0.08);
-  --border-default: rgba(15, 23, 42, 0.12);
-  --border-strong: rgba(15, 23, 42, 0.18);
-  /* Border "emerald" ahora es navy/blue (mantiene nombre por compat) */
-  --border-emerald: rgba(37, 99, 235, 0.35);
-  --border-emerald-strong: rgba(37, 99, 235, 0.55);
+  /* Borders */
+  --border-vp: #1f242c;
+  --border-strong-vp: #2c333d;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: var(--border-vp);
+  --border-strong: var(--border-strong-vp);
+  --border-emerald: rgba(0, 229, 160, 0.35);
+  --border-emerald-strong: rgba(0, 229, 160, 0.55);
   --border-brand: var(--border-emerald);
   --border-brand-strong: var(--border-emerald-strong);
-  --border-gold: rgba(180, 83, 9, 0.35);
-  --border-crimson: rgba(239, 68, 68, 0.35);
-  --border-amber: rgba(245, 158, 11, 0.35);
+  --border-gold: rgba(212, 168, 83, 0.35);
+  --border-crimson: rgba(255, 93, 108, 0.35);
+  --border-amber: rgba(255, 170, 59, 0.35);
 
-  /* ─── Glows (halos sutiles, ahora navy) ─────────────────────────────── */
-  --glow-emerald: 0 0 0 4px rgba(37, 99, 235, 0.10);
-  --glow-emerald-strong: 0 0 0 6px rgba(37, 99, 235, 0.15);
+  /* Text hierarchy */
+  --text: #e8eaee;
+  --text-2: #98a0ae;
+  --text-3: #5e6675;
+  --text-primary: var(--text);
+  --text-secondary: var(--text-2);
+  --text-tertiary: var(--text-3);
+  --text-disabled: #4b515c;
+  --text-inverse: #04150f;
+  --text-accent: #00e5a0;
+  --text-link: #00e5a0;
+
+  /* Brand neon overrides (emerald rampa shifted for dark) */
+  --emerald-500: #00e5a0;
+  --emerald-600: #00ffb0;
+  --emerald-700: #00b67a;
+  --emerald-800: #008f5d;
+  --emerald-900: #006f48;
+  --brand-500: var(--emerald-500);
+  --brand-600: var(--emerald-600);
+  --brand-700: var(--emerald-700);
+  --brand-800: var(--emerald-800);
+  --brand-900: var(--emerald-900);
+
+  /* Accent helpers */
+  --accent: var(--emerald-500);
+  --accent-soft: rgba(0, 229, 160, 0.12);
+  --accent-strong: var(--emerald-600);
+  --accent-glow: rgba(0, 229, 160, 0.35);
+
+  /* Semantic intent (dark) */
+  --color-success: var(--emerald-500);
+  --color-success-bg: rgba(0, 229, 160, 0.12);
+  --color-success-border: var(--border-emerald);
+  --color-success-text: var(--emerald-500);
+
+  --color-warning: #ffaa3b;
+  --color-warning-bg: rgba(255, 170, 59, 0.12);
+  --color-warning-border: var(--border-amber);
+  --color-warning-text: #ffaa3b;
+
+  --color-danger: #ff5d6c;
+  --color-danger-bg: rgba(255, 93, 108, 0.12);
+  --color-danger-border: var(--border-crimson);
+  --color-danger-text: #ff5d6c;
+
+  --color-info: #6ea5ff;
+  --color-info-bg: rgba(110, 165, 255, 0.12);
+  --color-info-text: #6ea5ff;
+
+  --color-compliance-trust: #6ea5ff;
+  --color-compliance-trust-bg: rgba(110, 165, 255, 0.12);
+  --color-compliance-trust-text: #6ea5ff;
+
+  --color-compliance-critical: #ff5d6c;
+  --color-compliance-critical-bg: rgba(255, 93, 108, 0.12);
+  --color-compliance-critical-text: #ff5d6c;
+
+  /* Glows */
+  --glow-emerald: 0 0 0 4px rgba(0, 229, 160, 0.10);
+  --glow-emerald-strong: 0 0 0 6px rgba(0, 229, 160, 0.18);
   --glow-brand: var(--glow-emerald);
   --glow-brand-strong: var(--glow-emerald-strong);
-  --glow-crimson: 0 0 0 4px rgba(239, 68, 68, 0.10);
-  --glow-gold: 0 0 0 4px rgba(212, 168, 83, 0.12);
+  --glow-crimson: 0 0 0 4px rgba(255, 93, 108, 0.12);
+  --glow-gold: 0 0 0 4px rgba(212, 168, 83, 0.14);
 
-  /* ─── Elevation (sombras ricas sin saturar) ─────────────────────────
-   * Cada nivel combina:
-   *   - una sombra cerrada y dura (para el borde plástico)
-   *   - una sombra difusa larga (para la flotación)
-   *   - un ring interior (para el "lift" de borde)
-   * Subido ~40% vs versión conservadora para que cards destaquen claramente.
-   */
+  /* Elevation (dark variants) */
   --elevation-0: none;
-  --elevation-1:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 2px 4px rgba(15, 23, 42, 0.04),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
-  --elevation-2:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 8px rgba(15, 23, 42, 0.06),
-    0 12px 24px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(15, 23, 42, 0.05);
-  --elevation-3:
-    0 2px 4px rgba(15, 23, 42, 0.08),
-    0 8px 16px rgba(15, 23, 42, 0.08),
-    0 20px 40px rgba(15, 23, 42, 0.12),
-    0 0 0 1px rgba(15, 23, 42, 0.06);
-  --elevation-4:
-    0 4px 8px rgba(15, 23, 42, 0.10),
-    0 20px 40px rgba(15, 23, 42, 0.14),
-    0 40px 80px rgba(15, 23, 42, 0.18),
-    0 0 0 1px rgba(15, 23, 42, 0.08);
+  --elevation-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elevation-2: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --elevation-3: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 48px -12px rgba(0, 0, 0, 0.7);
+  --elevation-hover: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 0 0 1px var(--border-strong), 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+  --elevation-card: var(--elevation-2);
 
-  /* Hover elevation — sube un nivel con ring emerald visible */
-  --elevation-hover:
-    0 4px 8px rgba(15, 23, 42, 0.08),
-    0 16px 32px rgba(15, 23, 42, 0.12),
-    0 0 0 1px rgba(16, 185, 129, 0.25);
+  /* Background grid (sutil pattern de puntos) */
+  --grid-dot: rgba(255, 255, 255, 0.025);
 
-  /* Accent bar — barra superior para cards destacadas */
-  --accent-bar-emerald: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
-  --accent-bar-amber: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
-  --accent-bar-crimson: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+  /* Decoración del topbar/section (mantenida para compat) */
+  --accent-bar-emerald: linear-gradient(90deg, var(--emerald-600), var(--emerald-500));
+  --accent-bar-amber: linear-gradient(90deg, #d97706, #ffaa3b);
+  --accent-bar-crimson: linear-gradient(90deg, #b91c1c, #ff5d6c);
+}
 
-  /* ─── Spacing scale ─────────────────────────────────────────────────── */
-  --space-0: 0;
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --space-20: 5rem;
-  --space-24: 6rem;
+/* =============================================================================
+ *  LIGHT THEME
+ * =============================================================================
+ * data-theme="light" en <html>. Cambia surfaces, text, accent por versiones
+ * profundas y ergonómicas para uso prolongado en oficina.
+ */
+[data-theme="light"] {
+  /* Surfaces */
+  --bg: #f6f7f9;
+  --bg-1: #ffffff;
+  --bg-2: #ffffff;
+  --bg-3: #f0f2f6;
+  --bg-base: var(--bg);
+  --bg-elevated: var(--bg-1);
+  --bg-surface: var(--bg-1);
+  --bg-surface-hover: var(--bg-3);
+  --bg-surface-active: var(--bg-3);
+  --bg-inset: var(--bg);
+  --bg-muted: var(--bg-3);
+  --bg-canvas: var(--bg);
 
-  /* ─── Radius scale ──────────────────────────────────────────────────── */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
-  --radius-full: 9999px;
+  /* Borders */
+  --border-vp: #e5e8ee;
+  --border-strong-vp: #d2d7e0;
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --border-default: var(--border-vp);
+  --border-strong: var(--border-strong-vp);
+  --border-emerald: rgba(0, 143, 93, 0.30);
+  --border-emerald-strong: rgba(0, 143, 93, 0.50);
+  --border-brand: var(--border-emerald);
+  --border-brand-strong: var(--border-emerald-strong);
 
-  /* ─── Type scale ────────────────────────────────────────────────────── */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 0.9375rem;
-  --text-lg: 1.0625rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
-  --text-5xl: 3rem;
-  --text-display: 3.75rem;
+  /* Text hierarchy */
+  --text: #0a0e14;
+  --text-2: #515a68;
+  --text-3: #8b94a3;
+  --text-primary: var(--text);
+  --text-secondary: var(--text-2);
+  --text-tertiary: var(--text-3);
+  --text-disabled: #b8bfc9;
+  --text-inverse: #ffffff;
+  --text-accent: #008f5d;
+  --text-link: #008f5d;
 
-  --leading-tight: 1.2;
-  --leading-snug: 1.35;
-  --leading-normal: 1.55;
-  --leading-relaxed: 1.7;
+  /* Brand profundo (mejor contraste en light) */
+  --emerald-500: #008f5d;
+  --emerald-600: #006f48;
+  --emerald-700: #055a3c;
+  --emerald-800: #04432e;
+  --emerald-900: #032d1f;
+  --brand-500: var(--emerald-500);
+  --brand-600: var(--emerald-600);
+  --brand-700: var(--emerald-700);
+  --brand-800: var(--emerald-800);
+  --brand-900: var(--emerald-900);
 
-  --tracking-tight: -0.02em;
-  --tracking-normal: 0;
-  --tracking-wide: 0.04em;
-  --tracking-caps: 0.08em;
+  /* Accent helpers (light) */
+  --accent: var(--emerald-500);
+  --accent-soft: rgba(0, 143, 93, 0.10);
+  --accent-strong: var(--emerald-600);
+  --accent-glow: rgba(0, 143, 93, 0.25);
 
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-  --weight-black: 800;
+  /* Semantic intent (light) */
+  --color-success: var(--emerald-500);
+  --color-success-bg: rgba(0, 143, 93, 0.10);
+  --color-success-border: var(--border-emerald);
+  --color-success-text: var(--emerald-700);
 
-  /* ─── Motion ────────────────────────────────────────────────────────── */
-  --ease-linear: linear;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --color-warning: #b06600;
+  --color-warning-bg: rgba(176, 102, 0, 0.08);
+  --color-warning-text: #92400e;
 
-  --duration-instant: 80ms;
-  --duration-fast: 150ms;
-  --duration-base: 240ms;
-  --duration-slow: 400ms;
-  --duration-slower: 640ms;
+  --color-danger: #d8453a;
+  --color-danger-bg: rgba(216, 69, 58, 0.08);
+  --color-danger-text: #b91c1c;
 
-  /* ─── Z-index ───────────────────────────────────────────────────────── */
+  --color-info: #1a55c2;
+  --color-info-bg: rgba(26, 85, 194, 0.08);
+  --color-info-text: #1a55c2;
+
+  /* Elevation (light) */
+  --elevation-1: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 1px 2px rgba(15, 23, 42, 0.04);
+  --elevation-2: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 16px rgba(15, 23, 42, 0.06);
+  --elevation-3: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 2px 4px rgba(15, 23, 42, 0.06), 0 16px 40px -10px rgba(15, 23, 42, 0.12);
+  --elevation-hover: 0 0 0 1px var(--border-strong), 0 12px 32px -10px rgba(15, 23, 42, 0.16);
+
+  /* Grid de puntos */
+  --grid-dot: rgba(15, 23, 42, 0.04);
+}
+
+/* Override semánticos legacy adicionales, ya cableados a accent helpers
+   pero los listamos aquí porque algunos componentes los referencian. */
+:root {
+  --color-bg: var(--bg-base);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-hover: var(--bg-surface-hover);
+  --color-bg-surface-active: var(--bg-surface-active);
+  --color-bg-inset: var(--bg-inset);
+  --color-bg-muted: var(--bg-muted);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-inverse: var(--text-inverse);
+  --color-text-accent: var(--text-accent);
+  --color-text-link: var(--text-link);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+}
+
+/* =============================================================================
+ *  Z-INDEX SCALE (consolidated)
+ * =============================================================================
+ */
+:root {
   --z-base: 0;
-  --z-dropdown: 50;
-  --z-sticky: 100;
-  --z-drawer: 200;
-  --z-modal: 300;
-  --z-popover: 400;
-  --z-tooltip: 500;
-  --z-toast: 600;
-  --z-command: 700;
-
-  /* ─── Layout ────────────────────────────────────────────────────────── */
-  --sidebar-width: 260px;
-  --sidebar-width-collapsed: 64px;
-  --copilot-width: 400px;
-  --topbar-height: 60px;
-  --content-max: 1280px;
-}
-
-/* =============================================================================
- * Utility surfaces
- * ============================================================================= */
-
-.surface-glass {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-  border: 1px solid var(--border-default);
-}
-
-.surface-glass-strong {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid var(--border-strong);
-}
-
-.surface-emerald-soft {
-  background: var(--emerald-50);
-  border: 1px solid var(--border-emerald);
-  color: var(--emerald-800);
-}
-
-.surface-crimson-soft {
-  background: var(--crimson-50);
-  border: 1px solid var(--border-crimson);
-  color: var(--crimson-700);
-}
-
-.surface-amber-soft {
-  background: var(--amber-50);
-  border: 1px solid var(--border-amber);
-  color: var(--amber-700, #b45309);
-}
-
-/* =============================================================================
- * Motion primitives
- * ============================================================================= */
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes pulse-emerald {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.25); }
-  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-}
-@keyframes pulse-crimson {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.30); }
-  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-}
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.motion-fade-in-up { animation: fade-in-up var(--duration-slow) var(--ease-out) both; }
-.motion-fade-in { animation: fade-in var(--duration-base) var(--ease-out) both; }
-.motion-scale-in { animation: scale-in var(--duration-base) var(--ease-spring) both; }
-.motion-pulse-emerald { animation: pulse-emerald 2s var(--ease-in-out) infinite; }
-.motion-pulse-crimson { animation: pulse-crimson 1.4s var(--ease-in-out) infinite; }
-
-.motion-stagger > * {
-  opacity: 0;
-  animation: fade-in-up var(--duration-slow) var(--ease-out) forwards;
-}
-.motion-stagger > *:nth-child(1) { animation-delay: 40ms; }
-.motion-stagger > *:nth-child(2) { animation-delay: 100ms; }
-.motion-stagger > *:nth-child(3) { animation-delay: 160ms; }
-.motion-stagger > *:nth-child(4) { animation-delay: 220ms; }
-.motion-stagger > *:nth-child(5) { animation-delay: 280ms; }
-.motion-stagger > *:nth-child(6) { animation-delay: 340ms; }
-.motion-stagger > *:nth-child(7) { animation-delay: 400ms; }
-.motion-stagger > *:nth-child(8) { animation-delay: 460ms; }
-
-.shimmer-bg {
-  background: linear-gradient(
-    90deg,
-    var(--neutral-100) 0%,
-    var(--neutral-50) 50%,
-    var(--neutral-100) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.6s var(--ease-in-out) infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-overlay: 30;
+  --z-modal: 50;
+  --z-toast: 80;
+  --z-tooltip: 90;
 }

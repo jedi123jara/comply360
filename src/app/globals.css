@@ -1,16 +1,57 @@
 @import "tailwindcss";
+/* Vault Pro fonts — General Sans (UI) + JetBrains Mono (data). */
+@import url('https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "../styles/tokens.css";
 @import "../styles/motion.css";
-/* Nota: Instrument Serif se carga via next/font/google en layout.tsx
-   (expone --font-instrument-serif), consumido por --font-serif en tokens.css.
-   Geist sigue siendo workhorse; serif solo en momentos drama. */
 
 /* =============================================================================
- * COMPLY360 — Global styles v3 "Emerald Light"
+ * COMPLY360 — Global styles v5 "Vault Pro"
  *
- * LIGHT-first. Base blanca, emerald como acento. Inspiración: Stripe / Linear.
+ * Dark por defecto + Light toggle (data-theme="light" en <html>).
+ * General Sans (UI) + JetBrains Mono (data). Background con grid de puntos.
  * =============================================================================
  */
+
+/* ─── Body con grid de puntos sutil (sello visual Vault Pro) ─── */
+html, body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+  background-size: 24px 24px;
+  transition: background-color var(--t-med) var(--ease-vp), color var(--t-med) var(--ease-vp);
+}
+
+/* ─── Vault Pro typography helpers ─── */
+.vp-lbl,
+.lbl {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.vp-num,
+.num {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1, 'cv02' 1, 'cv11' 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.vp-h-display,
+.h-display { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.vp-h-1,
+.h-1 { font-size: 18px; font-weight: 600; letter-spacing: -0.012em; }
+.vp-h-2,
+.h-2 { font-size: 14px; font-weight: 600; letter-spacing: -0.008em; }
+.vp-caption { font-size: 12px; color: var(--text-secondary); }
 
 @theme inline {
   /* Emerald palette → Tailwind utilities */
