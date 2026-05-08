@@ -30,5 +30,18 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "prisma.config.ts", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts"]
+  "exclude": [
+    "node_modules",
+    "prisma.config.ts",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.integration.test.ts",
+    "scripts/**",
+    "test_pdf.cjs",
+    "test_pdf.mjs",
+    "test_pdf2.cjs",
+    "design-preview/**"
+  ]
 }
