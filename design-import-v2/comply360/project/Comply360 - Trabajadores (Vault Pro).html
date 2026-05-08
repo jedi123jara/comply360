@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="es-PE" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Comply360 · Trabajadores</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%2300e5a0'/><stop offset='1' stop-color='%23008f5d'/></linearGradient></defs><path d='M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z' fill='url(%23g)' stroke='%23022c1f' stroke-width='2' stroke-linejoin='round'/><path d='M22 32 L29 39 L43 25' fill='none' stroke='%23052b1f' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" />
+<style>
+:root {
+  --font-ui: 'General Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms; --t-med: 220ms;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px;
+}
+[data-theme="dark"] {
+  --bg: #0a0c0f; --bg-1: #11141a; --bg-2: #181c23; --bg-3: #20252e;
+  --border: #1f242c; --border-strong: #2c333d;
+  --text: #e8eaee; --text-2: #98a0ae; --text-3: #5e6675;
+  --accent: #00e5a0; --accent-soft: rgba(0,229,160,0.12); --accent-strong: #00ffb0;
+  --accent-glow: rgba(0,229,160,0.35);
+  --danger: #ff5d6c; --danger-soft: rgba(255,93,108,0.12);
+  --warning: #ffaa3b; --warning-soft: rgba(255,170,59,0.12);
+  --info: #6ea5ff; --info-soft: rgba(110,165,255,0.12);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.02) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --grid-dot: rgba(255,255,255,0.025);
+}
+[data-theme="light"] {
+  --bg: #f6f7f9; --bg-1: #fff; --bg-2: #fff; --bg-3: #f0f2f6;
+  --border: #e5e8ee; --border-strong: #d2d7e0;
+  --text: #0a0e14; --text-2: #515a68; --text-3: #8b94a3;
+  --accent: #008f5d; --accent-soft: rgba(0,143,93,0.10); --accent-strong: #006f48;
+  --accent-glow: rgba(0,143,93,0.25);
+  --danger: #d8453a; --danger-soft: rgba(216,69,58,0.08);
+  --warning: #b06600; --warning-soft: rgba(176,102,0,0.08);
+  --info: #1a55c2; --info-soft: rgba(26,85,194,0.08);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(15,23,42,0.04);
+  --grid-dot: rgba(15,23,42,0.04);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--font-ui); font-size: 13.5px;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+  background-size: 24px 24px;
+  transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease);
+}
+.lbl { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.h-1 { font-size: 22px; font-weight: 600; letter-spacing: -0.018em; line-height: 1.15; }
+.h-2 { font-size: 14px; font-weight: 600; letter-spacing: -0.008em; }
+
+.app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
+
+/* Sidebar (compactado, mismo sistema) */
+.sidebar { background: var(--bg-1); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 12px; gap: 4px; overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 11px; padding: 6px 8px 16px; position: relative; }
+.brand-mark {
+  width: 36px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  filter: drop-shadow(0 6px 16px var(--accent-glow)) drop-shadow(0 0 24px color-mix(in srgb, var(--accent) 22%, transparent));
+  transition: transform var(--t-med) var(--ease), filter var(--t-med) var(--ease);
+}
+.brand-mark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.brand-mark .shield-fill { fill: url(#brand-shield-grad); }
+.brand-mark .shield-inner-glow { fill: url(#brand-inner-glow); }
+.brand-mark .shield-stroke { stroke: rgba(0,0,0,0.45); stroke-width: 1.2; fill: none; }
+.brand-mark .shield-bevel { stroke: rgba(255,255,255,0.18); stroke-width: 1; fill: none; }
+[data-theme="light"] .brand-mark .shield-stroke { stroke: rgba(2,44,31,0.35); }
+[data-theme="light"] .brand-mark .shield-bevel { stroke: rgba(255,255,255,0.5); }
+.brand-mark .shield-arc { stroke: rgba(255,255,255,0.55); stroke-width: 2.2; fill: none; stroke-linecap: round; }
+.brand-mark .shield-check { stroke: #04150f; stroke-width: 5.5; stroke-linecap: round; stroke-linejoin: round; fill: none; filter: drop-shadow(0 1px 0 rgba(255,255,255,0.25)); }
+.brand-mark .shield-orbit { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 3 5; opacity: 0.55; transform-origin: 32px 32px; animation: orbit-spin 18s linear infinite; }
+.brand-mark .shield-spark { fill: var(--accent-strong); filter: drop-shadow(0 0 4px var(--accent)); transform-origin: 32px 32px; animation: orbit-spin 18s linear infinite; }
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+.brand:hover .brand-mark { transform: translateY(-2px) scale(1.04); filter: drop-shadow(0 10px 22px var(--accent-glow)) drop-shadow(0 0 30px color-mix(in srgb, var(--accent) 38%, transparent)); }
+.brand:hover .shield-check { animation: check-draw 700ms var(--ease) forwards; }
+@keyframes shield-rise { 0% { opacity: 0; transform: translateY(8px) scale(0.9); } 60% { opacity: 1; transform: translateY(-3px) scale(1.05); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes check-draw { 0% { stroke-dashoffset: 32; } 100% { stroke-dashoffset: 0; } }
+.brand-mark { animation: shield-rise 750ms var(--ease) both; }
+.brand-mark .shield-check { stroke-dasharray: 32; stroke-dashoffset: 32; animation: check-draw 850ms var(--ease) 380ms forwards; }
+.brand-name { font-size: 17px; font-weight: 600; letter-spacing: -0.018em; background: linear-gradient(180deg, var(--text) 35%, color-mix(in srgb, var(--accent) 60%, var(--text)) 130%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand-name span { font-family: var(--font-mono); font-weight: 500; font-size: 14px; letter-spacing: 0; margin-left: 1px; color: var(--accent); -webkit-text-fill-color: var(--accent); }
+.org-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 60%), var(--bg-2); border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border)); border-radius: var(--r-md); margin-bottom: 14px; cursor: pointer; box-shadow: 0 0 0 1px var(--accent-soft), 0 6px 20px -10px var(--accent-glow); }
+.org-card .avatar { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; color: #04150f; }
+.org-card .meta-title { font-size: 13px; font-weight: 600; }
+.org-card .meta-sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+.org-card .meta-sub::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 2s infinite; }
+.org-card .arrow { color: var(--text-2); margin-left: auto; }
+.nav-group { display: flex; flex-direction: column; gap: 1px; margin-bottom: 12px; }
+.nav-label { padding: 8px 10px 4px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: var(--r-sm); color: var(--text-2); font-size: 13px; cursor: pointer; text-decoration: none; position: relative; transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), padding-left var(--t-fast) var(--ease); }
+.nav-item::before { content: ""; position: absolute; left: -12px; top: 50%; width: 2px; height: 0; background: var(--accent); border-radius: 0 2px 2px 0; transform: translateY(-50%); transition: height var(--t-med) var(--ease), opacity var(--t-fast) var(--ease); opacity: 0; }
+.nav-item:hover { background: var(--bg-2); color: var(--text); padding-left: 12px; }
+.nav-item:hover::before { height: 16px; opacity: 0.55; }
+.nav-item:hover .nav-ico { color: var(--accent); }
+.nav-item.active { background: var(--bg-2); color: var(--text); font-weight: 500; }
+.nav-item.active::before { height: calc(100% - 18px); opacity: 1; box-shadow: 0 0 12px var(--accent-glow); }
+.nav-item.active .nav-ico { color: var(--accent); }
+.nav-ico { width: 16px; color: var(--text-3); display: flex; transition: color var(--t-fast) var(--ease); }
+.nav-ico svg { width: 16px; height: 16px; }
+.nav-count { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); }
+.nav-badge { margin-left: auto; font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 999px; background: var(--danger-soft); color: var(--danger); }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--accent-soft); } 70% { box-shadow: 0 0 0 6px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* Main */
+.main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.topbar { display: flex; align-items: center; gap: 14px; padding: 11px 24px; border-bottom: 1px solid var(--border); }
+.topbar-crumb { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+.topbar-title { font-size: 14px; font-weight: 500; }
+.search { flex: 1; max-width: 420px; display: flex; align-items: center; gap: 9px; padding: 7px 11px; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-md); color: var(--text-3); font-size: 12.5px; transition: border-color var(--t-fast) var(--ease); }
+.search:hover, .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search svg { width: 14px; height: 14px; }
+.kbd { font-family: var(--font-mono); font-size: 10px; padding: 2px 5px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px; color: var(--text-2); margin-left: auto; }
+.theme-toggle { display: inline-flex; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 2px; }
+.theme-toggle button { width: 26px; height: 24px; border: 0; background: transparent; color: var(--text-3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background var(--t-fast), color var(--t-fast); }
+.theme-toggle button:hover { color: var(--text); }
+.theme-toggle button.on { background: var(--bg-3); color: var(--text); }
+.theme-toggle svg { width: 13px; height: 13px; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; border-radius: var(--r-sm); cursor: pointer; border: 1px solid transparent; transition: all var(--t-fast) var(--ease); white-space: nowrap; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: #04150f; border-color: var(--accent); box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset; }
+.btn-primary:hover { background: var(--accent-strong); box-shadow: 0 0 0 4px var(--accent-soft); transform: translateY(-1px); }
+.btn-secondary { background: var(--bg-1); color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--border-strong); background: var(--bg-2); }
+.btn-ghost { background: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+.btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-1); border: 1px solid var(--border); color: var(--text-2); border-radius: var(--r-sm); cursor: pointer; }
+.btn-icon:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-2); }
+.btn-icon svg { width: 15px; height: 15px; }
+
+/* Magic button — para acciones potenciadas por IA / valor diferencial */
+.btn-magic {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px;
+  font-family: var(--font-ui); font-size: 12.5px; font-weight: 500;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--accent);
+  background:
+    linear-gradient(135deg, var(--accent-soft) 0%, transparent 60%),
+    var(--bg-1);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 0 16px color-mix(in srgb, var(--accent) 18%, transparent);
+  transition: all var(--t-fast) var(--ease);
+  overflow: hidden;
+}
+.btn-magic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, color-mix(in srgb, var(--accent) 22%, transparent) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 600ms var(--ease);
+  pointer-events: none;
+}
+.btn-magic:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 22px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.btn-magic:hover::before { transform: translateX(100%); }
+.btn-magic .magic-spark {
+  display: inline-flex;
+  width: 14px; height: 14px;
+  align-items: center; justify-content: center;
+  color: var(--accent);
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+.btn-magic .magic-spark svg { width: 13px; height: 13px; animation: magic-pulse 2.4s ease-in-out infinite; }
+@keyframes magic-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.18); opacity: 0.85; }
+}
+
+/* Page header — hero card */
+.page { flex: 1; overflow: auto; padding: 22px 24px 32px; }
+.page-head {
+  position: relative;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 22px 24px 22px 28px;
+  background:
+    radial-gradient(circle at 0% 100%, var(--accent-soft) 0%, transparent 45%),
+    linear-gradient(135deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.page-head::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
+  box-shadow: 0 0 14px var(--accent-glow);
+}
+.page-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--accent) 22%, transparent) 1px, transparent 0);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(120deg, transparent 0%, transparent 55%, black 95%);
+  -webkit-mask-image: linear-gradient(120deg, transparent 0%, transparent 55%, black 95%);
+  pointer-events: none;
+  opacity: 0.55;
+}
+.page-head > * { position: relative; z-index: 1; }
+.page-head h1 { margin: 8px 0 8px; font-size: 26px; letter-spacing: -0.02em; }
+.page-head .desc { color: var(--text-2); font-size: 13.5px; max-width: 620px; line-height: 1.55; }
+.page-head .desc strong { color: var(--text); font-weight: 600; }
+/* Stat strip — replaces flat description */
+.stat-strip { display: inline-flex; align-items: stretch; gap: 0; margin-top: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 4px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--bg) 50%, transparent); }
+.stat-strip .stat { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; transition: background var(--t-fast); cursor: default; }
+.stat-strip .stat:hover { background: var(--bg-2); }
+.stat-strip .stat + .stat { border-left: 1px solid var(--border); }
+.stat-strip .stat-num { font-family: var(--font-mono); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1; }
+.stat-strip .stat-lbl { font-size: 11.5px; color: var(--text-2); }
+.stat-strip .stat-dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
+.stat-strip .stat.ok .stat-num { color: var(--accent); }
+.stat-strip .stat.ok .stat-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.stat-strip .stat.warn .stat-num { color: var(--warning); }
+.stat-strip .stat.warn .stat-dot { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.stat-strip .stat.info .stat-num { color: var(--info); }
+.stat-strip .stat.info .stat-dot { background: var(--info); box-shadow: 0 0 6px var(--info); }
+.stat-strip .stat.danger .stat-num { color: var(--danger); }
+.stat-strip .stat.danger .stat-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: pulse 2s infinite; }
+.page-head .lbl { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; font-size: 10px; }
+.page-head .lbl::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 2s infinite; }
+.page-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* KPIs */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.kpi { padding: 14px 16px; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-card); position: relative; overflow: hidden; transition: border-color var(--t-med), transform var(--t-med), box-shadow var(--t-med); cursor: pointer; }
+.kpi-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.kpi-value { font-family: var(--font-mono); font-size: 26px; font-weight: 500; line-height: 1; letter-spacing: -0.025em; }
+.kpi-sub { font-size: 11.5px; color: var(--text-2); margin-top: 4px; }
+.kpi-arrow { color: var(--text-3); transition: transform var(--t-fast), color var(--t-fast); }
+.kpi:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+.kpi:hover .kpi-arrow { transform: translate(2px, -2px); color: var(--text); }
+.kpi.info { background: linear-gradient(135deg, var(--info-soft) 0%, transparent 55%), var(--bg-1); border-color: color-mix(in srgb, var(--info) 22%, var(--border)); }
+.kpi.info:hover { border-color: var(--info); box-shadow: 0 0 0 3px var(--info-soft); }
+.kpi.info .kpi-value { color: var(--info); }
+.kpi.ok { background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 55%), var(--bg-1); border-color: color-mix(in srgb, var(--accent) 22%, var(--border)); }
+.kpi.ok:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.kpi.warn { background: linear-gradient(135deg, var(--warning-soft) 0%, transparent 55%), var(--bg-1); border-color: color-mix(in srgb, var(--warning) 22%, var(--border)); }
+.kpi.warn:hover { border-color: var(--warning); box-shadow: 0 0 0 3px var(--warning-soft); }
+.kpi.danger { background: linear-gradient(135deg, var(--danger-soft) 0%, transparent 55%), var(--bg-1); border-color: color-mix(in srgb, var(--danger) 28%, var(--border)); }
+.kpi.danger:hover { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+
+/* Export button — secondary highlighted */
+.btn-export {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 8px 7px 13px;
+  font-family: var(--font-ui); font-size: 12.5px; font-weight: 500;
+  color: var(--text);
+  background: var(--bg-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.2);
+  transition: all var(--t-fast) var(--ease);
+}
+.btn-export:hover {
+  border-color: var(--text-2);
+  background: var(--bg-2);
+  transform: translateY(-1px);
+}
+.btn-export .export-ico { color: var(--text-2); display: inline-flex; }
+.btn-export .export-format { font-family: var(--font-mono); font-size: 10px; font-weight: 600; padding: 2px 6px; background: var(--bg-3); color: var(--text-2); border-radius: 4px; letter-spacing: 0.04em; }
+.btn-export .export-caret { color: var(--text-3); margin-left: 1px; }
+.btn-export:hover .export-format { background: var(--accent-soft); color: var(--accent); }
+
+/* View bar — Linear-style search + segments + sort */
+.viewbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-card);
+}
+.viewbar-left { display: flex; }
+.viewbar-search {
+  flex: 1;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  transition: all var(--t-fast);
+}
+.viewbar-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.viewbar-search svg { width: 14px; height: 14px; color: var(--text-3); }
+.viewbar-search input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--text); font: inherit; font-size: 13px; }
+.viewbar-search input::placeholder { color: var(--text-3); }
+.viewbar-search .kbd { margin-left: 0; }
+
+.segmented {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 3px;
+  gap: 1px;
+}
+.seg {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px;
+  background: transparent; border: 0;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  color: var(--text-2);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  white-space: nowrap;
+}
+.seg:hover { color: var(--text); background: var(--bg-2); }
+.seg.active { background: var(--bg-3); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.seg-count { font-family: var(--font-mono); font-size: 10.5px; padding: 1px 5px; background: var(--bg-3); color: var(--text-3); border-radius: 999px; min-width: 22px; text-align: center; }
+.seg.active .seg-count { background: var(--bg-1); color: var(--text); }
+.seg-dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+.seg-dot.ok { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+.seg-dot.info { background: var(--info); }
+.seg-dot.warn { background: var(--warning); }
+.seg-dot.danger { background: var(--danger); box-shadow: 0 0 5px var(--danger); animation: pulse 2s infinite; }
+
+.viewbar-right { display: flex; align-items: center; gap: 6px; }
+.viewbar-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 11px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font: inherit; font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.viewbar-btn:hover { background: var(--bg-2); color: var(--text); border-color: var(--border); }
+.viewbar-btn .viewbar-pill { font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; background: var(--accent); color: #04150f; border-radius: 999px; font-weight: 700; }
+
+.density-toggle { display: inline-flex; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 2px; margin-left: 4px; }
+.density-toggle button { width: 26px; height: 24px; border: 0; background: transparent; color: var(--text-3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all var(--t-fast); }
+.density-toggle button:hover { color: var(--text); }
+.density-toggle button.on { background: var(--bg-3); color: var(--text); }
+
+/* Applied filter chips row */
+.chips-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 4px;
+  margin-bottom: 12px;
+}
+.chips-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-right: 4px; }
+.chip-filter {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 500;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.chip-filter:hover { background: var(--accent-soft); border-color: var(--accent); }
+.chip-filter .chip-sep { color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.chip-filter .x { font-size: 10px; opacity: 0.7; padding-left: 2px; border-left: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); margin-left: 2px; }
+.chip-filter .x:hover { opacity: 1; }
+.chip-add {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-2);
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 500;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.chip-add:hover { border-style: solid; border-color: var(--accent); color: var(--accent); }
+.chips-clear {
+  background: transparent; border: 0; color: var(--text-3); cursor: pointer; font: inherit; font-size: 11.5px; padding: 4px 8px; border-radius: var(--r-sm); margin-left: auto;
+  transition: color var(--t-fast);
+}
+.chips-clear:hover { color: var(--danger); }
+
+/* Old filters block kept hidden (still referenced) */
+.filters { display: none !important; }
+
+/* Table */
+.table-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-card); }
+.table-head { display: grid; grid-template-columns: 36px 2.4fr 1.2fr 1.4fr 1fr 1fr 0.8fr 70px 28px; align-items: center; gap: 12px; padding: 12px 16px;
+  background:
+    linear-gradient(90deg, var(--accent-soft) 0%, transparent 45%),
+    linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  position: relative;
+}
+.table-head::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--accent), transparent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.table-head > div { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); font-weight: 500; }
+.table-head .sort { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.table-head .sort:hover { color: var(--text); }
+.table-row { display: grid; grid-template-columns: 36px 2.4fr 1.2fr 1.4fr 1fr 1fr 0.8fr 70px 28px; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--t-fast); position: relative; }
+.table-row:last-child { border-bottom: 0; }
+.table-row:hover { background: var(--bg-2); }
+.table-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); transform: scaleY(0); transition: transform var(--t-fast); transform-origin: center; }
+.table-row:hover::before { transform: scaleY(1); }
+.row-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border-strong); background: var(--bg); cursor: pointer; transition: border-color var(--t-fast); }
+.row-check:hover { border-color: var(--accent); }
+.row-check.checked { background: var(--accent); border-color: var(--accent); position: relative; }
+.row-check.checked::after { content: "✓"; position: absolute; inset: 0; color: #04150f; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+.worker-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.worker-avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--info), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #04150f; flex-shrink: 0; position: relative; }
+.worker-avatar.has-photo { background-size: cover; background-position: center; color: transparent; }
+.worker-avatar .online { position: absolute; bottom: -2px; right: -2px; width: 9px; height: 9px; border-radius: 999px; background: var(--accent); border: 2px solid var(--bg-1); box-shadow: 0 0 6px var(--accent); }
+.worker-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.worker-sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); margin-top: 1px; display: flex; gap: 6px; align-items: center; }
+.dni-link { color: var(--text-3); text-decoration: none; }
+.dni-link:hover { color: var(--accent); }
+
+.cell-pos { font-size: 12.5px; }
+.cell-pos small { font-size: 11px; color: var(--text-3); display: block; margin-top: 1px; }
+.cell-num { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+/* Status chip */
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; font-family: var(--font-mono); font-size: 10px; font-weight: 500; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+.chip-active { background: var(--accent-soft); color: var(--accent); }
+.chip-active::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.chip-leave { background: var(--info-soft); color: var(--info); }
+.chip-suspended { background: var(--warning-soft); color: var(--warning); }
+.chip-terminated { background: var(--bg-3); color: var(--text-3); }
+
+/* Legajo score gauge */
+.gauge { display: flex; align-items: center; gap: 8px; }
+.gauge-bar { width: 60px; height: 5px; background: var(--bg-3); border-radius: 3px; overflow: hidden; position: relative; }
+.gauge-bar > div { height: 100%; border-radius: 3px; transition: width 600ms var(--ease); }
+.gauge-bar.ok > div { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+.gauge-bar.warn > div { background: var(--warning); }
+.gauge-bar.danger > div { background: var(--danger); }
+.gauge-num { font-family: var(--font-mono); font-size: 12px; font-weight: 600; min-width: 26px; }
+
+/* Risk badge */
+.risk-flag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; background: var(--danger-soft); color: var(--danger); border-radius: 4px; font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-left: 6px; animation: urg-flash 2.4s ease-in-out infinite; }
+@keyframes urg-flash { 0%, 100% { box-shadow: 0 0 0 0 var(--danger-soft); } 50% { box-shadow: 0 0 0 4px var(--danger-soft); } }
+
+.row-actions { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r-sm); color: var(--text-3); cursor: pointer; border: 1px solid transparent; transition: all var(--t-fast); }
+.row-actions:hover { background: var(--bg-3); color: var(--text); border-color: var(--border); }
+
+/* Pagination */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg); border-top: 1px solid var(--border); }
+.pag-info { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
+.pag-controls { display: flex; gap: 4px; align-items: center; }
+.pag-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-2); cursor: pointer; font-family: var(--font-mono); font-size: 11.5px; transition: all var(--t-fast); }
+.pag-btn:hover { border-color: var(--border-strong); color: var(--text); }
+.pag-btn.current { background: var(--accent); color: #04150f; border-color: var(--accent); font-weight: 700; }
+
+/* Bulk action bar (when rows selected) */
+.bulk-bar {
+  position: sticky; bottom: 18px; z-index: 5;
+  margin: 18px auto 0;
+  max-width: fit-content;
+  padding: 11px 8px 11px 18px;
+  background: linear-gradient(135deg, #0a1f17 0%, #04150f 100%);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow:
+    0 0 0 1px var(--accent-soft),
+    0 0 24px var(--accent-glow),
+    0 18px 40px -16px rgba(0,0,0,0.65);
+  animation: bulk-rise 320ms var(--ease);
+}
+[data-theme="light"] .bulk-bar {
+  background: linear-gradient(135deg, #052b1f 0%, #0a3a2a 100%);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.bulk-bar::before {
+  content: "";
+  width: 8px; height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft), 0 0 12px var(--accent);
+  animation: pulse 2s infinite;
+  margin-right: 2px;
+}
+.bulk-bar .count-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px;
+  background: var(--accent);
+  color: #04150f;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.bulk-bar .label-text { font-size: 12.5px; color: rgba(255,255,255,0.92); }
+.bulk-bar .sep { width: 1px; height: 18px; background: rgba(255,255,255,0.14); }
+@keyframes bulk-rise { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.bulk-bar .num { font-weight: 700; }
+.bulk-bar button { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); color: rgba(255,255,255,0.92); font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; padding: 6px 12px; border-radius: 999px; transition: all var(--t-fast) var(--ease); display: inline-flex; align-items: center; gap: 5px; }
+.bulk-bar button:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.22); color: #fff; transform: translateY(-1px); }
+.bulk-bar button.danger { color: #ff8b95; border-color: rgba(255,93,108,0.35); background: rgba(255,93,108,0.10); }
+.bulk-bar button.danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.bulk-bar button.dismiss { width: 28px; height: 28px; padding: 0; justify-content: center; opacity: 0.65; }
+.bulk-bar button.dismiss:hover { opacity: 1; }
+
+/* Empty state when filtered */
+.empty { padding: 60px 24px; text-align: center; color: var(--text-3); }
+.empty .lbl { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-label="Comply360">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="brand-shield-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent-strong)"/>
+              <stop offset="55%" stop-color="var(--accent)"/>
+              <stop offset="100%" stop-color="#007a4f"/>
+            </linearGradient>
+            <radialGradient id="brand-inner-glow" cx="50%" cy="38%" r="55%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.55)"/>
+              <stop offset="60%" stop-color="rgba(255,255,255,0)"/>
+            </radialGradient>
+          </defs>
+          <path class="shield-fill" d="M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z"/>
+          <path class="shield-inner-glow" d="M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z"/>
+          <path class="shield-bevel" d="M32 8 L52 14.5 V30 C52 42 43.5 50.5 32 56 C20.5 50.5 12 42 12 30 V14.5 Z"/>
+          <path class="shield-arc" d="M20 28 A14 14 0 0 1 44 28"/>
+          <path class="shield-check" d="M21 33 L29 41 L44 24"/>
+          <path class="shield-stroke" d="M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z"/>
+          <g>
+            <circle class="shield-orbit" cx="32" cy="32" r="29"/>
+            <circle class="shield-spark" cx="61" cy="32" r="1.8"/>
+          </g>
+        </svg>
+      </div>
+      <div class="brand-name">Comply<span>360</span></div>
+    </div>
+
+    <button class="org-card">
+      <div class="avatar">CA</div>
+      <div style="flex:1; min-width:0;">
+        <div class="meta-title">Constructora Andes</div>
+        <div class="meta-sub">RUC 20512934087</div>
+      </div>
+      <div class="arrow">⇅</div>
+    </button>
+
+    <div class="nav-group">
+      <div class="lbl nav-label">Operación</div>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+        Cockpit
+      </a>
+      <a class="nav-item active">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M21 18a4 4 0 0 0-5-3.85"/></svg></span>
+        Trabajadores
+        <span class="nav-count">47</span>
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span>
+        Contratos
+        <span class="nav-count">52</span>
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg></span>
+        SST <span class="nav-badge">3</span>
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h18M3 12h18M3 17h18"/></svg></span>
+        Planilla
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span>
+        Calendario
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="lbl nav-label">Inteligencia</div>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/></svg></span>
+        Asistente IA
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+        Diagnóstico
+      </a>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-crumb">Operación / Trabajadores</div>
+        <div class="topbar-title">Lista completa</div>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Buscar en todo Comply360…</span>
+        <span class="kbd">⌘K</span>
+      </div>
+      <div class="theme-toggle" role="group">
+        <button id="theme-light" title="Claro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+        <button id="theme-dark" class="on" title="Oscuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      </div>
+      <button class="btn-icon" title="Notificaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+    </div>
+
+    <div class="page">
+      <!-- Page header -->
+      <div class="page-head">
+        <div>
+          <div class="lbl">Operación</div>
+          <h1 class="h-1">Trabajadores</h1>
+          <div class="stat-strip">
+            <div class="stat ok">
+              <span class="stat-dot"></span>
+              <span class="stat-num">47</span>
+              <span class="stat-lbl">activos</span>
+            </div>
+            <div class="stat warn">
+              <span class="stat-dot"></span>
+              <span class="stat-num">9</span>
+              <span class="stat-lbl">legajo incompleto</span>
+            </div>
+            <div class="stat danger">
+              <span class="stat-dot"></span>
+              <span class="stat-num">3</span>
+              <span class="stat-lbl">en riesgo</span>
+            </div>
+            <div class="stat info">
+              <span class="stat-dot"></span>
+              <span class="stat-num">S/ 142.6k</span>
+              <span class="stat-lbl">planilla mes</span>
+            </div>
+          </div>
+        </div>
+        <div class="page-actions">
+          <button class="btn-magic" title="Pega un PDF de planilla y la IA detectará trabajadores automáticamente">
+            <span class="magic-spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.6 8.4 L20 10 L13.6 11.6 L12 18 L10.4 11.6 L4 10 L10.4 8.4 Z"/></svg></span>
+            Importar PDF
+            <span class="lbl" style="background: var(--accent); color:#04150f; padding: 1px 6px; border-radius: 999px; font-size: 9px; letter-spacing: 0.04em;">IA</span>
+          </button>
+          <button class="btn-export" title="Exportar lista filtrada como CSV / Excel">
+            <span class="export-ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 10l-5-5-5 5M12 5v12"/></svg></span>
+            Exportar
+            <span class="export-format">CSV</span>
+            <svg class="export-caret" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <button class="btn btn-primary"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo trabajador</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <section class="kpi ok">
+          <div class="kpi-head"><span class="lbl">Activos</span><span class="kpi-arrow">↗</span></div>
+          <div class="kpi-value">47</div>
+          <div class="kpi-sub"><span class="num" style="color:var(--accent);">+2</span> en el último mes</div>
+        </section>
+        <section class="kpi info">
+          <div class="kpi-head"><span class="lbl">Planilla mensual</span><span class="kpi-arrow">↗</span></div>
+          <div class="kpi-value">S/ 142.6k</div>
+          <div class="kpi-sub">Sueldo promedio S/ 3,034</div>
+        </section>
+        <section class="kpi warn">
+          <div class="kpi-head"><span class="lbl">Legajo incompleto</span><span class="kpi-arrow">↗</span></div>
+          <div class="kpi-value" style="color:var(--warning);">9</div>
+          <div class="kpi-sub">Score &lt; 70 — requiere revisión</div>
+        </section>
+        <section class="kpi danger">
+          <div class="kpi-head"><span class="lbl">En riesgo</span><span class="kpi-arrow">↗</span></div>
+          <div class="kpi-value" style="color:var(--danger);">3</div>
+          <div class="kpi-sub">Con alertas críticas activas</div>
+        </section>
+      </div>
+
+      <!-- View bar (search + segmented status + sort + density) -->
+      <div class="viewbar">
+        <div class="viewbar-left">
+          <div class="viewbar-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Buscar por nombre, DNI, cargo o área…" />
+            <span class="kbd">/</span>
+          </div>
+        </div>
+        <div class="segmented" role="tablist">
+          <button class="seg active">Todos <span class="seg-count">47</span></button>
+          <button class="seg"><span class="seg-dot ok"></span>Activos <span class="seg-count">42</span></button>
+          <button class="seg"><span class="seg-dot info"></span>Licencia <span class="seg-count">2</span></button>
+          <button class="seg"><span class="seg-dot warn"></span>Suspendidos <span class="seg-count">1</span></button>
+          <button class="seg"><span class="seg-dot danger"></span>En riesgo <span class="seg-count">3</span></button>
+        </div>
+        <div class="viewbar-right">
+          <button class="viewbar-btn" title="Filtros avanzados">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18l-7 9v6l-4 2v-8z"/></svg>
+            Filtros
+            <span class="viewbar-pill">2</span>
+          </button>
+          <button class="viewbar-btn" title="Ordenar">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h13M3 12h9M3 18h5M17 8V18m0 0-3-3m3 3 3-3"/></svg>
+            Reciente
+          </button>
+          <div class="density-toggle" role="group" aria-label="Densidad">
+            <button title="Compacto"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg></button>
+            <button class="on" title="Normal"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+            <button title="Cómodo"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 17h18"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active filter chips (only shown when filters applied) -->
+      <div class="chips-row">
+        <span class="chips-label">Filtros aplicados</span>
+        <button class="chip-filter active">Estado <span class="chip-sep">·</span> Activo <span class="x">✕</span></button>
+        <button class="chip-filter active">Régimen <span class="chip-sep">·</span> Construcción <span class="x">✕</span></button>
+        <button class="chip-add">+ Añadir filtro</button>
+        <button class="chips-clear">Limpiar todo</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-card">
+        <div class="table-head">
+          <div></div>
+          <div class="sort">Trabajador <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6-6 6 6M6 15l6 6 6-6"/></svg></div>
+          <div class="sort">Cargo</div>
+          <div class="sort">Régimen</div>
+          <div class="sort">Ingreso <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="sort">Sueldo</div>
+          <div class="sort">Estado</div>
+          <div>Legajo</div>
+          <div></div>
+        </div>
+
+        <!-- Row 1: Carlos Mendoza — danger -->
+        <div class="table-row">
+          <div class="row-check"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar" style="background: linear-gradient(135deg, #ff7e5f, #ffaa3b);">CM<span class="online"></span></div>
+            <div style="min-width:0;">
+              <div class="worker-name">Carlos Mendoza Ríos <span class="risk-flag">EN RIESGO</span></div>
+              <div class="worker-sub"><a class="dni-link">DNI 47238291</a> · 🇵🇪 mendoza@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Operario <small>Producción · Lima</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">Construcción</span></div>
+          <div class="cell-num">15 mar 2022</div>
+          <div class="cell-num">S/ 2,800</div>
+          <div><span class="chip chip-active">Activo</span></div>
+          <div class="gauge">
+            <div class="gauge-bar danger"><div style="width:42%"></div></div>
+            <div class="gauge-num" style="color:var(--danger);">42</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Row 2: Ana Rojas -->
+        <div class="table-row">
+          <div class="row-check checked"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar" style="background: linear-gradient(135deg, #6ea5ff, #b87dff); color:#fff;">AR<span class="online"></span></div>
+            <div style="min-width:0;">
+              <div class="worker-name">Ana Rojas Vega</div>
+              <div class="worker-sub"><a class="dni-link">DNI 41827364</a> · 🇵🇪 rojas@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Supervisora SST <small>Operaciones · Lima</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">General</span></div>
+          <div class="cell-num">02 ene 2020</div>
+          <div class="cell-num">S/ 5,400</div>
+          <div><span class="chip chip-active">Activo</span></div>
+          <div class="gauge">
+            <div class="gauge-bar warn"><div style="width:74%"></div></div>
+            <div class="gauge-num" style="color:var(--warning);">74</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Row 3: Pedro Salinas -->
+        <div class="table-row">
+          <div class="row-check"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar">PS<span class="online" style="background:var(--text-3); box-shadow:none;"></span></div>
+            <div style="min-width:0;">
+              <div class="worker-name">Pedro Salinas Quispe</div>
+              <div class="worker-sub"><a class="dni-link">DNI 09384726</a> · 🇵🇪 salinas@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Capataz <small>Producción · Cusco</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">Construcción</span></div>
+          <div class="cell-num">10 jul 2021</div>
+          <div class="cell-num">S/ 3,200</div>
+          <div><span class="chip chip-active">Activo</span></div>
+          <div class="gauge">
+            <div class="gauge-bar warn"><div style="width:68%"></div></div>
+            <div class="gauge-num" style="color:var(--warning);">68</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Row 4: Lucía Paredes -->
+        <div class="table-row">
+          <div class="row-check"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar" style="background: linear-gradient(135deg, #f093fb, #f5576c); color:#fff;">LP<span class="online"></span></div>
+            <div style="min-width:0;">
+              <div class="worker-name">Lucía Paredes Soto</div>
+              <div class="worker-sub"><a class="dni-link">DNI 70192384</a> · 🇵🇪 paredes@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Asistente Administrativa <small>Administración · Lima</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">MYPE Pequeña</span></div>
+          <div class="cell-num">22 nov 2023</div>
+          <div class="cell-num">S/ 2,400</div>
+          <div><span class="chip chip-active">Activo</span></div>
+          <div class="gauge">
+            <div class="gauge-bar ok"><div style="width:88%"></div></div>
+            <div class="gauge-num" style="color:var(--accent);">88</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Row 5: Diego Ñahui -->
+        <div class="table-row">
+          <div class="row-check"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar" style="background: linear-gradient(135deg, #00b67a, #00e5a0); color:#04150f;">DÑ<span class="online"></span></div>
+            <div style="min-width:0;">
+              <div class="worker-name">Diego Ñahui Mamani</div>
+              <div class="worker-sub"><a class="dni-link">DNI 75839102</a> · 🇵🇪 nahui@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Ingeniero Residente <small>Proyectos · Arequipa</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">General</span></div>
+          <div class="cell-num">05 ago 2019</div>
+          <div class="cell-num">S/ 7,800</div>
+          <div><span class="chip chip-active">Activo</span></div>
+          <div class="gauge">
+            <div class="gauge-bar ok"><div style="width:94%"></div></div>
+            <div class="gauge-num" style="color:var(--accent);">94</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Row 6: María Huamán — leave -->
+        <div class="table-row">
+          <div class="row-check"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar" style="background: linear-gradient(135deg, #ffd86f, #fc6262); color:#04150f;">MH</div>
+            <div style="min-width:0;">
+              <div class="worker-name">María Huamán Ccoa</div>
+              <div class="worker-sub"><a class="dni-link">DNI 46271938</a> · 🇵🇪 huaman@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Contadora <small>Finanzas · Lima</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">General</span></div>
+          <div class="cell-num">14 feb 2021</div>
+          <div class="cell-num">S/ 4,900</div>
+          <div><span class="chip chip-leave">Licencia</span></div>
+          <div class="gauge">
+            <div class="gauge-bar ok"><div style="width:81%"></div></div>
+            <div class="gauge-num" style="color:var(--accent);">81</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Row 7: Jorge Tello — suspended -->
+        <div class="table-row">
+          <div class="row-check"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar" style="background: linear-gradient(135deg, #fa709a, #fee140); color:#04150f;">JT</div>
+            <div style="min-width:0;">
+              <div class="worker-name">Jorge Tello Aliaga</div>
+              <div class="worker-sub"><a class="dni-link">DNI 08274619</a> · 🇵🇪 tello@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Operario <small>Producción · Trujillo</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">Construcción</span></div>
+          <div class="cell-num">28 abr 2023</div>
+          <div class="cell-num">S/ 2,600</div>
+          <div><span class="chip chip-suspended">Suspendido</span></div>
+          <div class="gauge">
+            <div class="gauge-bar warn"><div style="width:55%"></div></div>
+            <div class="gauge-num" style="color:var(--warning);">55</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Row 8: Sofía Quispe -->
+        <div class="table-row">
+          <div class="row-check"></div>
+          <div class="worker-cell">
+            <div class="worker-avatar" style="background: linear-gradient(135deg, #5ee7df, #b490ca); color:#04150f;">SQ<span class="online"></span></div>
+            <div style="min-width:0;">
+              <div class="worker-name">Sofía Quispe León</div>
+              <div class="worker-sub"><a class="dni-link">DNI 71283940</a> · 🇵🇪 quispe@andes.pe</div>
+            </div>
+          </div>
+          <div class="cell-pos">Coordinadora RR.HH. <small>Administración · Lima</small></div>
+          <div><span class="chip chip-active" style="background:var(--bg-3); color:var(--text-2);">General</span></div>
+          <div class="cell-num">11 sep 2022</div>
+          <div class="cell-num">S/ 4,200</div>
+          <div><span class="chip chip-active">Activo</span></div>
+          <div class="gauge">
+            <div class="gauge-bar ok"><div style="width:91%"></div></div>
+            <div class="gauge-num" style="color:var(--accent);">91</div>
+          </div>
+          <div class="row-actions"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <div class="pag-info">Mostrando 1–8 de 47 trabajadores · 20 por página</div>
+          <div class="pag-controls">
+            <button class="pag-btn" disabled>‹</button>
+            <button class="pag-btn current">1</button>
+            <button class="pag-btn">2</button>
+            <button class="pag-btn">3</button>
+            <button class="pag-btn">›</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk action bar (visible cuando hay selección) -->
+      <div class="bulk-bar">
+        <span class="count-pill">1</span>
+        <span class="label-text">trabajador seleccionado</span>
+        <span class="sep"></span>
+        <button>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          Enviar mensaje
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+          Exportar legajo
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          Recordatorio
+        </button>
+        <span class="sep"></span>
+        <button class="danger">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m5.5 5.5 13 13"/></svg>
+          Cesar
+        </button>
+        <button class="dismiss" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M6 18 18 6"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  const root = document.documentElement;
+  const STORE = 'comply360.theme';
+  const saved = localStorage.getItem(STORE);
+  if (saved) root.setAttribute('data-theme', saved);
+  const bL = document.getElementById('theme-light');
+  const bD = document.getElementById('theme-dark');
+  function sync() { const t = root.getAttribute('data-theme'); bL.classList.toggle('on', t === 'light'); bD.classList.toggle('on', t === 'dark'); }
+  sync();
+  bL.onclick = () => { root.setAttribute('data-theme', 'light'); localStorage.setItem(STORE, 'light'); sync(); };
+  bD.onclick = () => { root.setAttribute('data-theme', 'dark'); localStorage.setItem(STORE, 'dark'); sync(); };
+
+  // Toggle row selection
+  document.querySelectorAll('.row-check').forEach(c => {
+    c.addEventListener('click', e => { e.stopPropagation(); c.classList.toggle('checked'); });
+  });
+})();
+</script>
+</body>
+</html>

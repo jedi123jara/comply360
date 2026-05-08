@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="es-PE" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Comply360 · Carlos Mendoza Ríos</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%2300e5a0'/><stop offset='1' stop-color='%23008f5d'/></linearGradient></defs><path d='M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z' fill='url(%23g)'/><path d='M22 32 L29 39 L43 25' fill='none' stroke='%23052b1f' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" />
+<style>
+:root {
+  --font-ui: 'General Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms; --t-med: 220ms;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px;
+}
+[data-theme="dark"] {
+  --bg: #0a0c0f; --bg-1: #11141a; --bg-2: #181c23; --bg-3: #20252e;
+  --border: #1f242c; --border-strong: #2c333d;
+  --text: #e8eaee; --text-2: #98a0ae; --text-3: #5e6675;
+  --accent: #00e5a0; --accent-soft: rgba(0,229,160,0.12); --accent-strong: #00ffb0;
+  --accent-glow: rgba(0,229,160,0.35);
+  --danger: #ff5d6c; --danger-soft: rgba(255,93,108,0.12);
+  --warning: #ffaa3b; --warning-soft: rgba(255,170,59,0.12);
+  --info: #6ea5ff; --info-soft: rgba(110,165,255,0.12);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.02) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --grid-dot: rgba(255,255,255,0.025);
+}
+[data-theme="light"] {
+  --bg: #f6f7f9; --bg-1: #fff; --bg-2: #fff; --bg-3: #f0f2f6;
+  --border: #e5e8ee; --border-strong: #d2d7e0;
+  --text: #0a0e14; --text-2: #515a68; --text-3: #8b94a3;
+  --accent: #008f5d; --accent-soft: rgba(0,143,93,0.10); --accent-strong: #006f48;
+  --accent-glow: rgba(0,143,93,0.25);
+  --danger: #d8453a; --danger-soft: rgba(216,69,58,0.08);
+  --warning: #b06600; --warning-soft: rgba(176,102,0,0.08);
+  --info: #1a55c2; --info-soft: rgba(26,85,194,0.08);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(15,23,42,0.04);
+  --grid-dot: rgba(15,23,42,0.04);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--font-ui); font-size: 13.5px;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+  background-size: 24px 24px;
+  transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease);
+}
+.lbl { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.h-1 { font-size: 24px; font-weight: 600; letter-spacing: -0.018em; line-height: 1.15; }
+.h-2 { font-size: 14px; font-weight: 600; letter-spacing: -0.008em; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--accent-soft); } 70% { box-shadow: 0 0 0 6px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes urg-flash { 0%, 100% { box-shadow: 0 0 0 0 var(--danger-soft); } 50% { box-shadow: 0 0 0 4px var(--danger-soft); } }
+
+.app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
+
+/* ========== SIDEBAR (compactado, sistema consolidado) ========== */
+.sidebar { background: var(--bg-1); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 12px; gap: 4px; overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 11px; padding: 6px 8px 16px; }
+.brand-mark {
+  width: 36px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  filter: drop-shadow(0 6px 16px var(--accent-glow)) drop-shadow(0 0 24px color-mix(in srgb, var(--accent) 22%, transparent));
+  transition: transform var(--t-med) var(--ease), filter var(--t-med) var(--ease);
+}
+.brand-mark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.brand-mark .shield-fill { fill: url(#brand-shield-grad); }
+.brand-mark .shield-inner-glow { fill: url(#brand-inner-glow); }
+.brand-mark .shield-stroke { stroke: rgba(0,0,0,0.45); stroke-width: 1.2; fill: none; }
+.brand-mark .shield-bevel { stroke: rgba(255,255,255,0.18); stroke-width: 1; fill: none; }
+[data-theme="light"] .brand-mark .shield-stroke { stroke: rgba(2,44,31,0.35); }
+[data-theme="light"] .brand-mark .shield-bevel { stroke: rgba(255,255,255,0.5); }
+.brand-mark .shield-arc { stroke: rgba(255,255,255,0.55); stroke-width: 2.2; fill: none; stroke-linecap: round; }
+.brand-mark .shield-check { stroke: #04150f; stroke-width: 5.5; stroke-linecap: round; stroke-linejoin: round; fill: none; filter: drop-shadow(0 1px 0 rgba(255,255,255,0.25)); }
+.brand-mark .shield-orbit { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 3 5; opacity: 0.55; transform-origin: 32px 32px; animation: orbit-spin 18s linear infinite; }
+.brand-mark .shield-spark { fill: var(--accent-strong); filter: drop-shadow(0 0 4px var(--accent)); transform-origin: 32px 32px; animation: orbit-spin 18s linear infinite; }
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+.brand:hover .brand-mark { transform: translateY(-2px) scale(1.04); filter: drop-shadow(0 10px 22px var(--accent-glow)) drop-shadow(0 0 30px color-mix(in srgb, var(--accent) 38%, transparent)); }
+.brand:hover .shield-check { animation: check-draw 700ms var(--ease) forwards; }
+@keyframes shield-rise { 0% { opacity: 0; transform: translateY(8px) scale(0.9); } 60% { opacity: 1; transform: translateY(-3px) scale(1.05); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes check-draw { 0% { stroke-dashoffset: 32; } 100% { stroke-dashoffset: 0; } }
+.brand-mark { animation: shield-rise 750ms var(--ease) both; }
+.brand-mark .shield-check { stroke-dasharray: 32; stroke-dashoffset: 32; animation: check-draw 850ms var(--ease) 380ms forwards; }
+.brand-name { font-size: 17px; font-weight: 600; letter-spacing: -0.018em; background: linear-gradient(180deg, var(--text) 35%, color-mix(in srgb, var(--accent) 60%, var(--text)) 130%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand-name span { font-family: var(--font-mono); font-weight: 500; font-size: 14px; letter-spacing: 0; margin-left: 1px; color: var(--accent); -webkit-text-fill-color: var(--accent); }
+
+.org-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 60%), var(--bg-2); border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border)); border-radius: var(--r-md); margin-bottom: 14px; cursor: pointer; box-shadow: 0 0 0 1px var(--accent-soft), 0 6px 20px -10px var(--accent-glow); width: 100%; }
+.org-card .avatar { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; color: #04150f; }
+.org-card .meta-title { font-size: 13px; font-weight: 600; }
+.org-card .meta-sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+.org-card .meta-sub::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 2s infinite; }
+.org-card .arrow { color: var(--text-2); margin-left: auto; }
+.org-card { border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border)); }
+.org-card > div:nth-child(2) { flex: 1; min-width: 0; text-align: left; }
+
+.nav-group { display: flex; flex-direction: column; gap: 1px; margin-bottom: 12px; }
+.nav-label { padding: 8px 10px 4px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: var(--r-sm); color: var(--text-2); font-size: 13px; cursor: pointer; text-decoration: none; position: relative; transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), padding-left var(--t-fast) var(--ease); }
+.nav-item::before { content: ""; position: absolute; left: -12px; top: 50%; width: 2px; height: 0; background: var(--accent); border-radius: 0 2px 2px 0; transform: translateY(-50%); transition: height var(--t-med) var(--ease), opacity var(--t-fast) var(--ease); opacity: 0; }
+.nav-item:hover { background: var(--bg-2); color: var(--text); padding-left: 12px; }
+.nav-item:hover::before { height: 16px; opacity: 0.55; }
+.nav-item:hover .nav-ico { color: var(--accent); }
+.nav-item.active { background: var(--bg-2); color: var(--text); font-weight: 500; }
+.nav-item.active::before { height: calc(100% - 18px); opacity: 1; box-shadow: 0 0 12px var(--accent-glow); }
+.nav-item.active .nav-ico { color: var(--accent); }
+.nav-ico { width: 16px; color: var(--text-3); display: flex; transition: color var(--t-fast) var(--ease); }
+.nav-ico svg { width: 16px; height: 16px; }
+.nav-count { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); }
+.nav-badge { margin-left: auto; font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 999px; background: var(--danger-soft); color: var(--danger); }
+
+/* ========== MAIN ========== */
+.main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.topbar { display: flex; align-items: center; gap: 14px; padding: 11px 24px; border-bottom: 1px solid var(--border); }
+.topbar-crumb { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+.topbar-crumb a { color: var(--text-3); text-decoration: none; transition: color var(--t-fast); }
+.topbar-crumb a:hover { color: var(--accent); }
+.topbar-crumb .current { color: var(--text); }
+.topbar-title { font-size: 14px; font-weight: 500; }
+.search { flex: 1; max-width: 380px; display: flex; align-items: center; gap: 9px; padding: 7px 11px; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-md); color: var(--text-3); font-size: 12.5px; transition: border-color var(--t-fast); }
+.search:hover, .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search svg { width: 14px; height: 14px; }
+.kbd { font-family: var(--font-mono); font-size: 10px; padding: 2px 5px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px; color: var(--text-2); margin-left: auto; }
+.theme-toggle { display: inline-flex; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 2px; }
+.theme-toggle button { width: 26px; height: 24px; border: 0; background: transparent; color: var(--text-3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background var(--t-fast), color var(--t-fast); }
+.theme-toggle button:hover { color: var(--text); }
+.theme-toggle button.on { background: var(--bg-3); color: var(--text); }
+.theme-toggle svg { width: 13px; height: 13px; }
+.btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-1); border: 1px solid var(--border); color: var(--text-2); border-radius: var(--r-sm); cursor: pointer; transition: all var(--t-fast); }
+.btn-icon:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-2); }
+.btn-icon svg { width: 15px; height: 15px; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; font: inherit; font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; border-radius: var(--r-sm); cursor: pointer; border: 1px solid transparent; transition: all var(--t-fast) var(--ease); white-space: nowrap; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: #04150f; border-color: var(--accent); box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset; }
+.btn-primary:hover { background: var(--accent-strong); box-shadow: 0 0 0 4px var(--accent-soft); transform: translateY(-1px); }
+.btn-secondary { background: var(--bg-1); color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--border-strong); background: var(--bg-2); }
+.btn-ghost { background: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+.btn-danger { background: var(--danger-soft); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); }
+.btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* ========== PAGE ========== */
+.page { flex: 1; overflow: auto; }
+.page-inner { padding: 22px 24px 48px; max-width: 1320px; margin: 0 auto; }
+
+/* HERO PROFILE */
+.hero {
+  position: relative;
+  padding: 22px 28px 22px 32px;
+  background:
+    radial-gradient(circle at 0% 0%, var(--danger-soft) 0%, transparent 35%),
+    linear-gradient(135deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.hero::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--danger), var(--warning));
+  box-shadow: 0 0 14px var(--danger-soft);
+}
+.hero::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--danger) 18%, transparent) 1px, transparent 0);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(120deg, transparent 60%, black 100%);
+  -webkit-mask-image: linear-gradient(120deg, transparent 60%, black 100%);
+  pointer-events: none;
+  opacity: 0.5;
+}
+.hero > * { position: relative; z-index: 1; }
+.hero-row { display: flex; align-items: flex-start; gap: 22px; flex-wrap: wrap; }
+.hero-meta { flex: 1 1 360px; }
+@media (max-width: 1100px) {
+  .hero-actions { width: 100%; justify-content: flex-end; order: 3; }
+  .hero-meta { flex: 1 1 100%; }
+}
+.hero-photo {
+  width: 92px; height: 92px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ff7e5f, #ffaa3b);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 700; color: #fff;
+  box-shadow: 0 8px 28px -10px rgba(255,126,95,0.55), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  position: relative; flex-shrink: 0;
+}
+.hero-photo .online-dot { position: absolute; bottom: -3px; right: -3px; width: 18px; height: 18px; border-radius: 999px; background: var(--accent); border: 3px solid var(--bg-1); box-shadow: 0 0 12px var(--accent); cursor: help; animation: pulse 2.4s infinite; }
+.hero-photo .online-dot::after { content: "Activo en planilla"; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--bg-3); color: var(--text); font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; padding: 4px 8px; border-radius: 4px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity var(--t-fast); border: 1px solid var(--border); }
+.hero-photo .online-dot:hover::after { opacity: 1; }
+.hero-meta { flex: 1; min-width: 280px; }
+.hero-strip { flex-wrap: wrap; }
+.hero-id { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.hero-id .lbl { padding: 3px 9px; background: var(--danger-soft); color: var(--danger); border-radius: 999px; font-size: 9.5px; display: inline-flex; align-items: center; gap: 5px; }
+.hero-id .lbl::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: pulse 2s infinite; }
+.hero-name { font-size: 28px; font-weight: 600; letter-spacing: -0.022em; line-height: 1.1; margin-bottom: 6px; }
+.hero-sub { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; color: var(--text-2); font-size: 13px; }
+.hero-sub > span { display: inline-flex; align-items: center; gap: 6px; }
+.hero-sub svg { width: 13px; height: 13px; color: var(--text-3); }
+.hero-sub .dot-sep { width: 3px; height: 3px; border-radius: 999px; background: var(--text-3); }
+.hero-sub .num { font-family: var(--font-mono); }
+
+.hero-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+
+/* Stat strip in hero */
+.hero-strip { display: inline-flex; gap: 0; margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 4px; }
+.hero-strip .stat { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: var(--r-sm); cursor: default; transition: background var(--t-fast); }
+.hero-strip .stat:hover { background: var(--bg-2); }
+.hero-strip .stat + .stat { border-left: 1px solid var(--border); }
+.hero-strip .stat-num { font-family: var(--font-mono); font-size: 16px; font-weight: 600; line-height: 1; letter-spacing: -0.01em; }
+.hero-strip .stat-lbl { font-size: 11px; color: var(--text-2); letter-spacing: 0.01em; }
+.hero-strip .stat-dot { width: 6px; height: 6px; border-radius: 999px; }
+.hero-strip .stat.danger .stat-num { color: var(--danger); }
+.hero-strip .stat.danger .stat-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: pulse 2s infinite; }
+.hero-strip .stat.warn .stat-num { color: var(--warning); }
+.hero-strip .stat.warn .stat-dot { background: var(--warning); }
+.hero-strip .stat.info .stat-num { color: var(--info); }
+.hero-strip .stat.info .stat-dot { background: var(--info); }
+.hero-strip .stat.ok .stat-num { color: var(--accent); }
+.hero-strip .stat.ok .stat-dot { background: var(--accent); }
+
+/* Tabs */
+.tabs { display: flex; align-items: center; gap: 0; border-bottom: 1px solid var(--border); padding: 0 4px; margin-bottom: 18px; position: sticky; top: 0; background: var(--bg); z-index: 4; }
+.tab { display: inline-flex; align-items: center; gap: 7px; padding: 11px 14px; font-size: 13px; font-weight: 500; color: var(--text-2); cursor: pointer; border: 0; background: transparent; position: relative; transition: color var(--t-fast); white-space: nowrap; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); }
+.tab.active::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0; box-shadow: 0 0 12px var(--accent-glow); }
+.tab-count { font-family: var(--font-mono); font-size: 10.5px; padding: 1px 6px; background: var(--bg-3); color: var(--text-3); border-radius: 999px; min-width: 22px; text-align: center; }
+.tab.active .tab-count { background: var(--accent-soft); color: var(--accent); }
+.tab.alert .tab-count { background: var(--danger-soft); color: var(--danger); }
+
+/* Content grid */
+.content-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 1100px) { .content-grid { grid-template-columns: 1fr; } }
+
+/* Card */
+.card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-card); overflow: hidden; margin-bottom: 14px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--border); background: var(--bg-2); }
+.card-head .h-2 { display: flex; align-items: center; gap: 9px; }
+.card-body { padding: 16px; }
+
+/* Alerts card — danger framed */
+.alerts-card .card-head {
+  background:
+    linear-gradient(90deg, var(--danger-soft) 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border-bottom: 1px solid color-mix(in srgb, var(--danger) 28%, var(--border));
+  position: relative;
+  padding: 14px 18px;
+}
+.alerts-card .card-head::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+.alerts-card .card-head .h-2::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); animation: pulse 2s infinite; }
+.alerts-card .urgency-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; background: var(--danger-soft); color: var(--danger); border-radius: 999px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; margin-left: 8px; animation: urg-flash 2.4s ease-in-out infinite; }
+
+.alert-item { display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--t-fast); align-items: center; }
+.alert-item:last-child { border-bottom: 0; }
+.alert-item:hover { background: var(--bg-2); }
+.alert-icon { width: 32px; height: 32px; border-radius: var(--r-sm); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.alert-icon.crit { background: var(--danger-soft); color: var(--danger); }
+.alert-icon.high { background: var(--warning-soft); color: var(--warning); }
+.alert-icon svg { width: 15px; height: 15px; }
+.alert-title { font-size: 13.5px; font-weight: 500; margin-bottom: 2px; }
+.alert-meta { display: flex; gap: 8px; font-size: 11.5px; color: var(--text-3); align-items: center; }
+.alert-meta .num { color: var(--text-2); }
+.alert-meta .severity { font-family: var(--font-mono); font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+.alert-meta .severity.crit { background: var(--danger-soft); color: var(--danger); }
+.alert-meta .severity.high { background: var(--warning-soft); color: var(--warning); }
+.alert-cta { font-size: 11.5px; color: var(--accent); padding: 5px 10px; border: 1px solid var(--accent); border-radius: var(--r-sm); background: transparent; cursor: pointer; transition: all var(--t-fast); }
+.alert-cta:hover { background: var(--accent); color: #04150f; }
+
+/* Mini cards row (compact info) */
+.minicards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px 16px; }
+.minicard { padding: 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md); display: flex; flex-direction: column; gap: 4px; transition: all var(--t-fast); cursor: pointer; }
+.minicard:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.minicard-lbl { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+.minicard-val { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.minicard-sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-2); }
+
+/* Score gauge — circular SVG */
+.score-card { padding: 22px 16px 16px; text-align: center; }
+.score-svg { width: 168px; height: 168px; margin: 0 auto 8px; display: block; }
+.score-svg circle { transition: stroke-dashoffset 1.2s var(--ease); }
+.score-svg .track { stroke: var(--bg-3); }
+.score-svg .fill { stroke: var(--danger); stroke-linecap: round; filter: drop-shadow(0 0 6px var(--danger)); animation: ring-breathe 2.4s ease-in-out infinite; }
+.score-svg .pulse-track { stroke: var(--danger); stroke-linecap: round; opacity: 0.55; animation: ring-trace 2.4s linear infinite; }
+@keyframes ring-breathe { 0%, 100% { filter: drop-shadow(0 0 4px var(--danger)); opacity: 0.95; } 50% { filter: drop-shadow(0 0 14px var(--danger)) drop-shadow(0 0 22px var(--danger-soft)); opacity: 1; } }
+@keyframes ring-trace { 0% { stroke-dashoffset: 0; opacity: 0.7; } 50% { opacity: 0.15; } 100% { stroke-dashoffset: -120; opacity: 0.7; } }
+@keyframes ring-breathe-ok { 0%, 100% { filter: drop-shadow(0 0 3px var(--accent-glow)); } 50% { filter: drop-shadow(0 0 10px var(--accent)) drop-shadow(0 0 18px var(--accent-glow)); } }
+@keyframes ring-breathe-warn { 0%, 100% { filter: drop-shadow(0 0 3px var(--warning-soft)); } 50% { filter: drop-shadow(0 0 10px var(--warning)); } }
+.ring .heart { stroke-linecap: round; opacity: 0.5; stroke-dasharray: 4 8; animation: heart-spin 6s linear infinite; }
+.ring .arc-danger { animation: ring-breathe 2.4s ease-in-out infinite; }
+.ring .arc-warn { animation: ring-breathe-warn 2.6s ease-in-out infinite; }
+.ring .arc-ok { animation: ring-breathe-ok 3.2s ease-in-out infinite; }
+@keyframes heart-spin { to { stroke-dashoffset: -88; } }
+.score-num { font-family: var(--font-mono); font-size: 38px; font-weight: 600; letter-spacing: -0.03em; color: var(--danger); display: block; line-height: 1; }
+.score-max { font-family: var(--font-mono); font-size: 14px; color: var(--text-3); margin-left: 2px; }
+.score-lbl { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-top: 4px; }
+.score-zone { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: var(--danger-soft); color: var(--danger); border-radius: 999px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; margin-top: 10px; }
+.score-zone::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: pulse 2s infinite; }
+.score-breakdown { padding: 4px 16px 16px; }
+.score-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px dashed var(--border); }
+.score-row:first-child { border-top: 0; }
+.score-row .name { font-size: 12.5px; color: var(--text-2); }
+.score-row .bar { height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden; }
+.score-row .bar > div { height: 100%; border-radius: 2px; }
+.score-row .bar.ok > div { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+.score-row .bar.warn > div { background: var(--warning); }
+.score-row .bar.danger > div { background: var(--danger); }
+.score-row .v { font-family: var(--font-mono); font-size: 12px; font-weight: 600; min-width: 40px; text-align: right; }
+.score-row.ok .v { color: var(--accent); }
+.score-row.warn .v { color: var(--warning); }
+.score-row.danger .v { color: var(--danger); }
+
+/* Timeline */
+.timeline { padding: 8px 16px 16px; }
+.tl-item { display: grid; grid-template-columns: 16px 1fr; gap: 14px; padding: 10px 0; position: relative; }
+.tl-item::before { content: ""; position: absolute; left: 7px; top: 22px; bottom: -2px; width: 1px; background: var(--border); }
+.tl-item:last-child::before { display: none; }
+.tl-dot { width: 14px; height: 14px; border-radius: 999px; background: var(--bg); border: 2px solid var(--text-3); margin-top: 4px; z-index: 1; flex-shrink: 0; }
+.tl-dot.accent { border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tl-dot.warn { border-color: var(--warning); }
+.tl-dot.danger { border-color: var(--danger); }
+.tl-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.tl-title { font-size: 13px; font-weight: 500; margin: 2px 0 2px; }
+.tl-desc { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+.tl-tag { display: inline-block; font-family: var(--font-mono); font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-right: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+.tl-tag.contrato { background: var(--info-soft); color: var(--info); }
+.tl-tag.sst { background: var(--warning-soft); color: var(--warning); }
+.tl-tag.boleta { background: var(--accent-soft); color: var(--accent); }
+.tl-tag.alerta { background: var(--danger-soft); color: var(--danger); }
+.tl-tag.cap { background: rgba(180,144,202,0.15); color: #b490ca; }
+
+/* Right column cards */
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; padding: 14px 16px; }
+.kv .k { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); padding-top: 2px; }
+.kv .v { font-size: 13px; text-align: right; font-weight: 500; }
+.kv .v.mono { font-family: var(--font-mono); font-weight: 500; }
+.kv .v small { display: block; color: var(--text-3); font-size: 11px; font-weight: 400; margin-top: 1px; font-family: var(--font-ui); }
+
+/* Contrato compact */
+.contrato-card { padding: 14px 16px 16px; }
+.contrato-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.contrato-type { font-size: 14px; font-weight: 600; }
+.contrato-type small { display: block; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-top: 2px; }
+.contrato-progress { height: 6px; background: var(--bg-3); border-radius: 3px; overflow: hidden; margin: 12px 0 6px; position: relative; }
+.contrato-progress > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warning)); border-radius: 3px; }
+.contrato-dates { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); }
+
+/* Quick actions */
+.qa { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px 16px 16px; }
+.qa-btn { display: flex; align-items: center; gap: 8px; padding: 9px 11px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all var(--t-fast); text-align: left; }
+.qa-btn:hover { border-color: var(--accent); color: var(--text); background: linear-gradient(135deg, var(--accent-soft) 0%, var(--bg-2) 80%); }
+.qa-btn:hover .qa-ico { color: var(--accent); }
+.qa-ico { color: var(--text-3); display: inline-flex; transition: color var(--t-fast); }
+.qa-ico svg { width: 14px; height: 14px; }
+
+/* Documents preview list */
+.docs-list { padding: 6px 4px 14px; }
+.doc-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 14px; border-radius: var(--r-sm); cursor: pointer; transition: background var(--t-fast); margin: 0 8px; }
+.doc-row:hover { background: var(--bg-2); }
+.doc-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-3); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-family: var(--font-mono); font-size: 9px; font-weight: 700; }
+.doc-icon.pdf { background: rgba(255,93,108,0.10); color: var(--danger); }
+.doc-icon.img { background: rgba(110,165,255,0.10); color: var(--info); }
+.doc-icon.docx { background: rgba(110,165,255,0.10); color: var(--info); }
+.doc-name { font-size: 12.5px; font-weight: 500; }
+.doc-meta { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); }
+.doc-status { font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; }
+.doc-status.ok { background: var(--accent-soft); color: var(--accent); }
+.doc-status.miss { background: var(--danger-soft); color: var(--danger); }
+.doc-status.exp { background: var(--warning-soft); color: var(--warning); }
+
+/* Section divider title */
+.sec-title { display: flex; align-items: center; justify-content: space-between; margin: 24px 0 10px; padding: 0 4px; }
+.sec-title .h-2 { display: flex; align-items: center; gap: 9px; }
+.sec-title .pill { font-family: var(--font-mono); font-size: 10px; padding: 2px 8px; background: var(--bg-3); color: var(--text-3); border-radius: 999px; letter-spacing: 0.04em; }
+
+/* Compliance ring small */
+.ring-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.ring-row:last-child { border-bottom: 0; }
+.ring { width: 38px; height: 38px; flex-shrink: 0; }
+.ring circle { transition: stroke-dashoffset 800ms var(--ease); }
+.ring .track { stroke: var(--bg-3); }
+.ring-info { flex: 1; min-width: 0; }
+.ring-name { font-size: 12.5px; font-weight: 500; }
+.ring-sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); }
+.ring-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-label="Comply360">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="brand-shield-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent-strong)"/>
+              <stop offset="55%" stop-color="var(--accent)"/>
+              <stop offset="100%" stop-color="#007a4f"/>
+            </linearGradient>
+            <radialGradient id="brand-inner-glow" cx="50%" cy="38%" r="55%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.55)"/>
+              <stop offset="60%" stop-color="rgba(255,255,255,0)"/>
+            </radialGradient>
+          </defs>
+          <path class="shield-fill" d="M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z"/>
+          <path class="shield-inner-glow" d="M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z"/>
+          <path class="shield-bevel" d="M32 8 L52 14.5 V30 C52 42 43.5 50.5 32 56 C20.5 50.5 12 42 12 30 V14.5 Z"/>
+          <path class="shield-arc" d="M20 28 A14 14 0 0 1 44 28"/>
+          <path class="shield-check" d="M21 33 L29 41 L44 24"/>
+          <path class="shield-stroke" d="M32 4 L56 12 V30 C56 44 46 54 32 60 C18 54 8 44 8 30 V12 Z"/>
+          <g>
+            <circle class="shield-orbit" cx="32" cy="32" r="29"/>
+            <circle class="shield-spark" cx="61" cy="32" r="1.8"/>
+          </g>
+        </svg>
+      </div>
+      <div class="brand-name">Comply<span>360</span></div>
+    </div>
+
+    <button class="org-card">
+      <div class="avatar">CA</div>
+      <div>
+        <div class="meta-title">Constructora Andes</div>
+        <div class="meta-sub">RUC 20512934087</div>
+      </div>
+      <div class="arrow">⇅</div>
+    </button>
+
+    <div class="nav-group">
+      <div class="lbl nav-label">Operación</div>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+        Cockpit
+      </a>
+      <a class="nav-item active">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M21 18a4 4 0 0 0-5-3.85"/></svg></span>
+        Trabajadores
+        <span class="nav-count">47</span>
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span>
+        Contratos
+        <span class="nav-count">52</span>
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg></span>
+        SST <span class="nav-badge">3</span>
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h18M3 12h18M3 17h18"/></svg></span>
+        Planilla
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span>
+        Calendario
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="lbl nav-label">Inteligencia</div>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/></svg></span>
+        Asistente IA
+      </a>
+      <a class="nav-item">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+        Diagnóstico
+      </a>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-crumb">
+          <a>Operación</a> ›
+          <a>Trabajadores</a> ›
+          <span class="current">Carlos Mendoza Ríos</span>
+        </div>
+        <div class="topbar-title">Perfil completo</div>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Buscar en todo Comply360…</span>
+        <span class="kbd">⌘K</span>
+      </div>
+      <div class="theme-toggle">
+        <button id="theme-light" title="Claro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+        <button id="theme-dark" class="on" title="Oscuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      </div>
+      <button class="btn-icon" title="Notificaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+    </div>
+
+    <div class="page">
+      <div class="page-inner">
+
+        <!-- HERO -->
+        <div class="hero">
+          <div class="hero-row">
+            <div class="hero-photo">CM<span class="online-dot" title="Activo en planilla"></span></div>
+            <div class="hero-meta">
+              <div class="hero-id">
+                <span class="lbl">EN RIESGO</span>
+                <span class="lbl" style="background:var(--bg-3); color:var(--text-2);">DNI 47238291</span>
+                <span class="lbl" style="background:var(--bg-3); color:var(--text-2);">CÓD CMR-0142</span>
+              </div>
+              <div class="hero-name">Carlos Mendoza Ríos</div>
+              <div class="hero-sub">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 4 6v6c0 5 3.5 9.4 8 10 4.5-.6 8-5 8-10V6z"/></svg>Operario · Producción</span>
+                <span class="dot-sep"></span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Lima · Sede Ate</span>
+                <span class="dot-sep"></span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>Ingresó <span class="num">15 mar 2022</span></span>
+                <span class="dot-sep"></span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg><span class="num">3 años, 8 meses</span></span>
+              </div>
+
+              <div class="hero-strip">
+                <div class="stat danger">
+                  <span class="stat-dot"></span>
+                  <div><div class="stat-num">42</div><div class="stat-lbl">Score legajo</div></div>
+                </div>
+                <div class="stat danger">
+                  <span class="stat-dot"></span>
+                  <div><div class="stat-num">3</div><div class="stat-lbl">Alertas activas</div></div>
+                </div>
+                <div class="stat warn">
+                  <span class="stat-dot"></span>
+                  <div><div class="stat-num">14d</div><div class="stat-lbl">Hasta vencimiento</div></div>
+                </div>
+                <div class="stat info">
+                  <span class="stat-dot"></span>
+                  <div><div class="stat-num">S/ 2,800</div><div class="stat-lbl">Sueldo bruto</div></div>
+                </div>
+                <div class="stat ok">
+                  <span class="stat-dot"></span>
+                  <div><div class="stat-num">14d</div><div class="stat-lbl">Vacaciones disp.</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-actions">
+              <button class="btn btn-secondary"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg> Mensaje</button>
+              <button class="btn btn-secondary"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 10l-5-5-5 5M12 5v12"/></svg> Exportar</button>
+              <button class="btn btn-primary"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4z"/></svg> Editar</button>
+              <button class="btn-icon" title="Más acciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+          <button class="tab active">Resumen</button>
+          <button class="tab">Información personal</button>
+          <button class="tab">Legajo <span class="tab-count">8/14</span></button>
+          <button class="tab">Contratos <span class="tab-count">2</span></button>
+          <button class="tab">Remuneraciones</button>
+          <button class="tab alert">SST <span class="tab-count">2</span></button>
+          <button class="tab">Capacitaciones</button>
+          <button class="tab">Vacaciones</button>
+          <button class="tab">Beneficios</button>
+          <button class="tab">Historial</button>
+        </div>
+
+        <!-- CONTENT GRID -->
+        <div class="content-grid">
+
+          <!-- LEFT COL -->
+          <div>
+
+            <!-- ALERTAS -->
+            <section class="card alerts-card">
+              <div class="card-head">
+                <div class="h-2">Alertas activas <span class="urgency-pill">2 críticas</span></div>
+                <button class="btn btn-ghost" style="font-size:11px; padding:5px 10px;">Ver historial</button>
+              </div>
+              <div class="alert-item">
+                <div class="alert-icon crit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+                <div>
+                  <div class="alert-title">SCTR vencido hace 12 días — riesgo legal alto</div>
+                  <div class="alert-meta">
+                    <span class="severity crit">Crítica</span>
+                    <span>·</span>
+                    <span>SST · Seguro Complementario</span>
+                    <span>·</span>
+                    <span class="num">Detectada hace 12d</span>
+                  </div>
+                </div>
+                <button class="alert-cta">Resolver</button>
+              </div>
+              <div class="alert-item">
+                <div class="alert-icon crit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div>
+                <div>
+                  <div class="alert-title">Contrato a plazo fijo vence en 14 días</div>
+                  <div class="alert-meta">
+                    <span class="severity crit">Crítica</span>
+                    <span>·</span>
+                    <span>Contrato · Renovación pendiente</span>
+                    <span>·</span>
+                    <span class="num">Vence 22 dic 2025</span>
+                  </div>
+                </div>
+                <button class="alert-cta">Renovar</button>
+              </div>
+              <div class="alert-item">
+                <div class="alert-icon high"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.5 9.4 8 10 4.5-.6 8-5 8-10V6z"/></svg></div>
+                <div>
+                  <div class="alert-title">Examen ocupacional anual vencido</div>
+                  <div class="alert-meta">
+                    <span class="severity high">Alta</span>
+                    <span>·</span>
+                    <span>SST · Examen Médico</span>
+                    <span>·</span>
+                    <span class="num">Vence hace 35d</span>
+                  </div>
+                </div>
+                <button class="alert-cta">Programar</button>
+              </div>
+            </section>
+
+            <!-- TIMELINE -->
+            <section class="card">
+              <div class="card-head">
+                <div class="h-2">Actividad reciente</div>
+                <button class="btn btn-ghost" style="font-size:11px; padding:5px 10px;">Ver historial completo</button>
+              </div>
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-dot danger"></div>
+                  <div>
+                    <div class="tl-time">Hoy · 09:14</div>
+                    <div class="tl-title"><span class="tl-tag alerta">Alerta</span>SCTR detectado vencido por motor de cumplimiento</div>
+                    <div class="tl-desc">El último SCTR registrado expiró el 26 nov 2025. Sin renovación detectada en SUNAFIL.</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-dot accent"></div>
+                  <div>
+                    <div class="tl-time">Hace 2 días · 16:42</div>
+                    <div class="tl-title"><span class="tl-tag boleta">Boleta</span>Boleta de noviembre generada</div>
+                    <div class="tl-desc">S/ 2,800 bruto · S/ 2,341 neto · firmada digitalmente.</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-dot warn"></div>
+                  <div>
+                    <div class="tl-time">Hace 1 semana</div>
+                    <div class="tl-title"><span class="tl-tag cap">Capacitación</span>Curso de seguridad en obra (8h) — pendiente</div>
+                    <div class="tl-desc">Asignado por Ana Rojas. No iniciado. Vence el 20 dic.</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-dot"></div>
+                  <div>
+                    <div class="tl-time">Hace 3 semanas</div>
+                    <div class="tl-title"><span class="tl-tag contrato">Contrato</span>Renovación automática activada hace 1 año</div>
+                    <div class="tl-desc">Plazo fijo · 12 meses · próxima evaluación al vencimiento.</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-dot"></div>
+                  <div>
+                    <div class="tl-time">Hace 2 meses</div>
+                    <div class="tl-title"><span class="tl-tag sst">SST</span>Inducción de seguridad completada</div>
+                    <div class="tl-desc">Aprobado con 94/100. Vigencia 12 meses.</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- DOCUMENTOS PREVIEW -->
+            <section class="card">
+              <div class="card-head">
+                <div class="h-2">Documentos del legajo <span class="lbl" style="background:var(--bg-3); color:var(--text-2); padding: 2px 7px; border-radius: 4px;">8 de 14</span></div>
+                <button class="btn btn-ghost" style="font-size:11px; padding:5px 10px;">Ver todos →</button>
+              </div>
+              <div class="docs-list">
+                <div class="doc-row">
+                  <div class="doc-icon pdf">PDF</div>
+                  <div><div class="doc-name">Contrato laboral firmado</div><div class="doc-meta">2.4 MB · Subido 15 mar 2022</div></div>
+                  <span class="doc-status ok">Vigente</span>
+                </div>
+                <div class="doc-row">
+                  <div class="doc-icon img">JPG</div>
+                  <div><div class="doc-name">DNI ambas caras</div><div class="doc-meta">1.1 MB · Subido 15 mar 2022</div></div>
+                  <span class="doc-status ok">Vigente</span>
+                </div>
+                <div class="doc-row">
+                  <div class="doc-icon pdf">PDF</div>
+                  <div><div class="doc-name">SCTR — Seguro Complementario</div><div class="doc-meta">340 KB · Vence 26 nov 2025</div></div>
+                  <span class="doc-status exp">Vencido</span>
+                </div>
+                <div class="doc-row">
+                  <div class="doc-icon pdf">PDF</div>
+                  <div><div class="doc-name">Examen ocupacional 2024</div><div class="doc-meta">1.8 MB · Vence 12 nov 2025</div></div>
+                  <span class="doc-status exp">Vencido</span>
+                </div>
+                <div class="doc-row">
+                  <div class="doc-icon">—</div>
+                  <div><div class="doc-name">Constancia AFP / ONP</div><div class="doc-meta" style="color:var(--danger);">Documento faltante</div></div>
+                  <span class="doc-status miss">Falta</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- RIGHT COL -->
+          <div>
+
+            <!-- LEGAJO SCORE -->
+            <section class="card">
+              <div class="card-head"><div class="h-2">Score de legajo</div><span class="lbl">Calculado hoy</span></div>
+              <div class="score-card">
+                <svg class="score-svg" viewBox="0 0 100 100">
+                  <circle class="track" cx="50" cy="50" r="42" fill="none" stroke-width="8"/>
+                  <circle class="pulse-track" cx="50" cy="50" r="42" fill="none" stroke-width="1.5"
+                          stroke-dasharray="3 9" transform="rotate(-90 50 50)"/>
+                  <circle class="fill" cx="50" cy="50" r="42" fill="none" stroke-width="8"
+                          stroke-dasharray="263.89" stroke-dashoffset="153.06"
+                          transform="rotate(-90 50 50)"/>
+                  <text x="50" y="54" text-anchor="middle" font-family="JetBrains Mono" font-size="22" font-weight="600" fill="var(--danger)" letter-spacing="-1">42</text>
+                  <text x="50" y="68" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="var(--text-3)" letter-spacing="1">/ 100</text>
+                </svg>
+                <div class="score-zone">Zona crítica · acción requerida</div>
+              </div>
+              <div class="score-breakdown">
+                <div class="score-row danger">
+                  <span class="name">Documentos</span>
+                  <div class="bar danger"><div style="width: 38%"></div></div>
+                  <span class="v">38%</span>
+                </div>
+                <div class="score-row danger">
+                  <span class="name">SST vigente</span>
+                  <div class="bar danger"><div style="width: 25%"></div></div>
+                  <span class="v">25%</span>
+                </div>
+                <div class="score-row warn">
+                  <span class="name">Capacitaciones</span>
+                  <div class="bar warn"><div style="width: 60%"></div></div>
+                  <span class="v">60%</span>
+                </div>
+                <div class="score-row ok">
+                  <span class="name">Datos personales</span>
+                  <div class="bar ok"><div style="width: 95%"></div></div>
+                  <span class="v">95%</span>
+                </div>
+                <div class="score-row ok">
+                  <span class="name">Contrato vigente</span>
+                  <div class="bar ok"><div style="width: 88%"></div></div>
+                  <span class="v">88%</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- CONTRATO ACTUAL -->
+            <section class="card">
+              <div class="card-head"><div class="h-2">Contrato actual</div><a class="lbl" style="color:var(--accent); text-decoration: none; cursor: pointer;">Ver detalle →</a></div>
+              <div class="contrato-card">
+                <div class="contrato-head">
+                  <div class="contrato-type">Plazo fijo<small>Régimen Construcción Civil</small></div>
+                  <span class="doc-status exp" style="font-size:10px;">14d</span>
+                </div>
+                <div class="contrato-progress"><div style="width: 92%;"></div></div>
+                <div class="contrato-dates"><span>Inicio · 22 dic 2024</span><span>Vence · 22 dic 2025</span></div>
+              </div>
+            </section>
+
+            <!-- INFO PERSONAL COMPACT -->
+            <section class="card">
+              <div class="card-head"><div class="h-2">Datos clave</div></div>
+              <div class="kv">
+                <div class="k">Nacimiento</div><div class="v mono">14 ene 1989<small>36 años</small></div>
+                <div class="k">Estado civil</div><div class="v">Casado</div>
+                <div class="k">Hijos</div><div class="v">2</div>
+                <div class="k">Régimen</div><div class="v">Construcción Civil</div>
+                <div class="k">AFP</div><div class="v">Integra<small>CUSPP 472382910011</small></div>
+                <div class="k">Sueldo bruto</div><div class="v mono">S/ 2,800.00</div>
+                <div class="k">CTS</div><div class="v mono">S/ 8,420.50</div>
+                <div class="k">Vacaciones</div><div class="v"><span style="color:var(--accent)">14d disponibles</span></div>
+              </div>
+            </section>
+
+            <!-- QUICK ACTIONS -->
+            <section class="card">
+              <div class="card-head"><div class="h-2">Acciones rápidas</div></div>
+              <div class="qa">
+                <button class="qa-btn"><span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span> Renovar contrato</button>
+                <button class="qa-btn"><span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.5 9.4 8 10 4.5-.6 8-5 8-10V6z"/></svg></span> Subir SCTR</button>
+                <button class="qa-btn"><span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg></span> Programar examen</button>
+                <button class="qa-btn"><span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span> Subir boleta</button>
+                <button class="qa-btn"><span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span> Adelanto sueldo</button>
+                <button class="qa-btn"><span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/></svg></span> Ver planilla</button>
+              </div>
+            </section>
+
+            <!-- CUMPLIMIENTO POR ÁREA -->
+            <section class="card">
+              <div class="card-head"><div class="h-2">Cumplimiento por área</div></div>
+              <div>
+                <div class="ring-row">
+                  <svg class="ring" viewBox="0 0 36 36">
+                    <circle class="track" cx="18" cy="18" r="14" fill="none" stroke-width="3.5"/>
+                    <circle class="heart" cx="18" cy="18" r="14" fill="none" stroke="var(--danger)" stroke-width="1" transform="rotate(-90 18 18)"/>
+                    <circle class="arc-danger" cx="18" cy="18" r="14" fill="none" stroke="var(--danger)" stroke-width="3.5" stroke-dasharray="87.96" stroke-dashoffset="65.97" transform="rotate(-90 18 18)" stroke-linecap="round"/>
+                  </svg>
+                  <div class="ring-info"><div class="ring-name">SST</div><div class="ring-sub">2 ítems vencidos · crítico</div></div>
+                  <div class="ring-pct" style="color:var(--danger)">25%</div>
+                </div>
+                <div class="ring-row">
+                  <svg class="ring" viewBox="0 0 36 36">
+                    <circle class="track" cx="18" cy="18" r="14" fill="none" stroke-width="3.5"/>
+                    <circle class="heart" cx="18" cy="18" r="14" fill="none" stroke="var(--warning)" stroke-width="1" transform="rotate(-90 18 18)"/>
+                    <circle class="arc-warn" cx="18" cy="18" r="14" fill="none" stroke="var(--warning)" stroke-width="3.5" stroke-dasharray="87.96" stroke-dashoffset="35.18" transform="rotate(-90 18 18)" stroke-linecap="round"/>
+                  </svg>
+                  <div class="ring-info"><div class="ring-name">Capacitaciones</div><div class="ring-sub">3 de 5 completadas</div></div>
+                  <div class="ring-pct" style="color:var(--warning)">60%</div>
+                </div>
+                <div class="ring-row">
+                  <svg class="ring" viewBox="0 0 36 36">
+                    <circle class="track" cx="18" cy="18" r="14" fill="none" stroke-width="3.5"/>
+                    <circle class="heart" cx="18" cy="18" r="14" fill="none" stroke="var(--accent)" stroke-width="1" transform="rotate(-90 18 18)"/>
+                    <circle class="arc-ok" cx="18" cy="18" r="14" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-dasharray="87.96" stroke-dashoffset="10.56" transform="rotate(-90 18 18)" stroke-linecap="round"/>
+                  </svg>
+                  <div class="ring-info"><div class="ring-name">Datos legajo</div><div class="ring-sub">Información completa</div></div>
+                  <div class="ring-pct" style="color:var(--accent)">88%</div>
+                </div>
+                <div class="ring-row">
+                  <svg class="ring" viewBox="0 0 36 36">
+                    <circle class="track" cx="18" cy="18" r="14" fill="none" stroke-width="3.5"/>
+                    <circle class="heart" cx="18" cy="18" r="14" fill="none" stroke="var(--accent)" stroke-width="1" transform="rotate(-90 18 18)"/>
+                    <circle class="arc-ok" cx="18" cy="18" r="14" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-dasharray="87.96" stroke-dashoffset="0" transform="rotate(-90 18 18)" stroke-linecap="round"/>
+                  </svg>
+                  <div class="ring-info"><div class="ring-name">Remuneraciones</div><div class="ring-sub">12 boletas firmadas</div></div>
+                  <div class="ring-pct" style="color:var(--accent)">100%</div>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  const root = document.documentElement;
+  const STORE = 'comply360.theme';
+  const saved = localStorage.getItem(STORE);
+  if (saved) root.setAttribute('data-theme', saved);
+  const bL = document.getElementById('theme-light');
+  const bD = document.getElementById('theme-dark');
+  function sync() { const t = root.getAttribute('data-theme'); bL.classList.toggle('on', t === 'light'); bD.classList.toggle('on', t === 'dark'); }
+  sync();
+  bL.onclick = () => { root.setAttribute('data-theme', 'light'); localStorage.setItem(STORE, 'light'); sync(); };
+  bD.onclick = () => { root.setAttribute('data-theme', 'dark'); localStorage.setItem(STORE, 'dark'); sync(); };
+
+  // Tab switch (visual only)
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>
