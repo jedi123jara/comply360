@@ -33,7 +33,7 @@ const TYPE_STYLES: Record<WorkerEvent['type'], { bg: string; text: string; icon:
   BIRTHDAY: { bg: 'bg-pink-100', text: 'text-pink-700', icon: Cake },
   ANNIVERSARY: { bg: 'bg-fuchsia-100', text: 'text-fuchsia-700', icon: Award },
   PROBATION_END: { bg: 'bg-cyan-100', text: 'text-cyan-700', icon: Clock },
-  VACATION: { bg: 'bg-teal-100', text: 'text-teal-700', icon: Sparkles },
+  VACATION: { bg: 'bg-sky-100', text: 'text-sky-700', icon: Sparkles },
   ACK_DEADLINE: { bg: 'bg-violet-100', text: 'text-violet-700', icon: FileSignature },
   CAPACITACION: { bg: 'bg-indigo-100', text: 'text-indigo-700', icon: GraduationCap },
   ALERT: { bg: 'bg-rose-100', text: 'text-rose-700', icon: Bell },
