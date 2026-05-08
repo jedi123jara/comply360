@@ -179,7 +179,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string }> = {
   TRIBUTARIO: { label: 'Tributario', color: 'bg-emerald-900/30 text-emerald-600' },
   PROCESAL: { label: 'Procesal', color: 'bg-purple-900/30 text-purple-400' },
   CONTRATOS: { label: 'Contratos', color: 'bg-indigo-900/30 text-indigo-400' },
-  CTS: { label: 'CTS', color: 'bg-teal-900/30 text-teal-400' },
+  CTS: { label: 'CTS', color: 'bg-sky-900/30 text-sky-400' },
   VACACIONES: { label: 'Vacaciones', color: 'bg-cyan-900/30 text-cyan-400' },
   DOCUMENTOS: { label: 'Documentos', color: 'bg-violet-900/30 text-violet-400' },
   GENERAL: { label: 'General', color: 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]' },
@@ -512,7 +512,7 @@ function AlertRulesSection({
 }) {
   const categoryColors: Record<string, string> = {
     CONTRATOS: 'bg-indigo-900/30 text-indigo-400',
-    CTS: 'bg-teal-900/30 text-teal-400',
+    CTS: 'bg-sky-900/30 text-sky-400',
     SST: 'bg-orange-900/30 text-orange-400',
     VACACIONES: 'bg-cyan-900/30 text-cyan-400',
     DOCUMENTOS: 'bg-violet-900/30 text-violet-400',
