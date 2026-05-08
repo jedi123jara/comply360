@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateTRegistroExport, generateTRegistroCSV } from '@/lib/integrations/t-registro'
 import { generatePlameExport, generatePlameSummaryCSV } from '@/lib/integrations/plame'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 
 // POST /api/integrations — Generate export files
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('integracion_planilla', async (req, ctx) => {
   try {
     const { action, format, periodo } = await req.json()
     const orgId = ctx.orgId

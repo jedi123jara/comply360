@@ -13,10 +13,10 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 
-export const GET = withAuth(async (_req, ctx) => {
+export const GET = withPlanGate('workers', async (_req, ctx) => {
   // Extraer workerId del path /api/workers/[id]/onboarding-status
   const url = new URL(_req.url)
   const segments = url.pathname.split('/')
@@ -110,3 +110,4 @@ function computeStatus(opts: {
   if (!opts.legajoComplete) return 'logged_in_pending'
   return 'completed'
 }
+

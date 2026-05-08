@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import { uploadFile } from '@/lib/storage/upload'
 import type { AuthContext } from '@/lib/auth'
 import type { DocCategory, DocStatus } from '@/generated/prisma/client'
@@ -13,7 +13,7 @@ import { validateUpload, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 // =============================================
 // GET /api/workers/[id]/documents - List worker documents
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id } = params
     const orgId = ctx.orgId
@@ -118,7 +118,7 @@ const VALID_CATEGORIES: DocCategory[] = [
   'CESE',
 ]
 
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('workers', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id } = params
     const orgId = ctx.orgId
@@ -256,7 +256,7 @@ export const POST = withAuthParams<{ id: string }>(
 // =============================================
 // PATCH /api/workers/[id]/documents - Verify/reject document
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('workers', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id } = params
     const orgId = ctx.orgId
@@ -389,3 +389,4 @@ async function triggerAutoVerifyAI(
     console.error('[workers.documents] auto-verify failed', err)
   }
 }
+
