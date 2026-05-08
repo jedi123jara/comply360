@@ -13,7 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { getBatchSession } from '@/lib/agents/batch-session-store'
 import { extractPdfPagesToBuffer } from '@/lib/agents/extract-text'
@@ -25,7 +25,7 @@ import { validateContractData } from '@/lib/agents/contract-validator'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json()
     const { sessionId, workerIndex, workerData } = body as {
@@ -336,3 +336,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     )
   }
 })
+

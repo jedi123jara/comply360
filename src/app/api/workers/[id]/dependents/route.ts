@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 
@@ -32,7 +32,7 @@ const VALID_DOC_TIPOS = ['DNI', 'CE', 'PASAPORTE', 'PARTIDA_NACIMIENTO'] as cons
 // =============================================
 // GET /api/workers/[id]/dependents
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('workers', async (_req: NextRequest, ctx: AuthContext, params) => {
   const { id } = params
   const orgId = ctx.orgId
 
@@ -80,7 +80,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
 // =============================================
 // POST /api/workers/[id]/dependents
 // =============================================
-export const POST = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
+export const POST = withPlanGateParams<{ id: string }>('workers', async (req: NextRequest, ctx: AuthContext, params) => {
   const { id } = params
   const orgId = ctx.orgId
 
@@ -174,3 +174,4 @@ export const POST = withAuthParams<{ id: string }>(async (req: NextRequest, ctx:
     return NextResponse.json({ error: 'No se pudo crear el dependiente' }, { status: 500 })
   }
 })
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularLiquidacion } from '@/lib/legal-engine/calculators/liquidacion'
 import type { LiquidacionInput, MotivoCese } from '@/lib/legal-engine/types'
@@ -10,7 +10,7 @@ import type { LiquidacionInput, MotivoCese } from '@/lib/legal-engine/types'
 // Auto-populate liquidacion input from worker record
 // and run the calculation. Returns input + result.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id } = params
     const orgId = ctx.orgId
@@ -139,7 +139,7 @@ export const GET = withAuthParams<{ id: string }>(
 // POST /api/workers/[id]/liquidacion
 // Recalculate with custom overrides (user edits form)
 // =============================================
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('workers', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id } = params
     const orgId = ctx.orgId
@@ -184,3 +184,4 @@ export const POST = withAuthParams<{ id: string }>(
     return NextResponse.json({ result })
   },
 )
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   createPDFDoc,
@@ -28,7 +28,7 @@ function fmtPeriodo(periodo: string): string {
 // =============================================
 // GET /api/workers/[id]/payslips/[payslipId]/pdf
 // =============================================
-export const GET = withAuthParams<{ id: string; payslipId: string }>(
+export const GET = withPlanGateParams<{ id: string; payslipId: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId, payslipId } = params
     const orgId = ctx.orgId
@@ -296,3 +296,4 @@ export const GET = withAuthParams<{ id: string; payslipId: string }>(
     return finalizePDF(doc, filename)
   },
 )
+

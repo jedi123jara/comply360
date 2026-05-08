@@ -18,7 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ function getBaseLegal(tipo: TipoCese): { norma: string; articulo: string; descri
 }
 
 // ─── GET: obtener estado del proceso de cese ────────────────────────────
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('workers', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId } = params
 
@@ -255,7 +255,7 @@ export const GET = withAuthParams<{ id: string }>(
 )
 
 // ─── POST: iniciar proceso de cese ──────────────────────────────────────
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('workers', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId } = params
 
@@ -377,7 +377,7 @@ export const POST = withAuthParams<{ id: string }>(
 )
 
 // ─── PATCH: avanzar etapa / guardar liquidación / completar cese ────────
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('workers', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id: workerId } = params
 
@@ -648,3 +648,4 @@ export const PATCH = withAuthParams<{ id: string }>(
     }
   },
 )
+
