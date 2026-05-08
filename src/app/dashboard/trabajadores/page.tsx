@@ -938,7 +938,7 @@ export default function TrabajadoresPage() {
                 {workers.map(worker => {
                   const st = STATUS_CONFIG[worker.status] || STATUS_CONFIG.ACTIVE
                   return (
-                    <tr key={worker.id} className={cn('hover:bg-[color:var(--neutral-100)] transition-all duration-150', selected.has(worker.id) && 'bg-primary/5')}>
+                    <tr key={worker.id} className={cn('hover:bg-[color:var(--neutral-100)] transition-colors duration-[var(--motion-short)] ease-[var(--ease-standard)]', selected.has(worker.id) && 'bg-primary/5')}>
                       <td className="w-10 px-3 py-4">
                         <input
                           type="checkbox"
