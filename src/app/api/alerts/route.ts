@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // GET /api/alerts - List normative alerts with per-org read status
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('alertas_basicas', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const { searchParams } = new URL(req.url)
     const impactLevel = searchParams.get('impactLevel')
@@ -72,7 +72,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // PATCH /api/alerts - Mark alert as read/dismissed
 // =============================================
-export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const PATCH = withPlanGate('alertas_basicas', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json()
     const { alertId, status } = body
@@ -117,3 +117,4 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     )
   }
 })
+

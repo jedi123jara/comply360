@@ -16,7 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import type { OrgDocType } from '@/generated/prisma/client'
@@ -195,7 +195,7 @@ function deriveValidUntil(
   return valid
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('reportes_pdf', async (req: NextRequest, ctx: AuthContext) => {
   let body: Record<string, unknown>
   try {
     body = (await req.json()) as Record<string, unknown>
@@ -269,9 +269,10 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   }
 })
 
-export const GET = withAuth(async () => {
+export const GET = withPlanGate('reportes_pdf', async () => {
   return NextResponse.json({
     implemented: IMPLEMENTED_TYPES,
     pending: VALID_TYPES.filter((t) => !IMPLEMENTED_TYPES.includes(t)),
   })
 })
+

@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { auditLog, AuditActions } from '@/lib/audit'
 
@@ -37,7 +37,7 @@ const TRAINING_REQUEST_ACTION = 'TRAINING_REQUEST_SUBMITTED'
 // del import sin uso (estaría disponible para extender el catálogo en futuro).
 void AuditActions
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   let body: unknown
   try {
     body = await req.json()
@@ -74,3 +74,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     { status: 201 },
   )
 })
+

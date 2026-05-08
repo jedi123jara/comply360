@@ -10,14 +10,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateComplianceScore } from '@/lib/compliance/score-calculator'
 
 // ─── GET — latest score + history ────────────────────────────────────────────
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('alertas_basicas', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const months = Math.min(parseInt(searchParams.get('months') || '6'), 24)
 
@@ -89,7 +89,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
 // ─── POST — force recalculate + persist ──────────────────────────────────────
 
-export const POST = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('alertas_basicas', async (_req: NextRequest, ctx: AuthContext) => {
   try {
     const result = await calculateComplianceScore(ctx.orgId)
 
@@ -124,3 +124,4 @@ export const POST = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     )
   }
 })
+

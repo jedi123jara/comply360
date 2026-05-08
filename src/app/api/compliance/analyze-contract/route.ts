@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
 import { withPlanGate } from '@/lib/plan-gate'
 import { analizarDocumento, TIPOS_DOCUMENTO_LABELS, type TipoDocumento } from '@/lib/compliance/contract-analyzer'
 import { reviewContract, type ContractReviewResult } from '@/lib/ai/contract-review'
@@ -79,7 +78,7 @@ export const POST = withPlanGate('ia_contratos', async (req: NextRequest) => {
  * GET /api/compliance/analyze-contract
  * Devuelve los tipos de documentos disponibles para análisis
  */
-export const GET = withAuth(async () => {
+export const GET = withPlanGate('ia_contratos', async () => {
   return NextResponse.json({
     tipos: TIPOS_VALIDOS.map(t => ({
       value: t,

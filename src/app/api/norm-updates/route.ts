@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { NormCategory, NormSource, ImpactLevel, RegimenLaboral } from '@/generated/prisma/client'
 import { NORM_UPDATES_SEED } from '@/lib/crawler/norm-seed'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 
 // GET /api/norm-updates — List norm updates
-export const GET = withAuth(async (req) => {
+export const GET = withPlanGate('asistente_ia', async (req) => {
   const searchParams = req.nextUrl.searchParams
   const category = searchParams.get('category') as NormCategory | null
   const impactLevel = searchParams.get('impactLevel') as ImpactLevel | null
@@ -57,7 +57,7 @@ export const GET = withAuth(async (req) => {
 })
 
 // POST /api/norm-updates — Seed norm updates or add manual entry
-export const POST = withAuth(async (req) => {
+export const POST = withPlanGate('asistente_ia', async (req) => {
   try {
     const body = await req.json()
     const { action } = body
@@ -99,3 +99,4 @@ export const POST = withAuth(async (req) => {
     return NextResponse.json({ error: 'Error en operacion' }, { status: 500 })
   }
 })
+

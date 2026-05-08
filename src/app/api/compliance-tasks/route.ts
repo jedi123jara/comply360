@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import type {
   ComplianceTaskStatus,
@@ -26,7 +26,7 @@ const VALID_GRAVEDAD: InfracGravedad[] = ['LEVE', 'GRAVE', 'MUY_GRAVE']
 
 /* ── GET ───────────────────────────────────────────────────────────── */
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const { searchParams } = new URL(req.url)
     const statusParam = searchParams.get('status') // CSV "PENDING,IN_PROGRESS" opcional
@@ -84,7 +84,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
 /* ── POST ──────────────────────────────────────────────────────────── */
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('diagnostico', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json()
     const { title, area, description, baseLegal, gravedad, multaEvitable, dueDate, priority } = body as {
@@ -130,7 +130,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
 /* ── PATCH ─────────────────────────────────────────────────────────── */
 
-export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const PATCH = withPlanGate('diagnostico', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json()
     const {
@@ -193,3 +193,4 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
   }
 })
+
