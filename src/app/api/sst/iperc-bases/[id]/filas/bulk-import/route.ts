@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularNivelRiesgo } from '@/lib/sst/iperc-matrix'
 
@@ -80,7 +80,7 @@ interface SkippedRow {
   reason: string
 }
 
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = bulkSchema.safeParse(body)
@@ -224,3 +224,4 @@ export const POST = withAuthParams<{ id: string }>(
     )
   },
 )
+

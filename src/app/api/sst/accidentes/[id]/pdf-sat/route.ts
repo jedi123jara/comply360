@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   addHeader,
@@ -24,7 +24,7 @@ import {
 //
 // COMPLY360 NO ejecuta la notificación: solo genera el documento de apoyo.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const accidente = await prisma.accidente.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -220,3 +220,4 @@ export const GET = withAuthParams<{ id: string }>(
     return finalizePDF(doc, `notificacion-sat-${accidente.id}.pdf`)
   },
 )
+

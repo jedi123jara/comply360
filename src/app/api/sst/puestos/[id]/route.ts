@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams, withRoleParams } from '@/lib/api-auth'
+import { withRoleParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { puestoUpdateSchema } from '@/lib/sst/schemas'
 
 // =============================================
 // GET /api/sst/puestos/[id]
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const puesto = await prisma.puestoTrabajo.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -27,7 +28,7 @@ export const GET = withAuthParams<{ id: string }>(
 // =============================================
 // PATCH /api/sst/puestos/[id]
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = puestoUpdateSchema.safeParse(body)
@@ -83,3 +84,4 @@ export const DELETE = withRoleParams<{ id: string }>(
     return NextResponse.json({ ok: true })
   },
 )
+
