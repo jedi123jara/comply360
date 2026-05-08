@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
@@ -63,7 +63,7 @@ interface ComplaintDeadlines {
 // =============================================
 // GET /api/complaints/deadlines — Deadline tracker for hostigamiento complaints
 // =============================================
-export const GET = withAuth(async (_req, ctx: AuthContext) => {
+export const GET = withPlanGate('denuncias', async (_req, ctx: AuthContext) => {
   const orgId = ctx.orgId
 
   // Only fetch hostigamiento sexual and acoso laboral complaints (Ley 27942)
@@ -163,3 +163,4 @@ export const GET = withAuth(async (_req, ctx: AuthContext) => {
     },
   })
 })
+

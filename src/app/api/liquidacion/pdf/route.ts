@@ -19,7 +19,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import {
@@ -205,7 +205,7 @@ function conceptosAplicables(
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   let body: RequestBody
   try {
     body = (await req.json()) as RequestBody
@@ -405,3 +405,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     return NextResponse.json({ error: 'Error al generar PDF de liquidación' }, { status: 500 })
   }
 })
+

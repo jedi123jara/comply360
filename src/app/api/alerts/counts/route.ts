@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // GET /api/alerts/counts - Lightweight badge counts
 // =============================================
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('alertas_basicas', async (_req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const now = new Date()
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
@@ -33,3 +33,4 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
     expiringContracts,
   })
 })
+

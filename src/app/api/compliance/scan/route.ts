@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { scanOrgRisks } from '@/lib/compliance/risk-scanner'
 
 /**
@@ -7,7 +7,7 @@ import { scanOrgRisks } from '@/lib/compliance/risk-scanner'
  * Ejecuta el escáner completo de riesgos SUNAFIL para la organización.
  * Retorna todos los riesgos detectados con multas estimadas y plan de acción.
  */
-export const GET = withAuth(async (_req, ctx) => {
+export const GET = withPlanGate('diagnostico', async (_req, ctx) => {
   try {
     const report = await scanOrgRisks(ctx.orgId)
 
@@ -56,3 +56,4 @@ export const GET = withAuth(async (_req, ctx) => {
     )
   }
 })
+

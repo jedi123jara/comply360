@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 
 // =============================================
 // Types
@@ -64,7 +64,7 @@ function diagnosticPriority(score: number): ExpedientePriority {
 // =============================================
 // GET /api/expedientes — Aggregated cases
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = withPlanGate('contratos', async (req: NextRequest, ctx) => {
   try {
     const orgId = ctx.orgId
 
@@ -229,3 +229,4 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
     )
   }
 })
+

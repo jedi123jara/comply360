@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { analyzePayEquity, type PayEquityWorker } from '@/lib/compliance/pay-equity'
 
 export const runtime = 'nodejs'
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('reportes_pdf', async (_req: NextRequest, ctx: AuthContext) => {
   const rows = await prisma.worker.findMany({
     where: { orgId: ctx.orgId, status: 'ACTIVE' },
     select: {
@@ -31,3 +31,4 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
   const report = analyzePayEquity(workers)
   return NextResponse.json(report)
 })
+
