@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { puestoCreateSchema } from '@/lib/sst/schemas'
 
@@ -10,7 +10,7 @@ import { puestoCreateSchema } from '@/lib/sst/schemas'
 //   sedeId    — filtrar por sede
 //   workerId  — filtrar por trabajador asignado
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
   const sedeId = searchParams.get('sedeId')
@@ -35,7 +35,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // POST /api/sst/puestos — Create puesto
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = puestoCreateSchema.safeParse(body)
   if (!parsed.success) {

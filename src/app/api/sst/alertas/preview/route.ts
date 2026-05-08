@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { evaluarReglasSst, resumirAlertas } from '@/lib/sst/calendar-engine'
 
@@ -11,7 +11,7 @@ import { evaluarReglasSst, resumirAlertas } from '@/lib/sst/calendar-engine'
 // calendarizador, sin persistir nada. Útil para debugging y para mostrar
 // el estado actual en el dashboard SST.
 // =============================================
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: AuthContext) => {
   const [emos, ipercs, accidentes, comites] = await Promise.all([
     prisma.eMO.findMany({
       where: { orgId: ctx.orgId, proximoExamenAntes: { not: null } },

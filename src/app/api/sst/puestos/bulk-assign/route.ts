@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 /**
@@ -48,7 +48,7 @@ interface SkippedEntry {
   reason: string
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = bulkAssignSchema.safeParse(body)
   if (!parsed.success) {

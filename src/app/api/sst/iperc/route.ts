@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import {
   calcularProbabilidad,
   calcularNivelRiesgo,
@@ -15,7 +15,7 @@ import {
 // =============================================
 // GET /api/sst/iperc — List IPERC entries for org
 // =============================================
-export const GET = withAuth(async (req, ctx) => {
+export const GET = withPlanGate('sst_completo', async (req, ctx) => {
   try {
     const orgId = ctx.orgId
     const { searchParams } = new URL(req.url)
@@ -96,7 +96,7 @@ export const GET = withAuth(async (req, ctx) => {
 // =============================================
 // POST /api/sst/iperc — Create IPERC entry
 // =============================================
-export const POST = withAuth(async (req, ctx) => {
+export const POST = withPlanGate('sst_completo', async (req, ctx) => {
   try {
     const orgId = ctx.orgId
     const body = await req.json()

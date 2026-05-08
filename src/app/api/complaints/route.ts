@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { sendEmail } from '@/lib/email/client'
@@ -75,7 +76,7 @@ function looksLikeSpam(text: string): boolean {
 // =============================================
 // GET /api/complaints — List complaints (admin, auth required)
 // =============================================
-export const GET = withAuth(async (req, ctx) => {
+export const GET = withPlanGate('denuncias', async (req, ctx) => {
   try {
     const { searchParams } = new URL(req.url)
     const orgId = ctx.orgId
@@ -285,7 +286,7 @@ export async function POST(request: NextRequest) {
 // de otra org, devolvemos 404 sin tocar nada.
 // (Endurecimiento adicional a withRole('ADMIN') queda para Ola 3.)
 // =============================================
-export const PUT = withAuth(async (req, ctx) => {
+export const PUT = withPlanGate('denuncias', async (req, ctx) => {
   try {
     const body = await req.json()
     const { id, status, assignedTo, resolution, protectionMeasures, timelineAction, timelineDescription, performedBy } = body

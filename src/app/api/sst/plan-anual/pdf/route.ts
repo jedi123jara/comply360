@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   addHeader,
@@ -90,7 +90,7 @@ const ESTADO_COLORS: Record<ActividadPlan['estado'], [number, number, number]> =
   COMPLETADA: [16, 185, 129],
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const ano = parseInt(searchParams.get('ano') ?? new Date().getFullYear().toString(), 10)
   if (!Number.isFinite(ano)) {
