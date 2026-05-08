@@ -72,10 +72,15 @@ const cardVariants = cva(
       interactive: {
         true: [
           'cursor-pointer',
+          'transition-[transform,box-shadow,border-color]',
+          'duration-[var(--motion-short)]',
+          'ease-[var(--ease-standard)]',
+          'will-change-transform',
           'hover:-translate-y-0.5',
           'hover:shadow-[var(--elevation-hover)]',
           'hover:border-emerald-200',
           'active:translate-y-0 active:scale-[0.998]',
+          'active:transition-[transform] active:duration-[var(--motion-instant)]',
         ],
       },
       accentBar: {

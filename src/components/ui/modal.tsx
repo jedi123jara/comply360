@@ -25,6 +25,7 @@ const contentVariants = cva(
     'bg-white',
     'shadow-[var(--elevation-4)]',
     'data-[state=open]:animate-scale-in data-[state=open]:motion-fade-in',
+    'c360-modal-content',
     'focus:outline-none',
   ],
   {
@@ -75,6 +76,7 @@ export function Modal({
           className={cn(
             'fixed inset-0 z-[var(--z-modal)]',
             'bg-neutral-900/40 backdrop-blur-sm',
+            'c360-modal-overlay',
             'data-[state=open]:motion-fade-in'
           )}
         />

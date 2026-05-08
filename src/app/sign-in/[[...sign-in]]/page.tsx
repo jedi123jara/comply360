@@ -49,7 +49,7 @@ export default function SignInPage() {
         }}
       />
 
-      <div className="relative z-10 w-full max-w-md px-4">
+      <div className="relative z-10 w-full max-w-md px-4 c360-anim-slide-up">
         {/* Brand header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">

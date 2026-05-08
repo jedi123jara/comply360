@@ -6,7 +6,7 @@
  */
 export default function MarketingLoading() {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 py-16 animate-pulse">
+    <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 py-16 ">
       <div className="h-6 w-56 bg-emerald-100 rounded-full" />
       <div className="h-12 w-96 max-w-[90vw] bg-slate-200 rounded-lg" />
       <div className="space-y-2 max-w-xl w-full">

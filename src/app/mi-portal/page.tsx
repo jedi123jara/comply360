@@ -238,10 +238,10 @@ export default function MiPortalHomePage() {
   const idCardCode = `C360-${worker.dni.slice(-4)}`
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 c360-page-enter">
       {/* ─── 1. Hero editorial ─────────────────────────────────────────── */}
       <section
-        className="relative overflow-hidden rounded-2xl p-5 lg:p-7"
+        className="c360-anim-slide-up relative overflow-hidden rounded-2xl p-5 lg:p-7"
         style={{
           background:
             'linear-gradient(rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.96) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',

@@ -575,17 +575,20 @@ function HubSubItem({
         href={item.href}
         onClick={onNavigate}
         className={cn(
-          'group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+          'group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium',
+          'transition-[color,background-color,transform] duration-[var(--motion-short)] ease-[var(--ease-standard)]',
           isActive
-            ? 'text-emerald-700 bg-emerald-50'
-            : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:text-[color:var(--text-primary)]'
+            ? 'text-emerald-700 bg-emerald-50 before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[3px] before:rounded-r-full before:bg-emerald-600 before:content-[\'\']'
+            : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:text-[color:var(--text-primary)] hover:translate-x-0.5'
         )}
       >
         <Icon
           name={item.icon}
           className={cn(
-            'h-3.5 w-3.5 shrink-0 transition-colors',
-            isActive ? 'text-emerald-600' : 'text-[color:var(--text-tertiary)]'
+            'h-3.5 w-3.5 shrink-0 transition-[color,transform] duration-[var(--motion-short)]',
+            isActive
+              ? 'text-emerald-600 scale-110'
+              : 'text-[color:var(--text-tertiary)] group-hover:scale-105'
           )}
         />
         <span className="flex-1 truncate">{item.label}</span>

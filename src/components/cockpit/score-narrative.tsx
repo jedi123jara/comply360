@@ -64,7 +64,7 @@ export function ScoreNarrative({
   }).format(new Date())
 
   return (
-    <section className="relative grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-8 items-center rounded-2xl border border-[color:var(--border-default)] bg-white p-6 lg:p-8 shadow-[var(--elevation-3)] motion-fade-in-up overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-[4px] before:bg-[image:var(--accent-bar-emerald)]">
+    <section className="c360-anim-slide-up relative grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-8 items-center rounded-2xl border border-[color:var(--border-default)] bg-white p-6 lg:p-8 shadow-[var(--elevation-3)] motion-fade-in-up overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-[4px] before:bg-[image:var(--accent-bar-emerald)]">
       <div className="flex items-center justify-center">
         <ProgressRing value={isPending ? 0 : (score as number)} size={220} stroke={14}>
           <div className="text-center">

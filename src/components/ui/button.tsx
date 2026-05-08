@@ -21,11 +21,10 @@ import { cn } from '@/lib/utils'
 const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap',
-    'font-medium transition-all',
+    'font-medium transition-all duration-[var(--motion-micro)] ease-[var(--ease-standard)]',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white',
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
-    'active:scale-[0.98]',
-    'duration-150',
+    'active:scale-[var(--scale-press)] active:transition-[transform] active:duration-[var(--motion-instant)]',
   ],
   {
     variants: {

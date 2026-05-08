@@ -88,7 +88,7 @@ export function KpiCard({
         : 'var(--emerald-500, #2563eb)'
 
   return (
-    <div className={`c360-kpi${variantClass}`}>
+    <div className={`c360-kpi c360-hover-lift${variantClass}`}>
       <div className="c360-kpi-head">
         <span className="dot" aria-hidden="true" />
         {Icon ? <Icon size={12} strokeWidth={2.2} aria-hidden="true" /> : null}

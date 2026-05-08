@@ -283,7 +283,7 @@ export default function PlanesPage() {
               {/* Badge */}
               {plan.badge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="rounded-full bg-gold px-3 py-1 text-xs font-bold text-white shadow-md">
+                  <span className="c360-premium-shimmer rounded-full px-3 py-1 text-xs font-bold text-white shadow-md">
                     {plan.badge}
                   </span>
                 </div>

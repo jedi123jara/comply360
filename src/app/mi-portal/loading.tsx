@@ -5,7 +5,7 @@
  */
 export default function MiPortalLoading() {
   return (
-    <div className="space-y-5 animate-pulse p-4">
+    <div className="space-y-5  p-4">
       {/* Saludo */}
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-slate-200" />
