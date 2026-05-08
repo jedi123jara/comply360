@@ -19,21 +19,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
 
       - name: TypeScript Check
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
       - name: Unit Tests
-        run: npm test
+        run: pnpm test
 
   build:
     name: Build
@@ -48,10 +52,68 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
-      - run: npm run build
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  # FIX #8.B — Tests de integración con DB real (Postgres service container).
+  # Valida invariantes que dependen de la DB: RLS policies, FK constraints,
+  # hash chain con persistencia, racing en advisory locks.
+  integration-tests:
+    name: Integration tests (Postgres)
+    runs-on: ubuntu-latest
+    needs: lint-typecheck-test
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: comply360
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: comply360_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql://comply360:testpass@localhost:5432/comply360_test"
+      DIRECT_URL: "postgresql://comply360:testpass@localhost:5432/comply360_test"
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_placeholder"
+      CLERK_SECRET_KEY: "sk_test_placeholder"
+      MEDICAL_VAULT_KEY: "ci-test-key-32-chars-not-for-prod-use"
+      IMPORT_TOKEN_SECRET: "ci-test-import-secret-32-chars-min"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply Prisma migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Run integration tests
+        run: pnpm exec vitest run --config vitest.integration.config.ts
+        env:
+          # Marcamos tests de integración con tag — solo los corre este job.
+          INTEGRATION_TESTS: "1"
