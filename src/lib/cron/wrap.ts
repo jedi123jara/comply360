@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { claimCronRun, completeCronRun, failCronRun } from './idempotency'
+import { recordCronStart, recordCronSuccess, recordCronFailure } from '@/lib/observability/metrics'
 
 type CronHandler = (req: NextRequest) => Promise<NextResponse> | NextResponse
 
@@ -40,15 +41,22 @@ export function withCronIdempotency(
       return NextResponse.json({ ok: true, duplicate: true, bucket: claim.bucket })
     }
 
+    const startedAt = Date.now()
+    recordCronStart({ name: cronName, bucketKey: claim.bucket })
+
     try {
       const result = await handler(req)
+      const durationMs = Date.now() - startedAt
       // Best-effort: marca completado tras éxito. Si falla el update, no
       // afecta el resultado del cron (la corrida ya terminó OK).
       await completeCronRun(claim.runId).catch(() => undefined)
+      recordCronSuccess({ name: cronName, durationMs, bucketKey: claim.bucket })
       return result
     } catch (err) {
+      const durationMs = Date.now() - startedAt
       console.error(`[${cronName}] cron error`, err)
       await failCronRun(claim.runId, err).catch(() => undefined)
+      recordCronFailure({ name: cronName, error: err, durationMs, bucketKey: claim.bucket })
       return NextResponse.json(
         {
           error: 'Cron job failed',

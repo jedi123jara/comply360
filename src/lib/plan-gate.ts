@@ -9,6 +9,7 @@ import {
   planHasFeature,
   type PlanFeature,
 } from '@/lib/plan-features'
+import { recordPlanGateDenial, tagRequestContext } from '@/lib/observability/metrics'
 
 // =============================================
 // PLAN FEATURES & LIMITS
@@ -127,8 +128,17 @@ export function withPlanGate(
     }
 
     // Check feature access
+    tagRequestContext({ orgId: ctx.orgId, plan: effectivePlan, userId: ctx.userId, route: req.nextUrl?.pathname })
+
     if (!planHasFeature(effectivePlan, requiredFeature)) {
       const minPlan = FEATURE_MIN_PLAN[requiredFeature]
+      recordPlanGateDenial({
+        feature: requiredFeature,
+        currentPlan: effectivePlan,
+        requiredPlan: minPlan,
+        orgId: ctx.orgId,
+        route: req.nextUrl?.pathname ?? 'unknown',
+      })
       return NextResponse.json(
         {
           error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
@@ -183,8 +193,17 @@ export function withPlanGateParams<P extends Record<string, string>>(
       effectivePlan = 'FREE'
     }
 
+    tagRequestContext({ orgId: ctx.orgId, plan: effectivePlan, userId: ctx.userId, route: req.nextUrl?.pathname })
+
     if (!planHasFeature(effectivePlan, requiredFeature)) {
       const minPlan = FEATURE_MIN_PLAN[requiredFeature]
+      recordPlanGateDenial({
+        feature: requiredFeature,
+        currentPlan: effectivePlan,
+        requiredPlan: minPlan,
+        orgId: ctx.orgId,
+        route: req.nextUrl?.pathname ?? 'unknown',
+      })
       return NextResponse.json(
         {
           error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
