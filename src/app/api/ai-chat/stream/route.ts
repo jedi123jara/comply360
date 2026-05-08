@@ -87,6 +87,29 @@ export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
         } catch { /* stream closed */ }
       }, 15000)
 
+      // FIX #4.D — Re-valida cada 30s que la org/plan siga vigente y dentro
+      // del budget. Si admin revoca trial o la org se desactiva mid-stream,
+      // abortamos para evitar consumo descontrolado de tokens IA.
+      const sessionCheck = setInterval(async () => {
+        try {
+          const [orgFresh, budget] = await Promise.all([
+            prisma.organization.findUnique({
+              where: { id: orgId },
+              select: { plan: true, planExpiresAt: true },
+            }),
+            checkAiBudget({ orgId, plan: org?.plan ?? 'FREE' }),
+          ])
+          const isPaid = orgFresh && (orgFresh.plan === 'PRO' || orgFresh.plan === 'EMPRESA' || orgFresh.plan === 'BUSINESS' || orgFresh.plan === 'ENTERPRISE')
+          const notExpired = !orgFresh?.planExpiresAt || orgFresh.planExpiresAt > new Date()
+          if (!orgFresh || !isPaid || !notExpired || !budget.allowed) {
+            controller.enqueue(
+              encoder.encode(sseFormat('error', { error: 'SESSION_REVOKED', message: 'Sesión o plan revocado durante el stream.' })),
+            )
+            abortController.abort()
+          }
+        } catch { /* on error keep streaming — fail open to not interrupt UX */ }
+      }, 30_000)
+
       try {
         for await (const evt of generateChatStream(messages, orgContext, {
           orgId,
@@ -113,6 +136,7 @@ export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
         )
       } finally {
         clearInterval(heartbeat)
+        clearInterval(sessionCheck)
         try {
           controller.close()
         } catch { /* already closed */ }

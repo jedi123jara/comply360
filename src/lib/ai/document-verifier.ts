@@ -659,19 +659,57 @@ export function parseIsoDate(raw: unknown): string | null {
 // File resolver — local filesystem o URL externa
 // ═══════════════════════════════════════════════════════════════════════════
 
+// FIX #4.C — Server-side download con allowlist de dominios.
+// Antes pasábamos la URL absoluta a OpenAI directamente; cualquier registro
+// de fileUrl arbitrario en DB convertía a OpenAI en proxy SSRF y exfiltraba
+// el archivo a sus servidores sin nuestro control. Ahora descargamos en el
+// server, validamos origen y enviamos como base64 data URL.
+const MAX_DOC_BYTES = 8 * 1024 * 1024 // 8MB cap (GPT vision limita ~20MB)
+
+function isAllowedExternalHost(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl)
+    if (u.protocol !== 'https:') return false
+    // Solo permitimos Supabase Storage del proyecto activo + nuestros dominios.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (supabaseUrl) {
+      const supaHost = new URL(supabaseUrl).hostname
+      if (u.hostname === supaHost) return true
+    }
+    // Fallback: cualquier *.supabase.co (storage URLs públicas)
+    if (u.hostname.endsWith('.supabase.co')) return true
+    // Permitimos también nuestro propio dominio (uploads servidos por la app)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    if (appUrl) {
+      const appHost = new URL(appUrl).hostname
+      if (u.hostname === appHost) return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 async function resolveImageDataUrl(fileUrl: string, mime: string): Promise<string> {
-  // Supabase / cualquier URL absoluta → devolver tal cual (GPT la fetcha)
+  // URL absoluta → validar host + descargar server-side
   if (/^https?:\/\//i.test(fileUrl)) {
-    return fileUrl
+    if (!isAllowedExternalHost(fileUrl)) {
+      throw new Error(`Host no permitido para descarga: ${fileUrl}`)
+    }
+    const res = await fetch(fileUrl, { signal: AbortSignal.timeout(15_000) })
+    if (!res.ok) throw new Error(`Descarga fallida (${res.status}) ${fileUrl}`)
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.byteLength > MAX_DOC_BYTES) {
+      throw new Error(`Archivo excede ${MAX_DOC_BYTES} bytes`)
+    }
+    return `data:${mime};base64,${buf.toString('base64')}`
   }
 
-  // URL relativa local (ej: "/uploads/workers/abc/123.jpg") → leer del FS y
-  // empaquetar como base64 data URL
+  // URL relativa local (ej: "/uploads/workers/abc/123.jpg")
   if (fileUrl.startsWith('/uploads/')) {
     const absPath = path.join(process.cwd(), 'public', fileUrl)
     const buffer = await readFile(absPath)
-    const base64 = buffer.toString('base64')
-    return `data:${mime};base64,${base64}`
+    return `data:${mime};base64,${buffer.toString('base64')}`
   }
 
   throw new Error(`URL de archivo no reconocida: ${fileUrl}`)
@@ -823,9 +861,16 @@ Respondé con el JSON especificado. No agregues explicaciones fuera del JSON.`
 
 async function resolvePdfBuffer(fileUrl: string): Promise<Buffer> {
   if (/^https?:\/\//i.test(fileUrl)) {
-    const res = await fetch(fileUrl)
+    // FIX #4.C — Misma allowlist que imágenes para evitar SSRF.
+    if (!isAllowedExternalHost(fileUrl)) {
+      throw new Error(`Host no permitido para descarga PDF: ${fileUrl}`)
+    }
+    const res = await fetch(fileUrl, { signal: AbortSignal.timeout(15_000) })
     if (!res.ok) throw new Error(`HTTP ${res.status} fetching PDF`)
     const ab = await res.arrayBuffer()
+    if (ab.byteLength > MAX_DOC_BYTES) {
+      throw new Error(`PDF excede ${MAX_DOC_BYTES} bytes`)
+    }
     return Buffer.from(ab)
   }
   if (fileUrl.startsWith('/uploads/')) {

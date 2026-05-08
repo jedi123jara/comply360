@@ -32,7 +32,7 @@ const worker: WorkerIdentity = {
 
 function imageDoc(overrides: Partial<DocumentInput> = {}): DocumentInput {
   return {
-    fileUrl: 'https://storage.example.com/docs/dni-photo.jpg',
+    fileUrl: 'https://test.supabase.co/docs/dni-photo.jpg',
     mimeType: 'image/jpeg',
     documentType: 'dni_copia',
     ...overrides,
@@ -93,7 +93,7 @@ describe('verifyDocument — input validation', () => {
     // itself is accepted. We verify it does NOT short-circuit as 'unsupported'.
     const { verifyDocument } = await loadVerifier()
     const result = await verifyDocument(
-      imageDoc({ mimeType: 'application/pdf', fileUrl: 'https://example.com/doc.pdf' }),
+      imageDoc({ mimeType: 'application/pdf', fileUrl: 'https://test.supabase.co/doc.pdf' }),
       worker,
     )
     // PDF path will fail (no real file / pdf-parse may error), but the decision
@@ -173,7 +173,7 @@ describe('verifyDocument — missing OPENAI_API_KEY', () => {
     // Mock fetch to not be called — the key check happens before fetch
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
     const result = await verifyDocument(
-      imageDoc({ fileUrl: 'https://example.com/img.jpg' }),
+      imageDoc({ fileUrl: 'https://test.supabase.co/img.jpg' }),
       worker,
     )
     expect(result.decision).toBe('error')
@@ -205,12 +205,23 @@ describe('verifyDocument — image verification with mocked OpenAI', () => {
   })
 
   function mockFetchSuccess(payload: Record<string, unknown>) {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(openAIResponseBody(payload), {
+    // Devolvemos un Response NUEVO en cada llamada para soportar el flujo
+    // post-FIX #4.C donde primero descargamos el archivo (server-side) y luego
+    // llamamos a OpenAI. Si la URL contiene "openai" devolvemos el payload AI;
+    // si no, devolvemos bytes ficticios (download de la "imagen").
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url
+      if (url.includes('openai.com')) {
+        return new Response(openAIResponseBody(payload), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    )
+        headers: { 'Content-Type': 'image/jpeg' },
+      })
+    })
   }
 
   it('accepts image/jpeg and returns a valid VerificationResult', async () => {
@@ -237,7 +248,7 @@ describe('verifyDocument — image verification with mocked OpenAI', () => {
     mockFetchSuccess(makeAIPayload())
     const { verifyDocument } = await loadVerifier()
     const result = await verifyDocument(
-      imageDoc({ mimeType: 'image/png', fileUrl: 'https://example.com/doc.png' }),
+      imageDoc({ mimeType: 'image/png', fileUrl: 'https://test.supabase.co/doc.png' }),
       worker,
     )
     expect(result.decision).not.toBe('unsupported')
@@ -357,12 +368,23 @@ describe('verifyDocument — cross-match logic via mocked responses', () => {
   })
 
   function mockFetchSuccess(payload: Record<string, unknown>) {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(openAIResponseBody(payload), {
+    // Devolvemos un Response NUEVO en cada llamada para soportar el flujo
+    // post-FIX #4.C donde primero descargamos el archivo (server-side) y luego
+    // llamamos a OpenAI. Si la URL contiene "openai" devolvemos el payload AI;
+    // si no, devolvemos bytes ficticios (download de la "imagen").
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url
+      if (url.includes('openai.com')) {
+        return new Response(openAIResponseBody(payload), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    )
+        headers: { 'Content-Type': 'image/jpeg' },
+      })
+    })
   }
 
   it('fuzzy matches names with accents (tildes)', async () => {
@@ -515,12 +537,23 @@ describe('verifyDocument — anti-fraude guard', () => {
   })
 
   function mockFetchSuccess(payload: Record<string, unknown>) {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(openAIResponseBody(payload), {
+    // Devolvemos un Response NUEVO en cada llamada para soportar el flujo
+    // post-FIX #4.C donde primero descargamos el archivo (server-side) y luego
+    // llamamos a OpenAI. Si la URL contiene "openai" devolvemos el payload AI;
+    // si no, devolvemos bytes ficticios (download de la "imagen").
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url
+      if (url.includes('openai.com')) {
+        return new Response(openAIResponseBody(payload), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    )
+        headers: { 'Content-Type': 'image/jpeg' },
+      })
+    })
   }
 
   it('baja auto-verified a needs-review cuando suspicionScore ≥ 0.6', async () => {
