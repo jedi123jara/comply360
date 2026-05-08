@@ -4,6 +4,7 @@ import {
   calcularPeriodoLaboral,
   calcularRemuneracionComputable,
 } from '../peru-labor'
+import { money } from '../money'
 
 // =============================================
 // INDEMNIZACIÓN POR DESPIDO ARBITRARIO
@@ -36,23 +37,24 @@ function calcularIndemnizacionIndefinido(
   const anosServicio = periodo.anos
   const mesesFraccion = periodo.meses
 
-  // Indemnización = 1.5 sueldos × años completos
-  let indemnizacion = config.FACTOR_POR_ANO * remComputable * anosServicio
+  // Indemnización — FIX #2.A aritmética decimal precisa.
+  const factorBase = money(config.FACTOR_POR_ANO).mul(remComputable)
+  let indemnizacionM = factorBase.mul(anosServicio)
 
   // Fracción proporcional por meses (mínimo 1 mes para que aplique)
   if (mesesFraccion >= config.FRACCION_MINIMA_MESES) {
-    indemnizacion += (config.FACTOR_POR_ANO * remComputable / 12) * mesesFraccion
+    indemnizacionM = indemnizacionM.add(factorBase.div(12).mul(mesesFraccion))
   }
 
   // Fracción proporcional por días
   if (periodo.dias > 0) {
-    indemnizacion += (config.FACTOR_POR_ANO * remComputable / 360) * periodo.dias
+    indemnizacionM = indemnizacionM.add(factorBase.div(360).mul(periodo.dias))
   }
 
-  indemnizacion = Math.round(indemnizacion * 100) / 100
+  let indemnizacion = indemnizacionM.toNumber()
 
   // Tope: 12 remuneraciones
-  const topeMaximo = Math.round(config.TOPE_SUELDOS * remComputable * 100) / 100
+  const topeMaximo = money(config.TOPE_SUELDOS).mul(remComputable).toNumber()
   const topeAplicado = indemnizacion > topeMaximo
   if (topeAplicado) {
     indemnizacion = topeMaximo
@@ -112,13 +114,14 @@ function calcularIndemnizacionPlazoFijo(
   const mesesRestantes = periodoRestante.totalMeses + (periodoRestante.dias > 0 ? 1 : 0)
 
   // Indemnización = 1.5 × remuneración × meses restantes (Art. 76 D.S. 003-97-TR)
-  // "una remuneración y media ordinaria mensual por cada mes dejado de laborar"
-  let indemnizacion = Math.round(
-    config.FACTOR_POR_MES_RESTANTE * remComputable * mesesRestantes * 100
-  ) / 100
+  // FIX #2.A aritmética decimal precisa.
+  let indemnizacion = money(config.FACTOR_POR_MES_RESTANTE)
+    .mul(remComputable)
+    .mul(mesesRestantes)
+    .toNumber()
 
   // Tope: 12 remuneraciones
-  const topeMaximo = Math.round(config.TOPE_SUELDOS * remComputable * 100) / 100
+  const topeMaximo = money(config.TOPE_SUELDOS).mul(remComputable).toNumber()
   const topeAplicado = indemnizacion > topeMaximo
   if (topeAplicado) {
     indemnizacion = topeMaximo
