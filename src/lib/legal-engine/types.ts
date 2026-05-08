@@ -13,6 +13,16 @@ export interface LiquidacionInput {
   horasExtrasPendientes: number
   ultimaGratificacion: number  // monto
   comisionesPromedio: number
+  /**
+   * FIX #2.C: régimen laboral del trabajador. Determina:
+   *  - MYPE_MICRO: sin CTS, sin gratificaciones, vacaciones 15 días,
+   *    indemnización 10 rem diarias × año (Ley 32353 Art. 64).
+   *  - MYPE_PEQUENA: 50% CTS, 50% gratificaciones, vacaciones 15 días,
+   *    indemnización 20 rem diarias × año.
+   *  - Otros: tratamiento GENERAL (D.S. 003-97-TR).
+   * Default 'GENERAL' si no se provee (compat con callers existentes).
+   */
+  regimenLaboral?: string
 }
 
 export type MotivoCese =

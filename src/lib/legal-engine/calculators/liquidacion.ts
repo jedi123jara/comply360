@@ -20,11 +20,32 @@ export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult 
     input.comisionesPromedio
   )
 
+  // FIX #2.C: factor MYPE para CTS y gratificaciones.
+  // - MYPE_MICRO: 0 (sin derecho a CTS/grati)
+  // - MYPE_PEQUENA: 0.5 (50% CTS, 50% grati)
+  // - Otros: 1.0 (full)
+  const regimen = input.regimenLaboral
+  const mypeFactor =
+    regimen === 'MYPE_MICRO' ? 0 :
+    regimen === 'MYPE_PEQUENA' ? 0.5 :
+    1.0
+
+  const ctsItem = calcularCTSLiquidacion(remComputable, periodo, input)
+  const gratItem = calcularGratificacionTrunca(remComputable, input)
+  if (mypeFactor !== 1.0) {
+    ctsItem.amount = Math.round(ctsItem.amount * mypeFactor * 100) / 100
+    ctsItem.details = (ctsItem.details ?? '') +
+      ` [Régimen ${regimen}: factor ${mypeFactor} aplicado — Ley 32353 Art. 64]`
+    gratItem.amount = Math.round(gratItem.amount * mypeFactor * 100) / 100
+    gratItem.details = (gratItem.details ?? '') +
+      ` [Régimen ${regimen}: factor ${mypeFactor} aplicado]`
+  }
+
   const breakdown: LiquidacionBreakdown = {
-    cts: calcularCTSLiquidacion(remComputable, periodo, input),
+    cts: ctsItem,
     vacacionesTruncas: calcularVacacionesTruncas(remComputable, periodo),
     vacacionesNoGozadas: calcularVacacionesNoGozadas(remComputable, input.vacacionesNoGozadas),
-    gratificacionTrunca: calcularGratificacionTrunca(remComputable, input),
+    gratificacionTrunca: gratItem,
     indemnizacion: calcularIndemnizacionSiAplica(remComputable, periodo, input),
     horasExtras: calcularHorasExtrasAcumuladas(input.sueldoBruto, input.horasExtrasPendientes),
     bonificacionEspecial: calcularBonificacionEspecial(remComputable, input),

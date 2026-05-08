@@ -438,10 +438,19 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
       )
     }
 
-    // Limit file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // FIX #6.D: cap hard de tamaño antes del read.
+    // El audit identificó que XLSX.read(buffer) carga todo en memoria.
+    // Para mitigar el OOM en lambdas sin migrar a exceljs streaming
+    // (refactor invasivo), reducimos el tope a 3MB que en la práctica
+    // cubre Excel de hasta ~10k filas (suficiente para el límite de
+    // 1000 filas que aplicamos post-parse en #1.D).
+    const MAX_UPLOAD_BYTES = 3 * 1024 * 1024
+    if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
-        { error: 'El archivo excede el tamano maximo de 5MB' },
+        {
+          error: `El archivo excede el tamaño máximo (${MAX_UPLOAD_BYTES / 1024 / 1024}MB). ` +
+            `Si tienes >1000 trabajadores, divide el Excel en partes o contacta soporte.`,
+        },
         { status: 400 }
       )
     }
@@ -450,7 +459,16 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
     let csvContent: string
     if (isExcel) {
       const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, { type: 'array' })
+      const workbook = XLSX.read(buffer, {
+        type: 'array',
+        // FIX #6.D: opciones de SheetJS que reducen footprint en memoria
+        cellDates: false, // no parsear fechas a Date objects (lo hacemos manual)
+        cellNF: false, // no incluir número-formato
+        cellStyles: false, // no incluir estilos
+        bookProps: false, // no incluir metadatos del workbook
+        bookSheets: true, // solo nombres de sheets, no toda la metadata
+        sheetRows: 1500, // tope de filas leídas (1000 workers + ~500 de header/empty)
+      })
       const sheetName = workbook.SheetNames[0]
       const sheet = workbook.Sheets[sheetName]
       csvContent = preprocessExcelToCsv(sheet)

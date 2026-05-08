@@ -1797,6 +1797,13 @@ model AuditLog {
   metadataJson Json?    @map("metadata_json")
   ipAddress    String?  @map("ip_address")
   createdAt    DateTime @default(now()) @map("created_at")
+  // FIX #7.D — Hash chain por org (tampper-evident audit trail).
+  // Cada entry incluye sha256(prevHash + canonical(this)) → si alguien
+  // edita una metadata vieja, todos los hashes posteriores quedan
+  // inválidos y se detecta en /api/audit/verify. Migración 20260507160000
+  // backfilea los registros existentes con prevHash=null.
+  prevHash     String?  @map("prev_hash")
+  entryHash    String?  @map("entry_hash")
 
   organization Organization @relation(fields: [orgId], references: [id])
   user         User?        @relation(fields: [userId], references: [id])
