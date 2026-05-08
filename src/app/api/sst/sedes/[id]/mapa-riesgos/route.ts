@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
@@ -45,7 +45,7 @@ const layoutSchema = z.object({
 // =============================================
 // GET /api/sst/sedes/[id]/mapa-riesgos
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     // Verificar sede pertenece a la org
     const sede = await prisma.sede.findFirst({
@@ -79,7 +79,7 @@ export const GET = withAuthParams<{ id: string }>(
 // POST /api/sst/sedes/[id]/mapa-riesgos
 // Crea o actualiza el mapa de riesgos de la sede.
 // =============================================
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = layoutSchema.safeParse(body)
@@ -150,3 +150,4 @@ export const POST = withAuthParams<{ id: string }>(
     return NextResponse.json({ recordId: record.id, savedAt: record.updatedAt })
   },
 )
+

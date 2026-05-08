@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { miembroUpdateSchema } from '@/lib/sst/schemas'
 
@@ -8,7 +8,7 @@ import { miembroUpdateSchema } from '@/lib/sst/schemas'
 // PATCH /api/sst/comites/miembros/[id]
 // Permite cambiar cargo, origen, o dar de baja (fechaBaja).
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = miembroUpdateSchema.safeParse(body)
@@ -97,7 +97,7 @@ export const PATCH = withAuthParams<{ id: string }>(
 // DELETE /api/sst/comites/miembros/[id]
 // Soft delete: setea fechaBaja = now (mantiene el audit trail).
 // =============================================
-export const DELETE = withAuthParams<{ id: string }>(
+export const DELETE = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const miembro = await prisma.miembroComite.findFirst({
       where: { id, comite: { orgId: ctx.orgId } },
@@ -137,3 +137,4 @@ export const DELETE = withAuthParams<{ id: string }>(
     return NextResponse.json({ ok: true })
   },
 )
+

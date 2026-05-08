@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   addHeader,
@@ -54,7 +54,7 @@ function drawClasBadge(doc: JsPDFDoc, label: string, value: string, x: number, y
   doc.setFont('helvetica', 'normal')
 }
 
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const iperc = await prisma.iPERCBase.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -300,3 +300,4 @@ export const GET = withAuthParams<{ id: string }>(
     return finalizePDF(doc, `iperc-v${iperc.version}-${iperc.sede.nombre}.pdf`)
   },
 )
+

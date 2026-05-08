@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { arcoUpdateSchema } from '@/lib/sst/schemas'
 import { decryptMedical } from '@/lib/sst/medical-vault'
@@ -12,7 +12,7 @@ import { decryptMedical } from '@/lib/sst/medical-vault'
 // el cliente lo pide explícitamente con ?descifrar=1, y se registra en el
 // audit log quién y cuándo accedió.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const url = new URL(req.url)
     const descifrar = url.searchParams.get('descifrar') === '1'
@@ -76,7 +76,7 @@ export const GET = withAuthParams<{ id: string }>(
 // PATCH /api/sst/derechos-arco/[id]
 // Actualiza estado, asigna DPO, registra respuesta.
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = arcoUpdateSchema.safeParse(body)
@@ -139,3 +139,4 @@ export const PATCH = withAuthParams<{ id: string }>(
     return NextResponse.json({ solicitud })
   },
 )
+

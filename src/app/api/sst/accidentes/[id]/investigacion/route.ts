@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { investigacionCreateSchema } from '@/lib/sst/schemas'
 
 // =============================================
 // POST /api/sst/accidentes/[id]/investigacion — Crear investigación
 // =============================================
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = investigacionCreateSchema.safeParse(body)
@@ -40,3 +40,4 @@ export const POST = withAuthParams<{ id: string }>(
     return NextResponse.json({ investigacion: inv }, { status: 201 })
   },
 )
+

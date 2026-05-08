@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { verifyChallenge } from '@/lib/webauthn-server'
 
@@ -61,7 +61,7 @@ interface EleccionData {
   votos: Voto[]
 }
 
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = votoSchema.safeParse(body)
@@ -248,3 +248,4 @@ export const POST = withAuthParams<{ id: string }>(
     })
   },
 )
+

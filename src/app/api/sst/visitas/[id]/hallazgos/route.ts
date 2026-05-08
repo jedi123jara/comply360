@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { hallazgoCreateSchema } from '@/lib/sst/schemas'
 
@@ -8,7 +8,7 @@ import { hallazgoCreateSchema } from '@/lib/sst/schemas'
 // POST /api/sst/visitas/[id]/hallazgos
 // Agrega un hallazgo a una visita Field Audit (no cerrada).
 // =============================================
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = hallazgoCreateSchema.safeParse(body)
@@ -54,3 +54,4 @@ export const POST = withAuthParams<{ id: string }>(
     return NextResponse.json({ hallazgo }, { status: 201 })
   },
 )
+

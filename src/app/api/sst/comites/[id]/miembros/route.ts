@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { miembroCreateSchema } from '@/lib/sst/schemas'
 
@@ -12,7 +12,7 @@ import { miembroCreateSchema } from '@/lib/sst/schemas'
 //   - No puede haber dos PRESIDENTE ni dos SECRETARIO activos al mismo tiempo.
 //   - El mismo worker no puede estar 2 veces como miembro activo.
 // =============================================
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = miembroCreateSchema.safeParse(body)
@@ -110,3 +110,4 @@ export const POST = withAuthParams<{ id: string }>(
     return NextResponse.json({ miembro }, { status: 201 })
   },
 )
+

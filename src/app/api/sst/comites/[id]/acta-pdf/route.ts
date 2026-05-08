@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   addHeader,
@@ -27,7 +27,7 @@ const ORIGEN_LABEL: Record<string, string> = {
 // Formato R.M. 245-2021-TR. Incluye lista de miembros activos con cargo y
 // origen, mandato y espacio para firmas.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const comite = await prisma.comiteSST.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -184,3 +184,4 @@ El Comité tendrá el mandato de dos (2) años calendario, a contar desde la fec
     return finalizePDF(doc, `acta-comite-sst-${comite.id}.pdf`)
   },
 )
+

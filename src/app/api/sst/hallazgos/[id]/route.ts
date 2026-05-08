@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // DELETE /api/sst/hallazgos/[id]
 // Elimina un hallazgo (sólo si la visita aún no está cerrada).
 // =============================================
-export const DELETE = withAuthParams<{ id: string }>(
+export const DELETE = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const hallazgo = await prisma.hallazgoFieldAudit.findFirst({
       where: { id, visita: { orgId: ctx.orgId } },
@@ -27,3 +27,4 @@ export const DELETE = withAuthParams<{ id: string }>(
     return NextResponse.json({ ok: true })
   },
 )
+

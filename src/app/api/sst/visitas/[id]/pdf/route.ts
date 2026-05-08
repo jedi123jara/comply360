@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   addHeader,
@@ -39,7 +39,7 @@ const TIPO_LABEL: Record<string, string> = {
 // =============================================
 // GET /api/sst/visitas/[id]/pdf — Informe Field Audit
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const visita = await prisma.visitaFieldAudit.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -231,3 +231,4 @@ export const GET = withAuthParams<{ id: string }>(
     return finalizePDF(doc, `field-audit-${visita.id}.pdf`)
   },
 )
+

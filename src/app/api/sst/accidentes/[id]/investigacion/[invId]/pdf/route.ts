@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   addHeader,
@@ -51,7 +51,7 @@ const TIPO_ACCIDENTE_LABEL: Record<string, string> = {
   ENFERMEDAD_OCUPACIONAL: 'Enfermedad Ocupacional',
 }
 
-export const GET = withAuthParams<{ id: string; invId: string }>(
+export const GET = withPlanGateParams<{ id: string; invId: string }>('sst_completo', 
   async (_req: NextRequest, ctx: AuthContext, { id, invId }) => {
     const accidente = await prisma.accidente.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -330,3 +330,4 @@ export const GET = withAuthParams<{ id: string; invId: string }>(
     return finalizePDF(doc, `investigacion-${accidente.id}-${investigacion.id}.pdf`)
   },
 )
+

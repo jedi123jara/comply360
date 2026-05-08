@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { sugerirFilasIperc } from '@/lib/sst/iperc-llm'
 
@@ -21,7 +21,7 @@ const bodySchema = z.object({
   maxFilas: z.number().int().min(1).max(15).optional(),
 })
 
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('sst_completo', 
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = bodySchema.safeParse(body)
@@ -139,3 +139,4 @@ export const POST = withAuthParams<{ id: string }>(
     })
   },
 )
+
