@@ -11,12 +11,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calculateComplianceScore } from '@/lib/compliance/score-calculator'
 import { ComplianceExecutivePDF } from '@/lib/pdf/react-pdf/compliance-executive'
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('reportes_pdf', async (_req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
 
   const org = await prisma.organization.findUnique({

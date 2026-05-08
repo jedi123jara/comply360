@@ -9,12 +9,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // ─── GET — List managed clients with their latest stats ──────────────────────
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('asistente_ia', async (_req: NextRequest, ctx: AuthContext) => {
   try {
     const consultorOrgId = ctx.orgId
 
@@ -108,7 +108,7 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
 
 // ─── POST — Add a client org to this consultor's portfolio ──────────────────
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('asistente_ia', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = (await req.json()) as { ruc?: string; notes?: string }
 

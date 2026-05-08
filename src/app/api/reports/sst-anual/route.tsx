@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { SstAnnualPDF, type SstAnnualData } from '@/lib/pdf/react-pdf/sst-annual'
 import type { SstRecordType, SstStatus } from '@/generated/prisma/client'
@@ -23,7 +23,7 @@ function formatDateShort(d: Date | string | null): string {
   return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('reportes_pdf', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const yearParam = new URL(req.url).searchParams.get('year')
   const year = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear()

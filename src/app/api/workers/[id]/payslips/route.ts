@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
 import { calculateLateDeduction } from '@/lib/attendance/late-deduction'
@@ -8,7 +8,7 @@ import { calculateLateDeduction } from '@/lib/attendance/late-deduction'
 // =============================================
 // GET /api/workers/[id]/payslips — list payslips for a worker
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (
+export const GET = withPlanGateParams<{ id: string }>('workers', async (
   req: NextRequest,
   ctx: AuthContext,
   params
@@ -68,7 +68,7 @@ export const GET = withAuthParams<{ id: string }>(async (
 // POST /api/workers/[id]/payslips — generate a new payslip
 // Body: { periodo: "2026-04", horasExtras?, bonificaciones?, incluirGratificacion? }
 // =============================================
-export const POST = withAuthParams<{ id: string }>(async (
+export const POST = withPlanGateParams<{ id: string }>('workers', async (
   req: NextRequest,
   ctx: AuthContext,
   params
@@ -272,3 +272,4 @@ export const POST = withAuthParams<{ id: string }>(async (
 
   return NextResponse.json({ payslip, result }, { status: 201 })
 })
+
