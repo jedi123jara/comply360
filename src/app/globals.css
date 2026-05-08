@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
+@import "../styles/motion.css";
 /* Nota: Instrument Serif se carga via next/font/google en layout.tsx
    (expone --font-instrument-serif), consumido por --font-serif en tokens.css.
    Geist sigue siendo workhorse; serif solo en momentos drama. */

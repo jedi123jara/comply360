@@ -1,0 +1,380 @@
+/* =============================================================================
+ * COMPLY360 — Motion System v1
+ *
+ * Sistema de animaciones consistente. NO mezclar timings o easings ad-hoc en
+ * componentes; usar siempre estos tokens y clases.
+ *
+ * Filosofía:
+ *   - Micro-interacciones: 150ms (botones, hovers)
+ *   - Transiciones cortas: 200ms (cards, badges)
+ *   - Transiciones medias: 300ms (modales, drawers)
+ *   - Transiciones largas: 500ms (page transitions)
+ *
+ * Easing único "standard" (cubic-bezier coherente con Material/Apple HIG).
+ *
+ * Respeta `prefers-reduced-motion` automáticamente.
+ * =============================================================================
+ */
+
+:root {
+  /* ─── Duration tokens ──────────────────────────────────────────────── */
+  --motion-instant: 75ms;
+  --motion-micro: 150ms;
+  --motion-short: 200ms;
+  --motion-medium: 300ms;
+  --motion-long: 500ms;
+  --motion-deliberate: 700ms;
+
+  /* ─── Easing tokens ────────────────────────────────────────────────── */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);     /* Material standard */
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);          /* deceleration */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);           /* acceleration */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);  /* sutil overshoot */
+  --ease-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94); /* swoosh suave */
+
+  /* ─── Transform tokens (hover lifts) ───────────────────────────────── */
+  --lift-subtle: -1px;
+  --lift-card: -2px;
+  --lift-prominent: -4px;
+  --scale-press: 0.98;
+  --scale-hover: 1.02;
+  --scale-emphasis: 1.05;
+}
+
+/* ─── Reduced motion: anula todo ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =============================================================================
+ *  KEYFRAMES — vocabulario de animaciones
+ * ===========================================================================
+ */
+
+/* Fade base — entry */
+@keyframes c360-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes c360-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Slide-up + fade (modales, sheets desde bottom) */
+@keyframes c360-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes c360-slide-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Slide horizontal (drawers, sidebars móviles) */
+@keyframes c360-slide-right {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes c360-slide-left {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Scale-in para popovers, tooltips */
+@keyframes c360-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Pulse — para alertas críticas, ring de score, indicadores online */
+@keyframes c360-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.85; transform: scale(1.05); }
+}
+
+@keyframes c360-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45); }
+  70%  { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+/* Shimmer — skeletons, badges PRO, certificados */
+@keyframes c360-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Spin — loaders */
+@keyframes c360-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Shake — errores de formulario */
+@keyframes c360-shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+
+/* Count-up effect (uses opacity + slight slide) */
+@keyframes c360-count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Bounce suave para checkmarks de éxito */
+@keyframes c360-bounce-in {
+  0%   { opacity: 0; transform: scale(0.3); }
+  50%  { opacity: 1; transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* =============================================================================
+ *  UTILITY CLASSES — ready-to-use
+ * ===========================================================================
+ */
+
+/* Entry animations — aplicar a contenedores que aparecen */
+.c360-anim-fade-in    { animation: c360-fade-in var(--motion-medium) var(--ease-enter) both; }
+.c360-anim-slide-up   { animation: c360-slide-up var(--motion-medium) var(--ease-enter) both; }
+.c360-anim-slide-down { animation: c360-slide-down var(--motion-medium) var(--ease-enter) both; }
+.c360-anim-slide-right{ animation: c360-slide-right var(--motion-medium) var(--ease-enter) both; }
+.c360-anim-scale-in   { animation: c360-scale-in var(--motion-short) var(--ease-enter) both; }
+.c360-anim-bounce-in  { animation: c360-bounce-in var(--motion-medium) var(--ease-bounce) both; }
+.c360-anim-count-up   { animation: c360-count-up var(--motion-medium) var(--ease-enter) both; }
+
+/* Stagger delays — usar en listas para entrada secuencial */
+.c360-stagger-1 { animation-delay: 50ms; }
+.c360-stagger-2 { animation-delay: 100ms; }
+.c360-stagger-3 { animation-delay: 150ms; }
+.c360-stagger-4 { animation-delay: 200ms; }
+.c360-stagger-5 { animation-delay: 250ms; }
+.c360-stagger-6 { animation-delay: 300ms; }
+
+/* Pulses (loops) */
+.c360-pulse      { animation: c360-pulse 2s var(--ease-soft) infinite; }
+.c360-pulse-ring { animation: c360-pulse-ring 2s var(--ease-soft) infinite; }
+
+/* Shimmer para skeleton y badges premium */
+.c360-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: c360-shimmer 2.4s linear infinite;
+}
+
+.c360-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100) 0%,
+    var(--neutral-150) 50%,
+    var(--neutral-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: c360-shimmer 1.8s linear infinite;
+  border-radius: 8px;
+}
+
+/* Premium badge shimmer (gold) — para Plan PRO */
+.c360-premium-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    var(--gold-500) 8%,
+    var(--gold-400) 18%,
+    var(--gold-300) 33%
+  );
+  background-size: 200% 100%;
+  animation: c360-shimmer 4s linear infinite;
+}
+
+/* Loader spinner — reemplazo del Loader2 verbose */
+.c360-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: c360-spin 0.7s linear infinite;
+}
+
+/* Shake para errores de validación */
+.c360-shake { animation: c360-shake 0.4s var(--ease-standard); }
+
+/* =============================================================================
+ *  HOVER & INTERACTION PATTERNS
+ * ===========================================================================
+ */
+
+/* Card hover — lift sutil. Aplicar en Cards de KPI, Workers, SST, etc. */
+.c360-hover-lift {
+  transition:
+    transform var(--motion-short) var(--ease-standard),
+    box-shadow var(--motion-short) var(--ease-standard);
+  will-change: transform;
+}
+.c360-hover-lift:hover {
+  transform: translateY(var(--lift-card));
+  box-shadow: var(--elevation-3);
+}
+.c360-hover-lift:active {
+  transform: translateY(0) scale(var(--scale-press));
+  transition-duration: var(--motion-instant);
+}
+
+/* Card hover — sólo glow, sin lift (para items en sidebar/menus) */
+.c360-hover-glow {
+  transition:
+    background-color var(--motion-short) var(--ease-standard),
+    box-shadow var(--motion-short) var(--ease-standard);
+}
+.c360-hover-glow:hover {
+  background-color: var(--bg-surface-hover);
+  box-shadow: var(--glow-brand);
+}
+
+/* Button press — scale down al click */
+.c360-press {
+  transition: transform var(--motion-micro) var(--ease-standard);
+}
+.c360-press:active {
+  transform: scale(var(--scale-press));
+}
+
+/* Smooth hover scale para iconos clickeables */
+.c360-icon-hover {
+  transition: transform var(--motion-short) var(--ease-standard);
+}
+.c360-icon-hover:hover {
+  transform: scale(var(--scale-emphasis));
+}
+
+/* Underline reveal para links */
+.c360-link-underline {
+  position: relative;
+}
+.c360-link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--motion-short) var(--ease-standard);
+}
+.c360-link-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Focus ring brand-coherent — Reemplaza ring esmerald hardcoded */
+.c360-focus-ring {
+  outline: none;
+  transition: box-shadow var(--motion-micro) var(--ease-standard);
+}
+.c360-focus-ring:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+/* =============================================================================
+ *  PAGE TRANSITION HELPERS
+ * ===========================================================================
+ */
+
+/* Aplicar a contenedor principal de cada página dashboard.
+   Se asume que React Server Components remountan al cambiar ruta. */
+.c360-page-enter {
+  animation: c360-fade-in var(--motion-long) var(--ease-enter) both;
+}
+
+/* Para grids — usar con stagger */
+.c360-grid-enter > * {
+  animation: c360-slide-up var(--motion-medium) var(--ease-enter) both;
+}
+.c360-grid-enter > *:nth-child(1) { animation-delay: 0ms; }
+.c360-grid-enter > *:nth-child(2) { animation-delay: 60ms; }
+.c360-grid-enter > *:nth-child(3) { animation-delay: 120ms; }
+.c360-grid-enter > *:nth-child(4) { animation-delay: 180ms; }
+.c360-grid-enter > *:nth-child(5) { animation-delay: 240ms; }
+.c360-grid-enter > *:nth-child(6) { animation-delay: 300ms; }
+.c360-grid-enter > *:nth-child(7) { animation-delay: 360ms; }
+.c360-grid-enter > *:nth-child(8) { animation-delay: 420ms; }
+.c360-grid-enter > *:nth-child(n+9) { animation-delay: 480ms; }
+
+/* =============================================================================
+ *  DRAWER / MODAL TRANSITIONS
+ * ===========================================================================
+ */
+
+.c360-modal-overlay {
+  animation: c360-fade-in var(--motion-medium) var(--ease-enter) both;
+}
+
+.c360-modal-content {
+  animation: c360-slide-up var(--motion-medium) var(--ease-enter) both;
+}
+
+.c360-drawer-right {
+  animation: c360-slide-left var(--motion-medium) var(--ease-enter) both;
+}
+
+.c360-drawer-bottom {
+  animation: c360-slide-up var(--motion-medium) var(--ease-enter) both;
+}
+
+/* Toast — entry desde top-right */
+.c360-toast-enter {
+  animation: c360-slide-down var(--motion-short) var(--ease-bounce) both;
+}
+
+/* =============================================================================
+ *  ALERT INDICATORS — para alertas críticas, badges live
+ * ===========================================================================
+ */
+
+/* Dot que late con halo (para "alertas pendientes") */
+.c360-alert-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--crimson-500);
+  border-radius: 50%;
+}
+.c360-alert-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--crimson-500);
+  animation: c360-pulse-ring 1.6s var(--ease-soft) infinite;
+}
+
+/* Live dot azul (para "actualizado en tiempo real") */
+.c360-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--emerald-500);
+  border-radius: 50%;
+  animation: c360-pulse 2s var(--ease-soft) infinite;
+}
