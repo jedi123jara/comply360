@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 import type { AuthContext } from '@/lib/auth'
 import type { Prisma } from '@/generated/prisma/client'
@@ -29,7 +29,7 @@ const REPORT_CATALOG = [
   { id: 'alerts', label: 'Alertas activas', formats: ['XLSX'] as Format[] },
 ]
 
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('reportes_pdf', async (_req: NextRequest, ctx: AuthContext) => {
   const reports = await prisma.scheduledReport.findMany({
     where: { orgId: ctx.orgId },
     orderBy: { createdAt: 'desc' },
@@ -37,7 +37,7 @@ export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
   return NextResponse.json({ reports, catalog: REPORT_CATALOG })
 })
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('reportes_pdf', async (req: NextRequest, ctx: AuthContext) => {
   let body: {
     reportType?: string
     cronExpression?: string

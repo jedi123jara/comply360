@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 interface Badge {
@@ -45,7 +45,7 @@ const LEVELS = [
   { min: 100, name: 'Compliance Champion' },
 ]
 
-export const GET = withAuth(async (_req, ctx: AuthContext) => {
+export const GET = withPlanGate('gamificacion', async (_req, ctx: AuthContext) => {
   try {
     const orgId = ctx.orgId
 

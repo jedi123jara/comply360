@@ -7,13 +7,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { getSolicitudesInspeccion, evaluarSolicitud, type InspeccionTipo, type HallazgoInspeccion } from '@/lib/compliance/simulacro-engine'
 
 // ─── GET — List inspection sessions ─────────────────────────────────────────
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('simulacro_completo', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status') // ACTIVE, COMPLETED, all
@@ -55,7 +55,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
 // ─── POST — Start new live inspection ───────────────────────────────────────
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('simulacro_completo', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json() as {
       tipo?: string

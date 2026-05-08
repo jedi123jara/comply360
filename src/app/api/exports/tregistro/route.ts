@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import {
@@ -52,7 +52,7 @@ const SISTEMA_PENSION_MAP: Record<string, '01' | '02' | '03'> = {
   SIN_APORTE: '03',
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const periodo = searchParams.get('periodo') || ''
   const operacion = (searchParams.get('operacion') || 'A') as 'A' | 'B' | 'M'
