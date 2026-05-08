@@ -44,7 +44,7 @@ function CircularProgress({ score, size = 200, strokeWidth = 14 }: { score: numb
     if (s < 50) return { stroke: '#ef4444', glow: 'rgba(239,68,68,0.3)', bg: 'rgba(239,68,68,0.1)' }
     if (s < 70) return { stroke: '#f59e0b', glow: 'rgba(245,158,11,0.3)', bg: 'rgba(245,158,11,0.1)' }
     if (s < 85) return { stroke: '#22c55e', glow: 'rgba(34,197,94,0.3)', bg: 'rgba(34,197,94,0.1)' }
-    return { stroke: '#10b981', glow: 'rgba(16,185,129,0.3)', bg: 'rgba(16,185,129,0.1)' }
+    return { stroke: '#2563eb', glow: 'rgba(16,185,129,0.3)', bg: 'rgba(16,185,129,0.1)' }
   }
 
   const colors = getColor(score)
@@ -83,7 +83,7 @@ function CircularProgress({ score, size = 200, strokeWidth = 14 }: { score: numb
 
 /* ── Score Level Helpers ──────────────────────────────────────────── */
 function getScoreLevel(score: number) {
-  if (score >= 85) return { name: 'Platino', color: 'text-emerald-500', bg: 'bg-emerald-900/40', border: 'border-emerald-700', gradient: 'from-emerald-500 to-teal-400', emoji: '💎' }
+  if (score >= 85) return { name: 'Platino', color: 'text-emerald-500', bg: 'bg-emerald-900/40', border: 'border-emerald-700', gradient: 'from-emerald-500 to-sky-400', emoji: '💎' }
   if (score >= 70) return { name: 'Oro', color: 'text-yellow-500', bg: 'bg-yellow-900/40', border: 'border-yellow-700', gradient: 'from-yellow-500 to-amber-400', emoji: '🥇' }
   if (score >= 50) return { name: 'Plata', color: 'text-[color:var(--text-tertiary)]', bg: 'bg-[color:var(--neutral-100)] bg-gray-800', border: 'border-white/10 border-gray-700', gradient: 'from-gray-400 to-gray-300', emoji: '🥈' }
   return { name: 'Bronce', color: 'text-amber-700', bg: 'bg-amber-900/40', border: 'border-amber-700', gradient: 'from-amber-700 to-amber-500', emoji: '🥉' }

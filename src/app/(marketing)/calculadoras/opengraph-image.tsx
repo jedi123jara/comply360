@@ -14,7 +14,7 @@ export default async function Image() {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #ecfdf5 100%)',
+          background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #eff6ff 100%)',
           padding: '80px',
         }}
       >
@@ -23,7 +23,7 @@ export default async function Image() {
             style={{
               width: 48,
               height: 48,
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               borderRadius: 14,
               display: 'flex',
               alignItems: 'center',
@@ -46,7 +46,7 @@ export default async function Image() {
             }}
           >
             <span>COMPLY</span>
-            <span style={{ color: '#059669' }}>360</span>
+            <span style={{ color: '#1d4ed8' }}>360</span>
           </div>
         </div>
 
@@ -61,7 +61,7 @@ export default async function Image() {
         >
           <div
             style={{
-              color: '#059669',
+              color: '#1d4ed8',
               fontSize: 20,
               fontWeight: 600,
               letterSpacing: '0.05em',
@@ -82,7 +82,7 @@ export default async function Image() {
               flexWrap: 'wrap',
             }}
           >
-            Calculá CTS, gratificación y multas SUNAFIL <span style={{ color: '#059669', marginLeft: 12 }}>gratis</span>
+            Calculá CTS, gratificación y multas SUNAFIL <span style={{ color: '#1d4ed8', marginLeft: 12 }}>gratis</span>
           </div>
           <div
             style={{
@@ -115,7 +115,7 @@ export default async function Image() {
                   borderRadius: 999,
                   background: 'rgba(16, 185, 129, 0.1)',
                   border: '1px solid rgba(16, 185, 129, 0.2)',
-                  color: '#047857',
+                  color: '#1e40af',
                   fontSize: 16,
                   fontWeight: 600,
                   display: 'flex',

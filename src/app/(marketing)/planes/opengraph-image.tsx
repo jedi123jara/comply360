@@ -14,7 +14,7 @@ export default async function Image() {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          background: 'linear-gradient(135deg, #0a0a0f 0%, #064e3b 100%)',
+          background: 'linear-gradient(135deg, #0a0a0f 0%, #172554 100%)',
           padding: '80px',
           position: 'relative',
         }}
@@ -36,7 +36,7 @@ export default async function Image() {
             style={{
               width: 48,
               height: 48,
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               borderRadius: 14,
               display: 'flex',
               alignItems: 'center',
@@ -59,7 +59,7 @@ export default async function Image() {
             }}
           >
             <span>COMPLY</span>
-            <span style={{ color: '#34d399' }}>360</span>
+            <span style={{ color: '#60a5fa' }}>360</span>
           </div>
         </div>
 
@@ -74,7 +74,7 @@ export default async function Image() {
         >
           <div
             style={{
-              color: '#34d399',
+              color: '#60a5fa',
               fontSize: 20,
               fontWeight: 600,
               letterSpacing: '0.05em',
@@ -139,7 +139,7 @@ export default async function Image() {
                   alignItems: 'flex-start',
                 }}
               >
-                <div style={{ color: '#6ee7b7', fontSize: 14, fontWeight: 600, display: 'flex' }}>
+                <div style={{ color: '#93c5fd', fontSize: 14, fontWeight: 600, display: 'flex' }}>
                   {label}
                 </div>
                 <div style={{ color: '#ffffff', fontSize: 22, fontWeight: 700, display: 'flex' }}>

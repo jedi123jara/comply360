@@ -281,7 +281,7 @@ function wrapAsHtml(title: string, body: string, actionUrl?: string): string {
   const safeTitle = escapeHtml(title)
   const safeBody = escapeHtml(body).replace(/\n/g, '<br>')
   const cta = actionUrl
-    ? `<p><a href="${escapeAttr(actionUrl)}" style="display:inline-block;padding:10px 20px;background:#059669;color:#fff;text-decoration:none;border-radius:6px;">Ver detalles</a></p>`
+    ? `<p><a href="${escapeAttr(actionUrl)}" style="display:inline-block;padding:10px 20px;background:#1d4ed8;color:#fff;text-decoration:none;border-radius:6px;">Ver detalles</a></p>`
     : ''
   return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#1e293b;max-width:600px;margin:0 auto;padding:24px;">
     <h2 style="color:#0f172a;">${safeTitle}</h2>

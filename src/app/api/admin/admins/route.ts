@@ -287,7 +287,7 @@ function adminInvitedEmail({
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, Inter, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; padding: 32px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <div style="display: inline-block; background: linear-gradient(135deg, #00d084 0%, #059669 100%); padding: 16px 24px; border-radius: 12px; color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">
+        <div style="display: inline-block; background: linear-gradient(135deg, #00d084 0%, #1d4ed8 100%); padding: 16px 24px; border-radius: 12px; color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">
           COMPLY 360
         </div>
       </div>
@@ -325,7 +325,7 @@ function adminPromotedEmail({
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, Inter, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; padding: 32px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <div style="display: inline-block; background: linear-gradient(135deg, #00d084 0%, #059669 100%); padding: 16px 24px; border-radius: 12px; color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">
+        <div style="display: inline-block; background: linear-gradient(135deg, #00d084 0%, #1d4ed8 100%); padding: 16px 24px; border-radius: 12px; color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">
           COMPLY 360
         </div>
       </div>

@@ -68,7 +68,7 @@ export function DigitalIdCard({
           width: 76,
           height: 96,
           borderRadius: 10,
-          background: 'linear-gradient(135deg, #6ee7b7, #059669)',
+          background: 'linear-gradient(135deg, #93c5fd, #1d4ed8)',
           fontFamily: 'var(--font-serif)',
           fontSize: 36,
           color: 'white',
@@ -90,7 +90,7 @@ export function DigitalIdCard({
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
-              color: '#6ee7b7',
+              color: '#93c5fd',
             }}
           >
             <span
@@ -98,14 +98,14 @@ export function DigitalIdCard({
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: '#34d399',
-                boxShadow: '0 0 6px #34d399',
+                background: '#60a5fa',
+                boxShadow: '0 0 6px #60a5fa',
                 animation: 'idcard-pulse 2s ease-in-out infinite',
               }}
             />
             ID Digital · Vigente
           </span>
-          <Shield className="w-[22px] h-[22px]" style={{ color: '#6ee7b7' }} />
+          <Shield className="w-[22px] h-[22px]" style={{ color: '#93c5fd' }} />
         </div>
 
         <div

@@ -67,7 +67,7 @@ export function SectorRadar({ data, sectorLabel = 'Sector' }: SectorRadarProps) 
               <Radar
                 name="Tu empresa"
                 dataKey="org"
-                stroke="#059669"
+                stroke="#1d4ed8"
                 fill="rgba(16,185,129,0.18)"
                 fillOpacity={0.6}
                 strokeWidth={2}

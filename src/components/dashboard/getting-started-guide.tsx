@@ -142,7 +142,7 @@ export function GettingStartedGuide() {
   // ─────────────────────────────────────────────────────────────
   if (allDone) {
     return (
-      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 rounded-2xl p-6 text-white overflow-hidden shadow-xl">
+      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-500 to-sky-500 rounded-2xl p-6 text-white overflow-hidden shadow-xl">
         <div className="pointer-events-none absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-0 w-48 h-48 bg-yellow-300/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
 

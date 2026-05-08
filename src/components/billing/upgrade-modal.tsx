@@ -33,9 +33,9 @@ export interface UpgradeModalProps {
 
 const PLAN_COLORS: Record<string, { bg: string; ring: string; text: string }> = {
   FREE: { bg: '#f1f5f9', ring: '#cbd5e1', text: '#475569' },
-  STARTER: { bg: '#ecfdf5', ring: '#a7f3d0', text: '#047857' },
-  EMPRESA: { bg: '#d1fae5', ring: '#10b981', text: '#065f46' },
-  PRO: { bg: '#064e3b', ring: '#10b981', text: '#ecfdf5' },
+  STARTER: { bg: '#eff6ff', ring: '#bfdbfe', text: '#1e40af' },
+  EMPRESA: { bg: '#dbeafe', ring: '#2563eb', text: '#1e3a8a' },
+  PRO: { bg: '#172554', ring: '#2563eb', text: '#eff6ff' },
 }
 
 /**
@@ -163,7 +163,7 @@ export function UpgradeModal({
         <div
           className="relative px-8 pt-10 pb-8 text-white overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)',
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 45%, #2563eb 100%)',
           }}
         >
           <div
@@ -266,7 +266,7 @@ export function UpgradeModal({
                         fontFamily: 'var(--font-serif)',
                         fontSize: 44,
                         lineHeight: 1,
-                        color: '#065f46',
+                        color: '#1e3a8a',
                         fontWeight: 400,
                       }}
                     >

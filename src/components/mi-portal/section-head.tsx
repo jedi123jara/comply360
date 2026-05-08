@@ -43,7 +43,7 @@ export function SectionHead({ title, emPart, link }: SectionHeadProps) {
         {emPart && (
           <>
             {' '}
-            <em style={{ color: '#047857', fontStyle: 'italic' }}>
+            <em style={{ color: '#1e40af', fontStyle: 'italic' }}>
               {emPart}
             </em>
           </>
@@ -57,7 +57,7 @@ export function SectionHead({ title, emPart, link }: SectionHeadProps) {
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: '#047857',
+              color: '#1e40af',
             }}
           >
             {link.label} <ChevronRight className="w-3 h-3" />
@@ -70,7 +70,7 @@ export function SectionHead({ title, emPart, link }: SectionHeadProps) {
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: '#047857',
+              color: '#1e40af',
             }}
           >
             {link.label} <ChevronRight className="w-3 h-3" />

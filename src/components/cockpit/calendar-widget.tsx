@@ -33,7 +33,7 @@ const TYPE_COLOR: Record<string, string> = {
   ALERT: 'bg-rose-50 text-rose-700 ring-rose-200',
   WORKER_ANNIVERSARY: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200',
   PROBATION_END: 'bg-cyan-50 text-cyan-700 ring-cyan-200',
-  VACATION: 'bg-teal-50 text-teal-700 ring-teal-200',
+  VACATION: 'bg-sky-50 text-sky-700 ring-sky-200',
   ACK_DEADLINE: 'bg-violet-50 text-violet-700 ring-violet-200',
   CAPACITACION: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
 }

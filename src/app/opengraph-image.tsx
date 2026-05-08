@@ -28,7 +28,7 @@ export default async function Image() {
           display: 'flex',
           flexDirection: 'column',
           background:
-            'linear-gradient(135deg, #0a0a0f 0%, #1a1f2e 50%, #064e3b 100%)',
+            'linear-gradient(135deg, #0a0a0f 0%, #1a1f2e 50%, #172554 100%)',
           padding: '80px',
           position: 'relative',
         }}
@@ -71,7 +71,7 @@ export default async function Image() {
             style={{
               width: 56,
               height: 56,
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               borderRadius: 16,
               display: 'flex',
               alignItems: 'center',
@@ -96,7 +96,7 @@ export default async function Image() {
             }}
           >
             <span>COMPLY</span>
-            <span style={{ color: '#34d399' }}>360</span>
+            <span style={{ color: '#60a5fa' }}>360</span>
           </div>
         </div>
 
@@ -122,7 +122,7 @@ export default async function Image() {
               flexWrap: 'wrap',
             }}
           >
-            Tu escudo contra <span style={{ color: '#34d399', marginLeft: 16 }}>multas SUNAFIL</span>
+            Tu escudo contra <span style={{ color: '#60a5fa', marginLeft: 16 }}>multas SUNAFIL</span>
           </div>
           <div
             style={{
@@ -167,7 +167,7 @@ export default async function Image() {
                   borderRadius: 999,
                   background: 'rgba(16, 185, 129, 0.15)',
                   border: '1px solid rgba(16, 185, 129, 0.3)',
-                  color: '#6ee7b7',
+                  color: '#93c5fd',
                   fontSize: 18,
                   fontWeight: 600,
                   display: 'flex',

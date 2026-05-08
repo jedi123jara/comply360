@@ -32,7 +32,7 @@ export function LegalPage({
       <div
         className="border-b border-[color:var(--border-default)]"
         style={{
-          background: 'linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%)',
+          background: 'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)',
         }}
       >
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10">

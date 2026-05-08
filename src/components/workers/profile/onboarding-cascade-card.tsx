@@ -408,7 +408,7 @@ function relativeTime(iso: string | null | undefined): string {
 const STATUS_CONFIG = {
   not_invited: {
     icon: Sparkles,
-    iconBg: 'linear-gradient(135deg, #10b981, #047857)',
+    iconBg: 'linear-gradient(135deg, #2563eb, #1e40af)',
     haloColor: 'radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%)',
     cardBg: 'bg-gradient-to-br from-emerald-50/60 via-white to-white',
     cardBorder: 'border-emerald-200',
@@ -459,7 +459,7 @@ const STATUS_CONFIG = {
   },
   completed: {
     icon: CheckCircle2,
-    iconBg: 'linear-gradient(135deg, #10b981, #047857)',
+    iconBg: 'linear-gradient(135deg, #2563eb, #1e40af)',
     haloColor: 'radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%)',
     cardBg: 'bg-gradient-to-br from-emerald-50/60 via-white to-white',
     cardBorder: 'border-emerald-200',

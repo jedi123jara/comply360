@@ -15,7 +15,7 @@ export default function SignUpPage() {
       className="min-h-screen flex items-center justify-center relative overflow-hidden"
       style={{
         background:
-          'linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #ecfdf5 0%, #f8fafc 55%, #fefce8 100%)',
+          'linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
       }}
     >
       <div
@@ -78,7 +78,7 @@ export default function SignUpPage() {
           signInUrl="/sign-in"
           appearance={{
             variables: {
-              colorPrimary: '#10b981',
+              colorPrimary: '#2563eb',
               colorText: '#0f172a',
               colorTextSecondary: '#64748b',
               colorBackground: '#ffffff',

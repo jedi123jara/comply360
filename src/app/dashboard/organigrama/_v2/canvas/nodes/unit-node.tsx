@@ -47,7 +47,7 @@ const KIND_ICON_BG: Record<string, string> = {
   AREA: 'bg-sky-100 text-sky-700',
   DEPARTAMENTO: 'bg-slate-100 text-slate-700',
   EQUIPO: 'bg-indigo-100 text-indigo-700',
-  COMITE_LEGAL: 'bg-teal-100 text-teal-800',
+  COMITE_LEGAL: 'bg-sky-100 text-sky-800',
   BRIGADA: 'bg-amber-100 text-amber-700',
   PROYECTO: 'bg-cyan-100 text-cyan-700',
 }

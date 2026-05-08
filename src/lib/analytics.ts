@@ -129,7 +129,7 @@ class Analytics {
     // Dev: log to console con prefijo consistente para fácil filtrado
     if (process.env.NODE_ENV === 'development') {
        
-      console.log(`%c[analytics] ${event}`, 'color:#047857;font-weight:bold', properties || '')
+      console.log(`%c[analytics] ${event}`, 'color:#1e40af;font-weight:bold', properties || '')
     }
 
     // Prod (o dev con script cargado): enviar a Plausible
@@ -148,7 +148,7 @@ class Analytics {
     if (!this.isBrowser) return
     if (process.env.NODE_ENV === 'development') {
        
-      console.log(`%c[analytics] identify: ${userId}`, 'color:#047857', traits || '')
+      console.log(`%c[analytics] identify: ${userId}`, 'color:#1e40af', traits || '')
     }
     // Plausible no soporta identify (por diseño). Si migramos a PostHog/Mixpanel,
     // acá se enviaría posthog.identify(userId, traits).

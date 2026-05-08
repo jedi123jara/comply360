@@ -1,16 +1,21 @@
 /**
  * Theme compartido para los reportes ejecutivos con @react-pdf/renderer.
  *
- * Mantiene la paleta de marca COMPLY360 (azul corporativo + verde de acción)
- * y una escala tipográfica cómoda para reportes A4.
+ * Paleta v4 "Blue Authority" (alineada con tokens.css y design system del SaaS).
+ * Navy + accent blue brillante + gold premium + escala neutral slate.
+ * Tipografía cómoda para reportes A4.
  */
 
 export const BRAND = {
-  primary: '#1e3a6e',    // azul corporativo
-  primaryDark: '#142847',
-  primaryLight: '#e8eef7',
-  accent: '#059669',     // verde acción
-  accentLight: '#d1fae5',
+  primary: '#1e3a8a',    // navy authority — headings, hero band
+  primaryDark: '#172554',// deep navy — subtítulos, separadores fuertes
+  primaryLight: '#dbeafe',// navy tint — backgrounds suaves
+  accent: '#2563eb',     // brand blue — CTAs, sello compliance
+  accentLight: '#eff6ff',// brand tint — cards info
+  premium: '#b45309',    // gold dark — sello PRO, certificados
+  premiumLight: '#fef3c7',// gold tint — bordes premium
+  success: '#16a34a',    // verde nativo — KPIs OK, scores >= 80
+  successLight: '#dcfce7',
   danger: '#dc2626',
   dangerLight: '#fee2e2',
   warning: '#d97706',
@@ -42,7 +47,7 @@ export function scoreSemantic(score: number): {
   bg: string
   label: string
 } {
-  if (score >= 80) return { color: BRAND.accent, bg: BRAND.accentLight, label: 'CUMPLIMIENTO SATISFACTORIO' }
+  if (score >= 80) return { color: BRAND.success, bg: BRAND.successLight, label: 'CUMPLIMIENTO SATISFACTORIO' }
   if (score >= 60) return { color: BRAND.warning, bg: BRAND.warningLight, label: 'REQUIERE ATENCIÓN' }
   return { color: BRAND.danger, bg: BRAND.dangerLight, label: 'RIESGO CRÍTICO' }
 }

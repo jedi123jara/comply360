@@ -45,16 +45,16 @@ export const BRAND_COLORS = {
   },
   // Esmeralda (primary, compliance positive) — tailwind emerald
   emerald: {
-    50: '#ecfdf5',
-    100: '#d1fae5',
-    200: '#a7f3d0',
-    300: '#6ee7b7',
-    400: '#34d399',
-    500: '#10b981', // base
-    600: '#059669',
-    700: '#047857',
-    800: '#065f46',
-    900: '#064e3b',
+    50: '#eff6ff',
+    100: '#dbeafe',
+    200: '#bfdbfe',
+    300: '#93c5fd',
+    400: '#60a5fa',
+    500: '#2563eb', // base
+    600: '#1d4ed8',
+    700: '#1e40af',
+    800: '#1e3a8a',
+    900: '#172554',
   },
   // Crimson (riesgo, alertas críticas) — tailwind red
   crimson: {
@@ -108,8 +108,8 @@ export const BRAND_COLORS = {
 
 export const BRAND_GRADIENTS = {
   hero: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%)',
-  emerald: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-  riskHeat: 'linear-gradient(135deg, #dc2626 0%, #f59e0b 50%, #10b981 100%)',
+  emerald: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
+  riskHeat: 'linear-gradient(135deg, #dc2626 0%, #f59e0b 50%, #2563eb 100%)',
   glowEmerald:
     'radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 60%)',
   glowCrimson:

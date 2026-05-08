@@ -648,7 +648,7 @@ export default function PortalEmpleadoPage() {
                       <p className="text-sm font-bold text-gray-200 leading-snug">{data.perfil.tipoContrato}</p>
                     </div>
 
-                    <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-xl p-4">
+                    <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-100 rounded-xl p-4">
                       <p className="text-xs font-medium text-emerald-500 uppercase tracking-wide mb-1">Ingreso</p>
                       <p className="text-sm font-bold text-emerald-700">{formatDate(data.perfil.fechaIngreso)}</p>
                       <p className="text-[10px] text-emerald-500/70 mt-0.5">
@@ -778,7 +778,7 @@ export default function PortalEmpleadoPage() {
                   </p>
 
                   {/* CTS */}
-                  <div className="mb-5 p-5 bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-2xl">
+                  <div className="mb-5 p-5 bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-200 rounded-2xl">
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-0.5">

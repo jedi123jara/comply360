@@ -67,7 +67,7 @@ export default function AnalyticsPage() {
           </div>
           {signupsSpark.length > 1 && (
             <div className="spark">
-              <Sparkline data={signupsSpark} color="#10b981" width={80} height={28} dots />
+              <Sparkline data={signupsSpark} color="#2563eb" width={80} height={28} dots />
             </div>
           )}
           <div className="a-kpi-value">{fmtN(data.totalEvents)}</div>

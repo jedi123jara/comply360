@@ -152,7 +152,7 @@ function buildWelcomeEmailHtml(plan: string, orgName: string, trialEnd: Date): s
   })
   return `
     <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-      <h1 style="color: #047857; font-size: 24px;">¡Tu trial ${plan} arrancó! 🚀</h1>
+      <h1 style="color: #1e40af; font-size: 24px;">¡Tu trial ${plan} arrancó! 🚀</h1>
       <p style="color: #374151; font-size: 16px; line-height: 1.6;">
         Hola, gracias por activar Comply360 para <strong>${orgName}</strong>.
       </p>
@@ -167,14 +167,14 @@ function buildWelcomeEmailHtml(plan: string, orgName: string, trialEnd: Date): s
         <li>Genera tu primer contrato desde plantilla</li>
       </ol>
       <p style="margin-top: 32px;">
-        <a href="https://comply360.pe/dashboard" style="background: #047857; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+        <a href="https://comply360.pe/dashboard" style="background: #1e40af; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
           Ir al dashboard
         </a>
       </p>
       <p style="color: #6b7280; font-size: 13px; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
         Te enviaremos un recordatorio 3 días antes del fin de trial. Si quieres adelantarte y
         ahorrar 20% en tu primer mes, puedes pagar ahora desde
-        <a href="https://comply360.pe/dashboard/planes" style="color: #047857;">tu panel de planes</a>.
+        <a href="https://comply360.pe/dashboard/planes" style="color: #1e40af;">tu panel de planes</a>.
       </p>
     </div>
   `

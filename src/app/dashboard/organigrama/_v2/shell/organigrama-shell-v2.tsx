@@ -240,7 +240,7 @@ export function OrganigramaShellV2() {
               <button
                 type="button"
                 onClick={() => useOrgStore.getState().openModal('templates')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-800 transition hover:bg-teal-100"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100"
               >
                 <LayoutTemplate className="h-4 w-4" />
                 <span className="hidden sm:inline">Plantillas</span>
@@ -271,7 +271,7 @@ export function OrganigramaShellV2() {
                   onClick={() => setCommissionFilter(filter.id)}
                   className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                     active
-                      ? 'border-teal-300 bg-teal-50 text-teal-800 shadow-sm'
+                      ? 'border-sky-300 bg-sky-50 text-sky-800 shadow-sm'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                   }`}
                   title={filter.description}

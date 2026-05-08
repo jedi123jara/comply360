@@ -32,7 +32,7 @@ export default function ContadoresLandingPage() {
             <div
               className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition-transform group-hover:scale-105"
               style={{
-                background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
+                background: 'linear-gradient(165deg, #1d4ed8 0%, #1e40af 55%, #1e3a8a 100%)',
                 boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
               }}
             >
@@ -59,7 +59,7 @@ export default function ContadoresLandingPage() {
         className="relative overflow-hidden pt-20 pb-16 lg:pt-28 lg:pb-24"
         style={{
           background:
-            'linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.97) 100%), linear-gradient(135deg, #ecfdf5 0%, #f8fafc 55%, #fefce8 100%)',
+            'linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.97) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
         }}
       >
         <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full blur-3xl bg-emerald-200/40" />
@@ -201,7 +201,7 @@ export default function ContadoresLandingPage() {
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white font-bold text-lg"
                   style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
                   }}
                 >
                   {step.n}
@@ -270,7 +270,7 @@ export default function ContadoresLandingPage() {
             <div
               className="rounded-2xl p-8 text-white"
               style={{
-                background: 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)',
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 45%, #2563eb 100%)',
               }}
             >
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-300 mb-2">
@@ -354,7 +354,7 @@ export default function ContadoresLandingPage() {
       <section
         className="py-20 lg:py-28 text-white text-center relative overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%)',
+          background: 'linear-gradient(135deg, #172554 0%, #1e40af 50%, #2563eb 100%)',
         }}
       >
         <div className="absolute inset-0 opacity-20">

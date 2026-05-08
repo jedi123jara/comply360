@@ -97,7 +97,7 @@ const CATEGORY_META: Record<
     label: 'Documentos de ingreso',
     description: 'DNI, CV, antecedentes y certificados iniciales',
     icon: FolderOpen,
-    accent: '#10b981',
+    accent: '#2563eb',
   },
   VIGENTE: {
     label: 'Documentos vigentes',
@@ -223,7 +223,7 @@ export default function MisDocumentosPage() {
       <section
         className="rounded-2xl p-5"
         style={{
-          background: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
           border: '0.5px solid rgba(16,185,129,0.22)',
         }}
       >

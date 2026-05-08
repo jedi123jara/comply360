@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMPLY360 — Comparativo de Paletas Azules</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #f1f5f9;
+    color: #0f172a;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .page-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    color: #475569;
+    font-size: 16px;
+  }
+  .nav-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 32px 0;
+    overflow-x: auto;
+    padding: 4px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .nav-tabs button {
+    border: none;
+    background: transparent;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    color: #475569;
+    transition: all 200ms;
+    white-space: nowrap;
+  }
+  .nav-tabs button.active {
+    background: #0f172a;
+    color: white;
+  }
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(720px, 1fr));
+    gap: 24px;
+  }
+  .palette-card {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+  }
+  .palette-header {
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .palette-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .palette-name h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .palette-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .palette-desc {
+    color: #475569;
+    font-size: 14px;
+  }
+  .palette-swatches {
+    display: flex;
+    gap: 6px;
+    padding: 14px 28px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+  .swatch {
+    flex: 1;
+    height: 56px;
+    border-radius: 8px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 6px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+  .swatch.light {
+    color: #0f172a;
+    text-shadow: none;
+    border: 1px solid rgba(15,23,42,.08);
+  }
+  .preview {
+    padding: 24px 28px 32px;
+  }
+  /* ─── Component primitives ─────────────────────────── */
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    background: white;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--primary);
+  }
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .nav-links {
+    display: flex;
+    gap: 18px;
+  }
+  .nav-link {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .nav-link.active { color: var(--primary); font-weight: 600; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    transition: all 200ms;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--cta);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--cta-hover); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--border);
+  }
+  .hero {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 32px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 80% 20%, var(--accent-glow) 0%, transparent 50%),
+      radial-gradient(circle at 20% 80%, rgba(255,255,255,.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hero h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .hero p {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-bottom: 18px;
+    max-width: 380px;
+    position: relative;
+  }
+  .hero-cta {
+    background: white;
+    color: var(--primary);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    background: white;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .kpi-label {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-trend {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--success);
+  }
+  .compliance-card {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--surface-tint);
+    border: 1px solid var(--border-tint);
+    margin-bottom: 12px;
+  }
+  .compliance-ring {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background:
+      conic-gradient(var(--cta) 0% 87%, #e2e8f0 87% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .compliance-ring-inner {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 16px;
+  }
+  .compliance-info {
+    flex: 1;
+  }
+  .compliance-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .compliance-sub {
+    font-size: 12px;
+    color: #64748b;
+  }
+  .badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-success {
+    background: #ecfdf5;
+    color: #047857;
+  }
+  .badge-info {
+    background: var(--surface-tint);
+    color: var(--cta);
+  }
+  .badge-warning {
+    background: #fffbeb;
+    color: #b45309;
+  }
+  .badge-danger {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  /* ─── Palette A: SUNAFIL Authority (Navy + Gold) ─── */
+  [data-palette="A"] {
+    --primary: #1e3a8a;
+    --secondary: #1e40af;
+    --cta: #2563eb;
+    --cta-hover: #1d4ed8;
+    --accent-glow: rgba(180,83,9,.25);
+    --success: #047857;
+    --border: #e2e8f0;
+    --border-tint: #dbeafe;
+    --surface-tint: #eff6ff;
+    --tag-bg: #1e3a8a;
+  }
+  /* ─── Palette B: Stripe Indigo (SaaS moderno) ─── */
+  [data-palette="B"] {
+    --primary: #1e1b4b;
+    --secondary: #4338ca;
+    --cta: #4f46e5;
+    --cta-hover: #4338ca;
+    --accent-glow: rgba(14,165,233,.25);
+    --success: #047857;
+    --border: #e2e8f0;
+    --border-tint: #e0e7ff;
+    --surface-tint: #eef2ff;
+    --tag-bg: #4f46e5;
+  }
+  /* ─── Palette C: Compliance Cobalt (premium sobrio) ─── */
+  [data-palette="C"] {
+    --primary: #0f172a;
+    --secondary: #1e293b;
+    --cta: #0369a1;
+    --cta-hover: #075985;
+    --accent-glow: rgba(2,132,199,.3);
+    --success: #047857;
+    --border: #e2e8f0;
+    --border-tint: #e0f2fe;
+    --surface-tint: #f0f9ff;
+    --tag-bg: #0f172a;
+  }
+  /* ─── Palette D: Sky Trust (luminoso friendly) ─── */
+  [data-palette="D"] {
+    --primary: #075985;
+    --secondary: #0284c7;
+    --cta: #0ea5e9;
+    --cta-hover: #0284c7;
+    --accent-glow: rgba(125,211,252,.4);
+    --success: #047857;
+    --border: #e2e8f0;
+    --border-tint: #bae6fd;
+    --surface-tint: #f0f9ff;
+    --tag-bg: #0284c7;
+  }
+  .palette-tag[data-palette="A"] { background: #1e3a8a; color: white; }
+  .palette-tag[data-palette="B"] { background: #4f46e5; color: white; }
+  .palette-tag[data-palette="C"] { background: #0f172a; color: white; }
+  .palette-tag[data-palette="D"] { background: #0284c7; color: white; }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 40px;
+    padding: 24px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 14px;
+  }
+  .footer-note strong {
+    color: #0f172a;
+  }
+  .icon {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header class="page-header">
+    <h1>COMPLY360 — Comparativo de paletas azules</h1>
+    <p>Cuatro variantes corporativas para reemplazar el verde esmeralda actual.<br>
+    Cada tarjeta muestra navbar, hero, KPIs, score de compliance y badges con esa paleta aplicada.</p>
+  </header>
+
+  <div class="palette-grid">
+
+    <!-- ────────────────── PALETTE A ────────────────── -->
+    <article class="palette-card" data-palette="A">
+      <div class="palette-header">
+        <div class="palette-name">
+          <h2>A · SUNAFIL Authority</h2>
+          <span class="palette-tag" data-palette="A">Navy + Gold</span>
+        </div>
+        <p class="palette-desc">Autoridad legal pura. Navy fuerte como contraparte de SUNAFIL/MTPE. Acento gold para premium/PRO.<br>Inspiración: Westlaw, Thomson Reuters, abogados corporativos.</p>
+      </div>
+      <div class="palette-swatches">
+        <div class="swatch" style="background:#1e3a8a">#1E3A8A<br><span style="font-weight:400">primary</span></div>
+        <div class="swatch" style="background:#1e40af">#1E40AF<br><span style="font-weight:400">secondary</span></div>
+        <div class="swatch" style="background:#2563eb">#2563EB<br><span style="font-weight:400">cta</span></div>
+        <div class="swatch light" style="background:#dbeafe">#DBEAFE<br><span style="font-weight:400">tint</span></div>
+        <div class="swatch" style="background:#b45309">#B45309<br><span style="font-weight:400">premium</span></div>
+        <div class="swatch light" style="background:#f8fafc">#F8FAFC<br><span style="font-weight:400">bg</span></div>
+      </div>
+      <div class="preview">
+        <nav class="navbar">
+          <div class="logo"><span class="logo-mark">C</span> COMPLY360</div>
+          <div class="nav-links">
+            <a class="nav-link active">Cockpit</a>
+            <a class="nav-link">Trabajadores</a>
+            <a class="nav-link">SST</a>
+            <a class="nav-link">Reportes</a>
+          </div>
+          <button class="btn btn-primary">Upgrade <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </nav>
+        <div class="hero">
+          <h3>Compliance laboral sin sorpresas</h3>
+          <p>RUC validado · 12 regímenes · Multas SUNAFIL calculadas en tiempo real.</p>
+          <a class="hero-cta">Ver mi cockpit <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Score</div><div class="kpi-value">87</div><div class="kpi-trend">+4 vs Q3</div></div>
+          <div class="kpi"><div class="kpi-label">Workers</div><div class="kpi-value">142</div><div class="kpi-trend">activos</div></div>
+          <div class="kpi"><div class="kpi-label">Multa evitada</div><div class="kpi-value">S/86k</div><div class="kpi-trend">+12% YoY</div></div>
+        </div>
+        <div class="compliance-card">
+          <div class="compliance-ring"><div class="compliance-ring-inner">87%</div></div>
+          <div class="compliance-info">
+            <div class="compliance-title">Compliance integral 2026</div>
+            <div class="compliance-sub">3 áreas críticas resueltas · 1 alerta pendiente</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-success">✓ Vigente</span>
+          <span class="badge badge-info">Plan PRO</span>
+          <span class="badge badge-warning">2 vencen</span>
+          <span class="badge badge-danger">Crítico</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ────────────────── PALETTE B ────────────────── -->
+    <article class="palette-card" data-palette="B">
+      <div class="palette-header">
+        <div class="palette-name">
+          <h2>B · Stripe Indigo</h2>
+          <span class="palette-tag" data-palette="B">Indigo SaaS</span>
+        </div>
+        <p class="palette-desc">SaaS premium tech-forward. Indigo profundo como Stripe/Linear. Sensación moderna sin perder seriedad.<br>Inspiración: Stripe, Linear, Vercel, Notion.</p>
+      </div>
+      <div class="palette-swatches">
+        <div class="swatch" style="background:#1e1b4b">#1E1B4B<br><span style="font-weight:400">primary</span></div>
+        <div class="swatch" style="background:#4338ca">#4338CA<br><span style="font-weight:400">secondary</span></div>
+        <div class="swatch" style="background:#4f46e5">#4F46E5<br><span style="font-weight:400">cta</span></div>
+        <div class="swatch light" style="background:#e0e7ff">#E0E7FF<br><span style="font-weight:400">tint</span></div>
+        <div class="swatch" style="background:#0ea5e9">#0EA5E9<br><span style="font-weight:400">accent</span></div>
+        <div class="swatch light" style="background:#f8fafc">#F8FAFC<br><span style="font-weight:400">bg</span></div>
+      </div>
+      <div class="preview">
+        <nav class="navbar">
+          <div class="logo"><span class="logo-mark">C</span> COMPLY360</div>
+          <div class="nav-links">
+            <a class="nav-link active">Cockpit</a>
+            <a class="nav-link">Trabajadores</a>
+            <a class="nav-link">SST</a>
+            <a class="nav-link">Reportes</a>
+          </div>
+          <button class="btn btn-primary">Upgrade <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </nav>
+        <div class="hero">
+          <h3>Compliance laboral sin sorpresas</h3>
+          <p>RUC validado · 12 regímenes · Multas SUNAFIL calculadas en tiempo real.</p>
+          <a class="hero-cta">Ver mi cockpit <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Score</div><div class="kpi-value">87</div><div class="kpi-trend">+4 vs Q3</div></div>
+          <div class="kpi"><div class="kpi-label">Workers</div><div class="kpi-value">142</div><div class="kpi-trend">activos</div></div>
+          <div class="kpi"><div class="kpi-label">Multa evitada</div><div class="kpi-value">S/86k</div><div class="kpi-trend">+12% YoY</div></div>
+        </div>
+        <div class="compliance-card">
+          <div class="compliance-ring"><div class="compliance-ring-inner">87%</div></div>
+          <div class="compliance-info">
+            <div class="compliance-title">Compliance integral 2026</div>
+            <div class="compliance-sub">3 áreas críticas resueltas · 1 alerta pendiente</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-success">✓ Vigente</span>
+          <span class="badge badge-info">Plan PRO</span>
+          <span class="badge badge-warning">2 vencen</span>
+          <span class="badge badge-danger">Crítico</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ────────────────── PALETTE C ────────────────── -->
+    <article class="palette-card" data-palette="C">
+      <div class="palette-header">
+        <div class="palette-name">
+          <h2>C · Compliance Cobalt</h2>
+          <span class="palette-tag" data-palette="C">Slate + Cobalt</span>
+        </div>
+        <p class="palette-desc">Premium sobrio enterprise. Slate-900 casi negro como base, cobalt como CTA. Sensación SAP/Oracle/IBM modernizado.<br>Inspiración: Salesforce Lightning, Atlassian, IBM Carbon.</p>
+      </div>
+      <div class="palette-swatches">
+        <div class="swatch" style="background:#0f172a">#0F172A<br><span style="font-weight:400">primary</span></div>
+        <div class="swatch" style="background:#1e293b">#1E293B<br><span style="font-weight:400">secondary</span></div>
+        <div class="swatch" style="background:#0369a1">#0369A1<br><span style="font-weight:400">cta</span></div>
+        <div class="swatch light" style="background:#e0f2fe">#E0F2FE<br><span style="font-weight:400">tint</span></div>
+        <div class="swatch" style="background:#0284c7">#0284C7<br><span style="font-weight:400">accent</span></div>
+        <div class="swatch light" style="background:#f8fafc">#F8FAFC<br><span style="font-weight:400">bg</span></div>
+      </div>
+      <div class="preview">
+        <nav class="navbar">
+          <div class="logo"><span class="logo-mark">C</span> COMPLY360</div>
+          <div class="nav-links">
+            <a class="nav-link active">Cockpit</a>
+            <a class="nav-link">Trabajadores</a>
+            <a class="nav-link">SST</a>
+            <a class="nav-link">Reportes</a>
+          </div>
+          <button class="btn btn-primary">Upgrade <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </nav>
+        <div class="hero">
+          <h3>Compliance laboral sin sorpresas</h3>
+          <p>RUC validado · 12 regímenes · Multas SUNAFIL calculadas en tiempo real.</p>
+          <a class="hero-cta">Ver mi cockpit <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Score</div><div class="kpi-value">87</div><div class="kpi-trend">+4 vs Q3</div></div>
+          <div class="kpi"><div class="kpi-label">Workers</div><div class="kpi-value">142</div><div class="kpi-trend">activos</div></div>
+          <div class="kpi"><div class="kpi-label">Multa evitada</div><div class="kpi-value">S/86k</div><div class="kpi-trend">+12% YoY</div></div>
+        </div>
+        <div class="compliance-card">
+          <div class="compliance-ring"><div class="compliance-ring-inner">87%</div></div>
+          <div class="compliance-info">
+            <div class="compliance-title">Compliance integral 2026</div>
+            <div class="compliance-sub">3 áreas críticas resueltas · 1 alerta pendiente</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-success">✓ Vigente</span>
+          <span class="badge badge-info">Plan PRO</span>
+          <span class="badge badge-warning">2 vencen</span>
+          <span class="badge badge-danger">Crítico</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ────────────────── PALETTE D ────────────────── -->
+    <article class="palette-card" data-palette="D">
+      <div class="palette-header">
+        <div class="palette-name">
+          <h2>D · Sky Trust</h2>
+          <span class="palette-tag" data-palette="D">Sky Approachable</span>
+        </div>
+        <p class="palette-desc">Más luminoso y friendly sin perder seriedad. Sky-600/700 como Mailchimp/Asana. Ideal si quieres feel "fácil de usar".<br>Inspiración: Mailchimp, Asana moderno, Twilio.</p>
+      </div>
+      <div class="palette-swatches">
+        <div class="swatch" style="background:#075985">#075985<br><span style="font-weight:400">primary</span></div>
+        <div class="swatch" style="background:#0284c7">#0284C7<br><span style="font-weight:400">secondary</span></div>
+        <div class="swatch" style="background:#0ea5e9">#0EA5E9<br><span style="font-weight:400">cta</span></div>
+        <div class="swatch light" style="background:#bae6fd">#BAE6FD<br><span style="font-weight:400">tint</span></div>
+        <div class="swatch" style="background:#7dd3fc">#7DD3FC<br><span style="font-weight:400">accent</span></div>
+        <div class="swatch light" style="background:#f0f9ff">#F0F9FF<br><span style="font-weight:400">bg</span></div>
+      </div>
+      <div class="preview">
+        <nav class="navbar">
+          <div class="logo"><span class="logo-mark">C</span> COMPLY360</div>
+          <div class="nav-links">
+            <a class="nav-link active">Cockpit</a>
+            <a class="nav-link">Trabajadores</a>
+            <a class="nav-link">SST</a>
+            <a class="nav-link">Reportes</a>
+          </div>
+          <button class="btn btn-primary">Upgrade <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </nav>
+        <div class="hero">
+          <h3>Compliance laboral sin sorpresas</h3>
+          <p>RUC validado · 12 regímenes · Multas SUNAFIL calculadas en tiempo real.</p>
+          <a class="hero-cta">Ver mi cockpit <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Score</div><div class="kpi-value">87</div><div class="kpi-trend">+4 vs Q3</div></div>
+          <div class="kpi"><div class="kpi-label">Workers</div><div class="kpi-value">142</div><div class="kpi-trend">activos</div></div>
+          <div class="kpi"><div class="kpi-label">Multa evitada</div><div class="kpi-value">S/86k</div><div class="kpi-trend">+12% YoY</div></div>
+        </div>
+        <div class="compliance-card">
+          <div class="compliance-ring"><div class="compliance-ring-inner">87%</div></div>
+          <div class="compliance-info">
+            <div class="compliance-title">Compliance integral 2026</div>
+            <div class="compliance-sub">3 áreas críticas resueltas · 1 alerta pendiente</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-success">✓ Vigente</span>
+          <span class="badge badge-info">Plan PRO</span>
+          <span class="badge badge-warning">2 vencen</span>
+          <span class="badge badge-danger">Crítico</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="footer-note">
+    Cuando elijas una paleta, dime <strong>"voy con A"</strong> (o B / C / D) y empiezo el rediseño global del SaaS,<br>
+    capa por capa: tokens · navbar · sidebar · cockpit · trabajadores · SST · denuncias · portal trabajador · landing · emails.
+  </div>
+
+</div>
+
+</body>
+</html>

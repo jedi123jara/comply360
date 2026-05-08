@@ -323,9 +323,9 @@ export function morningBriefingEmail(payload: MorningBriefingPayload): string {
     <p style="margin:0 0 18px;color:#64748b;font-size:13px;">${hoy}</p>
 
     ${multaEvitadaMes > 0 ? `
-    <div style="background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1px solid #10b981;border-radius:10px;padding:16px;margin-bottom:20px;">
-      <p style="margin:0;color:#065f46;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Multa evitada este mes</p>
-      <p style="margin:4px 0 0;color:#047857;font-size:28px;font-weight:700;">${multaFmt}</p>
+    <div style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:1px solid #2563eb;border-radius:10px;padding:16px;margin-bottom:20px;">
+      <p style="margin:0;color:#1e3a8a;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Multa evitada este mes</p>
+      <p style="margin:4px 0 0;color:#1e40af;font-size:28px;font-weight:700;">${multaFmt}</p>
     </div>
     ` : ''}
 
@@ -418,8 +418,8 @@ function kpiRow(label: string, value: string, sub?: string, color?: string): str
 }
 
 export function founderDigestEmail(data: FounderDigestData): string {
-  const mrrDeltaColor = data.mrrDeltaVsPrev30d >= 0 ? '#10b981' : '#ef4444'
-  const churnColor = data.churnRiskOrgs > 0 ? '#f59e0b' : '#10b981'
+  const mrrDeltaColor = data.mrrDeltaVsPrev30d >= 0 ? '#2563eb' : '#ef4444'
+  const churnColor = data.churnRiskOrgs > 0 ? '#f59e0b' : '#2563eb'
   const trialsColor = data.trialsExpiring7d > 0 ? '#f59e0b' : '#a1a1aa'
 
   const narrativeBlock = data.narrative
@@ -447,7 +447,7 @@ export function founderDigestEmail(data: FounderDigestData): string {
         <!-- Header -->
         <tr>
           <td style="padding:24px 28px 16px;border-bottom:1px solid #27272a;">
-            <p style="margin:0 0 4px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Founder Digest · Comply360</p>
+            <p style="margin:0 0 4px;color:#2563eb;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Founder Digest · Comply360</p>
             <h1 style="margin:0;color:#fafafa;font-size:22px;font-weight:600;letter-spacing:-0.3px;">${data.date}</h1>
           </td>
         </tr>
@@ -464,12 +464,12 @@ export function founderDigestEmail(data: FounderDigestData): string {
         <!-- Business KPIs -->
         <tr>
           <td style="padding:24px 28px 8px;">
-            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">💰 Business</p>
+            <p style="margin:0 0 12px;color:#2563eb;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">💰 Business</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
               ${kpiRow('MRR', fmtS(data.mrr), `${fmtDelta(data.mrrDeltaVsPrev30d)} vs 30d · ${fmtPct(data.mrrDeltaPct)}`, mrrDeltaColor)}
               ${kpiRow('ARR proyectado', fmtS(data.mrr * 12))}
               ${kpiRow('Suscripciones activas', `${data.activeSubscriptions}`, `${data.trialingCount} en trial`)}
-              ${kpiRow('Canceladas 30d', `${data.cancelledLast30d}`, data.cancelledLast30d > 0 ? 'revisar' : 'zero churn', data.cancelledLast30d > 0 ? '#ef4444' : '#10b981')}
+              ${kpiRow('Canceladas 30d', `${data.cancelledLast30d}`, data.cancelledLast30d > 0 ? 'revisar' : 'zero churn', data.cancelledLast30d > 0 ? '#ef4444' : '#2563eb')}
             </table>
           </td>
         </tr>
@@ -477,7 +477,7 @@ export function founderDigestEmail(data: FounderDigestData): string {
         <!-- Growth -->
         <tr>
           <td style="padding:16px 28px 8px;">
-            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">📈 Growth</p>
+            <p style="margin:0 0 12px;color:#2563eb;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">📈 Growth</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
               ${kpiRow('Nuevas empresas 7d', `${data.newOrgs7d}`)}
               ${kpiRow('Activation rate', fmtPct(data.activationRate7d), 'cohorte 7-14d')}
@@ -488,7 +488,7 @@ export function founderDigestEmail(data: FounderDigestData): string {
         <!-- Engagement -->
         <tr>
           <td style="padding:16px 28px 8px;">
-            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">🔥 Engagement</p>
+            <p style="margin:0 0 12px;color:#2563eb;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">🔥 Engagement</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
               ${kpiRow('DAU / MAU', `${data.dau} / ${data.mau}`, `Stickiness ${fmtPct(data.stickinessPct)}`)}
               ${kpiRow('IA auto-verify 30d', `${data.aiVerifyAutoVerified30d}`, 'docs sin intervención')}
@@ -500,7 +500,7 @@ export function founderDigestEmail(data: FounderDigestData): string {
         <!-- Health -->
         <tr>
           <td style="padding:16px 28px 8px;">
-            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">⚠️ Health</p>
+            <p style="margin:0 0 12px;color:#2563eb;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">⚠️ Health</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
               ${kpiRow('Trials expirando 7d', `${data.trialsExpiring7d}`, data.trialsExpiring7d > 0 ? 'outreach' : 'OK', trialsColor)}
               ${kpiRow('Churn risk (sin login 14d)', `${data.churnRiskOrgs}`, data.churnRiskOrgs > 0 ? 'intervenir' : 'OK', churnColor)}
@@ -513,7 +513,7 @@ export function founderDigestEmail(data: FounderDigestData): string {
           topEventsRows
             ? `<tr>
           <td style="padding:16px 28px 8px;">
-            <p style="margin:0 0 12px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">📊 Top eventos 7d</p>
+            <p style="margin:0 0 12px;color:#2563eb;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">📊 Top eventos 7d</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
               ${topEventsRows}
             </table>
@@ -527,7 +527,7 @@ export function founderDigestEmail(data: FounderDigestData): string {
           <td align="center" style="padding:24px 28px 28px;">
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="background-color:#10b981;border-radius:8px;">
+                <td style="background-color:#2563eb;border-radius:8px;">
                   <a href="${data.adminUrl}" target="_blank" style="display:inline-block;padding:11px 24px;color:#09090b;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
                     Abrir Founder Console →
                   </a>

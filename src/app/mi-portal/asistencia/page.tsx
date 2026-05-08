@@ -307,8 +307,8 @@ export default function MiPortalAsistenciaPage() {
             background:
               resultStatus === 'LATE'
                 ? 'linear-gradient(135deg, #fef3c7 0%, #ffffff 100%)'
-                : 'linear-gradient(135deg, #d1fae5 0%, #ffffff 100%)',
-            borderColor: resultStatus === 'LATE' ? '#fbbf24' : '#10b981',
+                : 'linear-gradient(135deg, #dbeafe 0%, #ffffff 100%)',
+            borderColor: resultStatus === 'LATE' ? '#fbbf24' : '#2563eb',
           }}
         >
           <div
@@ -317,7 +317,7 @@ export default function MiPortalAsistenciaPage() {
               background:
                 resultStatus === 'LATE'
                   ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-                  : 'linear-gradient(135deg, #10b981, #047857)',
+                  : 'linear-gradient(135deg, #2563eb, #1e40af)',
             }}
           >
             {resultStatus === 'LATE' ? (
@@ -331,7 +331,7 @@ export default function MiPortalAsistenciaPage() {
             style={{
               fontFamily: 'var(--font-serif)',
               fontWeight: 500,
-              color: resultStatus === 'LATE' ? '#78350f' : '#064e3b',
+              color: resultStatus === 'LATE' ? '#78350f' : '#172554',
             }}
           >
             {resultStatus === 'LATE' ? '¡Marcaste tardanza!' : '¡Marcaste a tiempo!'}
@@ -432,7 +432,7 @@ export default function MiPortalAsistenciaPage() {
           <section className="rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 p-6 text-center">
             <div
               className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-white"
-              style={{ background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)' }}
             >
               <ScanLine className="h-7 w-7" />
             </div>

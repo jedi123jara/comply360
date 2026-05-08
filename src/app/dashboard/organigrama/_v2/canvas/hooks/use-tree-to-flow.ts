@@ -171,7 +171,7 @@ function overlayCopilotPreview(
         target: `ghost-unit-${op.tempKey}`,
         type: 'smoothstep',
         animated: true,
-        style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '6 4' },
+        style: { stroke: '#2563eb', strokeWidth: 2, strokeDasharray: '6 4' },
       })
     }
   })
@@ -227,7 +227,7 @@ function overlayCopilotPreview(
           target: `ghost-pos-${op.tempKey}`,
           type: 'smoothstep',
           animated: true,
-          style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '6 4' },
+          style: { stroke: '#2563eb', strokeWidth: 2, strokeDasharray: '6 4' },
         })
       }
     })

@@ -174,7 +174,7 @@ export default function DiagnosticoGratisPage() {
         className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
         style={{
           background:
-            'linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #ecfdf5 0%, #f8fafc 55%, #fefce8 100%)',
+            'linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
         }}
       >
         {/* Grid overlay + halo emerald */}
@@ -454,7 +454,7 @@ export default function DiagnosticoGratisPage() {
         className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
         style={{
           background:
-            'linear-gradient(rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #ecfdf5 0%, #f8fafc 55%, #fefce8 100%)',
+            'linear-gradient(rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
         }}
       >
         <div
@@ -487,7 +487,7 @@ export default function DiagnosticoGratisPage() {
                 style={{
                   width: 56,
                   height: 56,
-                  background: 'linear-gradient(165deg, #10b981 0%, #047857 100%)',
+                  background: 'linear-gradient(165deg, #2563eb 0%, #1e40af 100%)',
                   boxShadow:
                     '0 8px 24px -6px rgba(4,120,87,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
                 }}

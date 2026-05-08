@@ -351,7 +351,7 @@ export default function AdminOverviewPage() {
             <div className="spark">
               <Sparkline
                 data={k.spark}
-                color={k.positive ? '#10b981' : '#ef4444'}
+                color={k.positive ? '#2563eb' : '#ef4444'}
                 width={72}
                 height={26}
                 dots

@@ -56,8 +56,8 @@ const STATUS_META: Record<
 > = {
   DRAFT: { label: 'Borrador', icon: PenTool, color: '#64748b' },
   IN_REVIEW: { label: 'En revisión', icon: Eye, color: '#f59e0b' },
-  APPROVED: { label: 'Aprobado', icon: CheckCircle, color: '#10b981' },
-  SIGNED: { label: 'Firmado', icon: CheckCircle, color: '#047857' },
+  APPROVED: { label: 'Aprobado', icon: CheckCircle, color: '#2563eb' },
+  SIGNED: { label: 'Firmado', icon: CheckCircle, color: '#1e40af' },
   EXPIRED: { label: 'Vencido', icon: AlertTriangle, color: '#ef4444' },
   ARCHIVED: { label: 'Archivado', icon: Archive, color: '#94a3b8' },
 }

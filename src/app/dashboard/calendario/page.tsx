@@ -131,11 +131,11 @@ const CATEGORY_STYLES: Record<EventCategory, { bg: string; text: string; border:
     badge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
   },
   vacaciones: {
-    bg: 'bg-teal-50',
-    text: 'text-teal-700',
-    border: 'border-teal-200',
-    dot: 'bg-teal-500',
-    badge: 'bg-teal-50 text-teal-700 border-teal-200',
+    bg: 'bg-sky-50',
+    text: 'text-sky-700',
+    border: 'border-sky-200',
+    dot: 'bg-sky-500',
+    badge: 'bg-sky-50 text-sky-700 border-sky-200',
   },
   firma: {
     bg: 'bg-violet-50',

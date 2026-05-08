@@ -51,9 +51,9 @@ const PALETTES: Record<
     deadlineColor: 'var(--amber-700, #b45309)',
   },
   medium: {
-    bg: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
+    bg: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
     border: 'rgba(16,185,129,0.28)',
-    iconBg: 'linear-gradient(165deg, #10b981 0%, #047857 100%)',
+    iconBg: 'linear-gradient(165deg, #2563eb 0%, #1e40af 100%)',
     iconColor: '#ffffff',
     ctaBg: 'var(--emerald-600)',
     deadlineColor: 'var(--emerald-700)',

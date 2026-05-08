@@ -1,8 +1,18 @@
 /* =============================================================================
- * COMPLY360 — Design Tokens v3 "Emerald Light" (Stripe / Linear / Vercel style)
+ * COMPLY360 — Design Tokens v4 "Blue Authority" (Westlaw / Stripe / Linear)
  *
- * LIGHT-first. Paleta: blanco/grises neutros + verde esmeralda como acento
- * + rojo crimson para alertas críticas. Sombras suaves, sin glow ni neón.
+ * LIGHT-first. Paleta: blanco/grises neutros + AZUL NAVY como acento brand
+ * + GOLD para premium/PRO + rojo crimson para alertas críticas.
+ *
+ * Migración v3→v4 (2026-05-08):
+ *   El namespace `--emerald-*` se mantiene por compatibilidad pero ahora
+ *   contiene la rampa NAVY/BLUE AUTHORITY. Esto hace que las 2962+
+ *   utilidades Tailwind `bg-emerald-XXX`/`text-emerald-XXX` cambien
+ *   automáticamente al brand nuevo sin tocar componentes.
+ *
+ *   Para "success" semántico (✓ checks, vigente, OK) usamos `--color-success`
+ *   apuntando a verde nativo `#16a34a`. NUNCA usar `bg-emerald-*` para success
+ *   en código nuevo — el verde brand ya no existe.
  *
  * Consumido vía:
  *   - @theme inline en globals.css → utilidades Tailwind
@@ -13,17 +23,36 @@
  */
 
 :root {
-  /* ─── Emerald (acento principal) ────────────────────────────────────── */
-  --emerald-50: #ecfdf5;
-  --emerald-100: #d1fae5;
-  --emerald-200: #a7f3d0;
-  --emerald-300: #6ee7b7;
-  --emerald-400: #34d399;
-  --emerald-500: #10b981; /* brand primary — contrasta bien sobre blanco */
-  --emerald-600: #059669; /* CTAs sobre fondo claro, texto sobre emerald suave */
-  --emerald-700: #047857;
-  --emerald-800: #065f46;
-  --emerald-900: #064e3b;
+  /* ─── Brand Navy (acento principal — antes "emerald") ───────────────────
+   * Rampa coherente con paleta A "SUNAFIL Authority":
+   *   - 50-200 → fondos suaves (cards, badges info)
+   *   - 300-400 → ilustraciones, accents
+   *   - 500-600 → CTAs, links, brand surface
+   *   - 700-800 → headings, navy authority
+   *   - 900    → deep navy (hero overlays, modals headers)
+   */
+  --emerald-50: #eff6ff;
+  --emerald-100: #dbeafe;
+  --emerald-200: #bfdbfe;
+  --emerald-300: #93c5fd;
+  --emerald-400: #60a5fa;
+  --emerald-500: #2563eb; /* CTA principal sobre blanco — antes #2563eb */
+  --emerald-600: #1d4ed8; /* CTA hover, navy strong — antes #1d4ed8 */
+  --emerald-700: #1e40af;
+  --emerald-800: #1e3a8a; /* navy authority — heading hero */
+  --emerald-900: #172554; /* deep navy — overlays */
+
+  /* Alias semántico moderno (sin nombre legacy) */
+  --brand-50: var(--emerald-50);
+  --brand-100: var(--emerald-100);
+  --brand-200: var(--emerald-200);
+  --brand-300: var(--emerald-300);
+  --brand-400: var(--emerald-400);
+  --brand-500: var(--emerald-500);
+  --brand-600: var(--emerald-600);
+  --brand-700: var(--emerald-700);
+  --brand-800: var(--emerald-800);
+  --brand-900: var(--emerald-900);
 
   /* ─── Crimson (riesgo, alertas críticas) ────────────────────────────── */
   --crimson-50: #fef2f2;
@@ -42,10 +71,23 @@
   --amber-500: #f59e0b;
   --amber-600: #d97706;
 
-  /* ─── Gold (acento premium residual — logros, plan PRO) ─────────────── */
-  --gold-400: #e0bc6e;
-  --gold-500: #d4a853;
-  --gold-600: #b8923e;
+  /* ─── Gold (acento premium reforzado v4 — Plan PRO, certificados, badges) ─
+   * En la paleta "Blue Authority", el gold es el SEGUNDO acento.
+   * Se usa para:
+   *   - Badge "Plan PRO" / "Plan EMPRESA" en sidebar
+   *   - Sello "Compliance certificado" en reportes
+   *   - Estrellas de score, logros del trabajador
+   *   - Bordes de cards premium
+   * Rampa expandida vs v3 (antes solo 400/500/600).
+   */
+  --gold-50: #fefce8;
+  --gold-100: #fef9c3;
+  --gold-200: #fef08a;
+  --gold-300: #fde047;
+  --gold-400: #facc15;
+  --gold-500: #d4a853; /* gold principal — premium subtle */
+  --gold-600: #b45309; /* gold dark — sobre fondos claros */
+  --gold-700: #92400e;
 
   /* ─── Cyan (info, links) ────────────────────────────────────────────── */
   --cyan-50: #ecfeff;
@@ -53,13 +95,28 @@
   --cyan-500: #06b6d4;
   --cyan-600: #0891b2;
 
-  /* ─── Blue (trust / fiscal SUNAT) ───────────────────────────────────── */
-  --blue-50: #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --blue-800: #1e40af;
+  /* ─── Blue (alias del brand, mantenido por compat — antes "fiscal SUNAT") ─
+   * En v4 el brand principal ES azul, así que este namespace queda como
+   * alias del brand. Cuando un componente usa `bg-blue-700` se ve igual
+   * que `bg-emerald-700` (ambos navy).
+   */
+  --blue-50: var(--emerald-50);
+  --blue-100: var(--emerald-100);
+  --blue-500: var(--emerald-500);
+  --blue-600: var(--emerald-600);
+  --blue-700: var(--emerald-700);
+  --blue-800: var(--emerald-800);
+
+  /* ─── Success Green (semántico — ✓ checks, vigente, OK) ──────────────
+   * Mantenido como verde nativo deliberado: en el rebrand a Blue Authority,
+   * los success states no deben confundirse con el brand. Verde clásico
+   * (#16a34a / Tailwind green-600) sigue siendo la convención SaaS para "OK".
+   */
+  --success-green-50: #f0fdf4;
+  --success-green-100: #dcfce7;
+  --success-green-500: #22c55e;
+  --success-green-600: #16a34a;
+  --success-green-700: #15803d;
 
   /* ─── Neutral scale (Stripe-like grays) ─────────────────────────────── */
   --neutral-50: #f8fafc;
@@ -97,10 +154,11 @@
    *   - compliance-trust → azul fiscal/SUNAT (cuando el contexto es legal)
    *   - compliance-critical → rojo multa SUNAFIL (más fuerte que danger)
    */
-  --color-success: var(--emerald-500);
-  --color-success-bg: var(--emerald-50);
-  --color-success-border: var(--border-emerald);
-  --color-success-text: var(--emerald-700);
+  /* Success usa verde nativo, NO brand navy — para no confundir checks ✓ */
+  --color-success: var(--success-green-600);
+  --color-success-bg: var(--success-green-50);
+  --color-success-border: rgba(34, 197, 94, 0.35);
+  --color-success-text: var(--success-green-700);
 
   --color-warning: var(--amber-500);
   --color-warning-bg: var(--amber-50);
@@ -149,16 +207,22 @@
   --border-subtle: rgba(15, 23, 42, 0.08);
   --border-default: rgba(15, 23, 42, 0.12);
   --border-strong: rgba(15, 23, 42, 0.18);
-  --border-emerald: rgba(16, 185, 129, 0.35);
-  --border-emerald-strong: rgba(16, 185, 129, 0.55);
+  /* Border "emerald" ahora es navy/blue (mantiene nombre por compat) */
+  --border-emerald: rgba(37, 99, 235, 0.35);
+  --border-emerald-strong: rgba(37, 99, 235, 0.55);
+  --border-brand: var(--border-emerald);
+  --border-brand-strong: var(--border-emerald-strong);
+  --border-gold: rgba(180, 83, 9, 0.35);
   --border-crimson: rgba(239, 68, 68, 0.35);
   --border-amber: rgba(245, 158, 11, 0.35);
 
-  /* ─── Glows (ahora casi inexistentes, solo halos sutiles) ───────────── */
-  --glow-emerald: 0 0 0 4px rgba(16, 185, 129, 0.08);
-  --glow-emerald-strong: 0 0 0 6px rgba(16, 185, 129, 0.12);
+  /* ─── Glows (halos sutiles, ahora navy) ─────────────────────────────── */
+  --glow-emerald: 0 0 0 4px rgba(37, 99, 235, 0.10);
+  --glow-emerald-strong: 0 0 0 6px rgba(37, 99, 235, 0.15);
+  --glow-brand: var(--glow-emerald);
+  --glow-brand-strong: var(--glow-emerald-strong);
   --glow-crimson: 0 0 0 4px rgba(239, 68, 68, 0.10);
-  --glow-gold: 0 0 0 4px rgba(212, 168, 83, 0.10);
+  --glow-gold: 0 0 0 4px rgba(212, 168, 83, 0.12);
 
   /* ─── Elevation (sombras ricas sin saturar) ─────────────────────────
    * Cada nivel combina:
@@ -195,7 +259,7 @@
     0 0 0 1px rgba(16, 185, 129, 0.25);
 
   /* Accent bar — barra superior para cards destacadas */
-  --accent-bar-emerald: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  --accent-bar-emerald: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
   --accent-bar-amber: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
   --accent-bar-crimson: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
 

@@ -282,9 +282,9 @@ function BrandShield({ size = 26 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
       <defs>
         <linearGradient id="navg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#34d399" />
-          <stop offset="50%" stopColor="#10b981" />
-          <stop offset="100%" stopColor="#047857" />
+          <stop offset="0%" stopColor="#60a5fa" />
+          <stop offset="50%" stopColor="#2563eb" />
+          <stop offset="100%" stopColor="#1e40af" />
         </linearGradient>
       </defs>
       <path d="M32 4 L54 12 V30 C54 44 44 54 32 60 C20 54 10 44 10 30 V12 Z" fill="url(#navg)" />
@@ -416,10 +416,10 @@ function HeroProductPreview() {
         {/* Sidebar */}
         <div style={{ background: 'linear-gradient(180deg,#fafbfa,#f4f7f5)', borderRight: '0.5px solid rgba(15,23,42,0.06)', padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 8px' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#34d399,#047857)', display: 'grid', placeItems: 'center' }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#60a5fa,#1e40af)', display: 'grid', placeItems: 'center' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Comply<span style={{ color: '#059669' }}>360</span></div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Comply<span style={{ color: '#1d4ed8' }}>360</span></div>
           </div>
           <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: muted, padding: '0 8px', marginTop: 8 }}>Principal</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -437,17 +437,17 @@ function HeroProductPreview() {
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: muted }}>Constructora Andina · Mar 2026</div>
               <div style={{ fontFamily: fontSerif, fontSize: 28, letterSpacing: '-0.025em', marginTop: 4 }}>
-                Tu cumplimiento, <em style={{ fontStyle: 'italic', color: '#047857' }}>al día</em>
+                Tu cumplimiento, <em style={{ fontStyle: 'italic', color: '#1e40af' }}>al día</em>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'linear-gradient(135deg,#ecfdf5,#fff)', border: '0.5px solid rgba(16,185,129,0.3)', padding: '6px 12px', borderRadius: 999 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 4px rgba(16,185,129,0.2)' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#047857' }}>Auditable</span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'linear-gradient(135deg,#eff6ff,#fff)', border: '0.5px solid rgba(16,185,129,0.3)', padding: '6px 12px', borderRadius: 999 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563eb', boxShadow: '0 0 0 4px rgba(16,185,129,0.2)' }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Auditable</span>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-            <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#047857" trend="↑ 8 pts vs. feb" trendColor="#10b981" />
+            <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#1e40af" trend="↑ 8 pts vs. feb" trendColor="#2563eb" />
             <KpiCard label="Multas evitadas" value="38k" prefix="S/" trend="en últimos 12 meses" />
             <KpiCard label="Trabajadores activos" value="247" trend="+12 este mes" />
           </div>
@@ -471,13 +471,13 @@ function HeroProductPreview() {
             <svg width="100%" height="80" viewBox="0 0 400 80" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="chartg" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.25"/>
-                  <stop offset="100%" stopColor="#10b981" stopOpacity="0"/>
+                  <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25"/>
+                  <stop offset="100%" stopColor="#2563eb" stopOpacity="0"/>
                 </linearGradient>
               </defs>
               <path d="M0 60 L33 50 L66 55 L100 40 L133 45 L166 30 L200 35 L233 25 L266 20 L300 22 L333 14 L366 10 L400 8 L400 80 L0 80 Z" fill="url(#chartg)" />
-              <path d="M0 60 L33 50 L66 55 L100 40 L133 45 L166 30 L200 35 L233 25 L266 20 L300 22 L333 14 L366 10 L400 8" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="400" cy="8" r="4" fill="#fff" stroke="#10b981" strokeWidth="2" />
+              <path d="M0 60 L33 50 L66 55 L100 40 L133 45 L166 30 L200 35 L233 25 L266 20 L300 22 L333 14 L366 10 L400 8" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="400" cy="8" r="4" fill="#fff" stroke="#2563eb" strokeWidth="2" />
             </svg>
           </div>
         </div>
@@ -486,7 +486,7 @@ function HeroProductPreview() {
       {/* Mobile preview — tarjeta sintética */}
       <div className="md:hidden" style={{ padding: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#047857" trend="↑ 8 pts" trendColor="#10b981" />
+          <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#1e40af" trend="↑ 8 pts" trendColor="#2563eb" />
           <KpiCard label="Multas evitadas" value="38k" prefix="S/" trend="últimos 12 meses" />
           <KpiCard label="Trabajadores" value="247" trend="+12 este mes" />
         </div>
@@ -504,7 +504,7 @@ function SidebarItem({ active, label, icon, badge, alertBadge }: { active?: bool
       padding: '8px 10px',
       borderRadius: 8,
       background: active ? 'linear-gradient(90deg,rgba(16,185,129,0.10),transparent)' : undefined,
-      color: active ? '#047857' : '#475569',
+      color: active ? '#1e40af' : '#475569',
       fontSize: 13,
       fontWeight: active ? 600 : 400,
     }}>
@@ -543,11 +543,11 @@ function Eyebrow({ children, style, dark }: { children: React.ReactNode; style?:
       fontWeight: 600,
       letterSpacing: '0.12em',
       textTransform: 'uppercase',
-      color: dark ? '#6ee7b7' : 'var(--emerald-700)',
+      color: dark ? '#93c5fd' : 'var(--emerald-700)',
       fontFamily: fontSans,
       ...style,
     }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? '#34d399' : 'var(--emerald-500)', boxShadow: dark ? '0 0 0 4px rgba(52,211,153,0.2)' : '0 0 0 4px rgba(16,185,129,0.18)' }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? '#60a5fa' : 'var(--emerald-500)', boxShadow: dark ? '0 0 0 4px rgba(52,211,153,0.2)' : '0 0 0 4px rgba(16,185,129,0.18)' }} />
       {children}
     </span>
   )
@@ -692,10 +692,10 @@ function Pillars() {
 // ============================================================================
 function StatsDark() {
   const stats: Array<[React.ReactNode, string]> = [
-    [<><em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>340+</em></>, 'empresas peruanas operando con Comply360'],
-    [<>S/ <em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>12M</em></>, 'en multas SUNAFIL evitadas en 2025'],
-    [<><em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>96<span style={{ fontSize: '0.6em' }}>%</span></em></>, 'de capacitaciones SST completadas a tiempo'],
-    [<><em key="x" style={{ color: '#6ee7b7', fontStyle: 'italic' }}>2</em> sem</>, 'de implementación promedio, con tu data migrada'],
+    [<><em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>340+</em></>, 'empresas peruanas operando con Comply360'],
+    [<>S/ <em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>12M</em></>, 'en multas SUNAFIL evitadas en 2025'],
+    [<><em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>96<span style={{ fontSize: '0.6em' }}>%</span></em></>, 'de capacitaciones SST completadas a tiempo'],
+    [<><em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>2</em> sem</>, 'de implementación promedio, con tu data migrada'],
   ]
   return (
     <section style={{ padding: '120px 0', background: 'linear-gradient(180deg, var(--emerald-950) 0%, #051f1a 100%)', color: '#e2e8f0' }}>
@@ -703,7 +703,7 @@ function StatsDark() {
         <SectionHead
           dark
           eyebrow="Resultados"
-          title={<>Cumplir <em style={{ color: '#6ee7b7', fontStyle: 'italic' }}>se siente</em> distinto.</>}
+          title={<>Cumplir <em style={{ color: '#93c5fd', fontStyle: 'italic' }}>se siente</em> distinto.</>}
         />
         <div className="grid text-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32 }}>
           {stats.map(([num, label], i) => (
@@ -1123,7 +1123,7 @@ function Footer() {
           <div style={{ gridColumn: 'span 1', minWidth: 220 }}>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 17, marginBottom: 16 }}>
               <BrandShield size={22} />
-              <span>Comply<span style={{ color: '#34d399' }}>360</span></span>
+              <span>Comply<span style={{ color: '#60a5fa' }}>360</span></span>
             </Link>
             <p style={{ fontSize: 14, color: ink3, lineHeight: 1.55, maxWidth: '32ch', margin: 0 }}>
               La plataforma de cumplimiento laboral hecha para empresas peruanas. Lima · Perú.

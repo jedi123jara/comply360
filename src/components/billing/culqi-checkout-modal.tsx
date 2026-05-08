@@ -246,10 +246,10 @@ export function CulqiCheckoutModal({
         cuotealo: true,
       },
       style: {
-        bannerColor: '#047857',
-        buttonBackground: '#10b981',
+        bannerColor: '#1e40af',
+        buttonBackground: '#2563eb',
         buttonText: '#ffffff',
-        priceColor: '#065f46',
+        priceColor: '#1e3a8a',
       },
     })
     window.Culqi.open()
@@ -294,7 +294,7 @@ export function CulqiCheckoutModal({
         <div
           className="relative px-7 pt-8 pb-6 text-white overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)',
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 45%, #2563eb 100%)',
           }}
         >
           <button
@@ -322,7 +322,7 @@ export function CulqiCheckoutModal({
               marginBottom: 4,
             }}
           >
-            Plan <em style={{ fontStyle: 'italic', color: '#d1fae5' }}>{plan.name}</em>
+            Plan <em style={{ fontStyle: 'italic', color: '#dbeafe' }}>{plan.name}</em>
           </h2>
           <p className="text-emerald-50 text-sm">
             Suscripción mensual renovable. Cancela cuando quieras.
