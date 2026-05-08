@@ -1,14 +1,8 @@
 /* =============================================================================
- * COMPLY360 — Motion System v2 (Vault Pro)
+ * COMPLY360 — Motion System v1
  *
  * Sistema de animaciones consistente. NO mezclar timings o easings ad-hoc en
  * componentes; usar siempre estos tokens y clases.
- *
- * v2 (Vault Pro) sumas:
- *   - brand-mark + shield-rise + check-draw (logo animado)
- *   - pulse-emerald + ring-trace + ring-breathe
- *   - line-fill (barras "linea de vida" en cascada)
- *   - shimmer-sweep (brillo recorre barras)
  *
  * Filosofía:
  *   - Micro-interacciones: 150ms (botones, hovers)
@@ -383,89 +377,4 @@
   background: var(--emerald-500);
   border-radius: 50%;
   animation: c360-pulse 2s var(--ease-soft) infinite;
-}
-
-/* =============================================================================
- *  VAULT PRO — animaciones del logo escudo (brand-mark)
- * ===========================================================================
- */
-@keyframes shield-rise {
-  0% { opacity: 0; transform: translateY(8px) scale(0.9); }
-  60% { opacity: 1; transform: translateY(-3px) scale(1.05); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes check-draw {
-  0% { stroke-dashoffset: 32; }
-  100% { stroke-dashoffset: 0; }
-}
-@keyframes orbit-spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes pulse-emerald {
-  0% { box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.18); }
-  70% { box-shadow: 0 0 0 6px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-@keyframes danger-blink {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 93, 108, 0.12); }
-  50% { box-shadow: 0 0 0 4px rgba(255, 93, 108, 0.12); }
-}
-@keyframes ring-breathe {
-  0%, 100% { filter: drop-shadow(0 0 4px currentColor); opacity: 0.95; }
-  50% { filter: drop-shadow(0 0 14px currentColor); opacity: 1; }
-}
-@keyframes ring-trace {
-  0% { stroke-dashoffset: 0; opacity: 0.7; }
-  50% { opacity: 0.15; }
-  100% { stroke-dashoffset: -120; opacity: 0.7; }
-}
-/* Línea de vida — barra que se llena en cascada */
-@keyframes line-fill {
-  0% { width: 0; }
-  100% { width: var(--line-fill, 100%); }
-}
-/* Shimmer sweep — brillo que recorre una barra */
-@keyframes shimmer-sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(220%); }
-}
-
-/* Logo activo — el shield "rise" + check se "dibuja" */
-.brand-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  animation: shield-rise 750ms var(--ease-vp) both;
-}
-.brand-mark .shield-check {
-  stroke-dasharray: 32;
-  stroke-dashoffset: 32;
-  animation: check-draw 850ms var(--ease-vp) 380ms forwards;
-}
-.brand-mark:hover .shield-check {
-  animation: check-draw 800ms var(--ease-vp) forwards;
-}
-
-/* Pulse emerald + danger-blink — para badges live, alerts críticos */
-.vp-pulse-emerald { animation: pulse-emerald 2s infinite; }
-.vp-danger-blink { animation: danger-blink 1.6s infinite; }
-.vp-ring-breathe { animation: ring-breathe 3s var(--ease-vp) infinite; }
-
-/* Línea de vida — utilidad para barras de KPI/breakdown */
-.vp-line-fill {
-  animation: line-fill 1.2s var(--ease-vp) both;
-}
-.vp-shimmer-sweep::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.18) 45%,
-    rgba(255, 255, 255, 0.32) 50%,
-    rgba(255, 255, 255, 0.18) 55%,
-    transparent 100%
-  );
-  animation: shimmer-sweep 2.4s var(--ease-vp) infinite;
 }

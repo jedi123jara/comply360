@@ -104,24 +104,10 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${firaCode.variable} ${instrumentSerif.variable} h-full antialiased`}
-      suppressHydrationWarning
+      style={{ colorScheme: 'light' }}
     >
       <head>
-        {/* FIX #vault-pro: theme bootstrap (lee localStorage antes del render para
-            evitar flash). Default = dark (Vault Pro). */}
-        <Script id="theme-init" strategy="beforeInteractive">{`
-          (function(){
-            try {
-              var stored = localStorage.getItem('theme');
-              var pref = stored || 'dark';
-              if (pref !== 'light' && pref !== 'dark') pref = 'dark';
-              document.documentElement.setAttribute('data-theme', pref);
-              document.documentElement.style.colorScheme = pref;
-            } catch (e) {
-              document.documentElement.setAttribute('data-theme', 'dark');
-            }
-          })();
-        `}</Script>
+        <meta name="color-scheme" content="light only" />
         {/* Plausible analytics — GDPR-friendly, sin cookies. Condicional:
             solo se carga si NEXT_PUBLIC_PLAUSIBLE_DOMAIN está configurado. */}
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ? (
