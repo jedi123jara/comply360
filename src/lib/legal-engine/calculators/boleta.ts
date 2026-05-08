@@ -176,21 +176,35 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
   //   extraordinarias se tratan por separado — aquí usamos rem computable habitual)
   const remHabitual = aportes.remuneracionComputable
 
-  // Gratificaciones anuales: si es mes < 7, habrá 2 gratif. (jul + dic);
-  // si mes ≥ 7 y < 12, habrá 1 más (dic); si mes = 12, ya se incluyó en el año.
+  // FIX #2.E.4: Gratificaciones anuales se calculan sobre `remHabitual`
+  // (sueldo + asig fam + comisiones promedio), NO sobre `sueldoBruto` solo.
+  // Antes la base subdeclaraba la grati cuando había asignación familiar
+  // (S/113) y la proyección de renta 5ta quedaba ~S/26/mes baja.
+  // FIX #2.D: CAS post-2026 tiene gratificaciones (Ley 2026 — TIENE_GRATIFICACION:true).
+  // El default `× 2` ya lo cubre; AGRARIO incluye grati en jornal (no separar).
+  const isAgrario = regimenLaboral === 'AGRARIO'
   const gratifAnual =
-    regimenLaboral === 'MYPE_MICRO'
+    regimenLaboral === 'MYPE_MICRO' || regimenLaboral === 'MODALIDAD_FORMATIVA'
       ? 0
       : regimenLaboral === 'MYPE_PEQUENA'
-        ? sueldoBruto * PERU_LABOR.MYPE.PEQUENA.GRATIFICACIONES_PORCENTAJE * 2
-        : sueldoBruto * 2  // 2 gratificaciones anuales normales
+        ? remHabitual * PERU_LABOR.MYPE.PEQUENA.GRATIFICACIONES_PORCENTAJE * 2
+        : isAgrario
+          ? 0 // ya prorrateada en remuneración diaria (16.66%)
+          : remHabitual * 2 // GENERAL, CAS_2026, AGRARIO general → 2 gratif anuales
+
+  // FIX #2.E.3: `bonificaciones` puede contener la bonif. extraordinaria 9%
+  // sobre grati (Ley 30334) que está EXONERADA de renta 5ta. Si el caller
+  // ya pasó `bonificacionesNoGravables`, lo restamos antes de proyectar.
+  // Esta calculadora no tiene visibilidad sobre la composición; documentamos
+  // que el caller debe pasar SOLO bonificaciones gravables (no la 9% Ley 30334).
+  const otrosIngresosGravables = bonificaciones
 
   const rentaInput: RentaQuintaInput = {
     remuneracionMensual: remHabitual,
     mes,
     gratificacionesAnuales: gratifAnual,
     retenidoAcumulado: retencionRentaAcumulada,
-    otrosIngresosAnuales: bonificaciones, // bonificaciones del período como ingreso adicional
+    otrosIngresosAnuales: otrosIngresosGravables,
   }
   const rentaResult = calcularRentaQuinta(rentaInput)
   const rentaQuintaCat = rentaResult.retencionMesActual

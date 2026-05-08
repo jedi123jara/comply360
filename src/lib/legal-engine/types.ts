@@ -13,6 +13,16 @@ export interface LiquidacionInput {
   horasExtrasPendientes: number
   ultimaGratificacion: number  // monto
   comisionesPromedio: number
+  /**
+   * FIX #2.C: régimen laboral del trabajador. Determina:
+   *  - MYPE_MICRO: sin CTS, sin gratificaciones, vacaciones 15 días,
+   *    indemnización 10 rem diarias × año (Ley 32353 Art. 64).
+   *  - MYPE_PEQUENA: 50% CTS, 50% gratificaciones, vacaciones 15 días,
+   *    indemnización 20 rem diarias × año.
+   *  - Otros: tratamiento GENERAL (D.S. 003-97-TR).
+   * Default 'GENERAL' si no se provee (compat con callers existentes).
+   */
+  regimenLaboral?: string
 }
 
 export type MotivoCese =
@@ -122,6 +132,12 @@ export interface IndemnizacionResult {
   topeMaximo: number
   formula: string
   baseLegal: string
+  /**
+   * Advertencia legal opcional: zonas grises o criterios jurisprudenciales
+   * divergentes que el caller (UI) debe mostrar al usuario para que tome
+   * decisión informada. Empezó con FIX #2.E.1 (1.5x vs 1x plazo fijo).
+   */
+  legalWarning?: string
 }
 
 // =============================================
@@ -134,6 +150,14 @@ export interface HorasExtrasInput {
   mesesAcumulados: number
   incluyeDomingos: boolean
   horasDomingo: number
+  /**
+   * Distribución diaria opcional (horas trabajadas por día, hasta 6 días).
+   * Si se provee, el cálculo es exacto día por día (FIX #2.E.2). Si NO se
+   * provee, asume distribución óptima al 25% (ej. 4h extras se computan
+   * 2h@25% + 2h@35% si vinieron en un mismo día; sin distribución asume
+   * 4h@25% que subestima en favor del empleador).
+   */
+  horasDiarias?: number[]
 }
 
 export interface HorasExtrasResult {
@@ -161,6 +185,12 @@ export interface VacacionesInput {
   fechaCese: string
   diasGozados: number
   asignacionFamiliar: boolean
+  /**
+   * Régimen laboral del trabajador (Prisma enum). Determina los días anuales
+   * de vacaciones que corresponden. Default `'GENERAL'` (30 días) si no se
+   * provee. FIX #0.10: antes se asumía 30 días para todos los regímenes.
+   */
+  regimenLaboral?: string
 }
 
 export interface VacacionesResult {

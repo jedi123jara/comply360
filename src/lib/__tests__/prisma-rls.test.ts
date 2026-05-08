@@ -9,8 +9,12 @@
  */
 
 const { mockPrisma } = vi.hoisted(() => {
+  // FIX #1.B: el helper ahora usa $queryRaw con set_config() (parametrizado)
+  // en lugar de $executeRawUnsafe con interpolación. Mantenemos ambos en el
+  // mock por compat con tests viejos.
   const tx = {
     $executeRawUnsafe: vi.fn().mockResolvedValue(0),
+    $queryRaw: vi.fn().mockResolvedValue([{ set_config: '' }]),
     worker: { findMany: vi.fn().mockResolvedValue([]) },
   }
   const mockPrisma = {
@@ -31,28 +35,31 @@ beforeEach(() => {
 })
 
 describe('runWithOrgScope', () => {
-  test('con RLS_ENFORCED=true, ejecuta SET LOCAL antes del fn', async () => {
+  test('con RLS_ENFORCED=true, ejecuta set_config con orgId parametrizado', async () => {
     process.env.RLS_ENFORCED = 'true'
     vi.resetModules()
     const { runWithOrgScope } = await import('../prisma-rls')
 
     const result = await runWithOrgScope('org_abc123', (tx) => tx.worker.findMany())
 
-    expect(mockPrisma.__tx.$executeRawUnsafe).toHaveBeenCalledWith(
-      "SET LOCAL app.current_org_id = 'org_abc123'",
-    )
+    // FIX #1.B: tagged template Prisma → $queryRaw recibe el SQL como
+    // TemplateStringsArray + values. Validamos que el orgId esté en values
+    // (parametrizado, no interpolado en string).
+    expect(mockPrisma.__tx.$queryRaw).toHaveBeenCalledOnce()
+    const callArgs = mockPrisma.__tx.$queryRaw.mock.calls[0]
+    expect(callArgs).toContain('org_abc123')
     expect(mockPrisma.__tx.worker.findMany).toHaveBeenCalledOnce()
     expect(result).toEqual([])
   })
 
-  test('con RLS_ENFORCED!=true, NO ejecuta SET LOCAL (no-op)', async () => {
+  test('con RLS_ENFORCED!=true, NO ejecuta set_config (no-op)', async () => {
     process.env.RLS_ENFORCED = 'false'
     vi.resetModules()
     const { runWithOrgScope } = await import('../prisma-rls')
 
     await runWithOrgScope('org_abc', (tx) => tx.worker.findMany())
 
-    expect(mockPrisma.__tx.$executeRawUnsafe).not.toHaveBeenCalled()
+    expect(mockPrisma.__tx.$queryRaw).not.toHaveBeenCalled()
     expect(mockPrisma.__tx.worker.findMany).toHaveBeenCalledOnce()
   })
 

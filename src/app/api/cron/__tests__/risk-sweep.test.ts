@@ -33,6 +33,13 @@ vi.mock('@/lib/agents/runtime', () => ({
   runAgent: (...args: unknown[]) => mockRunAgent(...args),
 }))
 
+// FIX #5.A: cron usa claimCronRun ahora.
+vi.mock('@/lib/cron/idempotency', () => ({
+  claimCronRun: vi.fn().mockResolvedValue({ acquired: true, runId: 'test-run', bucket: '202605' }),
+  completeCronRun: vi.fn().mockResolvedValue(undefined),
+  failCronRun: vi.fn().mockResolvedValue(undefined),
+}))
+
 // ---------------------------------------------------------------------------
 // Import handler AFTER mocks
 // ---------------------------------------------------------------------------
@@ -78,13 +85,17 @@ describe('GET /api/cron/risk-sweep', () => {
 
   // -- Auth tests --
 
-  it('returns 401 when CRON_SECRET is not configured', async () => {
+  it('returns 503 when CRON_SECRET is not configured', async () => {
+    // FIX #5.A: el wrapper withCronIdempotency devuelve 503 (Service
+    // unavailable) cuando CRON_SECRET falta — más correcto que 401, porque
+    // 401 implicaría "credencial incorrecta" cuando en realidad el servicio
+    // está mal configurado.
     delete process.env.CRON_SECRET
 
     const res = await GET(makeRequest('Bearer anything'))
     const json = await res.json()
 
-    expect(res.status).toBe(401)
+    expect(res.status).toBe(503)
     expect(json.error).toBeDefined()
     expect(mockPrisma.organization.findMany).not.toHaveBeenCalled()
   })

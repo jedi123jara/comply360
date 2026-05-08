@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { monitorOrgAlerts } from '@/lib/orgchart/alert-monitor'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -8,19 +9,10 @@ export const dynamic = 'force-dynamic'
 /**
  * Cron diario: revisa alertas criticas/altas del organigrama y crea tareas
  * compliance idempotentes para cada organizacion con organigrama activo.
+ *
+ * FIX #5.A: idempotencia diaria.
  */
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret) {
-    console.error('CRON_SECRET no configurado - cron orgchart-alerts deshabilitado')
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-  }
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export const GET = withCronIdempotency('orgchart-alerts', 1440, async () => {
   const orgs = await prisma.organization.findMany({
     where: {
       plan: { in: ['EMPRESA', 'BUSINESS', 'ENTERPRISE'] },
@@ -59,4 +51,4 @@ export async function GET(request: NextRequest) {
     errors: errors.length,
     errorDetails: errors.slice(0, 10),
   })
-}
+})

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 
 // Rate limiter: 5 leads per IP per hour
 const ipCounts = new Map<string, { count: number; resetAt: number }>()
@@ -31,11 +32,23 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, companyName, companySize, sector, phone, source, scoreGlobal, multaEstimada, scoreByArea } = body
+    const { email, companyName, companySize, sector, phone, source, scoreGlobal, multaEstimada, scoreByArea, recaptchaToken } = body
 
     // Validate email
     if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Email invalido' }, { status: 400 })
+    }
+
+    // FIX #5.B: reCAPTCHA en endpoint público de captura de leads.
+    // Bypass automático en dev sin RECAPTCHA_SECRET_KEY (helper).
+    if (process.env.RECAPTCHA_SECRET_KEY) {
+      const recaptcha = await verifyRecaptcha(recaptchaToken ?? '', { threshold: 0.3 })
+      if (!recaptcha.success) {
+        return NextResponse.json(
+          { error: 'Validación anti-bot falló. Recarga la página e intenta de nuevo.' },
+          { status: 403 }
+        )
+      }
     }
 
     // ── Persistencia resiliente ──────────────────────────────────────────

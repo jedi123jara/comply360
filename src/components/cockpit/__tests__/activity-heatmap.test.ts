@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mockHeatmapData } from '@/components/cockpit/activity-heatmap'
+import { mockHeatmapData } from '@/components/cockpit/heatmap-mock'
 
 describe('mockHeatmapData', () => {
   it('genera exactamente weeks * 7 entradas', () => {

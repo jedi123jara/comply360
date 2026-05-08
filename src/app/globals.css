@@ -890,6 +890,27 @@ tr:hover td {
 }
 .c360-hero-stat-delta.crimson { color: var(--crimson-600); }
 
+/* Mobile compactación del HeroPanel — el ring 220px y el shield animado son
+ * desktop-first. En celular reducimos para que la primera vista sea legible
+ * y los CTAs queden alcanzables sin scroll innecesario. */
+@media (max-width: 640px) {
+  .c360-hero-panel { padding: 18px 16px; margin-bottom: 12px; }
+  .c360-hero-panel::after { display: none; }
+  .c360-hero-grid { gap: 16px; }
+  .c360-hero-score-big { width: 140px; height: 140px; }
+  .c360-hero-score-big .n { font-size: 56px; }
+  .c360-hero-score-big .over { font-size: 18px; }
+  .c360-hero-headline { font-size: 22px; max-width: 100%; }
+  .c360-hero-sub { font-size: 12.5px; max-width: 100%; }
+  .c360-hero-stat-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; padding-top: 12px; }
+  .c360-hero-stat-strip > div { padding-right: 8px; }
+  .c360-hero-stat-strip > div:last-child { padding-left: 8px; }
+  .c360-hero-stat-strip > div:nth-child(2) { padding-left: 8px; }
+  .c360-hero-stat-value { font-size: 18px; }
+  .c360-hero-stat-label { font-size: 9px; letter-spacing: 0.08em; }
+  .c360-hero-stat-delta { font-size: 10.5px; }
+}
+
 /* ============ Premium ring with gradient ============ */
 .c360-ring-premium {
   position: relative;

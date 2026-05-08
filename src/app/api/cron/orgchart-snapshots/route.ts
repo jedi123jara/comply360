@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { takeSnapshot } from '@/lib/orgchart/snapshot-service'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 /**
  * Cron semanal: snapshot automático del organigrama para cada org en plan
@@ -14,18 +15,8 @@ import { takeSnapshot } from '@/lib/orgchart/snapshot-service'
  * Errores por org se aíslan: si una org falla, las demás siguen.
  */
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret) {
-    console.error('CRON_SECRET no configurado — cron orgchart-snapshots deshabilitado')
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-  }
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// FIX #5.A: idempotencia semanal (10080 min = 7d).
+export const GET = withCronIdempotency('orgchart-snapshots', 10080, async () => {
   // Orgs con plan que incluye organigrama_completo (EMPRESA, BUSINESS, ENTERPRISE)
   const orgs = await prisma.organization.findMany({
     where: { plan: { in: ['EMPRESA', 'BUSINESS', 'ENTERPRISE'] } },
@@ -88,4 +79,4 @@ export async function GET(request: NextRequest) {
     errors: errors.length,
     errorDetails: errors.slice(0, 10),
   })
-}
+})

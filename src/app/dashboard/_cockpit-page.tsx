@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ShieldCheck,
@@ -33,7 +33,7 @@ import { DecisionesLaborales } from './_components/decisiones-laborales'
 
 // SectorRadar usa `recharts` (~102KB gzipped). Lo cargamos dinámicamente
 // para que no infle el bundle inicial del dashboard. ssr:false porque
-// recharts requiere DOM y el cockpit ya es client.
+// recharts requiere DOM.
 const SectorRadar = dynamic(
   () => import('@/components/cockpit').then((m) => ({ default: m.SectorRadar })),
   {
@@ -51,13 +51,10 @@ import type {
   WorkerRiskItem,
   RadarAxisDatum,
   QuickAction,
-  HeatmapDay,
-  ComplianceTaskTeaser,
 } from '@/components/cockpit'
-import { SkeletonStats, SkeletonCard } from '@/components/ui/skeleton'
-import { OnboardingWizard } from '@/components/dashboard/onboarding-wizard'
 import { WelcomeTour } from '@/components/dashboard/welcome-tour'
 import { HeroPanel } from '@/components/comply360/hero-panel'
+import type { CockpitFullPayload, ScoreSnapshot } from '@/lib/cockpit/data'
 
 /**
  * Cockpit v2 — "Obsidian + Esmeralda".
@@ -73,54 +70,21 @@ import { HeroPanel } from '@/components/comply360/hero-panel'
  *   - Fallbacks a mock sólo si la API está vacía (cuentas nuevas sin datos)
  */
 
-interface DashboardPayload {
-  stats?: {
-    totalWorkers?: number
-    expiringCount?: number
-    criticalAlerts?: number
-    complianceScore?: number | null
-    multaPotencial?: number | null
-  }
-  complianceBreakdown?: { label: string; score: number; weight?: number }[]
-  recentContracts?: { id: string; title: string; status: string }[]
-  recentCriticalAlerts?: {
-    id: string
-    title: string
-    severity: string
-    dueDate: string | null
-    type: string
-  }[]
-  riskWorkers?: WorkerRiskItem[]
-  upcomingDeadlines?: DeadlineItem[]
-  activityHeatmap?: HeatmapDay[]
-  sectorRadar?: RadarAxisDatum[]
-  topRisk?: { label: string; impact: number }
-  complianceTasks?: {
-    open: number
-    pending: number
-    inProgress: number
-    completed: number
-    dismissed: number
-    overdue: number
-    multaEvitable: number
-    multaEvitada: number
-    top: ComplianceTaskTeaser[]
-  }
+/**
+ * Props inyectados desde el Server Component `dashboard/page.tsx`.
+ * El cockpit ya no fetchea en el cliente — recibe la data resuelta vía RSC.
+ */
+export interface CockpitClientProps {
+  initialData: CockpitFullPayload
+  initialScore: ScoreSnapshot
 }
 
-interface ScorePayload {
-  scoreGlobal?: number
-  delta?: number
-  data?: { scoreGlobal?: number; delta?: number }
-}
-
-export default function CockpitPage() {
+export default function CockpitPage({ initialData, initialScore }: CockpitClientProps) {
   const copilot = useCopilot()
   const searchParams = useSearchParams()
-  const [data, setData] = useState<DashboardPayload | null>(null)
-  const [scoreData, setScoreData] = useState<ScorePayload | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null)
+
+  const data = initialData
+  const scoreData = initialScore
 
   // Toast "Trial PRO activado" — se muestra UNA sola vez al venir del onboarding
   // con `?welcome=trial`. Usamos sessionStorage para no spam al refrescar.
@@ -135,81 +99,37 @@ export default function CockpitPage() {
     })
   }, [searchParams])
 
-  // Fetch dashboard + score in parallel
-  useEffect(() => {
-    let mounted = true
-    Promise.allSettled([
-      fetch('/api/dashboard').then((r) => (r.ok ? r.json() : null)),
-      fetch('/api/compliance/score').then((r) => (r.ok ? r.json() : null)),
-      fetch('/api/onboarding/progress').then((r) => (r.ok ? r.json() : null)),
-    ])
-      .then(([dashRes, scoreRes, onbRes]) => {
-        if (!mounted) return
-        if (dashRes.status === 'fulfilled' && dashRes.value) setData(dashRes.value)
-        if (scoreRes.status === 'fulfilled' && scoreRes.value) setScoreData(scoreRes.value)
-        if (onbRes.status === 'fulfilled' && onbRes.value) {
-          const needs =
-            onbRes.value.completed === false ||
-            onbRes.value?.data?.completed === false
-          setNeedsOnboarding(needs)
-        } else {
-          setNeedsOnboarding(false)
-        }
-        setLoading(false)
-      })
-      .catch(() => {
-        if (mounted) setLoading(false)
-      })
-    return () => {
-      mounted = false
-    }
-  }, [])
-
   // Derived values
-  const score = useMemo(() => {
-    const s =
-      scoreData?.scoreGlobal ??
-      scoreData?.data?.scoreGlobal ??
-      data?.stats?.complianceScore ??
-      null
-    return typeof s === 'number' ? s : 72
+  const score: number | null = useMemo(() => {
+    const s = scoreData.scoreGlobal ?? data.stats.complianceScore ?? null
+    return typeof s === 'number' ? s : null
   }, [scoreData, data])
 
-  const delta = useMemo(
-    () => scoreData?.delta ?? scoreData?.data?.delta ?? 0,
-    [scoreData]
-  )
+  const delta = scoreData.delta ?? 0
 
-  const totalWorkers = data?.stats?.totalWorkers ?? 0
-  const expiringCount = data?.stats?.expiringCount ?? 0
-  const criticalAlerts = data?.stats?.criticalAlerts ?? 0
-  const multaPotencial = data?.stats?.multaPotencial ?? 0
-  // Datos REALES del endpoint (no más score × 2 ni totalWorkers como "blindados")
-  const workersProtected = (data?.stats as { workersProtected?: number } | undefined)?.workersProtected ?? totalWorkers
-  const daysSinceOrgCreated = (data?.stats as { daysSinceOrgCreated?: number } | undefined)?.daysSinceOrgCreated ?? 0
-  // Detección de subdeclaración (anti-informalidad)
-  const totalWorkersDeclared = (data?.stats as { totalWorkersDeclared?: number | null } | undefined)?.totalWorkersDeclared ?? null
-  const subdeclarationGap = (data?.stats as { subdeclarationGap?: number | null } | undefined)?.subdeclarationGap ?? null
+  const totalWorkers = data.stats.totalWorkers ?? 0
+  const expiringCount = data.stats.expiringCount ?? 0
+  const criticalAlerts = data.stats.criticalAlerts ?? 0
+  const multaPotencial = data.stats.multaPotencial ?? 0
+  const workersProtected = data.stats.workersProtected ?? totalWorkers
+  const daysSinceOrgCreated = data.stats.daysSinceOrgCreated ?? 0
+  const totalWorkersDeclared = data.stats.totalWorkersDeclared ?? null
+  const subdeclarationGap = data.stats.subdeclarationGap ?? null
 
   // Estado "primera vez": cuenta nueva, sin trabajadores ni señales de actividad.
-  // El cockpit normal asume score 72 por defecto y dispara narrativa de "zona crítica",
-  // lo cual asusta sin razón a usuarios recién registrados. Mostramos un banner
+  // Antes el cockpit asumía score 72 por defecto y disparaba narrativa de "zona crítica",
+  // lo cual asustaba sin razón a usuarios recién registrados. Mostramos un banner
   // bienvenida que reemplaza ese mensaje y guía a los 3 primeros pasos útiles.
   const isFirstTime =
-    !loading && totalWorkers === 0 && criticalAlerts === 0 && expiringCount === 0
+    totalWorkers === 0 && criticalAlerts === 0 && expiringCount === 0
 
   // Estado "onboarding intermedio": ya tiene trabajadores pero todavía no
   // corrió el diagnóstico. Heurística: score viene null/0 desde la API.
-  // Le mostramos un banner amber "siguiente paso: corre tu diagnóstico" en
-  // lugar del welcome (que ya no aplica) ni del cockpit estándar (que genera
-  // ansiedad si no hay datos de compliance).
-  const hasDiagnosticData =
-    typeof scoreData?.scoreGlobal === 'number' && scoreData.scoreGlobal > 0
-  const isOnboardingMidway =
-    !loading && !isFirstTime && totalWorkers > 0 && !hasDiagnosticData
+  const hasDiagnosticData = typeof scoreData.scoreGlobal === 'number' && scoreData.scoreGlobal > 0
+  const isOnboardingMidway = !isFirstTime && totalWorkers > 0 && !hasDiagnosticData
 
-  const topRisk = data?.topRisk?.label ?? inferTopRisk(data?.complianceBreakdown)
-  const topRiskImpact = data?.topRisk?.impact ?? 6
+  const topRisk = data.topRisk?.label ?? inferTopRisk(data.complianceBreakdown)
+  const topRiskImpact = data.topRisk?.impact ?? 6
 
   const quickActions: QuickAction[] = useMemo(
     () => [
@@ -273,55 +193,14 @@ export default function CockpitPage() {
     [copilot]
   )
 
-  const [nowMs] = useState(() => Date.now())
   const deadlines: DeadlineItem[] = useMemo(() => {
-    if (data?.upcomingDeadlines?.length) return data.upcomingDeadlines
-    // Synthesize from recentCriticalAlerts when available
-    if (data?.recentCriticalAlerts?.length) {
-      return data.recentCriticalAlerts.slice(0, 5).map((a) => {
-        const days = a.dueDate
-          ? Math.max(
-              -30,
-              Math.ceil((new Date(a.dueDate).getTime() - nowMs) / (1000 * 60 * 60 * 24))
-            )
-          : 7
-        return {
-          id: a.id,
-          label: a.title,
-          dueIn: days,
-          category: mapAlertTypeToCategory(a.type),
-          href: '/dashboard/alertas',
-        }
-      })
-    }
+    if (data.upcomingDeadlines?.length) return data.upcomingDeadlines as DeadlineItem[]
     return []
-  }, [data, nowMs])
+  }, [data])
 
-  const riskWorkers: WorkerRiskItem[] = data?.riskWorkers ?? []
-  // Sin actividad real → array vacío. ActivityHeatmap construye igual el grid
-  // 7×12 pero todas las celdas en gris (cellColor(0)). No inventamos actividad.
-  const heatmap: HeatmapDay[] = data?.activityHeatmap?.length
-    ? data.activityHeatmap
-    : []
-  const sectorRadar: RadarAxisDatum[] = data?.sectorRadar ?? []
-
-  // ── UI states ──
-  if (needsOnboarding) {
-    return <OnboardingWizard />
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <SkeletonCard className="h-64" />
-        <SkeletonStats count={3} />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      </div>
-    )
-  }
+  const riskWorkers: WorkerRiskItem[] = (data.riskWorkers ?? []) as WorkerRiskItem[]
+  const heatmap = data.activityHeatmap ?? []
+  const sectorRadar: RadarAxisDatum[] = (data.sectorRadar ?? []) as RadarAxisDatum[]
 
   // ── Render cockpit ──
   // Hero panel signature (Variant A del prototipo de diseño "sello notarial")
@@ -499,16 +378,10 @@ export default function CockpitPage() {
       {/* HeroPanel + ScoreNarrative + bento solo si NO es primera vez */}
       {!isFirstTime && (<>
       <HeroPanel
-        score={typeof score === 'number' ? Math.round(score) : 82}
-        userFirstName={(data?.stats as { ownerFirstName?: string } | undefined)?.ownerFirstName ?? 'equipo'}
-        orgName={
-          (data?.stats as { orgName?: string } | undefined)?.orgName ??
-          (data as { orgName?: string } | undefined)?.orgName ??
-          'tu empresa'
-        }
-        multaEvitadaSoles={
-          (data?.complianceTasks?.multaEvitada as number | undefined) ?? multaPotencial ?? 0
-        }
+        score={typeof score === 'number' ? Math.round(score) : null}
+        userFirstName={data.stats.ownerFirstName ?? undefined}
+        orgName={data.stats.orgName ?? undefined}
+        multaEvitadaSoles={data.complianceTasks?.multaEvitada ?? multaPotencial ?? 0}
         alertasCriticas={criticalAlerts}
         trabajadoresProtegidos={workersProtected}
         diasSinMulta={daysSinceOrgCreated}
@@ -532,7 +405,7 @@ export default function CockpitPage() {
         <MomentCard
           variant="closed"
           label="Lo que cerraste"
-          title={buildClosedTitle(data)}
+          title={buildClosedTitle(data.recentContracts ?? [])}
           description="Revisa el detalle de alertas resueltas y contratos renovados."
           icon={ShieldCheck}
           href="/dashboard/alertas"
@@ -579,34 +452,40 @@ export default function CockpitPage() {
        * Sprint 5 (T6.1): hover scale + soft shadows ya provenientes de
        * <Card> y <MomentCard> via tokens (--elevation-1, --elevation-hover).
        */}
+      {/*
+       * BENTO GRID — orden distinto en mobile vs desktop:
+       *   Desktop (lg+): tasks + deadlines + calendar + heatmap + risk + radar
+       *   Mobile: deadlines arriba (más útil en celular) → tasks → calendario →
+       *   resto. Usamos `order-*` Tailwind utilities sin duplicar markup.
+       */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-8">
+        <div className="order-2 lg:order-none lg:col-span-8">
           <ComplianceTasksPanel
-            open={data?.complianceTasks?.open ?? 0}
-            completed={data?.complianceTasks?.completed ?? 0}
-            overdue={data?.complianceTasks?.overdue ?? 0}
-            multaEvitable={data?.complianceTasks?.multaEvitable ?? 0}
-            multaEvitada={data?.complianceTasks?.multaEvitada ?? 0}
-            top={data?.complianceTasks?.top ?? []}
+            open={data.complianceTasks?.open ?? 0}
+            completed={data.complianceTasks?.completed ?? 0}
+            overdue={data.complianceTasks?.overdue ?? 0}
+            multaEvitable={data.complianceTasks?.multaEvitable ?? 0}
+            multaEvitada={data.complianceTasks?.multaEvitada ?? 0}
+            top={data.complianceTasks?.top ?? []}
           />
         </div>
-        <div className="lg:col-span-4">
+        <div className="order-1 lg:order-none lg:col-span-4">
           <UpcomingDeadlines items={deadlines} />
         </div>
 
-        {/* Idea 2 Sprint 9 — Calendar Widget agregado al bento */}
-        <div className="lg:col-span-12">
+        {/* Calendar Widget */}
+        <div className="order-3 lg:order-none lg:col-span-12">
           <CalendarWidget />
         </div>
 
-        <div className="lg:col-span-7">
+        <div className="order-5 lg:order-none lg:col-span-7">
           <ActivityHeatmap data={heatmap} />
         </div>
-        <div className="lg:col-span-5">
+        <div className="order-4 lg:order-none lg:col-span-5">
           <RiskLeaderboard workers={riskWorkers} />
         </div>
 
-        <div className="lg:col-span-12">
+        <div className="order-6 lg:order-none lg:col-span-12">
           {sectorRadar.length > 0 ? (
             <SectorRadar data={sectorRadar} sectorLabel="Promedio sector" />
           ) : (
@@ -621,26 +500,14 @@ export default function CockpitPage() {
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 
-function inferTopRisk(breakdown?: DashboardPayload['complianceBreakdown']): string {
+function inferTopRisk(breakdown?: Array<{ label: string; score: number }>): string {
   if (!breakdown?.length) return 'Sin análisis'
   const worst = [...breakdown].sort((a, b) => a.score - b.score)[0]
   return worst?.label ?? 'Sin análisis'
 }
 
-function mapAlertTypeToCategory(type?: string): DeadlineItem['category'] {
-  if (!type) return 'other'
-  const t = type.toLowerCase()
-  if (t.includes('contrato')) return 'contract'
-  if (t.includes('cts')) return 'cts'
-  if (t.includes('grat')) return 'grat'
-  if (t.includes('sst') || t.includes('exam')) return 'sst'
-  if (t.includes('afp')) return 'afp'
-  if (t.includes('doc')) return 'document'
-  return 'other'
-}
-
-function buildClosedTitle(data: DashboardPayload | null): string {
-  const closed = data?.recentContracts?.filter((c) => c.status === 'SIGNED').length ?? 0
+function buildClosedTitle(recentContracts: Array<{ status: string }>): string {
+  const closed = recentContracts.filter((c) => c.status === 'SIGNED').length
   if (closed > 0) return `${closed} contratos firmados`
   return 'Todo al día esta semana'
 }

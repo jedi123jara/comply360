@@ -33,6 +33,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev-server.*.log
+
+# Playwright test artifacts (screenshots, traces) — output local, no versionar
+test-results/
+playwright-report/
+
+# Temporales (PR bodies, scratch, etc.)
+*.tmp
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -54,8 +62,6 @@ next-env.d.ts
 
 # uploaded files (local dev storage)
 /public/uploads
-
-.vercel
 
 # Python cache (skill scripts en .claude/)
 __pycache__/

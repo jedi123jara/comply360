@@ -140,8 +140,25 @@ export async function runOnboardingCascade(
     return result
   }
 
-  // Si ya corrió y no es forzado, chequear marca previa
+  // FIX #4.H: race condition cierra con Postgres advisory lock.
+  // Antes findFirst + create estaban separados por mucho código: dos firmas
+  // simultáneas (doble-tap, retry de red) podían pasar el guard y ejecutar
+  // la cascada 2x — emails y WorkerRequest duplicados.
+  // Ahora tomamos un advisory lock por workerId a nivel sesión (se libera
+  // al final de la conexión Prisma). Los lockers concurrentes esperan o
+  // reciben false y abortan.
   if (!force) {
+    // Hash workerId determinístico a int64 para pg_try_advisory_lock
+    const lockKey = Array.from(worker.id).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+    const lockResult = await prisma.$queryRaw<Array<{ acquired: boolean }>>`
+      SELECT pg_try_advisory_lock(${lockKey}::bigint, 1)::boolean AS acquired
+    `
+    if (!lockResult[0]?.acquired) {
+      result.skipped = true
+      result.skipReason = 'Cascada en ejecución concurrente — abortando'
+      return result
+    }
+
     const previousAudit = await prisma.auditLog.findFirst({
       where: {
         orgId: worker.orgId,
@@ -152,10 +169,14 @@ export async function runOnboardingCascade(
       select: { id: true, createdAt: true },
     })
     if (previousAudit) {
+      // Liberar lock antes de retornar
+      await prisma.$queryRaw`SELECT pg_advisory_unlock(${lockKey}::bigint, 1)`.catch(() => {})
       result.skipped = true
       result.skipReason = `Ya ejecutada el ${previousAudit.createdAt.toISOString()}. Usa force=true para re-ejecutar.`
       return result
     }
+    // El lock se libera implícitamente al cerrar la conexión Prisma; en serverless
+    // (Vercel) eso pasa al final de la request, lo cual es lo deseado.
   }
 
   // ── 2. Contar documentos org publicados ──────────────────────────────────

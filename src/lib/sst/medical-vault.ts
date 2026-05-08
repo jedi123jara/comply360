@@ -24,11 +24,37 @@ function getVaultKey(): string {
   const key = process.env[KEY_ENV_VAR]
   if (key && key.length >= 32) return key
 
-  if (process.env.NODE_ENV === 'production') {
+  // FIX #4.E: hard guard contra deploys que no son `production` literal pero
+  // SÍ son entornos cliente-facing (Vercel preview, staging custom). Antes
+  // solo se chequeaba `NODE_ENV === 'production'` → si alguien ponía
+  // `NODE_ENV=staging` o si Vercel preview tenía NODE_ENV genérico, se
+  // caía al dev fallback (clave conocida en código). Eso volvía públicas
+  // las restricciones médicas de cualquier preview deployment.
+  //
+  // Reglas:
+  //   - Si VERCEL_ENV está seteado a 'production' o 'preview' → throw.
+  //   - Si NODE_ENV === 'production' → throw.
+  //   - Solo si NODE_ENV es 'development' (dev local literal) y no hay
+  //     VERCEL_ENV → permitir el fallback con warning.
+  const isVercelHosted = process.env.VERCEL === '1' || !!process.env.VERCEL_ENV
+  if (process.env.NODE_ENV === 'production' || isVercelHosted) {
     throw new Error(
       `[medical-vault] ${KEY_ENV_VAR} no está configurada o es muy corta (≥32 chars). ` +
-        'Generar con: openssl rand -base64 32',
+        'Generar con: openssl rand -base64 32. ' +
+        `Detectado entorno cliente-facing (NODE_ENV=${process.env.NODE_ENV}, VERCEL_ENV=${process.env.VERCEL_ENV ?? 'unset'}).`,
     )
+  }
+
+  if (process.env.NODE_ENV !== 'development') {
+    // Algún entorno raro (test ya queda permitido por NODE_ENV=test, lo
+    // permitimos abajo). Si el NODE_ENV no es ni production ni development
+    // ni test, exigimos clave real.
+    if (process.env.NODE_ENV !== 'test') {
+      throw new Error(
+        `[medical-vault] NODE_ENV='${process.env.NODE_ENV}' no es development|test|production — ` +
+          `${KEY_ENV_VAR} requerido.`,
+      )
+    }
   }
 
   // Dev fallback: clave determinística pero NO usar en prod.

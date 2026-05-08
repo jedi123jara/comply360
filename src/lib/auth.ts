@@ -1,5 +1,21 @@
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'node:crypto'
+
+// FIX #1.C: orgId no derivado del email.
+//
+// Antes era `'org-' + email.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)`
+// — adivinable y colisionable. Combinado con bugs cross-tenant (#0.2/#0.3)
+// y endpoints que aceptaban orgId en body, un atacante que conocía el
+// email del CEO podía formular el orgId. Además, dos emails que normalizaban
+// al mismo slug truncado de 30 chars colisionaban en upsert{create,update:{}},
+// dándole al segundo OWNER de la org del primero.
+//
+// Prefijo `org_` + UUID v4 para que el id sea opaco y único. Mantenemos
+// orgs antiguos con su id legacy intacto (la migración solo aplica a NUEVAS).
+function generateOrgId(): string {
+  return `org_${randomUUID()}`
+}
 
 /**
  * Sincroniza el rol del User al publicMetadata de Clerk. Best-effort.
@@ -271,8 +287,23 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         }
       }
 
-      // Org id derivado de email para aislar tenants (cada usuario tiene su org)
-      const orgId = `org-${email.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
+      // FIX #1.C: orgId opaco + único (UUID-based). Antes era predecible.
+      // Para evitar duplicados si dos requests concurrentes JIT-provisionan
+      // al mismo user, primero verificamos si ya existe (por clerkId o por
+      // email lowercased) — si sí, reusamos su orgId.
+      let orgId: string
+      const preExisting = await prisma.user.findFirst({
+        where: {
+          OR: [{ clerkId }, { email: { equals: email, mode: 'insensitive' } }],
+        },
+        select: { orgId: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (preExisting?.orgId) {
+        orgId = preExisting.orgId
+      } else {
+        orgId = generateOrgId()
+      }
 
       // Dev default: PRO para desbloquear features durante desarrollo.
       // Prod default: FREE — el usuario DEBE elegir un plan en
@@ -468,7 +499,8 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     // User exists but has no org — might be mid-onboarding or legacy user
     try {
       const userEmail = user.email || 'user@comply360.pe'
-      const userOrgId = `org-${userEmail.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30)}`
+      // FIX #1.C: orgId opaco — antes derivado del email (predecible).
+      const userOrgId = generateOrgId()
       const defaultPlan = process.env.NODE_ENV === 'development' ? 'PRO' : 'FREE'
       
       await prisma.organization.upsert({

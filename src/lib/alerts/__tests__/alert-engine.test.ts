@@ -15,15 +15,25 @@ const {
   mockFindMany,
   mockDeleteMany,
   mockCreateMany,
+  mockTransaction,
 } = vi.hoisted(() => ({
   mockFindUnique: vi.fn(),
   mockFindMany: vi.fn(),
   mockDeleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   mockCreateMany: vi.fn().mockResolvedValue({ count: 0 }),
+  // FIX #6.B: el helper ahora envuelve deleteMany+createMany en $transaction
+  // para cerrar race condition. El mock simula la transacción ejecutando los
+  // ops como Promise.all (mismo behavior funcional que un tx real).
+  mockTransaction: vi.fn(async (ops: unknown) => {
+    if (Array.isArray(ops)) return Promise.all(ops as Promise<unknown>[])
+    if (typeof ops === 'function') return (ops as (tx: unknown) => unknown)({})
+    return ops
+  }),
 }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    $transaction: mockTransaction,
     worker: { findUnique: mockFindUnique, findMany: mockFindMany },
     workerAlert: { deleteMany: mockDeleteMany, createMany: mockCreateMany },
   },

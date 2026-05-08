@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { DRIP_STAGES, nextStageForLead } from '@/lib/email/drip-sequence'
+import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -33,6 +34,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // FIX #5.A: idempotencia diaria.
+  const claim = await claimCronRun('drip-emails', { bucketMinutes: 1440 })
+  if (!claim.acquired) {
+    return NextResponse.json({ ok: true, duplicate: true, bucket: claim.bucket })
+  }
+
+  try {
   const now = new Date()
   // Procesamos leads de los últimos 15 días (stage 5 es día 10, margen seguridad)
   const cutoff = new Date(now)
@@ -134,7 +142,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({
+  const payload = {
     ok: true,
     summary: {
       totalLeads: leads.length,
@@ -143,5 +151,12 @@ export async function GET(req: NextRequest) {
       skipped,
       failed,
     },
-  })
+  }
+    await completeCronRun(claim.runId, payload)
+    return NextResponse.json(payload)
+  } catch (err) {
+    console.error('[drip-emails] cron error', err)
+    await failCronRun(claim.runId, err)
+    return NextResponse.json({ error: 'Cron failed' }, { status: 500 })
+  }
 }

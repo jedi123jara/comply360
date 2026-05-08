@@ -46,14 +46,34 @@ export function getMaxUsers(plan: string): number {
 }
 
 /**
- * Check if org has reached worker limit
+ * Check if org has reached worker limit.
+ *
+ * FIX #3.B: agrega flag `inViolation` que indica si la org tiene MÁS
+ * workers que su plan permite (caso típico: la org pagó PRO con 100
+ * workers, canceló y bajó a STARTER cuyo límite es 20 → quedan 80
+ * "excedentes"). El caller debe mostrar warning en UI; bloquear edición
+ * de workers excedentes es trabajo de refactor mayor (status FROZEN_BY_PLAN)
+ * que queda como feature siguiente.
  */
-export async function checkWorkerLimit(orgId: string, plan: string): Promise<{ allowed: boolean; current: number; max: number }> {
+export async function checkWorkerLimit(orgId: string, plan: string): Promise<{
+  allowed: boolean
+  current: number
+  max: number
+  inViolation: boolean
+  excess: number
+}> {
   const max = getMaxWorkers(plan)
   const current = await prisma.worker.count({
     where: { orgId, status: { not: 'TERMINATED' } },
   })
-  return { allowed: current < max, current, max }
+  const inViolation = current > max
+  return {
+    allowed: current < max,
+    current,
+    max,
+    inViolation,
+    excess: inViolation ? current - max : 0,
+  }
 }
 
 // =============================================
@@ -98,10 +118,12 @@ export function withPlanGate(
     }
 
     // Check if trial expired (downgrade should have happened via cron, but double-check)
+    // FIX #0.4: si planExpiresAt vencido, degradamos a FREE (no STARTER).
+    // Antes, una org cuyo trial PRO expiraba sin que corra el cron mantenía
+    // STARTER de regalo (S/249/mes equivalente) hasta 24h. Fail closed.
     let effectivePlan = org.plan
     if (org.planExpiresAt && new Date(org.planExpiresAt) < new Date()) {
-      // Trial expired but cron hasn't run yet — treat as STARTER
-      effectivePlan = 'STARTER'
+      effectivePlan = 'FREE'
     }
 
     // Check feature access

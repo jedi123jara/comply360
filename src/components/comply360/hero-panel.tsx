@@ -17,11 +17,11 @@ import { AnimatedShield, RingPremium, useCountUp } from './animated-shield'
  */
 
 export interface HeroPanelProps {
-  /** Score 0-100 para el ring central. */
-  score: number
-  /** Nombre del usuario para saludo personalizado. */
+  /** Score 0-100 para el ring central. null = todavía sin diagnóstico. */
+  score: number | null
+  /** Nombre del usuario para saludo personalizado. Si no llega, mostramos "equipo". */
   userFirstName?: string
-  /** Razón social de la empresa. */
+  /** Razón social de la empresa. Si no llega, decimos "tu empresa". */
   orgName?: string
   /** Multa potencial evitada en soles. */
   multaEvitadaSoles: number
@@ -45,8 +45,8 @@ function formatSoles(n: number): string {
 
 export function HeroPanel({
   score,
-  userFirstName = 'María',
-  orgName = 'tu empresa',
+  userFirstName,
+  orgName,
   multaEvitadaSoles,
   alertasCriticas = 0,
   trabajadoresProtegidos,
@@ -59,13 +59,19 @@ export function HeroPanel({
   const trabsCount = useCountUp(trabajadoresProtegidos, 1200)
   const diasCount = useCountUp(diasSinMulta, 1400)
 
-  const protected_ = score >= 75
-  const headline = protected_
-    ? 'Tu empresa está <em>protegida</em> ante una fiscalización SUNAFIL.'
-    : 'Tu empresa necesita <em>atención inmediata</em> antes de una inspección.'
+  const safeName = userFirstName?.trim() || 'equipo'
+  const safeOrg = orgName?.trim() || 'tu empresa'
+  const isPending = score === null
+  const protected_ = !isPending && (score as number) >= 75
+  const headline = isPending
+    ? 'Aún no tenemos tu <em>score de compliance</em>. Corramos el diagnóstico.'
+    : protected_
+      ? 'Tu empresa está <em>protegida</em> ante una fiscalización SUNAFIL.'
+      : 'Tu empresa necesita <em>atención inmediata</em> antes de una inspección.'
 
-  const subCopy =
-    alertasCriticas > 0
+  const subCopy = isPending
+    ? `Toma 3 minutos correr el diagnóstico express y vemos qué tan lista está ${safeOrg} ante una inspección SUNAFIL.`
+    : alertasCriticas > 0
       ? `Has evitado <b>${formatSoles(multaEvitadaSoles)}</b> en multas potenciales este mes. Quedan <b>${alertasCriticas} alerta${alertasCriticas === 1 ? '' : 's'} crítica${alertasCriticas === 1 ? '' : 's'}</b> que exigen tu atención.`
       : `Has evitado <b>${formatSoles(multaEvitadaSoles)}</b> en multas potenciales este mes. Sin alertas críticas pendientes.`
 
@@ -76,7 +82,7 @@ export function HeroPanel({
         <div style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
           <div className="c360-hero-score-big">
             <div className="c360-hero-score-ring">
-              <RingPremium value={score} size={220} stroke={10} />
+              <RingPremium value={isPending ? 0 : (score as number)} size={220} stroke={10} />
             </div>
             <div
               style={{
@@ -90,10 +96,18 @@ export function HeroPanel({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span className="n">{score}</span>
-                <span className="over">/100</span>
+                {isPending ? (
+                  <span className="n" style={{ opacity: 0.45 }}>—</span>
+                ) : (
+                  <>
+                    <span className="n">{score}</span>
+                    <span className="over">/100</span>
+                  </>
+                )}
               </div>
-              <span className="c360-hero-score-label">Índice de cumplimiento</span>
+              <span className="c360-hero-score-label">
+                {isPending ? 'Pendiente diagnóstico' : 'Índice de cumplimiento'}
+              </span>
             </div>
           </div>
           <div style={{ position: 'absolute', top: -6, right: -6 }}>
@@ -105,7 +119,7 @@ export function HeroPanel({
         <div style={{ minWidth: 0 }}>
           <h2
             className="c360-hero-headline"
-            dangerouslySetInnerHTML={{ __html: `Buenos días, <em>${userFirstName}</em>.` }}
+            dangerouslySetInnerHTML={{ __html: `Buenos días, <em>${safeName}</em>.` }}
           />
           <h3
             className="c360-hero-headline"
@@ -115,7 +129,9 @@ export function HeroPanel({
           <p
             className="c360-hero-sub"
             dangerouslySetInnerHTML={{
-              __html: `<span>Así protege COMPLY360 a ${orgName} esta semana. </span>${subCopy}`,
+              __html: isPending
+                ? subCopy
+                : `<span>Así protege COMPLY360 a ${safeOrg} esta semana. </span>${subCopy}`,
             }}
           />
           <div className="c360-hero-stat-strip">

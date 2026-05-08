@@ -259,6 +259,69 @@ export const PERU_LABOR = {
 } as const
 
 // =============================================
+// HELPER: Días de vacaciones por régimen laboral
+// =============================================
+
+/**
+ * Devuelve los días anuales de vacaciones que corresponden según régimen.
+ *
+ * FIX #0.10: antes la calculadora de vacaciones usaba un valor hardcoded
+ * de 30 días, ignorando los regímenes con vacaciones distintas. Esto
+ * sobrepagaba a trabajadores MYPE (que tienen 15 días por Ley 32353)
+ * y a domésticos (Ley 27986). Construcción civil tiene un cálculo
+ * especial (10% sobre remuneración, no días) y modalidad formativa
+ * no tiene vacaciones legales. El consumidor debe ramificar.
+ *
+ * Bases legales:
+ *  - GENERAL/TELETRABAJO/AGRARIO/CAS/PESQUERO/MINERO/TEXTIL: 30 días (D.Leg. 713)
+ *  - MYPE_MICRO/MYPE_PEQUENA: 15 días (Ley 32353 Art. 64)
+ *  - DOMESTICO: 15 días (Ley 27986 Art. 12)
+ *  - CONSTRUCCION_CIVIL: especial (10% sobre rem) — caller debe usar otra fórmula
+ *  - MODALIDAD_FORMATIVA: sin vacaciones legales (Ley 28518) — devuelve 0
+ */
+export type RegimenLaboralKey =
+  | 'GENERAL'
+  | 'MYPE_MICRO'
+  | 'MYPE_PEQUENA'
+  | 'AGRARIO'
+  | 'CONSTRUCCION_CIVIL'
+  | 'MINERO'
+  | 'PESQUERO'
+  | 'TEXTIL_EXPORTACION'
+  | 'DOMESTICO'
+  | 'CAS'
+  | 'MODALIDAD_FORMATIVA'
+  | 'TELETRABAJO'
+
+export function getDiasVacacionesPorRegimen(regimen: string | null | undefined): number {
+  switch (regimen) {
+    case 'MYPE_MICRO':
+    case 'MYPE_PEQUENA':
+    case 'DOMESTICO':
+      return 15
+    case 'MODALIDAD_FORMATIVA':
+      return 0
+    case 'CONSTRUCCION_CIVIL':
+      // Régimen especial: 10% sobre remuneración. Aquí devolvemos 30 como
+      // proxy para que el cálculo no cuadre con cero, pero el caller DEBE
+      // detectar este régimen y usar la fórmula 10% antes de invocar.
+      return 30
+    case 'GENERAL':
+    case 'AGRARIO':
+    case 'CAS':
+    case 'MINERO':
+    case 'PESQUERO':
+    case 'TEXTIL_EXPORTACION':
+    case 'TELETRABAJO':
+    case null:
+    case undefined:
+    case '':
+    default:
+      return 30
+  }
+}
+
+// =============================================
 // HELPER: Calculate working periods
 // =============================================
 

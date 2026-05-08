@@ -1,0 +1,236 @@
+[
+  {
+    "name": "IntegrationCredential",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 115
+  },
+  {
+    "name": "User",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 148
+  },
+  {
+    "name": "GamificationEvent",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 180
+  },
+  {
+    "name": "WorkerAlert",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 469
+  },
+  {
+    "name": "WorkerDependent",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 529
+  },
+  {
+    "name": "WorkerHistoryEvent",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 572
+  },
+  {
+    "name": "ContractValidation",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 745
+  },
+  {
+    "name": "MerkleAnchor",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 780
+  },
+  {
+    "name": "BulkContractJob",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 836
+  },
+  {
+    "name": "ContractVersion",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 959
+  },
+  {
+    "name": "Calculation",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1067
+  },
+  {
+    "name": "ComplianceDiagnostic",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1189
+  },
+  {
+    "name": "ComplianceScore",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1267
+  },
+  {
+    "name": "SstRecord",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1287
+  },
+  {
+    "name": "Enrollment",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1480
+  },
+  {
+    "name": "Certificate",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1545
+  },
+  {
+    "name": "CeseRecord",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1622
+  },
+  {
+    "name": "Tercero",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1688
+  },
+  {
+    "name": "SindicalRecord",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1712
+  },
+  {
+    "name": "NpsFeedback",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1769
+  },
+  {
+    "name": "Attendance",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1787
+  },
+  {
+    "name": "Geofence",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1837
+  },
+  {
+    "name": "AttendanceJustification",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1886
+  },
+  {
+    "name": "AttendanceApproval",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1903
+  },
+  {
+    "name": "AttendanceEvidence",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1921
+  },
+  {
+    "name": "AttendanceAttempt",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 1942
+  },
+  {
+    "name": "OrgDocument",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2091
+  },
+  {
+    "name": "InspeccionEnVivo",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2331
+  },
+  {
+    "name": "SunatQueryCache",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2398
+  },
+  {
+    "name": "Workflow",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2420
+  },
+  {
+    "name": "ScheduledReport",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2453
+  },
+  {
+    "name": "WorkflowRun",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2473
+  },
+  {
+    "name": "WebhookSubscription",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2511
+  },
+  {
+    "name": "WebhookDelivery",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2543
+  },
+  {
+    "name": "OrgComplianceSeal",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2582
+  },
+  {
+    "name": "AiUsage",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2644
+  },
+  {
+    "name": "AiBudgetCounter",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 2700
+  },
+  {
+    "name": "PuestoTrabajo",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 3113
+  },
+  {
+    "name": "UserDraft",
+    "hasOrgId": true,
+    "hasRelation": false,
+    "line": 3603
+  }
+]

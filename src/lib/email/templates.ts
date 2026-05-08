@@ -7,6 +7,22 @@ const BRAND_BLUE = '#1e3a6e'
 const BRAND_LIGHT = '#f0f4fa'
 const CTA_BLUE = '#2563eb'
 
+// FIX #0.9: helper de escape para variables interpoladas en HTML.
+// Antes se concatenaba `companyName`, `workerName`, `alertTitle`, etc.
+// directo al HTML → un nombre con `<script>` quedaba renderizado en
+// clientes web (Yahoo, móvil). Aplicar `esc()` a TODA variable derivada
+// del usuario o de DB. Mantener crudo solo lo controlado por nosotros
+// (URLs hardcoded, colores, etiquetas estáticas).
+function esc(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function layout(content: string): string {
   return `<!DOCTYPE html>
 <html lang="es">
@@ -48,8 +64,8 @@ function ctaButton(text: string, url: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
   <tr>
     <td style="background-color:${CTA_BLUE};border-radius:6px;">
-      <a href="${url}" target="_blank" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
-        ${text}
+      <a href="${esc(url)}" target="_blank" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
+        ${esc(text)}
       </a>
     </td>
   </tr>
@@ -63,7 +79,7 @@ export function welcomeEmail(companyName: string): string {
   return layout(`
     <h2 style="margin:0 0 16px;color:${BRAND_BLUE};font-size:20px;">Bienvenido a COMPLY360</h2>
     <p style="margin:0 0 12px;color:#334155;font-size:15px;line-height:1.6;">
-      Hola, <strong>${companyName}</strong>.
+      Hola, <strong>${esc(companyName)}</strong>.
     </p>
     <p style="margin:0 0 12px;color:#334155;font-size:15px;line-height:1.6;">
       Su cuenta ha sido configurada exitosamente. Ahora puede comenzar a gestionar el cumplimiento laboral de su empresa desde un solo lugar.
@@ -84,14 +100,18 @@ export function welcomeEmail(companyName: string): string {
 // Alert email — individual alert notification
 // ==============================================
 export function alertEmail(alertTitle: string, alertDescription: string, dueDate: string): string {
+  // NOTA: alertDescription puede contener `<br>` armado server-side
+  // (cron daily-alerts). Si necesitas conservar saltos de línea, pásalos
+  // como `\n` y aquí los convertimos a `<br>` después del escape.
+  const safeDesc = esc(alertDescription).replace(/\n/g, '<br>')
   return layout(`
     <h2 style="margin:0 0 16px;color:${BRAND_BLUE};font-size:20px;">Alerta de Cumplimiento</h2>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;">
       <tr>
         <td style="padding:16px;">
-          <p style="margin:0 0 4px;color:#991b1b;font-size:16px;font-weight:600;">${alertTitle}</p>
-          <p style="margin:0 0 8px;color:#7f1d1d;font-size:14px;line-height:1.5;">${alertDescription}</p>
-          <p style="margin:0;color:#991b1b;font-size:13px;font-weight:600;">Fecha limite: ${dueDate}</p>
+          <p style="margin:0 0 4px;color:#991b1b;font-size:16px;font-weight:600;">${esc(alertTitle)}</p>
+          <p style="margin:0 0 8px;color:#7f1d1d;font-size:14px;line-height:1.5;">${safeDesc}</p>
+          <p style="margin:0;color:#991b1b;font-size:13px;font-weight:600;">Fecha limite: ${esc(dueDate)}</p>
         </td>
       </tr>
     </table>
@@ -157,6 +177,8 @@ export function complaintNotification(complaintCode: string, complaintType: stri
     OTRO: 'Otro',
   }
   const typeLabel = typeLabels[complaintType] || complaintType
+  const safeCode = esc(complaintCode)
+  const safeType = esc(typeLabel)
 
   return layout(`
     <h2 style="margin:0 0 16px;color:${BRAND_BLUE};font-size:20px;">Nueva Denuncia Recibida</h2>
@@ -174,13 +196,13 @@ export function complaintNotification(complaintCode: string, complaintType: stri
       <tr>
         <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
           <span style="color:#64748b;font-size:13px;">Codigo:</span>
-          <span style="color:${BRAND_BLUE};font-size:14px;font-weight:600;margin-left:8px;">${complaintCode}</span>
+          <span style="color:${BRAND_BLUE};font-size:14px;font-weight:600;margin-left:8px;">${safeCode}</span>
         </td>
       </tr>
       <tr>
         <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
           <span style="color:#64748b;font-size:13px;">Tipo:</span>
-          <span style="color:#334155;font-size:14px;font-weight:500;margin-left:8px;">${typeLabel}</span>
+          <span style="color:#334155;font-size:14px;font-weight:500;margin-left:8px;">${safeType}</span>
         </td>
       </tr>
       <tr>
@@ -213,15 +235,17 @@ export interface WorkerOnboardingPayload {
 
 export function workerOnboardingEmail(payload: WorkerOnboardingPayload): string {
   const { workerName, orgName, documentsCount, pendingActions } = payload
+  const safeName = esc(workerName)
+  const safeOrg = esc(orgName)
   // CRÍTICO: el link DEBE ir a /mi-portal/registrarse (no a /mi-portal directo).
   // /mi-portal/registrarse usa <SignUp unsafeMetadata={{ signupAs: 'WORKER' }} />
   // que marca al user como WORKER en el JIT. Si va a /mi-portal sin cuenta,
   // Clerk redirige a /sign-up (el genérico) y crea OWNER por error.
   const portalUrl = 'https://comply360.pe/mi-portal/registrarse'
   return layout(`
-    <h2 style="margin:0 0 12px;color:${BRAND_BLUE};font-size:22px;">Bienvenido a bordo en ${orgName}</h2>
+    <h2 style="margin:0 0 12px;color:${BRAND_BLUE};font-size:22px;">Bienvenido a bordo en ${safeOrg}</h2>
     <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6;">
-      Hola <strong>${workerName}</strong>, tu contrato ha sido firmado y tu portal en Comply360 ya esta activo.
+      Hola <strong>${safeName}</strong>, tu contrato ha sido firmado y tu portal en Comply360 ya esta activo.
       Desde ahi vas a poder ver tus boletas, solicitar vacaciones, y mantener tu documentacion al dia.
     </p>
 
@@ -278,6 +302,7 @@ export function morningBriefingEmail(payload: MorningBriefingPayload): string {
     upcomingDeadlines,
     multaEvitadaMes,
   } = payload
+  const safeOrg = esc(orgName)
   const dashboardUrl = 'https://comply360.pe/dashboard'
   const alertsUrl = 'https://comply360.pe/dashboard/alertas'
 
@@ -294,7 +319,7 @@ export function morningBriefingEmail(payload: MorningBriefingPayload): string {
   }).format(multaEvitadaMes)
 
   return layout(`
-    <h2 style="margin:0 0 8px;color:${BRAND_BLUE};font-size:22px;">Buenos dias, ${orgName}</h2>
+    <h2 style="margin:0 0 8px;color:${BRAND_BLUE};font-size:22px;">Buenos dias, ${safeOrg}</h2>
     <p style="margin:0 0 18px;color:#64748b;font-size:13px;">${hoy}</p>
 
     ${multaEvitadaMes > 0 ? `

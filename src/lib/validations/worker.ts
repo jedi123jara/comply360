@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { validatePeruvianDni } from './dni'
 
 // =============================================
 // Zod enum mirrors — must match prisma/schema.prisma
@@ -43,10 +44,23 @@ export const WorkerStatusEnum = z.enum(['ACTIVE', 'ON_LEAVE', 'SUSPENDED', 'TERM
 
 export const createWorkerSchema = z.object({
   // --- Datos personales ---
+  // FIX #6.A: validamos contra patrones obviamente falsos (00000000,
+  // 12345678, repetidos). Si se trae el CDV (9 chars), validamos el
+  // dígito verificador con el algoritmo RENIEC. Sin RENIEC API la
+  // verificación es heurística pero atrapa typos y fakes evidentes.
   dni: z
     .string()
-    .length(8, 'DNI debe tener exactamente 8 digitos')
-    .regex(/^\d{8}$/, 'DNI debe contener solo numeros'),
+    .min(8, 'DNI debe tener al menos 8 digitos')
+    .max(9, 'DNI no debe exceder 9 caracteres (8 digitos + CDV opcional)')
+    .superRefine((value, ctx) => {
+      const result = validatePeruvianDni(value)
+      if (!result.valid) {
+        ctx.addIssue({
+          code: 'custom',
+          message: result.reason ?? 'DNI inválido',
+        })
+      }
+    }),
   firstName: z
     .string()
     .min(2, 'Nombre debe tener al menos 2 caracteres')

@@ -293,9 +293,15 @@ describe('Email Templates', () => {
       }
     })
 
-    it('handles special characters in companyName', () => {
-      const html = welcomeEmail('Empresa "XYZ" & Cia')
-      expect(html).toContain('Empresa "XYZ" & Cia')
+    it('escapa caracteres HTML en companyName (FIX #0.9 anti-XSS)', () => {
+      // FIX #0.9: nombres con `<script>` o `&` antes se renderizaban literal
+      // en clientes de email web → vector XSS. Ahora se escapan.
+      const html = welcomeEmail('Empresa "XYZ" & Cia <script>alert(1)</script>')
+      // Comilla doble → &quot;, & → &amp;, < → &lt;, > → &gt;
+      expect(html).toContain('Empresa &quot;XYZ&quot; &amp; Cia')
+      expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+      // El raw script NO debe aparecer
+      expect(html).not.toMatch(/<script>alert\(1\)<\/script>/)
     })
   })
 })

@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { evaluarReglasSst, type AlertaProyectada } from '@/lib/sst/calendar-engine'
 import { notifySstAlert } from '@/lib/sst/push-notifications'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 // ============================================================
 // GET /api/cron/sst-daily
@@ -38,17 +39,10 @@ function extractFingerprint(description: string | null): string | null {
   return description.slice(FP_PREFIX.length, end)
 }
 
-export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) {
-    console.error('CRON_SECRET env var is not configured — sst-daily cron disabled')
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+// FIX #5.A: idempotencia diaria. Reemplaza el fingerprint-en-description
+// con el helper estándar; el fingerprint sigue siendo el mecanismo
+// secundario para cada alerta individual.
+export const GET = withCronIdempotency('sst-daily', 1440, async () => {
 
   const now = new Date()
   const startedAt = Date.now()
@@ -177,7 +171,7 @@ export async function GET(request: NextRequest) {
     reusadas: totalReusados,
     errores: orgErrors,
   })
-}
+})
 
 // ── Persistencia idempotente ────────────────────────────────────────────────
 

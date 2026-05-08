@@ -150,15 +150,37 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
     return NextResponse.json({ error: 'Worker not found' }, { status: 404 })
   }
 
+  // FIX #6.G: mascarar PII para rol VIEWER. Antes el GET devolvía DNI
+  // completo, dirección, teléfono, sueldo, CUSPP, fecha de nacimiento a
+  // cualquier auth — incluyendo VIEWER (auditor externo, contador
+  // tercerizado). Riesgo Ley 29733.
+  //
+  // Reglas:
+  //   - VIEWER: DNI mascarado a 'XXXX****', sin sueldo/dirección/phone/cuspp.
+  //   - MEMBER+: ver todo (rol interno con NDA implícito).
+  const isViewer = ctx.role === 'VIEWER'
+  const w = worker as Record<string, unknown> & { dni: string; sueldoBruto: unknown; fechaIngreso: Date; fechaCese?: Date | null; birthDate?: Date | null; createdAt: Date; updatedAt: Date }
+  const data: Record<string, unknown> = isViewer
+    ? {
+        ...w,
+        dni: w.dni ? `${w.dni.slice(0, 4)}****` : null,
+        address: null,
+        phone: null,
+        cuspp: null,
+        birthDate: null,
+        sueldoBruto: null,
+        sueldoMaskedReason: 'VIEWER role — campos sensibles ocultos',
+      }
+    : { ...w, sueldoBruto: Number(w.sueldoBruto) }
+
   return NextResponse.json({
     data: {
-      ...worker,
-      sueldoBruto: Number(worker.sueldoBruto),
-      fechaIngreso: worker.fechaIngreso.toISOString(),
-      fechaCese: worker.fechaCese?.toISOString() ?? null,
-      birthDate: worker.birthDate?.toISOString() ?? null,
-      createdAt: worker.createdAt.toISOString(),
-      updatedAt: worker.updatedAt.toISOString(),
+      ...data,
+      fechaIngreso: w.fechaIngreso.toISOString(),
+      fechaCese: w.fechaCese?.toISOString() ?? null,
+      birthDate: isViewer ? null : (w.birthDate?.toISOString() ?? null),
+      createdAt: w.createdAt.toISOString(),
+      updatedAt: w.updatedAt.toISOString(),
       deletedAt: deletedAt?.toISOString() ?? null,
     },
   })
@@ -468,9 +490,16 @@ export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (req: NextRe
     },
   })
 
-  // Limpia alertas activas — el cesado no sigue triggereando deadlines.
-  await prisma.workerAlert.deleteMany({
+  // FIX #6.H: las alertas no se borran (hard delete) — se RESUELVEN con
+  // marca de "auto-resuelto por cese del worker" para preservar histórico
+  // legal (SUNAFIL exige trazabilidad 6 años — D.S. 019-2006-TR Art. 23).
+  // Antes se hacía deleteMany → se perdían alertas críticas pasadas.
+  await prisma.workerAlert.updateMany({
     where: { workerId: id, resolvedAt: null },
+    data: {
+      resolvedAt: now,
+      resolvedBy: ctx.userId,
+    },
   })
 
   // Registra evento CESE en historia (Ola 2). Best-effort.

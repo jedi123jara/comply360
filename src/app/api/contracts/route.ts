@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { createContractWithSideEffects } from '@/lib/contracts/create'
 import type { ContractRenderSourceKind } from '@/lib/contracts/rendering'
@@ -13,7 +13,7 @@ import type { ContractRenderSourceKind } from '@/lib/contracts/rendering'
 //   stats=1                     — return org-wide aggregate stats
 //   expiringSoonDays=N          — filter contracts expiring in next N days
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const { searchParams } = new URL(req.url)
     const orgId = ctx.orgId
@@ -181,7 +181,7 @@ type PrismaContractType =
   | 'CONVENIO_PRACTICAS'
   | 'CUSTOM'
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json()
     const { templateId, type, title, formData, contentHtml, contentJson, provenance, sourceKind, expiresAt } = body

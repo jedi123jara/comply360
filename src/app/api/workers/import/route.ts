@@ -6,9 +6,78 @@ import { parseWorkerCSV, autoDetectMapping, type ColumnMapping } from '@/lib/imp
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import * as XLSX from 'xlsx'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 // Rate limiter: 5 imports per minute
 const importLimiter = rateLimit({ interval: 60_000, limit: 5 })
+
+// FIX #1.D: import token firmado con HMAC.
+// Antes el token era `Buffer.from(JSON).toString('base64')` SIN firma,
+// trivialmente manipulable: cualquier admin podía decodificar, mutar
+// `orgId` o `validRows`, recodificar y enviar al PUT — inyectando
+// trabajadores en otra org o con datos arbitrarios.
+//
+// Ahora firmamos `payload` con HMAC-SHA256 + IMPORT_TOKEN_SECRET y
+// validamos con `timingSafeEqual`. Tope de filas también endurecido a
+// 1000 para evitar memory blow-ups.
+const IMPORT_MAX_ROWS = 1000
+
+function getImportSecret(): string {
+  const secret = process.env.IMPORT_TOKEN_SECRET
+  if (!secret || secret.length < 32) {
+    // Dev fallback determinístico (solo en development sin var configurada).
+    if (process.env.NODE_ENV !== 'production') {
+      return 'dev-import-secret-do-not-use-in-prod-32chars-12345'
+    }
+    throw new Error(
+      'IMPORT_TOKEN_SECRET no configurado o demasiado corto (mínimo 32 chars).',
+    )
+  }
+  return secret
+}
+
+interface SignedTokenEnvelope {
+  payload: string // JSON crudo
+  sig: string // HMAC-SHA256 hex
+}
+
+function signImportToken(payload: object): string {
+  const json = JSON.stringify(payload)
+  const sig = createHmac('sha256', getImportSecret()).update(json).digest('hex')
+  const envelope: SignedTokenEnvelope = { payload: json, sig }
+  return Buffer.from(JSON.stringify(envelope)).toString('base64')
+}
+
+function verifyAndDecodeImportToken<T>(token: string): T | null {
+  let envelope: SignedTokenEnvelope
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8')
+    const parsed = JSON.parse(decoded) as SignedTokenEnvelope
+    if (typeof parsed?.payload !== 'string' || typeof parsed?.sig !== 'string') {
+      return null
+    }
+    envelope = parsed
+  } catch {
+    return null
+  }
+
+  const expectedSig = createHmac('sha256', getImportSecret())
+    .update(envelope.payload)
+    .digest('hex')
+
+  // Comparación constant-time
+  const a = Buffer.from(envelope.sig, 'hex')
+  const b = Buffer.from(expectedSig, 'hex')
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    return null
+  }
+
+  try {
+    return JSON.parse(envelope.payload) as T
+  } catch {
+    return null
+  }
+}
 
 // =============================================
 // Smart Excel → CSV converter
@@ -369,10 +438,19 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
       )
     }
 
-    // Limit file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // FIX #6.D: cap hard de tamaño antes del read.
+    // El audit identificó que XLSX.read(buffer) carga todo en memoria.
+    // Para mitigar el OOM en lambdas sin migrar a exceljs streaming
+    // (refactor invasivo), reducimos el tope a 3MB que en la práctica
+    // cubre Excel de hasta ~10k filas (suficiente para el límite de
+    // 1000 filas que aplicamos post-parse en #1.D).
+    const MAX_UPLOAD_BYTES = 3 * 1024 * 1024
+    if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
-        { error: 'El archivo excede el tamano maximo de 5MB' },
+        {
+          error: `El archivo excede el tamaño máximo (${MAX_UPLOAD_BYTES / 1024 / 1024}MB). ` +
+            `Si tienes >1000 trabajadores, divide el Excel en partes o contacta soporte.`,
+        },
         { status: 400 }
       )
     }
@@ -381,7 +459,16 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
     let csvContent: string
     if (isExcel) {
       const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, { type: 'array' })
+      const workbook = XLSX.read(buffer, {
+        type: 'array',
+        // FIX #6.D: opciones de SheetJS que reducen footprint en memoria
+        cellDates: false, // no parsear fechas a Date objects (lo hacemos manual)
+        cellNF: false, // no incluir número-formato
+        cellStyles: false, // no incluir estilos
+        bookProps: false, // no incluir metadatos del workbook
+        bookSheets: true, // solo nombres de sheets, no toda la metadata
+        sheetRows: 1500, // tope de filas leídas (1000 workers + ~500 de header/empty)
+      })
       const sheetName = workbook.SheetNames[0]
       const sheet = workbook.Sheets[sheetName]
       csvContent = preprocessExcelToCsv(sheet)
@@ -450,14 +537,13 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
         headers: result.headers,
         detectedMapping,
       },
-      // Encode full data for confirmation step
-      importToken: Buffer.from(
-        JSON.stringify({
-          orgId: ctx.orgId,
-          validRows: result.validRows,
-          timestamp: Date.now(),
-        })
-      ).toString('base64'),
+      // FIX #1.D: token firmado con HMAC. Tope de filas endurecido a 1000
+      // para evitar OOM en lambda con archivos enormes.
+      importToken: signImportToken({
+        orgId: ctx.orgId,
+        validRows: result.validRows.slice(0, IMPORT_MAX_ROWS),
+        timestamp: Date.now(),
+      }),
     })
   } catch (error) {
     console.error('Import parse error:', error)
@@ -487,8 +573,9 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
       )
     }
 
-    // Decode token
-    let tokenData: {
+    // FIX #1.D: validar firma HMAC. Si la firma no coincide o el token
+    // está corrupto, devolvemos 400 sin pista del por qué (no leak de detalle).
+    type TokenPayload = {
       orgId: string
       validRows: Array<{
         dni: string
@@ -508,16 +595,17 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
       timestamp: number
     }
 
-    try {
-      tokenData = JSON.parse(Buffer.from(importToken, 'base64').toString('utf-8'))
-    } catch {
+    const tokenData = verifyAndDecodeImportToken<TokenPayload>(importToken)
+    if (!tokenData) {
       return NextResponse.json(
-        { error: 'Token de importacion invalido' },
+        { error: 'Token de importacion invalido o adulterado' },
         { status: 400 }
       )
     }
 
-    // Verify org matches
+    // Verify org matches (defense in depth — la firma ya garantiza que el
+    // orgId era el del usuario al momento de POST, pero verificamos por
+    // si el admin cambió de org entre POST y PUT).
     if (tokenData.orgId !== ctx.orgId) {
       return NextResponse.json(
         { error: 'Token de importacion no corresponde a esta organizacion' },
@@ -538,6 +626,13 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
     if (!validRows || validRows.length === 0) {
       return NextResponse.json(
         { error: 'No hay registros validos para importar' },
+        { status: 400 }
+      )
+    }
+
+    if (validRows.length > IMPORT_MAX_ROWS) {
+      return NextResponse.json(
+        { error: `Maximo ${IMPORT_MAX_ROWS} trabajadores por importacion` },
         { status: 400 }
       )
     }

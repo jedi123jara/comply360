@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 import { sendEmail } from '@/lib/email/client'
 import { complaintNotification } from '@/lib/email/templates'
 import type { ComplaintType, ComplaintStatus } from '@/generated/prisma/client'
@@ -24,6 +25,15 @@ const VALID_COMPLAINT_TYPES = [
   'OTRO',
 ] as const
 
+// FIX #0.3: orgId NO puede venir del body. Antes el endpoint aceptaba
+// `orgId` arbitrario y caía a `'org-demo'` como fallback → cualquier
+// atacante podía spamear denuncias contra cualquier empresa o llenar
+// la org "org-demo" para colapsar stats anuales.
+//
+// Ahora el orgId se deriva del query param `?org=<slug>` que la página
+// pública /denuncias/[orgSlug] envía explícitamente, y se valida que
+// la organización exista. La protección definitiva contra orgIds
+// adivinables se cierra en Ola 1.C cuando orgId pase a ser `cuid()`.
 const complaintSchema = z.object({
   type: z.enum(VALID_COMPLAINT_TYPES, {
     error: `El tipo de denuncia debe ser uno de: ${VALID_COMPLAINT_TYPES.join(', ')}`,
@@ -33,7 +43,9 @@ const complaintSchema = z.object({
     .min(10, 'La descripción debe tener al menos 10 caracteres')
     .max(5000, 'La descripción no puede exceder 5000 caracteres'),
   isAnonymous: z.boolean().default(true),
-  orgId: z.string().optional(),
+  /** Token de reCAPTCHA v3 desde el cliente (FIX #5.B). Opcional sin
+   *  RECAPTCHA_SECRET_KEY (dev), obligatorio en producción. */
+  recaptchaToken: z.string().optional(),
   reporterName: z.string().max(200).optional().nullable(),
   reporterEmail: z.string().email('El correo electrónico no es válido').optional().nullable(),
   reporterPhone: z.string().max(30).optional().nullable(),
@@ -142,6 +154,25 @@ export async function POST(request: NextRequest) {
       accusedName, accusedPosition, evidenceUrls,
     } = parsed.data
 
+    // FIX #5.B: validar reCAPTCHA antes de procesar. Si la clave no está
+    // configurada (dev), el helper hace bypass con success=true. En prod
+    // exige token válido + score >= threshold.
+    if (process.env.RECAPTCHA_SECRET_KEY) {
+      const recaptcha = await verifyRecaptcha(parsed.data.recaptchaToken ?? '', {
+        expectedAction: 'submit_complaint',
+        threshold: 0.4, // un poco más permisivo que default — denunciantes legítimos a veces tienen scores bajos
+      })
+      if (!recaptcha.success) {
+        return NextResponse.json(
+          {
+            error: 'Validación anti-bot falló. Recarga la página e intenta de nuevo.',
+            details: recaptcha.errorCodes,
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     // 3. Anti-spam check
     if (looksLikeSpam(description)) {
       return NextResponse.json(
@@ -150,20 +181,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Resolve & validate orgId
-    const orgId = parsed.data.orgId || 'org-demo'
-    if (parsed.data.orgId) {
-      const orgExists = await prisma.organization.findUnique({
-        where: { id: orgId },
-        select: { id: true },
-      })
-      if (!orgExists) {
-        return NextResponse.json(
-          { error: 'La organización especificada no existe' },
-          { status: 400 }
-        )
-      }
+    // 4. Resolve & validate orgId — desde query, no del body (FIX #0.3)
+    const url = new URL(request.url)
+    const orgIdParam = url.searchParams.get('org')?.trim()
+    if (!orgIdParam) {
+      return NextResponse.json(
+        { error: 'Debes accesar el formulario desde la URL pública de tu empresa (/denuncias/[empresa]).' },
+        { status: 400 }
+      )
     }
+    const orgExists = await prisma.organization.findUnique({
+      where: { id: orgIdParam },
+      select: { id: true },
+    })
+    if (!orgExists) {
+      return NextResponse.json(
+        { error: 'La organización especificada no existe' },
+        { status: 400 }
+      )
+    }
+    const orgId = orgIdParam
 
     // 5. Generate unique code
     const year = new Date().getFullYear()
@@ -239,15 +276,50 @@ export async function POST(request: NextRequest) {
 }
 
 // =============================================
-// PUT /api/complaints — Update complaint status / add timeline (auth required)
+// PUT /api/complaints — Update complaint status / add timeline
+//
+// FIX #0.2: antes el handler hacía `prisma.complaint.update({ where: { id } })`
+// SIN filtrar por orgId → cualquier user logueado con `complaintId` ajeno
+// podía modificar/desestimar denuncias de OTRAS orgs. Ahora antes del update
+// verificamos pertenencia con `findFirst({ id, orgId: ctx.orgId })` → si es
+// de otra org, devolvemos 404 sin tocar nada.
+// (Endurecimiento adicional a withRole('ADMIN') queda para Ola 3.)
 // =============================================
-export const PUT = withAuth(async (req) => {
+export const PUT = withAuth(async (req, ctx) => {
   try {
     const body = await req.json()
     const { id, status, assignedTo, resolution, protectionMeasures, timelineAction, timelineDescription, performedBy } = body
 
-    if (!id) {
+    if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'id is required' }, { status: 400 })
+    }
+
+    // Confirmar pertenencia a la org antes de modificar
+    const owned = await prisma.complaint.findFirst({
+      where: { id, orgId: ctx.orgId },
+      select: { id: true },
+    })
+    if (!owned) {
+      return NextResponse.json({ error: 'Denuncia no encontrada' }, { status: 404 })
+    }
+
+    // FIX #3.E: validar que assignedTo (si viene) pertenezca a un User de
+    // la misma org. Antes se aceptaba cualquier string → era posible asignar
+    // denuncias a usuarios ajenos o a strings arbitrarios.
+    if (assignedTo) {
+      if (typeof assignedTo !== 'string') {
+        return NextResponse.json({ error: 'assignedTo debe ser string' }, { status: 400 })
+      }
+      const assignee = await prisma.user.findFirst({
+        where: { id: assignedTo, orgId: ctx.orgId },
+        select: { id: true },
+      })
+      if (!assignee) {
+        return NextResponse.json(
+          { error: 'assignedTo no es un usuario válido de esta organización' },
+          { status: 400 },
+        )
+      }
     }
 
     const updateData: Record<string, unknown> = {}

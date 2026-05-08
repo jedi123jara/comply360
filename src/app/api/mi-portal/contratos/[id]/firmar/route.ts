@@ -133,8 +133,10 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (
   }
 
   // ── Construir metadata de firma ───────────────────────────────────────────
+  // FIX #4.I: userAgent siempre del header, NO del body (que el cliente
+  // puede manipular para falsificar el audit trail).
   const now = new Date()
-  const userAgent = body.userAgent ?? req.headers.get('user-agent') ?? null
+  const userAgent = req.headers.get('user-agent') ?? null
   const ipAddress =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     req.headers.get('x-real-ip') ??

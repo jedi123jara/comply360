@@ -46,6 +46,14 @@ vi.mock('@/lib/email', () => ({
   sendEmail: (...args: unknown[]) => mockSendEmail(...args),
 }))
 
+// FIX #5.A: el cron usa claimCronRun para idempotencia. En tests siempre
+// dejamos pasar (acquired:true) para que la lógica del handler corra.
+vi.mock('@/lib/cron/idempotency', () => ({
+  claimCronRun: vi.fn().mockResolvedValue({ acquired: true, runId: 'test-run', bucket: '202605' }),
+  completeCronRun: vi.fn().mockResolvedValue(undefined),
+  failCronRun: vi.fn().mockResolvedValue(undefined),
+}))
+
 // ---------------------------------------------------------------------------
 // Import handler AFTER mocks
 // ---------------------------------------------------------------------------

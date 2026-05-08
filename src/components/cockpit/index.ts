@@ -4,7 +4,7 @@ export type { ScoreNarrativeProps } from './score-narrative'
 export { MomentCard } from './moment-card'
 export type { MomentCardProps } from './moment-card'
 
-export { ActivityHeatmap, mockHeatmapData } from './activity-heatmap'
+export { ActivityHeatmap } from './activity-heatmap'
 export type { HeatmapDay } from './activity-heatmap'
 
 export { SectorRadar } from './sector-radar'

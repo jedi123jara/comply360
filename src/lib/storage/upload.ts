@@ -84,6 +84,10 @@ async function ensureBucketExists(supabaseUrl: string, serviceKey: string): Prom
   }
 
   // Bucket no existe → crear
+  // FIX #0.1: bucket PRIVADO (public:false). Antes era público y cualquiera
+  // con la URL podía descargar boletas, DNI escaneados, EMOs (Ley 29733).
+  // Las descargas válidas usan signed URLs con TTL de 1 hora vía
+  // `createSignedDownloadUrl()`.
   const createUrl = `${supabaseUrl}/storage/v1/bucket`
   const createRes = await fetch(createUrl, {
     method: 'POST',
@@ -95,7 +99,7 @@ async function ensureBucketExists(supabaseUrl: string, serviceKey: string): Prom
     body: JSON.stringify({
       id: SUPABASE_BUCKET,
       name: SUPABASE_BUCKET,
-      public: true, // Documentos accesibles via URL pública (firmadas opcionales)
+      public: false,
       file_size_limit: 5 * 1024 * 1024, // 5MB
       allowed_mime_types: ALLOWED_TYPES,
     }),
@@ -167,10 +171,69 @@ async function uploadToSupabase(file: File, subfolder: string): Promise<UploadRe
     throw new Error(`Supabase upload failed: ${err}`)
   }
 
-  // Build public URL
-  const publicUrl = `${supabaseUrl}/storage/v1/object/public/${SUPABASE_BUCKET}/${storagePath}`
+  // FIX #0.1: en lugar de URL pública (accesible a cualquiera con el link),
+  // guardamos el storage path. La descarga se hace vía
+  // `createSignedDownloadUrl(path)` cuando el cliente la pide, generando
+  // un URL firmado con expiración de 1h.
+  // Para compatibilidad con consumidores existentes, devolvemos un path
+  // canónico `supabase://${BUCKET}/${storagePath}` que el helper
+  // `resolveDocumentUrl()` reconoce y firma on-demand.
+  const url = `supabase://${SUPABASE_BUCKET}/${storagePath}`
 
-  return { url: publicUrl, size: file.size, mimeType: file.type, storage: 'supabase' }
+  return { url, size: file.size, mimeType: file.type, storage: 'supabase' }
+}
+
+/**
+ * Genera un URL firmado de descarga para un archivo en Supabase Storage.
+ * El URL expira en `expiresInSeconds` (default 1h).
+ *
+ * Acepta tanto un path crudo (`subfolder/timestamp-x.pdf`) como un URL
+ * canónico `supabase://bucket/path`. Si recibe una URL pública legacy
+ * (`supabaseUrl/storage/v1/object/public/...`) extrae el path para
+ * graceful migration de URLs ya guardadas en DB.
+ */
+export async function createSignedDownloadUrl(
+  pathOrUrl: string,
+  expiresInSeconds: number = 3600,
+): Promise<string> {
+  if (!USE_SUPABASE) {
+    // Local dev: el path ya es servible directamente desde /uploads
+    if (pathOrUrl.startsWith('/uploads/')) return pathOrUrl
+    return pathOrUrl
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL!
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY!
+
+  // Normalizar a path puro
+  let storagePath = pathOrUrl
+  if (pathOrUrl.startsWith(`supabase://${SUPABASE_BUCKET}/`)) {
+    storagePath = pathOrUrl.slice(`supabase://${SUPABASE_BUCKET}/`.length)
+  } else if (pathOrUrl.startsWith(supabaseUrl)) {
+    // Legacy URL pública: extrae path después del bucket name
+    const marker = `/storage/v1/object/public/${SUPABASE_BUCKET}/`
+    const idx = pathOrUrl.indexOf(marker)
+    if (idx >= 0) storagePath = pathOrUrl.slice(idx + marker.length)
+  }
+
+  const signEndpoint = `${supabaseUrl}/storage/v1/object/sign/${SUPABASE_BUCKET}/${storagePath}`
+  const res = await fetch(signEndpoint, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ expiresIn: expiresInSeconds }),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`No se pudo firmar la URL de Supabase: ${err}`)
+  }
+
+  const data = (await res.json()) as { signedURL: string }
+  return `${supabaseUrl}${data.signedURL}`
 }
 
 // =============================================

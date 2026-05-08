@@ -1015,6 +1015,15 @@ async function main() {
   // =============================================
   console.log('🔔 Creando alertas normativas 2026...')
 
+  // FIX #7.H: idempotencia. Antes los `create` duplicaban alertas en cada
+  // re-run del seed. Como NormAlert no tiene unique key compuesto natural
+  // y agregar uno requiere migration (Ola 7), aquí borramos las
+  // NormAlert "huérfanas" (sin OrgAlerts dependientes) — eso da espacio
+  // para recrear el seed limpio sin afectar data ya consumida por orgs.
+  await prisma.normAlert.deleteMany({
+    where: { orgAlerts: { none: {} } },
+  })
+
   const alertas = await Promise.all([
     prisma.normAlert.create({
       data: {

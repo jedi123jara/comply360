@@ -107,6 +107,39 @@ model Organization {
   emos                    EMO[]
   consentimientosLey29733 ConsentimientoLey29733[]
   solicitudesArco         SolicitudARCO[]
+  // FIX #7.B — relaciones inversas para los 32 modelos huérfanos
+  aiBudgetCounters        AiBudgetCounter[]
+  aiUsage                 AiUsage[]
+  attendance              Attendance[]
+  attendanceApprovals     AttendanceApproval[]
+  attendanceAttempts      AttendanceAttempt[]
+  attendanceEvidence      AttendanceEvidence[]
+  attendanceJustifications AttendanceJustification[]
+  bulkContractJobs        BulkContractJob[]
+  certificates            Certificate[]
+  ceseRecords             CeseRecord[]
+  complianceScores        ComplianceScore[]
+  contractValidations     ContractValidation[]
+  contractVersions        ContractVersion[]
+  enrollments             Enrollment[]
+  gamificationEvents      GamificationEvent[]
+  geofences               Geofence[]
+  merkleAnchors           MerkleAnchor[]
+  npsFeedback             NpsFeedback[]
+  orgComplianceSeals      OrgComplianceSeal[]
+  puestosTrabajo          PuestoTrabajo[]
+  scheduledReports        ScheduledReport[]
+  sindicalRecords         SindicalRecord[]
+  sstRecords              SstRecord[]
+  sunatQueryCache         SunatQueryCache[]
+  terceros                Tercero[]
+  webhookDeliveries       WebhookDelivery[]
+  webhookSubscriptions    WebhookSubscription[]
+  workerAlerts            WorkerAlert[]
+  workerDependents        WorkerDependent[]
+  workerHistoryEvents     WorkerHistoryEvent[]
+  workflowRuns            WorkflowRun[]
+  workflows               Workflow[]
 
   @@map("organizations")
 }
@@ -187,6 +220,7 @@ model GamificationEvent {
   createdAt DateTime              @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([userId, createdAt])
   @@index([orgId, type])
@@ -314,7 +348,13 @@ model Worker {
   deletedBy    String?      @map("deleted_by")
   deleteReason String?      @map("delete_reason")
 
-  organization            Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  // FIX #7.A: Restrict en lugar de Cascade. Antes borrar una Organization
+  // arrastraba TODA la cadena de WorkerDocument, VacationRecord, Payslip,
+  // Attendance, EMO, ConsentimientoLey29733, etc. — incumple SUNAFIL Art. 23
+  // D.S. 019-2006-TR (retención obligatoria 6 años) + Ley 29733 (datos
+  // médicos cifrados). Soft-delete a nivel Organization es lo correcto;
+  // si realmente hay que purgar, requiere proceso explícito.
+  organization            Organization             @relation(fields: [orgId], references: [id], onDelete: Restrict)
   user                    User?                    @relation(fields: [userId], references: [id])
   documents               WorkerDocument[]
   workerContracts         WorkerContract[]
@@ -475,6 +515,7 @@ model WorkerAlert {
   createdAt     DateTime        @default(now()) @map("created_at")
 
   worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, severity])
   @@index([orgId, resolvedAt]) // hot path: filtro resolvedAt IS NULL (12 archivos)
@@ -540,6 +581,7 @@ model WorkerDependent {
   deletedAt             DateTime?         @map("deleted_at")
 
   worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([workerId, documentoTipo, documentoNum])
   @@index([workerId, deletedAt])
@@ -576,6 +618,7 @@ model WorkerHistoryEvent {
   createdAt   DateTime        @default(now()) @map("created_at")
 
   worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([workerId, createdAt])
   @@index([orgId, type])
@@ -755,6 +798,7 @@ model ContractValidation {
 
   rule     ContractValidationRule @relation(fields: [ruleId], references: [id])
   contract Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, contractId])
   @@index([contractId, passed])
@@ -804,6 +848,7 @@ model MerkleAnchor {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   versions ContractVersion[]
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([orgId, anchorDate])
   @@index([anchorDate])
@@ -850,6 +895,7 @@ model BulkContractJob {
   finishedAt     DateTime?     @map("finished_at")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, status])
   @@index([orgId, createdAt])
@@ -984,6 +1030,7 @@ model ContractVersion {
   merkleProof    Json?         @map("merkle_proof")
 
   createdAt DateTime @default(now()) @map("created_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([contractId, versionNumber])
   @@index([orgId, contractId])
@@ -1075,6 +1122,8 @@ model Calculation {
 
   @@index([orgId, type])
   @@index([createdAt])
+  // FIX #7.E: timeline queries del cockpit ("últimos 30 días por org").
+  @@index([orgId, createdAt])
   @@map("calculations")
 }
 
@@ -1267,6 +1316,7 @@ model ComplianceScore {
   scorePlanilla     Int?     @map("score_planilla")
   multaEvitada      Decimal? @map("multa_evitada") @db.Decimal(12, 2)
   calculatedAt      DateTime @default(now()) @map("calculated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, calculatedAt])
   @@map("compliance_scores")
@@ -1289,6 +1339,7 @@ model SstRecord {
   status        SstStatus     @default(PENDING)
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, type])
   @@index([orgId, status])
@@ -1488,6 +1539,7 @@ model Enrollment {
   course         Course           @relation(fields: [courseId], references: [id])
   certificate    Certificate?     @relation(fields: [certificateId], references: [id])
   lessonProgress LessonProgress[]
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([courseId, workerId, orgId])
   @@index([orgId, status])
@@ -1550,6 +1602,7 @@ model Certificate {
   createdAt      DateTime       @default(now()) @map("created_at")
 
   enrollments Enrollment[]
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@index([code])
@@ -1645,6 +1698,7 @@ model CeseRecord {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   worker Worker @relation(fields: [workerId], references: [id])
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@map("cese_records")
@@ -1692,6 +1746,7 @@ model Tercero {
   isActive              Boolean   @default(true) @map("is_active")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@map("terceros")
@@ -1713,6 +1768,7 @@ model SindicalRecord {
   status      String             @default("ACTIVE")
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, type])
   @@map("sindical_records")
@@ -1741,6 +1797,13 @@ model AuditLog {
   metadataJson Json?    @map("metadata_json")
   ipAddress    String?  @map("ip_address")
   createdAt    DateTime @default(now()) @map("created_at")
+  // FIX #7.D — Hash chain por org (tampper-evident audit trail).
+  // Cada entry incluye sha256(prevHash + canonical(this)) → si alguien
+  // edita una metadata vieja, todos los hashes posteriores quedan
+  // inválidos y se detecta en /api/audit/verify. Migración 20260507160000
+  // backfilea los registros existentes con prevHash=null.
+  prevHash     String?  @map("prev_hash")
+  entryHash    String?  @map("entry_hash")
 
   organization Organization @relation(fields: [orgId], references: [id])
   user         User?        @relation(fields: [userId], references: [id])
@@ -1766,6 +1829,7 @@ model NpsFeedback {
   comment   String?  @db.Text
   source    String? // "dashboard", "post-onboarding", etc.
   createdAt DateTime @default(now()) @map("created_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([userId]) // un solo feedback por user
   @@index([orgId, createdAt])
@@ -1808,6 +1872,7 @@ model Attendance {
   justifications AttendanceJustification[]
   approvals      AttendanceApproval[]
   evidence       AttendanceEvidence[]
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([orgId, workerId, workDate])
   @@index([orgId, clockIn])
@@ -1842,6 +1907,7 @@ model Geofence {
   isActive     Boolean      @default(true) @map("is_active")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, isActive])
   @@map("geofences")
@@ -1886,6 +1952,7 @@ model AttendanceJustification {
   requestedAt  DateTime @default(now()) @map("requested_at")
 
   attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, workerId, requestedAt])
   @@index([attendanceId])
@@ -1904,6 +1971,7 @@ model AttendanceApproval {
   approvedAt      DateTime @default(now()) @map("approved_at")
 
   attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, approvedAt])
   @@index([attendanceId])
@@ -1921,6 +1989,7 @@ model AttendanceEvidence {
   capturedAt   DateTime @default(now()) @map("captured_at")
 
   attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, workerId, capturedAt])
   @@index([attendanceId])
@@ -1945,6 +2014,7 @@ model AttendanceAttempt {
   userAgent    String?                 @map("user_agent") @db.Text
   metadataJson Json?                   @map("metadata_json")
   createdAt    DateTime                @default(now()) @map("created_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, createdAt])
   @@index([workerId, createdAt])
@@ -2370,6 +2440,8 @@ model Lead {
 
   @@index([email])
   @@index([source, createdAt])
+  // FIX #7.E: convertedOrgId queries para reportes de conversión.
+  @@index([convertedOrgId])
   @@map("leads")
 }
 
@@ -2393,6 +2465,7 @@ model SunatQueryCache {
   resultJson Json     @map("result_json")
   queriedAt  DateTime @default(now()) @map("queried_at")
   expiresAt  DateTime @map("expires_at")
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([ruc, queryType])
   @@index([expiresAt])
@@ -2422,6 +2495,7 @@ model Workflow {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   runs WorkflowRun[]
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, active])
   @@index([orgId, createdAt])
@@ -2455,6 +2529,7 @@ model ScheduledReport {
   createdBy      String?   @map("created_by")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, active])
   @@map("scheduled_reports")
@@ -2481,6 +2556,7 @@ model WorkflowRun {
   idempotencyKey   String?   @unique @map("idempotency_key")
 
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([workflowId, startedAt])
   @@index([orgId, startedAt])
@@ -2519,6 +2595,7 @@ model WebhookSubscription {
   createdBy           String?   @map("created_by")
 
   deliveries WebhookDelivery[]
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, active])
   @@map("webhook_subscriptions")
@@ -2548,6 +2625,7 @@ model WebhookDelivery {
   completedAt    DateTime? @map("completed_at")
 
   subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([status, nextRetryAt])
   @@index([subscriptionId, createdAt])
@@ -2580,6 +2658,7 @@ model OrgComplianceSeal {
   validUntil    DateTime  @map("valid_until")
   revokedAt     DateTime? @map("revoked_at")
   revokedReason String?   @map("revoked_reason")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, issuedAt])
   @@index([validUntil])
@@ -2662,7 +2741,9 @@ model AiUsage {
   /**
    * Score producido por el eval harness (si esta llamada vino de un eval run).
    */
-  evalScore        Float?   @map("eval_score")
+  // FIX #7.G: era el único Float del schema (resto usa Decimal). Score 0..1
+  // con 4 decimales de precisión cubre cualquier eval realista.
+  evalScore        Decimal? @map("eval_score") @db.Decimal(5, 4)
   /**
    * Costo estimado en USD calculado con la pricing table local.
    * NO refleja ningún descuento de volumen ni precio enterprise — sirve
@@ -2673,6 +2754,7 @@ model AiUsage {
   success          Boolean  @default(true)
   errorMessage     String?  @map("error_message")
   createdAt        DateTime @default(now()) @map("created_at")
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, createdAt])
   @@index([orgId, feature, createdAt])
@@ -2698,6 +2780,7 @@ model AiBudgetCounter {
   hourlyCalls   Int      @default(0) @map("hourly_calls")
   hourlyResetAt DateTime @default(now()) @map("hourly_reset_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([orgId, monthStart])
   @@index([orgId])
@@ -3122,6 +3205,7 @@ model PuestoTrabajo {
 
   sede   Sede    @relation(fields: [sedeId], references: [id], onDelete: Cascade)
   worker Worker? @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@index([sedeId])

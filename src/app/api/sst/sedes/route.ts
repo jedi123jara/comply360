@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { sedeCreateSchema } from '@/lib/sst/schemas'
 
@@ -11,7 +11,7 @@ import { sedeCreateSchema } from '@/lib/sst/schemas'
 //   activa=true   — solo sedes activas (default: todas)
 //   search        — busca en nombre / direccion / distrito
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
   const tipo = searchParams.get('tipo')
@@ -46,7 +46,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // POST /api/sst/sedes — Create sede
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = sedeCreateSchema.safeParse(body)
   if (!parsed.success) {

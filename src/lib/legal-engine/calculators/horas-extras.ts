@@ -22,15 +22,37 @@ export function calcularHorasExtras(input: HorasExtrasInput): HorasExtrasResult 
   // 3. Calcular horas extras semanales (sobre la jornada máxima de 48h)
   const horasExtrasSemanales = Math.max(input.horasSemanales - config.JORNADA_MAXIMA_SEMANAL, 0)
 
-  // 4. Estimar distribución semanal:
-  //    - Primeras 2 horas por día laboral (máx 2h/día × 6 días = 12h semanales al 25%)
-  //    - Resto al 35%
-  const horasAlDia25 = 2 // Primeras 2 horas diarias al 25%
+  // 4. Estimar distribución semanal según D.S. 007-2002-TR Art. 10-11:
+  //    - Las primeras 2h DIARIAS al 25%
+  //    - El resto del día al 35%
+  //
+  // FIX #2.E.2: el cálculo asume distribución ÓPTIMA para el trabajador
+  // (todas las horas extras spread entre días, hasta 2h/día al 25%). Para
+  // un trabajador que hizo 4h extras un solo día, el cálculo correcto sería
+  // 2h al 25% + 2h al 35% (no las 4h al 25%). Si el caller tiene la
+  // distribución diaria exacta, debería pasar `horasDiarias` (input
+  // opcional, si está se usa para cómputo exacto).
+  const horasAlDia25 = 2
   const diasLaboralesSemana = 6
-  const maxHoras25Semanales = horasAlDia25 * diasLaboralesSemana // 12 horas semanales como máximo al 25%
+  const maxHoras25Semanales = horasAlDia25 * diasLaboralesSemana // 12h/sem como máximo
 
-  const horas25Semanales = Math.min(horasExtrasSemanales, maxHoras25Semanales)
-  const horas35Semanales = Math.max(horasExtrasSemanales - maxHoras25Semanales, 0)
+  let horas25Semanales: number
+  let horas35Semanales: number
+
+  if (Array.isArray(input.horasDiarias) && input.horasDiarias.length > 0) {
+    // Cómputo exacto día por día (hasta 6 días).
+    horas25Semanales = 0
+    horas35Semanales = 0
+    for (const horasDelDia of input.horasDiarias.slice(0, diasLaboralesSemana)) {
+      const extras = Math.max(horasDelDia - 8, 0) // jornada normal 8h/día
+      horas25Semanales += Math.min(extras, horasAlDia25)
+      horas35Semanales += Math.max(extras - horasAlDia25, 0)
+    }
+  } else {
+    // Fallback: asume distribución óptima (best-case para el empleador).
+    horas25Semanales = Math.min(horasExtrasSemanales, maxHoras25Semanales)
+    horas35Semanales = Math.max(horasExtrasSemanales - maxHoras25Semanales, 0)
+  }
 
   // 5. Escalar al total de meses acumulados (aprox 4.33 semanas/mes)
   const semanasTotal = input.mesesAcumulados * 4.33

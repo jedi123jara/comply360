@@ -18,6 +18,7 @@ const {
   mockOrgFindUnique,
   mockSendEmail,
   mockWorkerOnboardingEmail,
+  mockQueryRaw,
 } = vi.hoisted(() => ({
   mockWorkerFindUnique: vi.fn(),
   mockAuditLogFindFirst: vi.fn(),
@@ -29,10 +30,14 @@ const {
   mockOrgFindUnique: vi.fn(),
   mockSendEmail: vi.fn(),
   mockWorkerOnboardingEmail: vi.fn(),
+  // FIX #4.H: cascade ahora usa $queryRaw para advisory lock. Default acquired=true
+  // para que los tests existentes pasen.
+  mockQueryRaw: vi.fn().mockResolvedValue([{ acquired: true }]),
 }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    $queryRaw: mockQueryRaw,
     worker: { findUnique: mockWorkerFindUnique },
     auditLog: { findFirst: mockAuditLogFindFirst, create: mockAuditLogCreate },
     orgDocument: { count: mockOrgDocumentCount },

@@ -19,6 +19,11 @@ vi.mock('@/lib/prisma', () => ({
       findMany: vi.fn(),
       count: vi.fn(),
     },
+    // FIX #3.A: withPlanGate consulta organization.findUnique para verificar
+    // el plan. Mockeamos un plan que tenga el feature 'contratos' (PRO).
+    organization: {
+      findUnique: vi.fn().mockResolvedValue({ plan: 'PRO', planExpiresAt: null }),
+    },
   },
 }))
 

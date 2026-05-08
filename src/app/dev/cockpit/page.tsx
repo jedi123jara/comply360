@@ -26,8 +26,8 @@ import {
   UpcomingDeadlines,
   RiskLeaderboard,
   QuickActions,
-  mockHeatmapData,
 } from '@/components/cockpit'
+import { mockHeatmapData } from '@/components/cockpit/heatmap-mock'
 import type { DeadlineItem, WorkerRiskItem, RadarAxisDatum, QuickAction } from '@/components/cockpit'
 
 /**

@@ -3,11 +3,14 @@ import {
   PERU_LABOR,
   calcularPeriodoLaboral,
   calcularRemuneracionComputable,
+  getDiasVacacionesPorRegimen,
 } from '../peru-labor'
 
 // =============================================
 // VACACIONES - Truncas, No Gozadas e Indemnización
 // D.Leg. 713 y D.S. 012-92-TR
+// MYPE: Ley 32353 (15 días)
+// Doméstico: Ley 27986 (15 días)
 // =============================================
 
 export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
@@ -21,6 +24,10 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
   const mesesFraccion = periodo.meses
   const diasFraccion = periodo.dias
 
+  // FIX #0.10: días por año según régimen del trabajador (no más hardcoded 30).
+  // GENERAL=30, MYPE_MICRO/PEQUENA=15, DOMESTICO=15, MODALIDAD_FORMATIVA=0.
+  const diasPorAnoRegimen = getDiasVacacionesPorRegimen(input.regimenLaboral)
+
   // =============================================
   // 1. Vacaciones Truncas
   // Para el año incompleto (fracción): (rem / 12) × meses + (rem / 360) × días
@@ -29,9 +36,15 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
   let vacacionesTruncas = 0
   let diasTruncosComputables = 0
 
-  if (mesesFraccion >= PERU_LABOR.VACACIONES.RECORD_MINIMO_MESES || (mesesFraccion === 0 && anosCompletos === 0 && diasFraccion > 0)) {
-    // Días truncos equivalentes: meses × 30 + días (de los 30 que corresponden por año)
-    diasTruncosComputables = Math.round((mesesFraccion * PERU_LABOR.VACACIONES.DIAS_POR_ANO / 12) + (diasFraccion * PERU_LABOR.VACACIONES.DIAS_POR_ANO / 360))
+  if (
+    diasPorAnoRegimen > 0 &&
+    (mesesFraccion >= PERU_LABOR.VACACIONES.RECORD_MINIMO_MESES ||
+      (mesesFraccion === 0 && anosCompletos === 0 && diasFraccion > 0))
+  ) {
+    // Días truncos equivalentes proporcionales al régimen.
+    diasTruncosComputables = Math.round(
+      (mesesFraccion * diasPorAnoRegimen) / 12 + (diasFraccion * diasPorAnoRegimen) / 360
+    )
 
     vacacionesTruncas = (remComputable / 12) * mesesFraccion +
                         (remComputable / 360) * diasFraccion
@@ -40,20 +53,23 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
 
   // =============================================
   // 2. Vacaciones No Gozadas y Indemnización
-  // Por cada año completo el trabajador tiene derecho a 30 días
-  // Días que debió gozar = añosCompletos × 30
+  // Por cada año completo el trabajador tiene derecho a `diasPorAnoRegimen`.
+  // Días que debió gozar = anosCompletos × diasPorAnoRegimen
   // Días no gozados = diasDebidos - diasGozados
   // =============================================
-  const diasDebidos = anosCompletos * PERU_LABOR.VACACIONES.DIAS_POR_ANO
+  const diasDebidos = anosCompletos * diasPorAnoRegimen
   const diasNoGozados = Math.max(diasDebidos - input.diasGozados, 0)
 
-  // Periodos completos no gozados (cada 30 días = 1 periodo anual)
-  const periodosNoGozados = Math.floor(diasNoGozados / PERU_LABOR.VACACIONES.DIAS_POR_ANO)
+  // Periodos completos no gozados (cada `diasPorAnoRegimen` = 1 periodo anual)
+  const periodosNoGozados = diasPorAnoRegimen > 0
+    ? Math.floor(diasNoGozados / diasPorAnoRegimen)
+    : 0
 
-  // Pago por vacaciones no gozadas: (rem / 30) × días no gozados
-  const vacacionesNoGozadas = Math.round(
-    (remComputable / PERU_LABOR.VACACIONES.DIAS_POR_ANO) * diasNoGozados * 100
-  ) / 100
+  // Pago por vacaciones no gozadas: (rem / diasPorAno) × días no gozados.
+  // Si el régimen no tiene vacaciones (formativa), el monto es 0.
+  const vacacionesNoGozadas = diasPorAnoRegimen > 0
+    ? Math.round((remComputable / diasPorAnoRegimen) * diasNoGozados * 100) / 100
+    : 0
 
   // =============================================
   // 3. Indemnización vacacional (triple pago)

@@ -132,17 +132,27 @@ export const POST = withAuthParams<{ id: string }>(
     const diasPorAnio = MYPE_REGIMENS.includes(worker.regimenLaboral) ? 15 : 30
     const dias = body.diasCorresponden ?? diasPorAnio
     const gozados = Math.min(diasGozados, dias)
+    const diasPendientes = dias - gozados
+
+    // FIX #6.E: detección automática de "doble vacacional" (D.Leg. 713 Art. 23).
+    // Si el período venció hace más de 365 días Y el trabajador no gozó ni
+    // un solo día (diasPendientes === diasCorresponden), aplica el supuesto:
+    // el empleador debe pagar TRIPLE remuneración vacacional. Antes este
+    // flag siempre se creaba en false → la liquidación no detectaba el caso.
+    const fin = new Date(periodoFin)
+    const yaVencidoUnAnio = fin.getTime() + 365 * 24 * 60 * 60 * 1000 < Date.now()
+    const esDoble = yaVencidoUnAnio && diasPendientes === dias
 
     const record = await prisma.vacationRecord.create({
       data: {
         workerId,
         periodoInicio: new Date(periodoInicio),
-        periodoFin: new Date(periodoFin),
+        periodoFin: fin,
         diasCorresponden: dias,
         diasGozados: gozados,
-        diasPendientes: dias - gozados,
+        diasPendientes,
         fechaGoce: fechaGoce ? new Date(fechaGoce) : null,
-        esDoble: false,
+        esDoble,
       },
     })
 

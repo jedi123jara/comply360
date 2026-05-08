@@ -30,6 +30,14 @@ const votoSchema = z.object({
   electorWorkerId: z.string().min(1),
   candidatoWorkerId: z.string().min(1),
   webauthn: webauthnPayloadSchema.optional(),
+  /**
+   * FIX #1.E: si el caller es un ADMIN/OWNER transcribiendo una papeleta
+   * física, debe declararlo explícitamente. Sin este flag, los roles no-WORKER
+   * NO pueden votar en nombre de otro trabajador (antes el endpoint dejaba
+   * pasar a cualquier admin con sesión sin validar pertenencia).
+   * El flag queda registrado en el audit log para trazabilidad.
+   */
+  manualTranscription: z.boolean().optional(),
 })
 
 type SignatureLevel = 'SIMPLE' | 'BIOMETRIC'
@@ -63,7 +71,45 @@ export const POST = withAuthParams<{ id: string }>(
         { status: 400 },
       )
     }
-    const { electorWorkerId, candidatoWorkerId, webauthn } = parsed.data
+    const { electorWorkerId, candidatoWorkerId, webauthn, manualTranscription } = parsed.data
+
+    // FIX #1.E: validar que el usuario logueado tiene derecho a votar en
+    // nombre de `electorWorkerId`. Antes, cualquier admin con sesión podía
+    // emitir votos por cualquier trabajador → fraude electoral silencioso.
+    //
+    // Reglas:
+    //  - Si el caller es WORKER (mi-portal): debe ser el dueño del
+    //    `electorWorkerId` (Worker.userId === ctx.userId).
+    //  - Si el caller es ADMIN/OWNER: solo puede votar por otros si declara
+    //    `manualTranscription: true` (transcribiendo una papeleta física),
+    //    lo cual queda en audit log.
+    //  - Otros roles (MEMBER/VIEWER): bloqueado.
+    const elector = await prisma.worker.findFirst({
+      where: { id: electorWorkerId, orgId: ctx.orgId, status: 'ACTIVE' },
+      select: { id: true, userId: true },
+    })
+    if (!elector) {
+      return NextResponse.json(
+        { error: 'Elector no encontrado o inactivo' },
+        { status: 404 },
+      )
+    }
+
+    const isOwnVote = !!elector.userId && elector.userId === ctx.userId
+    const isAdminTranscription =
+      manualTranscription === true && (ctx.role === 'ADMIN' || ctx.role === 'OWNER' || ctx.role === 'SUPER_ADMIN')
+
+    if (!isOwnVote && !isAdminTranscription) {
+      return NextResponse.json(
+        {
+          error:
+            'No autorizado para emitir voto en nombre de este trabajador. ' +
+            'Si eres admin transcribiendo una papeleta física, envía manualTranscription:true.',
+          code: 'VOTE_NOT_AUTHORIZED',
+        },
+        { status: 403 },
+      )
+    }
 
     // Validar comité y elección activa
     const comite = await prisma.comiteSST.findFirst({
@@ -101,18 +147,8 @@ export const POST = withAuthParams<{ id: string }>(
       )
     }
 
-    // Validar elector y candidato
-    const elector = await prisma.worker.findFirst({
-      where: { id: electorWorkerId, orgId: ctx.orgId, status: 'ACTIVE' },
-      select: { id: true },
-    })
-    if (!elector) {
-      return NextResponse.json(
-        { error: 'Elector no encontrado o inactivo' },
-        { status: 404 },
-      )
-    }
-
+    // (Validación elector + autorización ya hecha arriba antes del check
+    // del comité. Verificamos candidato.)
     const esCandidato = data.candidatos.find((c) => c.workerId === candidatoWorkerId)
     if (!esCandidato) {
       return NextResponse.json(
@@ -186,7 +222,9 @@ export const POST = withAuthParams<{ id: string }>(
         data: {
           orgId: ctx.orgId,
           userId: ctx.userId,
-          action: 'sst.comite.eleccion.voto',
+          action: isAdminTranscription
+            ? 'sst.comite.eleccion.voto.transcrito'
+            : 'sst.comite.eleccion.voto',
           entityType: 'ComiteSST',
           entityId: id,
           metadataJson: {
@@ -194,6 +232,7 @@ export const POST = withAuthParams<{ id: string }>(
             electorWorkerId,
             candidatoWorkerId,
             signatureLevel,
+            isAdminTranscription,
             ...(credentialId ? { credentialId } : {}),
           },
         },

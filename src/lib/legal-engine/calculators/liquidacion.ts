@@ -20,11 +20,32 @@ export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult 
     input.comisionesPromedio
   )
 
+  // FIX #2.C: factor MYPE para CTS y gratificaciones.
+  // - MYPE_MICRO: 0 (sin derecho a CTS/grati)
+  // - MYPE_PEQUENA: 0.5 (50% CTS, 50% grati)
+  // - Otros: 1.0 (full)
+  const regimen = input.regimenLaboral
+  const mypeFactor =
+    regimen === 'MYPE_MICRO' ? 0 :
+    regimen === 'MYPE_PEQUENA' ? 0.5 :
+    1.0
+
+  const ctsItem = calcularCTSLiquidacion(remComputable, periodo, input)
+  const gratItem = calcularGratificacionTrunca(remComputable, input)
+  if (mypeFactor !== 1.0) {
+    ctsItem.amount = Math.round(ctsItem.amount * mypeFactor * 100) / 100
+    ctsItem.details = (ctsItem.details ?? '') +
+      ` [Régimen ${regimen}: factor ${mypeFactor} aplicado — Ley 32353 Art. 64]`
+    gratItem.amount = Math.round(gratItem.amount * mypeFactor * 100) / 100
+    gratItem.details = (gratItem.details ?? '') +
+      ` [Régimen ${regimen}: factor ${mypeFactor} aplicado]`
+  }
+
   const breakdown: LiquidacionBreakdown = {
-    cts: calcularCTSLiquidacion(remComputable, periodo, input),
+    cts: ctsItem,
     vacacionesTruncas: calcularVacacionesTruncas(remComputable, periodo),
     vacacionesNoGozadas: calcularVacacionesNoGozadas(remComputable, input.vacacionesNoGozadas),
-    gratificacionTrunca: calcularGratificacionTrunca(remComputable, input),
+    gratificacionTrunca: gratItem,
     indemnizacion: calcularIndemnizacionSiAplica(remComputable, periodo, input),
     horasExtras: calcularHorasExtrasAcumuladas(input.sueldoBruto, input.horasExtrasPendientes),
     bonificacionEspecial: calcularBonificacionEspecial(remComputable, input),
@@ -62,16 +83,24 @@ function calcularCTSLiquidacion(
   const fechaCese = new Date(input.fechaCese)
   const mesCese = fechaCese.getMonth() + 1
 
-  // Determinar último depósito
+  // Determinar último depósito y meses truncos desde ese depósito
+  // FIX #0.6: la rama ene-abr tenía off-by-one. El último depósito antes de
+  // un cese en ene-abr es el de noviembre (semestre nov-abr en curso). De
+  // noviembre a fin de enero son **3 meses completos** (nov, dic, ene), no 2.
+  // Antes: `mesCese + 1` daba 2 para cese en enero. Ahora: `mesCese + 2`.
   let mesesTruncos: number
   if (mesCese >= 5 && mesCese <= 10) {
-    // Último depósito: mayo, trunca desde mayo
+    // Último depósito: 15-may. Trunca desde mayo (mes 5 = 0 truncos).
     mesesTruncos = mesCese - 5
   } else if (mesCese >= 11) {
+    // Último depósito: 15-nov. Trunca desde noviembre (mes 11 = 0 truncos).
     mesesTruncos = mesCese - 11
   } else {
-    // Ene-Abr, último depósito noviembre anterior
-    mesesTruncos = mesCese + 1
+    // Ene-Abr: último depósito 15-nov del año anterior. Nov+Dic ya pasaron
+    // (2 meses) + meses transcurridos del año actual (mesCese).
+    // Cese fin-ene → 3 meses (nov + dic + ene)
+    // Cese fin-feb → 4 meses, etc.
+    mesesTruncos = mesCese + 2
   }
 
   const diasTruncos = fechaCese.getDate()

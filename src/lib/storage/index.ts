@@ -199,6 +199,14 @@ export class StorageService {
 
   /**
    * Get a public URL for a file (no expiration).
+   *
+   * @deprecated FIX #0.1: los buckets ahora son PRIVADOS por defecto. Este
+   * método se mantiene solo para compatibilidad pero NO debe usarse para
+   * documentos sensibles (boletas, DNI, EMO, contratos). Para descarga
+   * autenticada usar `downloadFile()` que devuelve signed URL con TTL 1h.
+   *
+   * Para evitar romper consumidores legacy, devuelve la URL "pública"
+   * pero el bucket privado responderá 404/403 — fail-closed correcto.
    */
   getPublicUrl(bucket: StorageBucket, filePath: string): string {
     validateBucket(bucket)
@@ -251,12 +259,16 @@ export class StorageService {
       )
     }
 
-    const publicUrl = `${url}/storage/v1/object/public/${bucket}/${filePath}`
+    // FIX #0.1: NO devolver URL pública. Buckets son privados; el caller
+    // pide signed URL on-demand vía `downloadFile(bucket, path)`. Devolvemos
+    // un identificador canónico `supabase://${bucket}/${path}` para que
+    // los consumidores sepan firmar.
+    const canonicalUrl = `supabase://${bucket}/${filePath}`
 
     return {
       bucket,
       path: filePath,
-      url: publicUrl,
+      url: canonicalUrl,
       size,
       mimeType,
       storage: 'supabase',

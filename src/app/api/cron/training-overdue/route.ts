@@ -19,9 +19,10 @@
  * Auth: header `Authorization: Bearer ${CRON_SECRET}`.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { AlertSeverity } from '@/generated/prisma/client'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 export const runtime = 'nodejs'
 
@@ -38,18 +39,8 @@ function severityForDays(days: number): AlertSeverity {
   return 'MEDIUM'
 }
 
-export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) {
-    console.error('CRON_SECRET env var is not configured — training-overdue cron disabled')
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// FIX #5.A: idempotencia diaria.
+export const GET = withCronIdempotency('training-overdue', 1440, async () => {
   const now = new Date()
   const overdueThreshold = new Date(now)
   overdueThreshold.setDate(overdueThreshold.getDate() - 30)
@@ -138,4 +129,4 @@ export async function GET(request: NextRequest) {
     runAt: now.toISOString(),
     stats,
   })
-}
+})
