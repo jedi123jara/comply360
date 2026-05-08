@@ -74,8 +74,8 @@ export function PendingAcksBanner() {
         border: 'rgba(245, 158, 11, 0.35)',
       }
     : {
-        bg: 'linear-gradient(90deg, #ecfdf5 0%, #d1fae5 50%, #ecfdf5 100%)',
-        text: '#065f46',
+        bg: 'linear-gradient(90deg, #eff6ff 0%, #dbeafe 50%, #eff6ff 100%)',
+        text: '#1e3a8a',
         border: 'rgba(16, 185, 129, 0.35)',
       }
 

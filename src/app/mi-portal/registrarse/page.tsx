@@ -119,7 +119,7 @@ export default function RegistrarseWorkerPage() {
                 unsafeMetadata={{ signupAs: 'WORKER' }}
                 appearance={{
                   variables: {
-                    colorPrimary: '#10b981',
+                    colorPrimary: '#2563eb',
                     colorText: '#0f172a',
                     colorTextSecondary: '#64748b',
                     colorBackground: '#ffffff',

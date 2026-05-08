@@ -324,7 +324,7 @@ function PersonCard({
               width: `${person.complianceScore}%`,
               backgroundColor:
                 person.tone === 'success'
-                  ? '#10b981'
+                  ? '#2563eb'
                   : person.tone === 'warning'
                     ? '#f59e0b'
                     : person.tone === 'danger'

@@ -159,7 +159,7 @@ export function buildCoverageReport(
  * y tooltips.
  */
 export const TONE_COLOR_HEX: Record<UnitCoverage['tone'], string> = {
-  success: '#10b981', // emerald-500
+  success: '#2563eb', // emerald-500
   warning: '#f59e0b', // amber-500
   danger: '#f97316', // orange-500
   critical: '#dc2626', // red-600

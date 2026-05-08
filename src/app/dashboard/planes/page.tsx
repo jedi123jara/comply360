@@ -231,14 +231,14 @@ export default function PlanesPage() {
       <div
         className="flex items-center gap-4 rounded-2xl px-6 py-4"
         style={{
-          background: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
-          border: '0.5px solid var(--emerald-200, #a7f3d0)',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
+          border: '0.5px solid var(--emerald-200, #bfdbfe)',
         }}
       >
         <div
           className="flex h-11 w-11 items-center justify-center rounded-xl flex-shrink-0"
           style={{
-            background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
+            background: 'linear-gradient(165deg, #1d4ed8 0%, #1e40af 55%, #1e3a8a 100%)',
             boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
           }}
         >

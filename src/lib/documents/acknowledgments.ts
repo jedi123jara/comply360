@@ -448,7 +448,7 @@ function buildAckEmailHtml(opts: {
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; overflow: hidden;">
           <!-- Header brand -->
           <tr>
-            <td style="background-color: #047857; padding: 16px 24px;">
+            <td style="background-color: #1e40af; padding: 16px 24px;">
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="color: #ffffff; font-size: 18px; font-weight: 700;">COMPLY360</td>
@@ -461,7 +461,7 @@ function buildAckEmailHtml(opts: {
           <!-- Content -->
           <tr>
             <td style="padding: 32px 24px;">
-              <h1 style="margin: 0 0 16px 0; color: #047857; font-size: 22px; line-height: 1.3;">
+              <h1 style="margin: 0 0 16px 0; color: #1e40af; font-size: 22px; line-height: 1.3;">
                 Hola ${escapeHtml(opts.workerName)},
               </h1>
               <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
@@ -479,7 +479,7 @@ function buildAckEmailHtml(opts: {
                   <td>
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td align="center" style="background-color: #047857; border-radius: 8px;">
+                        <td align="center" style="background-color: #1e40af; border-radius: 8px;">
                           <a href="https://comply360.pe/mi-portal/documentos"
                              style="display: inline-block; padding: 14px 28px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1; font-family: inherit;">
                             Leer y firmar ahora →

@@ -34,9 +34,9 @@ export function AnimatedShield({
       <svg width={size} height={size} viewBox="0 0 64 64">
         <defs>
           <linearGradient id="c360ShieldGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#34d399" />
-            <stop offset="45%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#047857" />
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="45%" stopColor="#2563eb" />
+            <stop offset="100%" stopColor="#1e40af" />
           </linearGradient>
           <linearGradient id="c360ShieldSheen" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
@@ -105,9 +105,9 @@ export function RingPremium({
       <svg width={size} height={size}>
         <defs>
           <linearGradient id="c360RingGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#34d399" />
-            <stop offset="60%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#047857" />
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="60%" stopColor="#2563eb" />
+            <stop offset="100%" stopColor="#1e40af" />
           </linearGradient>
         </defs>
         <circle

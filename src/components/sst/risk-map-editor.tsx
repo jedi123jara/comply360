@@ -41,7 +41,7 @@ const MARKER_COLOR: Record<MarkerKind, string> = {
   PUNTO_REUNION: '#2563eb',
   EXTINTOR: '#dc2626',
   BOTIQUIN: '#16a34a',
-  SALIDA_EMERGENCIA: '#10b981',
+  SALIDA_EMERGENCIA: '#2563eb',
   RUTA_EVACUACION: '#f59e0b',
   ZONA_RESTRINGIDA: '#7c3aed',
   OTRO: '#64748b',

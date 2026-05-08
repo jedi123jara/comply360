@@ -9,8 +9,8 @@ export const BRAND = {
   primary: '#1e3a6e',    // azul corporativo
   primaryDark: '#142847',
   primaryLight: '#e8eef7',
-  accent: '#059669',     // verde acción
-  accentLight: '#d1fae5',
+  accent: '#1d4ed8',     // verde acción
+  accentLight: '#dbeafe',
   danger: '#dc2626',
   dangerLight: '#fee2e2',
   warning: '#d97706',

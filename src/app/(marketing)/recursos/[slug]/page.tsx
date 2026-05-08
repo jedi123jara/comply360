@@ -52,7 +52,7 @@ export default async function ArticlePage({
       <div
         className="border-b border-gray-100"
         style={{
-          background: 'linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%)',
+          background: 'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)',
         }}
       >
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10">
@@ -107,7 +107,7 @@ export default async function ArticlePage({
           <div
             className="mt-12 rounded-2xl p-6 lg:p-8 text-center text-white relative overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%)',
+              background: 'linear-gradient(135deg, #172554 0%, #1e40af 50%, #2563eb 100%)',
             }}
           >
             <Link

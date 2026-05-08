@@ -498,7 +498,7 @@ function CeremonyModal({
             <>
               <div
                 className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-[0_8px_24px_rgba(4,120,87,0.3)]"
-                style={{ background: 'linear-gradient(135deg, #10b981, #047857)' }}
+                style={{ background: 'linear-gradient(135deg, #2563eb, #1e40af)' }}
               >
                 <Fingerprint className="h-8 w-8" />
               </div>
@@ -538,7 +538,7 @@ function CeremonyModal({
             <div className="text-center">
               <div
                 className="mx-auto mb-4 flex h-20 w-20 animate-pulse items-center justify-center rounded-3xl text-white shadow-[0_8px_32px_rgba(4,120,87,0.4)]"
-                style={{ background: 'linear-gradient(135deg, #10b981, #047857)' }}
+                style={{ background: 'linear-gradient(135deg, #2563eb, #1e40af)' }}
               >
                 <Fingerprint className="h-10 w-10" />
               </div>

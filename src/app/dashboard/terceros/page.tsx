@@ -626,7 +626,7 @@ export default function TercerosPage() {
                           style={{
                             background: `conic-gradient(${
                               tercero.complianceScore >= 80
-                                ? '#10b981'
+                                ? '#2563eb'
                                 : tercero.complianceScore >= 60
                                   ? '#f59e0b'
                                   : '#ef4444'

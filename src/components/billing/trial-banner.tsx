@@ -204,10 +204,10 @@ const PALETTE: Record<
   }
 > = {
   'trial-ok': {
-    bg: 'linear-gradient(90deg, #ecfdf5 0%, #d1fae5 50%, #ecfdf5 100%)',
-    text: '#065f46',
+    bg: 'linear-gradient(90deg, #eff6ff 0%, #dbeafe 50%, #eff6ff 100%)',
+    text: '#1e3a8a',
     border: 'rgba(16,185,129,0.3)',
-    iconColor: '#047857',
+    iconColor: '#1e40af',
     icon: <Sparkles className="h-3.5 w-3.5" />,
   },
   'trial-urgent': {

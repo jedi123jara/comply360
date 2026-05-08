@@ -50,7 +50,7 @@ export function FeatureLock({
           gap: 4,
           padding: '2px 7px',
           borderRadius: 9999,
-          background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)',
+          background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
           border: '0.5px solid rgba(16,185,129,0.35)',
           color: 'var(--emerald-800)',
           fontSize: 9,
@@ -62,10 +62,10 @@ export function FeatureLock({
           transition: 'all 200ms',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'linear-gradient(135deg, #d1fae5, #a7f3d0)'
+          e.currentTarget.style.background = 'linear-gradient(135deg, #dbeafe, #bfdbfe)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'linear-gradient(135deg, #ecfdf5, #d1fae5)'
+          e.currentTarget.style.background = 'linear-gradient(135deg, #eff6ff, #dbeafe)'
         }}
         aria-label={`Requiere plan ${requiredPlan} — click para ver detalles`}
       >

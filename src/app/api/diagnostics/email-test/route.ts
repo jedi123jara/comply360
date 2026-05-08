@@ -89,7 +89,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
         subject: '🧪 COMPLY360 — Email de prueba de diagnóstico',
         html: `
           <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-            <h1 style="color: #047857;">✓ Tu sistema de email funciona</h1>
+            <h1 style="color: #1e40af;">✓ Tu sistema de email funciona</h1>
             <p style="color: #374151; font-size: 16px;">
               Si recibes este email, significa que <strong>RESEND_API_KEY está bien configurado</strong>
               y el dominio comply360.pe está autorizado para enviar.

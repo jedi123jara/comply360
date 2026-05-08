@@ -389,7 +389,7 @@ interface MetaInfo {
 
 // Mapa para los `WorkerEventType` de la nueva tabla (Ola 2)
 const HISTORY_EVENT_META: Record<string, MetaInfo> = {
-  ALTA: { label: 'Trabajador registrado', color: '#10b981', icon: UserPlus },
+  ALTA: { label: 'Trabajador registrado', color: '#2563eb', icon: UserPlus },
   CAMBIO_SUELDO: { label: 'Cambio de sueldo', color: '#0ea5e9', icon: Banknote },
   CAMBIO_CARGO: { label: 'Cambio de cargo', color: '#8b5cf6', icon: Briefcase },
   CAMBIO_DEPARTAMENTO: { label: 'Cambio de departamento', color: '#8b5cf6', icon: Building2 },
@@ -398,16 +398,16 @@ const HISTORY_EVENT_META: Record<string, MetaInfo> = {
   CAMBIO_HORARIO: { label: 'Ajuste de horario', color: '#0ea5e9', icon: Calendar },
   CAMBIO_REGIMEN_PREVISIONAL: { label: 'Cambio AFP/ONP', color: '#0ea5e9', icon: ShieldCheck },
   SUSPENSION: { label: 'Suspensión registrada', color: '#f59e0b', icon: UserCheck },
-  REINCORPORACION: { label: 'Reincorporación', color: '#10b981', icon: UserPlus },
+  REINCORPORACION: { label: 'Reincorporación', color: '#2563eb', icon: UserPlus },
   LICENCIA_MEDICA: { label: 'Licencia médica', color: '#0ea5e9', icon: HistoryIcon },
   LICENCIA_MATERNIDAD: { label: 'Licencia de maternidad', color: '#ec4899', icon: HistoryIcon },
   LICENCIA_PATERNIDAD: { label: 'Licencia de paternidad', color: '#06b6d4', icon: HistoryIcon },
-  VACACIONES_INICIO: { label: 'Inicio de vacaciones', color: '#10b981', icon: Calendar },
-  VACACIONES_FIN: { label: 'Fin de vacaciones', color: '#10b981', icon: Calendar },
+  VACACIONES_INICIO: { label: 'Inicio de vacaciones', color: '#2563eb', icon: Calendar },
+  VACACIONES_FIN: { label: 'Fin de vacaciones', color: '#2563eb', icon: Calendar },
   CESE: { label: 'Cese registrado', color: '#ef4444', icon: UserMinus },
-  REINGRESO: { label: 'Reingreso del trabajador', color: '#10b981', icon: UserPlus },
+  REINGRESO: { label: 'Reingreso del trabajador', color: '#2563eb', icon: UserPlus },
   ACTUALIZACION_LEGAJO: { label: 'Actualización de legajo', color: '#64748b', icon: FileEdit },
-  T_REGISTRO_PRESENTADO: { label: 'T-REGISTRO presentado', color: '#047857', icon: ShieldCheck },
+  T_REGISTRO_PRESENTADO: { label: 'T-REGISTRO presentado', color: '#1e40af', icon: ShieldCheck },
 }
 
 function historyEventMeta(type: string): MetaInfo {
@@ -423,7 +423,7 @@ function historyEventMeta(type: string): MetaInfo {
 function actionMeta(action: string): MetaInfo {
   const a = action.toUpperCase()
   if (a.includes('CREATE') || a.includes('ADD')) {
-    return { label: humanize(action, 'Trabajador registrado'), color: '#10b981', icon: UserPlus }
+    return { label: humanize(action, 'Trabajador registrado'), color: '#2563eb', icon: UserPlus }
   }
   if (a.includes('DELETE') || a.includes('TERMINAT')) {
     return { label: humanize(action, 'Cese registrado'), color: '#ef4444', icon: UserMinus }
@@ -435,10 +435,10 @@ function actionMeta(action: string): MetaInfo {
     return { label: humanize(action, 'Documento subido al legajo'), color: '#3b82f6', icon: Upload }
   }
   if (a.includes('CONTRACT')) {
-    return { label: humanize(action, 'Contrato generado'), color: '#047857', icon: FileText }
+    return { label: humanize(action, 'Contrato generado'), color: '#1e40af', icon: FileText }
   }
   if (a.includes('ALERT') && (a.includes('RESOLVE') || a.includes('DISMISS'))) {
-    return { label: humanize(action, 'Alerta resuelta'), color: '#10b981', icon: CheckCircle2 }
+    return { label: humanize(action, 'Alerta resuelta'), color: '#2563eb', icon: CheckCircle2 }
   }
   if (a.includes('ALERT')) {
     return { label: humanize(action, 'Alerta generada'), color: '#ef4444', icon: Bell }

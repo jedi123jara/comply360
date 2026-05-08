@@ -260,7 +260,7 @@ export default function BoletaDetailPage() {
       <section
         className="relative overflow-hidden rounded-2xl p-6 text-white"
         style={{
-          background: 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)',
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 45%, #2563eb 100%)',
         }}
       >
         <div
@@ -576,10 +576,10 @@ function BiometricCeremonyModal({
               height: 72,
               background:
                 state === 'success'
-                  ? 'linear-gradient(165deg, #10b981 0%, #047857 100%)'
+                  ? 'linear-gradient(165deg, #2563eb 0%, #1e40af 100%)'
                   : state === 'error'
                     ? 'linear-gradient(165deg, #ef4444 0%, #dc2626 100%)'
-                    : 'linear-gradient(165deg, #10b981 0%, #047857 100%)',
+                    : 'linear-gradient(165deg, #2563eb 0%, #1e40af 100%)',
               boxShadow: '0 14px 32px -8px rgba(4,120,87,0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
             }}
           >

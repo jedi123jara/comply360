@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
           <p>Hola ${orgName},</p>
           <p>Tu trial <b>${planName}</b> de Comply360 expira en <b>3 días</b>.</p>
           <p>Para no perder acceso a tu diagnóstico SUNAFIL, simulacro, asistente IA y portal del trabajador, activa tu plan ahora.</p>
-          <p><a href="${upgradeUrl}" style="display:inline-block;background:#059669;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">Activar plan ${planName} →</a></p>
+          <p><a href="${upgradeUrl}" style="display:inline-block;background:#1d4ed8;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">Activar plan ${planName} →</a></p>
           <p style="color:#666;font-size:13px;margin-top:20px;">¿Dudas? Responde a este email.</p>
         `,
       }).catch(() => { /* best-effort */ })

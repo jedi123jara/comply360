@@ -220,14 +220,14 @@ function buildConfirmationEmailHtml(
   })
   return `
     <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-      <h1 style="color: #047857; font-size: 24px;">Bienvenido a Comply360 ${plan} ✓</h1>
+      <h1 style="color: #1e40af; font-size: 24px;">Bienvenido a Comply360 ${plan} ✓</h1>
       <p style="color: #374151; font-size: 16px; line-height: 1.6;">
         Pago confirmado. Tu plan está activo para <strong>${orgName}</strong>.
       </p>
       <table style="width: 100%; margin: 16px 0; border-collapse: collapse; background: #f9fafb; border-radius: 8px; padding: 12px;">
         <tr><td style="padding: 8px;">Plan</td><td style="padding: 8px; text-align: right;"><strong>${plan}</strong></td></tr>
         <tr><td style="padding: 8px;">Precio normal</td><td style="padding: 8px; text-align: right; color: #9ca3af; text-decoration: line-through;">S/ ${fullAmount.toFixed(2)}</td></tr>
-        <tr><td style="padding: 8px;">Descuento primer mes (20%)</td><td style="padding: 8px; text-align: right; color: #047857;">-S/ ${(fullAmount - paidAmount).toFixed(2)}</td></tr>
+        <tr><td style="padding: 8px;">Descuento primer mes (20%)</td><td style="padding: 8px; text-align: right; color: #1e40af;">-S/ ${(fullAmount - paidAmount).toFixed(2)}</td></tr>
         <tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 8px;"><strong>Cobrado hoy</strong></td><td style="padding: 8px; text-align: right;"><strong>S/ ${paidAmount.toFixed(2)}</strong></td></tr>
         <tr><td style="padding: 8px;">Próxima renovación</td><td style="padding: 8px; text-align: right;">${formatDate} (S/ ${fullAmount.toFixed(2)})</td></tr>
       </table>
@@ -235,7 +235,7 @@ function buildConfirmationEmailHtml(
         Recibirás tu factura electrónica formal en las próximas 24 horas.
       </p>
       <p style="margin-top: 24px;">
-        <a href="https://comply360.pe/dashboard" style="background: #047857; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+        <a href="https://comply360.pe/dashboard" style="background: #1e40af; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
           Ir al dashboard
         </a>
       </p>

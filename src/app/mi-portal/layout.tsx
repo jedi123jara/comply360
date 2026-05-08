@@ -97,7 +97,7 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
           <div
             className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
             style={{
-              background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
+              background: 'linear-gradient(165deg, #1d4ed8 0%, #1e40af 55%, #1e3a8a 100%)',
               boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
             }}
           >

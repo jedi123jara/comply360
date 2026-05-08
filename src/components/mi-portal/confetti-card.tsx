@@ -56,11 +56,11 @@ export function ConfettiCard({ icon: Icon, eyebrow, title, titleEmText, sub }: C
           background: '#d4a853',
           transform: 'rotate(20deg)',
           boxShadow: `
-            20px 14px 0 #10b981,
+            20px 14px 0 #2563eb,
             50px -4px 0 #ef4444,
-            90px 24px 0 #34d399,
+            90px 24px 0 #60a5fa,
             140px 8px 0 #e0bc6e,
-            180px 30px 0 #059669
+            180px 30px 0 #1d4ed8
           `,
         }}
       />
@@ -74,12 +74,12 @@ export function ConfettiCard({ icon: Icon, eyebrow, title, titleEmText, sub }: C
           width: 8,
           height: 8,
           borderRadius: 2,
-          background: '#10b981',
+          background: '#2563eb',
           transform: 'rotate(-30deg)',
           boxShadow: `
             -30px -12px 0 #d4a853,
             -70px 4px 0 #ef4444,
-            -110px -18px 0 #34d399
+            -110px -18px 0 #60a5fa
           `,
         }}
       />

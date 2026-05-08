@@ -244,7 +244,7 @@ export default function MiPortalHomePage() {
         className="relative overflow-hidden rounded-2xl p-5 lg:p-7"
         style={{
           background:
-            'linear-gradient(rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.96) 100%), linear-gradient(135deg, #ecfdf5 0%, #f8fafc 55%, #fefce8 100%)',
+            'linear-gradient(rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.96) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
           border: '0.5px solid rgba(16,185,129,0.2)',
         }}
       >
@@ -281,7 +281,7 @@ export default function MiPortalHomePage() {
               color: 'var(--text-primary)',
             }}
           >
-            Hola, <em style={{ color: '#047857', fontStyle: 'italic' }}>{worker.firstName}</em>.
+            Hola, <em style={{ color: '#1e40af', fontStyle: 'italic' }}>{worker.firstName}</em>.
           </h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-[color:var(--text-secondary)]">
@@ -375,7 +375,7 @@ export default function MiPortalHomePage() {
         <section
           className="rounded-2xl p-6 text-center"
           style={{
-            background: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
+            background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
             border: '0.5px solid rgba(16,185,129,0.2)',
           }}
         >
@@ -384,7 +384,7 @@ export default function MiPortalHomePage() {
             style={{
               width: 48,
               height: 48,
-              background: 'linear-gradient(165deg, #10b981 0%, #047857 100%)',
+              background: 'linear-gradient(165deg, #2563eb 0%, #1e40af 100%)',
               boxShadow: '0 8px 20px -6px rgba(4,120,87,0.45)',
             }}
           >
@@ -400,7 +400,7 @@ export default function MiPortalHomePage() {
               marginBottom: 4,
             }}
           >
-            Todo al día — <em style={{ color: '#047857', fontStyle: 'italic' }}>excelente</em>
+            Todo al día — <em style={{ color: '#1e40af', fontStyle: 'italic' }}>excelente</em>
           </h3>
           <p className="text-sm text-[color:var(--text-secondary)] max-w-sm mx-auto">
             No tienes acciones pendientes. Sigue manteniendo tu información actualizada.
@@ -495,8 +495,8 @@ export default function MiPortalHomePage() {
                       style={{
                         width: 36,
                         height: 36,
-                        background: '#ecfdf5',
-                        color: '#047857',
+                        background: '#eff6ff',
+                        color: '#1e40af',
                       }}
                     >
                       <GraduationCap className="h-4 w-4" />
@@ -587,7 +587,7 @@ function KpiTile({
       }}
     >
       <div className="flex items-center gap-1.5 mb-2">
-        <Icon className="h-3 w-3" style={{ color: '#059669' }} />
+        <Icon className="h-3 w-3" style={{ color: '#1d4ed8' }} />
         <span
           className="font-bold uppercase"
           style={{
@@ -645,8 +645,8 @@ function QuickAction({
         style={{
           width: 32,
           height: 32,
-          background: '#ecfdf5',
-          color: '#047857',
+          background: '#eff6ff',
+          color: '#1e40af',
         }}
       >
         <Icon className="h-4 w-4" />

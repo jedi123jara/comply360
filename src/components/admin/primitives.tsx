@@ -40,7 +40,7 @@ const PALETTE: Array<[string, string]> = [
   ['#fb923c', '#ea580c'],
   ['#60a5fa', '#1d4ed8'],
   ['#c084fc', '#7e22ce'],
-  ['#34d399', '#047857'],
+  ['#60a5fa', '#1e40af'],
   ['#f472b6', '#be185d'],
   ['#fbbf24', '#b45309'],
   ['#22d3ee', '#0e7490'],
@@ -92,7 +92,7 @@ export function Sparkline({
   data,
   width = 80,
   height = 28,
-  color = '#10b981',
+  color = '#2563eb',
   fill = true,
   dots = false,
 }: {
@@ -186,8 +186,8 @@ export function Ring({
       >
         <defs>
           <linearGradient id={gradId} x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="#6ee7b7" />
-            <stop offset="100%" stopColor="#047857" />
+            <stop offset="0%" stopColor="#93c5fd" />
+            <stop offset="100%" stopColor="#1e40af" />
           </linearGradient>
         </defs>
         <circle
@@ -257,7 +257,7 @@ export function Ring({
 // ──────────────────────────────────────────────────────────────────────
 
 export function HealthBar({ value }: { value: number }) {
-  const color = value >= 85 ? '#10b981' : value >= 70 ? '#f59e0b' : '#ef4444'
+  const color = value >= 85 ? '#2563eb' : value >= 70 ? '#f59e0b' : '#ef4444'
   return (
     <div className="hbar">
       <div className="hbar-fill" style={{ width: `${value}%`, background: color }} />

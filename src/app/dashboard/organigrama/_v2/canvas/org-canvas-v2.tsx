@@ -209,7 +209,7 @@ function OrgCanvasV2Inner({
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.2}
         maxZoom={2.5}
-        connectionLineStyle={{ stroke: '#10b981', strokeWidth: 2, strokeDasharray: '6 4' }}
+        connectionLineStyle={{ stroke: '#2563eb', strokeWidth: 2, strokeDasharray: '6 4' }}
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: 'smoothstep',

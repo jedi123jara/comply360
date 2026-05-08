@@ -125,9 +125,9 @@ export function SalaryChart() {
             <Line
               type="monotone"
               dataKey="neto"
-              stroke="#059669"
+              stroke="#1d4ed8"
               strokeWidth={2.5}
-              dot={{ r: 3, fill: '#059669' }}
+              dot={{ r: 3, fill: '#1d4ed8' }}
               activeDot={{ r: 5 }}
             />
           </LineChart>

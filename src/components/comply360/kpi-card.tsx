@@ -85,7 +85,7 @@ export function KpiCard({
       ? 'var(--crimson-500, #ef4444)'
       : variant === 'amber'
         ? 'var(--amber-500, #f59e0b)'
-        : 'var(--emerald-500, #10b981)'
+        : 'var(--emerald-500, #2563eb)'
 
   return (
     <div className={`c360-kpi${variantClass}`}>
@@ -126,7 +126,7 @@ function DeltaBadge({ value }: { value: number }) {
   const color = isFlat
     ? 'var(--text-tertiary)'
     : isUp
-      ? 'var(--emerald-700, #047857)'
+      ? 'var(--emerald-700, #1e40af)'
       : 'var(--crimson-600, #dc2626)'
   const bg = isFlat
     ? 'rgba(15,23,42,0.04)'

@@ -44,7 +44,7 @@ function CircularProgress({ score, size = 200, strokeWidth = 14 }: { score: numb
     if (s < 50) return { stroke: '#ef4444', glow: 'rgba(239,68,68,0.3)', bg: 'rgba(239,68,68,0.1)' }
     if (s < 70) return { stroke: '#f59e0b', glow: 'rgba(245,158,11,0.3)', bg: 'rgba(245,158,11,0.1)' }
     if (s < 85) return { stroke: '#22c55e', glow: 'rgba(34,197,94,0.3)', bg: 'rgba(34,197,94,0.1)' }
-    return { stroke: '#10b981', glow: 'rgba(16,185,129,0.3)', bg: 'rgba(16,185,129,0.1)' }
+    return { stroke: '#2563eb', glow: 'rgba(16,185,129,0.3)', bg: 'rgba(16,185,129,0.1)' }
   }
 
   const colors = getColor(score)

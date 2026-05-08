@@ -97,7 +97,7 @@ export function ConsentModal({ scope, onAccept, onReject }: ConsentModalProps) {
           <div className="flex items-start gap-3">
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_4px_14px_rgba(4,120,87,0.3)]"
-              style={{ background: 'linear-gradient(135deg, #10b981, #047857)' }}
+              style={{ background: 'linear-gradient(135deg, #2563eb, #1e40af)' }}
             >
               <ShieldCheck className="h-5 w-5" />
             </div>

@@ -20,7 +20,7 @@ export default function RecursosPage() {
       <div
         className="border-b border-gray-100"
         style={{
-          background: 'linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%)',
+          background: 'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)',
         }}
       >
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14 lg:py-20">
@@ -31,7 +31,7 @@ export default function RecursosPage() {
             <div
               className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
               style={{
-                background: 'linear-gradient(165deg, #059669 0%, #047857 55%, #065f46 100%)',
+                background: 'linear-gradient(165deg, #1d4ed8 0%, #1e40af 55%, #1e3a8a 100%)',
               }}
             >
               <Shield className="h-4.5 w-4.5" />
@@ -100,7 +100,7 @@ export default function RecursosPage() {
         <div
           className="mt-16 rounded-2xl p-8 text-center text-white relative overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%)',
+            background: 'linear-gradient(135deg, #172554 0%, #1e40af 50%, #2563eb 100%)',
           }}
         >
           <h3
