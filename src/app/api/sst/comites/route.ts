@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { comiteCreateSchema } from '@/lib/sst/schemas'
 import {
@@ -14,7 +14,7 @@ import {
 // Lista comités de la org. Devuelve el comité activo (VIGENTE) + análisis de
 // composición contra el mínimo legal R.M. 245-2021-TR.
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const estado = searchParams.get('estado')
 
@@ -63,7 +63,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // Crea un comité. Si ya existe uno VIGENTE para la org, devuelve 409.
 // El fin del mandato se calcula como inicio + 2 años si no se envía.
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = comiteCreateSchema.safeParse(body)
   if (!parsed.success) {

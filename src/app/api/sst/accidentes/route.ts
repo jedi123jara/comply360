@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { accidenteCreateSchema } from '@/lib/sst/schemas'
 import { calcularPlazoSat } from '@/lib/sst/sat-deadline'
@@ -13,7 +13,7 @@ import { calcularPlazoSat } from '@/lib/sst/sat-deadline'
 //   tipo           — MORTAL | NO_MORTAL | INCIDENTE_PELIGROSO | ENFERMEDAD_OCUPACIONAL
 //   from, to       — fecha range (ISO)
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const sedeId = searchParams.get('sedeId')
   const estado = searchParams.get('estado')
@@ -68,7 +68,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // POST /api/sst/accidentes — Create accidente
 // El servidor calcula `plazoLegalHoras` según el tipo (D.S. 006-2022-TR).
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = accidenteCreateSchema.safeParse(body)
   if (!parsed.success) {

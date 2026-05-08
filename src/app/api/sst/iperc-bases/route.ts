@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { ipercBaseCreateSchema } from '@/lib/sst/schemas'
 
@@ -11,7 +11,7 @@ import { ipercBaseCreateSchema } from '@/lib/sst/schemas'
 //   sedeId   — filtrar por sede
 //   estado   — BORRADOR | REVISION | VIGENTE | VENCIDO | ARCHIVADO
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const sedeId = searchParams.get('sedeId')
   const estado = searchParams.get('estado')
@@ -37,7 +37,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // El hash inicial se calcula vacío y se actualiza cada vez que se agregan filas.
 // La versión se autoincrementa por sede.
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
   const parsed = ipercBaseCreateSchema.safeParse(body)
   if (!parsed.success) {

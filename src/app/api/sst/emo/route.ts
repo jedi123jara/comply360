@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { emoCreateSchema, detectarCamposMedicosProhibidos } from '@/lib/sst/schemas'
 import { encryptMedical } from '@/lib/sst/medical-vault'
@@ -16,7 +16,7 @@ import { encryptMedical } from '@/lib/sst/medical-vault'
 // IMPORTANTE: NUNCA descifra restricciones en el listado. Solo el detalle
 // individual lo hace, on-demand y con audit log.
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const workerId = searchParams.get('workerId')
   const tipoExamen = searchParams.get('tipoExamen')
@@ -90,7 +90,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 //   3. `consentimientoLey29733` debe ser true (validación Zod).
 //   4. Solo persiste lo estrictamente necesario; jamás guarda diagnóstico.
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json().catch(() => ({}))
 
   // Validación crítica: detectar campos médicos prohibidos antes de cualquier
