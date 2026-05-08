@@ -1,4 +1,5 @@
 import { PERU_LABOR } from '../peru-labor'
+import { money, sumMoney } from '../money'
 
 // =============================================
 // UTILIDADES - Participacion en las Utilidades
@@ -62,34 +63,33 @@ export function calcularUtilidades(input: UtilidadesInput): UtilidadesResult {
   const sectorKey = input.sector.toUpperCase()
   const tasaParticipacion = TASAS_PARTICIPACION[sectorKey] ?? TASAS_PARTICIPACION.OTROS
 
-  // 1. Monto total de participacion
-  const montoTotalParticipacion = round(input.rentaAnualNeta * tasaParticipacion)
+  // 1. Monto total de participacion — FIX #2.A.
+  const montoTotalParticipacion = money(input.rentaAnualNeta).mul(tasaParticipacion).toNumber()
 
   // 2. Distribucion: 50% por dias, 50% por remuneracion
-  const distribucionPorDias = round(montoTotalParticipacion * 0.5)
-  const distribucionPorRemuneracion = round(montoTotalParticipacion * 0.5)
+  const totalM = money(montoTotalParticipacion)
+  const distribucionPorDias = totalM.mul(0.5).toNumber()
+  const distribucionPorRemuneracion = totalM.mul(0.5).toNumber()
 
   // 3. Totales para calculo proporcional
   const totalDiasTodos = input.trabajadores.reduce((sum, t) => sum + t.diasTrabajados, 0)
   const totalRemuneracionTodos = input.trabajadores.reduce((sum, t) => sum + t.remuneracionTotal, 0)
 
-  // 4. Calculo por trabajador
+  // 4. Calculo por trabajador — FIX #2.A
   const detallePorTrabajador: DetalleTrabajadorUtilidades[] = input.trabajadores.map(t => {
-    // Parte por dias: (dias del trabajador / total dias) * 50%
     const porDias = totalDiasTodos > 0
-      ? round((t.diasTrabajados / totalDiasTodos) * distribucionPorDias)
+      ? money(t.diasTrabajados).div(totalDiasTodos).mul(distribucionPorDias).toNumber()
       : 0
 
-    // Parte por remuneracion: (rem del trabajador / total rem) * 50%
     const porRemuneracion = totalRemuneracionTodos > 0
-      ? round((t.remuneracionTotal / totalRemuneracionTodos) * distribucionPorRemuneracion)
+      ? money(t.remuneracionTotal).div(totalRemuneracionTodos).mul(distribucionPorRemuneracion).toNumber()
       : 0
 
-    const total = round(porDias + porRemuneracion)
+    const total = money(porDias).add(porRemuneracion).toNumber()
 
     // Tope: 18 remuneraciones mensuales del trabajador
-    const remuneracionMensual = t.remuneracionTotal / 12
-    const tope = round(remuneracionMensual * PERU_LABOR.UTILIDADES.TOPE_REMUNERACIONES)
+    const remuneracionMensual = money(t.remuneracionTotal).div(12)
+    const tope = remuneracionMensual.mul(PERU_LABOR.UTILIDADES.TOPE_REMUNERACIONES).toNumber()
     const topeAplicado = total > tope
     const totalFinal = topeAplicado ? tope : total
 
@@ -104,11 +104,9 @@ export function calcularUtilidades(input: UtilidadesInput): UtilidadesResult {
     }
   })
 
-  // 5. Total distribuido y remanente
-  const totalDistribuido = round(
-    detallePorTrabajador.reduce((sum, t) => sum + t.totalFinal, 0)
-  )
-  const remanente = round(montoTotalParticipacion - totalDistribuido)
+  // 5. Total distribuido y remanente — FIX #2.A.
+  const totalDistribuido = sumMoney(detallePorTrabajador.map(t => t.totalFinal)).toNumber()
+  const remanente = money(montoTotalParticipacion).sub(totalDistribuido).toNumber()
 
   return {
     tasaParticipacion,
