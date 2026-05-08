@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // GET /api/contracts/bulk/jobs/[id]
 // Devuelve el audit trail de una corrida bulk (estado, contadores, errores).
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   const job = await prisma.bulkContractJob.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
   })
@@ -23,3 +23,4 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
     },
   })
 })
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { verifyContractChain } from '@/lib/contracts/versioning/service'
 
@@ -10,7 +10,7 @@ import { verifyContractChain } from '@/lib/contracts/versioning/service'
 // Si alguien manipuló una fila de contract_versions en BD, este endpoint
 // lo detecta y retorna `valid:false` con la versión donde se rompió.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
     select: { id: true },
@@ -30,3 +30,4 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
     },
   })
 })
+

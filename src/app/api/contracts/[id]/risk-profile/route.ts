@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { computeContractRiskProfile } from '@/lib/contracts/risk/service'
 
@@ -16,7 +16,7 @@ import { computeContractRiskProfile } from '@/lib/contracts/risk/service'
 //   - UI del detalle del contrato (badge en header)
 //   - Reportes ejecutivos
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   try {
     const profile = await computeContractRiskProfile(params.id, ctx.orgId)
     return NextResponse.json({ data: profile })
@@ -28,3 +28,4 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
     return NextResponse.json({ error: 'Error computando risk-profile' }, { status: 500 })
   }
 })
+

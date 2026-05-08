@@ -6,7 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams, withRoleParams } from '@/lib/api-auth'
+import { withRoleParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { planHasFeature } from '@/lib/plan-gate'
 import {
@@ -59,7 +60,7 @@ async function assertPlanAccess(orgId: string): Promise<{ ok: true } | { ok: fal
 // =============================================
 // GET /api/org-templates/[id]
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (
   _req: NextRequest,
   ctx: AuthContext,
   params,
@@ -128,7 +129,7 @@ export const GET = withAuthParams<{ id: string }>(async (
 // =============================================
 // PATCH /api/org-templates/[id]
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(async (
+export const PATCH = withPlanGateParams<{ id: string }>('contratos', async (
   req: NextRequest,
   ctx: AuthContext,
   params,
@@ -356,3 +357,4 @@ function jsonStringRecord(value: unknown): Record<string, string> {
     Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
   )
 }
+

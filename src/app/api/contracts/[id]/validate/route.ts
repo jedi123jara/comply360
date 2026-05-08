@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   runValidationPipeline,
@@ -11,7 +11,7 @@ import {
 // POST /api/contracts/[id]/validate
 // Corre el motor de validación contra el contrato y persiste resultados.
 // =============================================
-export const POST = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const POST = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   try {
     const result = await runValidationPipeline(params.id, ctx.orgId, {
       triggeredBy: ctx.userId,
@@ -34,7 +34,7 @@ export const POST = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx
 // GET /api/contracts/[id]/validate
 // Devuelve la última corrida persistida (sin re-ejecutar).
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   try {
     const validations = await getContractValidations(params.id, ctx.orgId)
     const failed = validations.filter((v: typeof validations[number]) => !v.passed)
@@ -58,3 +58,4 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
     )
   }
 })
+
