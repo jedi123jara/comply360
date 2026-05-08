@@ -554,9 +554,9 @@ function HubSubItem({
             <span
               className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
               style={{
-                background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-                color: 'var(--emerald-800)',
-                border: '0.5px solid rgba(16,185,129,0.35)',
+                background: 'linear-gradient(135deg, var(--gold-100), var(--gold-200))',
+                color: 'var(--gold-700)',
+                border: '0.5px solid rgba(180, 83, 9, 0.35)',
                 lineHeight: 1,
               }}
             >
