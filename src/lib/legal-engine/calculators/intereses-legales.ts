@@ -4,6 +4,8 @@
 // por adeudos de carácter laboral
 // =============================================
 
+import { money } from '../money'
+
 // =============================================
 // Types
 // =============================================
@@ -62,10 +64,11 @@ export function calcularInteresesLegales(
   const factorDiario = tasaAnual / 100 / 360
   const tasaDiaria = Math.round(factorDiario * 10000000) / 10000000
 
-  // 4. Interés acumulado con interés simple
+  // 4. Interés acumulado con interés simple — FIX #2.A.
   // Interés = capital × (tasaAnual/100) × (días/360)
-  const interesAcumulado = Math.round(capital * factorDiario * diasCalculados * 100) / 100
-  const total = Math.round((capital + interesAcumulado) * 100) / 100
+  const capitalM = money(capital)
+  const interesAcumulado = capitalM.mul(factorDiario).mul(diasCalculados).toNumber()
+  const total = capitalM.add(interesAcumulado).toNumber()
 
   // 5. Construir fórmula descriptiva
   const tipoLabel = tipoInteres === 'laboral'

@@ -2,6 +2,7 @@ import { HorasExtrasInput, HorasExtrasResult } from '../types'
 import {
   PERU_LABOR,
 } from '../peru-labor'
+import { money, sumMoney } from '../money'
 
 // =============================================
 // HORAS EXTRAS (Sobretiempo)
@@ -11,13 +12,15 @@ import {
 export function calcularHorasExtras(input: HorasExtrasInput): HorasExtrasResult {
   const config = PERU_LABOR.HORAS_EXTRAS
 
-  // 1. Valor hora base
-  const valorHora = input.sueldoBruto / config.HORAS_MENSUALES
+  // 1. Valor hora base — FIX #2.A aritmética decimal precisa.
+  const sueldoM = money(input.sueldoBruto)
+  const valorHoraM = sueldoM.div(config.HORAS_MENSUALES)
+  const valorHora = valorHoraM.toNumber()
 
   // 2. Valores con sobretasa
-  const valorHoraExtra25 = Math.round(valorHora * (1 + config.SOBRETASA_PRIMERAS_2H) * 100) / 100
-  const valorHoraExtra35 = Math.round(valorHora * (1 + config.SOBRETASA_SIGUIENTES) * 100) / 100
-  const valorHoraDomingo = Math.round(valorHora * (1 + config.SOBRETASA_DOMINGO) * 100) / 100
+  const valorHoraExtra25 = valorHoraM.mul(1 + config.SOBRETASA_PRIMERAS_2H).toNumber()
+  const valorHoraExtra35 = valorHoraM.mul(1 + config.SOBRETASA_SIGUIENTES).toNumber()
+  const valorHoraDomingo = valorHoraM.mul(1 + config.SOBRETASA_DOMINGO).toNumber()
 
   // 3. Calcular horas extras semanales (sobre la jornada máxima de 48h)
   const horasExtrasSemanales = Math.max(input.horasSemanales - config.JORNADA_MAXIMA_SEMANAL, 0)
@@ -57,24 +60,24 @@ export function calcularHorasExtras(input: HorasExtrasInput): HorasExtrasResult 
   // 5. Escalar al total de meses acumulados (aprox 4.33 semanas/mes)
   const semanasTotal = input.mesesAcumulados * 4.33
 
-  const cantidadHoras25 = Math.round(horas25Semanales * semanasTotal * 100) / 100
-  const cantidadHoras35 = Math.round(horas35Semanales * semanasTotal * 100) / 100
+  // FIX #2.A aritmética decimal precisa.
+  const cantidadHoras25 = money(horas25Semanales).mul(semanasTotal).toNumber()
+  const cantidadHoras35 = money(horas35Semanales).mul(semanasTotal).toNumber()
 
-  const montoHoras25 = Math.round(cantidadHoras25 * valorHoraExtra25 * 100) / 100
-  const montoHoras35 = Math.round(cantidadHoras35 * valorHoraExtra35 * 100) / 100
+  const montoHoras25 = money(cantidadHoras25).mul(valorHoraExtra25).toNumber()
+  const montoHoras35 = money(cantidadHoras35).mul(valorHoraExtra35).toNumber()
 
   // 6. Horas en domingo (si aplica)
   let cantidadHorasDomingo = 0
   let montoHorasDomingo = 0
   if (input.incluyeDomingos && input.horasDomingo > 0) {
-    // horasDomingo = horas trabajadas en domingo por semana
-    cantidadHorasDomingo = Math.round(input.horasDomingo * semanasTotal * 100) / 100
-    montoHorasDomingo = Math.round(cantidadHorasDomingo * valorHoraDomingo * 100) / 100
+    cantidadHorasDomingo = money(input.horasDomingo).mul(semanasTotal).toNumber()
+    montoHorasDomingo = money(cantidadHorasDomingo).mul(valorHoraDomingo).toNumber()
   }
 
   // 7. Totales
-  const totalHoras = Math.round((cantidadHoras25 + cantidadHoras35 + cantidadHorasDomingo) * 100) / 100
-  const montoTotal = Math.round((montoHoras25 + montoHoras35 + montoHorasDomingo) * 100) / 100
+  const totalHoras = sumMoney([cantidadHoras25, cantidadHoras35, cantidadHorasDomingo]).toNumber()
+  const montoTotal = sumMoney([montoHoras25, montoHoras35, montoHorasDomingo]).toNumber()
 
   // 8. Fórmula descriptiva
   const formula =
