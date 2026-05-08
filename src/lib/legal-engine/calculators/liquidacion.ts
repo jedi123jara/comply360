@@ -11,6 +11,7 @@ import {
   calcularPeriodoLaboral,
   calcularRemuneracionComputable,
 } from '../peru-labor'
+import { money, sumMoney } from '../money'
 
 export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult {
   const periodo = calcularPeriodoLaboral(input.fechaIngreso, input.fechaCese)
@@ -51,10 +52,12 @@ export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult 
     bonificacionEspecial: calcularBonificacionEspecial(remComputable, input),
   }
 
-  const totalBruto = Object.values(breakdown).reduce(
-    (sum, item) => sum + (item?.amount ?? 0),
-    0
-  )
+  // FIX #2.A: suma con Money para evitar acumulación de errores de coma
+  // flotante (~S/0.05 por cada operación intermedia, hasta ~S/0.30 en una
+  // liquidación full con 7 componentes).
+  const totalBruto = sumMoney(
+    Object.values(breakdown).map((item) => item?.amount ?? 0),
+  ).toNumber()
 
   const warnings = generarAlertas(input, periodo)
   const legalBasis = generarBasesTeoricasLiquidacion()

@@ -5,6 +5,7 @@ import {
   calcularRemuneracionComputable,
   getDiasVacacionesPorRegimen,
 } from '../peru-labor'
+import { money } from '../money'
 
 // =============================================
 // VACACIONES - Truncas, No Gozadas e Indemnización
@@ -46,9 +47,11 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
       (mesesFraccion * diasPorAnoRegimen) / 12 + (diasFraccion * diasPorAnoRegimen) / 360
     )
 
-    vacacionesTruncas = (remComputable / 12) * mesesFraccion +
-                        (remComputable / 360) * diasFraccion
-    vacacionesTruncas = Math.round(vacacionesTruncas * 100) / 100
+    // FIX #2.A: aritmética decimal precisa.
+    const remM = money(remComputable)
+    vacacionesTruncas = remM.div(12).mul(mesesFraccion)
+      .add(remM.div(360).mul(diasFraccion))
+      .toNumber()
   }
 
   // =============================================
@@ -67,8 +70,9 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
 
   // Pago por vacaciones no gozadas: (rem / diasPorAno) × días no gozados.
   // Si el régimen no tiene vacaciones (formativa), el monto es 0.
+  // FIX #2.A: aritmética decimal precisa.
   const vacacionesNoGozadas = diasPorAnoRegimen > 0
-    ? Math.round((remComputable / diasPorAnoRegimen) * diasNoGozados * 100) / 100
+    ? money(remComputable).div(diasPorAnoRegimen).mul(diasNoGozados).toNumber()
     : 0
 
   // =============================================
@@ -76,16 +80,16 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
   // Por cada periodo anual completo no gozado:
   // 1 remuneración adicional (Art. 23 D.Leg. 713)
   // =============================================
-  const indemnizacionVacacional = Math.round(
-    remComputable * PERU_LABOR.VACACIONES.INDEMNIZACION_NO_GOZADAS * periodosNoGozados * 100
-  ) / 100
+  // FIX #2.A: aritmética decimal precisa.
+  const indemnizacionVacacional = money(remComputable)
+    .mul(PERU_LABOR.VACACIONES.INDEMNIZACION_NO_GOZADAS)
+    .mul(periodosNoGozados)
+    .toNumber()
 
   // =============================================
-  // 4. Total
+  // 4. Total — FIX #2.A: suma con Money para evitar acumulación de errores.
   // =============================================
-  const total = Math.round(
-    (vacacionesTruncas + vacacionesNoGozadas + indemnizacionVacacional) * 100
-  ) / 100
+  const total = money(vacacionesTruncas).add(vacacionesNoGozadas).add(indemnizacionVacacional).toNumber()
 
   // 5. Fórmula descriptiva
   const partes: string[] = []

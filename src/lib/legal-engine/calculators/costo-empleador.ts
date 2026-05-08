@@ -67,13 +67,27 @@ export function calcularCostoEmpleador(input: CostoEmpleadorInput): CostoEmplead
     : 0
   const remuneracionTotal = sueldoBruto + asigFam
 
-  // ─── Determinar beneficios según régimen ───
+  // ─── Determinar beneficios según régimen (FIX #2.C — 12 regímenes) ───
+  // Antes: solo cubría MYPE_MICRO/PEQUENA/AGRARIO. Resto caía a GENERAL,
+  // sobreestimando costos para CAS pre-2026 (sin CTS/grati), MODALIDAD_FORMATIVA
+  // (sin beneficios), DOMESTICO (15 días vacaciones, 50% grati), TEXTIL (general).
+  // CONSTRUCCION_CIVIL tiene cálculo especial (jornales + BUC + dominical) que
+  // este calculador NO modela en detalle — devolvemos resultado parcial con
+  // legalWarning para que el caller use la calculadora especializada.
   const isMypeMicro = regimenLaboral === 'MYPE_MICRO'
   const isMypePequena = regimenLaboral === 'MYPE_PEQUENA'
   const isAgrario = regimenLaboral === 'AGRARIO'
+  const isCas = regimenLaboral === 'CAS'  // post-2026 con CTS y grati (Ley 2026)
+  const isFormativa = regimenLaboral === 'MODALIDAD_FORMATIVA'
+  const isDomestico = regimenLaboral === 'DOMESTICO'
+  const isConstruccion = regimenLaboral === 'CONSTRUCCION_CIVIL'
+  // PESQUERO, MINERO, TEXTIL_EXPORTACION, TELETRABAJO → tratamiento GENERAL
+  // (D.Leg. 728). Pesquero tiene CBSSP especial pero el costo empleador
+  // base es similar; minero tiene jornada acumulativa pero costo igual.
 
-  // EsSalud: 9% en general, 4.5% en agrario
-  const essaludRate = isAgrario ? 0.045 : ESSALUD_RATE
+  // EsSalud: 9% en general, 4.5% en agrario, 0% en formativa (sólo seguro
+  // contra accidentes ~0.75%)
+  const essaludRate = isAgrario ? 0.045 : isFormativa ? 0 : ESSALUD_RATE
   const essalud = round(remuneracionTotal * essaludRate)
 
   // SCTR: solo si actividad de riesgo
@@ -84,40 +98,53 @@ export function calcularCostoEmpleador(input: CostoEmpleadorInput): CostoEmplead
 
   // ─── Provisiones mensuales ───
 
-  // CTS: 1 sueldo cada 6 meses = 1/6 mensual de (rem + 1/6 última gratificación)
-  // MYPE Micro: SIN CTS / MYPE Pequeña: 50% CTS / Agrario: incluida en jornal
+  // CTS:
+  //   - MYPE Micro / MODALIDAD_FORMATIVA: SIN CTS
+  //   - MYPE Pequeña: 50% CTS
+  //   - AGRARIO: incluida en jornal (9.72%)
+  //   - DOMESTICO: 50% CTS (Ley 27986)
+  //   - CAS post-2026: CTS completa
+  //   - Resto (GENERAL/PESQUERO/MINERO/TEXTIL/TELETRABAJO): CTS completa
   let provisionCTS = 0
-  if (isMypeMicro || isAgrario) {
-    provisionCTS = 0 // Sin CTS (agrario lo incluye en remuneración diaria)
-  } else if (isMypePequena) {
+  if (isMypeMicro || isAgrario || isFormativa) {
+    provisionCTS = 0
+  } else if (isMypePequena || isDomestico) {
     provisionCTS = round((remuneracionTotal / 12) * 0.5) // 50%
   } else {
-    // CTS completa = (rem + 1/6 gratif) / 12
     const gratifMensual = remuneracionTotal / 6
     const remComputable = remuneracionTotal + (gratifMensual / 6)
     provisionCTS = round(remComputable / 12)
   }
 
-  // Gratificación: 1 sueldo en julio + 1 en diciembre = 2/12 mensual
-  // MYPE Micro: SIN gratificación / MYPE Pequeña: 50%
+  // Gratificación:
+  //   - MYPE Micro / MODALIDAD_FORMATIVA: SIN gratificación
+  //   - MYPE Pequeña: 50%
+  //   - AGRARIO: incluida en jornal (16.66%)
+  //   - DOMESTICO: 50% (Ley 27986)
+  //   - CAS post-2026: gratificación completa
+  //   - Resto: gratificación completa
   let provisionGratificacion = 0
-  if (isMypeMicro) {
+  if (isMypeMicro || isFormativa) {
     provisionGratificacion = 0
-  } else if (isMypePequena) {
-    provisionGratificacion = round((remuneracionTotal / 6) * 0.5) // 50%
+  } else if (isMypePequena || isDomestico) {
+    provisionGratificacion = round((remuneracionTotal / 6) * 0.5)
   } else if (isAgrario) {
-    provisionGratificacion = 0 // Incluida en remuneración diaria (16.66%)
+    provisionGratificacion = 0
   } else {
-    provisionGratificacion = round(remuneracionTotal / 6) // 2 gratificaciones / 12 meses
+    provisionGratificacion = round(remuneracionTotal / 6)
   }
 
   // Bonificación extraordinaria: 9% sobre gratificación (Ley 30334)
   const provisionBonifExtraordinaria = round(provisionGratificacion * 0.09)
 
-  // Vacaciones: 30 días / 12 = 1/12 de remuneración mensual
-  // MYPE: 15 días / 12
+  // Vacaciones:
+  //   - MYPE Micro/Pequeña/DOMESTICO: 15 días (Ley 32353, Ley 27986)
+  //   - MODALIDAD_FORMATIVA: SIN vacaciones legales (Ley 28518)
+  //   - Resto: 30 días (D.Leg. 713)
   let provisionVacaciones = 0
-  if (isMypeMicro || isMypePequena) {
+  if (isFormativa) {
+    provisionVacaciones = 0
+  } else if (isMypeMicro || isMypePequena || isDomestico) {
     provisionVacaciones = round(remuneracionTotal * 15 / 360) // 15 días
   } else {
     provisionVacaciones = round(remuneracionTotal / 12) // 30 días
@@ -176,6 +203,12 @@ export function calcularCostoEmpleador(input: CostoEmpleadorInput): CostoEmplead
     ...(essaludVida ? ['D.Leg. 688 (Seguro Vida Ley)'] : []),
     ...(isMypeMicro || isMypePequena ? ['Ley 32353 (Regimen MYPE)'] : []),
     ...(isAgrario ? ['Ley 31110 (Regimen Agrario)'] : []),
+    ...(isCas ? ['D.Leg. 1057 + Ley 2026 (CAS extensión CTS/grati)'] : []),
+    ...(isFormativa ? ['Ley 28518 (Modalidades Formativas — sin beneficios sociales)'] : []),
+    ...(isDomestico ? ['Ley 27986 (Trabajadoras del Hogar)'] : []),
+    ...(isConstruccion
+      ? ['Acuerdo CAPECO-FTCCP 2025-2026 (NOTA: usar calculadora especializada para construcción civil)']
+      : []),
   ]
 
   return {

@@ -4,6 +4,7 @@ import {
   calcularPeriodoLaboral,
   calcularRemuneracionComputable,
 } from '../peru-labor'
+import { money } from '../money'
 
 // =============================================
 // CTS - Compensación por Tiempo de Servicios
@@ -61,13 +62,14 @@ export function calcularCTS(input: CTSInput): CTSResult {
   const mesesComputables = Math.min(periodo.totalMeses, PERU_LABOR.CTS.MESES_POR_PERIODO)
   const diasComputables = periodo.dias
 
-  // 3. Cálculo de CTS
+  // 3. Cálculo de CTS — FIX #2.A usa Money para precisión decimal exacta.
   // CTS = (remComp / 12) × meses + (remComp / 360) × días
-  const ctsMensual = remuneracionComputable / 12
-  const ctsDiaria = remuneracionComputable / 360
-  const ctsTotal = Math.round(
-    (ctsMensual * mesesComputables + ctsDiaria * diasComputables) * 100
-  ) / 100
+  const remM = money(remuneracionComputable)
+  const ctsMensual = remM.div(12).toNumber()
+  const ctsDiaria = remM.div(360).toNumber()
+  const ctsTotal = remM.div(12).mul(mesesComputables)
+    .add(remM.div(360).mul(diasComputables))
+    .toNumber()
 
   // 4. Construir fórmula descriptiva
   const formula =

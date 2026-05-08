@@ -3,6 +3,7 @@ import {
   PERU_LABOR,
   calcularRemuneracionComputable,
 } from '../peru-labor'
+import { money } from '../money'
 
 // =============================================
 // GRATIFICACIÓN - Fiestas Patrias / Navidad
@@ -19,26 +20,19 @@ export function calcularGratificacion(input: GratificacionInput): GratificacionR
   // 2. Meses trabajados en el semestre (máximo 6)
   const mesesTrabajados = Math.min(Math.max(input.mesesTrabajados, 0), 6)
 
-  // 3. Gratificación bruta
-  // Si trabajó los 6 meses completos → 1 remuneración íntegra
-  // Si es trunca → (remComp / 6) × mesesTrabajados
-  let gratificacionBruta: number
-  if (mesesTrabajados >= 6) {
-    gratificacionBruta = remComputable
-  } else {
-    gratificacionBruta = (remComputable / 6) * mesesTrabajados
-  }
-  gratificacionBruta = Math.round(gratificacionBruta * 100) / 100
+  // 3. Gratificación bruta — FIX #2.A aritmética decimal precisa.
+  const remM = money(remComputable)
+  const gratificacionBruta = mesesTrabajados >= 6
+    ? remM.toNumber()
+    : remM.div(6).mul(mesesTrabajados).toNumber()
 
   // 4. Bonificación extraordinaria del 9% (aporte EsSalud - Ley 30334)
-  const bonificacionExtraordinaria = Math.round(
-    gratificacionBruta * PERU_LABOR.GRATIFICACION.BONIFICACION_EXTRAORDINARIA * 100
-  ) / 100
+  const bonificacionExtraordinaria = money(gratificacionBruta)
+    .mul(PERU_LABOR.GRATIFICACION.BONIFICACION_EXTRAORDINARIA)
+    .toNumber()
 
   // 5. Total neto (exonerado de renta por Ley 30334)
-  const totalNeto = Math.round(
-    (gratificacionBruta + bonificacionExtraordinaria) * 100
-  ) / 100
+  const totalNeto = money(gratificacionBruta).add(bonificacionExtraordinaria).toNumber()
 
   // 6. Fórmula descriptiva
   const esTrunca = mesesTrabajados < 6
