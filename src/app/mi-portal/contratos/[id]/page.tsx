@@ -22,6 +22,7 @@ import { toast } from '@/components/ui/sonner-toaster'
 import { track } from '@/lib/analytics'
 import {
   tryBiometricCeremony,
+  tryStrongBiometricCeremony,
   hasBiometricHardware,
   type BiometricCeremonyResult,
 } from '@/lib/webauthn'
@@ -121,14 +122,36 @@ export default function ContratoDetailPage() {
 
     track('biometric_ceremony_started', { contractId: contract.id })
 
-    // Step 1: biometric ceremony (con challenge server-side anti-replay)
+    // Step 1: biometric ceremony.
+    // FIX #4.J — preferimos `tryStrongBiometricCeremony` (server-side challenge
+    // y verify con @simplewebauthn/server). Si el user aún no enroló su passkey
+    // (`no-credentials`) o la plataforma no soporta WebAuthn, caemos al flujo
+    // legacy `tryBiometricCeremony` (challenge client-side, suficiente para
+    // SIMPLE y BIOMETRIC sin replay-protection fuerte).
     setSigningStep('ceremony')
     let ceremony: BiometricCeremonyResult
     try {
-      ceremony = await tryBiometricCeremony({
+      const strong = await tryStrongBiometricCeremony({
         action: 'sign_contract',
         entityId: contract.id,
       })
+      if (strong.verified) {
+        ceremony = {
+          verified: true,
+          credentialId: strong.credentialId,
+          challenge: strong.challenge,
+          challengeToken: strong.challengeToken,
+          userAgent: strong.userAgent,
+        }
+      } else if (strong.reason === 'user-cancelled' || strong.reason === 'timeout') {
+        ceremony = { verified: false, reason: strong.reason, userAgent: strong.userAgent }
+      } else {
+        // no-credentials / no-platform-auth / not-supported / error → legacy
+        ceremony = await tryBiometricCeremony({
+          action: 'sign_contract',
+          entityId: contract.id,
+        })
+      }
     } catch {
       ceremony = { verified: false, reason: 'error' }
     }

@@ -17,7 +17,7 @@ import {
   X,
   Eye,
 } from 'lucide-react'
-import { tryBiometricCeremony as runCeremony, hasBiometricHardware } from '@/lib/webauthn'
+import { tryBiometricCeremony as runCeremony, tryStrongBiometricCeremony, hasBiometricHardware } from '@/lib/webauthn'
 
 /**
  * /mi-portal/boletas/[id] — Detalle de boleta + firma biométrica (Sprint 1 Fase 1).
@@ -119,12 +119,34 @@ export default function BoletaDetailPage() {
       let ceremonyPayload: any = {}
 
       if (hasBiometric) {
-        // Step 1: biometric ceremony (WebAuthn) con challenge server-side
-        const ceremony = await runCeremony({
+        // FIX #4.J — preferimos strong ceremony con server challenge + verify.
+        // Fallback al legacy `runCeremony` si el user no tiene credential
+        // registrado todavía (no-credentials) o la plataforma rechaza WebAuthn
+        // strong.
+        const strong = await tryStrongBiometricCeremony({
           action: 'sign_payslip',
           entityId: id,
         })
-        
+
+        let ceremony: Awaited<ReturnType<typeof runCeremony>>
+        if (strong.verified) {
+          ceremony = {
+            verified: true,
+            credentialId: strong.credentialId,
+            challenge: strong.challenge,
+            challengeToken: strong.challengeToken,
+            userAgent: strong.userAgent,
+          }
+        } else if (strong.reason === 'user-cancelled' || strong.reason === 'timeout') {
+          setSigningState('idle')
+          return
+        } else {
+          ceremony = await runCeremony({
+            action: 'sign_payslip',
+            entityId: id,
+          })
+        }
+
         if (!ceremony.verified) {
           if (ceremony.reason === 'user-cancelled') {
             setSigningState('idle')
@@ -134,7 +156,7 @@ export default function BoletaDetailPage() {
           setSigningState('error')
           return
         }
-        
+
         signatureLevel = 'BIOMETRIC'
         ceremonyPayload = {
           userAgent: ceremony.userAgent ?? navigator.userAgent,
