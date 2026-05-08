@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { comiteUpdateSchema } from '@/lib/sst/schemas'
 import { analizarComite, diasRestantesMandato } from '@/lib/sst/comite-rules'
@@ -8,7 +8,7 @@ import { analizarComite, diasRestantesMandato } from '@/lib/sst/comite-rules'
 // =============================================
 // GET /api/sst/comites/[id] — detalle con miembros + análisis
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo',
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const comite = await prisma.comiteSST.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -54,7 +54,7 @@ export const GET = withAuthParams<{ id: string }>(
 // PATCH /api/sst/comites/[id] — Cambiar estado, actualizar libro de actas,
 // extender mandato.
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = comiteUpdateSchema.safeParse(body)

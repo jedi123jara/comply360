@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { visitaUpdateSchema } from '@/lib/sst/schemas'
 
@@ -8,7 +8,7 @@ import { visitaUpdateSchema } from '@/lib/sst/schemas'
 // GET /api/sst/visitas/[id]
 // Detalle con hallazgos + colaborador + sede.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo',
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const visita = await prisma.visitaFieldAudit.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -68,7 +68,7 @@ export const GET = withAuthParams<{ id: string }>(
 //   - Si setea fechaInicioCampo → estado = EN_CAMPO
 //   - Si setea payloadOfflineJson → estado = PENDIENTE_INGESTA
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = visitaUpdateSchema.safeParse(body)

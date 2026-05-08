@@ -45,9 +45,10 @@ const AUTH_WRAPPERS = [
   'withSuperAdminParams',
   'withWorkerAuth',
   'withWorkerAuthParams',
-  // FIX #3.A: withPlanGate es un wrapper auth válido — por dentro hace
-  // withAuth + chequeo de feature plan.
+  // FIX #3.A: withPlanGate y withPlanGateParams son wrappers auth válidos —
+  // por dentro hacen withAuth/withAuthParams + chequeo de feature plan.
   'withPlanGate',
+  'withPlanGateParams',
 ]
 
 /**

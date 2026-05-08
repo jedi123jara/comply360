@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // GET /api/sst/iperc-bases/[id] — Detalle con filas
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo',
   async (_req: NextRequest, ctx: AuthContext, { id }) => {
     const base = await prisma.iPERCBase.findFirst({
       where: { id, orgId: ctx.orgId },
@@ -52,7 +52,7 @@ const patchSchema = z.object({
   fechaAprobacion: z.string().datetime({ offset: true }).optional().nullable(),
 })
 
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
     const parsed = patchSchema.safeParse(body)

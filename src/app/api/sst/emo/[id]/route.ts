@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { emoUpdateSchema, detectarCamposMedicosProhibidos } from '@/lib/sst/schemas'
 import { encryptMedical, decryptMedical } from '@/lib/sst/medical-vault'
@@ -13,7 +13,7 @@ import { encryptMedical, decryptMedical } from '@/lib/sst/medical-vault'
 // y registra un audit log con el userId que accedió. Esto permite trazabilidad
 // completa de quién leyó qué dato médico (Art. 41 Ley 29733).
 // =============================================
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const url = new URL(req.url)
     const descifrar = url.searchParams.get('descifrar') === '1'
@@ -83,7 +83,7 @@ export const GET = withAuthParams<{ id: string }>(
 // Permite actualizar aptitud, restricciones (re-cifra), próximo examen,
 // certificadoUrl. Detecta campos médicos prohibidos.
 // =============================================
-export const PATCH = withAuthParams<{ id: string }>(
+export const PATCH = withPlanGateParams<{ id: string }>('sst_completo',
   async (req: NextRequest, ctx: AuthContext, { id }) => {
     const body = await req.json().catch(() => ({}))
 
