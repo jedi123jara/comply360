@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
 
@@ -12,7 +12,7 @@ import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
 //  3. Recalculates legajoScore for the worker
 // ==============================================
 
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('contratos', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const { id: contractId } = params
     const orgId = ctx.orgId
@@ -97,7 +97,7 @@ export const POST = withAuthParams<{ id: string }>(
 
 
 // GET — list workers already linked to this contract
-export const GET = withAuthParams<{ id: string }>(
+export const GET = withPlanGateParams<{ id: string }>('contratos', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const { id: contractId } = params
     const orgId = ctx.orgId
@@ -122,3 +122,4 @@ export const GET = withAuthParams<{ id: string }>(
     return NextResponse.json({ data: links.map(l => ({ ...l.worker, linkedAt: l.assignedAt })) })
   }
 )
+

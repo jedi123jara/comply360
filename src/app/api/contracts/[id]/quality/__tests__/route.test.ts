@@ -28,6 +28,9 @@ const {
       contractValidation: {
         findMany: vi.fn(),
       },
+      organization: {
+        findUnique: vi.fn(),
+      },
     },
     mockResolveContractAnnexCoverage: vi.fn(),
     mockRunContractQualityGate: vi.fn(),
@@ -78,6 +81,10 @@ function makeRequest(): NextRequest {
 describe('POST /api/contracts/[id]/quality', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockPrisma.organization.findUnique.mockResolvedValue({
+      plan: 'PRO',
+      planExpiresAt: null,
+    })
     mockPrisma.contract.findFirst.mockResolvedValue({
       id: 'contract-1',
       title: 'Contrato premium',

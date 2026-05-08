@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { Prisma } from '@/generated/prisma/client'
@@ -27,7 +27,7 @@ const InsertSchema = z.object({
 // El PATCH automático del contrato dispara las cadenas de validación y
 // versionado (chunks 1 y 3).
 // =============================================
-export const POST = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
+export const POST = withPlanGateParams<{ id: string }>('contratos', async (req: NextRequest, ctx: AuthContext, params) => {
   const body = await req.json().catch(() => null)
   const parsed = InsertSchema.safeParse(body)
   if (!parsed.success) {
@@ -159,7 +159,7 @@ export const POST = withAuthParams<{ id: string }>(async (req: NextRequest, ctx:
 // Quita la cláusula del array `_selectedClauses` (NO modifica contentHtml
 // para evitar destruir contenido editado a mano por el usuario).
 // =============================================
-export const DELETE = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
+export const DELETE = withPlanGateParams<{ id: string }>('contratos', async (req: NextRequest, ctx: AuthContext, params) => {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   if (!code) {
@@ -199,3 +199,4 @@ export const DELETE = withAuthParams<{ id: string }>(async (req: NextRequest, ct
 
   return NextResponse.json({ data: { selectedClauses: filtered } })
 })
+

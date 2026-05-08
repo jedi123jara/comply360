@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { z } from 'zod'
@@ -14,7 +14,7 @@ const AckSchema = z.object({
 // Permite acknowledgear un WARNING (BLOCKER NO se puede ackear — requiere
 // editar el contrato para que la regla pase).
 // =============================================
-export const PATCH = withAuthParams<{ id: string; vid: string }>(
+export const PATCH = withPlanGateParams<{ id: string; vid: string }>('contratos', 
   async (req: NextRequest, ctx: AuthContext, params) => {
     const body = await req.json().catch(() => null)
     const parsed = AckSchema.safeParse(body)
@@ -76,3 +76,4 @@ export const PATCH = withAuthParams<{ id: string; vid: string }>(
     return NextResponse.json({ data: updated })
   },
 )
+

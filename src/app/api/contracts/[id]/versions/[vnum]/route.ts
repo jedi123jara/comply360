@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
@@ -8,7 +8,7 @@ import type { AuthContext } from '@/lib/auth'
 // Devuelve una versión específica con contentHtml/contentJson/formData
 // completos para UI de revisión.
 // =============================================
-export const GET = withAuthParams<{ id: string; vnum: string }>(
+export const GET = withPlanGateParams<{ id: string; vnum: string }>('contratos', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const versionNumber = parseInt(params.vnum, 10)
     if (Number.isNaN(versionNumber) || versionNumber < 1) {
@@ -38,3 +38,4 @@ export const GET = withAuthParams<{ id: string; vnum: string }>(
     })
   },
 )
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { listContractVersions } from '@/lib/contracts/versioning/service'
 
@@ -8,7 +8,7 @@ import { listContractVersions } from '@/lib/contracts/versioning/service'
 // GET /api/contracts/[id]/versions
 // Lista todas las versiones del contrato con metadata + hashes.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (_req: NextRequest, ctx: AuthContext, params) => {
   // Asegurar que el contrato pertenece a la org
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
@@ -36,3 +36,4 @@ export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, ctx:
     })),
   })
 })
+

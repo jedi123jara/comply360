@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import {
@@ -14,7 +14,7 @@ import {
 } from '@/lib/contracts/quality-gate'
 import { runValidationPipeline } from '@/lib/contracts/validation/engine'
 
-export const POST = withAuthParams<{ id: string }>(
+export const POST = withPlanGateParams<{ id: string }>('contratos', 
   async (_req: NextRequest, ctx: AuthContext, params) => {
     const contract = await prisma.contract.findFirst({
       where: { id: params.id, orgId: ctx.orgId },
@@ -98,3 +98,4 @@ export const POST = withAuthParams<{ id: string }>(
     })
   },
 )
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { ContractRenderError, renderContractDocxBuffer } from '@/lib/contracts/rendering'
@@ -26,7 +26,7 @@ import { runValidationPipeline } from '@/lib/contracts/validation/engine'
 // la app debería usar /api/org-templates/:id/generate (existing) — este
 // endpoint es el "default" cuando el contrato no tiene plantilla asociada.
 // =============================================
-export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
+export const GET = withPlanGateParams<{ id: string }>('contratos', async (req: NextRequest, ctx: AuthContext, params) => {
   const contract = await prisma.contract.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
     select: {
@@ -172,3 +172,4 @@ function sanitizeFileName(name: string): string {
     .trim()
     .slice(0, 200)
 }
+
