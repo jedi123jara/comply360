@@ -1212,3 +1212,124 @@ body.c360-canvas {
 [class*="rounded-full"][class*="bg-crimson"][class*="text-white"] {
   color: #ffffff;
 }
+
+/* =============================================================================
+ *  VAULT PRO DARK MODE — UNIVERSAL ADAPTER
+ *
+ *  Reemplazos automáticos para componentes que usan utility classes
+ *  hardcoded (`bg-white`, `text-slate-900`, `border-gray-200`, etc.).
+ *  Sin esto, en dark mode esos componentes se verían blancos sobre fondo
+ *  oscuro. Esto los mapea a tokens semánticos Vault Pro.
+ *
+ *  Migrar componente-por-componente a tokens es lo correcto a largo plazo,
+ *  pero esta capa permite ver Vault Pro funcional en TODO el SaaS sin
+ *  reescribir 100s de archivos.
+ * =============================================================================
+ */
+[data-theme="dark"] .bg-white {
+  background-color: var(--bg-2);
+}
+[data-theme="dark"] .bg-slate-50,
+[data-theme="dark"] .bg-gray-50,
+[data-theme="dark"] .bg-neutral-50 {
+  background-color: var(--bg-1);
+}
+[data-theme="dark"] .bg-slate-100,
+[data-theme="dark"] .bg-gray-100,
+[data-theme="dark"] .bg-neutral-100 {
+  background-color: var(--bg-3);
+}
+[data-theme="dark"] .bg-slate-200,
+[data-theme="dark"] .bg-gray-200,
+[data-theme="dark"] .bg-neutral-200 {
+  background-color: var(--bg-3);
+}
+
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-neutral-900,
+[data-theme="dark"] .text-black {
+  color: var(--text-primary);
+}
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-gray-800,
+[data-theme="dark"] .text-neutral-800,
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-neutral-700 {
+  color: var(--text-primary);
+}
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-gray-600,
+[data-theme="dark"] .text-neutral-600,
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-neutral-500 {
+  color: var(--text-secondary);
+}
+[data-theme="dark"] .text-slate-400,
+[data-theme="dark"] .text-gray-400,
+[data-theme="dark"] .text-neutral-400,
+[data-theme="dark"] .text-slate-300,
+[data-theme="dark"] .text-gray-300,
+[data-theme="dark"] .text-neutral-300 {
+  color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-neutral-200,
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-neutral-100 {
+  border-color: var(--border-default);
+}
+[data-theme="dark"] .border-slate-300,
+[data-theme="dark"] .border-gray-300,
+[data-theme="dark"] .border-neutral-300 {
+  border-color: var(--border-strong);
+}
+
+/* Backgrounds explícitos en hero-style con gradients suaves */
+[data-theme="dark"] .from-slate-50,
+[data-theme="dark"] .from-white,
+[data-theme="dark"] .from-gray-50 {
+  --tw-gradient-from: var(--bg-1);
+}
+[data-theme="dark"] .to-slate-50,
+[data-theme="dark"] .to-white,
+[data-theme="dark"] .to-gray-50 {
+  --tw-gradient-to: var(--bg-1);
+}
+
+/* Cards y paneles con backgrounds claros explícitos */
+[data-theme="dark"] [class*="bg-white/"] {
+  background-color: rgba(24, 28, 35, 0.95);
+}
+[data-theme="dark"] [class*="bg-slate-50/"] {
+  background-color: rgba(17, 20, 26, 0.95);
+}
+
+/* Inputs y forms */
+[data-theme="dark"] input.bg-white,
+[data-theme="dark"] textarea.bg-white,
+[data-theme="dark"] select.bg-white {
+  background-color: var(--bg-1);
+  color: var(--text-primary);
+}
+
+/* Color emerald-* en dark se mantiene neon (los valores de tokens.css ya
+   se ajustan al tema). Pero hay clases con tints suaves bg-emerald-50/100
+   que en dark hay que mostrar como tints dark-mode-friendly. */
+[data-theme="dark"] .bg-emerald-50,
+[data-theme="dark"] .bg-blue-50,
+[data-theme="dark"] .bg-amber-50,
+[data-theme="dark"] .bg-crimson-50 {
+  background-color: var(--bg-2);
+}
+
+/* Shadow lifts hardcoded (shadow-[0_1px_2px_rgba(15,23,42,0.X)]) */
+[data-theme="dark"] [class*="shadow-[0_1px_2px_rgba(15"],
+[data-theme="dark"] [class*="shadow-[0_2px_8px_rgba(15"] {
+  box-shadow: var(--elevation-1);
+}

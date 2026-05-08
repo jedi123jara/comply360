@@ -29,6 +29,7 @@ import { useUser, useClerk } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { OrgSwitcher } from './org-switcher'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -281,7 +282,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
       ) : null}
 
       {/* ── HEADER ──────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 flex h-[var(--topbar-height)] shrink-0 items-center gap-3 border-b border-[color:var(--border-default)] bg-white/95 backdrop-blur-xl px-4 sm:px-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+      <header className="sticky top-0 z-40 flex h-[var(--topbar-height)] shrink-0 items-center gap-3 border-b border-[color:var(--border-default)] bg-[color:var(--bg-1)]/95 backdrop-blur-xl px-4 sm:px-6 shadow-[0_1px_2px_rgba(0,0,0,0.18)]">
         {/* Mobile menu toggle */}
         <Button
           size="icon-sm"
@@ -332,6 +333,9 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
             <span>SUNAFIL sincronizado</span>
           </div>
           <div className="c360-tb-divider hidden lg:block" />
+
+          {/* Theme toggle (Vault Pro dark/light) */}
+          <ThemeToggle className="hidden md:inline-flex" />
 
           {/* Cmd+K compact button (desktop) */}
           <button
