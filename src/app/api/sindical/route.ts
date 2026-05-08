@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import type { SindicalRecordType } from '@/generated/prisma/client'
 
 // =============================================
 // GET /api/sindical - List sindical records
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
   const type = searchParams.get('type') as SindicalRecordType | null
@@ -69,7 +69,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // POST /api/sindical - Create a sindical record
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const body = await req.json()
 
@@ -118,3 +118,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     { status: 201 }
   )
 })
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
 // =============================================
@@ -29,7 +29,7 @@ function calcDesnaturalizacionRisk(flags: {
 // =============================================
 // GET /api/prestadores — Lista con filtros
 // =============================================
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
@@ -100,7 +100,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 // =============================================
 // POST /api/prestadores — Crear prestador
 // =============================================
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthContext) => {
   const orgId = ctx.orgId
   const body = await req.json()
   const {
@@ -226,3 +226,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     { status: 201 }
   )
 })
+

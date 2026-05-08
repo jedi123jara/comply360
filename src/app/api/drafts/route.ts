@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url)
   const key = searchParams.get('key')
 
@@ -33,7 +33,7 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   return NextResponse.json({ data: draft.data, savedAt: draft.updatedAt })
 })
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('contratos', async (req: NextRequest, ctx: AuthContext) => {
   const body = await req.json()
   const { key, data, ttlDays = 7 } = body
 
@@ -78,3 +78,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
 
   return NextResponse.json({ data: draft.data, savedAt: draft.updatedAt })
 })
+

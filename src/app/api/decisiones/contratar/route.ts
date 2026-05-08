@@ -208,3 +208,4 @@ export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: A
     { status: 201 },
   )
 })
+

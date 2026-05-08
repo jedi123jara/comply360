@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth } from '@/lib/api-auth'
+import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import {
   createPDFDoc,
@@ -81,7 +81,7 @@ function drawSummaryBox(
 
 // ─── Route handler ──────────────────────────────────────────────────────────
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
+export const POST = withPlanGate('simulacro_basico', async (req: NextRequest, ctx: AuthContext) => {
   let body: Record<string, unknown>
   try {
     body = (await req.json()) as Record<string, unknown>
@@ -315,3 +315,4 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     return NextResponse.json({ error: 'Error al generar PDF del acta' }, { status: 500 })
   }
 })
+
