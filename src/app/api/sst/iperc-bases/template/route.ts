@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as XLSX from 'xlsx'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
+import { addAoaSheet, addJsonSheet, createWorkbook, workbookToArrayBuffer } from '@/lib/excel/exceljs'
 
 /**
  * GET /api/sst/iperc-bases/template
@@ -14,7 +14,7 @@ import type { AuthContext } from '@/lib/auth'
  * No es un endpoint público — requiere auth para evitar scraping.
  */
 export const GET = withPlanGate('sst_completo', async (_req: NextRequest, _ctx: AuthContext) => {
-  const wb = XLSX.utils.book_new()
+  const wb = createWorkbook()
 
   // ── Hoja 1: Instrucciones ─────────────────────────────────────────────
   const instrucciones = [
@@ -47,10 +47,7 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, _ctx: 
     [''],
     ['Cuando termines, sube este archivo en el botón "Importar Excel" del editor IPERC.'],
   ]
-  const wsInstrucciones = XLSX.utils.aoa_to_sheet(instrucciones)
-  // Ajustar anchos
-  wsInstrucciones['!cols'] = [{ wch: 100 }]
-  XLSX.utils.book_append_sheet(wb, wsInstrucciones, 'Instrucciones')
+  addAoaSheet(wb, 'Instrucciones', instrucciones, { columnWidths: [100] })
 
   // ── Hoja 2: Datos (lo que el usuario rellena) ─────────────────────────
   const headers = [
@@ -117,21 +114,21 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, _ctx: 
     },
   ]
 
-  const wsDatos = XLSX.utils.json_to_sheet(ejemplos, { header: headers })
-  // Anchos por columna
-  wsDatos['!cols'] = [
-    { wch: 18 }, // Proceso
-    { wch: 30 }, // Actividad
-    { wch: 35 }, // Tarea
-    { wch: 28 }, // Peligro
-    { wch: 35 }, // Riesgo
-    { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, // índices
-    { wch: 40 }, // Controles actuales
-    { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, // controles propuestos
-    { wch: 20 }, // Responsable
-    { wch: 15 }, // Plazo
-  ]
-  XLSX.utils.book_append_sheet(wb, wsDatos, 'Datos')
+  addJsonSheet(wb, 'Datos', ejemplos, {
+    headers,
+    columnWidths: [
+      18, // Proceso
+      30, // Actividad
+      35, // Tarea
+      28, // Peligro
+      35, // Riesgo
+      12, 18, 16, 14, 14, // índices
+      40, // Controles actuales
+      25, 25, 30, 30, 30, // controles propuestos
+      20, // Responsable
+      15, // Plazo
+    ],
+  })
 
   // ── Hoja 3: Catálogo de peligros (referencia) ────────────────────────
   // Importamos lazy para no inflar el bundle si la ruta no se llama.
@@ -145,15 +142,14 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, _ctx: 
     Nombre: p.nombre,
     Descripción: p.descripcion,
   }))
-  const wsCat = XLSX.utils.json_to_sheet(catalogoSheet, {
-    header: ['Familia', 'Nombre', 'Descripción'],
+  addJsonSheet(wb, 'Catálogo Peligros', catalogoSheet, {
+    headers: ['Familia', 'Nombre', 'Descripción'],
+    columnWidths: [18, 35, 80],
   })
-  wsCat['!cols'] = [{ wch: 18 }, { wch: 35 }, { wch: 80 }]
-  XLSX.utils.book_append_sheet(wb, wsCat, 'Catálogo Peligros')
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+  const buf = await workbookToArrayBuffer(wb)
 
-  return new NextResponse(buf as unknown as BodyInit, {
+  return new NextResponse(buf, {
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

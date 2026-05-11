@@ -38,8 +38,17 @@ export const POST = withPlanGate('contratos', async (req: NextRequest, _ctx: Aut
       )
     }
 
+    const fileName = file.name.toLowerCase()
+    if (fileName.endsWith('.xls')) {
+      return NextResponse.json(
+        { error: 'El formato Excel heredado .xls ya no se acepta por seguridad. Guarda el archivo como .xlsx o .csv.' },
+        { status: 400 },
+      )
+    }
+
+    const format = fileName.endsWith('.csv') ? 'csv' : 'xlsx'
     const arrayBuffer = await file.arrayBuffer()
-    const parsed = parseBulkFile({ buffer: arrayBuffer })
+    const parsed = await parseBulkFile({ buffer: arrayBuffer, format })
 
     if (parsed.rows.length === 0) {
       return NextResponse.json(

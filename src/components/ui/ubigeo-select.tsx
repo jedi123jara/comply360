@@ -38,7 +38,7 @@ interface UbigeoSelectProps {
 }
 
 const DEFAULT_INPUT_CLS =
-  'w-full rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-2 text-sm text-[color:var(--text-primary)] focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-colors'
+  'w-full rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-3 py-2 text-sm text-[color:var(--text-primary)] focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-colors'
 
 const DEFAULT_LABEL_CLS =
   'block text-xs font-medium text-[color:var(--text-secondary)] mb-1'

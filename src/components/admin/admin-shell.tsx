@@ -33,6 +33,7 @@ import {
   X,
 } from 'lucide-react'
 import { CommandPalette } from './command-palette'
+import { BrandLogo } from '@/components/comply360/brand-logo'
 
 type NavItem = {
   href: string
@@ -170,26 +171,12 @@ export function AdminShell({
         {/* Sidebar */}
         <aside className={`admin-sb ${mobileOpen ? 'open' : ''}`}>
           <div className="admin-sb-brand">
-            <div className="admin-sb-brand-shield">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#fff"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4" />
-              </svg>
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="admin-sb-brand-name">
-                COMPLY<span className="num">360</span>
-              </div>
-              <div className="admin-sb-brand-meta">Command Center</div>
-            </div>
+            <BrandLogo
+              variant="admin"
+              meta="Command Center"
+              markSize={34}
+              className="admin-brand-lockup"
+            />
             <button
               type="button"
               className="admin-menu-btn"

@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * Button v3 — Emerald Light (Stripe / Linear style).
+ * Button v4 — Dark Authority.
  *
  * Variants:
  * - `primary` (default): emerald sólido, texto blanco, hover más oscuro, sombra sutil
@@ -22,7 +22,7 @@ const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap',
     'font-medium transition-all duration-[var(--motion-micro)] ease-[var(--ease-standard)]',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--bg-canvas)]',
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
     'active:scale-[var(--scale-press)] active:transition-[transform] active:duration-[var(--motion-instant)]',
   ],
@@ -36,14 +36,14 @@ const buttonVariants = cva(
           'hover:shadow-[0_4px_12px_rgba(16,185,129,0.25)]',
         ],
         secondary: [
-          'bg-white text-[color:var(--text-primary)]',
+          'bg-[color:var(--bg-surface)] text-[color:var(--text-primary)]',
           'border border-[color:var(--border-default)]',
-          'shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
-          'hover:border-[color:var(--border-strong)] hover:bg-[color:var(--neutral-50)]',
+          'shadow-[var(--elevation-1)]',
+          'hover:border-[color:var(--border-strong)] hover:bg-[color:var(--bg-surface-hover)]',
         ],
         ghost: [
           'text-[color:var(--text-secondary)]',
-          'hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-primary)]',
+          'hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)]',
         ],
         danger: [
           'bg-crimson-600 text-white',
@@ -56,8 +56,8 @@ const buttonVariants = cva(
           'hover:bg-gold-600 hover:shadow-[0_4px_12px_rgba(212,168,83,0.30)]',
         ],
         'emerald-soft': [
-          'bg-emerald-50 text-emerald-700 border border-emerald-200',
-          'hover:bg-emerald-100 hover:border-emerald-300',
+          'bg-emerald-500/12 text-emerald-200 border border-emerald-400/30',
+          'hover:bg-emerald-500/18 hover:border-emerald-300/55',
         ],
         link: [
           'text-emerald-600 hover:text-emerald-700 underline-offset-4 hover:underline',

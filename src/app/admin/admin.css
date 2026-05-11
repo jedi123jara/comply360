@@ -1,6 +1,6 @@
 /* =====================================================================
  * COMPLY360 ADMIN — Founder Command Center
- * Light premium. Emerald accents. Financial terminal × Linear × COMPLY360.
+ * Dark premium. Emerald accents. Financial terminal × Linear × COMPLY360.
  * Imported only inside /admin/* — no leakage to marketing/dashboard.
  * ===================================================================== */
 
@@ -22,7 +22,7 @@
 
 /* ============ Sidebar ============ */
 .admin-sb {
-  background: #ffffff;
+  background: linear-gradient(180deg, rgba(10, 15, 28, 0.98), rgba(6, 10, 18, 0.98));
   border-right: 1px solid var(--border-subtle);
   padding: 18px 14px;
   display: flex;
@@ -65,6 +65,19 @@
 .admin-sb-brand-meta {
   font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em;
   color: var(--emerald-700); font-weight: 700; margin-top: 2px;
+}
+.admin-brand-lockup {
+  flex: 1;
+  min-width: 0;
+}
+.admin-brand-lockup .c360-brand-mark {
+  width: 34px;
+  height: 34px;
+}
+.admin-brand-lockup .brand-name,
+.admin-brand-lockup .brand-meta,
+.admin-brand-lockup .brand-name .num-tag {
+  letter-spacing: 0;
 }
 
 .admin-sb-label {
@@ -159,7 +172,7 @@
 }
 .admin-topbar {
   height: 56px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(10, 15, 28, 0.86);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-subtle);
@@ -310,7 +323,7 @@
 
 /* KPI row — financial ticker style */
 .a-kpi {
-  background: #ffffff;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 16px 18px;
@@ -369,9 +382,9 @@
 .a-narrative {
   position: relative;
   background:
-    radial-gradient(ellipse 60% 80% at 100% 0%, rgba(16, 185, 129, 0.10), transparent 60%),
-    radial-gradient(ellipse 50% 80% at 0% 100%, rgba(245, 158, 11, 0.06), transparent 60%),
-    linear-gradient(180deg, #ffffff, #fafefc);
+    radial-gradient(ellipse 60% 80% at 100% 0%, rgba(16, 185, 129, 0.14), transparent 60%),
+    radial-gradient(ellipse 50% 80% at 0% 100%, rgba(245, 158, 11, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(8, 13, 24, 0.96));
   border: 1px solid var(--border-emerald);
   border-radius: 14px;
   padding: 22px 26px;
@@ -432,7 +445,7 @@
 
 /* MRR Big ring hero */
 .a-mrr-hero {
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--elevation-1);
   border-radius: 14px;
@@ -664,7 +677,7 @@
   font-family: inherit;
 }
 .a-seg button.active {
-  background: #fff;
+  background: var(--bg-elevated);
   color: var(--emerald-700);
   box-shadow: var(--elevation-1);
 }
@@ -700,7 +713,7 @@
 .a-input {
   height: 32px;
   padding: 0 12px;
-  background: #fff;
+  background: var(--neutral-50);
   border: 1px solid var(--border-default);
   border-radius: 7px;
   color: var(--text-primary);
@@ -828,7 +841,7 @@
 }
 .cmdk-panel {
   width: min(640px, 92vw);
-  background: #ffffff;
+  background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: 14px;
   box-shadow: var(--shadow-card-lift);
@@ -920,4 +933,110 @@
 .admin-menu-btn:hover { background: var(--neutral-150); color: var(--text-primary); }
 @media (max-width: 900px) {
   .admin-menu-btn { display: inline-flex; }
+}
+
+/* Dark compatibility for admin pages that still use Tailwind light utilities.
+   Admin imports this stylesheet after route CSS, so these overrides keep
+   founder-console screens coherent while individual pages migrate. */
+.admin-body .bg-white,
+.admin-body .bg-slate-50,
+.admin-body .bg-slate-100,
+.admin-body .bg-gray-50,
+.admin-body .bg-gray-100,
+.admin-body .bg-neutral-50,
+.admin-body .bg-neutral-100 {
+  background-color: var(--bg-surface) !important;
+}
+
+.admin-body .bg-red-50,
+.admin-body .bg-rose-50 {
+  background-color: rgba(127, 29, 29, 0.22) !important;
+}
+
+.admin-body .bg-amber-50,
+.admin-body .bg-amber-100,
+.admin-body .bg-yellow-50,
+.admin-body .bg-yellow-100,
+.admin-body .bg-orange-50,
+.admin-body .bg-orange-100 {
+  background-color: rgba(146, 64, 14, 0.22) !important;
+}
+
+.admin-body .bg-blue-50,
+.admin-body .bg-blue-100,
+.admin-body .bg-emerald-50,
+.admin-body .bg-emerald-100,
+.admin-body .bg-cyan-50,
+.admin-body .bg-cyan-100,
+.admin-body .bg-purple-50,
+.admin-body .bg-purple-100 {
+  background-color: rgba(14, 165, 233, 0.14) !important;
+}
+
+.admin-body .hover\:bg-slate-50:hover,
+.admin-body .hover\:bg-slate-100:hover,
+.admin-body .hover\:bg-white:hover {
+  background-color: var(--bg-surface-hover) !important;
+}
+
+.admin-body .text-slate-950,
+.admin-body .text-slate-900,
+.admin-body .text-gray-950,
+.admin-body .text-gray-900,
+.admin-body .text-neutral-950,
+.admin-body .text-neutral-900 {
+  color: var(--text-primary) !important;
+}
+
+.admin-body .text-slate-800,
+.admin-body .text-slate-700,
+.admin-body .text-gray-800,
+.admin-body .text-gray-700,
+.admin-body .text-neutral-800,
+.admin-body .text-neutral-700 {
+  color: var(--text-secondary) !important;
+}
+
+.admin-body .text-slate-600,
+.admin-body .text-slate-500,
+.admin-body .text-gray-600,
+.admin-body .text-gray-500,
+.admin-body .text-neutral-600,
+.admin-body .text-neutral-500 {
+  color: var(--text-tertiary) !important;
+}
+
+.admin-body .text-red-700,
+.admin-body .text-red-800,
+.admin-body .text-rose-700,
+.admin-body .text-rose-800 {
+  color: #fecdd3 !important;
+}
+
+.admin-body .text-amber-700,
+.admin-body .text-amber-800 {
+  color: #fde68a !important;
+}
+
+.admin-body .border-slate-100,
+.admin-body .border-slate-200,
+.admin-body .border-slate-300,
+.admin-body .border-gray-100,
+.admin-body .border-gray-200,
+.admin-body .border-gray-300,
+.admin-body .border-neutral-100,
+.admin-body .border-neutral-200 {
+  border-color: var(--border-default) !important;
+}
+
+.admin-body .border-red-200,
+.admin-body .border-rose-200 {
+  border-color: rgba(248, 113, 113, 0.34) !important;
+}
+
+.admin-body .border-amber-200,
+.admin-body .border-amber-300,
+.admin-body .border-yellow-200,
+.admin-body .border-orange-200 {
+  border-color: rgba(251, 191, 36, 0.34) !important;
 }

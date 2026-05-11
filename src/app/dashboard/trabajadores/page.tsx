@@ -2636,7 +2636,7 @@ export default function TrabajadoresPage() {
                     <label className="flex flex-col items-center justify-center gap-2 py-7 cursor-pointer">
                       <input
                         type="file"
-                        accept=".xlsx,.xls,.csv"
+                                  accept=".xlsx,.csv"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         onChange={e => setImportFile(e.target.files?.[0] || null)}
                       />
@@ -2656,7 +2656,7 @@ export default function TrabajadoresPage() {
                           <p className="text-sm font-semibold text-[color:var(--text-secondary)]">
                             {importDragging ? 'Suelta el archivo aquí' : 'Arrastra tu planilla o haz clic'}
                           </p>
-                          <p className="text-xs text-gray-500">Excel (.xlsx, .xls) o CSV — máx. 5 MB</p>
+                                  <p className="text-xs text-gray-500">Excel (.xlsx) o CSV — máx. 5 MB</p>
                         </>
                       )}
                     </label>
@@ -2921,7 +2921,7 @@ export default function TrabajadoresPage() {
                     )}
                   >
                     <label className="flex flex-col items-center justify-center gap-2 py-7 cursor-pointer">
-                      <input type="file" accept=".xlsx,.xls" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                  <input type="file" accept=".xlsx,.csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         onChange={e => setPayrollFile(e.target.files?.[0] || null)} />
                       {payrollFile ? (
                         <>
@@ -2939,7 +2939,7 @@ export default function TrabajadoresPage() {
                           <p className="text-sm font-semibold text-[color:var(--text-secondary)]">
                             {payrollDragging ? 'Suelta aquí' : 'Arrastra tu planilla PLAME o haz clic'}
                           </p>
-                          <p className="text-xs text-gray-500">Excel (.xlsx, .xls) — máx. 20 MB</p>
+                                  <p className="text-xs text-gray-500">Excel (.xlsx) o CSV — máx. 20 MB</p>
                         </>
                       )}
                     </label>

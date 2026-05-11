@@ -52,6 +52,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(`https://${BRAND.domain}`),
   title: {
     default: `${BRAND.name} — ${BRAND.tagline}`,
     template: `%s | ${BRAND.name}`,
@@ -81,6 +82,17 @@ export const metadata: Metadata = {
     description: "Plataforma SaaS de compliance laboral para empresas peruanas.",
   },
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   applicationName: BRAND.name,
   appleWebApp: {
     capable: true,
@@ -90,7 +102,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#060a12",
   width: "device-width",
   initialScale: 1,
 };
@@ -104,10 +116,10 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${firaCode.variable} ${instrumentSerif.variable} h-full antialiased`}
-      style={{ colorScheme: 'light' }}
+      style={{ colorScheme: 'dark' }}
     >
       <head>
-        <meta name="color-scheme" content="light only" />
+        <meta name="color-scheme" content="dark only" />
         {/* Plausible analytics — GDPR-friendly, sin cookies. Condicional:
             solo se carga si NEXT_PUBLIC_PLAUSIBLE_DOMAIN está configurado. */}
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ? (

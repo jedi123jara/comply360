@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal/legal-page'
 
 export const metadata: Metadata = {
-  title: 'Política de Privacidad · COMPLY360',
+  title: 'Política de Privacidad',
   description:
     'Política de privacidad y tratamiento de datos personales de COMPLY360, conforme a la Ley N° 29733 y su reglamento.',
 }

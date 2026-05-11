@@ -38,7 +38,7 @@ SheetOverlay.displayName = 'SheetOverlay'
 const sheetVariants = cva(
   [
     'fixed z-[var(--z-drawer)]',
-    'bg-white',
+    'bg-[color:var(--bg-elevated)]',
     'border-[color:var(--border-strong)]',
     'shadow-[var(--elevation-4)]',
     'flex flex-col',
@@ -111,7 +111,7 @@ export const SheetContent = forwardRef<
           <button
             type="button"
             aria-label="Cerrar"
-            className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+            className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
             <X className="w-5 h-5" />
           </button>
@@ -143,7 +143,7 @@ export function SheetFooter({ className, ...props }: React.HTMLAttributes<HTMLDi
   return (
     <div
       className={cn(
-        'flex items-center justify-end gap-3 px-6 py-4 border-t border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)]',
+        'flex items-center justify-end gap-3 px-6 py-4 border-t border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)]',
         className
       )}
       {...props}

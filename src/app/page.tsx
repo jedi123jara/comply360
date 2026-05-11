@@ -1,109 +1,210 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import type { LucideIcon } from 'lucide-react'
+import {
+  ArrowRight,
+  Bell,
+  Bot,
+  Building2,
+  Calculator,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ClipboardCheck,
+  FileCheck2,
+  FileText,
+  HardHat,
+  Menu,
+  MessageSquareText,
+  PlayCircle,
+  Radar,
+  Scale,
+  ShieldCheck,
+  Siren,
+  Sparkles,
+  Store,
+  Truck,
+  UsersRound,
+  X,
+  Zap,
+} from 'lucide-react'
 import { PLANS } from '@/lib/constants'
 import { track } from '@/lib/analytics'
 
-// ─── Editorial Emerald landing — handoff "lNufxUI6cGhIK99GcegiQw" ─────────────
-// Tipografía: Instrument Serif (drama) + Geist (UI) + Geist Mono (data tags).
-// Paleta: emerald-50→950 + ink slate. Spacing generoso, secciones de 120 px,
-// hero con mini-dashboard compuesto. Mobile-first responsive con grid collapse.
+type RoleHome = '/dashboard' | '/mi-portal'
+type PlanCard = (typeof PLANS)[keyof typeof PLANS]
 
-// ============================================================================
-// Tokens — paleta y tipografía locales (scoped via inline styles).
-// ============================================================================
-const ink = '#0f172a'
-const ink2 = '#334155'
-const ink3 = '#64748b'
-const muted = '#94a3b8'
-const line = 'rgba(15,23,42,0.08)'
-const lineStrong = 'rgba(15,23,42,0.14)'
-const fontSerif = "var(--font-instrument-serif, 'Instrument Serif'), Georgia, serif"
-const fontSans = "var(--font-geist-sans, 'Geist'), -apple-system, BlinkMacSystemFont, system-ui, sans-serif"
-const fontMono = "var(--font-geist-mono, 'Geist Mono'), ui-monospace, 'SF Mono', monospace"
-
-// ============================================================================
-// Module catalog — 8 módulos cubriendo el ciclo SUNAFIL completo.
-// ============================================================================
-const MODULES = [
-  { tag: 'SST', title: 'Seguridad y salud', desc: 'Comité paritario, IPERC, capacitaciones obligatorias, exámenes médicos, accidentes y reportes a SUNAFIL.', ref: 'Ley 29783 · D.S. 005-2012-TR' },
-  { tag: 'Planilla', title: 'Boletas y T-Registro', desc: 'Cálculo automático de CTS, gratificación, AFP/ONP. Integración con PLAME y firma digital de boletas.', ref: 'D.S. 001-98-TR' },
-  { tag: 'Contratos', title: 'Gestión contractual', desc: 'Plantillas legales, firmas digitales con RENIEC, vencimientos automáticos y registro electrónico ante MTPE.', ref: 'D.S. 003-97-TR' },
-  { tag: 'Hostigamiento', title: 'Canal de denuncias', desc: 'Canal anónimo encriptado, comité de intervención y plazos automáticos. Cumple Ley 27942 y Ley 31806.', ref: 'Ley 27942 · 31806' },
-  { tag: 'Asistencia', title: 'Marcaje y horarios', desc: 'Marcaje GPS, geofencing, horas extras automáticas, tardanzas y reportes laborales para inspecciones.', ref: 'D.S. 004-2006-TR' },
-  { tag: 'Capacitación', title: 'LMS integrado', desc: 'Cursos SST, hostigamiento, código de ética. Certificados con QR verificables y reportes de avance.', ref: 'Anual obligatoria' },
-  { tag: 'Diagnóstico', title: 'Score SUNAFIL', desc: 'Evaluación continua de 47 indicadores. Sabes exactamente dónde te vas a caer en una inspección.', ref: 'Tiempo real' },
-  { tag: 'Portal', title: 'Mi-portal del trabajador', desc: 'App-like para que el trabajador firme, descargue boletas, pida vacaciones y vea su ID digital. Sin papeles.', ref: 'iOS · Android · Web' },
+const navItems = [
+  ['Producto', '#producto'],
+  ['Riesgo', '#riesgo'],
+  ['Sectores', '#sectores'],
+  ['Precios', '#precios'],
+  ['FAQ', '#faq'],
 ] as const
 
-const TESTIMONIALS = [
+const complianceSignals = [
+  'Ley 29783 SST',
+  'LPCL',
+  'PLAME / T-Registro',
+  'Ley 27942',
+] as const
+
+const outcomes = [
   {
-    quote: 'Pasamos de tener un Excel maldito de 8,000 filas a un sistema donde todos saben qué firmar y cuándo. La inspección de SUNAFIL la pasamos sin sudar.',
-    name: 'Lucía Vargas',
-    role: 'Gerente de RRHH · Constructora Andina (240 trabajadores)',
-    initial: 'L',
+    value: '14 días',
+    label: 'para ordenar el primer tablero',
   },
   {
-    quote: 'Recuperamos S/ 24,000 al año en multas que veníamos pagando por capacitaciones SST vencidas. En tres meses se pagó solo.',
-    name: 'Rodrigo Salas',
-    role: 'CFO · Estrella Foods Perú',
-    initial: 'R',
+    value: '28 docs',
+    label: 'clave para inspección SUNAFIL',
   },
   {
-    quote: 'Mis chicos en obra usan el portal desde el celular. Firman su boleta antes de irme yo. Eso no lo había logrado con ningún otro sistema.',
-    name: 'Mario Quispe',
-    role: 'Jefe de Operaciones · Servipack Logística',
-    initial: 'M',
+    value: '1 click',
+    label: 'para armar expediente del inspector',
   },
 ] as const
 
-const FAQS = [
+const painPoints = [
   {
-    q: '¿Comply360 cumple con la legislación laboral peruana?',
-    a: 'Sí. Toda la plataforma está construida sobre el marco legal peruano: Ley 29783 (SST), D.S. 003-97-TR (LPCL), Ley 27942 (hostigamiento), Ley 31806 (protección al denunciante), entre otros. Nuestro equipo legal revisa los cambios normativos cada mes y actualiza la plataforma sin costo.',
+    icon: Siren,
+    title: 'El riesgo aparece tarde',
+    body: 'SST vencido, contratos incompletos, boletas sin firma y capacitaciones dispersas salen a la luz cuando ya estás contra el reloj.',
   },
   {
-    q: '¿Cuánto demora la implementación?',
-    a: 'Dos semanas en promedio para empresas Empresa/Pro. Migramos tu data desde Excel, planillas o tu sistema actual; configuramos roles, organigrama y políticas; y capacitamos a tu equipo. No te dejamos solo después del kickoff.',
+    icon: FileText,
+    title: 'La evidencia vive en mil lugares',
+    body: 'Excel, WhatsApp, PDFs sueltos, carpetas compartidas y correos. El inspector no espera a que tu equipo reconstruya la historia.',
   },
   {
-    q: '¿Mis datos están seguros?',
-    a: 'Datos encriptados en tránsito y en reposo, hosteados en infraestructura cloud Tier 1. Cumplimos con la Ley 29733 de Protección de Datos Personales y aplicamos buenas prácticas ISO 27001. Auditorías de seguridad periódicas.',
-  },
-  {
-    q: '¿Qué pasa si SUNAFIL me visita?',
-    a: 'Tienes el expediente listo. Cada acción en Comply360 queda con sello de tiempo, hash y huella del responsable. Generas el reporte para el inspector con un clic.',
-  },
-  {
-    q: '¿Funciona si tengo trabajadores en obra o de campo?',
-    a: 'Es para lo que está hecho. Marcaje con GPS y geofencing, app que funciona offline y sincroniza al recuperar señal, firmas con huella desde el celular. Construcción, minería, agro y logística son nuestros sectores fuertes.',
-  },
-  {
-    q: '¿Puedo migrar mis boletas históricas?',
-    a: 'Sí, sin costo extra en cualquier plan. Te subimos hasta 5 años de histórico de boletas, contratos y capacitaciones para que tengas todo el legajo digital desde el día 1.',
-  },
-  {
-    q: '¿Tienen integración con SUNAT y MTPE?',
-    a: 'Sí. Generamos PLAME automáticamente y registramos contratos electrónicamente ante MTPE. También integramos con tu ERP (SAP, Oracle) o tu sistema contable.',
+    icon: UsersRound,
+    title: 'RRHH termina como mesa de ayuda',
+    body: 'Vacaciones, boletas, documentos, firmas y consultas legales consumen horas que deberían ir a gestión y prevención.',
   },
 ] as const
 
-// ============================================================================
-// Page component
-// ============================================================================
+const modules = [
+  {
+    icon: ShieldCheck,
+    title: 'Score SUNAFIL',
+    body: 'Riesgo continuo por sede, área y trabajador, con prioridades claras para bajar exposición.',
+    tag: 'Control',
+  },
+  {
+    icon: HardHat,
+    title: 'SST operativo',
+    body: 'IPERC, comité, capacitaciones, EMO, accidentes, visitas de campo y plan anual en un solo flujo.',
+    tag: 'Ley 29783',
+  },
+  {
+    icon: FileCheck2,
+    title: 'Legajo digital',
+    body: 'Contratos, anexos, politicas, boletas y constancias con trazabilidad y vencimientos.',
+    tag: 'Evidencia',
+  },
+  {
+    icon: Bell,
+    title: 'Alertas ejecutivas',
+    body: 'Un plan de acción por criticidad: qué vence, quién responde y qué documento falta.',
+    tag: 'Prevención',
+  },
+  {
+    icon: Bot,
+    title: 'Asistente IA laboral',
+    body: 'Respuestas y borradores con contexto peruano para contratos, sanciones, SST y fiscalizaciones.',
+    tag: 'IA',
+  },
+  {
+    icon: Calculator,
+    title: 'Calculadoras laborales',
+    body: 'CTS, gratificaciones, liquidaciones, horas extras y multas estimadas con base peruana.',
+    tag: 'Planilla',
+  },
+] as const
+
+const sectors = [
+  {
+    icon: HardHat,
+    title: 'Construcción y campo',
+    body: 'Sedes temporales, cuadrillas, contratistas, PETS/PETAR/ATS y visitas SST con evidencia móvil.',
+  },
+  {
+    icon: Store,
+    title: 'Retail y restaurantes',
+    body: 'Alta rotación, horarios, descansos, boletas, capacitaciones y documentos firmados desde el celular.',
+  },
+  {
+    icon: Truck,
+    title: 'Logistica y servicios',
+    body: 'Turnos, asistencia, teletrabajo, terceros, EPPS, incidentes y reportes por centro de costo.',
+  },
+  {
+    icon: Building2,
+    title: 'Empresas multi-sede',
+    body: 'Gerencia ve el mapa completo; cada sede ejecuta su plan sin perder estándar ni trazabilidad.',
+  },
+] as const
+
+const steps = [
+  {
+    label: 'Diagnóstico',
+    title: 'Mapeamos tu riesgo real',
+    body: 'Cargamos tu estructura, trabajadores y documentos críticos para saber dónde estás expuesto.',
+  },
+  {
+    label: 'Implementación',
+    title: 'Ordenamos el expediente vivo',
+    body: 'Migramos legajos, configuramos roles, flujos, alertas y responsables por modulo.',
+  },
+  {
+    label: 'Operación',
+    title: 'Tu equipo trabaja desde un solo lugar',
+    body: 'RRHH, SST, legal, jefes de sede y trabajadores firman, revisan y actuan sin perseguirse por chat.',
+  },
+  {
+    label: 'Inspección',
+    title: 'Sales con evidencia, no con excusas',
+    body: 'Generas el paquete para SUNAFIL con sello de tiempo, responsable y trazabilidad.',
+  },
+] as const
+
+const faqs = [
+  {
+    q: '¿Esto reemplaza mi sistema de planilla?',
+    a: 'No tiene que reemplazarlo. Comply360 se enfoca en cumplimiento, evidencia, alertas, documentos, SST y portal del trabajador. Puede convivir con tu planilla actual y ayudarte a exportar información clave.',
+  },
+  {
+    q: '¿Sirve si tengo trabajadores fuera de oficina?',
+    a: 'Sí. Comply360 está pensado para empresas con obra, campo, tiendas, sedes y turnos. El portal del trabajador funciona como experiencia móvil para firmas, boletas, solicitudes y evidencias.',
+  },
+  {
+    q: '¿Cuanto demora implementarlo?',
+    a: 'La primera versión operativa puede estar lista en unas dos semanas si la información base está disponible. Empresas con varias sedes o migraciones históricas pueden requerir un plan por fases.',
+  },
+  {
+    q: '¿Qué pasa cuando SUNAFIL visita mi empresa?',
+    a: 'Tienes un modo de inspección para reunir documentos, responsables, vencimientos y evidencias. La promesa no es eliminar todo riesgo, sino llegar con control, trazabilidad y menos improvisación.',
+  },
+  {
+    q: '¿Incluye soporte humano?',
+    a: 'Sí. Los planes pagados incluyen soporte humano escalado por plan, además del asistente IA para dudas operativas y legales frecuentes.',
+  },
+] as const
+
 export default function LandingPage() {
   const { isSignedIn } = useUser()
   const router = useRouter()
-  const [roleHome, setRoleHome] = useState<'/dashboard' | '/mi-portal'>('/dashboard')
+  const [roleHome, setRoleHome] = useState<RoleHome>('/dashboard')
 
   useEffect(() => {
     if (!isSignedIn) return
     let cancelled = false
+
     fetch('/api/me', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((response) => (response.ok ? response.json() : null))
       .then((data: { role?: string } | null) => {
         if (cancelled || !data) return
         if (data.role === 'WORKER') {
@@ -112,748 +213,497 @@ export default function LandingPage() {
         }
       })
       .catch(() => {})
-    return () => { cancelled = true }
+
+    return () => {
+      cancelled = true
+    }
   }, [isSignedIn, router])
 
   const ctaHref = isSignedIn ? roleHome : '/sign-up'
-  const handleCtaClick = useCallback((cta: string) => (e: React.MouseEvent) => {
-    track('landing_cta_clicked', { cta, signed_in: isSignedIn ?? false })
-    if (isSignedIn) { e.preventDefault(); router.push(roleHome) }
-  }, [isSignedIn, roleHome, router])
 
-  // 3 planes destacados de PLANS — Starter / Empresa (featured) / Pro.
-  // Mantenemos PLANS como fuente de verdad para pricing y features.
-  const featuredPlans = [PLANS.STARTER, PLANS.EMPRESA, PLANS.PRO] as const
+  const handleCtaClick = useCallback(
+    (cta: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      track('landing_cta_clicked', { cta, signed_in: isSignedIn ?? false })
+      if (isSignedIn) {
+        event.preventDefault()
+        router.push(roleHome)
+      }
+    },
+    [isSignedIn, roleHome, router]
+  )
+
+  const handlePricingClick = useCallback(
+    (plan: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      track('landing_pricing_clicked', { plan, signed_in: isSignedIn ?? false })
+      if (isSignedIn) {
+        event.preventDefault()
+        router.push(roleHome)
+      }
+    },
+    [isSignedIn, roleHome, router]
+  )
 
   return (
-    <div style={{ fontFamily: fontSans, background: '#fafbfa', color: ink }}>
-      {/* ============== NAV ============== */}
-      <Nav isSignedIn={isSignedIn} ctaHref={ctaHref} roleHome={roleHome} onCtaClick={handleCtaClick('nav_demo')} />
-
-      {/* ============== HERO ============== */}
-      <Hero ctaHref={ctaHref} onCtaClick={handleCtaClick('hero_demo')} />
-
-      {/* ============== LOGO STRIP ============== */}
-      <LogoStrip />
-
-      {/* ============== PILARES ============== */}
-      <Pillars />
-
-      {/* ============== STATS DARK ============== */}
-      <StatsDark />
-
-      {/* ============== MÓDULOS ============== */}
-      <Modules />
-
-      {/* ============== TESTIMONIOS ============== */}
-      <Testimonials />
-
-      {/* ============== PRICING ============== */}
-      <Pricing
-        plans={featuredPlans}
-        ctaHref={ctaHref}
-        onCtaClick={handleCtaClick('pricing_card')}
+    <main className="c360-landing">
+      <LandingNav
         isSignedIn={isSignedIn}
+        roleHome={roleHome}
+        ctaHref={ctaHref}
+        onCtaClick={handleCtaClick('nav_demo')}
       />
-
-      {/* ============== FAQ ============== */}
-      <Faq />
-
-      {/* ============== CTA FINAL ============== */}
-      <FinalCta ctaHref={ctaHref} onCtaClick={handleCtaClick('final_demo')} isSignedIn={isSignedIn} />
-
-      {/* ============== FOOTER ============== */}
-      <Footer />
-    </div>
+      <Hero ctaHref={ctaHref} onCtaClick={handleCtaClick('hero_demo')} />
+      <ProofRail />
+      <ProblemSection />
+      <ProductSection ctaHref={ctaHref} onCtaClick={handleCtaClick('product_demo')} />
+      <RiskSection ctaHref={ctaHref} onCtaClick={handleCtaClick('risk_diagnostic')} />
+      <ModulesSection />
+      <SectorSection />
+      <OperatingSystemSection />
+      <PricingSection
+        ctaHref={ctaHref}
+        isSignedIn={isSignedIn}
+        onPricingClick={handlePricingClick}
+      />
+      <FaqSection />
+      <FinalCta ctaHref={ctaHref} isSignedIn={isSignedIn} onCtaClick={handleCtaClick('final_demo')} />
+      <LandingFooter />
+      <LandingStyles />
+    </main>
   )
 }
 
-// ============================================================================
-// NAV
-// ============================================================================
-function Nav({
+function LandingNav({
   isSignedIn,
-  ctaHref,
   roleHome,
+  ctaHref,
   onCtaClick,
 }: {
   isSignedIn: boolean | undefined
+  roleHome: RoleHome
   ctaHref: string
-  roleHome: string
-  onCtaClick: (e: React.MouseEvent) => void
+  onCtaClick: (event: MouseEvent<HTMLAnchorElement>) => void
 }) {
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [open, setOpen] = useState(false)
+
   return (
-    <header
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'rgba(250,251,250,0.85)',
-        backdropFilter: 'saturate(180%) blur(14px)',
-        WebkitBackdropFilter: 'saturate(180%) blur(14px)',
-        borderBottom: '0.5px solid transparent',
-      }}
-    >
-      <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 sm:px-8" style={{ paddingTop: 22, paddingBottom: 22 }}>
-        <Link href="/" className="flex items-center gap-2.5" style={{ fontWeight: 600, fontSize: 17, letterSpacing: '-0.01em' }}>
-          <BrandShield size={26} />
-          <span>Comply<span style={{ color: 'var(--emerald-600)' }}>360</span></span>
+    <header className="lp-nav">
+      <div className="lp-shell lp-nav-inner">
+        <Link href="/" className="lp-brand" aria-label="Comply360">
+          <BrandMark />
+          <span>
+            Comply<span>360</span>
+          </span>
         </Link>
 
-        <nav className="hidden lg:flex items-center" style={{ gap: 32, fontSize: 14, color: ink2 }}>
-          <a href="#producto" className="hover:text-slate-900 transition-colors">Producto</a>
-          <a href="#modulos" className="hover:text-slate-900 transition-colors">Módulos</a>
-          <a href="#clientes" className="hover:text-slate-900 transition-colors">Clientes</a>
-          <a href="#precios" className="hover:text-slate-900 transition-colors">Precios</a>
-          <a href="#faq" className="hover:text-slate-900 transition-colors">FAQ</a>
+        <nav className="lp-nav-links" aria-label="Principal">
+          {navItems.map(([label, href]) => (
+            <a key={href} href={href}>
+              {label}
+            </a>
+          ))}
         </nav>
 
-        <div className="hidden lg:flex items-center" style={{ gap: 10 }}>
-          <Link
-            href={isSignedIn ? roleHome : '/sign-in'}
-            style={{ color: ink2, fontSize: 14, fontWeight: 500, padding: '10px 14px' }}
-            className="hover:text-slate-900 transition-colors"
-          >
+        <div className="lp-nav-actions">
+          <Link href={isSignedIn ? roleHome : '/sign-in'} className="lp-link-button">
             {isSignedIn ? (roleHome === '/mi-portal' ? 'Mi portal' : 'Mi dashboard') : 'Iniciar sesión'}
           </Link>
-          <Link href={ctaHref} onClick={onCtaClick} className="btn-primary-editorial">
-            {isSignedIn ? 'Ir al producto' : 'Solicitar demo'}
+          <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary">
+            <span>{isSignedIn ? 'Ir al producto' : 'Agendar demo'}</span>
+            <ArrowRight aria-hidden size={16} />
           </Link>
         </div>
 
         <button
-          className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
-          onClick={() => setMobileOpen((v) => !v)}
-          aria-label="Menu"
+          type="button"
+          className="lp-menu-button"
+          aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
         >
-          {mobileOpen ? (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          ) : (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-          )}
+          {open ? <X aria-hidden size={20} /> : <Menu aria-hidden size={20} />}
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="lg:hidden border-t" style={{ borderColor: line, background: '#fafbfa', padding: '12px 20px 20px' }}>
-          {[['Producto', '#producto'], ['Módulos', '#modulos'], ['Clientes', '#clientes'], ['Precios', '#precios'], ['FAQ', '#faq']].map(([l, h]) => (
-            <a key={h} href={h} onClick={() => setMobileOpen(false)} className="block" style={{ padding: '12px 0', fontSize: 15, color: ink2 }}>{l}</a>
+      {open ? (
+        <div className="lp-mobile-menu">
+          {navItems.map(([label, href]) => (
+            <a key={href} href={href} onClick={() => setOpen(false)}>
+              {label}
+            </a>
           ))}
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Link href={isSignedIn ? roleHome : '/sign-in'} className="text-center" style={{ padding: '12px', borderRadius: 10, border: `0.5px solid ${lineStrong}`, fontSize: 14, fontWeight: 500 }}>
-              {isSignedIn ? 'Ir al producto' : 'Iniciar sesión'}
-            </Link>
-            <Link href={ctaHref} onClick={onCtaClick} className="btn-primary-editorial text-center" style={{ width: '100%', justifyContent: 'center' }}>
-              {isSignedIn ? 'Ir al producto' : 'Solicitar demo'}
-            </Link>
-          </div>
+          <Link href={isSignedIn ? roleHome : '/sign-in'} onClick={() => setOpen(false)}>
+            {isSignedIn ? 'Ir al producto' : 'Iniciar sesión'}
+          </Link>
+          <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary">
+            <span>{isSignedIn ? 'Ir al producto' : 'Agendar demo'}</span>
+            <ArrowRight aria-hidden size={16} />
+          </Link>
         </div>
-      )}
-
-      <style jsx>{`
-        :global(.btn-primary-editorial) {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: ${ink};
-          color: #fff;
-          font-weight: 500;
-          font-size: 14px;
-          padding: 10px 18px;
-          border-radius: 10px;
-          border: 0.5px solid transparent;
-          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
-          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-          white-space: nowrap;
-        }
-        :global(.btn-primary-editorial:hover) {
-          background: #1e293b;
-          transform: translateY(-1px);
-          box-shadow: 0 8px 24px rgba(15,23,42,0.18);
-        }
-      `}</style>
+      ) : null}
     </header>
   )
 }
 
-function BrandShield({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-      <defs>
-        <linearGradient id="navg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#60a5fa" />
-          <stop offset="50%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#1e40af" />
-        </linearGradient>
-      </defs>
-      <path d="M32 4 L54 12 V30 C54 44 44 54 32 60 C20 54 10 44 10 30 V12 Z" fill="url(#navg)" />
-      <path d="M22 32 L29 39 L43 23" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-// ============================================================================
-// HERO
-// ============================================================================
-function Hero({ ctaHref, onCtaClick }: { ctaHref: string; onCtaClick: (e: React.MouseEvent) => void }) {
-  return (
-    <section style={{ position: 'relative', padding: '60px 0 40px', overflow: 'hidden' }}>
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(16,185,129,0.10), transparent 70%), radial-gradient(ellipse 80% 40% at 80% 20%, rgba(52,211,153,0.06), transparent 60%)',
-          pointerEvents: 'none',
-        }}
-      />
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8" style={{ position: 'relative', textAlign: 'center', paddingTop: 30 }}>
-        <Eyebrow style={{ marginBottom: 28 }}>Hecho para el Perú · SUNAFIL · MTPE</Eyebrow>
-
-        <h1
-          style={{
-            fontFamily: fontSerif,
-            fontSize: 'clamp(48px, 9vw, 116px)',
-            fontWeight: 400,
-            lineHeight: 0.95,
-            letterSpacing: '-0.035em',
-            margin: '0 0 28px',
-            color: ink,
-          }}
-        >
-          Cumplimiento laboral,<br />
-          <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>sin estrés ni multas.</em>
-        </h1>
-
-        <p style={{
-          fontSize: 'clamp(17px, 1.4vw, 20px)',
-          color: ink2,
-          lineHeight: 1.55,
-          maxWidth: '64ch',
-          margin: '0 auto',
-        }}>
-          Comply360 unifica planilla, SST, contratos, capacitaciones y el portal del trabajador en una sola plataforma — auditable, peruana y lista para SUNAFIL.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center" style={{ marginTop: 36 }}>
-          <Link href={ctaHref} onClick={onCtaClick} className="btn-lg-editorial-primary inline-flex items-center justify-center" style={{ gap: 8 }}>
-            Solicitar demo
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </Link>
-          <a href="#producto" className="btn-lg-editorial-secondary inline-flex items-center justify-center">Ver el producto</a>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center" style={{ gap: 18, marginTop: 28, fontSize: 13, color: ink3 }}>
-          {['Implementación en 2 semanas', 'Soporte humano en Lima', 'Datos protegidos · Ley 29733'].map((label, i) => (
-            <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-600)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              {label}
-              {i < 2 && <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, marginLeft: 18 }} />}
-            </span>
-          ))}
-        </div>
-
-        <HeroProductPreview />
-      </div>
-
-      <style jsx>{`
-        :global(.btn-lg-editorial-primary) {
-          background: ${ink};
-          color: #fff;
-          font-weight: 500;
-          font-size: 15px;
-          padding: 14px 24px;
-          border-radius: 12px;
-          border: 0.5px solid transparent;
-          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
-          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-          white-space: nowrap;
-        }
-        :global(.btn-lg-editorial-primary:hover) {
-          background: #1e293b;
-          transform: translateY(-1px);
-          box-shadow: 0 8px 24px rgba(15,23,42,0.18);
-        }
-        :global(.btn-lg-editorial-secondary) {
-          background: #fff;
-          color: ${ink};
-          font-weight: 500;
-          font-size: 15px;
-          padding: 14px 24px;
-          border-radius: 12px;
-          border: 0.5px solid ${lineStrong};
-          box-shadow: 0 1px 2px rgba(15,23,42,0.05);
-          transition: background 0.15s ease, border-color 0.15s ease;
-          white-space: nowrap;
-        }
-        :global(.btn-lg-editorial-secondary:hover) {
-          background: #fff;
-          border-color: rgba(15,23,42,0.22);
-        }
-      `}</style>
-    </section>
-  )
-}
-
-function HeroProductPreview() {
-  return (
-    <div
-      style={{
-        margin: '80px auto 0',
-        maxWidth: 1140,
-        background: '#fff',
-        borderRadius: 20,
-        border: `0.5px solid ${line}`,
-        boxShadow:
-          '0 40px 80px -20px rgba(15,23,42,0.20), 0 16px 32px -8px rgba(15,23,42,0.10), inset 0 0 0 1px rgba(255,255,255,0.7)',
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-    >
-      <div className="hidden md:grid" style={{ gridTemplateColumns: '240px 1fr', minHeight: 520 }}>
-        {/* Sidebar */}
-        <div style={{ background: 'linear-gradient(180deg,#fafbfa,#f4f7f5)', borderRight: '0.5px solid rgba(15,23,42,0.06)', padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 8px' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#60a5fa,#1e40af)', display: 'grid', placeItems: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Comply<span style={{ color: '#1d4ed8' }}>360</span></div>
-          </div>
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: muted, padding: '0 8px', marginTop: 8 }}>Principal</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <SidebarItem active label="Dashboard" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>} />
-            <SidebarItem label="Trabajadores" badge="247" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>} />
-            <SidebarItem label="Alertas" alertBadge={3} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>} />
-            <SidebarItem label="Diagnóstico" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>} />
-            <SidebarItem label="Calendario" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} />
-          </div>
-        </div>
-
-        {/* Main */}
-        <div style={{ padding: '22px 26px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: muted }}>Constructora Andina · Mar 2026</div>
-              <div style={{ fontFamily: fontSerif, fontSize: 28, letterSpacing: '-0.025em', marginTop: 4 }}>
-                Tu cumplimiento, <em style={{ fontStyle: 'italic', color: '#1e40af' }}>al día</em>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'linear-gradient(135deg,#eff6ff,#fff)', border: '0.5px solid rgba(16,185,129,0.3)', padding: '6px 12px', borderRadius: 999 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563eb', boxShadow: '0 0 0 4px rgba(16,185,129,0.2)' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Auditable</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-            <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#1e40af" trend="↑ 8 pts vs. feb" trendColor="#2563eb" />
-            <KpiCard label="Multas evitadas" value="38k" prefix="S/" trend="en últimos 12 meses" />
-            <KpiCard label="Trabajadores activos" value="247" trend="+12 este mes" />
-          </div>
-
-          <div style={{ background: 'linear-gradient(135deg,#fffbeb,#fff)', border: '0.5px solid rgba(245,158,11,0.3)', borderRadius: 12, padding: 14, display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            </div>
-            <div style={{ flex: 1, textAlign: 'left' }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>3 capacitaciones SST vencen en 5 días</div>
-              <div style={{ fontSize: 11.5, color: ink2, marginTop: 1 }}>Ley 29783 — afecta a 12 trabajadores en obra Ate</div>
-            </div>
-            <button style={{ padding: '6px 12px', borderRadius: 8, background: '#fff', border: '0.5px solid rgba(15,23,42,0.15)', fontSize: 11.5, fontWeight: 600 }}>Resolver</button>
-          </div>
-
-          <div style={{ background: '#fff', border: '0.5px solid rgba(15,23,42,0.08)', borderRadius: 12, padding: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Cumplimiento mensual</div>
-              <div style={{ fontSize: 11, color: muted, fontFamily: fontMono }}>12 últimos meses</div>
-            </div>
-            <svg width="100%" height="80" viewBox="0 0 400 80" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="chartg" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25"/>
-                  <stop offset="100%" stopColor="#2563eb" stopOpacity="0"/>
-                </linearGradient>
-              </defs>
-              <path d="M0 60 L33 50 L66 55 L100 40 L133 45 L166 30 L200 35 L233 25 L266 20 L300 22 L333 14 L366 10 L400 8 L400 80 L0 80 Z" fill="url(#chartg)" />
-              <path d="M0 60 L33 50 L66 55 L100 40 L133 45 L166 30 L200 35 L233 25 L266 20 L300 22 L333 14 L366 10 L400 8" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="400" cy="8" r="4" fill="#fff" stroke="#2563eb" strokeWidth="2" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile preview — tarjeta sintética */}
-      <div className="md:hidden" style={{ padding: 20 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <KpiCard label="Score SUNAFIL" value="94" suffix="/100" valueColor="#1e40af" trend="↑ 8 pts" trendColor="#2563eb" />
-          <KpiCard label="Multas evitadas" value="38k" prefix="S/" trend="últimos 12 meses" />
-          <KpiCard label="Trabajadores" value="247" trend="+12 este mes" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SidebarItem({ active, label, icon, badge, alertBadge }: { active?: boolean; label: string; icon: React.ReactNode; badge?: string; alertBadge?: number }) {
-  return (
-    <div style={{
-      display: 'flex',
-      gap: 10,
-      alignItems: 'center',
-      padding: '8px 10px',
-      borderRadius: 8,
-      background: active ? 'linear-gradient(90deg,rgba(16,185,129,0.10),transparent)' : undefined,
-      color: active ? '#1e40af' : '#475569',
-      fontSize: 13,
-      fontWeight: active ? 600 : 400,
-    }}>
-      {icon}
-      <span style={{ textAlign: 'left', flex: 1 }}>{label}</span>
-      {badge && <span style={{ fontFamily: fontMono, fontSize: 11, color: muted }}>{badge}</span>}
-      {alertBadge && <span style={{ background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999 }}>{alertBadge}</span>}
-    </div>
-  )
-}
-
-function KpiCard({ label, value, prefix, suffix, valueColor, trend, trendColor }: { label: string; value: string; prefix?: string; suffix?: string; valueColor?: string; trend?: string; trendColor?: string }) {
-  return (
-    <div style={{ background: '#fff', border: '0.5px solid rgba(15,23,42,0.08)', borderRadius: 12, padding: 16, boxShadow: '0 1px 2px rgba(15,23,42,0.04)', textAlign: 'left' }}>
-      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: muted }}>{label}</div>
-      <div style={{ fontFamily: fontSerif, fontSize: 36, letterSpacing: '-0.03em', color: valueColor ?? ink, marginTop: 4, lineHeight: 1 }}>
-        {prefix && <span style={{ color: muted, fontSize: 18 }}>{prefix} </span>}
-        {value}
-        {suffix && <span style={{ fontSize: 18, color: muted }}>{suffix}</span>}
-      </div>
-      {trend && <div style={{ fontSize: 11, color: trendColor ?? muted, marginTop: 4, fontWeight: trendColor ? 600 : 400 }}>{trend}</div>}
-    </div>
-  )
-}
-
-// ============================================================================
-// Shared eyebrow + section head
-// ============================================================================
-function Eyebrow({ children, style, dark }: { children: React.ReactNode; style?: React.CSSProperties; dark?: boolean }) {
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 8,
-      fontSize: 12,
-      fontWeight: 600,
-      letterSpacing: '0.12em',
-      textTransform: 'uppercase',
-      color: dark ? '#93c5fd' : 'var(--emerald-700)',
-      fontFamily: fontSans,
-      ...style,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? '#60a5fa' : 'var(--emerald-500)', boxShadow: dark ? '0 0 0 4px rgba(52,211,153,0.2)' : '0 0 0 4px rgba(16,185,129,0.18)' }} />
-      {children}
-    </span>
-  )
-}
-
-function SectionHead({ eyebrow, title, lead, dark }: { eyebrow: string; title: React.ReactNode; lead?: string; dark?: boolean }) {
-  return (
-    <div style={{ textAlign: 'center', marginBottom: 72, maxWidth: 820, marginLeft: 'auto', marginRight: 'auto' }}>
-      <Eyebrow dark={dark} style={{ marginBottom: 20 }}>{eyebrow}</Eyebrow>
-      <h2 style={{
-        fontFamily: fontSerif,
-        fontSize: 'clamp(36px, 5.5vw, 72px)',
-        fontWeight: 400,
-        lineHeight: 1.02,
-        letterSpacing: '-0.03em',
-        margin: '0 0 20px',
-        color: dark ? '#fff' : ink,
-      }}>{title}</h2>
-      {lead && <p style={{ fontSize: 'clamp(17px, 1.4vw, 20px)', color: dark ? '#cbd5e1' : ink2, lineHeight: 1.55, maxWidth: '64ch', margin: '18px auto 0' }}>{lead}</p>}
-    </div>
-  )
-}
-
-// ============================================================================
-// LOGO STRIP
-// ============================================================================
-function LogoStrip() {
-  const logos: Array<[string, React.ReactNode]> = [
-    ['Andina', <svg key="andina" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M3 18l3-3 4 2 5-5 6 4"/><circle cx="9" cy="9" r="2"/></svg>],
-    ['Mitsui Perú', <svg key="mitsui" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>],
-    ['Globalpe', <svg key="global" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/></svg>],
-    ['Estrella Foods', <svg key="estrella" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 2 3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>],
-    ['Servipack', <svg key="servipack" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>],
-    ['VitalCorp', <svg key="vital" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12h4l3-9 6 18 3-9h4"/></svg>],
-  ]
-  return (
-    <section id="clientes" style={{ padding: '60px 0 40px', borderTop: `0.5px solid ${line}`, borderBottom: `0.5px solid ${line}`, background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.6))' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: muted, marginBottom: 36 }}>
-          Más de 340 empresas peruanas confían en Comply360
-        </div>
-        <div className="grid items-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 24 }}>
-          {logos.map(([name, icon]) => (
-            <div key={name} className="logo-mark" style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              fontFamily: fontSerif,
-              fontSize: 22,
-              fontStyle: 'italic',
-              letterSpacing: '-0.01em',
-              color: ink3,
-              opacity: 0.75,
-              transition: 'opacity 0.2s ease',
-            }}>
-              {icon}
-              {name}
-            </div>
-          ))}
-        </div>
-      </div>
-      <style jsx>{`
-        :global(.logo-mark:hover) { opacity: 1 !important; color: ${ink} !important; }
-      `}</style>
-    </section>
-  )
-}
-
-// ============================================================================
-// PILARES
-// ============================================================================
-function Pillars() {
-  const pillars = [
-    {
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
-      title: 'Auditoría siempre lista',
-      desc: 'Cada acción queda registrada con hash, IP y huella digital del trabajador. Cuando llegue SUNAFIL, ya tendrás el expediente armado.',
-      foot: 'SUNAFIL · MTPE · D.S. 010-2003-TR',
-    },
-    {
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-      title: 'Alertas que llegan a tiempo',
-      desc: 'Vencimientos de capacitaciones, contratos a término y exámenes médicos te avisan antes de que se conviertan en multa. No después.',
-      foot: '+ Email · WhatsApp · Slack',
-    },
-    {
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-      title: 'Portal que el trabajador sí usa',
-      desc: 'Boletas, vacaciones, capacitaciones y firma digital desde el celular. Sin instalar apps, sin chambear con papelitos.',
-      foot: 'iOS · Android · Web',
-    },
-  ]
-  return (
-    <section id="producto" style={{ padding: '120px 0' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <SectionHead
-          eyebrow="Producto"
-          title={<>Una plataforma. <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>Todo el ciclo laboral.</em></>}
-          lead="Reemplaza Excel, archivos en Drive y los cinco sistemas que nadie quiere abrir. Comply360 conecta lo que SUNAFIL te pide con lo que tu equipo realmente hace."
-        />
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-          {pillars.map((p) => (
-            <div key={p.title} className="pillar-card" style={{
-              background: '#fff',
-              border: `0.5px solid ${line}`,
-              borderRadius: 20,
-              padding: '32px 28px',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-            }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, var(--emerald-50), #fff)',
-                border: '0.5px solid var(--emerald-200)',
-                color: 'var(--emerald-700)',
-                display: 'grid',
-                placeItems: 'center',
-                marginBottom: 22,
-              }}>{p.icon}</div>
-              <div style={{ fontFamily: fontSerif, fontSize: 26, letterSpacing: '-0.02em', lineHeight: 1.15, marginBottom: 10 }}>{p.title}</div>
-              <div style={{ fontSize: 15, color: ink2, lineHeight: 1.55, marginBottom: 18 }}>{p.desc}</div>
-              <div style={{ fontFamily: fontMono, fontSize: 11, color: muted, letterSpacing: '0.02em', paddingTop: 16, borderTop: `0.5px solid ${line}` }}>{p.foot}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <style jsx>{`
-        :global(.pillar-card:hover) {
-          transform: translateY(-2px);
-          border-color: var(--emerald-200);
-          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
-        }
-      `}</style>
-    </section>
-  )
-}
-
-// ============================================================================
-// STATS DARK
-// ============================================================================
-function StatsDark() {
-  const stats: Array<[React.ReactNode, string]> = [
-    [<><em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>340+</em></>, 'empresas peruanas operando con Comply360'],
-    [<>S/ <em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>12M</em></>, 'en multas SUNAFIL evitadas en 2025'],
-    [<><em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>96<span style={{ fontSize: '0.6em' }}>%</span></em></>, 'de capacitaciones SST completadas a tiempo'],
-    [<><em key="x" style={{ color: '#93c5fd', fontStyle: 'italic' }}>2</em> sem</>, 'de implementación promedio, con tu data migrada'],
-  ]
-  return (
-    <section style={{ padding: '120px 0', background: 'linear-gradient(180deg, var(--emerald-950) 0%, #051f1a 100%)', color: '#e2e8f0' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <SectionHead
-          dark
-          eyebrow="Resultados"
-          title={<>Cumplir <em style={{ color: '#93c5fd', fontStyle: 'italic' }}>se siente</em> distinto.</>}
-        />
-        <div className="grid text-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32 }}>
-          {stats.map(([num, label], i) => (
-            <div key={i}>
-              <div style={{ fontFamily: fontSerif, fontSize: 'clamp(48px, 7vw, 92px)', letterSpacing: '-0.04em', lineHeight: 0.95, color: '#fff', marginBottom: 12 }}>
-                {num}
-              </div>
-              <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.45 }}>{label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ============================================================================
-// MÓDULOS
-// ============================================================================
-function Modules() {
-  return (
-    <section id="modulos" style={{ padding: '120px 0', background: 'linear-gradient(180deg, #f4f7f5, #fff)' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <SectionHead
-          eyebrow="Módulos"
-          title={<>Cubre <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>todo lo que SUNAFIL pregunta.</em></>}
-          lead="Activa solo lo que necesitas hoy. Activa el resto cuando crezcas."
-        />
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-          {MODULES.map((m) => (
-            <div key={m.title} className="module-card" style={{
-              background: '#fff',
-              border: `0.5px solid ${line}`,
-              borderRadius: 14,
-              padding: '24px 22px',
-              transition: 'all 0.2s ease',
-            }}>
-              <div style={{
-                display: 'inline-block',
-                fontFamily: fontMono,
-                fontSize: 10.5,
-                fontWeight: 500,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                color: 'var(--emerald-700)',
-                background: 'var(--emerald-50)',
-                border: '0.5px solid var(--emerald-200)',
-                padding: '3px 8px',
-                borderRadius: 6,
-                marginBottom: 16,
-              }}>{m.tag}</div>
-              <div style={{ fontFamily: fontSerif, fontSize: 22, letterSpacing: '-0.02em', marginBottom: 8, lineHeight: 1.15 }}>{m.title}</div>
-              <div style={{ fontSize: 13.5, color: ink2, lineHeight: 1.5, marginBottom: 16 }}>{m.desc}</div>
-              <div style={{ fontFamily: fontMono, fontSize: 10.5, color: muted, letterSpacing: '0.02em', paddingTop: 12, borderTop: `0.5px solid ${line}` }}>{m.ref}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <style jsx>{`
-        :global(.module-card:hover) {
-          border-color: var(--emerald-300);
-          background: linear-gradient(180deg, var(--emerald-50) 0%, #fff 80%);
-          transform: translateY(-2px);
-        }
-      `}</style>
-    </section>
-  )
-}
-
-// ============================================================================
-// TESTIMONIOS
-// ============================================================================
-function Testimonials() {
-  return (
-    <section style={{ padding: '120px 0' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <SectionHead
-          eyebrow="Clientes"
-          title={<>Lo que dicen <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>quienes ya cumplen.</em></>}
-        />
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-          {TESTIMONIALS.map((t) => (
-            <div key={t.name} className="tcard" style={{
-              background: '#fff',
-              border: `0.5px solid ${line}`,
-              borderRadius: 20,
-              padding: '32px 28px',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'all 0.2s ease',
-            }}>
-              <div style={{ fontFamily: fontSerif, fontSize: 22, lineHeight: 1.35, letterSpacing: '-0.015em', color: ink, marginBottom: 28, flex: 1 }}>
-                <span style={{ fontSize: 56, lineHeight: 0, verticalAlign: '-0.18em', color: 'var(--emerald-300)', marginRight: 4 }}>&ldquo;</span>
-                {t.quote}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 20, borderTop: `0.5px solid ${line}` }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--emerald-300), var(--emerald-700))', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: fontSerif, fontSize: 18, fontStyle: 'italic', flexShrink: 0 }}>
-                  {t.initial}
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: ink }}>{t.name}</div>
-                  <div style={{ fontSize: 12.5, color: ink3, marginTop: 2 }}>{t.role}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <style jsx>{`
-        :global(.tcard:hover) {
-          box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
-          transform: translateY(-2px);
-        }
-      `}</style>
-    </section>
-  )
-}
-
-// ============================================================================
-// PRICING
-// ============================================================================
-type PlanCard = (typeof PLANS)[keyof typeof PLANS]
-
-function Pricing({
-  plans,
+function Hero({
   ctaHref,
   onCtaClick,
-  isSignedIn,
 }: {
-  plans: readonly PlanCard[]
   ctaHref: string
-  onCtaClick: (e: React.MouseEvent) => void
-  isSignedIn: boolean | undefined
+  onCtaClick: (event: MouseEvent<HTMLAnchorElement>) => void
 }) {
   return (
-    <section id="precios" style={{ padding: '120px 0', background: 'linear-gradient(180deg, #f4f7f5, #fff)' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <SectionHead
-          eyebrow="Precios"
-          title={<>Empieza pequeño. <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>Crece tranquilo.</em></>}
-          lead="Precios en soles, sin sorpresas. Todos los planes incluyen soporte humano en Lima e implementación."
-        />
-        <div className="grid items-stretch" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, maxWidth: 1100, margin: '0 auto' }}>
-          {plans.map((plan) => {
-            const featured = plan.key === 'EMPRESA'
-            return <PricingCard key={plan.key} plan={plan} featured={featured} ctaHref={ctaHref} onCtaClick={onCtaClick} isSignedIn={isSignedIn} />
-          })}
+    <section className="lp-hero">
+      <div className="lp-hero-lines" aria-hidden="true" />
+      <div className="lp-shell lp-hero-content">
+        <div className="lp-hero-copy">
+          <div className="lp-eyebrow">
+            <Sparkles aria-hidden size={15} />
+            Plataforma peruana de compliance laboral
+          </div>
+          <h1>Convierte el cumplimiento laboral en una ventaja operativa.</h1>
+          <p>
+            Comply360 une RRHH, SST, legal, jefes de sede y trabajadores en un solo
+            command center. Menos persecución por chat. Más evidencia lista para SUNAFIL.
+          </p>
+          <div className="lp-hero-actions">
+            <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary lp-button-large">
+              <span>Agendar demo comercial</span>
+              <ArrowRight aria-hidden size={18} />
+            </Link>
+            <Link href="/diagnostico-gratis" className="lp-button lp-button-ghost lp-button-large">
+              <PlayCircle aria-hidden size={18} />
+              <span>Diagnóstico gratis</span>
+            </Link>
+          </div>
+          <div className="lp-signal-row" aria-label="Marcos legales cubiertos">
+            {complianceSignals.map((signal) => (
+              <span key={signal}>
+                <Check aria-hidden size={14} />
+                {signal}
+              </span>
+            ))}
+          </div>
         </div>
-        <p style={{ textAlign: 'center', fontSize: 13, color: muted, marginTop: 28 }}>
-          ¿Necesitas más? <Link href="#cta" style={{ color: 'var(--emerald-700)', fontWeight: 600 }}>Conversemos sobre Enterprise</Link> · empresas con +750 trabajadores u holdings.
+
+        <CommandCenterVisual />
+      </div>
+    </section>
+  )
+}
+
+function CommandCenterVisual() {
+  return (
+    <div className="lp-command" role="img" aria-label="Vista previa del command center de cumplimiento laboral">
+      <div className="lp-command-topbar">
+        <div className="lp-window-dots" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="lp-command-title">Comply360 Command Center</div>
+        <div className="lp-live-pill">
+          <span />
+          Fiscalización preparada
+        </div>
+      </div>
+
+      <div className="lp-command-grid">
+        <div className="lp-command-panel lp-score-panel">
+          <div className="lp-panel-label">Score SUNAFIL</div>
+          <div className="lp-score-ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="60" cy="60" r="49" />
+              <circle cx="60" cy="60" r="49" pathLength="100" />
+            </svg>
+            <div>
+              <strong>88</strong>
+              <span>/100</span>
+            </div>
+          </div>
+          <p>12 puntos de mejora antes de la siguiente visita.</p>
+        </div>
+
+        <div className="lp-command-panel lp-action-panel">
+          <div className="lp-panel-header">
+            <div>
+              <span className="lp-panel-label">Plan de acción</span>
+              <h3>Hoy requiere atencion</h3>
+            </div>
+            <ClipboardCheck aria-hidden size={22} />
+          </div>
+          <div className="lp-action-list">
+            <ActionItem status="critical" title="Capacitación SST vencida" meta="Obra Norte · 17 personas" />
+            <ActionItem status="warning" title="Contrato por renovar" meta="Equipo ventas · vence en 6 días" />
+            <ActionItem status="ok" title="Boletas firmadas" meta="241/247 completadas" />
+          </div>
+        </div>
+
+        <div className="lp-command-panel lp-inspection-panel">
+          <div className="lp-panel-label">Modo inspección</div>
+          <h3>Expediente listo</h3>
+          <div className="lp-document-stack">
+            <span>IPERC 2026</span>
+            <span>Comite SST</span>
+            <span>Boletas marzo</span>
+            <span>Contratos vigentes</span>
+          </div>
+        </div>
+
+        <div className="lp-command-panel lp-ai-panel">
+          <div className="lp-ai-avatar">
+            <Bot aria-hidden size={18} />
+          </div>
+          <div>
+            <span className="lp-panel-label">Copiloto laboral</span>
+            <p>Prepara un acta de requerimiento y prioriza los documentos faltantes por multa estimada.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ActionItem({
+  status,
+  title,
+  meta,
+}: {
+  status: 'critical' | 'warning' | 'ok'
+  title: string
+  meta: string
+}) {
+  return (
+    <div className={`lp-action-item lp-action-${status}`}>
+      <span aria-hidden="true" />
+      <div>
+        <strong>{title}</strong>
+        <small>{meta}</small>
+      </div>
+    </div>
+  )
+}
+
+function ProofRail() {
+  return (
+    <section className="lp-proof">
+      <div className="lp-shell">
+        <div className="lp-proof-grid">
+          {outcomes.map((item) => (
+            <div key={item.value} className="lp-proof-item">
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ProblemSection() {
+  return (
+    <section className="lp-section" id="riesgo">
+      <div className="lp-shell">
+        <SectionHeading
+          eyebrow="El problema"
+          title="El cumplimiento laboral no falla por falta de esfuerzo. Falla por falta de sistema."
+          lead="Tu equipo puede ser excelente y aun así vivir expuesto si la evidencia está rota, los plazos no conversan y cada sede decide con su propio Excel."
+        />
+        <div className="lp-card-grid lp-card-grid-three">
+          {painPoints.map((item) => (
+            <InfoCard key={item.title} icon={item.icon} title={item.title} body={item.body} tone="danger" />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ProductSection({
+  ctaHref,
+  onCtaClick,
+}: {
+  ctaHref: string
+  onCtaClick: (event: MouseEvent<HTMLAnchorElement>) => void
+}) {
+  return (
+    <section className="lp-section lp-product-section" id="producto">
+      <div className="lp-shell lp-product-layout">
+        <div>
+          <SectionHeading
+            align="left"
+            eyebrow="Producto"
+            title="Un sistema operativo para que RRHH, legal y SST trabajen como un solo equipo."
+            lead="No es una biblioteca de documentos. Es una capa de control: decide qué hacer, quién responde, qué evidencia falta y cómo se entrega."
+          />
+          <div className="lp-product-actions">
+            <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary">
+              <span>Ver demo con mi caso</span>
+              <ArrowRight aria-hidden size={16} />
+            </Link>
+            <Link href="/calculadoras" className="lp-button lp-button-ghost">
+              <Calculator aria-hidden size={16} />
+              <span>Probar calculadoras</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="lp-system-map">
+          <SystemNode icon={UsersRound} title="Trabajadores" body="Legajos, firmas, portal y solicitudes." />
+          <SystemNode icon={HardHat} title="SST" body="Plan anual, comite, IPERC, EMO y visitas." />
+          <SystemNode icon={Scale} title="Legal laboral" body="Contratos, denuncias y riesgo normativo." />
+          <SystemNode icon={Radar} title="Gerencia" body="Score, alertas, evidencia y reportes." />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function RiskSection({
+  ctaHref,
+  onCtaClick,
+}: {
+  ctaHref: string
+  onCtaClick: (event: MouseEvent<HTMLAnchorElement>) => void
+}) {
+  return (
+    <section className="lp-section lp-risk-section">
+      <div className="lp-shell lp-risk-layout">
+        <div className="lp-risk-board">
+          <div className="lp-risk-header">
+            <span>Simulación de riesgo</span>
+            <Siren aria-hidden size={18} />
+          </div>
+          <div className="lp-risk-amount">
+            <span>S/</span>
+            <strong>23,400</strong>
+          </div>
+          <p>Exposición estimada si faltan capacitaciones, evidencia SST y contratos renovados.</p>
+          <div className="lp-risk-bars" aria-hidden="true">
+            <span style={{ width: '88%' }} />
+            <span style={{ width: '64%' }} />
+            <span style={{ width: '42%' }} />
+          </div>
+        </div>
+
+        <div>
+          <SectionHeading
+            align="left"
+            eyebrow="ROI de prevención"
+            title="No esperes a que una multa te diga que el sistema estaba roto."
+            lead="Comply360 convierte pendientes invisibles en un plan claro: qué falta, cuánto riesgo representa, quién responde y qué evidencia debe quedar lista."
+          />
+          <div className="lp-risk-actions">
+            <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary">
+              <span>Agendar evaluación</span>
+              <ArrowRight aria-hidden size={16} />
+            </Link>
+            <Link href="/diagnostico-gratis" className="lp-button lp-button-ghost">
+              <Zap aria-hidden size={16} />
+              <span>Medir mi riesgo</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ModulesSection() {
+  return (
+    <section className="lp-section" id="modulos">
+      <div className="lp-shell">
+        <SectionHeading
+          eyebrow="Módulos"
+          title="La suite completa para llegar a SUNAFIL con evidencia, orden y criterio."
+          lead="Activa los módulos que necesitas hoy y expande cuando tu operación crezca."
+        />
+        <div className="lp-card-grid lp-card-grid-three">
+          {modules.map((module) => (
+            <ModuleCard key={module.title} {...module} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function SectorSection() {
+  return (
+    <section className="lp-section lp-sector-section" id="sectores">
+      <div className="lp-shell">
+        <SectionHeading
+          eyebrow="Especializacion"
+          title="Hecho para operaciones peruanas donde el cumplimiento se mueve todos los días."
+          lead="Si tu operación tiene sedes, turnos, obra, campo o alta rotación, necesitas control vivo y no solo carpetas bien nombradas."
+        />
+        <div className="lp-card-grid lp-card-grid-four">
+          {sectors.map((sector) => (
+            <InfoCard key={sector.title} icon={sector.icon} title={sector.title} body={sector.body} tone="neutral" />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function OperatingSystemSection() {
+  return (
+    <section className="lp-section">
+      <div className="lp-shell">
+        <SectionHeading
+          eyebrow="Implementación"
+          title="De caos documental a expediente vivo, sin detener la operación."
+          lead="Un camino simple para empezar rápido, ordenar lo urgente y escalar sin pedirle al equipo que cambie todo de golpe."
+        />
+        <div className="lp-timeline">
+          {steps.map((step, index) => (
+            <div key={step.label} className="lp-step">
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <small>{step.label}</small>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function PricingSection({
+  ctaHref,
+  isSignedIn,
+  onPricingClick,
+}: {
+  ctaHref: string
+  isSignedIn: boolean | undefined
+  onPricingClick: (plan: string) => (event: MouseEvent<HTMLAnchorElement>) => void
+}) {
+  const plans = [PLANS.STARTER, PLANS.PRO, PLANS.EMPRESA] as const
+
+  return (
+    <section className="lp-section lp-pricing-section" id="precios">
+      <div className="lp-shell">
+        <SectionHeading
+          eyebrow="Precios"
+          title="Planes claros para pasar de reaccionar a controlar."
+          lead="Tres caminos simples: ordenar una PYME, escalar una empresa en crecimiento o gobernar una operación multi-sede."
+        />
+        <div className="lp-pricing-grid">
+          {plans.map((plan) => (
+            <PricingCard
+              key={plan.key}
+              plan={plan}
+              featured={plan.key === 'PRO'}
+              ctaHref={ctaHref}
+              isSignedIn={isSignedIn}
+              onClick={onPricingClick(plan.key)}
+            />
+          ))}
+        </div>
+        <p className="lp-pricing-note">
+          Enterprise disponible para holdings, empresas 300+ trabajadores e integraciones con sistemas externos.
         </p>
       </div>
     </section>
@@ -864,120 +714,61 @@ function PricingCard({
   plan,
   featured,
   ctaHref,
-  onCtaClick,
   isSignedIn,
+  onClick,
 }: {
   plan: PlanCard
   featured: boolean
   ctaHref: string
-  onCtaClick: (e: React.MouseEvent) => void
   isSignedIn: boolean | undefined
+  onClick: (event: MouseEvent<HTMLAnchorElement>) => void
 }) {
   return (
-    <div style={{
-      background: featured ? 'linear-gradient(180deg, var(--emerald-950), #051f1a)' : '#fff',
-      color: featured ? '#e2e8f0' : ink,
-      border: featured ? '0.5px solid var(--emerald-700)' : `0.5px solid ${line}`,
-      borderRadius: 20,
-      padding: '36px 30px',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-      boxShadow: featured ? '0 8px 24px -4px rgba(16,185,129,0.25), 0 24px 48px -8px rgba(4,78,55,0.40)' : undefined,
-      transform: featured ? 'translateY(-8px)' : undefined,
-    }}>
-      {featured && (
-        <div style={{
-          position: 'absolute',
-          top: -12,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--emerald-400)',
-          color: 'var(--emerald-950)',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          padding: '5px 12px',
-          borderRadius: 999,
-          fontFamily: fontSans,
-        }}>Más popular</div>
-      )}
-      <div style={{
-        fontFamily: fontMono,
-        fontSize: 12,
-        fontWeight: 500,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        color: featured ? 'var(--emerald-300)' : ink3,
-        marginBottom: 18,
-      }}>{plan.name}</div>
-
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, fontFamily: fontSerif, marginBottom: 16 }}>
-        {plan.isCustomQuote ? (
-          <span style={{ fontSize: 42, letterSpacing: '-0.04em', lineHeight: 1, color: featured ? '#fff' : ink }}>A medida</span>
-        ) : (
-          <>
-            <span style={{ fontSize: 22, color: featured ? 'var(--emerald-300)' : ink3 }}>S/</span>
-            <span style={{ fontSize: 64, letterSpacing: '-0.04em', lineHeight: 1, color: featured ? '#fff' : ink }}>{plan.price.toLocaleString('es-PE')}</span>
-            <span style={{ fontFamily: fontSans, fontSize: 14, color: featured ? 'var(--emerald-300)' : ink3, marginLeft: 6 }}>/ mes</span>
-          </>
-        )}
+    <article className={featured ? 'lp-price-card lp-price-card-featured' : 'lp-price-card'}>
+      {featured ? <div className="lp-featured-label">Más elegido</div> : null}
+      <div className="lp-price-head">
+        <span>{plan.name}</span>
+        <strong>
+          {plan.isCustomQuote ? (
+            'A medida'
+          ) : (
+            <>
+              <small>S/</small>
+              {plan.price.toLocaleString('es-PE')}
+              <em>/mes</em>
+            </>
+          )}
+        </strong>
       </div>
-
-      <div style={{ fontSize: 14, lineHeight: 1.5, color: featured ? '#cbd5e1' : ink2, marginBottom: 28 }}>
-        {plan.key === 'STARTER' && 'Para PYMEs hasta 20 trabajadores que recién están ordenando su cumplimiento.'}
-        {plan.key === 'EMPRESA' && 'Para empresas en crecimiento que quieren cubrir todo el cumplimiento sin contratar más gente.'}
-        {plan.key === 'PRO' && 'Para empresas medianas con equipos en obra/campo, IA legal y portal del trabajador con firma biométrica.'}
-      </div>
-
-      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-        {plan.features.slice(0, 6).map((f: string) => (
-          <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: featured ? '#e2e8f0' : ink2, lineHeight: 1.45 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={featured ? 'var(--emerald-300)' : 'var(--emerald-600)'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            <span>{f}</span>
+      <p>{getPlanPitch(plan.key)}</p>
+      <ul>
+        {plan.features.slice(0, 6).map((feature) => (
+          <li key={feature}>
+            <Check aria-hidden size={15} />
+            <span>{feature.replace(/[^\p{L}\p{N}\s/().,+-]/gu, '').trim()}</span>
           </li>
         ))}
       </ul>
-
-      <Link
-        href={ctaHref}
-        onClick={onCtaClick}
-        style={{
-          width: '100%',
-          textAlign: 'center',
-          padding: '14px 24px',
-          borderRadius: 12,
-          fontSize: 15,
-          fontWeight: 500,
-          background: featured ? 'var(--emerald-400)' : ink,
-          color: featured ? 'var(--emerald-950)' : '#fff',
-          boxShadow: '0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04)',
-          transition: 'transform 0.15s ease, background 0.15s ease',
-        }}
-      >
-        {isSignedIn ? 'Ir al producto' : featured ? 'Solicitar demo' : 'Empezar'}
+      <Link href={ctaHref} onClick={onClick} className={featured ? 'lp-button lp-button-primary' : 'lp-button lp-button-ghost'}>
+        <span>{isSignedIn ? 'Ir al producto' : featured ? 'Agendar demo' : 'Empezar'}</span>
+        <ArrowRight aria-hidden size={16} />
       </Link>
-    </div>
+    </article>
   )
 }
 
-// ============================================================================
-// FAQ
-// ============================================================================
-function Faq() {
+function FaqSection() {
   return (
-    <section id="faq" style={{ padding: '120px 0' }}>
-      <div className="mx-auto max-w-[820px] px-5 sm:px-8">
-        <SectionHead
-          eyebrow="Preguntas frecuentes"
-          title={<>Lo que <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>todos preguntan.</em></>}
+    <section className="lp-section" id="faq">
+      <div className="lp-shell lp-faq-shell">
+        <SectionHeading
+          eyebrow="FAQ"
+          title="Lo que tu equipo necesita saber antes de avanzar."
+          lead="Respuestas directas para RRHH, legal, SST y gerencia antes de agendar una demo."
         />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {FAQS.map((f, i) => (
-            <FaqItem key={f.q} q={f.q} a={f.a} defaultOpen={i === 0} />
+        <div className="lp-faq-list">
+          {faqs.map((faq, index) => (
+            <FaqItem key={faq.q} {...faq} defaultOpen={index === 0} />
           ))}
         </div>
       </div>
@@ -985,120 +776,51 @@ function Faq() {
   )
 }
 
-function FaqItem({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(!!defaultOpen)
+function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+
   return (
-    <div style={{ borderTop: `0.5px solid ${line}`, padding: '24px 0' }}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          all: 'unset',
-          cursor: 'pointer',
-          display: 'flex',
-          width: '100%',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontFamily: fontSerif,
-          fontSize: 'clamp(18px, 2vw, 24px)',
-          letterSpacing: '-0.02em',
-          lineHeight: 1.25,
-          color: ink,
-          textAlign: 'left',
-        }}
-      >
+    <div className="lp-faq-item">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
         <span>{q}</span>
-        <span style={{ width: 18, height: 18, marginLeft: 24, flexShrink: 0, color: 'var(--emerald-500)', display: 'inline-flex', transition: 'transform 0.2s ease' }}>
-          {open ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          )}
-        </span>
+        {open ? <ChevronUp aria-hidden size={19} /> : <ChevronDown aria-hidden size={19} />}
       </button>
-      {open && (
-        <div style={{ paddingTop: 16, fontSize: 16, color: ink2, lineHeight: 1.6, maxWidth: '70ch' }}>{a}</div>
-      )}
+      {open ? <p>{a}</p> : null}
     </div>
   )
 }
 
-// ============================================================================
-// FINAL CTA
-// ============================================================================
-function FinalCta({ ctaHref, onCtaClick, isSignedIn }: { ctaHref: string; onCtaClick: (e: React.MouseEvent) => void; isSignedIn: boolean | undefined }) {
+function FinalCta({
+  ctaHref,
+  isSignedIn,
+  onCtaClick,
+}: {
+  ctaHref: string
+  isSignedIn: boolean | undefined
+  onCtaClick: (event: MouseEvent<HTMLAnchorElement>) => void
+}) {
   return (
-    <section id="cta" style={{ padding: '120px 0' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <div style={{
-          position: 'relative',
-          background: 'linear-gradient(135deg, var(--emerald-950) 0%, #042820 50%, #051f1a 100%)',
-          borderRadius: 28,
-          padding: 'clamp(60px, 8vw, 100px) clamp(28px, 4vw, 60px)',
-          textAlign: 'center',
-          overflow: 'hidden',
-        }}>
-          <div aria-hidden style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(52,211,153,0.20), transparent 70%), radial-gradient(ellipse 50% 60% at 100% 100%, rgba(16,185,129,0.15), transparent 70%), radial-gradient(ellipse 50% 60% at 0% 100%, rgba(110,231,183,0.10), transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-          <div style={{ position: 'relative' }}>
-            <Eyebrow dark>Da el primer paso</Eyebrow>
-            <h2 style={{
-              fontFamily: fontSerif,
-              fontSize: 'clamp(36px, 5.5vw, 72px)',
-              fontWeight: 400,
-              lineHeight: 1.02,
-              letterSpacing: '-0.03em',
-              color: '#fff',
-              marginTop: 14,
-              marginBottom: 20,
-            }}>
-              Cumplir <em style={{ color: 'var(--emerald-300)', fontStyle: 'italic' }}>nunca fue</em><br />tan simple.
-            </h2>
-            <p style={{ fontSize: 'clamp(17px, 1.4vw, 19px)', color: '#cbd5e1', maxWidth: '56ch', margin: '0 auto 36px', lineHeight: 1.55 }}>
-              Agenda una demo de 30 minutos. Te mostramos exactamente cómo Comply360 se vería en tu empresa. Sin compromiso, sin tarjeta.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link
-                href={ctaHref}
-                onClick={onCtaClick}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  background: 'var(--emerald-400)',
-                  color: 'var(--emerald-950)',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  padding: '14px 24px',
-                  borderRadius: 12,
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 8px 24px -4px rgba(16,185,129,0.45)',
-                }}
-              >
-                {isSignedIn ? 'Ir al producto' : 'Solicitar demo gratis'}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </Link>
-              <a href="#contacto" style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                background: 'rgba(255,255,255,0.08)',
-                color: '#fff',
-                fontWeight: 500,
-                fontSize: 15,
-                padding: '14px 24px',
-                borderRadius: 12,
-                border: '0.5px solid rgba(255,255,255,0.18)',
-                backdropFilter: 'blur(10px)',
-                whiteSpace: 'nowrap',
-              }}>Hablar con ventas</a>
-            </div>
+    <section className="lp-final-cta">
+      <div className="lp-shell">
+        <div className="lp-final-box">
+          <div className="lp-eyebrow">
+            <MessageSquareText aria-hidden size={15} />
+            Demo consultiva
+          </div>
+          <h2>Trae tu caos documental. Sal con un plan para ordenarlo.</h2>
+          <p>
+            En 30 minutos revisamos tu operación, tus sedes, tus riesgos y el flujo exacto
+            con el que Comply360 podría ayudarte a llegar preparado a una inspección.
+          </p>
+          <div className="lp-hero-actions">
+            <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary lp-button-large">
+              <span>{isSignedIn ? 'Ir al producto' : 'Agendar demo gratis'}</span>
+              <ArrowRight aria-hidden size={18} />
+            </Link>
+            <Link href="/diagnostico-gratis" className="lp-button lp-button-ghost lp-button-large">
+              <ShieldCheck aria-hidden size={18} />
+              <span>Empezar diagnóstico</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -1106,54 +828,1413 @@ function FinalCta({ ctaHref, onCtaClick, isSignedIn }: { ctaHref: string; onCtaC
   )
 }
 
-// ============================================================================
-// FOOTER
-// ============================================================================
-function Footer() {
-  const cols: Array<[string, Array<[string, string]>]> = [
-    ['Producto', [['Módulos', '#modulos'], ['Portal del trabajador', '/mi-portal'], ['Score SUNAFIL', '/diagnostico-gratis'], ['Calculadoras', '/calculadoras'], ['Precios', '#precios']]],
-    ['Empresa', [['Sobre nosotros', '#'], ['Clientes', '#clientes'], ['Blog', '#'], ['Trabaja con nosotros', '#'], ['Contacto', '#contacto']]],
-    ['Recursos', [['Centro de ayuda', '#'], ['Guía SUNAFIL 2026', '#'], ['Plantillas legales', '#'], ['Webinars', '#'], ['API docs', '#']]],
-    ['Legal', [['Términos', '/terminos'], ['Privacidad', '/privacidad'], ['Cookies', '#'], ['Seguridad', '#']]],
-  ]
+function LandingFooter() {
   return (
-    <footer id="contacto" style={{ background: '#fff', borderTop: `0.5px solid ${line}`, padding: '80px 0 32px' }}>
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 48, marginBottom: 64 }}>
-          <div style={{ gridColumn: 'span 1', minWidth: 220 }}>
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 17, marginBottom: 16 }}>
-              <BrandShield size={22} />
-              <span>Comply<span style={{ color: '#60a5fa' }}>360</span></span>
-            </Link>
-            <p style={{ fontSize: 14, color: ink3, lineHeight: 1.55, maxWidth: '32ch', margin: 0 }}>
-              La plataforma de cumplimiento laboral hecha para empresas peruanas. Lima · Perú.
-            </p>
-          </div>
-          {cols.map(([heading, items]) => (
-            <div key={heading}>
-              <div style={{ fontFamily: fontMono, fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: muted, marginBottom: 20 }}>{heading}</div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {items.map(([label, href]) => (
-                  <li key={label}>
-                    <Link href={href} style={{ fontSize: 14, color: ink2, transition: 'color 0.15s ease' }} className="footer-link">{label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <footer className="lp-footer">
+      <div className="lp-shell lp-footer-grid">
+        <div>
+          <Link href="/" className="lp-brand">
+            <BrandMark />
+            <span>
+              Comply<span>360</span>
+            </span>
+          </Link>
+          <p>Compliance laboral peruano para equipos que necesitan evidencia, control y velocidad.</p>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 32, borderTop: `0.5px solid ${line}`, fontSize: 13, color: muted, fontFamily: fontMono, flexWrap: 'wrap', gap: 12 }}>
-          <div>© {new Date().getFullYear()} Comply360 SAC · Lima, Perú</div>
-          <div style={{ display: 'flex', gap: 24 }}>
-            <Link href="/terminos" className="footer-link">Términos</Link>
-            <Link href="/privacidad" className="footer-link">Privacidad</Link>
-            <a href="#" className="footer-link">Cookies</a>
-          </div>
+        <div>
+          <strong>Producto</strong>
+          <Link href="#producto">Command center</Link>
+          <Link href="#modulos">Módulos</Link>
+          <Link href="/diagnostico-gratis">Diagnóstico</Link>
+        </div>
+        <div>
+          <strong>Empresa</strong>
+          <Link href="#sectores">Sectores</Link>
+          <Link href="#precios">Precios</Link>
+          <Link href="#faq">FAQ</Link>
+        </div>
+        <div>
+          <strong>Legal</strong>
+          <Link href="/terminos">Términos</Link>
+          <Link href="/privacidad">Privacidad</Link>
+          <span>© 2026 Comply360</span>
         </div>
       </div>
-      <style jsx>{`
-        :global(.footer-link:hover) { color: var(--emerald-700) !important; }
-      `}</style>
     </footer>
+  )
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  lead,
+  align = 'center',
+}: {
+  eyebrow: string
+  title: string
+  lead?: string
+  align?: 'center' | 'left'
+}) {
+  return (
+    <div className={align === 'left' ? 'lp-section-head lp-section-head-left' : 'lp-section-head'}>
+      <span>{eyebrow}</span>
+      <h2>{title}</h2>
+      {lead ? <p>{lead}</p> : null}
+    </div>
+  )
+}
+
+function InfoCard({
+  icon: Icon,
+  title,
+  body,
+  tone,
+}: {
+  icon: LucideIcon
+  title: string
+  body: string
+  tone: 'danger' | 'neutral'
+}) {
+  return (
+    <article className={tone === 'danger' ? 'lp-info-card lp-info-card-danger' : 'lp-info-card'}>
+      <div className="lp-icon-box">
+        <Icon aria-hidden size={22} />
+      </div>
+      <h3>{title}</h3>
+      <p>{body}</p>
+    </article>
+  )
+}
+
+function ModuleCard({
+  icon: Icon,
+  title,
+  body,
+  tag,
+}: {
+  icon: LucideIcon
+  title: string
+  body: string
+  tag: string
+}) {
+  return (
+    <article className="lp-module-card">
+      <div className="lp-module-top">
+        <div className="lp-icon-box">
+          <Icon aria-hidden size={22} />
+        </div>
+        <span>{tag}</span>
+      </div>
+      <h3>{title}</h3>
+      <p>{body}</p>
+    </article>
+  )
+}
+
+function SystemNode({ icon: Icon, title, body }: { icon: LucideIcon; title: string; body: string }) {
+  return (
+    <div className="lp-system-node">
+      <div className="lp-icon-box">
+        <Icon aria-hidden size={20} />
+      </div>
+      <div>
+        <h3>{title}</h3>
+        <p>{body}</p>
+      </div>
+    </div>
+  )
+}
+
+function BrandMark() {
+  return (
+    <span className="lp-brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="lpBrandTile" x1="8" y1="4" x2="56" y2="60">
+            <stop offset="0%" stopColor="#22d3ee" />
+            <stop offset="42%" stopColor="#14b8a6" />
+            <stop offset="100%" stopColor="#1d4ed8" />
+          </linearGradient>
+          <linearGradient id="lpBrandShield" x1="18" y1="11" x2="48" y2="54">
+            <stop offset="0%" stopColor="#ecfeff" stopOpacity="0.96" />
+            <stop offset="45%" stopColor="#a7f3d0" stopOpacity="0.88" />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.82" />
+          </linearGradient>
+          <clipPath id="lpBrandClip">
+            <path d="M32 10.5 48.5 16.5v12.2c0 11-6.9 19.2-16.5 24.6-9.6-5.4-16.5-13.6-16.5-24.6V16.5Z" />
+          </clipPath>
+        </defs>
+        <rect x="5" y="5" width="54" height="54" rx="15" fill="url(#lpBrandTile)" />
+        <g clipPath="url(#lpBrandClip)">
+          <path d="M32 10.5 48.5 16.5v12.2c0 11-6.9 19.2-16.5 24.6-9.6-5.4-16.5-13.6-16.5-24.6V16.5Z" fill="url(#lpBrandShield)" />
+        </g>
+        <path d="M32 10.5 48.5 16.5v12.2c0 11-6.9 19.2-16.5 24.6-9.6-5.4-16.5-13.6-16.5-24.6V16.5Z" fill="none" stroke="#ecfeff" strokeOpacity="0.5" strokeWidth="0.9" />
+        <path d="M23.5 32.2 29.6 38.1 41.2 25.3" fill="none" stroke="#06111f" strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  )
+}
+
+function getPlanPitch(planKey: string) {
+  if (planKey === 'STARTER') {
+    return 'Para PYMEs que quieren pasar de Excel y carpetas sueltas a control real.'
+  }
+  if (planKey === 'PRO') {
+    return 'Para empresas en crecimiento que necesitan IA, simulacro SUNAFIL y SST serio.'
+  }
+  if (planKey === 'EMPRESA') {
+    return 'Para operaciones multi-sede con portal del trabajador, reportes y SLA alto.'
+  }
+  return 'Para operaciones que necesitan cumplimiento laboral con trazabilidad.'
+}
+
+function LandingStyles() {
+  return (
+    <style jsx global>{`
+      .c360-landing {
+        min-height: 100vh;
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, #050914 0%, #08101c 42%, #060a12 100%);
+        color: #f8fafc;
+        font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .c360-landing *,
+      .c360-landing *::before,
+      .c360-landing *::after {
+        box-sizing: border-box;
+      }
+
+      .lp-shell {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .lp-nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(5, 9, 20, 0.82);
+        backdrop-filter: blur(18px) saturate(1.3);
+      }
+
+      .lp-nav-inner {
+        display: flex;
+        min-height: 74px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .lp-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #f8fafc;
+        font-size: 1rem;
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .lp-brand span span {
+        color: #5eead4;
+      }
+
+      .lp-brand-mark {
+        display: inline-grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+      }
+
+      .lp-brand-mark svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .lp-nav-links,
+      .lp-nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .lp-nav-links {
+        gap: 24px;
+      }
+
+      .lp-nav-links a,
+      .lp-link-button {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        font-weight: 620;
+        text-decoration: none;
+        transition: color 160ms ease;
+      }
+
+      .lp-nav-links a:hover,
+      .lp-link-button:hover {
+        color: #ffffff;
+      }
+
+      .lp-button {
+        display: inline-flex;
+        min-height: 42px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 8px;
+        padding: 0 16px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        color: #f8fafc;
+        font-size: 0.91rem;
+        font-weight: 760;
+        line-height: 1;
+        text-decoration: none;
+        transition:
+          transform 160ms ease,
+          border-color 160ms ease,
+          background 160ms ease,
+          box-shadow 160ms ease;
+        white-space: nowrap;
+      }
+
+      .lp-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .lp-button-primary {
+        border-color: rgba(45, 212, 191, 0.56);
+        background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
+        box-shadow: 0 18px 46px rgba(20, 184, 166, 0.18);
+      }
+
+      .lp-button-primary:hover {
+        box-shadow: 0 24px 58px rgba(20, 184, 166, 0.26);
+      }
+
+      .lp-button-ghost {
+        background: rgba(15, 23, 42, 0.72);
+      }
+
+      .lp-button-ghost:hover {
+        border-color: rgba(94, 234, 212, 0.48);
+        background: rgba(30, 41, 59, 0.9);
+      }
+
+      .lp-button-large {
+        min-height: 52px;
+        padding: 0 20px;
+        font-size: 0.96rem;
+      }
+
+      .lp-menu-button {
+        display: none;
+        width: 42px;
+        height: 42px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.72);
+        color: #f8fafc;
+      }
+
+      .lp-mobile-menu {
+        display: none;
+      }
+
+      .lp-hero {
+        position: relative;
+        padding: 54px 0 28px;
+        background:
+          repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.045) 0, rgba(148, 163, 184, 0.045) 1px, transparent 1px, transparent 72px),
+          repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.035) 0, rgba(148, 163, 184, 0.035) 1px, transparent 1px, transparent 72px),
+          linear-gradient(180deg, #050914 0%, #07111f 64%, #08101c 100%);
+      }
+
+      .lp-hero-lines {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(120deg, transparent 0%, rgba(34, 211, 238, 0.09) 36%, transparent 38%),
+          linear-gradient(60deg, transparent 0%, rgba(250, 204, 21, 0.08) 54%, transparent 56%);
+      }
+
+      .lp-hero-content {
+        position: relative;
+      }
+
+      .lp-hero-copy {
+        max-width: 930px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .lp-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(94, 234, 212, 0.28);
+        border-radius: 999px;
+        background: rgba(20, 184, 166, 0.1);
+        color: #99f6e4;
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        font-weight: 780;
+      }
+
+      .lp-hero h1 {
+        margin: 24px 0 0;
+        color: #f8fafc;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 3.25rem;
+        font-weight: 520;
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .lp-hero-copy > p {
+        max-width: 760px;
+        margin: 24px auto 0;
+        color: #cbd5e1;
+        font-size: 1.08rem;
+        line-height: 1.7;
+      }
+
+      .lp-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .lp-signal-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .lp-signal-row span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #a8b8cc;
+        font-size: 0.84rem;
+      }
+
+      .lp-signal-row svg {
+        color: #5eead4;
+      }
+
+      .lp-command {
+        position: relative;
+        width: min(980px, 100%);
+        margin: 34px auto 0;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 8px;
+        background:
+          linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(4, 10, 23, 0.98));
+        box-shadow:
+          0 30px 100px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+
+      .lp-command::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.04) 0, rgba(148, 163, 184, 0.04) 1px, transparent 1px, transparent 46px),
+          repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.035) 0, rgba(148, 163, 184, 0.035) 1px, transparent 1px, transparent 46px);
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      .lp-command > * {
+        position: relative;
+      }
+
+      .lp-command-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 52px;
+        padding: 0 16px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      }
+
+      .lp-window-dots {
+        display: flex;
+        gap: 6px;
+      }
+
+      .lp-window-dots span {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: #334155;
+      }
+
+      .lp-window-dots span:first-child {
+        background: #fb7185;
+      }
+
+      .lp-window-dots span:nth-child(2) {
+        background: #fbbf24;
+      }
+
+      .lp-window-dots span:nth-child(3) {
+        background: #22c55e;
+      }
+
+      .lp-command-title {
+        color: #dbe4f0;
+        font-size: 0.84rem;
+        font-weight: 760;
+      }
+
+      .lp-live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #99f6e4;
+        font-size: 0.78rem;
+        font-weight: 720;
+      }
+
+      .lp-live-pill span {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #14b8a6;
+        box-shadow: 0 0 0 5px rgba(20, 184, 166, 0.14);
+      }
+
+      .lp-command-grid {
+        display: grid;
+        grid-template-columns: 0.9fr 1.5fr 1fr;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .lp-command-panel,
+      .lp-info-card,
+      .lp-module-card,
+      .lp-system-node,
+      .lp-price-card,
+      .lp-step,
+      .lp-risk-board,
+      .lp-final-box {
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.78);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .lp-command-panel {
+        min-height: 142px;
+        padding: 14px;
+      }
+
+      .lp-panel-label,
+      .lp-risk-header span,
+      .lp-section-head > span,
+      .lp-price-head > span,
+      .lp-step small,
+      .lp-module-top span {
+        color: #5eead4;
+        font-size: 0.74rem;
+        font-weight: 820;
+        text-transform: uppercase;
+      }
+
+      .lp-score-panel {
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+
+      .lp-score-ring {
+        position: relative;
+        width: 98px;
+        height: 98px;
+        margin: 6px auto;
+      }
+
+      .lp-score-ring svg {
+        width: 98px;
+        height: 98px;
+        transform: rotate(-90deg);
+      }
+
+      .lp-score-ring circle {
+        fill: none;
+        stroke-width: 10;
+        stroke: rgba(148, 163, 184, 0.14);
+      }
+
+      .lp-score-ring circle:nth-child(2) {
+        stroke: #14b8a6;
+        stroke-dasharray: 88 100;
+        filter: drop-shadow(0 0 8px rgba(20, 184, 166, 0.5));
+      }
+
+      .lp-score-ring div {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #f8fafc;
+      }
+
+      .lp-score-ring strong {
+        display: block;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 2.45rem;
+        font-weight: 520;
+        line-height: 0.92;
+      }
+
+      .lp-score-ring span {
+        color: #8b9bb1;
+        font-size: 0.8rem;
+      }
+
+      .lp-score-panel p,
+      .lp-ai-panel p,
+      .lp-risk-board p,
+      .lp-section-head p,
+      .lp-info-card p,
+      .lp-module-card p,
+      .lp-system-node p,
+      .lp-step p,
+      .lp-price-card p,
+      .lp-faq-item p,
+      .lp-final-box p,
+      .lp-footer p {
+        color: #a8b8cc;
+        line-height: 1.65;
+      }
+
+      .lp-score-panel p,
+      .lp-ai-panel p {
+        margin: 0;
+        font-size: 0.82rem;
+      }
+
+      .lp-panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .lp-panel-header h3,
+      .lp-inspection-panel h3,
+      .lp-system-node h3,
+      .lp-info-card h3,
+      .lp-module-card h3,
+      .lp-step h3 {
+        margin: 0;
+        color: #f8fafc;
+        font-size: 1rem;
+        line-height: 1.25;
+      }
+
+      .lp-panel-header svg {
+        color: #5eead4;
+      }
+
+      .lp-action-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .lp-action-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        background: rgba(2, 6, 23, 0.42);
+      }
+
+      .lp-action-item > span {
+        width: 8px;
+        height: 8px;
+        margin-top: 5px;
+        flex: none;
+        border-radius: 999px;
+      }
+
+      .lp-action-critical > span {
+        background: #fb7185;
+      }
+
+      .lp-action-warning > span {
+        background: #fbbf24;
+      }
+
+      .lp-action-ok > span {
+        background: #22c55e;
+      }
+
+      .lp-action-item strong,
+      .lp-action-item small {
+        display: block;
+      }
+
+      .lp-action-item strong {
+        color: #e5eef9;
+        font-size: 0.83rem;
+      }
+
+      .lp-action-item small {
+        margin-top: 3px;
+        color: #8b9bb1;
+        font-size: 0.75rem;
+      }
+
+      .lp-inspection-panel {
+        background:
+          linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.78));
+      }
+
+      .lp-inspection-panel h3 {
+        margin-top: 8px;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 1.5rem;
+        font-weight: 520;
+      }
+
+      .lp-document-stack {
+        display: grid;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .lp-document-stack span {
+        display: block;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 6px;
+        background: rgba(2, 6, 23, 0.36);
+        color: #dbe4f0;
+        padding: 8px 10px;
+        font-size: 0.78rem;
+      }
+
+      .lp-ai-panel {
+        grid-column: span 3;
+        display: flex;
+        min-height: auto;
+        align-items: center;
+        gap: 14px;
+        background:
+          linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.78));
+      }
+
+      .lp-ai-avatar {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        flex: none;
+        border-radius: 8px;
+        background: rgba(94, 234, 212, 0.12);
+        color: #5eead4;
+      }
+
+      .lp-proof {
+        border-top: 1px solid rgba(148, 163, 184, 0.12);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        background: rgba(2, 6, 23, 0.28);
+      }
+
+      .lp-proof-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .lp-proof-item {
+        min-height: 112px;
+        padding: 24px;
+        border-right: 1px solid rgba(148, 163, 184, 0.12);
+      }
+
+      .lp-proof-item:last-child {
+        border-right: none;
+      }
+
+      .lp-proof-item strong {
+        display: block;
+        color: #f8fafc;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 2.2rem;
+        font-weight: 520;
+        line-height: 1;
+      }
+
+      .lp-proof-item span {
+        display: block;
+        margin-top: 8px;
+        color: #8b9bb1;
+        font-size: 0.88rem;
+      }
+
+      .lp-section {
+        padding: 104px 0;
+      }
+
+      .lp-section-head {
+        max-width: 800px;
+        margin: 0 auto 42px;
+        text-align: center;
+      }
+
+      .lp-section-head-left {
+        max-width: 620px;
+        margin-right: 0;
+        margin-left: 0;
+        text-align: left;
+      }
+
+      .lp-section-head h2,
+      .lp-final-box h2 {
+        margin: 12px 0 0;
+        color: #f8fafc;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 2.7rem;
+        font-weight: 520;
+        line-height: 1.03;
+        letter-spacing: 0;
+      }
+
+      .lp-section-head p {
+        margin: 18px auto 0;
+        max-width: 690px;
+        font-size: 1.02rem;
+      }
+
+      .lp-section-head-left p {
+        margin-left: 0;
+      }
+
+      .lp-card-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .lp-card-grid-three {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .lp-card-grid-four {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .lp-info-card,
+      .lp-module-card {
+        padding: 22px;
+        transition:
+          transform 160ms ease,
+          border-color 160ms ease,
+          background 160ms ease;
+      }
+
+      .lp-info-card:hover,
+      .lp-module-card:hover,
+      .lp-system-node:hover,
+      .lp-price-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(94, 234, 212, 0.42);
+      }
+
+      .lp-info-card-danger {
+        background:
+          linear-gradient(180deg, rgba(244, 63, 94, 0.08), rgba(15, 23, 42, 0.78));
+      }
+
+      .lp-icon-box {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border: 1px solid rgba(94, 234, 212, 0.22);
+        border-radius: 8px;
+        background: rgba(94, 234, 212, 0.08);
+        color: #5eead4;
+      }
+
+      .lp-info-card h3,
+      .lp-module-card h3 {
+        margin-top: 18px;
+        font-size: 1.08rem;
+      }
+
+      .lp-info-card p,
+      .lp-module-card p {
+        margin: 10px 0 0;
+        font-size: 0.93rem;
+      }
+
+      .lp-product-section,
+      .lp-pricing-section {
+        background:
+          linear-gradient(180deg, rgba(8, 16, 28, 0) 0%, rgba(10, 15, 28, 0.72) 100%);
+      }
+
+      .lp-product-layout,
+      .lp-risk-layout {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        align-items: center;
+        gap: 44px;
+      }
+
+      .lp-product-actions,
+      .lp-risk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .lp-system-map {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        position: relative;
+      }
+
+      .lp-system-map::before {
+        content: "";
+        position: absolute;
+        inset: 50% 20px auto;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(94, 234, 212, 0.5), transparent);
+      }
+
+      .lp-system-node {
+        display: flex;
+        gap: 14px;
+        min-height: 146px;
+        padding: 18px;
+      }
+
+      .lp-system-node p {
+        margin: 8px 0 0;
+        font-size: 0.9rem;
+      }
+
+      .lp-risk-section {
+        background:
+          linear-gradient(135deg, rgba(244, 63, 94, 0.1), rgba(8, 16, 28, 0.42) 40%, rgba(245, 158, 11, 0.08));
+      }
+
+      .lp-risk-board {
+        padding: 28px;
+        background:
+          linear-gradient(180deg, rgba(87, 24, 39, 0.58), rgba(15, 23, 42, 0.84));
+      }
+
+      .lp-risk-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #fb7185;
+      }
+
+      .lp-risk-amount {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 24px;
+        color: #fecdd3;
+      }
+
+      .lp-risk-amount span {
+        font-size: 1.5rem;
+      }
+
+      .lp-risk-amount strong {
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 5rem;
+        font-weight: 520;
+        line-height: 1;
+      }
+
+      .lp-risk-board p {
+        max-width: 420px;
+        margin: 14px 0 0;
+      }
+
+      .lp-risk-bars {
+        display: grid;
+        gap: 10px;
+        margin-top: 28px;
+      }
+
+      .lp-risk-bars span {
+        display: block;
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #fb7185, #fbbf24);
+      }
+
+      .lp-module-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .lp-sector-section {
+        background:
+          linear-gradient(180deg, rgba(2, 6, 23, 0.22), rgba(8, 16, 28, 0.76));
+      }
+
+      .lp-timeline {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+
+      .lp-step {
+        min-height: 260px;
+        padding: 22px;
+      }
+
+      .lp-step > span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        background: rgba(94, 234, 212, 0.1);
+        color: #99f6e4;
+        font-family: var(--font-mono), ui-monospace, monospace;
+        font-weight: 800;
+      }
+
+      .lp-step small {
+        display: block;
+        margin-top: 22px;
+      }
+
+      .lp-step h3 {
+        margin-top: 10px;
+      }
+
+      .lp-step p {
+        margin: 10px 0 0;
+        font-size: 0.92rem;
+      }
+
+      .lp-pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .lp-price-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 610px;
+        padding: 26px;
+      }
+
+      .lp-price-card-featured {
+        border-color: rgba(94, 234, 212, 0.55);
+        background:
+          linear-gradient(180deg, rgba(20, 184, 166, 0.16), rgba(15, 23, 42, 0.86));
+        box-shadow: 0 26px 80px rgba(20, 184, 166, 0.16);
+      }
+
+      .lp-featured-label {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        border-radius: 999px;
+        background: rgba(250, 204, 21, 0.14);
+        color: #fde68a;
+        padding: 6px 10px;
+        font-size: 0.72rem;
+        font-weight: 820;
+      }
+
+      .lp-price-head {
+        padding-right: 92px;
+      }
+
+      .lp-price-head > span {
+        display: block;
+      }
+
+      .lp-price-head strong {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        margin-top: 18px;
+        color: #f8fafc;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 3.65rem;
+        font-weight: 520;
+        line-height: 1;
+      }
+
+      .lp-price-head small,
+      .lp-price-head em {
+        color: #8b9bb1;
+        font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+        font-size: 0.95rem;
+        font-style: normal;
+      }
+
+      .lp-price-card p {
+        margin: 18px 0 0;
+        min-height: 76px;
+        font-size: 0.93rem;
+      }
+
+      .lp-price-card ul {
+        display: grid;
+        gap: 12px;
+        margin: 24px 0;
+        padding: 0;
+        list-style: none;
+        flex: 1;
+      }
+
+      .lp-price-card li {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        color: #dbe4f0;
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .lp-price-card li svg {
+        flex: none;
+        margin-top: 3px;
+        color: #5eead4;
+      }
+
+      .lp-price-card .lp-button {
+        width: 100%;
+      }
+
+      .lp-pricing-note {
+        margin: 24px 0 0;
+        color: #8b9bb1;
+        text-align: center;
+        font-size: 0.9rem;
+      }
+
+      .lp-faq-shell {
+        max-width: 900px;
+      }
+
+      .lp-faq-list {
+        border-top: 1px solid rgba(148, 163, 184, 0.16);
+      }
+
+      .lp-faq-item {
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      }
+
+      .lp-faq-item button {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border: 0;
+        background: transparent;
+        color: #f8fafc;
+        padding: 24px 0;
+        text-align: left;
+        font-size: 1.08rem;
+        font-weight: 760;
+      }
+
+      .lp-faq-item button svg {
+        flex: none;
+        color: #5eead4;
+      }
+
+      .lp-faq-item p {
+        margin: -8px 0 24px;
+        max-width: 720px;
+      }
+
+      .lp-final-cta {
+        padding: 48px 0 108px;
+      }
+
+      .lp-final-box {
+        padding: 58px;
+        text-align: center;
+        background:
+          repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.045) 0, rgba(148, 163, 184, 0.045) 1px, transparent 1px, transparent 56px),
+          linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(37, 99, 235, 0.18) 42%, rgba(15, 23, 42, 0.86));
+      }
+
+      .lp-final-box h2 {
+        max-width: 760px;
+        margin-right: auto;
+        margin-left: auto;
+      }
+
+      .lp-final-box p {
+        max-width: 680px;
+        margin: 18px auto 0;
+        font-size: 1.02rem;
+      }
+
+      .lp-footer {
+        border-top: 1px solid rgba(148, 163, 184, 0.16);
+        padding: 54px 0;
+        background: rgba(2, 6, 23, 0.38);
+      }
+
+      .lp-footer-grid {
+        display: grid;
+        grid-template-columns: 1.7fr repeat(3, 1fr);
+        gap: 32px;
+      }
+
+      .lp-footer p {
+        max-width: 360px;
+        margin: 16px 0 0;
+      }
+
+      .lp-footer strong,
+      .lp-footer a,
+      .lp-footer span {
+        display: block;
+      }
+
+      .lp-footer strong {
+        margin-bottom: 12px;
+        color: #f8fafc;
+      }
+
+      .lp-footer a,
+      .lp-footer span {
+        margin-top: 9px;
+        color: #8b9bb1;
+        font-size: 0.9rem;
+        text-decoration: none;
+      }
+
+      .lp-footer a:hover {
+        color: #5eead4;
+      }
+
+      @media (min-width: 900px) {
+        .lp-hero h1 {
+          font-size: 5rem;
+        }
+      }
+
+      @media (min-width: 1160px) {
+        .lp-hero h1 {
+          font-size: 5.65rem;
+        }
+      }
+
+      @media (max-width: 1020px) {
+        .lp-nav-links,
+        .lp-nav-actions {
+          display: none;
+        }
+
+        .lp-menu-button {
+          display: inline-flex;
+        }
+
+        .lp-mobile-menu {
+          display: grid;
+          gap: 4px;
+          width: min(1180px, calc(100% - 40px));
+          margin: 0 auto;
+          padding: 12px 0 18px;
+        }
+
+        .lp-mobile-menu a {
+          border-radius: 8px;
+          color: #dbe4f0;
+          padding: 12px;
+          text-decoration: none;
+        }
+
+        .lp-mobile-menu a:hover {
+          background: rgba(148, 163, 184, 0.08);
+        }
+
+        .lp-command-grid,
+        .lp-card-grid-three,
+        .lp-card-grid-four,
+        .lp-product-layout,
+        .lp-risk-layout,
+        .lp-timeline,
+        .lp-pricing-grid,
+        .lp-footer-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .lp-ai-panel {
+          grid-column: span 2;
+        }
+
+        .lp-product-layout,
+        .lp-risk-layout {
+          gap: 32px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .lp-shell {
+          width: min(100% - 28px, 1180px);
+        }
+
+        .lp-nav-inner {
+          min-height: 66px;
+        }
+
+        .lp-hero {
+          padding-top: 48px;
+        }
+
+        .lp-hero h1 {
+          font-size: 3rem;
+        }
+
+        .lp-hero-copy > p {
+          font-size: 1rem;
+        }
+
+        .lp-hero-actions,
+        .lp-product-actions,
+        .lp-risk-actions {
+          flex-direction: column;
+        }
+
+        .lp-button {
+          width: 100%;
+        }
+
+        .lp-signal-row {
+          justify-content: flex-start;
+          text-align: left;
+        }
+
+        .lp-command {
+          margin-top: 34px;
+        }
+
+        .lp-command-title {
+          display: none;
+        }
+
+        .lp-live-pill {
+          font-size: 0.72rem;
+        }
+
+        .lp-command-grid,
+        .lp-proof-grid,
+        .lp-card-grid-three,
+        .lp-card-grid-four,
+        .lp-product-layout,
+        .lp-risk-layout,
+        .lp-system-map,
+        .lp-timeline,
+        .lp-pricing-grid,
+        .lp-footer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .lp-ai-panel {
+          grid-column: auto;
+        }
+
+        .lp-proof-item {
+          border-right: none;
+          border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        .lp-proof-item:last-child {
+          border-bottom: none;
+        }
+
+        .lp-section {
+          padding: 76px 0;
+        }
+
+        .lp-section-head,
+        .lp-section-head-left {
+          text-align: left;
+        }
+
+        .lp-section-head h2,
+        .lp-final-box h2 {
+          font-size: 2.25rem;
+        }
+
+        .lp-risk-amount strong {
+          font-size: 4rem;
+        }
+
+        .lp-price-card {
+          min-height: auto;
+        }
+
+        .lp-final-box {
+          padding: 30px 18px;
+          text-align: left;
+        }
+
+        .lp-final-box .lp-hero-actions {
+          align-items: stretch;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .lp-hero h1 {
+          font-size: 2.55rem;
+        }
+
+        .lp-command-topbar {
+          padding: 0 10px;
+        }
+
+        .lp-command-grid {
+          padding: 10px;
+        }
+
+        .lp-command-panel,
+        .lp-info-card,
+        .lp-module-card,
+        .lp-price-card,
+        .lp-step,
+        .lp-risk-board {
+          padding: 18px;
+        }
+      }
+    `}</style>
   )
 }

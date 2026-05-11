@@ -4,7 +4,7 @@ import { Toaster as SonnerToaster, toast as sonnerToast } from 'sonner'
 import { CheckCircle2, XCircle, AlertTriangle, Info, Sparkles } from 'lucide-react'
 
 /**
- * SonnerToaster — toaster con skin LIGHT.
+ * SonnerToaster — toaster con skin dark.
  *
  * Mount once en root layout. Usar desde cualquier componente:
  *   import { toast } from '@/components/ui/sonner-toaster'
@@ -15,7 +15,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Info, Sparkles } from 'lucide-rea
 export function AppToaster() {
   return (
     <SonnerToaster
-      theme="light"
+      theme="dark"
       position="top-right"
       richColors={false}
       closeButton
@@ -27,7 +27,7 @@ export function AppToaster() {
         classNames: {
           toast:
             'group !rounded-xl !border !border-[color:var(--border-default)] ' +
-            '!bg-white ' +
+            '!bg-[color:var(--bg-elevated)] ' +
             '!shadow-[var(--elevation-3)] !text-[color:var(--text-primary)] ' +
             '!p-4 !gap-3',
           title: '!text-sm !font-semibold !text-[color:var(--text-primary)]',
@@ -35,17 +35,17 @@ export function AppToaster() {
           actionButton:
             '!bg-emerald-600 !text-white !rounded-md !px-2.5 !py-1 !text-xs !font-semibold',
           cancelButton:
-            '!bg-[color:var(--neutral-100)] !text-[color:var(--text-secondary)] !rounded-md !px-2.5 !py-1 !text-xs',
+            '!bg-[color:var(--bg-inset)] !text-[color:var(--text-secondary)] !rounded-md !px-2.5 !py-1 !text-xs',
           closeButton:
-            '!bg-white !border !border-[color:var(--border-default)] !text-[color:var(--text-tertiary)] hover:!bg-[color:var(--neutral-50)]',
+            '!bg-[color:var(--bg-surface)] !border !border-[color:var(--border-default)] !text-[color:var(--text-tertiary)] hover:!bg-[color:var(--bg-surface-hover)]',
           success:
-            '!border-emerald-200 [&>[data-icon]]:!text-emerald-600',
+            '!border-emerald-400/30 [&>[data-icon]]:!text-emerald-300',
           error:
-            '!border-crimson-200 [&>[data-icon]]:!text-crimson-600',
+            '!border-crimson-400/30 [&>[data-icon]]:!text-crimson-300',
           warning:
-            '!border-amber-200 [&>[data-icon]]:!text-amber-600',
+            '!border-amber-400/30 [&>[data-icon]]:!text-amber-300',
           info:
-            '!border-cyan-200 [&>[data-icon]]:!text-cyan-600',
+            '!border-cyan-400/25 [&>[data-icon]]:!text-cyan-200',
         },
       }}
       icons={{

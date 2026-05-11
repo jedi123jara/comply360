@@ -8,7 +8,12 @@
 // comunes vía un mapa de aliases.
 // =============================================
 
-import * as XLSX from 'xlsx'
+import {
+  firstWorksheet,
+  loadWorkbook,
+  parseCsvObjects,
+  worksheetToJson,
+} from '@/lib/excel/exceljs'
 
 /**
  * Mapeo de aliases de columnas → key canónica.
@@ -89,19 +94,12 @@ export interface ParseResult {
  * Lee un Excel/CSV y devuelve filas como objetos con keys canónicas.
  * Convierte fechas Excel (números seriales) a ISO YYYY-MM-DD.
  */
-export function parseBulkFile(input: ParseInput): ParseResult {
+export async function parseBulkFile(input: ParseInput): Promise<ParseResult> {
   const data = toUint8Array(input.buffer)
-  const wb = XLSX.read(data, { type: 'array', cellDates: true })
-  const firstSheet = wb.SheetNames[0]
-  if (!firstSheet) throw new Error('El archivo no tiene hojas válidas.')
-  const sheet = wb.Sheets[firstSheet]
-
-  // Leer como objetos. Header row 1, defval=null → filas vacías retornan null
-  const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: null,
-    raw: false, // forzar string en valores no numéricos para controlar nosotros la conversión
-    blankrows: false,
-  })
+  const format = input.format ?? 'xlsx'
+  const raw = format === 'csv'
+    ? parseCsvObjects(new TextDecoder().decode(data))
+    : await parseXlsxObjects(data)
 
   if (raw.length === 0) {
     return { rows: [], detectedColumns: [], columnMapping: {} }
@@ -121,6 +119,13 @@ export function parseBulkFile(input: ParseInput): ParseResult {
   })
 
   return { rows, detectedColumns, columnMapping }
+}
+
+async function parseXlsxObjects(data: Uint8Array) {
+  const workbook = await loadWorkbook(data)
+  const firstSheet = firstWorksheet(workbook)
+  if (!firstSheet) throw new Error('El archivo no tiene hojas válidas.')
+  return worksheetToJson(firstSheet, { defval: null, rawDates: false })
 }
 
 function toUint8Array(buf: ArrayBuffer | Uint8Array | Buffer): Uint8Array {

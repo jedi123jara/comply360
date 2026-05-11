@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
-import * as XLSX from 'xlsx'
+import { addJsonSheet, createWorkbook, rowsToCsv, workbookToArrayBuffer } from '@/lib/excel/exceljs'
 
 /**
  * GET /api/export?type=...&format=xlsx|csv
@@ -433,33 +433,21 @@ export const GET = withPlanGate('reportes_pdf', async (req: NextRequest, ctx: Au
     return NextResponse.json({ error: `Tipo no reconocido: ${type}. Use workers, calculations, diagnostics, contracts, alerts, legajo-inventory, attendance-monthly o attendance-summary.` }, { status: 400 })
   }
 
-  // Build workbook
-  const wb = XLSX.utils.book_new()
-  const ws = XLSX.utils.json_to_sheet(rows)
-
-  // Auto-width columns
-  const colWidths = rows.length > 0
-    ? Object.keys(rows[0]).map(key => ({
-        wch: Math.max(key.length, ...rows.map(r => String(r[key] ?? '').length)) + 2,
-      }))
-    : []
-  ws['!cols'] = colWidths
-
-  XLSX.utils.book_append_sheet(wb, ws, sheetName)
-
   const mimeType = format === 'csv'
-    ? 'text/csv'
+    ? 'text/csv; charset=utf-8'
     : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
   const fileExt = format === 'csv' ? 'csv' : 'xlsx'
-  const raw: Uint8Array = XLSX.write(wb, {
-    type: 'buffer',
-    bookType: format === 'csv' ? 'csv' : 'xlsx',
-  })
-  // NextResponse body accepts ArrayBuffer
-  const buffer = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer
+  let body: string | ArrayBuffer
+  if (format === 'csv') {
+    body = rowsToCsv(rows)
+  } else {
+    const workbook = createWorkbook()
+    addJsonSheet(workbook, sheetName, rows)
+    body = await workbookToArrayBuffer(workbook)
+  }
 
-  return new NextResponse(buffer, {
+  return new NextResponse(body, {
     headers: {
       'Content-Type': mimeType,
       'Content-Disposition': `attachment; filename="${filename}.${fileExt}"`,

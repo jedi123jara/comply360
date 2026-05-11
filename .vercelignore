@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+
+.design-temp/
+design-preview/
+playwright-report/
+test-results/
+coverage/
+favicons_temporales/

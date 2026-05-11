@@ -7,7 +7,7 @@
  *   - Spanish labels: "TOTAL REM. BÁSICA", "TOTAL ASIG.FAM.", "AFP COMIS+SEG", "IR 5TA", etc.
  *   - Files with no MES column (annual summaries): rows processed with month fallback
  */
-import * as XLSX from 'xlsx'
+import { firstWorksheet, loadWorkbook, parseCsvAoA, worksheetToAoA } from '@/lib/excel/exceljs'
 
 // ──────────────────────────────────────────────
 // Types
@@ -61,7 +61,7 @@ export interface PlameParseResult {
 // Helpers
 // ──────────────────────────────────────────────
 
-type CellVal = string | number | boolean | null | undefined
+type CellVal = string | number | boolean | Date | null | undefined
 
 function cellStr(v: CellVal): string {
   if (v == null) return ''
@@ -145,14 +145,16 @@ function splitName(full: string): { firstName: string; lastName: string } {
 // Main parser
 // ──────────────────────────────────────────────
 
-export function parsePlameExcel(buffer: ArrayBuffer): PlameParseResult {
+export async function parsePlameExcel(
+  buffer: ArrayBuffer,
+  options: { format?: 'xlsx' | 'csv' } = {},
+): Promise<PlameParseResult> {
   const errors: string[] = []
   const rows: PlameRow[] = []
 
-  const workbook = XLSX.read(buffer, { type: 'array' })
-  const sheetName = workbook.SheetNames[0]
-  const sheet = workbook.Sheets[sheetName]
-  const raw = XLSX.utils.sheet_to_json<CellVal[]>(sheet, { header: 1, defval: '' }) as CellVal[][]
+  const raw = options.format === 'csv'
+    ? parseCsvAoA(new TextDecoder().decode(buffer)) as CellVal[][]
+    : await readExcelRows(buffer)
 
   const headerRowIdx = findHeaderRow(raw)
   if (headerRowIdx === -1) {
@@ -308,4 +310,11 @@ export function parsePlameExcel(buffer: ArrayBuffer): PlameParseResult {
   const periodEnd   = periodos[periodos.length - 1] ?? ''
 
   return { rows, workerCount: dniSet.size, periodStart, periodEnd, errors }
+}
+
+async function readExcelRows(buffer: ArrayBuffer): Promise<CellVal[][]> {
+  const workbook = await loadWorkbook(buffer)
+  const sheet = firstWorksheet(workbook)
+  if (!sheet) return []
+  return worksheetToAoA(sheet, { defval: '' }) as CellVal[][]
 }

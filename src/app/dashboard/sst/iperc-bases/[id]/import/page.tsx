@@ -14,7 +14,6 @@ import {
   Eye,
   X,
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -32,8 +31,8 @@ import { calcularNivelRiesgo } from '@/lib/sst/iperc-matrix'
  *
  * Flujo:
  *   1. Usuario descarga plantilla (botón "Descargar plantilla").
- *   2. Sube archivo .xlsx con sus filas.
- *   3. Cliente parsea con xlsx, valida con `parseIpercRows`, muestra preview
+ *   2. Sube archivo .xlsx o .csv con sus filas.
+ *   3. Cliente parsea con exceljs, valida con `parseIpercRows`, muestra preview
  *      con NR calculado en vivo + errores destacados.
  *   4. Botón "Importar N filas" envía JSON a /bulk-import.
  *   5. Tras éxito, redirige al editor IPERC.
@@ -68,26 +67,43 @@ export default function ImportIpercPage() {
     setFilename(file.name)
 
     try {
-      const buf = await file.arrayBuffer()
-      const wb = XLSX.read(buf, { type: 'array' })
-      // Buscamos hoja "Datos" o, si no existe, la primera no llamada
-      // "Instrucciones" ni "Catálogo Peligros".
-      let sheetName = wb.SheetNames.find((s) => s.toLowerCase() === 'datos')
-      if (!sheetName) {
-        sheetName = wb.SheetNames.find(
-          (s) =>
-            !s.toLowerCase().includes('instruccion') &&
-            !s.toLowerCase().includes('catálogo') &&
-            !s.toLowerCase().includes('catalogo'),
-        )
+      const lowerName = file.name.toLowerCase()
+      if (lowerName.endsWith('.xls')) {
+        throw new Error('El formato .xls heredado ya no se acepta por seguridad. Guarda el archivo como .xlsx o .csv.')
       }
-      if (!sheetName) sheetName = wb.SheetNames[0]
-      const ws = wb.Sheets[sheetName]
-      const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, {
-        defval: '',
-      })
 
-      const result = parseIpercRows(raw)
+      const {
+        firstWorksheet,
+        loadWorkbook,
+        parseCsvObjects,
+        worksheetToJson,
+      } = await import('@/lib/excel/exceljs')
+
+      const raw = lowerName.endsWith('.csv')
+        ? parseCsvObjects(await file.text())
+        : (() => null)()
+
+      let rows = raw
+      if (!rows) {
+        const buf = await file.arrayBuffer()
+        const wb = await loadWorkbook(buf)
+        // Buscamos hoja "Datos" o, si no existe, la primera no llamada
+        // "Instrucciones" ni "Catálogo Peligros".
+        let sheet = wb.worksheets.find((s) => s.name.toLowerCase() === 'datos')
+        if (!sheet) {
+          sheet = wb.worksheets.find(
+            (s) =>
+              !s.name.toLowerCase().includes('instruccion') &&
+              !s.name.toLowerCase().includes('catálogo') &&
+              !s.name.toLowerCase().includes('catalogo'),
+          )
+        }
+        sheet ??= firstWorksheet(wb) ?? undefined
+        if (!sheet) throw new Error('El Excel no contiene hojas para importar.')
+        rows = worksheetToJson(sheet, { defval: '', rawDates: false })
+      }
+
+      const result = parseIpercRows(rows)
       setParsedRows(result.rows)
       setParseErrors(result.errors)
       setSkippedEmpty(result.skipped)
@@ -216,7 +232,7 @@ export default function ImportIpercPage() {
           <input
             ref={fileRef}
             type="file"
-            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
             onChange={handleFile}
             className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:font-semibold hover:file:bg-emerald-700 file:cursor-pointer cursor-pointer border border-dashed border-slate-300 rounded-xl p-4 bg-slate-50"
           />

@@ -190,7 +190,7 @@ export function HeroPanel({
           <button
             type="button"
             onClick={onOpenDiagnostic}
-            className="inline-flex items-center gap-2 rounded-lg bg-white hover:bg-[color:var(--neutral-50)] text-[color:var(--text-primary)] px-3.5 py-2 text-xs font-semibold transition-colors border border-[color:var(--border-default)]"
+            className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--bg-inset)] hover:bg-[color:var(--bg-surface-hover)] text-[color:var(--text-primary)] px-3.5 py-2 text-xs font-semibold transition-colors border border-[color:var(--border-default)]"
             style={{ justifyContent: 'flex-start' }}
           >
             <ShieldCheck size={13} /> Ver diagnóstico completo
@@ -199,7 +199,7 @@ export function HeroPanel({
             <button
               type="button"
               onClick={onAskAssistant}
-              className="inline-flex items-center gap-2 rounded-lg bg-white hover:bg-[color:var(--neutral-50)] text-[color:var(--text-primary)] px-3.5 py-2 text-xs font-semibold transition-colors border border-[color:var(--border-default)]"
+              className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--bg-inset)] hover:bg-[color:var(--bg-surface-hover)] text-[color:var(--text-primary)] px-3.5 py-2 text-xs font-semibold transition-colors border border-[color:var(--border-default)]"
               style={{ justifyContent: 'flex-start' }}
             >
               <Activity size={13} /> Preguntar al asistente

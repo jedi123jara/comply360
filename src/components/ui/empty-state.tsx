@@ -12,7 +12,7 @@
  *
  * Variantes:
  *   - default: para dashboards (surface oscuro)
- *   - light:   para marketing / portal worker (surface blanco)
+   *   - light:   para marketing / portal worker (surface de alto contraste)
  *   - compact: espacio vertical reducido (para inline en cards)
  */
 import Link from 'next/link'
@@ -60,21 +60,21 @@ export function EmptyState({
         className={cn(
           'w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4',
           isLight
-            ? 'bg-slate-100 ring-1 ring-slate-200'
-            : 'bg-surface border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+            ? 'bg-[color:var(--bg-inset)] ring-1 ring-[color:var(--border-default)]'
+            : 'bg-[color:var(--bg-inset)] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
         )}
       >
         <Icon
           className={cn(
             'w-8 h-8',
-            isLight ? 'text-slate-400' : 'text-text-secondary',
+            isLight ? 'text-[color:var(--text-tertiary)]' : 'text-text-secondary',
           )}
         />
       </div>
       <h3
         className={cn(
           'text-base font-semibold mb-1',
-          isLight ? 'text-slate-900' : 'text-text-primary',
+          isLight ? 'text-[color:var(--text-primary)]' : 'text-text-primary',
         )}
       >
         {title}
@@ -83,7 +83,7 @@ export function EmptyState({
         <p
           className={cn(
             'text-sm max-w-xs',
-            isLight ? 'text-slate-500' : 'text-gray-400',
+            isLight ? 'text-[color:var(--text-tertiary)]' : 'text-gray-400',
           )}
         >
           {description}
@@ -114,14 +114,14 @@ function EmptyStateButton({
     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
     : 'bg-primary hover:bg-primary/90 text-white'
   const secondaryClasses = isLight
-    ? 'bg-white ring-1 ring-slate-300 hover:bg-slate-50 text-slate-700'
+    ? 'bg-[color:var(--bg-surface)] ring-1 ring-[color:var(--border-default)] hover:bg-[color:var(--bg-surface-hover)] text-[color:var(--text-secondary)]'
     : 'bg-white/5 ring-1 ring-white/10 hover:bg-white/10 text-text-primary'
 
   const className = cn(
     'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2',
     primary ? primaryClasses : secondaryClasses,
     isLight
-      ? 'focus-visible:ring-offset-white'
+      ? 'focus-visible:ring-offset-[color:var(--bg-canvas)]'
       : 'focus-visible:ring-offset-transparent',
   )
 

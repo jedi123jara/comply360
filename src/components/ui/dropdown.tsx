@@ -26,7 +26,7 @@ export const DropdownMenuContent = forwardRef<
       sideOffset={sideOffset}
       className={cn(
         'z-[var(--z-popover)] min-w-[220px] overflow-hidden rounded-xl p-1',
-        'bg-white',
+        'bg-[color:var(--bg-elevated)]',
         'border border-[color:var(--border-strong)]',
         'shadow-[var(--elevation-3)]',
         'data-[state=open]:motion-scale-in',
@@ -45,7 +45,7 @@ const itemClasses = cn(
   'outline-none select-none',
   'cursor-default',
   'transition-colors duration-100',
-  'data-[highlighted]:bg-[color:var(--neutral-100)] data-[highlighted]:text-[color:var(--text-primary)]',
+  'data-[highlighted]:bg-[color:var(--bg-surface-hover)] data-[highlighted]:text-[color:var(--text-primary)]',
   'data-[disabled]:opacity-50 data-[disabled]:pointer-events-none'
 )
 
@@ -62,7 +62,7 @@ export const DropdownMenuItem = forwardRef<
       itemClasses,
       inset && 'pl-8',
       destructive &&
-        'text-crimson-600 data-[highlighted]:bg-crimson-50 data-[highlighted]:text-crimson-700',
+        'text-crimson-300 data-[highlighted]:bg-crimson-500/12 data-[highlighted]:text-crimson-200',
       className
     )}
     {...props}
@@ -178,7 +178,7 @@ export const DropdownMenuSubContent = forwardRef<
     ref={ref}
     className={cn(
       'z-[var(--z-popover)] min-w-[200px] overflow-hidden rounded-xl p-1',
-      'bg-white',
+        'bg-[color:var(--bg-elevated)]',
       'border border-[color:var(--border-strong)]',
       'shadow-[var(--elevation-3)]',
       'data-[state=open]:motion-scale-in',

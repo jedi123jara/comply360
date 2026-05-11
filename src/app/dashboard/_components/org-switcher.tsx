@@ -71,7 +71,7 @@ export function OrgSwitcher() {
         type="button"
         onClick={() => setOpen(o => !o)}
         disabled={switching}
-        className="flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-1.5 text-xs font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:text-[color:var(--text-primary)] transition-colors disabled:opacity-60"
+        className="flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] transition-colors disabled:opacity-60"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -85,9 +85,9 @@ export function OrgSwitcher() {
       {open && (
         <ul
           role="listbox"
-          className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-[color:var(--border-default)] bg-white shadow-lg overflow-hidden"
+          className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] shadow-[var(--elevation-3)] overflow-hidden"
         >
-          <li className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] bg-[color:var(--neutral-50)] border-b border-gray-100">
+          <li className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] bg-[color:var(--bg-inset)] border-b border-[color:var(--border-subtle)]">
             Cambiar de organización
           </li>
           {orgs.map(org => (
@@ -96,8 +96,8 @@ export function OrgSwitcher() {
                 type="button"
                 onClick={() => handleSwitch(org.id)}
                 className={cn(
-                  'w-full flex items-start justify-between gap-2 px-3 py-2.5 text-left text-sm hover:bg-[color:var(--neutral-50)] transition-colors',
-                  org.id === active.id && 'bg-emerald-50/40',
+                  'w-full flex items-start justify-between gap-2 px-3 py-2.5 text-left text-sm hover:bg-[color:var(--bg-surface-hover)] transition-colors',
+                  org.id === active.id && 'bg-emerald-500/12',
                 )}
               >
                 <div className="min-w-0">

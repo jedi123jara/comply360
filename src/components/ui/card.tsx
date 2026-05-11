@@ -29,31 +29,31 @@ const cardVariants = cva(
     variants: {
       variant: {
         default: [
-          'bg-white border-[color:var(--border-default)]',
+          'bg-[color:var(--bg-surface)] border-[color:var(--border-default)]',
           'shadow-[var(--elevation-2)]',
         ],
         elevated: [
-          'bg-white border-[color:var(--border-default)]',
+          'bg-[color:var(--bg-elevated)] border-[color:var(--border-default)]',
           'shadow-[var(--elevation-3)]',
         ],
         flat: [
-          'bg-white border-[color:var(--border-default)]',
+          'bg-[color:var(--bg-surface)] border-[color:var(--border-default)]',
           'shadow-[var(--elevation-1)]',
         ],
         emerald: [
-          'bg-gradient-to-br from-emerald-50/80 to-white',
+          'bg-[linear-gradient(135deg,rgba(20,184,166,0.12),var(--bg-surface))]',
           'border-emerald-200',
           'shadow-[var(--elevation-2)]',
           'before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-xl before:bg-emerald-500',
         ],
         crimson: [
-          'bg-gradient-to-br from-crimson-50/80 to-white',
+          'bg-[linear-gradient(135deg,rgba(239,68,68,0.12),var(--bg-surface))]',
           'border-crimson-200',
           'shadow-[var(--elevation-2)]',
           'before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-xl before:bg-crimson-500',
         ],
         amber: [
-          'bg-gradient-to-br from-amber-50/80 to-white',
+          'bg-[linear-gradient(135deg,rgba(245,158,11,0.12),var(--bg-surface))]',
           'border-amber-200',
           'shadow-[var(--elevation-2)]',
           'before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-xl before:bg-amber-500',

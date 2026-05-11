@@ -20,7 +20,7 @@ export const PopoverContent = forwardRef<
       align={align}
       className={cn(
         'z-[var(--z-popover)] w-72 rounded-xl p-3',
-        'bg-white',
+        'bg-[color:var(--bg-elevated)]',
         'border border-[color:var(--border-default)]',
         'shadow-[var(--elevation-3)]',
         'outline-none',

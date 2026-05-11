@@ -2,26 +2,64 @@
   "name": "Comply360 — Compliance laboral peruano",
   "short_name": "Comply360",
   "description": "El copiloto de cumplimiento laboral peruano. Para empresas y sus trabajadores.",
+  "id": "/?source=pwa",
   "start_url": "/post-login?source=pwa",
   "scope": "/",
+  "dir": "ltr",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
-  "theme_color": "#10b981",
+  "background_color": "#060a12",
+  "theme_color": "#060a12",
   "lang": "es-PE",
   "categories": ["business", "productivity", "finance"],
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Abrir el centro de cumplimiento",
+      "url": "/dashboard?source=pwa-shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Calculadoras laborales",
+      "short_name": "Calculadoras",
+      "description": "CTS, gratificaciones, liquidacion y multas",
+      "url": "/calculadoras?source=pwa-shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

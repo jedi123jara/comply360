@@ -27,7 +27,7 @@ const PLAN_META: Record<PlanKey, { icon: typeof Building2; tagline: string; colo
 }
 
 export const metadata = {
-  title: 'Planes y precios | COMPLY360',
+  title: 'Planes y precios',
   description:
     'Elige el plan ideal para tu empresa. Desde S/ 149/mes. Cancela cuando quieras. Trial 14 días en Starter y Empresa.',
 }

@@ -26,16 +26,16 @@ interface CalendarApiEvent {
 }
 
 const TYPE_COLOR: Record<string, string> = {
-  LEGAL: 'bg-blue-50 text-blue-700 ring-blue-200',
-  CONTRACT: 'bg-orange-50 text-orange-700 ring-orange-200',
-  SST: 'bg-amber-50 text-amber-700 ring-amber-200',
-  BIRTHDAY: 'bg-pink-50 text-pink-700 ring-pink-200',
-  ALERT: 'bg-rose-50 text-rose-700 ring-rose-200',
-  WORKER_ANNIVERSARY: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200',
-  PROBATION_END: 'bg-cyan-50 text-cyan-700 ring-cyan-200',
-  VACATION: 'bg-sky-50 text-sky-700 ring-sky-200',
-  ACK_DEADLINE: 'bg-violet-50 text-violet-700 ring-violet-200',
-  CAPACITACION: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+  LEGAL: 'bg-sky-500/12 text-sky-200 ring-sky-400/25',
+  CONTRACT: 'bg-amber-500/12 text-amber-200 ring-amber-400/25',
+  SST: 'bg-amber-500/12 text-amber-200 ring-amber-400/25',
+  BIRTHDAY: 'bg-pink-500/12 text-pink-200 ring-pink-400/25',
+  ALERT: 'bg-rose-500/12 text-rose-200 ring-rose-400/25',
+  WORKER_ANNIVERSARY: 'bg-fuchsia-500/12 text-fuchsia-200 ring-fuchsia-400/25',
+  PROBATION_END: 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25',
+  VACATION: 'bg-sky-500/12 text-sky-200 ring-sky-400/25',
+  ACK_DEADLINE: 'bg-violet-500/12 text-violet-200 ring-violet-400/25',
+  CAPACITACION: 'bg-indigo-500/12 text-indigo-200 ring-indigo-400/25',
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -137,14 +137,14 @@ export function CalendarWidget() {
                   ? `En ${diffDays}d`
                   : eventDate.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })
 
-            const colorClass = TYPE_COLOR[e.type] ?? 'bg-slate-50 text-slate-700 ring-slate-200'
+            const colorClass = TYPE_COLOR[e.type] ?? 'bg-slate-500/12 text-slate-200 ring-slate-400/25'
             const typeLabel = TYPE_LABEL[e.type] ?? e.type
 
             return (
               <li key={e.id}>
                 <Link
                   href="/dashboard/calendario"
-                  className="flex items-center gap-3 px-6 py-3 hover:bg-[color:var(--neutral-50)] transition-colors"
+                  className="flex items-center gap-3 px-6 py-3 hover:bg-[color:var(--bg-surface-hover)] transition-colors"
                 >
                   <span
                     className={cn(
@@ -163,7 +163,7 @@ export function CalendarWidget() {
                       <span
                         className={cn(
                           'text-[11px] font-medium',
-                          diffDays === 0 ? 'text-rose-700' : diffDays <= 3 ? 'text-amber-700' : 'text-slate-600',
+                          diffDays === 0 ? 'text-rose-300' : diffDays <= 3 ? 'text-amber-300' : 'text-[color:var(--text-secondary)]',
                         )}
                       >
                         {dateLabel}

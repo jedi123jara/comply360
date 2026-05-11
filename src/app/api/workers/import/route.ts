@@ -5,7 +5,13 @@ import { rateLimit } from '@/lib/rate-limit'
 import { parseWorkerCSV, autoDetectMapping, type ColumnMapping } from '@/lib/import/csv-parser'
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
-import * as XLSX from 'xlsx'
+import {
+  aoaToCsv,
+  excelSerialDateToDate,
+  firstWorksheet,
+  loadWorkbook,
+  worksheetToAoA,
+} from '@/lib/excel/exceljs'
 import { createHmac, timingSafeEqual } from 'crypto'
 
 // Rate limiter: 5 imports per minute
@@ -88,7 +94,7 @@ function verifyAndDecodeImportToken<T>(token: string): T | null {
 //  - AFP/ONP detected from which column has values
 // =============================================
 
-type CellVal = string | number | boolean | null | undefined
+type CellVal = string | number | boolean | Date | null | undefined
 
 function cellStr(v: CellVal): string {
   if (v == null) return ''
@@ -184,9 +190,9 @@ function parseAno(v: CellVal): number {
 /** Convert Excel date serial to DD/MM/YYYY */
 function excelSerialToDate(serial: number): string | null {
   try {
-    const d = XLSX.SSF.parse_date_code(serial)
-    if (!d || !d.y || d.y < 1900) return null
-    return `${String(d.d).padStart(2, '0')}/${String(d.m).padStart(2, '0')}/${d.y}`
+    const d = excelSerialDateToDate(serial)
+    if (!d || d.getUTCFullYear() < 1900) return null
+    return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
   } catch { return null }
 }
 
@@ -198,14 +204,12 @@ function buildDate(day: number, month: number, year: number): string {
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
 }
 
-function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
-  const rows = XLSX.utils.sheet_to_json<CellVal[]>(sheet, { header: 1, defval: '' }) as CellVal[][]
-
+function preprocessExcelToCsv(rows: CellVal[][]): string {
   const headerRowIdx = findHeaderRow(rows)
 
   // Fallback: no recognizable header → plain CSV
   if (headerRowIdx === -1) {
-    return XLSX.utils.sheet_to_csv(sheet)
+    return aoaToCsv(rows)
   }
 
   const rawHeaders = (rows[headerRowIdx] ?? []).map(c => cellStr(c))
@@ -429,19 +433,25 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
 
     // Validate file type
     const fileName = file.name.toLowerCase()
-    const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
+    const isLegacyXls = fileName.endsWith('.xls')
+    const isExcel = fileName.endsWith('.xlsx')
     const isCsv = fileName.endsWith('.csv') || fileName.endsWith('.txt')
+    if (isLegacyXls) {
+      return NextResponse.json(
+        { error: 'El formato Excel heredado .xls ya no se acepta por seguridad. Guarda el archivo como .xlsx o .csv.' },
+        { status: 400 }
+      )
+    }
     if (!isExcel && !isCsv) {
       return NextResponse.json(
-        { error: 'Solo se aceptan archivos Excel (.xlsx, .xls) o CSV (.csv)' },
+        { error: 'Solo se aceptan archivos Excel (.xlsx) o CSV (.csv)' },
         { status: 400 }
       )
     }
 
     // FIX #6.D: cap hard de tamaño antes del read.
-    // El audit identificó que XLSX.read(buffer) carga todo en memoria.
-    // Para mitigar el OOM en lambdas sin migrar a exceljs streaming
-    // (refactor invasivo), reducimos el tope a 3MB que en la práctica
+    // El audit identificó que leer el workbook completo carga todo en memoria.
+    // Reducimos el tope a 3MB que en la práctica
     // cubre Excel de hasta ~10k filas (suficiente para el límite de
     // 1000 filas que aplicamos post-parse en #1.D).
     const MAX_UPLOAD_BYTES = 3 * 1024 * 1024
@@ -459,19 +469,13 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
     let csvContent: string
     if (isExcel) {
       const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, {
-        type: 'array',
-        // FIX #6.D: opciones de SheetJS que reducen footprint en memoria
-        cellDates: false, // no parsear fechas a Date objects (lo hacemos manual)
-        cellNF: false, // no incluir número-formato
-        cellStyles: false, // no incluir estilos
-        bookProps: false, // no incluir metadatos del workbook
-        bookSheets: true, // solo nombres de sheets, no toda la metadata
-        sheetRows: 1500, // tope de filas leídas (1000 workers + ~500 de header/empty)
-      })
-      const sheetName = workbook.SheetNames[0]
-      const sheet = workbook.Sheets[sheetName]
-      csvContent = preprocessExcelToCsv(sheet)
+      const workbook = await loadWorkbook(buffer)
+      const sheet = firstWorksheet(workbook)
+      if (!sheet) {
+        return NextResponse.json({ error: 'El Excel no contiene hojas para importar' }, { status: 400 })
+      }
+      const rows = worksheetToAoA(sheet, { defval: '', maxRows: 1500 }) as CellVal[][]
+      csvContent = preprocessExcelToCsv(rows)
     } else {
       csvContent = await file.text()
     }

@@ -20,11 +20,11 @@ export interface QuickAction {
 }
 
 const ACCENT_STYLES: Record<Required<QuickAction>['accent'], string> = {
-  emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  amber: 'bg-amber-50 border-amber-200 text-amber-700',
-  crimson: 'bg-crimson-50 border-crimson-200 text-crimson-700',
-  cyan: 'bg-cyan-50 border-cyan-100 text-cyan-700',
-  gold: 'bg-amber-50 border-amber-200 text-gold-600',
+  emerald: 'bg-emerald-500/12 border-emerald-400/30 text-emerald-300',
+  amber: 'bg-amber-500/12 border-amber-400/30 text-amber-300',
+  crimson: 'bg-crimson-500/12 border-crimson-400/30 text-crimson-300',
+  cyan: 'bg-cyan-500/12 border-cyan-400/25 text-cyan-200',
+  gold: 'bg-amber-500/12 border-amber-400/30 text-amber-200',
 }
 
 export function QuickActions({ actions }: { actions: QuickAction[] }) {
@@ -40,7 +40,7 @@ export function QuickActions({ actions }: { actions: QuickAction[] }) {
           const content = (
             <div
               className={cn(
-                'flex flex-col items-start gap-2 rounded-xl border border-[color:var(--border-default)] bg-white p-3.5',
+                'flex flex-col items-start gap-2 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] p-3.5',
                 'shadow-[var(--elevation-1)]',
                 'transition-all duration-200',
                 'hover:border-emerald-300 hover:shadow-[var(--elevation-2)] hover:-translate-y-0.5',

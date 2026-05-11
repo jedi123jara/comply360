@@ -23,10 +23,10 @@ import { cn } from '@/lib/utils'
 const listVariants = cva('inline-flex items-center', {
   variants: {
     variant: {
-      pills: 'gap-1 p-1 bg-[color:var(--neutral-100)] border border-[color:var(--border-subtle)] rounded-lg',
+      pills: 'gap-1 p-1 bg-[color:var(--bg-inset)] border border-[color:var(--border-subtle)] rounded-lg',
       underline: 'gap-6 border-b border-[color:var(--border-subtle)] -mb-px w-full',
       segmented:
-        'gap-0.5 p-0.5 bg-[color:var(--neutral-100)] border border-[color:var(--border-subtle)] rounded-md',
+        'gap-0.5 p-0.5 bg-[color:var(--bg-inset)] border border-[color:var(--border-subtle)] rounded-md',
     },
     fullWidth: { true: 'w-full' },
   },
@@ -47,7 +47,7 @@ const triggerVariants = cva(
         pills: [
           'px-3.5 py-1.5 rounded-lg',
           'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
-          'data-[state=active]:bg-white data-[state=active]:text-emerald-700',
+          'data-[state=active]:bg-[color:var(--bg-surface)] data-[state=active]:text-emerald-200',
           'data-[state=active]:shadow-[var(--elevation-1)]',
         ],
         underline: [

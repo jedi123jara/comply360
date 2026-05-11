@@ -75,20 +75,20 @@ const TONE_STYLES: Record<
   }
 > = {
   default: {
-    iconBg: 'bg-blue-50 ring-1 ring-blue-100',
-    iconColor: 'text-blue-600',
+    iconBg: 'bg-blue-500/12 ring-1 ring-blue-400/25',
+    iconColor: 'text-blue-300',
     Icon: HelpCircle,
     confirmBtn: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
   },
   danger: {
-    iconBg: 'bg-red-50 ring-1 ring-red-100',
-    iconColor: 'text-red-600',
+    iconBg: 'bg-red-500/12 ring-1 ring-red-400/25',
+    iconColor: 'text-red-300',
     Icon: Trash2,
     confirmBtn: 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
   },
   warn: {
-    iconBg: 'bg-amber-50 ring-1 ring-amber-100',
-    iconColor: 'text-amber-600',
+    iconBg: 'bg-amber-500/12 ring-1 ring-amber-400/25',
+    iconColor: 'text-amber-300',
     Icon: AlertTriangle,
     confirmBtn: 'bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500',
   },
@@ -112,9 +112,11 @@ export function ConfirmDialog({
 
   useEffect(() => {
     if (!open) {
-      // reset al cerrar
-      setLoading(false)
-      setError(null)
+      const resetTimer = window.setTimeout(() => {
+        setLoading(false)
+        setError(null)
+      }, 0)
+      return () => window.clearTimeout(resetTimer)
     }
   }, [open])
 
@@ -148,7 +150,7 @@ export function ConfirmDialog({
           className={cn(
             'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
             'z-[var(--z-modal)] w-[calc(100vw-2rem)] max-w-md',
-            'rounded-2xl border border-[color:var(--border-default)] bg-white',
+            'rounded-2xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]',
             'shadow-[var(--elevation-4)]',
             'data-[state=open]:animate-scale-in data-[state=open]:motion-fade-in',
             'focus:outline-none',
@@ -165,13 +167,13 @@ export function ConfirmDialog({
               <tokens.Icon className={cn('w-5 h-5', tokens.iconColor)} aria-hidden />
             </div>
             <div className="flex-1 min-w-0">
-              <Dialog.Title className="text-base font-semibold text-slate-900">
+              <Dialog.Title className="text-base font-semibold text-[color:var(--text-primary)]">
                 {title}
               </Dialog.Title>
               {description && (
                 <Dialog.Description
                   id={descriptionId}
-                  className="mt-1.5 text-sm text-slate-600"
+                  className="mt-1.5 text-sm text-[color:var(--text-secondary)]"
                 >
                   {description}
                 </Dialog.Description>
@@ -179,7 +181,7 @@ export function ConfirmDialog({
               {error && (
                 <p
                   role="alert"
-                  className="mt-3 text-sm text-red-700 bg-red-50 ring-1 ring-red-200 rounded-lg px-3 py-2"
+                  className="mt-3 text-sm text-red-200 bg-red-500/12 ring-1 ring-red-400/25 rounded-lg px-3 py-2"
                 >
                   {error}
                 </p>
@@ -193,8 +195,8 @@ export function ConfirmDialog({
               disabled={loading}
               className={cn(
                 'px-4 py-2 rounded-xl text-sm font-medium ring-1 ring-slate-300',
-                'bg-white hover:bg-slate-50 text-slate-700',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2',
+                'bg-[color:var(--bg-surface)] hover:bg-[color:var(--bg-surface-hover)] text-[color:var(--text-secondary)]',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--bg-canvas)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
             >

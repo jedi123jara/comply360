@@ -281,12 +281,12 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
   }
 
   const content = (
-    <div className="relative flex h-full flex-col bg-white border-r border-[color:var(--border-default)] shadow-[1px_0_2px_rgba(15,23,42,0.03)]">
+    <div className="relative flex h-full flex-col border-r border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]/95 shadow-[24px_0_70px_rgba(2,6,23,0.36)] backdrop-blur-xl">
       {/* ── LOGO — Variant A "Sello notarial" (del prototipo de diseño) ── */}
       <Link
         href="/dashboard"
         onClick={onClose}
-        className="relative block hover:bg-[color:var(--neutral-50)] transition-colors"
+        className="relative block hover:bg-[color:var(--bg-surface-hover)] transition-colors"
         aria-label="COMPLY360 · Ir al dashboard"
       >
         <BrandBlockA />
@@ -296,12 +296,12 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
       <button
         type="button"
         onClick={onCommandK}
-        className="mx-3 mt-3 flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] px-3 py-2 text-xs text-[color:var(--text-tertiary)] hover:border-emerald-500/60 hover:text-[color:var(--text-primary)] hover:bg-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+        className="mx-3 mt-3 flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] px-3 py-2 text-xs text-[color:var(--text-tertiary)] hover:border-emerald-500/60 hover:text-[color:var(--text-primary)] hover:bg-[color:var(--bg-surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
         aria-label="Abrir búsqueda (Ctrl+K)"
       >
         <Search className="h-3.5 w-3.5" />
         <span className="flex-1 text-left">Buscar…</span>
-        <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-white px-1.5 py-0.5 font-mono text-[10px]">
+        <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-surface)] px-1.5 py-0.5 font-mono text-[10px]">
           <Command className="h-2.5 w-2.5" />K
         </kbd>
       </button>
@@ -327,12 +327,12 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
       </nav>
 
       {/* ── FOOTER: ORG BADGE ─────────────────────────────────── */}
-      <div className="relative border-t border-[color:var(--border-default)] p-3 bg-[color:var(--neutral-50)]">
+      <div className="relative border-t border-[color:var(--border-default)] p-3 bg-[color:var(--bg-inset)]">
         <Link
           href="/dashboard/planes"
           aria-label={`Plan actual: ${plan}. Click para ver y mejorar tu plan.`}
           title="Ver planes y mejorar"
-          className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 bg-white border border-[color:var(--border-subtle)] shadow-[var(--elevation-1)] hover:border-emerald-300 hover:shadow-[var(--elevation-2)] transition-all cursor-pointer"
+          className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 bg-[color:var(--bg-surface)] border border-[color:var(--border-subtle)] shadow-[var(--elevation-1)] hover:border-emerald-300 hover:shadow-[var(--elevation-2)] transition-all cursor-pointer"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white shadow-[0_2px_6px_rgba(16,185,129,0.3)]">
             C3
@@ -425,15 +425,15 @@ function HubRow({
           className={cn(
             'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
             rootActive
-              ? 'bg-emerald-50 text-emerald-700 shadow-[inset_3px_0_0_theme(colors.emerald.500)]'
-              : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-primary)]'
+              ? 'bg-emerald-500/15 text-emerald-300 shadow-[inset_3px_0_0_theme(colors.emerald.400)]'
+              : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)]'
           )}
         >
           <Icon
             name={hub.icon}
             className={cn(
               'h-4 w-4 shrink-0 transition-colors',
-              rootActive ? 'text-emerald-600' : 'text-[color:var(--text-tertiary)] group-hover:text-[color:var(--text-secondary)]'
+              rootActive ? 'text-emerald-300' : 'text-[color:var(--text-tertiary)] group-hover:text-[color:var(--text-secondary)]'
             )}
           />
           <span className="flex-1 truncate">{hub.label}</span>
@@ -453,15 +453,15 @@ function HubRow({
             className={cn(
               'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
               isActive
-                ? 'bg-emerald-50 text-emerald-700 shadow-[inset_3px_0_0_theme(colors.emerald.500)]'
-                : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-primary)]'
+                ? 'bg-emerald-500/15 text-emerald-300 shadow-[inset_3px_0_0_theme(colors.emerald.400)]'
+                : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)]'
             )}
           >
             <Icon
               name={hub.icon}
               className={cn(
                 'h-4 w-4 shrink-0 transition-colors',
-                isActive ? 'text-emerald-600' : 'text-[color:var(--text-tertiary)] group-hover:text-[color:var(--text-secondary)]'
+                isActive ? 'text-emerald-300' : 'text-[color:var(--text-tertiary)] group-hover:text-[color:var(--text-secondary)]'
               )}
             />
             <span className="flex-1 text-left truncate">{hub.label}</span>
@@ -546,7 +546,7 @@ function HubSubItem({
               }
               onNavigate()
             }}
-            className="group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)] hover:bg-emerald-50/50 transition-colors text-left"
+            className="group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)] hover:bg-emerald-500/10 transition-colors text-left"
             aria-label={`${item.label} — Requiere plan ${requiredShort}`}
           >
             <Icon name={item.icon} className="h-3.5 w-3.5 shrink-0 opacity-60" />
@@ -578,8 +578,8 @@ function HubSubItem({
           'group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium',
           'transition-[color,background-color,transform] duration-[var(--motion-short)] ease-[var(--ease-standard)]',
           isActive
-            ? 'text-emerald-700 bg-emerald-50 before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[3px] before:rounded-r-full before:bg-emerald-600 before:content-[\'\']'
-            : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:text-[color:var(--text-primary)] hover:translate-x-0.5'
+            ? 'text-emerald-300 bg-emerald-500/12 before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-[3px] before:rounded-r-full before:bg-emerald-400 before:content-[\'\']'
+            : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] hover:translate-x-0.5'
         )}
       >
         <Icon
@@ -587,7 +587,7 @@ function HubSubItem({
           className={cn(
             'h-3.5 w-3.5 shrink-0 transition-[color,transform] duration-[var(--motion-short)]',
             isActive
-              ? 'text-emerald-600 scale-110'
+              ? 'text-emerald-300 scale-110'
               : 'text-[color:var(--text-tertiary)] group-hover:scale-105'
           )}
         />

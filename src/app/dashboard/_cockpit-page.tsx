@@ -211,15 +211,15 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
       <WelcomeTour />
       {isOnboardingMidway && (
         <section
-          className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-50/40 p-6 sm:p-8 shadow-sm"
+          className="rounded-2xl border border-amber-400/30 bg-[linear-gradient(135deg,rgba(245,158,11,0.14),rgba(15,23,42,0.86)_46%,rgba(15,23,42,0.72))] p-6 sm:p-8 shadow-[var(--elevation-2)]"
           aria-labelledby="onboarding-midway-title"
         >
           <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-amber-100">
-              <ShieldAlert className="w-5 h-5 text-amber-700" />
+            <div className="p-2 rounded-xl bg-amber-500/12 border border-amber-400/30">
+              <ShieldAlert className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">
                 Siguiente paso
               </p>
               <h2
@@ -243,7 +243,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
             </Link>
             <Link
               href="/dashboard/sunafil-ready"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-700 border border-amber-300 font-semibold text-sm px-5 py-2.5 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[color:var(--bg-inset)] hover:bg-[color:var(--bg-surface-hover)] text-amber-200 border border-amber-400/30 font-semibold text-sm px-5 py-2.5 transition-colors"
             >
               Ver checklist SUNAFIL
             </Link>
@@ -253,15 +253,15 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
       {isFirstTime && (
         <>
           <section
-            className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-6 sm:p-8 shadow-sm"
+            className="rounded-2xl border border-emerald-400/30 bg-[linear-gradient(135deg,rgba(20,184,166,0.16),rgba(15,23,42,0.88)_48%,rgba(15,23,42,0.72))] p-6 sm:p-8 shadow-[var(--elevation-2)]"
             aria-labelledby="welcome-cockpit-title"
           >
             <div className="flex items-start gap-3 mb-4">
-              <div className="p-2 rounded-xl bg-emerald-100">
-                <Sparkles className="w-5 h-5 text-emerald-700" />
+              <div className="p-2 rounded-xl bg-emerald-500/12 border border-emerald-400/30">
+                <Sparkles className="w-5 h-5 text-emerald-300" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">
                   Bienvenido a Comply360
                 </p>
                 <h2
@@ -278,7 +278,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
               <Link
                 href="/dashboard/trabajadores/nuevo"
-                className="group rounded-xl border border-emerald-300 bg-emerald-600 text-white p-4 hover:bg-emerald-700 transition-colors flex flex-col"
+                className="group rounded-xl border border-emerald-400/35 bg-emerald-600 text-white p-4 hover:bg-emerald-700 transition-colors flex flex-col"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Paso 1</span>
@@ -289,18 +289,18 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
               </Link>
               <Link
                 href="/dashboard/trabajadores?import=excel"
-                className="group rounded-xl border border-emerald-300 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
+                className="group rounded-xl border border-emerald-400/30 bg-[color:var(--bg-inset)] p-4 hover:bg-[color:var(--bg-surface-hover)] transition-colors flex flex-col"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Paso 2</span>
-                  <ArrowRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Paso 2</span>
+                  <ArrowRight className="w-4 h-4 text-emerald-300 group-hover:translate-x-0.5 transition-transform" />
                 </div>
                 <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Importa de Excel</p>
                 <p className="text-xs text-[color:var(--text-secondary)] mt-1">Sube tu planilla completa en un clic</p>
               </Link>
               <Link
                 href="/dashboard/diagnostico"
-                className="group rounded-xl border border-emerald-200 bg-white p-4 hover:bg-emerald-50 transition-colors flex flex-col"
+                className="group rounded-xl border border-emerald-400/25 bg-[color:var(--bg-inset)] p-4 hover:bg-[color:var(--bg-surface-hover)] transition-colors flex flex-col"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">Paso 3</span>
@@ -317,8 +317,8 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
 
           {/* Hint a futuro: cuando agregues tu primer trabajador, aquí aparecerán
               tu Compliance Score, alertas activas, vencimientos próximos y más. */}
-          <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/40 p-8 text-center">
-            <ShieldCheck className="w-8 h-8 mx-auto text-slate-400 mb-3" />
+          <section className="rounded-2xl border border-dashed border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-8 text-center">
+            <ShieldCheck className="w-8 h-8 mx-auto text-[color:var(--text-tertiary)] mb-3" />
             <p className="text-sm font-semibold text-[color:var(--text-primary)] mb-1">
               Tu Compliance Score aparecerá aquí
             </p>
@@ -333,15 +333,15 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
       {/* ALERTA SUBDECLARACIÓN — visible siempre que haya brecha detectada */}
       {subdeclarationGap !== null && subdeclarationGap > 0 && (
         <section
-          className="rounded-2xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 via-white to-rose-50/40 p-6 shadow-sm"
+          className="rounded-2xl border-2 border-rose-400/35 bg-[linear-gradient(135deg,rgba(244,63,94,0.16),rgba(15,23,42,0.88)_48%,rgba(15,23,42,0.72))] p-6 shadow-[var(--elevation-2)]"
           aria-labelledby="subdeclaration-alert-title"
         >
           <div className="flex items-start gap-4">
-            <div className="p-2.5 rounded-xl bg-rose-100 shrink-0">
-              <AlertTriangle className="w-6 h-6 text-rose-700" />
+            <div className="p-2.5 rounded-xl bg-rose-500/12 border border-rose-400/30 shrink-0">
+              <AlertTriangle className="w-6 h-6 text-rose-300" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-rose-700 mb-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300 mb-1">
                 Detección de informalidad
               </p>
               <h2
@@ -350,7 +350,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
               >
                 Declaraste {totalWorkersDeclared} trabajadores pero solo {totalWorkers} están registrados.
               </h2>
-              <p className="text-sm text-rose-900 mt-2 max-w-2xl">
+              <p className="text-sm text-rose-100/86 mt-2 max-w-2xl">
                 Tienes <strong>{subdeclarationGap} {subdeclarationGap === 1 ? 'trabajador' : 'trabajadores'} fuera de planilla</strong>.
                 SUNAFIL multa la subdeclaración con hasta <strong>S/ {(5500 * 9.55 * subdeclarationGap).toLocaleString('es-PE')}</strong>{' '}
                 (Art. 24.5 D.S. 019-2006-TR, infracción muy grave).
@@ -365,7 +365,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
                 </Link>
                 <Link
                   href="/dashboard/configuracion/empresa"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-semibold text-sm px-5 py-2.5 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[color:var(--bg-inset)] hover:bg-[color:var(--bg-surface-hover)] text-rose-200 border border-rose-400/30 font-semibold text-sm px-5 py-2.5 transition-colors"
                 >
                   Corregir total declarado
                 </Link>

@@ -52,12 +52,11 @@ export function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
   }
 
   function cellColor(value: number) {
-    // Light-mode heatmap: fondo neutral-100, escalado de emerald
-    if (value <= 0) return 'rgb(241, 245, 249)' // neutral-100
-    if (value === 1) return 'rgb(209, 250, 229)' // emerald-100
-    if (value === 2) return 'rgb(110, 231, 183)' // emerald-300
-    if (value === 3) return 'rgb(16, 185, 129)' // emerald-500
-    return 'rgb(4, 120, 87)' // emerald-700
+    if (value <= 0) return 'rgba(148, 163, 184, 0.12)'
+    if (value === 1) return 'rgba(20, 184, 166, 0.28)'
+    if (value === 2) return 'rgba(20, 184, 166, 0.46)'
+    if (value === 3) return 'rgba(45, 212, 191, 0.72)'
+    return 'rgb(103, 232, 249)'
   }
 
   const totalActivity = data.reduce((sum, d) => sum + (d.count ?? d.value), 0)
