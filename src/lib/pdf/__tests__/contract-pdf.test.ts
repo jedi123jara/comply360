@@ -217,7 +217,7 @@ describe('flujo completo de generación', () => {
       'PRIMERA.- DE LAS PARTES (CLAUSULA OBLIGATORIA) Las partes celebran el presente contrato.\nBase legal: D.S. 003-97-TR Art. 4\n\n' +
         'SEGUNDA.- DE LA REMUNERACION (CLAUSULA OBLIGATORIA) S/ 2,500 mensuales.\nBase legal: D.S. 003-97-TR Art. 12',
     )
-    let y = renderContractBody(doc, cleaned, { startY: 36 })
+    const y = renderContractBody(doc, cleaned, { startY: 36 })
     addSignatureBlock(doc, y, {
       empleador: { razonSocial: 'ACME S.A.C.', ruc: '20123456789' },
       trabajador: { fullName: 'María González Pérez', dni: '45678912' },

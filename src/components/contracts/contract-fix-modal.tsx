@@ -495,7 +495,6 @@ export function ContractFixModal({
                   </header>
                   <div
                     className="p-5 max-h-[500px] overflow-auto text-sm text-[color:var(--text-primary)] leading-relaxed prose prose-sm max-w-none"
-                    // eslint-disable-next-line react/no-danger
                     dangerouslySetInnerHTML={{ __html: contractHtml }}
                   />
                 </section>
@@ -510,7 +509,6 @@ export function ContractFixModal({
                   </header>
                   <div
                     className="p-5 max-h-[500px] overflow-auto text-sm text-[color:var(--text-primary)] leading-relaxed prose prose-sm max-w-none"
-                    // eslint-disable-next-line react/no-danger
                     dangerouslySetInnerHTML={{ __html: result.fixedHtml }}
                   />
                 </section>

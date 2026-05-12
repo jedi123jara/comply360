@@ -163,7 +163,6 @@ export function SelfieCaptureModal({
           {/* Video live */}
           <div className={phase === 'live' ? 'block' : 'hidden'}>
             <div className="aspect-square rounded-xl overflow-hidden bg-slate-900 relative">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <video
                 ref={videoRef}
                 playsInline

@@ -120,7 +120,6 @@ export default function CapturaOfflinePage() {
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visitaId])
 
   // ── Convert IDB Blobs to object URLs for <img src> ───────────────────────

@@ -117,7 +117,6 @@ export default function PlanAnualPage() {
 
   useEffect(() => {
     load(ano)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ano])
 
   async function save() {

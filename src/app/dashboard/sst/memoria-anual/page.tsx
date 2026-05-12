@@ -135,7 +135,6 @@ export default function MemoriaAnualPage() {
 
   useEffect(() => {
     load(ano)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ano])
 
   async function save() {

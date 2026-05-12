@@ -196,7 +196,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
   // El orgId correcto es siempre el del Worker pre-existente que la empresa
   // creó. Overwrite intencional (el admin tomó decisión consciente).
   let orgIdChanged = false
-  let oldOrgId: string | null = user.orgId
+  const oldOrgId: string | null = user.orgId
   if (user.orgId !== worker.orgId) {
     await prisma.user.update({
       where: { id: user.id },

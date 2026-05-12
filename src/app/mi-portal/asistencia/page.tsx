@@ -221,7 +221,6 @@ export default function MiPortalAsistenciaPage() {
     if (!tokenFromUrl) return
     if (processedTokenRef.current === tokenFromUrl) return // idempotencia: no procesar 2× el mismo token
     processedTokenRef.current = tokenFromUrl
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- async submission helper, no synchronous state update
     void submitClock(tokenFromUrl)
     // Limpiar el query param para que no se re-dispare al refrescar
     setTimeout(() => {

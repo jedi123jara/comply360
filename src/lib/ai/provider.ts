@@ -529,7 +529,6 @@ export async function callAI(
     let content: string | undefined
     if (provider === 'anthropic') {
       // Anthropic: { content: [{ type: 'text', text: '...' }, ...], usage: {...} }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const blocks = data?.content as Array<{ type?: string; text?: string }> | undefined
       content = blocks?.filter(b => b.type === 'text').map(b => b.text ?? '').join('') || undefined
     } else {
