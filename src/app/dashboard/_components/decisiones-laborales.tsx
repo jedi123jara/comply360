@@ -92,16 +92,16 @@ const CARDS: DecisionCard[] = [
 ]
 
 const ACCENT_BG: Record<DecisionCard['accent'], string> = {
-  emerald: 'bg-emerald-50 text-emerald-700',
-  blue: 'bg-blue-50 text-emerald-600',
-  amber: 'bg-amber-50 text-amber-700',
-  purple: 'bg-purple-50 text-purple-700',
-  crimson: 'bg-red-50 text-red-700',
+  emerald: 'bg-emerald-500/12 text-emerald-300 border border-emerald-400/25',
+  blue: 'bg-blue-500/12 text-blue-300 border border-blue-400/25',
+  amber: 'bg-amber-500/12 text-amber-300 border border-amber-400/25',
+  purple: 'bg-purple-500/12 text-purple-300 border border-purple-400/25',
+  crimson: 'bg-red-500/12 text-red-300 border border-red-400/25',
 }
 
 export function DecisionesLaborales() {
   return (
-    <section className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5 md:p-6">
+    <section className="rounded-2xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] p-5 md:p-6 shadow-[var(--elevation-2)]">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -163,7 +163,7 @@ function DecisionCardItem({ card }: { card: DecisionCard }) {
     return (
       <Link
         href={card.href}
-        className="group rounded-xl border border-[color:var(--border-default)] bg-white p-3 transition-colors hover:border-emerald-300 hover:bg-emerald-50/30 cursor-pointer"
+        className="group rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-3 transition-colors hover:border-emerald-400/45 hover:bg-[color:var(--bg-surface-hover)] cursor-pointer"
       >
         {inner}
       </Link>

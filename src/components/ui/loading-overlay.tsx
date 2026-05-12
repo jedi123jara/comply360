@@ -10,7 +10,7 @@ export function LoadingOverlay({ className }: LoadingOverlayProps) {
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm',
+        'fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-[color:var(--bg-canvas)]/88 backdrop-blur-sm',
         className
       )}
     >

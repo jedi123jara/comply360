@@ -3,7 +3,7 @@
 /**
  * AnimatedShield — "Protector de multas" signature component.
  *
- * Escudo SVG animado (emerald gradient) con:
+ * Escudo SVG animado (teal/cyan/blue gradient) con:
  *  - Float vertical sutil
  *  - Glow pulsante de fondo
  *  - Sweep de luz barriendo
@@ -34,9 +34,9 @@ export function AnimatedShield({
       <svg width={size} height={size} viewBox="0 0 64 64">
         <defs>
           <linearGradient id="c360ShieldGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#60a5fa" />
-            <stop offset="45%" stopColor="#2563eb" />
-            <stop offset="100%" stopColor="#1e40af" />
+            <stop offset="0%" stopColor="#22d3ee" />
+            <stop offset="48%" stopColor="#14b8a6" />
+            <stop offset="100%" stopColor="#1d4ed8" />
           </linearGradient>
           <linearGradient id="c360ShieldSheen" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />

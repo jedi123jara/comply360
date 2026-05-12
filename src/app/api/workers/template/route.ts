@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import * as XLSX from 'xlsx'
+import { addAoaSheet, createWorkbook, workbookToArrayBuffer } from '@/lib/excel/exceljs'
 
 // =============================================
 // GET /api/workers/template - Download Excel template
@@ -47,13 +47,10 @@ export async function GET() {
     'Prima',
   ]
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow])
-
-  // Set column widths
-  ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 4, 16) }))
-
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Trabajadores')
+  const wb = createWorkbook()
+  addAoaSheet(wb, 'Trabajadores', [headers, exampleRow], {
+    columnWidths: headers.map(h => Math.max(h.length + 4, 16)),
+  })
 
   // Add instruction sheet
   const instructions = [
@@ -77,11 +74,9 @@ export async function GET() {
     ['El DNI debe tener exactamente 8 digitos'],
     ['No se importaran filas con DNI duplicado dentro de la organizacion'],
   ]
-  const wsInst = XLSX.utils.aoa_to_sheet(instructions)
-  wsInst['!cols'] = [{ wch: 120 }]
-  XLSX.utils.book_append_sheet(wb, wsInst, 'Instrucciones')
+  addAoaSheet(wb, 'Instrucciones', instructions, { columnWidths: [120] })
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = await workbookToArrayBuffer(wb)
 
   return new NextResponse(buf, {
     headers: {

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Calculadoras Laborales Gratuitas | COMPLY360 Perú',
+  title: 'Calculadoras laborales gratuitas para Perú',
   description:
     'Calculá CTS, gratificación, liquidación y multas SUNAFIL gratis y sin registro. Actualizado con la normativa peruana 2026.',
 }

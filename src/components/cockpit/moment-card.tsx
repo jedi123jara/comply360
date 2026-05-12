@@ -31,18 +31,18 @@ const VARIANT_STYLES: Record<
 > = {
   closed: {
     card: 'emerald',
-    badge: 'bg-white border-emerald-200 text-emerald-700',
-    icon: 'text-emerald-600',
+    badge: 'bg-emerald-500/12 border-emerald-400/30 text-emerald-300',
+    icon: 'text-emerald-300',
   },
   upcoming: {
     card: 'default',
-    badge: 'bg-amber-50 border-amber-200 text-amber-700',
-    icon: 'text-amber-600',
+    badge: 'bg-amber-500/12 border-amber-400/30 text-amber-300',
+    icon: 'text-amber-300',
   },
   risk: {
     card: 'crimson',
-    badge: 'bg-white border-crimson-200 text-crimson-700',
-    icon: 'text-crimson-600',
+    badge: 'bg-crimson-500/12 border-crimson-400/30 text-crimson-300',
+    icon: 'text-crimson-300',
   },
 }
 
@@ -79,7 +79,7 @@ export function MomentCard({
       <h3
         className={cn(
           'text-lg font-bold leading-tight mb-1',
-          variant === 'risk' ? 'text-crimson-700' : 'text-[color:var(--text-primary)]'
+          variant === 'risk' ? 'text-crimson-200' : 'text-[color:var(--text-primary)]'
         )}
       >
         {title}
@@ -88,7 +88,7 @@ export function MomentCard({
         {description}
       </p>
       {cta ? (
-        <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-emerald-700">
+        <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-emerald-300">
           {cta}
           <ArrowRight className="h-3 w-3" />
         </div>

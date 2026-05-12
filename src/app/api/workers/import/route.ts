@@ -5,7 +5,13 @@ import { rateLimit } from '@/lib/rate-limit'
 import { parseWorkerCSV, autoDetectMapping, type ColumnMapping } from '@/lib/import/csv-parser'
 import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
-import * as XLSX from 'xlsx'
+import {
+  aoaToCsv,
+  excelSerialDateToDate,
+  firstWorksheet,
+  loadWorkbook,
+  worksheetToAoA,
+} from '@/lib/excel/exceljs'
 import { createHmac, timingSafeEqual } from 'crypto'
 
 // Rate limiter: 5 imports per minute
@@ -88,7 +94,7 @@ function verifyAndDecodeImportToken<T>(token: string): T | null {
 //  - AFP/ONP detected from which column has values
 // =============================================
 
-type CellVal = string | number | boolean | null | undefined
+type CellVal = string | number | boolean | Date | null | undefined
 
 function cellStr(v: CellVal): string {
   if (v == null) return ''
@@ -184,9 +190,9 @@ function parseAno(v: CellVal): number {
 /** Convert Excel date serial to DD/MM/YYYY */
 function excelSerialToDate(serial: number): string | null {
   try {
-    const d = XLSX.SSF.parse_date_code(serial)
-    if (!d || !d.y || d.y < 1900) return null
-    return `${String(d.d).padStart(2, '0')}/${String(d.m).padStart(2, '0')}/${d.y}`
+    const d = excelSerialDateToDate(serial)
+    if (!d || d.getUTCFullYear() < 1900) return null
+    return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
   } catch { return null }
 }
 
@@ -198,14 +204,64 @@ function buildDate(day: number, month: number, year: number): string {
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
 }
 
-function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
-  const rows = XLSX.utils.sheet_to_json<CellVal[]>(sheet, { header: 1, defval: '' }) as CellVal[][]
+function normalizeRegimenForImport(value: string): string {
+  const s = stripAccents(value).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim()
+  if (!s) return 'GENERAL'
+  if (s.includes('MYPE') && s.includes('MICRO')) return 'MYPE_MICRO'
+  if (s.includes('MYPE') && s.includes('PEQUENA')) return 'MYPE_PEQUENA'
+  if (s.includes('AGRARIO')) return 'AGRARIO'
+  if (s.includes('CONSTRUCCION')) return 'CONSTRUCCION_CIVIL'
+  if (s.includes('MINERO')) return 'MINERO'
+  if (s.includes('PESQUERO')) return 'PESQUERO'
+  if (s.includes('TEXTIL')) return 'TEXTIL_EXPORTACION'
+  if (s.includes('DOMESTICO')) return 'DOMESTICO'
+  if (s.includes('CAS')) return 'CAS'
+  if (s.includes('FORMATIVA')) return 'MODALIDAD_FORMATIVA'
+  if (s.includes('TELETRABAJO')) return 'TELETRABAJO'
+  if (s.includes('728') || s.includes('GENERAL') || s === 'RG') return 'GENERAL'
+  return value.trim()
+}
 
+function normalizeContratoForImport(value: string): string {
+  const s = stripAccents(value).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim()
+  if (!s) return 'INDEFINIDO'
+  if (s.includes('INDEFINIDO') || s.includes('INDETERMINADO')) return 'INDEFINIDO'
+  if (s.includes('TIEMPO PARCIAL')) return 'TIEMPO_PARCIAL'
+  if (s.includes('INICIO ACTIVIDAD')) return 'INICIO_ACTIVIDAD'
+  if (s.includes('NECESIDAD MERCADO')) return 'NECESIDAD_MERCADO'
+  if (s.includes('RECONVERSION')) return 'RECONVERSION'
+  if (s.includes('SUPLENCIA')) return 'SUPLENCIA'
+  if (s.includes('EMERGENCIA')) return 'EMERGENCIA'
+  if (s.includes('OBRA')) return 'OBRA_DETERMINADA'
+  if (s.includes('INTERMITENTE')) return 'INTERMITENTE'
+  if (s.includes('EXPORTACION')) return 'EXPORTACION'
+  if (s.includes('PLAZO') || s.includes('FIJO') || /\b\d+\s*M\b/.test(s)) return 'PLAZO_FIJO'
+  return value.trim()
+}
+
+function pensionInfoFromText(value: string, fallbackTipoAporte: string): { tipoAporte: string; afpNombre: string } {
+  const s = stripAccents(value).toUpperCase()
+  if (s.includes('ONP') || s.includes('SNP')) return { tipoAporte: 'ONP', afpNombre: '' }
+
+  if (s.includes('AFP') || fallbackTipoAporte === 'AFP') {
+    const afpNombre =
+      s.includes('INTEGRA') ? 'Integra' :
+      s.includes('PRIMA') ? 'Prima' :
+      s.includes('PROFUTURO') ? 'Profuturo' :
+      s.includes('HABITAT') ? 'Habitat' :
+      ''
+    return { tipoAporte: 'AFP', afpNombre }
+  }
+
+  return { tipoAporte: fallbackTipoAporte || 'AFP', afpNombre: '' }
+}
+
+function preprocessExcelToCsv(rows: CellVal[][]): string {
   const headerRowIdx = findHeaderRow(rows)
 
   // Fallback: no recognizable header → plain CSV
   if (headerRowIdx === -1) {
-    return XLSX.utils.sheet_to_csv(sheet)
+    return aoaToCsv(rows)
   }
 
   const rawHeaders = (rows[headerRowIdx] ?? []).map(c => cellStr(c))
@@ -220,6 +276,7 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
   // Solo buscar columnas separadas si NO existe columna combinada
   const firstNameCol    = nameCol >= 0 ? -1 : findCol(rawHeaders, 'NOMBRES', 'NOMBRE', 'PRIMER NOMBRE')
   const lastNameCol     = nameCol >= 0 ? -1 : findCol(rawHeaders, 'APELLIDOS', 'APELLIDO', 'APELLIDO PATERNO')
+  const motherNameCol   = nameCol >= 0 ? -1 : findCol(rawHeaders, 'APELLIDO MATERNO', 'MATERNO')
   const cargoCol        = findCol(rawHeaders, 'CARGO', 'PUESTO', 'OCUPACION')
   const areaCol         = findCol(rawHeaders, 'AREA', 'DEPARTAMENTO', 'UNIDAD', 'SECCION')
   const anoCol          = findCol(rawHeaders, 'ANO', 'YEAR')
@@ -235,6 +292,9 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
   const afpComisionCol  = findCol(rawHeaders, 'AFP COMIS', 'AFP COMISION', 'COMISION AFP', '0602')
   //   "AFP COMIS+SEG 3.39%" → "AFP COMIS SEG 3 39" → contains "AFP COMIS" ✓
   const fechaIngresoCol = findCol(rawHeaders, 'FECHA INGRESO', 'FECHA DE INGRESO', 'FECHA INICIO', 'INICIO LABORES')
+  const regimenCol      = findCol(rawHeaders, 'REGIMEN LABORAL', 'REGIMEN')
+  const tipoContratoCol = findCol(rawHeaders, 'TIPO CONTRATO', 'CONTRATO', 'MODALIDAD CONTRATO')
+  const jornadaCol      = findCol(rawHeaders, 'JORNADA SEMANAL', 'JORNADA', 'HORAS SEMANA')
 
   // Ambas columnas deben existir Y ser distintas. Si apuntan al mismo índice
   // (mismo header), es la columna combinada en disfraz → tratar como nameCol
@@ -244,6 +304,7 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
   interface WorkerAccum {
     dni: string; firstName: string; lastName: string
     cargo: string; area: string
+    regimenLaboral: string; tipoContrato: string; afpNombre: string; jornadaSemanal: number
     // Latest period (for current salary/aporte)
     latestAno: number; latestMes: number
     sueldo: number; asigFamiliar: boolean
@@ -281,17 +342,32 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
     const afpVal  = afpAporteCol   >= 0 ? numericCell(row[afpAporteCol])   : 0
     const afpCom  = afpComisionCol >= 0 ? numericCell(row[afpComisionCol]) : 0
     const regPensText = regPensCol >= 0 ? cellStr(row[regPensCol] ?? '').toUpperCase() : ''
-    const tipoAporte =
+    const detectedTipoAporte =
       onpVal > 0                                         ? 'ONP' :
       (afpVal > 0 || afpCom > 0)                        ? 'AFP' :
       (regPensText.includes('ONP') || regPensText.includes('SNP')) ? 'ONP' :
       regPensText.includes('AFP')                        ? 'AFP' :
       'AFP'
+    const pensionInfo = pensionInfoFromText(regPensText, detectedTipoAporte)
+    const tipoAporte = pensionInfo.tipoAporte
+    const afpNombre = pensionInfo.afpNombre
+    const regimenLaboral = regimenCol >= 0
+      ? normalizeRegimenForImport(cellStr(row[regimenCol] ?? ''))
+      : 'GENERAL'
+    const tipoContrato = tipoContratoCol >= 0
+      ? normalizeContratoForImport(cellStr(row[tipoContratoCol] ?? ''))
+      : 'INDEFINIDO'
+    const jornadaParsed = jornadaCol >= 0 ? Math.round(numericCell(row[jornadaCol])) : 48
+    const jornadaSemanal = jornadaParsed >= 1 && jornadaParsed <= 48 ? jornadaParsed : 48
 
     let firstName = '', lastName = ''
     if (hasSeparateNames) {
       firstName = cellStr(row[firstNameCol] ?? '')
-      lastName  = cellStr(row[lastNameCol]  ?? '')
+      const paternal = cellStr(row[lastNameCol] ?? '')
+      const maternal = motherNameCol >= 0 && motherNameCol !== lastNameCol
+        ? cellStr(row[motherNameCol] ?? '')
+        : ''
+      lastName = [paternal, maternal].filter(Boolean).join(' ').trim()
       // Red de seguridad: si ambos campos son idénticos o uno contiene al otro
       // (PLAME con datos duplicados), tratar el más largo como nombre completo y dividirlo
       if (
@@ -336,6 +412,7 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
     if (!existing) {
       workerMap.set(dni, {
         dni, firstName, lastName, cargo, area,
+        regimenLaboral, tipoContrato, afpNombre, jornadaSemanal,
         latestAno: ano, latestMes: mes, sueldo, asigFamiliar, tipoAporte,
         earliestAno: ano > 0 ? ano : 9999,
         earliestMes: mes > 0 ? mes : 13,
@@ -350,6 +427,10 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
         existing.sueldo = sueldo
         existing.tipoAporte = tipoAporte
         existing.asigFamiliar = asigFamiliar
+        existing.regimenLaboral = regimenLaboral
+        existing.tipoContrato = tipoContrato
+        existing.afpNombre = afpNombre
+        existing.jornadaSemanal = jornadaSemanal
       }
       // Update EARLIEST period entry (for fechaIngreso)
       const existingEarliest = existing.earliestAno * 100 + existing.earliestMes
@@ -364,6 +445,9 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
       if (!existing.lastName  && lastName)  existing.lastName  = lastName
       if (!existing.cargo     && cargo)     existing.cargo     = cargo
       if (!existing.area      && area)      existing.area      = area
+      if (!existing.regimenLaboral && regimenLaboral) existing.regimenLaboral = regimenLaboral
+      if (!existing.tipoContrato && tipoContrato) existing.tipoContrato = tipoContrato
+      if (!existing.afpNombre && afpNombre) existing.afpNombre = afpNombre
     }
   }
 
@@ -378,7 +462,7 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
 
   // ── Build standard CSV for csv-parser.ts ─────────────────────
   const csvLines: string[] = [
-    'DNI,Nombres,Apellidos,Cargo,Departamento,Fecha Ingreso,Sueldo Bruto,Tipo Aporte,Asignacion Familiar',
+    'DNI,Nombres,Apellidos,Cargo,Departamento,Fecha Ingreso,Sueldo Bruto,Regimen Laboral,Tipo Contrato,Tipo Aporte,AFP Nombre,Asignacion Familiar,Jornada Semanal',
   ]
 
   for (const w of workerMap.values()) {
@@ -399,8 +483,12 @@ function preprocessExcelToCsv(sheet: XLSX.WorkSheet): string {
       q(w.area),
       fechaIngreso,
       w.sueldo.toFixed(2),
+      w.regimenLaboral,
+      w.tipoContrato,
       w.tipoAporte,
+      q(w.afpNombre),
       w.asigFamiliar ? 'Si' : 'No',
+      String(w.jornadaSemanal),
     ].join(','))
   }
 
@@ -429,19 +517,25 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
 
     // Validate file type
     const fileName = file.name.toLowerCase()
-    const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
+    const isLegacyXls = fileName.endsWith('.xls')
+    const isExcel = fileName.endsWith('.xlsx')
     const isCsv = fileName.endsWith('.csv') || fileName.endsWith('.txt')
+    if (isLegacyXls) {
+      return NextResponse.json(
+        { error: 'El formato Excel heredado .xls ya no se acepta por seguridad. Guarda el archivo como .xlsx o .csv.' },
+        { status: 400 }
+      )
+    }
     if (!isExcel && !isCsv) {
       return NextResponse.json(
-        { error: 'Solo se aceptan archivos Excel (.xlsx, .xls) o CSV (.csv)' },
+        { error: 'Solo se aceptan archivos Excel (.xlsx) o CSV (.csv)' },
         { status: 400 }
       )
     }
 
     // FIX #6.D: cap hard de tamaño antes del read.
-    // El audit identificó que XLSX.read(buffer) carga todo en memoria.
-    // Para mitigar el OOM en lambdas sin migrar a exceljs streaming
-    // (refactor invasivo), reducimos el tope a 3MB que en la práctica
+    // El audit identificó que leer el workbook completo carga todo en memoria.
+    // Reducimos el tope a 3MB que en la práctica
     // cubre Excel de hasta ~10k filas (suficiente para el límite de
     // 1000 filas que aplicamos post-parse en #1.D).
     const MAX_UPLOAD_BYTES = 3 * 1024 * 1024
@@ -459,19 +553,13 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
     let csvContent: string
     if (isExcel) {
       const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, {
-        type: 'array',
-        // FIX #6.D: opciones de SheetJS que reducen footprint en memoria
-        cellDates: false, // no parsear fechas a Date objects (lo hacemos manual)
-        cellNF: false, // no incluir número-formato
-        cellStyles: false, // no incluir estilos
-        bookProps: false, // no incluir metadatos del workbook
-        bookSheets: true, // solo nombres de sheets, no toda la metadata
-        sheetRows: 1500, // tope de filas leídas (1000 workers + ~500 de header/empty)
-      })
-      const sheetName = workbook.SheetNames[0]
-      const sheet = workbook.Sheets[sheetName]
-      csvContent = preprocessExcelToCsv(sheet)
+      const workbook = await loadWorkbook(buffer)
+      const sheet = firstWorksheet(workbook)
+      if (!sheet) {
+        return NextResponse.json({ error: 'El Excel no contiene hojas para importar' }, { status: 400 })
+      }
+      const rows = worksheetToAoA(sheet, { defval: '', maxRows: 1500 }) as CellVal[][]
+      csvContent = preprocessExcelToCsv(rows)
     } else {
       csvContent = await file.text()
     }

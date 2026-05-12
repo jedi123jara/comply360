@@ -51,25 +51,25 @@ export function EnableNotifications({
 }: EnableNotificationsProps) {
   const [status, setStatus] = useState<Status>('loading')
   const [error, setError] = useState<string | null>(null)
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return localStorage.getItem(DISMISS_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    try {
-      if (localStorage.getItem(DISMISS_KEY) === '1') {
-        setDismissed(true)
-        return
-      }
-    } catch {
-      /* ignore */
-    }
+    if (dismissed) return
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-      setStatus('unsupported')
+      queueMicrotask(() => setStatus('unsupported'))
       return
     }
     if (Notification.permission === 'denied') {
-      setStatus('denied')
+      queueMicrotask(() => setStatus('denied'))
       return
     }
 
@@ -93,7 +93,7 @@ export function EnableNotifications({
       .catch(() => {
         setStatus('push_disabled_server')
       })
-  }, [])
+  }, [dismissed])
 
   async function subscribe() {
     setStatus('subscribing')
@@ -169,22 +169,26 @@ export function EnableNotifications({
       <div
         className={variant === 'floating' ? 'motion-fade-in-up' : ''}
         style={{
-          background: 'white',
+          background: 'var(--bg-surface)',
           borderRadius: 12,
           padding: 16,
           boxShadow:
             variant === 'floating'
-              ? '0 20px 40px -8px rgba(15,23,42,0.18), 0 4px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.04)'
+              ? '0 24px 64px rgba(2,6,23,0.48), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(148,163,184,0.16)'
               : undefined,
-          border: variant === 'inline' ? '0.5px solid var(--border-default)' : undefined,
+          border: '0.5px solid var(--border-default)',
         }}
       >
         <div className="flex items-start gap-3">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-xl flex-shrink-0"
             style={{
-              background: status === 'subscribed' ? 'var(--emerald-50)' : 'var(--amber-50)',
+              background:
+                status === 'subscribed'
+                  ? 'rgba(20,184,166,0.14)'
+                  : 'rgba(245,158,11,0.14)',
               color: status === 'subscribed' ? 'var(--emerald-700)' : 'var(--amber-700, #b45309)',
+              border: '1px solid var(--border-default)',
             }}
           >
             {status === 'subscribed' ? (

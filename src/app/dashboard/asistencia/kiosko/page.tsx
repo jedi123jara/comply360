@@ -23,11 +23,16 @@ import { ArrowLeft, Clock } from 'lucide-react'
 import { AttendanceQrCard } from '@/components/attendance/attendance-qr-card'
 
 export default function KioskoPage() {
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState<Date | null>(null)
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
+    const tick = () => setNow(new Date())
+    const initial = window.setTimeout(tick, 0)
+    const id = window.setInterval(tick, 1000)
+    return () => {
+      window.clearTimeout(initial)
+      window.clearInterval(id)
+    }
   }, [])
 
   // Intento auto-fullscreen al primer click del usuario (browsers requieren gesto)
@@ -47,18 +52,22 @@ export default function KioskoPage() {
     return () => window.removeEventListener('click', tryFullscreen)
   }, [])
 
-  const timeStr = now.toLocaleTimeString('es-PE', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
-  const dateStr = now.toLocaleDateString('es-PE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const timeStr = now
+    ? now.toLocaleTimeString('es-PE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+    : '--:--:--'
+  const dateStr = now
+    ? now.toLocaleDateString('es-PE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'cargando fecha'
 
   return (
     <div className="fixed inset-0 z-50 bg-[color:var(--neutral-50)] flex flex-col">

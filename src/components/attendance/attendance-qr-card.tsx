@@ -38,6 +38,7 @@ export function AttendanceQrCard({ isKioskMode = false }: { isKioskMode?: boolea
   const [qrDataUrl, setQrDataUrl] = useState<string>('')
   const [fullscreen, setFullscreen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [clockMs, setClockMs] = useState<number | null>(null)
   const rotationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchToken = useCallback(async () => {
@@ -86,8 +87,9 @@ export function AttendanceQrCard({ isKioskMode = false }: { isKioskMode?: boolea
 
   // Initial fetch + auto-rotation
   useEffect(() => {
-    void fetchToken()
+    const initial = window.setTimeout(() => void fetchToken(), 0)
     return () => {
+      window.clearTimeout(initial)
       if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current)
     }
   }, [fetchToken])
@@ -103,10 +105,28 @@ export function AttendanceQrCard({ isKioskMode = false }: { isKioskMode?: boolea
     }
   }, [token, fetchToken])
 
+  useEffect(() => {
+    const tick = () => setClockMs(Date.now())
+    const initial = window.setTimeout(tick, 0)
+    const id = window.setInterval(tick, 1000)
+    return () => {
+      window.clearTimeout(initial)
+      window.clearInterval(id)
+    }
+  }, [])
+
   const countdownSeconds = useMemo(() => {
-    if (!token) return 0
-    return Math.max(0, Math.floor((token.expiresAt - Date.now()) / 1000))
-  }, [token])
+    if (!token || !clockMs) return 0
+    return Math.max(0, Math.floor((token.expiresAt - clockMs) / 1000))
+  }, [token, clockMs])
+
+  const dateLabel = clockMs
+    ? new Date(clockMs).toLocaleDateString('es-PE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      })
+    : 'cargando fecha'
 
   const handleCopyCode = useCallback(() => {
     if (!token) return
@@ -139,11 +159,7 @@ export function AttendanceQrCard({ isKioskMode = false }: { isKioskMode?: boolea
               QR de check-in
             </h2>
             <p className="text-xs text-[color:var(--text-secondary)] mt-0.5">
-              {new Date().toLocaleDateString('es-PE', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-              })}
+              {dateLabel}
             </p>
           </div>
           <div className="flex items-center gap-2">

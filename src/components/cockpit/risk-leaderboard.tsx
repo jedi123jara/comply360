@@ -59,7 +59,7 @@ export function RiskLeaderboard({ workers }: { workers: WorkerRiskItem[] }) {
                 <li key={w.id}>
                   <Link
                     href={`/dashboard/trabajadores/${w.id}`}
-                    className="flex items-center gap-3 px-6 py-3 hover:bg-[color:var(--neutral-50)] transition-colors"
+                    className="flex items-center gap-3 px-6 py-3 hover:bg-[color:var(--bg-surface-hover)] transition-colors"
                   >
                     <span className="shrink-0 w-5 text-center text-xs font-bold text-[color:var(--text-tertiary)]">
                       {idx + 1}

@@ -335,7 +335,7 @@ export function CommandPalette({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[var(--z-command)] bg-neutral-900/40 backdrop-blur-sm data-[state=open]:motion-fade-in" />
         <Dialog.Content
-          className="fixed left-1/2 top-[12vh] -translate-x-1/2 z-[var(--z-command)] w-[calc(100vw-2rem)] max-w-2xl overflow-hidden rounded-2xl border border-[color:var(--border-strong)] bg-white shadow-[var(--elevation-4)] data-[state=open]:motion-scale-in focus:outline-none"
+          className="fixed left-1/2 top-[12vh] -translate-x-1/2 z-[var(--z-command)] w-[calc(100vw-2rem)] max-w-2xl overflow-hidden rounded-2xl border border-[color:var(--border-strong)] bg-[color:var(--bg-elevated)] shadow-[var(--elevation-4)] data-[state=open]:motion-scale-in focus:outline-none"
           aria-label="Paleta de comandos"
         >
           <Dialog.Title className="sr-only">Buscar y ejecutar comandos</Dialog.Title>
@@ -371,7 +371,7 @@ export function CommandPalette({
                   <button
                     type="button"
                     onClick={askCopilot}
-                    className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-500/12 border border-emerald-400/30 px-3 py-1.5 text-sm font-medium text-emerald-200 hover:bg-emerald-500/18 transition-colors"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
                     Preguntar al Asistente IA
@@ -462,7 +462,7 @@ export function CommandPalette({
             </CmdkCommand.List>
 
             {/* Footer */}
-            <div className="flex items-center gap-4 px-4 py-2 border-t border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] text-[10px] text-[color:var(--text-tertiary)]">
+            <div className="flex items-center gap-4 px-4 py-2 border-t border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] text-[10px] text-[color:var(--text-tertiary)]">
               <span className="flex items-center gap-1">
                 <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
                   ↑↓
@@ -521,22 +521,22 @@ function PaletteRow({
       className={cn(
         'flex items-center gap-3 mx-1 my-0.5 rounded-lg px-2.5 py-2 text-sm cursor-default select-none',
         'transition-colors duration-100',
-        'data-[selected=true]:bg-[color:var(--neutral-100)]',
-        accent && 'data-[selected=true]:bg-emerald-100'
+        'data-[selected=true]:bg-[color:var(--bg-surface-hover)]',
+        accent && 'data-[selected=true]:bg-emerald-500/14'
       )}
     >
       <span
         className={cn(
           'shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-lg',
           accent
-            ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-            : 'bg-[color:var(--neutral-100)] border border-[color:var(--border-subtle)] text-[color:var(--text-tertiary)]'
+            ? 'bg-emerald-500/12 border border-emerald-400/30 text-emerald-200'
+            : 'bg-[color:var(--bg-inset)] border border-[color:var(--border-subtle)] text-[color:var(--text-tertiary)]'
         )}
       >
         <Icon className="h-3.5 w-3.5" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className={cn('truncate font-medium', accent ? 'text-emerald-700' : 'text-[color:var(--text-primary)]')}>
+        <p className={cn('truncate font-medium', accent ? 'text-emerald-200' : 'text-[color:var(--text-primary)]')}>
           {label}
         </p>
         {hint ? (

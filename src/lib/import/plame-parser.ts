@@ -7,7 +7,7 @@
  *   - Spanish labels: "TOTAL REM. BÁSICA", "TOTAL ASIG.FAM.", "AFP COMIS+SEG", "IR 5TA", etc.
  *   - Files with no MES column (annual summaries): rows processed with month fallback
  */
-import * as XLSX from 'xlsx'
+import { firstWorksheet, loadWorkbook, parseCsvAoA, worksheetToAoA } from '@/lib/excel/exceljs'
 
 // ──────────────────────────────────────────────
 // Types
@@ -61,7 +61,7 @@ export interface PlameParseResult {
 // Helpers
 // ──────────────────────────────────────────────
 
-type CellVal = string | number | boolean | null | undefined
+type CellVal = string | number | boolean | Date | null | undefined
 
 function cellStr(v: CellVal): string {
   if (v == null) return ''
@@ -145,28 +145,58 @@ function splitName(full: string): { firstName: string; lastName: string } {
 // Main parser
 // ──────────────────────────────────────────────
 
-export function parsePlameExcel(buffer: ArrayBuffer): PlameParseResult {
+export async function parsePlameExcel(
+  buffer: ArrayBuffer,
+  options: { format?: 'xlsx' | 'csv' } = {},
+): Promise<PlameParseResult> {
   const errors: string[] = []
   const rows: PlameRow[] = []
 
-  const workbook = XLSX.read(buffer, { type: 'array' })
-  const sheetName = workbook.SheetNames[0]
-  const sheet = workbook.Sheets[sheetName]
-  const raw = XLSX.utils.sheet_to_json<CellVal[]>(sheet, { header: 1, defval: '' }) as CellVal[][]
+  const sheets = options.format === 'csv'
+    ? [{ name: 'CSV', rows: parseCsvAoA(new TextDecoder().decode(buffer)) as CellVal[][] }]
+    : await readExcelSheets(buffer)
 
-  const headerRowIdx = findHeaderRow(raw)
-  if (headerRowIdx === -1) {
+  let foundHeader = false
+
+  for (const sheet of sheets) {
+    const parsed = parsePlameRows(sheet.rows, sheet.name)
+    foundHeader ||= parsed.foundHeader
+    rows.push(...parsed.rows)
+    errors.push(...parsed.errors)
+  }
+
+  if (!foundHeader) {
     errors.push('No se encontró una fila de encabezado con columna "DNI"')
     return { rows: [], workerCount: 0, periodStart: '', periodEnd: '', errors }
   }
 
+  const dniSet = new Set(rows.map(r => r.dni))
+
+  // Period range
+  const periodos = rows.map(r => r.periodo).sort()
+  const periodStart = periodos[0] ?? ''
+  const periodEnd   = periodos[periodos.length - 1] ?? ''
+
+  return { rows, workerCount: dniSet.size, periodStart, periodEnd, errors }
+}
+
+function parsePlameRows(raw: CellVal[][], sheetName: string): PlameParseResult & { foundHeader: boolean } {
+  const errors: string[] = []
+  const rows: PlameRow[] = []
+
+  const headerRowIdx = findHeaderRow(raw)
+  if (headerRowIdx === -1) {
+    return { rows: [], workerCount: 0, periodStart: '', periodEnd: '', errors, foundHeader: false }
+  }
+
   const hdrs = (raw[headerRowIdx] ?? []).map(c => cellStr(c))
+  const inferredPeriod = inferPeriodFromSheet(sheetName, raw)
 
   // ── Column indices ───────────────────────────
   const dniCol       = findCol(hdrs, 'DNI', 'DOCUMENTO', 'NRO DOCUMENTO', 'NRO DOC')
   const nameCol      = findCol(hdrs, 'APELLIDOS Y NOMBRES', 'APELLIDOS Y NOMBRE', 'NOMBRES Y APELLIDOS', 'NOMBRE COMPLETO')
-  const firstNameCol = findCol(hdrs, 'NOMBRES', 'NOMBRE', 'PRIMER NOMBRE')
-  const lastNameCol  = findCol(hdrs, 'APELLIDOS', 'APELLIDO', 'APELLIDO PATERNO')
+  const firstNameCol = nameCol >= 0 ? -1 : findCol(hdrs, 'NOMBRES', 'NOMBRE', 'PRIMER NOMBRE')
+  const lastNameCol  = nameCol >= 0 ? -1 : findCol(hdrs, 'APELLIDOS', 'APELLIDO', 'APELLIDO PATERNO')
   const cargoCol     = findCol(hdrs, 'CARGO', 'PUESTO', 'OCUPACION')
   const areaCol      = findCol(hdrs, 'AREA', 'DEPARTAMENTO', 'UNIDAD', 'SECCION')
   const anoCol       = findCol(hdrs, 'ANO', 'YEAR')
@@ -208,7 +238,19 @@ export function parsePlameExcel(buffer: ArrayBuffer): PlameParseResult {
   const netoCol      = findCol(hdrs, 'NETO', 'NETO PAGAR', 'NETO A PAGAR', 'LIQUIDO', 'LIQUIDO A PAGAR', 'NETO PAGADO')
   //   "NETO PAGADO"      → "NETO PAGADO" → contains "NETO" ✓
 
-  const hasSeparateNames = firstNameCol >= 0 && lastNameCol >= 0
+  const hasPayrollAmounts =
+    totalIngCol >= 0 ||
+    totalDescCol >= 0 ||
+    netoCol >= 0 ||
+    onpCol >= 0 ||
+    afpAporteCol >= 0 ||
+    afpComCol >= 0 ||
+    essaludCol >= 0
+  if (!hasPayrollAmounts) {
+    return { rows: [], workerCount: 0, periodStart: '', periodEnd: '', errors, foundHeader: true }
+  }
+
+  const hasSeparateNames = firstNameCol >= 0 && lastNameCol >= 0 && firstNameCol !== lastNameCol
   const hasMesCol = mesCol >= 0
   const dniSet = new Set<string>()
 
@@ -219,11 +261,11 @@ export function parsePlameExcel(buffer: ArrayBuffer): PlameParseResult {
     const dni = cellStr(row[dniCol] ?? '').replace(/\D/g, '')
     if (!dni || !/^\d{8}$/.test(dni)) continue
 
-    const year = anoCol >= 0 ? parseYear(row[anoCol]) : 0
+    const year = anoCol >= 0 ? parseYear(row[anoCol]) : (inferredPeriod?.year ?? 0)
     if (year === 0) continue
 
     // When no MES column (annual summary format), default to month 1
-    const month = hasMesCol ? parseMes(row[mesCol]) : 1
+    const month = hasMesCol ? parseMes(row[mesCol]) : (inferredPeriod?.month ?? 1)
     if (hasMesCol && month === 0) continue  // skip only when column exists but value invalid
 
     dniSet.add(dni)
@@ -307,5 +349,37 @@ export function parsePlameExcel(buffer: ArrayBuffer): PlameParseResult {
   const periodStart = periodos[0] ?? ''
   const periodEnd   = periodos[periodos.length - 1] ?? ''
 
-  return { rows, workerCount: dniSet.size, periodStart, periodEnd, errors }
+  return { rows, workerCount: dniSet.size, periodStart, periodEnd, errors, foundHeader: true }
+}
+
+function inferPeriodFromSheet(sheetName: string, raw: CellVal[][]): { year: number; month: number } | null {
+  const haystack = [
+    sheetName,
+    ...raw.slice(0, 4).flat().map(cellStr),
+  ].join(' ')
+
+  const yearMatch = haystack.match(/\b(20\d{2}|19\d{2})\b/)
+  if (!yearMatch) return null
+
+  const normalized = stripAccents(haystack).toUpperCase()
+  const monthEntry = Object.entries(MES_MAP)
+    .sort((a, b) => b[0].length - a[0].length)
+    .find(([label]) => new RegExp(`\\b${label}\\b`).test(normalized))
+
+  if (!monthEntry) return null
+
+  return {
+    year: Number(yearMatch[1]),
+    month: monthEntry[1],
+  }
+}
+
+async function readExcelSheets(buffer: ArrayBuffer): Promise<{ name: string; rows: CellVal[][] }[]> {
+  const workbook = await loadWorkbook(buffer)
+  const first = firstWorksheet(workbook)
+  if (!first) return []
+  return workbook.worksheets.map(sheet => ({
+    name: sheet.name,
+    rows: worksheetToAoA(sheet, { defval: '' }) as CellVal[][],
+  }))
 }

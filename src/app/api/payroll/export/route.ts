@@ -15,6 +15,7 @@ import {
   generatePlameFileName,
   type PlameWorkerRow,
 } from '@/lib/exports/plame-generator'
+import { addAoaSheet, createWorkbook, workbookToArrayBuffer } from '@/lib/excel/exceljs'
 
 export const runtime = 'nodejs'
 
@@ -126,8 +127,7 @@ export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ct
   }
 
   // ── Excel export ────────────────────────────────────────────────────────────
-  const XLSX = await import('xlsx')
-  const wb = XLSX.utils.book_new()
+  const wb = createWorkbook()
 
   // Sheet 1: Resumen de planilla
   const periodoLabel = (() => {
@@ -199,17 +199,9 @@ export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ct
   ]
 
   const allRows = [...headerRows, ...dataRows, totalsRow]
-  const ws = XLSX.utils.aoa_to_sheet(allRows)
-
-  // Column widths
-  ws['!cols'] = [
-    { wch: 4 }, { wch: 12 }, { wch: 32 }, { wch: 16 }, { wch: 20 }, { wch: 14 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
-    { wch: 12 }, { wch: 12 }, { wch: 14 },
-    { wch: 14 }, { wch: 14 }, { wch: 10 },
-  ]
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Planilla')
+  addAoaSheet(wb, 'Planilla', allRows, {
+    columnWidths: [4, 12, 32, 16, 20, 14, 12, 12, 12, 14, 12, 12, 14, 14, 14, 10],
+  })
 
   // Sheet 2: Renta 5ta detalle
   const rentaHeaders = [
@@ -233,13 +225,11 @@ export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ct
       ]
     })
 
-  const ws2 = XLSX.utils.aoa_to_sheet([...rentaHeaders, ...rentaRows])
-  ws2['!cols'] = [
-    { wch: 12 }, { wch: 32 }, { wch: 22 }, { wch: 18 }, { wch: 16 }, { wch: 18 },
-  ]
-  XLSX.utils.book_append_sheet(wb, ws2, 'Renta 5ta')
+  addAoaSheet(wb, 'Renta 5ta', [...rentaHeaders, ...rentaRows], {
+    columnWidths: [12, 32, 22, 18, 16, 18],
+  })
 
-  const xlsxBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
+  const xlsxBuffer = await workbookToArrayBuffer(wb)
   const fileName = `planilla-${orgName.replace(/\s+/g, '-').slice(0, 20)}-${periodo}.xlsx`
 
   return new NextResponse(xlsxBuffer, {

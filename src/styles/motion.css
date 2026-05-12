@@ -306,6 +306,27 @@
   animation: c360-fade-in var(--motion-long) var(--ease-enter) both;
 }
 
+.c360-app-stage > * {
+  animation: c360-slide-up var(--motion-long) var(--ease-enter) both;
+  will-change: opacity, transform;
+}
+.c360-app-stage > *:nth-child(1) { animation-delay: 0ms; }
+.c360-app-stage > *:nth-child(2) { animation-delay: 70ms; }
+.c360-app-stage > *:nth-child(3) { animation-delay: 140ms; }
+.c360-app-stage > *:nth-child(4) { animation-delay: 210ms; }
+.c360-app-stage > *:nth-child(5) { animation-delay: 280ms; }
+.c360-app-stage > *:nth-child(n+6) { animation-delay: 320ms; }
+
+.c360-motion-surface {
+  transition:
+    transform var(--motion-short) var(--ease-standard),
+    border-color var(--motion-short) var(--ease-standard),
+    box-shadow var(--motion-short) var(--ease-standard);
+}
+.c360-motion-surface:hover {
+  transform: translateY(var(--lift-subtle));
+}
+
 /* Para grids — usar con stagger */
 .c360-grid-enter > * {
   animation: c360-slide-up var(--motion-medium) var(--ease-enter) both;

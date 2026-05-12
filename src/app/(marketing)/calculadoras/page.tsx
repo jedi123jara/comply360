@@ -45,7 +45,7 @@ const CALCS = [
 ]
 
 export const metadata = {
-  title: 'Calculadoras laborales gratuitas | COMPLY360',
+  title: 'Calculadoras laborales gratuitas',
   description:
     'CTS, gratificación, liquidación, multas SUNAFIL. Calculadoras gratis actualizadas con la ley peruana 2026. Sin registro.',
 }

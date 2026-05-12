@@ -31,8 +31,13 @@ export function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
   const map = new Map<string, HeatmapDay>()
   for (const d of data) map.set(d.date, d)
 
-  // Build a 7 × weeks grid ending today (Sunday-ended weeks following ISO Monday=0)
-  const today = new Date()
+  // Build a 7 × weeks grid ending on the newest server-provided date. Avoid
+  // using "now" during SSR so the server/client trees hydrate identically.
+  const anchorDate = data.reduce<string | null>(
+    (latest, d) => (!latest || d.date > latest ? d.date : latest),
+    null,
+  ) ?? '2026-01-01'
+  const today = new Date(`${anchorDate}T12:00:00`)
   today.setHours(0, 0, 0, 0)
   const dayOfWeek = (today.getDay() + 6) % 7 // Monday=0 … Sunday=6
   const daysTotal = weeks * 7
@@ -52,12 +57,11 @@ export function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
   }
 
   function cellColor(value: number) {
-    // Light-mode heatmap: fondo neutral-100, escalado de emerald
-    if (value <= 0) return 'rgb(241, 245, 249)' // neutral-100
-    if (value === 1) return 'rgb(209, 250, 229)' // emerald-100
-    if (value === 2) return 'rgb(110, 231, 183)' // emerald-300
-    if (value === 3) return 'rgb(16, 185, 129)' // emerald-500
-    return 'rgb(4, 120, 87)' // emerald-700
+    if (value <= 0) return 'rgba(148, 163, 184, 0.12)'
+    if (value === 1) return 'rgba(20, 184, 166, 0.28)'
+    if (value === 2) return 'rgba(20, 184, 166, 0.46)'
+    if (value === 3) return 'rgba(45, 212, 191, 0.72)'
+    return 'rgb(103, 232, 249)'
   }
 
   const totalActivity = data.reduce((sum, d) => sum + (d.count ?? d.value), 0)

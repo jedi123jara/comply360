@@ -56,10 +56,10 @@ function fmtPEN(n: number): string {
 
 function gravityClass(g: ComplianceTaskTeaser['gravedad']): string {
   return g === 'MUY_GRAVE'
-    ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
+    ? 'bg-crimson-500/12 text-crimson-400 border-crimson-500/30'
     : g === 'GRAVE'
-      ? 'bg-amber-50 text-amber-700 border-amber-200'
-      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      ? 'bg-amber-500/12 text-amber-300 border-amber-500/30'
+      : 'bg-emerald-500/12 text-emerald-300 border-emerald-500/30'
 }
 
 export function ComplianceTasksPanel({
@@ -90,14 +90,14 @@ export function ComplianceTasksPanel({
           <div className="flex flex-wrap gap-2">
             <Link
               href="/dashboard/diagnostico"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/40 bg-emerald-500/12 px-3 py-1.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/18 transition-colors"
             >
               Correr diagnóstico
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link
               href="/dashboard/simulacro"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-1.5 text-sm font-semibold text-[color:var(--text-primary)] hover:border-crimson-200 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-3 py-1.5 text-sm font-semibold text-[color:var(--text-primary)] hover:border-crimson-400/40 transition-colors"
             >
               Simulacro SUNAFIL
               <ArrowRight className="h-3.5 w-3.5" />
@@ -166,15 +166,15 @@ export function ComplianceTasksPanel({
               <li key={t.id}>
                 <Link
                   href="/dashboard/plan-accion"
-                  className="flex items-start gap-3 rounded-lg border border-[color:var(--border-subtle)] bg-white px-3 py-2.5 hover:border-emerald-300 transition-colors"
+                  className="flex items-start gap-3 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-3 py-2.5 hover:border-emerald-400/45 hover:bg-[color:var(--bg-surface-hover)] transition-colors"
                 >
                   <span
                     className={cn(
                       'mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md font-mono text-[11px] font-bold shrink-0',
                       t.priority <= 3
-                        ? 'bg-crimson-50 text-crimson-700'
+                        ? 'bg-crimson-500/12 text-crimson-300'
                         : t.priority <= 8
-                          ? 'bg-amber-50 text-amber-700'
+                          ? 'bg-amber-500/12 text-amber-300'
                           : 'bg-[color:var(--neutral-100)] text-[color:var(--text-tertiary)]'
                     )}
                   >
@@ -205,7 +205,7 @@ export function ComplianceTasksPanel({
                         <span
                           className={cn(
                             'inline-flex items-center gap-0.5',
-                            t.overdue ? 'text-crimson-700 font-semibold' : ''
+                            t.overdue ? 'text-crimson-300 font-semibold' : ''
                           )}
                         >
                           <Clock className="h-3 w-3" />
@@ -220,10 +220,10 @@ export function ComplianceTasksPanel({
             ))}
           </ul>
         ) : (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 px-3 py-4 text-center">
-            <CheckCircle2 className="h-6 w-6 text-emerald-600 mx-auto mb-1" />
-            <p className="text-sm font-semibold text-emerald-800">Sin brechas abiertas</p>
-            <p className="text-xs text-emerald-700/80">
+          <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-4 text-center">
+            <CheckCircle2 className="h-6 w-6 text-emerald-300 mx-auto mb-1" />
+            <p className="text-sm font-semibold text-emerald-200">Sin brechas abiertas</p>
+            <p className="text-xs text-emerald-100/70">
               Corré un nuevo diagnóstico para confirmar que sigues al día.
             </p>
           </div>
@@ -250,26 +250,26 @@ function StatTile({
 }) {
   const toneClasses: Record<typeof tone, { border: string; bg: string; text: string; icon: string }> = {
     emerald: {
-      border: 'border-emerald-200',
-      bg: 'bg-emerald-50/40',
-      text: 'text-emerald-800',
-      icon: 'text-emerald-600',
+      border: 'border-emerald-400/30',
+      bg: 'bg-emerald-500/10',
+      text: 'text-emerald-200',
+      icon: 'text-emerald-300',
     },
     amber: {
-      border: 'border-amber-200',
-      bg: 'bg-amber-50/40',
-      text: 'text-amber-800',
-      icon: 'text-amber-600',
+      border: 'border-amber-400/30',
+      bg: 'bg-amber-500/10',
+      text: 'text-amber-200',
+      icon: 'text-amber-300',
     },
     crimson: {
-      border: 'border-crimson-200',
-      bg: 'bg-crimson-50/40',
-      text: 'text-crimson-800',
-      icon: 'text-crimson-600',
+      border: 'border-crimson-400/30',
+      bg: 'bg-crimson-500/10',
+      text: 'text-crimson-200',
+      icon: 'text-crimson-300',
     },
     neutral: {
       border: 'border-[color:var(--border-subtle)]',
-      bg: 'bg-white',
+      bg: 'bg-[color:var(--bg-inset)]',
       text: 'text-[color:var(--text-primary)]',
       icon: 'text-[color:var(--text-tertiary)]',
     },

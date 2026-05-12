@@ -6,7 +6,7 @@ import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * Select v3 — Radix-powered, LIGHT skin.
+ * Select v4 — Radix-powered, dark skin.
  *
  * Reemplaza el `<select>` nativo para garantizar apariencia consistente
  * en Windows/macOS con dark mode del OS (el `<option>` nativo ignora
@@ -39,7 +39,7 @@ export const SelectTrigger = forwardRef<
     className={cn(
       'flex h-10 w-full items-center justify-between gap-2 rounded-lg px-3 py-2',
       'text-sm text-[color:var(--text-primary)]',
-      'bg-white border transition-all',
+      'bg-[color:var(--bg-surface)] border transition-all',
       'focus:outline-none focus:shadow-[0_0_0_4px_rgba(16,185,129,0.10)]',
       'disabled:cursor-not-allowed disabled:opacity-50',
       'data-[placeholder]:text-[color:var(--text-tertiary)]',
@@ -103,7 +103,7 @@ export const SelectContent = forwardRef<
       position={position}
       className={cn(
         'relative z-[var(--z-popover)] max-h-[320px] min-w-[8rem] overflow-hidden rounded-lg',
-        'bg-white border border-[color:var(--border-default)]',
+        'bg-[color:var(--bg-elevated)] border border-[color:var(--border-default)]',
         'shadow-[var(--elevation-3)]',
         'data-[state=open]:motion-scale-in',
         position === 'popper' &&
@@ -153,8 +153,8 @@ export const SelectItem = forwardRef<
       'relative flex w-full cursor-default select-none items-center gap-2 rounded-md',
       'py-2 pl-8 pr-2 text-sm outline-none',
       'text-[color:var(--text-primary)]',
-      'data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700',
-      'data-[state=checked]:bg-emerald-50 data-[state=checked]:text-emerald-700 data-[state=checked]:font-medium',
+      'data-[highlighted]:bg-emerald-500/12 data-[highlighted]:text-emerald-200',
+      'data-[state=checked]:bg-emerald-500/12 data-[state=checked]:text-emerald-200 data-[state=checked]:font-medium',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}

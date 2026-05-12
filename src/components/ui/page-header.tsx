@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react'
 /**
  * PageHeader — cabecera estándar para páginas del dashboard.
  *
- * Aplica el mismo tratamiento visual en cada hub: card blanca con accent
+ * Aplica el mismo tratamiento visual en cada hub: surface oscura con accent
  * bar superior (emerald / amber / crimson / none), eyebrow pill opcional,
  * H1 + descripción, y slot para acciones.
  *
@@ -41,10 +41,10 @@ const ACCENT_STYLES: Record<string, string> = {
 }
 
 const ICON_STYLES: Record<string, string> = {
-  emerald: 'bg-emerald-50 border-emerald-200 text-emerald-600',
-  amber: 'bg-amber-50 border-amber-200 text-amber-600',
-  crimson: 'bg-crimson-50 border-crimson-200 text-crimson-600',
-  none: 'bg-[color:var(--neutral-100)] border-[color:var(--border-default)] text-[color:var(--text-secondary)]',
+  emerald: 'bg-emerald-500/12 border-emerald-400/30 text-emerald-300',
+  amber: 'bg-amber-500/12 border-amber-400/30 text-amber-300',
+  crimson: 'bg-crimson-500/12 border-crimson-400/30 text-crimson-300',
+  none: 'bg-[color:var(--bg-inset)] border-[color:var(--border-default)] text-[color:var(--text-secondary)]',
 }
 
 export function PageHeader({
@@ -59,7 +59,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        'relative rounded-2xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-3)] overflow-hidden',
+        'relative rounded-2xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] shadow-[var(--elevation-3)] overflow-hidden',
         'motion-fade-in-up',
         ACCENT_STYLES[accent],
         className

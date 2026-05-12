@@ -99,20 +99,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div
       className={cn(
         'min-h-screen bg-[color:var(--bg-canvas)] text-[color:var(--text-primary)]',
-        'relative'
+        'relative overflow-hidden'
       )}
     >
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_18%_-10%,rgba(14,165,233,0.18),transparent_32%),radial-gradient(circle_at_82%_8%,rgba(16,185,129,0.14),transparent_28%),linear-gradient(180deg,rgba(2,6,23,0)_0%,rgba(2,6,23,0.42)_100%)]" />
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={closeSidebar} onCommandK={openCommand} />
 
       {/* Content area — offset by sidebar width on desktop */}
-      <div className="lg:pl-[var(--sidebar-width)] flex min-h-screen flex-col">
+      <div className="relative z-10 lg:pl-[var(--sidebar-width)] flex min-h-screen flex-col">
         <TrialBanner />
         <Topbar onMenuToggle={toggleSidebar} onCommandK={openCommand} />
 
-        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-10">
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <ErrorBoundary>
-            <div className="mx-auto w-full max-w-[var(--content-max)]">
+            <div className="c360-page-enter c360-app-stage mx-auto w-full max-w-[var(--content-max)]">
               {children}
             </div>
           </ErrorBoundary>

@@ -15,10 +15,7 @@
  */
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-const XLSX = require('xlsx')
+import ExcelJS from 'exceljs'
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, '')), '..', '..')
 const SRC_AUDIT = 'C:/Users/User/Desktop/IMPRIMIR/01 Check List Auditoría Laboral.xlsx'
@@ -38,6 +35,38 @@ function slug(s) {
 // Trim + collapse whitespace
 function clean(s) {
   return String(s ?? '').replace(/\s+/g, ' ').trim()
+}
+
+async function readWorkbook(filePath) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(filePath)
+  return workbook
+}
+
+function worksheetToRows(worksheet) {
+  const rows = []
+  for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber++) {
+    const row = worksheet.getRow(rowNumber)
+    const values = []
+    for (let colNumber = 1; colNumber <= row.cellCount; colNumber++) {
+      values.push(cellToText(row.getCell(colNumber).value))
+    }
+    rows.push(values)
+  }
+  return rows
+}
+
+function cellToText(value) {
+  if (value == null) return ''
+  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  if (typeof value === 'object') {
+    if ('result' in value) return cellToText(value.result)
+    if ('text' in value) return value.text ?? ''
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText.map(part => part.text ?? '').join('')
+    }
+  }
+  return value
 }
 
 /* ────────────────────────────────────────────────────────────────────
@@ -66,16 +95,17 @@ const SECTION_META = {
   'XIX. Doc. y Otras Oblig.': { key: 'documentacion', label: 'Documentación y otras obligaciones', area: 'documentos', weight: 5 },
 }
 
-function parseAuditChecklist() {
-  const wb = XLSX.readFile(SRC_AUDIT)
+async function parseAuditChecklist() {
+  const wb = await readWorkbook(SRC_AUDIT)
   const sections = []
   let totalQ = 0
 
-  for (const sheetName of wb.SheetNames) {
+  for (const worksheet of wb.worksheets) {
+    const sheetName = worksheet.name
     const meta = SECTION_META[sheetName]
     if (!meta) continue // Skip "Checklist - Continuo/Imprimir" covers
 
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' })
+    const rows = worksheetToRows(worksheet)
     const questions = []
 
     let currentParent = null // Question that has sub-items
@@ -155,16 +185,17 @@ function detectGravity(text) {
   return null
 }
 
-function parseInfracciones() {
-  const wb = XLSX.readFile(SRC_INFRAC)
+async function parseInfracciones() {
+  const wb = await readWorkbook(SRC_INFRAC)
   const sections = []
   let total = 0
 
-  for (const sheetName of wb.SheetNames) {
+  for (const worksheet of wb.worksheets) {
+    const sheetName = worksheet.name
     const meta = INFRAC_META[sheetName]
     if (!meta) continue
 
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' })
+    const rows = worksheetToRows(worksheet)
     const items = []
     let currentGravity = null
     let currentParent = null
@@ -386,12 +417,12 @@ export const INFRAC_COUNT_BY_GRAVITY: Readonly<Record<InfracGravity, number>> = 
 
 console.log('\n── SUNAFIL Checklist Ingest ──\n')
 console.log('📂 Reading', path.basename(SRC_AUDIT))
-const audit = parseAuditChecklist()
+const audit = await parseAuditChecklist()
 console.log(`  → ${audit.sections.length} secciones · ${audit.totalQ} preguntas`)
 emitAuditChecklist(audit)
 
 console.log('\n📂 Reading', path.basename(SRC_INFRAC))
-const infrac = parseInfracciones()
+const infrac = await parseInfracciones()
 console.log(`  → ${infrac.sections.length} categorías · ${infrac.total} infracciones`)
 console.log('  Por gravedad:')
 for (const grav of ['LEVE', 'GRAVE', 'MUY_GRAVE']) {

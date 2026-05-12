@@ -1,5 +1,11 @@
-import * as XLSX from 'xlsx'
 import { prisma } from '@/lib/prisma'
+import {
+  firstWorksheet,
+  loadWorkbook,
+  parseCsvObjects,
+  worksheetDataRowCount,
+  worksheetToJson,
+} from '@/lib/excel/exceljs'
 
 export type OrgChartImportRowStatus = 'READY' | 'WARNING' | 'ERROR'
 
@@ -64,7 +70,7 @@ interface ApplyOptions extends ImportOptions {
 
 export const ORGCHART_IMPORT_MAX_BYTES = 5 * 1024 * 1024
 export const ORGCHART_IMPORT_MAX_ROWS = 500
-export const ORGCHART_IMPORT_ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.csv'] as const
+export const ORGCHART_IMPORT_ALLOWED_EXTENSIONS = ['.xlsx', '.csv'] as const
 
 interface ParsedWorkbook {
   sheetName: string | null
@@ -181,7 +187,7 @@ export function validateOrgChartImportFileMetadata(input: {
   const errors: string[] = []
   const extension = importFileExtension(input.fileName)
   if (!extension || !(ORGCHART_IMPORT_ALLOWED_EXTENSIONS as readonly string[]).includes(extension)) {
-    errors.push('Formato no soportado. Usa un archivo .xlsx, .xls o .csv.')
+    errors.push('Formato no soportado. Usa un archivo .xlsx o .csv.')
   }
 
   if (typeof input.size === 'number') {
@@ -423,7 +429,7 @@ async function prepareImport(
   file: Buffer,
   options: ImportOptions,
 ): Promise<PreparedImport> {
-  const parsed = parseWorkbook(file)
+  const parsed = await parseWorkbook(file, options.fileName)
   const [workers, units, positions, activeAssignments] = await Promise.all([
     prisma.worker.findMany({
       where: { orgId, status: { in: [...ACTIVE_WORKER_STATUSES] } },
@@ -579,25 +585,13 @@ async function prepareImport(
   }
 }
 
-function parseWorkbook(file: Buffer): ParsedWorkbook {
-  let workbook: XLSX.WorkBook
-  try {
-    workbook = XLSX.read(file, { type: 'buffer', cellDates: true })
-  } catch {
-    throw new OrgChartImportFileError('No se pudo leer el archivo. Verifica que sea un Excel o CSV válido.')
-  }
+async function parseWorkbook(file: Buffer, fileName?: string | null): Promise<ParsedWorkbook> {
+  const extension = importFileExtension(fileName)
+  const parsed = extension === '.csv'
+    ? parseCsvWorkbook(file)
+    : await parseXlsxWorkbook(file)
 
-  const sheetName = workbook.SheetNames[0] ?? null
-  if (!sheetName) {
-    throw new OrgChartImportFileError('El archivo no contiene hojas para importar.')
-  }
-
-  const sheet = workbook.Sheets[sheetName]
-  if (!sheet) {
-    throw new OrgChartImportFileError('No se pudo leer la primera hoja del archivo.')
-  }
-
-  const dataRowsInRange = worksheetDataRowCount(sheet)
+  const dataRowsInRange = parsed.dataRowsInRange
   if (dataRowsInRange > ORGCHART_IMPORT_MAX_ROWS) {
     throw new OrgChartImportFileError(
       `El archivo contiene ${dataRowsInRange} filas. El máximo permitido es ${ORGCHART_IMPORT_MAX_ROWS}.`,
@@ -605,14 +599,8 @@ function parseWorkbook(file: Buffer): ParsedWorkbook {
     )
   }
 
-  const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: '',
-    raw: false,
-    blankrows: false,
-  })
-
-  const columns = rawRows.length > 0 ? Object.keys(rawRows[0]) : []
-  const rows = rawRows
+  const columns = parsed.rawRows.length > 0 ? Object.keys(parsed.rawRows[0]) : []
+  const rows = parsed.rawRows
     .map((raw, index) => parseRow(raw, index + 2))
     .filter(row => row.areaName || row.positionTitle || row.dni || row.workerName || row.managerRef)
 
@@ -626,7 +614,34 @@ function parseWorkbook(file: Buffer): ParsedWorkbook {
     )
   }
 
-  return { sheetName, columns, rows }
+  return { sheetName: parsed.sheetName, columns, rows }
+}
+
+function parseCsvWorkbook(file: Buffer) {
+  const rawRows = parseCsvObjects(file.toString('utf-8'))
+  return {
+    sheetName: 'CSV',
+    rawRows,
+    dataRowsInRange: rawRows.length,
+  }
+}
+
+async function parseXlsxWorkbook(file: Buffer) {
+  try {
+    const workbook = await loadWorkbook(file)
+    const sheet = firstWorksheet(workbook)
+    if (!sheet) {
+      throw new OrgChartImportFileError('El archivo no contiene hojas para importar.')
+    }
+    return {
+      sheetName: sheet.name,
+      rawRows: worksheetToJson(sheet, { defval: '', rawDates: false }),
+      dataRowsInRange: worksheetDataRowCount(sheet),
+    }
+  } catch (error) {
+    if (error instanceof OrgChartImportFileError) throw error
+    throw new OrgChartImportFileError('No se pudo leer el archivo. Verifica que sea un Excel o CSV válido.')
+  }
 }
 
 function parseRow(raw: Record<string, unknown>, rowNumber: number): ParsedImportRow {
@@ -1034,13 +1049,6 @@ function importFileExtension(fileName: string | null | undefined) {
 
 function normalizeMimeType(mimeType: string | null | undefined) {
   return (mimeType ?? '').split(';')[0].trim().toLowerCase()
-}
-
-function worksheetDataRowCount(sheet: XLSX.WorkSheet) {
-  const ref = sheet['!ref']
-  if (!ref) return 0
-  const range = XLSX.utils.decode_range(ref)
-  return Math.max(0, range.e.r - range.s.r)
 }
 
 function formatMegabytes(bytes: number) {

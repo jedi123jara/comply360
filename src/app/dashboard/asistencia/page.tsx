@@ -165,7 +165,7 @@ export default function AsistenciaPage() {
   const [loading, setLoading] = useState(true)
   const [clockingIn, setClockingIn] = useState(false)
   const [clockError, setClockError] = useState<string | null>(null)
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [filter, setFilter] = useState<string>('all')
 
   // Modales para flujo de justificación
@@ -238,8 +238,12 @@ export default function AsistenciaPage() {
 
   // Live clock
   useEffect(() => {
+    const firstTick = window.setTimeout(() => setCurrentTime(new Date()), 0)
     const interval = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(interval)
+    return () => {
+      window.clearTimeout(firstTick)
+      clearInterval(interval)
+    }
   }, [])
 
   // Fetch data
@@ -602,10 +606,14 @@ export default function AsistenciaPage() {
             <div className="text-center sm:text-left">
               <p className="text-emerald-100 text-sm">Hora actual</p>
               <p className="text-4xl font-mono font-bold">
-                {currentTime.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {currentTime
+                  ? currentTime.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : '--:--:--'}
               </p>
               <p className="text-emerald-100 text-sm mt-1">
-                {currentTime.toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                {currentTime
+                  ? currentTime.toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                  : 'Sincronizando fecha local'}
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">

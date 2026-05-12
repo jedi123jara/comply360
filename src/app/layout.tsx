@@ -12,6 +12,8 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import Script from "next/script";
 import { BRAND } from "@/lib/brand";
 
+const faviconVersion = "20260511-2";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -52,6 +54,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(`https://${BRAND.domain}`),
   title: {
     default: `${BRAND.name} — ${BRAND.tagline}`,
     template: `%s | ${BRAND.name}`,
@@ -81,6 +84,17 @@ export const metadata: Metadata = {
     description: "Plataforma SaaS de compliance laboral para empresas peruanas.",
   },
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: `/favicon-32.png?v=${faviconVersion}`, sizes: "32x32", type: "image/png" },
+      { url: `/favicon.svg?v=${faviconVersion}`, type: "image/svg+xml" },
+      { url: `/favicon.ico?v=${faviconVersion}`, sizes: "any", type: "image/x-icon" },
+      { url: `/icon-192.png?v=${faviconVersion}`, sizes: "192x192", type: "image/png" },
+      { url: `/icon-512.png?v=${faviconVersion}`, sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: [{ url: `/favicon.ico?v=${faviconVersion}`, type: "image/x-icon" }],
+    apple: [{ url: `/apple-touch-icon.png?v=${faviconVersion}`, sizes: "180x180", type: "image/png" }],
+  },
   applicationName: BRAND.name,
   appleWebApp: {
     capable: true,
@@ -90,7 +104,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#060a12",
   width: "device-width",
   initialScale: 1,
 };
@@ -104,10 +118,10 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${firaCode.variable} ${instrumentSerif.variable} h-full antialiased`}
-      style={{ colorScheme: 'light' }}
+      style={{ colorScheme: 'dark' }}
     >
       <head>
-        <meta name="color-scheme" content="light only" />
+        <meta name="color-scheme" content="dark only" />
         {/* Plausible analytics — GDPR-friendly, sin cookies. Condicional:
             solo se carga si NEXT_PUBLIC_PLAUSIBLE_DOMAIN está configurado. */}
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ? (

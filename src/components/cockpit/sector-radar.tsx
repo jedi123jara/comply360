@@ -45,48 +45,48 @@ export function SectorRadar({ data, sectorLabel = 'Sector' }: SectorRadarProps) 
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={data} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-              <PolarGrid stroke="rgba(15,23,42,0.08)" />
+              <PolarGrid stroke="rgba(148,163,184,0.18)" />
               <PolarAngleAxis
                 dataKey="area"
-                tick={{ fill: 'rgba(71,85,105,0.95)', fontSize: 11 }}
+                tick={{ fill: 'rgba(203,213,225,0.9)', fontSize: 11 }}
               />
               <PolarRadiusAxis
                 angle={90}
                 domain={[0, 100]}
-                tick={{ fill: 'rgba(100,116,139,0.7)', fontSize: 9 }}
-                stroke="rgba(15,23,42,0.06)"
+                tick={{ fill: 'rgba(148,163,184,0.75)', fontSize: 9 }}
+                stroke="rgba(148,163,184,0.14)"
               />
               <Radar
                 name={sectorLabel}
                 dataKey="sector"
-                stroke="rgba(100,116,139,0.5)"
-                fill="rgba(148,163,184,0.18)"
+                stroke="rgba(148,163,184,0.58)"
+                fill="rgba(148,163,184,0.16)"
                 fillOpacity={0.4}
                 strokeWidth={1.5}
               />
               <Radar
                 name="Tu empresa"
                 dataKey="org"
-                stroke="#1d4ed8"
-                fill="rgba(16,185,129,0.18)"
+                stroke="#22d3ee"
+                fill="rgba(20,184,166,0.24)"
                 fillOpacity={0.6}
                 strokeWidth={2}
               />
               <Tooltip
                 contentStyle={{
-                  background: '#ffffff',
-                  border: '1px solid rgba(15,23,42,0.12)',
+                  background: 'rgba(15,23,42,0.96)',
+                  border: '1px solid rgba(148,163,184,0.18)',
                   borderRadius: 8,
                   fontSize: 12,
-                  color: '#0f172a',
-                  boxShadow: '0 12px 32px rgba(15,23,42,0.08)',
+                  color: '#f8fafc',
+                  boxShadow: '0 18px 48px rgba(2,6,23,0.42)',
                 }}
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                 iconType="circle"
                 formatter={(value) => (
-                  <span style={{ color: 'rgba(71,85,105,0.95)', fontSize: 11 }}>{value}</span>
+                  <span style={{ color: 'rgba(203,213,225,0.9)', fontSize: 11 }}>{value}</span>
                 )}
               />
             </RadarChart>

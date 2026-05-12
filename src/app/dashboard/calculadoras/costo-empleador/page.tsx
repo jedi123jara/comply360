@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { DollarSign, TrendingUp, Users, Building2, Info, Calculator } from 'lucide-react'
 import { calcularCostoEmpleador, type CostoEmpleadorInput, type CostoEmpleadorResult } from '@/lib/legal-engine/calculators/costo-empleador'
 import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
-import { CalculationHistory } from '@/components/calculadoras/calculation-history'
 
 const REGIMENES = [
   { value: 'GENERAL', label: 'General (D.Leg. 728)' },
@@ -266,8 +265,6 @@ export default function CostoEmpleadorPage() {
         </div>
       </div>
 
-      {/* History */}
-      <CalculationHistory type="COSTO_EMPLEADOR" />
     </div>
   )
 }

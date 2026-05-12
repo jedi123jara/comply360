@@ -38,7 +38,7 @@ describe('orgchart import excel', () => {
       size: ORGCHART_IMPORT_MAX_BYTES + 1,
     })
 
-    expect(errors).toContain('Formato no soportado. Usa un archivo .xlsx, .xls o .csv.')
+    expect(errors).toContain('Formato no soportado. Usa un archivo .xlsx o .csv.')
     expect(errors).toContain('El archivo supera el límite de 5 MB.')
     expect(errors).toContain('El tipo de archivo no coincide con Excel o CSV.')
   })

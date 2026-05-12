@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import type { CTSInput } from '@/lib/legal-engine'
-import * as XLSX from 'xlsx'
 import { Users, Download, RefreshCw, Loader2, CheckCircle, Search, ChevronDown, ChevronUp, FileSpreadsheet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -148,7 +147,7 @@ export function BulkCTSCalculadora() {
   const conCTS = workers.filter(w => w.ctsResult !== null).length
   const sinCTS = workers.length - conCTS
 
-  function exportExcel() {
+  async function exportExcel() {
     const rows = selectedRows.map(w => ({
       'DNI': w.dni,
       'Apellidos': w.lastName,
@@ -165,12 +164,21 @@ export function BulkCTSCalculadora() {
       'Fecha Corte': fechaCorte,
     }))
 
-    const ws = XLSX.utils.json_to_sheet(rows)
-    // Column widths
-    ws['!cols'] = [8,18,18,20,15,14,12,12,16,16,14,18,14].map(w => ({ wch: w }))
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'CTS')
-    XLSX.writeFile(wb, `CTS_Masivo_${fechaCorte}.xlsx`)
+    const { addJsonSheet, createWorkbook, workbookToArrayBuffer } = await import('@/lib/excel/exceljs')
+    const workbook = createWorkbook()
+    addJsonSheet(workbook, 'CTS', rows, {
+      columnWidths: [8, 18, 18, 20, 15, 14, 12, 12, 16, 16, 14, 18, 14],
+    })
+    const buffer = await workbookToArrayBuffer(workbook)
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `CTS_Masivo_${fechaCorte}.xlsx`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   const SortIcon = ({ field }: { field: typeof sortField }) =>

@@ -338,7 +338,7 @@ function UploadDropzone({ uploading, onFile }: { uploading: boolean; onFile: (f:
     >
       <input
         type="file"
-        accept=".xlsx,.xls,.csv"
+                    accept=".xlsx,.csv"
         className="hidden"
         disabled={uploading}
         onChange={(e) => {
@@ -355,7 +355,7 @@ function UploadDropzone({ uploading, onFile }: { uploading: boolean; onFile: (f:
         <div className="flex flex-col items-center gap-2 text-slate-600">
           <Upload className="w-10 h-10 text-slate-400" />
           <p className="text-sm font-semibold">Arrastra tu archivo aquí o haz clic para subir</p>
-          <p className="text-xs text-slate-500">.xlsx · .xls · .csv (máx. 200 filas)</p>
+                    <p className="text-xs text-slate-500">.xlsx · .csv (máx. 200 filas)</p>
         </div>
       )}
     </label>

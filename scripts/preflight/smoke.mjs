@@ -35,21 +35,21 @@ const CHECKS = [
   { name: 'AUP', method: 'GET', path: '/legal/aup', expectedStatus: 200 },
   { name: 'DPA', method: 'GET', path: '/legal/dpa', expectedStatus: 200 },
 
-  // ── Rutas que requieren auth → deben redirigir a sign-in (no 500) ──
-  { name: 'Dashboard sin auth → redirect', method: 'GET', path: '/dashboard', expectedStatuses: [200, 307, 308] },
-  { name: '/mi-portal sin auth → redirect', method: 'GET', path: '/mi-portal', expectedStatuses: [200, 307, 308] },
-  { name: '/admin sin auth → redirect', method: 'GET', path: '/admin', expectedStatuses: [200, 307, 308] },
+  // ── Rutas que requieren auth → redirect o 404 stealth de Clerk (no 500) ──
+  { name: 'Dashboard sin auth → protegido', method: 'GET', path: '/dashboard', expectedStatuses: [200, 307, 308, 404] },
+  { name: '/mi-portal sin auth → protegido', method: 'GET', path: '/mi-portal', expectedStatuses: [200, 307, 308, 404] },
+  { name: '/admin sin auth → protegido', method: 'GET', path: '/admin', expectedStatuses: [200, 307, 308, 404] },
 
   // ── APIs públicas / health ──────────────────────────────────────────
   { name: 'Health endpoint', method: 'GET', path: '/api/health', expectedStatus: 200 },
 
-  // ── APIs protegidas → deben retornar 401/403 (no 500) ──────────────
-  { name: 'API workers sin auth → 401', method: 'GET', path: '/api/workers', expectedStatuses: [401, 403, 307, 308] },
-  { name: 'API attendance qr-token → 401', method: 'GET', path: '/api/attendance/qr-token', expectedStatuses: [401, 403, 307, 308] },
-  { name: 'API ai-chat sin auth → 401', method: 'POST', path: '/api/ai-chat', expectedStatuses: [401, 403, 405, 307, 308] },
-  { name: 'API integrations RENIEC sin auth → 401', method: 'GET', path: '/api/integrations/reniec/consulta-dni?dni=12345678', expectedStatuses: [401, 403, 307, 308] },
-  { name: 'API feedback NPS sin auth → 401', method: 'GET', path: '/api/feedback/nps', expectedStatuses: [401, 403, 307, 308] },
-  { name: 'API me/orgs sin auth → 401', method: 'GET', path: '/api/me/orgs', expectedStatuses: [401, 403, 307, 308] },
+  // ── APIs protegidas → deben negar acceso o esconderse (no 500) ─────
+  { name: 'API workers sin auth → protegido', method: 'GET', path: '/api/workers', expectedStatuses: [401, 403, 404, 307, 308] },
+  { name: 'API attendance qr-token → protegido', method: 'GET', path: '/api/attendance/qr-token', expectedStatuses: [401, 403, 404, 307, 308] },
+  { name: 'API ai-chat sin auth → protegido', method: 'POST', path: '/api/ai-chat', expectedStatuses: [401, 403, 404, 405, 307, 308] },
+  { name: 'API integrations RENIEC sin auth → protegido', method: 'GET', path: '/api/integrations/reniec/consulta-dni?dni=12345678', expectedStatuses: [401, 403, 404, 307, 308] },
+  { name: 'API feedback NPS sin auth → protegido', method: 'GET', path: '/api/feedback/nps', expectedStatuses: [401, 403, 404, 307, 308] },
+  { name: 'API me/orgs sin auth → protegido', method: 'GET', path: '/api/me/orgs', expectedStatuses: [401, 403, 404, 307, 308] },
 
   // ── APIs públicas con validación de input ──────────────────────────
   {

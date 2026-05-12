@@ -220,21 +220,31 @@ export default function DrillDownAnalyticsPage() {
   /* ---- Chart geometry ---- */
   const chartHeight = 200
   const maxScore = 100
-  const minScore = Math.min(...filteredMonths.map((m) => m.score)) - 5
+  const minScore = filteredMonths.length
+    ? Math.min(...filteredMonths.map((m) => m.score)) - 5
+    : 0
 
   function scoreToY(score: number): number {
-    return chartHeight - ((score - minScore) / (maxScore - minScore)) * chartHeight
+    const range = Math.max(1, maxScore - minScore)
+    return chartHeight - ((score - minScore) / range) * chartHeight
+  }
+
+  function scoreToX(index: number): number {
+    if (filteredMonths.length <= 1) return 50
+    return (index / (filteredMonths.length - 1)) * 100
   }
 
   const linePath = filteredMonths
     .map((m, i) => {
-      const x = (i / (filteredMonths.length - 1)) * 100
+      const x = scoreToX(i)
       const y = scoreToY(m.score)
       return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
     })
     .join(' ')
 
-  const areaPath = `${linePath} L 100 ${chartHeight} L 0 ${chartHeight} Z`
+  const areaPath = linePath
+    ? `${linePath} L ${scoreToX(filteredMonths.length - 1)} ${chartHeight} L ${scoreToX(0)} ${chartHeight} Z`
+    : ''
 
   /* ---- Risk matrix layout ---- */
   const probLevels: Array<'Alta' | 'Media' | 'Baja'> = ['Alta', 'Media', 'Baja']
@@ -412,13 +422,15 @@ export default function DrillDownAnalyticsPage() {
                 />
               ))}
               {/* Area */}
-              <path d={areaPath} fill="url(#areaGrad)" opacity="0.3" />
+              {areaPath && <path d={areaPath} fill="url(#areaGrad)" opacity="0.3" />}
               {/* Line */}
-              <path d={linePath} fill="none" stroke="currentColor" strokeWidth="0.8"
-                className="text-indigo-400" />
+              {linePath && (
+                <path d={linePath} fill="none" stroke="currentColor" strokeWidth="0.8"
+                  className="text-indigo-400" />
+              )}
               {/* Dots */}
               {filteredMonths.map((m, i) => {
-                const cx = (i / (filteredMonths.length - 1)) * 100
+                const cx = scoreToX(i)
                 const cy = scoreToY(m.score)
                 const isSelected = selectedMonth?.month === m.month
                 return (

@@ -20,15 +20,22 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
     if (!file) return NextResponse.json({ error: 'No se proporcionó ningún archivo' }, { status: 400 })
 
     const fileName = file.name.toLowerCase()
-    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.csv')) {
-      return NextResponse.json({ error: 'Solo se aceptan archivos Excel (.xlsx, .xls)' }, { status: 400 })
+    if (fileName.endsWith('.xls')) {
+      return NextResponse.json(
+        { error: 'El formato Excel heredado .xls ya no se acepta por seguridad. Guarda el archivo como .xlsx o .csv.' },
+        { status: 400 },
+      )
+    }
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.csv')) {
+      return NextResponse.json({ error: 'Solo se aceptan archivos Excel (.xlsx) o CSV (.csv)' }, { status: 400 })
     }
     if (file.size > 20 * 1024 * 1024) {
       return NextResponse.json({ error: 'El archivo excede el tamaño máximo de 20MB' }, { status: 400 })
     }
 
     const buffer = await file.arrayBuffer()
-    const { rows, workerCount, periodStart, periodEnd, errors } = parsePlameExcel(buffer)
+    const format = fileName.endsWith('.csv') ? 'csv' : 'xlsx'
+    const { rows, workerCount, periodStart, periodEnd, errors } = await parsePlameExcel(buffer, { format })
 
     if (errors.length > 0 && rows.length === 0) {
       return NextResponse.json({ error: errors[0] }, { status: 400 })

@@ -38,10 +38,10 @@ export default function SeguridadConfigPage() {
 
   const fetchAuditLogs = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/auditoria?type=AUTH&limit=20')
+      const res = await fetch('/api/audit?pageSize=20&resourceType=AUTH')
       if (res.ok) {
         const data = await res.json()
-        setAuditLogs(data.logs || data.entries || [])
+        setAuditLogs(data.data || [])
       }
     } catch {
       // Silent — empty state will show
@@ -50,7 +50,10 @@ export default function SeguridadConfigPage() {
     }
   }, [])
 
-  useEffect(() => { fetchAuditLogs() }, [fetchAuditLogs])
+  useEffect(() => {
+    const id = window.setTimeout(fetchAuditLogs, 0)
+    return () => window.clearTimeout(id)
+  }, [fetchAuditLogs])
 
   function getResultIcon(result: string | undefined) {
     if (!result) return <AlertTriangle className="h-3.5 w-3.5 text-gray-500" />

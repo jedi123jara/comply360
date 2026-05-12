@@ -34,13 +34,15 @@ const isPublicRoute = createRouteMatcher([
   '/api/cron(.*)',           // Cron jobs — protegidos internamente por Bearer CRON_SECRET
   '/api/health',             // Health check endpoint
   '/api/complaints',         // Public complaint submission
+  '/api/attendance/clock-by-code', // Marcación pública con DNI+PIN+shortCode vigente
   '/api/portal-empleado(.*)',
   '/api/public/orgchart(.*)', // API pública del Auditor Link (token JWT validado en route)
   '/api/leads',              // POST leads desde /diagnostico-gratis
   '/api/integrations/sunat-sol/receive', // Chrome Extension endpoint (CORS preflight)
   '/api/verify(.*)',         // Verificación pública de sellos SST y contratos
 
-  // Dev-only UI showcase
+  // Dev-only UI showcase. En produccion se bloquea antes de llegar a la app
+  // para devolver 404 real, no una soft-404 renderizada por React.
   '/dev(.*)',
 ])
 
@@ -103,6 +105,15 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
   // CORS preflight (OPTIONS) requests must pass without auth
   if (request.method === 'OPTIONS') {
     return NextResponse.next()
+  }
+
+  if (isProd && request.nextUrl.pathname.startsWith('/dev')) {
+    const response = new NextResponse('Not found', { status: 404 })
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      response.headers.set(key, value)
+    }
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   }
 
   if (!isPublicRoute(request)) {

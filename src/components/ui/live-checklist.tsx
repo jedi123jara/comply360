@@ -43,43 +43,43 @@ const STATUS_CONFIG = {
     icon: CheckCircle2,
     label: 'Cumple',
     short: 'OK',
-    color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+    color: 'text-emerald-300 bg-emerald-500/12 border-emerald-400/30',
     ring: 'ring-emerald-500',
   },
   PARCIAL: {
     icon: MinusCircle,
     label: 'Parcial',
     short: 'PARCIAL',
-    color: 'text-amber-600 bg-amber-50 border-amber-200',
+    color: 'text-amber-300 bg-amber-500/12 border-amber-400/30',
     ring: 'ring-amber-500',
   },
   NO_CUMPLE: {
     icon: XCircle,
     label: 'No cumple',
     short: 'FALTA',
-    color: 'text-red-600 bg-red-50 border-red-200',
+    color: 'text-red-300 bg-red-500/12 border-red-400/30',
     ring: 'ring-red-500',
   },
   NO_APLICA: {
     icon: HelpCircle,
     label: 'N/A',
     short: 'N/A',
-    color: 'text-gray-400 bg-[color:var(--neutral-50)] border-white/[0.08] bg-[color:var(--neutral-100)] border-white/10',
+    color: 'text-gray-400 bg-[color:var(--bg-inset)] border-white/10',
     ring: 'ring-gray-400',
   },
   PENDING: {
     icon: HelpCircle,
     label: 'Pendiente',
     short: '...',
-    color: 'text-gray-300 bg-[color:var(--neutral-50)] border-white/[0.08] bg-[#141824] border-white/[0.08]',
+    color: 'text-gray-300 bg-[color:var(--bg-inset)] border-white/[0.08]',
     ring: 'ring-gray-300',
   },
 } as const
 
 const GRAVEDAD_COLORS = {
-  LEVE: 'bg-amber-100 text-amber-800',
-  GRAVE: 'bg-red-100 text-red-800',
-  MUY_GRAVE: 'bg-red-200 text-red-900',
+  LEVE: 'bg-amber-500/12 text-amber-300 border border-amber-400/25',
+  GRAVE: 'bg-red-500/12 text-red-300 border border-red-400/25',
+  MUY_GRAVE: 'bg-red-500/18 text-red-200 border border-red-400/30',
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -110,11 +110,11 @@ export function LiveChecklist({
             className={cn(
               'rounded-xl border transition-all',
               isCurrent && 'ring-2 ring-amber-400 shadow-md',
-              item.status === 'CUMPLE' && 'bg-emerald-50/50 border-emerald-200',
-              item.status === 'PARCIAL' && 'bg-amber-50/50 border-amber-200',
-              item.status === 'NO_CUMPLE' && 'bg-red-50/50 border-red-200',
-              item.status === 'PENDING' && 'bg-[#141824] border-white/[0.08] bg-[#141824] border-white/[0.08]',
-              item.status === 'NO_APLICA' && 'bg-[color:var(--neutral-50)] border-white/[0.08] bg-[#141824]/50 border-white/[0.08] opacity-60',
+              item.status === 'CUMPLE' && 'bg-emerald-500/8 border-emerald-400/25',
+              item.status === 'PARCIAL' && 'bg-amber-500/8 border-amber-400/25',
+              item.status === 'NO_CUMPLE' && 'bg-red-500/8 border-red-400/25',
+              item.status === 'PENDING' && 'bg-[color:var(--bg-inset)] border-white/[0.08]',
+              item.status === 'NO_APLICA' && 'bg-[color:var(--bg-inset)] border-white/[0.08] opacity-60',
             )}
           >
             {/* Main row */}
@@ -123,7 +123,7 @@ export function LiveChecklist({
               onClick={() => setExpandedId(isExpanded ? null : item.id)}
             >
               {/* Step number */}
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 bg-[color:var(--neutral-100)] text-xs font-bold text-slate-600">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--bg-surface)] text-xs font-bold text-[color:var(--text-secondary)]">
                 {item.paso}
               </span>
 
@@ -171,7 +171,7 @@ export function LiveChecklist({
             {isExpanded && (
               <div className="border-t border-white/[0.06] border-white/[0.08] px-4 py-3 space-y-3">
                 {/* Description */}
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-[color:var(--text-secondary)]">
                   {item.description}
                 </p>
 
@@ -190,7 +190,7 @@ export function LiveChecklist({
                           'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
                           item.status === s
                             ? cn(cfg.color, 'ring-2', cfg.ring)
-                            : 'border-white/[0.08] border-white/10 text-gray-500 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]',
+                            : 'border-white/[0.08] text-gray-400 hover:bg-[color:var(--bg-surface-hover)]',
                           disabled && 'opacity-50 cursor-not-allowed',
                         )}
                       >
@@ -204,7 +204,7 @@ export function LiveChecklist({
                 {/* Upload evidence */}
                 <div className="flex items-center gap-2">
                   <label className={cn(
-                    'flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs text-gray-500 cursor-pointer hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors',
+                    'flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs text-gray-400 cursor-pointer hover:bg-[color:var(--bg-surface-hover)] transition-colors',
                     disabled && 'opacity-50 cursor-not-allowed',
                   )}>
                     {isUploading ? (
@@ -244,7 +244,7 @@ export function LiveChecklist({
                     placeholder="Notas adicionales..."
                     disabled={disabled}
                     rows={2}
-                    className="w-full rounded-lg border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] px-3 py-2 text-xs text-gray-300 placeholder-gray-400 resize-none focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    className="w-full rounded-lg border border-white/[0.08] bg-[color:var(--bg-inset)] px-3 py-2 text-xs text-gray-300 placeholder-gray-400 resize-none focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                   />
                 )}
               </div>

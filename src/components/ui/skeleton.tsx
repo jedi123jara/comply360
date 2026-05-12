@@ -72,7 +72,7 @@ export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-1)] p-5 space-y-4',
+        'rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] shadow-[var(--elevation-1)] p-5 space-y-4',
         className
       )}
     >
@@ -101,11 +101,11 @@ export function SkeletonTable({
   return (
     <div
       className={cn(
-        'rounded-xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-1)] overflow-hidden',
+        'rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] shadow-[var(--elevation-1)] overflow-hidden',
         className
       )}
     >
-      <div className="flex gap-4 border-b border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] px-5 py-3">
+      <div className="flex gap-4 border-b border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-5 py-3">
         {Array.from({ length: columns }).map((_, i) => (
           <Skeleton key={`h-${i}`} className="h-3.5 flex-1 border-0" />
         ))}
@@ -149,7 +149,7 @@ export function SkeletonStats({
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="rounded-xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-1)] p-5 space-y-3"
+          className="rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] shadow-[var(--elevation-1)] p-5 space-y-3"
         >
           <div className="flex items-center justify-between">
             <Skeleton className="h-3.5 w-24 border-0" />

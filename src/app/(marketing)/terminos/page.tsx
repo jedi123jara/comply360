@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { LegalPage } from '@/components/legal/legal-page'
 
 export const metadata: Metadata = {
-  title: 'Términos y Condiciones · COMPLY360',
+  title: 'Términos y Condiciones',
   description:
     'Términos y condiciones de uso de la plataforma COMPLY360 para compliance laboral en Perú.',
 }

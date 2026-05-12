@@ -22,7 +22,7 @@ const contentVariants = cva(
     'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
     'z-[var(--z-modal)] w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] overflow-hidden',
     'rounded-2xl border border-[color:var(--border-default)]',
-    'bg-white',
+    'bg-[color:var(--bg-elevated)]',
     'shadow-[var(--elevation-4)]',
     'data-[state=open]:animate-scale-in data-[state=open]:motion-fade-in',
     'c360-modal-content',
@@ -101,7 +101,7 @@ export function Modal({
                   <button
                     type="button"
                     aria-label="Cerrar"
-                    className="shrink-0 rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                    className="shrink-0 rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -115,7 +115,7 @@ export function Modal({
                 <button
                   type="button"
                   aria-label="Cerrar"
-                  className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                  className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -126,7 +126,7 @@ export function Modal({
           <div className="overflow-y-auto px-6 py-5 max-h-[70vh]">{children}</div>
 
           {footer ? (
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)]">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)]">
               {footer}
             </div>
           ) : null}

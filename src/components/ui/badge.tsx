@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 /**
- * Badge v3 — Emerald Light. Fondos tintados claros + texto saturado.
+ * Badge v4 — Dark Authority. Fondos translúcidos + texto luminoso.
  *
  * Canonical severity (AlertSeverity enum):
  *   critical · high · medium · low
@@ -18,21 +18,21 @@ const badgeVariants = cva(
     variants: {
       variant: {
         // Severity
-        critical: 'bg-crimson-50 text-crimson-700 border-crimson-200',
-        high: 'bg-amber-50 text-amber-700 border-amber-200',
-        medium: 'bg-amber-50 text-amber-600 border-amber-100',
-        low: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+        critical: 'bg-crimson-500/12 text-crimson-300 border-crimson-500/30',
+        high: 'bg-amber-500/12 text-amber-300 border-amber-500/30',
+        medium: 'bg-amber-500/10 text-amber-200 border-amber-500/24',
+        low: 'bg-cyan-500/12 text-cyan-200 border-cyan-400/25',
 
         // Semantic
-        success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        warning: 'bg-amber-50 text-amber-700 border-amber-200',
-        danger: 'bg-crimson-50 text-crimson-700 border-crimson-200',
-        info: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-        neutral: 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] border-[color:var(--border-default)]',
-        emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        gold: 'bg-[color:var(--amber-50)] text-gold-600 border-[color:var(--amber-200,var(--gold-400))]',
+        success: 'bg-emerald-500/12 text-emerald-200 border-emerald-400/30',
+        warning: 'bg-amber-500/12 text-amber-300 border-amber-500/30',
+        danger: 'bg-crimson-500/12 text-crimson-300 border-crimson-500/30',
+        info: 'bg-cyan-500/12 text-cyan-200 border-cyan-400/25',
+        neutral: 'bg-[color:var(--bg-inset)] text-[color:var(--text-secondary)] border-[color:var(--border-default)]',
+        emerald: 'bg-emerald-500/12 text-emerald-200 border-emerald-400/30',
+        gold: 'bg-amber-500/12 text-amber-200 border-amber-400/30',
 
-        default: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        default: 'bg-emerald-500/12 text-emerald-200 border-emerald-400/30',
 
         // Solid counters
         'solid-emerald': 'bg-emerald-600 text-white border-transparent',

@@ -281,7 +281,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
       ) : null}
 
       {/* ── HEADER ──────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 flex h-[var(--topbar-height)] shrink-0 items-center gap-3 border-b border-[color:var(--border-default)] bg-white/95 backdrop-blur-xl px-4 sm:px-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+      <header className="sticky top-0 z-40 flex h-[var(--topbar-height)] shrink-0 items-center gap-3 border-b border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]/88 backdrop-blur-xl px-4 sm:px-6 shadow-[0_18px_48px_rgba(2,6,23,0.28)]">
         {/* Mobile menu toggle */}
         <Button
           size="icon-sm"
@@ -337,11 +337,11 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
           <button
             type="button"
             onClick={onCommandK}
-            className="hidden md:flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-2.5 py-1.5 text-xs text-[color:var(--text-tertiary)] hover:border-emerald-500/60 hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+            className="hidden md:flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-2.5 py-1.5 text-xs text-[color:var(--text-tertiary)] hover:border-emerald-500/60 hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
             <Search className="h-3 w-3" />
             <span>Buscar</span>
-            <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] px-1 py-0.5 font-mono text-[10px]">
+            <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-1 py-0.5 font-mono text-[10px]">
               {modKey === '⌘' ? <Command className="h-2.5 w-2.5" /> : <span>{modKey}</span>}
               <span>{modKey === '⌘' ? 'K' : '+K'}</span>
             </kbd>
@@ -356,7 +356,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
                   ? `Score ${score} · ${delta >= 0 ? '+' : ''}${delta} vs mes anterior`
                   : `Score de compliance ${score}/100`
               }
-              className="hidden sm:flex items-center gap-1.5 rounded-full border border-[color:var(--border-default)] bg-white px-2.5 py-1 text-xs font-semibold hover:border-emerald-500/60 hover:bg-[color:var(--neutral-50)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+              className="hidden sm:flex items-center gap-1.5 rounded-full border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-2.5 py-1 text-xs font-semibold hover:border-emerald-500/60 hover:bg-[color:var(--bg-surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <ShieldCheck className="h-3.5 w-3.5" style={{ color: scoreColor }} />
               <span style={{ color: scoreColor }}>{score}</span>
@@ -435,7 +435,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
                   alerts.map((alert) => (
                     <div
                       key={alert.id}
-                      className="px-4 py-3 hover:bg-[color:var(--neutral-50)] transition-colors"
+                      className="px-4 py-3 hover:bg-[color:var(--bg-surface-hover)] transition-colors"
                     >
                       <div className="flex items-start gap-2">
                         <AlertTriangle
@@ -466,7 +466,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
                   ))
                 )}
               </div>
-              <div className="border-t border-[color:var(--border-subtle)] bg-[color:var(--neutral-50)] px-4 py-2">
+              <div className="border-t border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-4 py-2">
                 <Link
                   href="/dashboard/alertas"
                   className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
@@ -482,7 +482,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-[color:var(--neutral-100)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-[color:var(--bg-surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                 aria-label="Menú de usuario"
               >
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-semibold text-white">

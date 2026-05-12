@@ -86,19 +86,19 @@ export function UpcomingDeadlines({ items }: { items: DeadlineItem[] }) {
                   href={item.href ?? '/dashboard/calendario'}
                   className={cn(
                     'flex items-center gap-3 px-6 py-3.5 transition-colors',
-                    'hover:bg-[color:var(--neutral-50)] focus-visible:outline-none focus-visible:bg-[color:var(--neutral-50)]'
+                    'hover:bg-[color:var(--bg-surface-hover)] focus-visible:outline-none focus-visible:bg-[color:var(--bg-surface-hover)]'
                   )}
                 >
                   <span
                     className={cn(
                       'inline-flex h-8 w-8 items-center justify-center rounded-lg border shrink-0',
                       due.severity === 'critical'
-                        ? 'bg-crimson-50 border-crimson-200 text-crimson-600'
+                        ? 'bg-crimson-500/12 border-crimson-400/30 text-crimson-300'
                         : due.severity === 'high'
-                          ? 'bg-amber-50 border-amber-200 text-amber-600'
+                          ? 'bg-amber-500/12 border-amber-400/30 text-amber-300'
                           : due.severity === 'medium'
-                            ? 'bg-amber-50/70 border-amber-100 text-amber-600'
-                            : 'bg-cyan-50 border-cyan-100 text-cyan-600'
+                            ? 'bg-amber-500/10 border-amber-400/25 text-amber-200'
+                            : 'bg-cyan-500/12 border-cyan-400/25 text-cyan-200'
                     )}
                   >
                     {item.dueIn < 0 ? (

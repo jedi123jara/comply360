@@ -1,8 +1,8 @@
 /* =============================================================================
- * COMPLY360 — Design Tokens v4 "Blue Authority" (Westlaw / Stripe / Linear)
+ * COMPLY360 — Design Tokens v5 "Dark Authority" (Obsidian / Compliance)
  *
- * LIGHT-first. Paleta: blanco/grises neutros + AZUL NAVY como acento brand
- * + GOLD para premium/PRO + rojo crimson para alertas críticas.
+ * DARK-first. Paleta: superficies obsidian, texto slate claro, teal/cyan
+ * como acento principal + gold para premium/PRO + crimson para alertas críticas.
  *
  * Migración v3→v4 (2026-05-08):
  *   El namespace `--emerald-*` se mantiene por compatibilidad pero ahora
@@ -31,16 +31,16 @@
    *   - 700-800 → headings, navy authority
    *   - 900    → deep navy (hero overlays, modals headers)
    */
-  --emerald-50: #eff6ff;
-  --emerald-100: #dbeafe;
-  --emerald-200: #bfdbfe;
-  --emerald-300: #93c5fd;
-  --emerald-400: #60a5fa;
-  --emerald-500: #2563eb; /* CTA principal sobre blanco — antes #2563eb */
-  --emerald-600: #1d4ed8; /* CTA hover, navy strong — antes #1d4ed8 */
-  --emerald-700: #1e40af;
-  --emerald-800: #1e3a8a; /* navy authority — heading hero */
-  --emerald-900: #172554; /* deep navy — overlays */
+  --emerald-50: #082f49;
+  --emerald-100: #0c4a6e;
+  --emerald-200: #075985;
+  --emerald-300: #38bdf8;
+  --emerald-400: #22d3ee;
+  --emerald-500: #14b8a6;
+  --emerald-600: #0d9488;
+  --emerald-700: #5eead4;
+  --emerald-800: #99f6e4;
+  --emerald-900: #ccfbf1;
 
   /* Alias semántico moderno (sin nombre legacy) */
   --brand-50: var(--emerald-50);
@@ -55,21 +55,22 @@
   --brand-900: var(--emerald-900);
 
   /* ─── Crimson (riesgo, alertas críticas) ────────────────────────────── */
-  --crimson-50: #fef2f2;
-  --crimson-100: #fee2e2;
+  --crimson-50: #3b0f18;
+  --crimson-100: #571827;
   --crimson-300: #fca5a5;
-  --crimson-400: #f87171;
-  --crimson-500: #ef4444;
-  --crimson-600: #dc2626;
-  --crimson-700: #b91c1c;
+  --crimson-400: #fb7185;
+  --crimson-500: #f43f5e;
+  --crimson-600: #fb7185;
+  --crimson-700: #fecdd3;
 
   /* ─── Amber (advertencias, pendientes) ──────────────────────────────── */
-  --amber-50: #fffbeb;
-  --amber-100: #fef3c7;
+  --amber-50: #3b2a0b;
+  --amber-100: #4a3510;
   --amber-300: #fcd34d;
   --amber-400: #fbbf24;
   --amber-500: #f59e0b;
-  --amber-600: #d97706;
+  --amber-600: #fbbf24;
+  --amber-700: #fde68a;
 
   /* ─── Gold (acento premium reforzado v4 — Plan PRO, certificados, badges) ─
    * En la paleta "Blue Authority", el gold es el SEGUNDO acento.
@@ -80,20 +81,20 @@
    *   - Bordes de cards premium
    * Rampa expandida vs v3 (antes solo 400/500/600).
    */
-  --gold-50: #fefce8;
-  --gold-100: #fef9c3;
-  --gold-200: #fef08a;
+  --gold-50: #302807;
+  --gold-100: #42350c;
+  --gold-200: #5f4b12;
   --gold-300: #fde047;
   --gold-400: #facc15;
   --gold-500: #d4a853; /* gold principal — premium subtle */
-  --gold-600: #b45309; /* gold dark — sobre fondos claros */
-  --gold-700: #92400e;
+  --gold-600: #fde68a;
+  --gold-700: #fef3c7;
 
   /* ─── Cyan (info, links) ────────────────────────────────────────────── */
-  --cyan-50: #ecfeff;
+  --cyan-50: #062f3a;
   --cyan-400: #22d3ee;
   --cyan-500: #06b6d4;
-  --cyan-600: #0891b2;
+  --cyan-600: #67e8f9;
 
   /* ─── Blue (alias del brand, mantenido por compat — antes "fiscal SUNAT") ─
    * En v4 el brand principal ES azul, así que este namespace queda como
@@ -112,24 +113,24 @@
    * los success states no deben confundirse con el brand. Verde clásico
    * (#16a34a / Tailwind green-600) sigue siendo la convención SaaS para "OK".
    */
-  --success-green-50: #f0fdf4;
-  --success-green-100: #dcfce7;
+  --success-green-50: #052e1a;
+  --success-green-100: #064e2a;
   --success-green-500: #22c55e;
   --success-green-600: #16a34a;
-  --success-green-700: #15803d;
+  --success-green-700: #86efac;
 
   /* ─── Neutral scale (Stripe-like grays) ─────────────────────────────── */
-  --neutral-50: #f8fafc;
-  --neutral-100: #f1f5f9;
-  --neutral-150: #e9eef5;
-  --neutral-200: #e2e8f0;
-  --neutral-300: #cbd5e1;
-  --neutral-400: #94a3b8;
-  --neutral-500: #64748b;
-  --neutral-600: #475569;
-  --neutral-700: #334155;
-  --neutral-800: #1e293b;
-  --neutral-900: #0f172a;
+  --neutral-50: #111827;
+  --neutral-100: #172033;
+  --neutral-150: #1b263a;
+  --neutral-200: #243044;
+  --neutral-300: #334155;
+  --neutral-400: #64748b;
+  --neutral-500: #94a3b8;
+  --neutral-600: #cbd5e1;
+  --neutral-700: #dbe4f0;
+  --neutral-800: #e5eef9;
+  --neutral-900: #f8fafc;
 
   /* Legacy aliases (no eliminar — muchos componentes referencian `obsidian-*`) */
   --obsidian-50: var(--neutral-800);
@@ -156,22 +157,22 @@
    */
   /* Success usa verde nativo, NO brand navy — para no confundir checks ✓ */
   --color-success: var(--success-green-600);
-  --color-success-bg: var(--success-green-50);
+  --color-success-bg: rgba(34, 197, 94, 0.12);
   --color-success-border: rgba(34, 197, 94, 0.35);
   --color-success-text: var(--success-green-700);
 
   --color-warning: var(--amber-500);
-  --color-warning-bg: var(--amber-50);
+  --color-warning-bg: rgba(245, 158, 11, 0.13);
   --color-warning-border: var(--border-amber);
-  --color-warning-text: #b45309;
+  --color-warning-text: #fcd34d;
 
   --color-danger: var(--crimson-500);
-  --color-danger-bg: var(--crimson-50);
+  --color-danger-bg: rgba(239, 68, 68, 0.13);
   --color-danger-border: var(--border-crimson);
   --color-danger-text: var(--crimson-700);
 
   --color-info: var(--cyan-500);
-  --color-info-bg: var(--cyan-50);
+  --color-info-bg: rgba(6, 182, 212, 0.13);
   --color-info-text: var(--cyan-600);
 
   --color-compliance-trust: var(--blue-700);
@@ -182,31 +183,29 @@
   --color-compliance-critical-bg: var(--crimson-50);
   --color-compliance-critical-text: var(--crimson-700);
 
-  /* ─── Semantic surfaces (LIGHT) ─────────────────────────────────────── */
-  --bg-base: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-surface-hover: var(--neutral-50);
-  --bg-surface-active: var(--neutral-100);
-  --bg-inset: var(--neutral-50);
-  --bg-muted: var(--neutral-100);
-  /* Canvas más marcado (slate-100 en vez de slate-50) para que las cards
-     blancas destaquen con más contraste sin ser oscuro. */
-  --bg-canvas: #eef2f7;
+  /* ─── Semantic surfaces (DARK) ─────────────────────────────────────── */
+  --bg-base: #050914;
+  --bg-elevated: #0a0f1c;
+  --bg-surface: rgba(15, 23, 42, 0.82);
+  --bg-surface-hover: rgba(30, 41, 59, 0.86);
+  --bg-surface-active: rgba(51, 65, 85, 0.78);
+  --bg-inset: rgba(2, 6, 23, 0.42);
+  --bg-muted: rgba(15, 23, 42, 0.74);
+  --bg-canvas: #060a12;
 
   /* ─── Text hierarchy ────────────────────────────────────────────────── */
-  --text-primary: var(--neutral-900);
-  --text-secondary: var(--neutral-600);
-  --text-tertiary: var(--neutral-500);
-  --text-disabled: var(--neutral-400);
-  --text-inverse: #ffffff;
-  --text-accent: var(--emerald-600);
-  --text-link: var(--emerald-600);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #8b9bb1;
+  --text-disabled: #64748b;
+  --text-inverse: #020617;
+  --text-accent: #5eead4;
+  --text-link: #67e8f9;
 
   /* ─── Borders ───────────────────────────────────────────────────────── */
-  --border-subtle: rgba(15, 23, 42, 0.08);
-  --border-default: rgba(15, 23, 42, 0.12);
-  --border-strong: rgba(15, 23, 42, 0.18);
+  --border-subtle: rgba(148, 163, 184, 0.12);
+  --border-default: rgba(148, 163, 184, 0.18);
+  --border-strong: rgba(148, 163, 184, 0.28);
   /* Border "emerald" ahora es navy/blue (mantiene nombre por compat) */
   --border-emerald: rgba(37, 99, 235, 0.35);
   --border-emerald-strong: rgba(37, 99, 235, 0.55);
@@ -233,30 +232,27 @@
    */
   --elevation-0: none;
   --elevation-1:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 2px 4px rgba(15, 23, 42, 0.04),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
+    0 10px 28px rgba(2, 6, 23, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 0 0 1px rgba(148, 163, 184, 0.08);
   --elevation-2:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 4px 8px rgba(15, 23, 42, 0.06),
-    0 12px 24px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(15, 23, 42, 0.05);
+    0 18px 44px rgba(2, 6, 23, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 0 0 1px rgba(148, 163, 184, 0.10);
   --elevation-3:
-    0 2px 4px rgba(15, 23, 42, 0.08),
-    0 8px 16px rgba(15, 23, 42, 0.08),
-    0 20px 40px rgba(15, 23, 42, 0.12),
-    0 0 0 1px rgba(15, 23, 42, 0.06);
+    0 26px 70px rgba(2, 6, 23, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    0 0 0 1px rgba(148, 163, 184, 0.13);
   --elevation-4:
-    0 4px 8px rgba(15, 23, 42, 0.10),
-    0 20px 40px rgba(15, 23, 42, 0.14),
-    0 40px 80px rgba(15, 23, 42, 0.18),
-    0 0 0 1px rgba(15, 23, 42, 0.08);
+    0 34px 90px rgba(2, 6, 23, 0.56),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 0 0 1px rgba(148, 163, 184, 0.16);
 
   /* Hover elevation — sube un nivel con ring emerald visible */
   --elevation-hover:
-    0 4px 8px rgba(15, 23, 42, 0.08),
-    0 16px 32px rgba(15, 23, 42, 0.12),
-    0 0 0 1px rgba(16, 185, 129, 0.25);
+    0 24px 68px rgba(2, 6, 23, 0.52),
+    0 0 0 1px rgba(45, 212, 191, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.075);
 
   /* Accent bar — barra superior para cards destacadas */
   --accent-bar-emerald: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
@@ -352,35 +348,35 @@
  * ============================================================================= */
 
 .surface-glass {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(15, 23, 42, 0.78);
   backdrop-filter: blur(16px) saturate(1.2);
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
   border: 1px solid var(--border-default);
 }
 
 .surface-glass-strong {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   border: 1px solid var(--border-strong);
 }
 
 .surface-emerald-soft {
-  background: var(--emerald-50);
+  background: rgba(20, 184, 166, 0.12);
   border: 1px solid var(--border-emerald);
-  color: var(--emerald-800);
+  color: #99f6e4;
 }
 
 .surface-crimson-soft {
-  background: var(--crimson-50);
+  background: rgba(239, 68, 68, 0.13);
   border: 1px solid var(--border-crimson);
-  color: var(--crimson-700);
+  color: #fca5a5;
 }
 
 .surface-amber-soft {
-  background: var(--amber-50);
+  background: rgba(245, 158, 11, 0.13);
   border: 1px solid var(--border-amber);
-  color: var(--amber-700, #b45309);
+  color: #fcd34d;
 }
 
 /* =============================================================================
@@ -434,9 +430,9 @@
 .shimmer-bg {
   background: linear-gradient(
     90deg,
-    var(--neutral-100) 0%,
-    var(--neutral-50) 50%,
-    var(--neutral-100) 100%
+    rgba(15, 23, 42, 0.72) 0%,
+    rgba(30, 41, 59, 0.82) 50%,
+    rgba(15, 23, 42, 0.72) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s var(--ease-in-out) infinite;
