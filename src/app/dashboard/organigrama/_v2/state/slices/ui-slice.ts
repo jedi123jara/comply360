@@ -24,7 +24,6 @@ export type UiModal =
   | 'directory'
   | 'subordination'
   | 'change-history'
-  | 'reorganize'
 
 export interface UiSlice {
   commandPaletteOpen: boolean

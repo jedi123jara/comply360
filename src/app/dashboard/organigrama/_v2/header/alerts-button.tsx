@@ -1,25 +1,24 @@
 /**
- * Botón con badge en el toolbar para abrir el drawer de hallazgos del organigrama.
+ * Botón con badge en el toolbar para abrir el drawer de alertas del organigrama.
  *
- * Muestra el conteo unificado: alertas operativas (12 reglas: MOF, SST,
- * vacantes, subordinación, etc.) + findings del Org Doctor IA (antes
- * mostrados como nudges flotantes). El badge cambia de color según la
- * severidad máxima presente.
+ * Muestra el conteo de alertas abiertas (de las 12 reglas: MOF, SST, vacantes,
+ * subordinación, etc.). El badge cambia de color según severidad máxima.
  */
 'use client'
 
 import { Bell } from 'lucide-react'
 
-import { useMergedFindings } from '../data/use-merged-findings'
+import { useAlertsQuery } from '../data/queries/use-alerts'
 import { useOrgStore } from '../state/org-store'
 
 export function AlertsButton() {
   const setAlertsOpen = useOrgStore((s) => s.setAlertsOpen)
-  const report = useMergedFindings(true)
+  const alertsQuery = useAlertsQuery(true)
+  const report = alertsQuery.data
 
-  const total = report.totals.open
-  const critical = report.totals.critical
-  const high = report.totals.high
+  const total = report?.totals.open ?? 0
+  const critical = report?.totals.critical ?? 0
+  const high = report?.totals.high ?? 0
 
   // Determina el tono del badge por severidad máxima.
   const tone = critical > 0 ? 'critical' : high > 0 ? 'high' : total > 0 ? 'medium' : 'idle'
@@ -35,7 +34,7 @@ export function AlertsButton() {
       type="button"
       onClick={() => setAlertsOpen(true)}
       className="relative inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-      title={total > 0 ? `${total} hallazgos abiertos` : 'Sin hallazgos'}
+      title={total > 0 ? `${total} alertas abiertas` : 'Sin alertas'}
     >
       <Bell className="h-4 w-4" />
       <span className="hidden md:inline">Alertas</span>

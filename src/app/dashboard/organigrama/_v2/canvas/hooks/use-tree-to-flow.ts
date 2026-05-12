@@ -23,8 +23,6 @@ export interface UnitNodeData extends Record<string, unknown> {
   positionsCount: number
   occupantsCount: number
   coverage: UnitCoverage | null
-  /** True si la unidad es raíz del árbol (parentId == null). Refuerza visualmente la cabecera. */
-  isRoot?: boolean
   /** Si este nodo viene del plan del Copiloto (no del árbol real). */
   ghost?: boolean
 }
@@ -271,7 +269,6 @@ function buildUnitFlow(
       positionsCount: positionsByUnit.get(u.id) ?? 0,
       occupantsCount: occupantsByUnit.get(u.id) ?? 0,
       coverage: coverage?.byUnit.get(u.id) ?? null,
-      isRoot: !u.parentId,
     } satisfies UnitNodeData,
   }))
 

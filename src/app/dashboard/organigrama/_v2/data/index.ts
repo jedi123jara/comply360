@@ -12,7 +12,6 @@ export {
   type OrgAlertCategory,
 } from './queries/use-alerts'
 export { useDoctorReportQuery, doctorKey } from './queries/use-doctor-report'
-export { useMergedFindings, type MergedFindingsReport } from './use-merged-findings'
 export {
   useBootstrapPreviewQuery,
   bootstrapPreviewKey,

@@ -4,14 +4,10 @@
  *   - Edges suaves
  *   - Layout switch animado (top-down, LR, radial, grouped)
  *   - Compliance Heatmap (color por tone del coverage)
+ *   - Smart Nudges flotantes
  *   - Focus mode (dimea no-relacionados al seleccionado)
  *   - Minimap + controls + leyenda
  *   - Drag-and-drop reparenting con optimistic update y validación de ciclo
- *
- * Los hallazgos del Org Doctor ya no se renderizan como nudges flotantes
- * sobre el canvas (saturaban la estructura). Se consolidan en el AlertsDrawer
- * (botón "Alertas N" del header) y son disparables también desde la card
- * "Salud del organigrama" del shell.
  */
 'use client'
 
@@ -33,7 +29,7 @@ import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 
-import type { OrgChartTree, DoctorReport } from '@/lib/orgchart/types'
+import type { OrgChartTree, DoctorReport, DoctorFinding } from '@/lib/orgchart/types'
 import {
   buildCoverageReport,
   TONE_COLOR_HEX,
@@ -49,6 +45,7 @@ import {
 import { useFocusSet } from './hooks/use-focus-set'
 import { UnitNode } from './nodes/unit-node'
 import { PositionNode } from './nodes/position-node'
+import { NudgeBadgeList } from './overlays/nudge-badge'
 import { HeatmapLegend } from './overlays/heatmap-legend'
 import { useReparentPositionMutation } from '../data/mutations/use-reparent-position'
 
@@ -78,7 +75,6 @@ function OrgCanvasV2Inner({
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
   const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
-  const setAlertsOpen = useOrgStore((s) => s.setAlertsOpen)
 
   // Coverage report — la base del Compliance Heatmap.
   const coverage: CoverageReport | null = useMemo(() => {
@@ -243,7 +239,14 @@ function OrgCanvasV2Inner({
       </ReactFlow>
 
       {/* Overlays */}
-      <HeatmapLegend coverage={coverage} onOpenAlerts={() => setAlertsOpen(true)} />
+      <HeatmapLegend coverage={coverage} />
+      <NudgeBadgeList
+        findings={doctorReport?.findings ?? ([] as DoctorFinding[])}
+        onFocusUnit={(unitId) => {
+          setSelectedUnit(unitId)
+          setInspectorOpen(true)
+        }}
+      />
     </div>
   )
 }
