@@ -1,5 +1,5 @@
 /**
- * FIX #7.C — Aplica ENABLE RLS + policy `tenant_isolation` a las 49 tablas
+ * FIX #7.C — Aplica ENABLE RLS + policy `tenant_isolation` a las tablas
  * tenant-scoped sin protección.
  *
  * Política aplicada:
@@ -66,6 +66,7 @@ const TABLES = [
   'scheduled_reports',
   'service_providers',
   'sindical_records',
+  'sst_records',
   'sunat_query_cache',
   'terceros',
   'webhook_deliveries',
