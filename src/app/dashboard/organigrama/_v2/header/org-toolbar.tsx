@@ -301,6 +301,25 @@ export function OrgToolbar({
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault()
+                openModal('reorganize')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-start gap-2 rounded-md bg-emerald-50/60 px-2 py-1.5 text-left text-sm text-emerald-800 transition hover:bg-emerald-100"
+              title="Detecta la Gerencia y cuelga las demás áreas debajo"
+            >
+              <Wand2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
+              <span className="flex-1">
+                <span className="block font-semibold">Reorganizar jerarquía</span>
+                <span className="block text-[10px] font-normal text-emerald-700">
+                  Pon a Gerencia arriba y las áreas debajo
+                </span>
+              </span>
+            </button>
+            <div className="my-1 border-t border-slate-100" />
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
                 setDoctorOpen(true)
                 setMoreOpen(false)
               }}

@@ -39,12 +39,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname() ?? '/dashboard'
 
-  // Onboarding + plan-gate redirect — verifica que la org haya:
-  //  1. Completado el wizard de datos de empresa → /dashboard/onboarding
-  //  2. Elegido un plan (trial o paid o FREE explícito) → /onboarding/elegir-plan
+  // Onboarding + plan-gate + consent redirect — verifica que la org haya:
+  //  1. Aceptado el consent legal vigente (Ley 29733) → /onboarding/consent
+  //  2. Completado el wizard de datos de empresa → /dashboard/onboarding
+  //  3. Elegido un plan (trial o paid o FREE explícito) → /onboarding/elegir-plan
   //
   // Sin esto, el revenue leak: usuarios entraban directo al dashboard como
   // STARTER "regalado" sin que les pidiéramos elegir/pagar nunca.
+  //
+  // El consent ANTES vivía como modal flotante (ConsentGate envolvía el
+  // layout). Pero el modal terminaba rendereándose como banner inline al
+  // final de cada página en lugar de bloquear el viewport. Ahora se trata
+  // como cualquier otro paso de onboarding: redirigir a una ruta dedicada.
   //
   // Mejora futura: mover este check a Server Component con redirect() server-side.
   useEffect(() => {
@@ -59,8 +65,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     ]
     if (ALWAYS_ALLOWED.some((path) => pathname.startsWith(path))) return
 
-    fetch('/api/onboarding/progress')
-      .then((r) => r.json())
+    // Consent: el más bloqueante. Si la org no aceptó el consent legal vigente,
+    // mandamos a la pantalla dedicada. Fail-open si el endpoint no responde
+    // (401/404/red) para no romper sesiones recién creadas.
+    fetch('/api/consent?scope=org', { cache: 'no-store' })
+      .then(async (r) => {
+        if (!r.ok) return null
+        return (await r.json()) as { accepted?: boolean }
+      })
+      .then((data) => {
+        if (data && data.accepted === false) {
+          router.replace('/onboarding/consent')
+          return Promise.reject(new Error('redirecting-to-consent'))
+        }
+        return fetch('/api/onboarding/progress').then((r) => r.json())
+      })
       .then((data) => {
         if (!data) return
         if (data.hasOrg === false) {
@@ -72,7 +91,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        /* silent */
+        /* silent — incluye el reject voluntario de la cadena de consent */
       })
   }, [pathname, router])
 

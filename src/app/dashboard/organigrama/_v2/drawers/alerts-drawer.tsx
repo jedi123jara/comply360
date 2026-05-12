@@ -1,10 +1,12 @@
 /**
- * Drawer lateral derecho que muestra las alertas activas del organigrama.
+ * Drawer lateral derecho que muestra los hallazgos activos del organigrama.
  *
- * 12 tipos: MOF vencido, vacante crítica, designación caducada, span de control,
- * subordinación, sucesión, etc. Backend en `/api/orgchart/alerts`.
+ * Fuente unificada (`useMergedFindings`): combina las 12 alertas operativas
+ * (`/api/orgchart/alerts`) con los findings del Org Doctor IA
+ * (`/api/orgchart/diagnose`). Estos últimos antes salían como nudges flotantes
+ * sobre el canvas; ahora se consolidan aquí.
  *
- * Cada alerta tiene severidad, descripción, base legal, sugerencia de fix y
+ * Cada hallazgo tiene severidad, descripción, base legal, sugerencia de fix y
  * (opcional) sugerencia de tarea. Filtramos por severidad y categoría.
  */
 'use client'
@@ -12,7 +14,8 @@
 import { useMemo, useState } from 'react'
 import { Bell, X, Loader2, Filter } from 'lucide-react'
 
-import { useAlertsQuery, type OrgAlertDTO, type OrgAlertSeverity } from '../data/queries/use-alerts'
+import { useMergedFindings } from '../data/use-merged-findings'
+import type { OrgAlertDTO, OrgAlertSeverity } from '../data/queries/use-alerts'
 import { useOrgStore } from '../state/org-store'
 
 const SEVERITY_TONE: Record<OrgAlertSeverity, string> = {
@@ -40,14 +43,14 @@ const SEVERITY_FILTERS: Array<{ id: 'all' | OrgAlertSeverity; label: string }> =
 export function AlertsDrawer() {
   const open = useOrgStore((s) => s.alertsOpen)
   const setOpen = useOrgStore((s) => s.setAlertsOpen)
-  const alertsQuery = useAlertsQuery(open)
+  const report = useMergedFindings(open)
   const [filter, setFilter] = useState<'all' | OrgAlertSeverity>('all')
 
   const filtered = useMemo(() => {
-    const all = alertsQuery.data?.alerts ?? []
+    const all = report.alerts
     if (filter === 'all') return all
     return all.filter((a) => a.severity === filter)
-  }, [alertsQuery.data, filter])
+  }, [report.alerts, filter])
 
   if (!open) return null
 
@@ -59,13 +62,12 @@ export function AlertsDrawer() {
             <Bell className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Alertas del organigrama</h2>
-            {alertsQuery.data && (
-              <p className="text-[11px] text-slate-500">
-                {alertsQuery.data.totals.open} alertas abiertas · score{' '}
-                <span className="font-semibold tabular-nums">{alertsQuery.data.scoreOrgHealth}</span>/100
-              </p>
-            )}
+            <h2 className="text-sm font-semibold text-slate-900">Hallazgos del organigrama</h2>
+            <p className="text-[11px] text-slate-500">
+              {report.totals.open} hallazgo{report.totals.open === 1 ? '' : 's'} abierto
+              {report.totals.open === 1 ? '' : 's'} · score{' '}
+              <span className="font-semibold tabular-nums">{report.scoreOrgHealth}</span>/100
+            </p>
           </div>
         </div>
         <button
@@ -79,14 +81,12 @@ export function AlertsDrawer() {
       </header>
 
       {/* Totales por severidad */}
-      {alertsQuery.data && (
-        <div className="grid grid-cols-4 gap-1.5 border-b border-slate-200 px-4 py-2 text-center text-[10px]">
-          <SeverityBox label="CRIT" value={alertsQuery.data.totals.critical} severity="CRITICAL" />
-          <SeverityBox label="ALTO" value={alertsQuery.data.totals.high} severity="HIGH" />
-          <SeverityBox label="MEDIO" value={alertsQuery.data.totals.medium} severity="MEDIUM" />
-          <SeverityBox label="BAJO" value={alertsQuery.data.totals.low} severity="LOW" />
-        </div>
-      )}
+      <div className="grid grid-cols-4 gap-1.5 border-b border-slate-200 px-4 py-2 text-center text-[10px]">
+        <SeverityBox label="CRIT" value={report.totals.critical} severity="CRITICAL" />
+        <SeverityBox label="ALTO" value={report.totals.high} severity="HIGH" />
+        <SeverityBox label="MEDIO" value={report.totals.medium} severity="MEDIUM" />
+        <SeverityBox label="BAJO" value={report.totals.low} severity="LOW" />
+      </div>
 
       {/* Filtros */}
       <nav className="flex flex-wrap items-center gap-1 border-b border-slate-200 px-4 py-2">
@@ -108,26 +108,26 @@ export function AlertsDrawer() {
       </nav>
 
       <div className="flex-1 overflow-y-auto p-3">
-        {alertsQuery.isLoading && (
+        {report.isLoading && report.alerts.length === 0 && (
           <div className="flex items-center justify-center py-8 text-sm text-slate-500">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Cargando alertas…
+            Cargando hallazgos…
           </div>
         )}
 
-        {alertsQuery.error && (
+        {report.error && (
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-            {alertsQuery.error instanceof Error ? alertsQuery.error.message : 'Error desconocido'}
+            {report.error.message}
           </div>
         )}
 
-        {filtered.length === 0 && !alertsQuery.isLoading && (
+        {filtered.length === 0 && !report.isLoading && (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
               <Bell className="h-6 w-6 text-emerald-600" />
             </div>
             <p className="text-sm font-medium text-slate-700">
-              {filter === 'all' ? 'Sin alertas' : 'Sin alertas de esa severidad'}
+              {filter === 'all' ? 'Sin hallazgos' : 'Sin hallazgos de esa severidad'}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {filter === 'all'

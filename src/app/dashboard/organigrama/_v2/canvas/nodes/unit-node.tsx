@@ -21,6 +21,7 @@ import {
   BriefcaseBusiness,
   ShieldCheck,
   Landmark,
+  Crown,
 } from 'lucide-react'
 
 import {
@@ -73,6 +74,7 @@ function UnitNodeInner(props: UnitNodeProps) {
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
   const Icon = KIND_ICON[data.unitKind] ?? Building2
+  const isRoot = !!data.isRoot
 
   return (
     <m.div
@@ -84,7 +86,11 @@ function UnitNodeInner(props: UnitNodeProps) {
       style={{ width: 240 }}
       className={`group relative overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-lg ${
         selected ? 'shadow-xl' : ''
-      } ${data.ghost ? 'border-dashed border-emerald-400 bg-emerald-50/40' : ''}`}
+      } ${data.ghost ? 'border-dashed border-emerald-400 bg-emerald-50/40' : ''} ${
+        isRoot && !data.ghost
+          ? 'shadow-md ring-2 ring-emerald-200/70 ring-offset-2 ring-offset-white'
+          : ''
+      }`}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-slate-50 to-white" />
       <UnitNodeToolbar
@@ -125,8 +131,17 @@ function UnitNodeInner(props: UnitNodeProps) {
             <Icon className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              {KIND_LABELS[data.unitKind] ?? data.unitKind}
+            <div className="flex items-center gap-1 truncate text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              {isRoot && !data.ghost && (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700"
+                  title="Unidad raíz del organigrama"
+                >
+                  <Crown className="h-2.5 w-2.5" />
+                  Raíz
+                </span>
+              )}
+              <span>{KIND_LABELS[data.unitKind] ?? data.unitKind}</span>
             </div>
             {lod !== 'tiny' && (
               <div className="truncate text-sm font-semibold text-slate-900">

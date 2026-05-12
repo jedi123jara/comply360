@@ -464,9 +464,9 @@ export function OrganigramaShellV2() {
                     </div>
                   </div>
                   <p className="text-xs text-slate-500">
-                    {doctorReport.findings.length} hallazgos visibles como nudges flotantes
-                    sobre el canvas. El detalle completo por unidad está en el inspector
-                    lateral, tab Cumplimiento.
+                    {doctorReport.findings.length} hallazgos detectados. Revísalos uno por
+                    uno desde el botón &ldquo;Alertas&rdquo; del header, o por unidad en el
+                    inspector lateral, tab Cumplimiento.
                   </p>
                 </>
               )}

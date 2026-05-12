@@ -2,7 +2,7 @@
 
 /**
  * Dashboard layout — orquesta los providers globales del dashboard
- * (Upgrade gate, Copilot, Calculator drawer, Consent) y delega la UI a
+ * (Upgrade gate, Copilot, Calculator drawer) y delega la UI a
  * `<DashboardShell>` (extraído para preparar refactor a Server Component).
  *
  * Sigue siendo 'use client' porque los providers anidados requieren context
@@ -16,12 +16,15 @@
  *   - Cmd/Ctrl+I → toggle AI copilot
  *
  * Mobile: sidebar colapsa a drawer.
+ *
+ * El gate de consent legal NO se envuelve aquí: vive como pantalla dedicada
+ * en `/onboarding/consent` y el `DashboardShell` redirige hacia ella si la
+ * org no ha aceptado la versión vigente del consent.
  */
 
 import { CopilotProvider } from '@/providers/copilot-provider'
 import { UpgradeGateProvider } from '@/providers/upgrade-gate-provider'
 import { CalculatorDrawerProvider } from '@/components/ui/calculator-drawer'
-import { ConsentGate } from '@/components/legal/consent-modal'
 import { DashboardShell } from './_components/dashboard-shell'
 
 export default function DashboardLayout({
@@ -33,10 +36,7 @@ export default function DashboardLayout({
     <UpgradeGateProvider>
       <CopilotProvider>
         <CalculatorDrawerProvider>
-          {/* ConsentGate bloquea el dashboard hasta que el admin acepte T&C + privacidad + DPA */}
-          <ConsentGate scope="org">
-            <DashboardShell>{children}</DashboardShell>
-          </ConsentGate>
+          <DashboardShell>{children}</DashboardShell>
         </CalculatorDrawerProvider>
       </CopilotProvider>
     </UpgradeGateProvider>
