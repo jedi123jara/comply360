@@ -110,7 +110,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Prepare Prisma schema
-        run: pnpm exec prisma db push --skip-generate --accept-data-loss
+        run: pnpm exec prisma db push --accept-data-loss
 
       - name: Run integration tests
         run: pnpm exec vitest run --config vitest.integration.config.ts
