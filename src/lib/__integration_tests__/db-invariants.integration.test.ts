@@ -37,7 +37,7 @@ describe.skipIf(!ENABLED)('DB Invariants — estructura', () => {
   describe('#7.A — workers.org_id FK con ON DELETE RESTRICT', () => {
     it('La constraint existe y está marcada como NO ACTION/RESTRICT (no CASCADE)', async () => {
       const fk = await prisma.$queryRaw<Array<{ confdeltype: string }>>`
-        SELECT confdeltype FROM pg_constraint
+        SELECT confdeltype::text AS confdeltype FROM pg_constraint
         WHERE conname = 'workers_org_id_fkey'
       `
       expect(fk.length).toBe(1)

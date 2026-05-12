@@ -112,6 +112,9 @@ jobs:
       - name: Prepare Prisma schema
         run: pnpm exec prisma db push --accept-data-loss
 
+      - name: Apply integration database invariants
+        run: pnpm exec tsx scripts/audit-smoke/apply-rls-policies.ts
+
       - name: Run integration tests
         run: pnpm exec vitest run --config vitest.integration.config.ts
         env:

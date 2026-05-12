@@ -123,7 +123,16 @@ async function main() {
   console.log(`  RESULTADO: ${applied} aplicadas, ${failed} fallaron`)
   console.log('═══════════════════════════════════════════════════════════════')
 
-  if (applied > 0) {
+  const migrationTable = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = '_prisma_migrations'
+    ) AS exists
+  `
+
+  if (applied > 0 && migrationTable[0]?.exists) {
     const exists = await prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*) as count FROM "_prisma_migrations"
       WHERE migration_name = '20260507150000_rls_policies_full'
@@ -144,6 +153,8 @@ async function main() {
       `)
       console.log('  ✓ Migration registrada')
     }
+  } else if (applied > 0) {
+    console.log('  (sin _prisma_migrations; registro omitido)')
   }
 
   await prisma.$disconnect()
