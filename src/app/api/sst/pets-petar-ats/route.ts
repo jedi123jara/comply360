@@ -6,7 +6,6 @@ import type { AuthContext } from '@/lib/auth'
 import {
   addHeader,
   createPDFDoc,
-  finalizePDF,
   kv,
   sectionTitle,
   checkPageBreak,

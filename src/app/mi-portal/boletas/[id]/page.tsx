@@ -116,7 +116,7 @@ export default function BoletaDetailPage() {
     setSigningState('biometric')
     try {
       let signatureLevel = 'SIMPLE'
-      let ceremonyPayload: any = {}
+      let ceremonyPayload: Record<string, string | null> = {}
 
       if (hasBiometric) {
         // FIX #4.J — preferimos strong ceremony con server challenge + verify.
@@ -161,8 +161,8 @@ export default function BoletaDetailPage() {
         ceremonyPayload = {
           userAgent: ceremony.userAgent ?? navigator.userAgent,
           credentialId: ceremony.credentialId ?? null,
-          challengeToken: ceremony.challengeToken,
-          challenge: ceremony.challenge,
+          challengeToken: ceremony.challengeToken ?? null,
+          challenge: ceremony.challenge ?? null,
         }
       }
 

@@ -24,9 +24,10 @@
 
 import { prisma } from '@/lib/prisma'
 import { sendPushToUser } from '@/lib/notifications/web-push-server'
-import type {
-  WorkerAlertType,
-  AlertSeverity,
+import {
+  Prisma,
+  type WorkerAlertType,
+  type AlertSeverity,
 } from '@/generated/prisma/client'
 
 interface NotifyArgs {
@@ -109,7 +110,7 @@ async function resolveRecipients(orgId: string): Promise<string[]> {
     where: {
       orgId,
       role: { in: ['OWNER', 'ADMIN'] },
-      pushSubscription: { not: null as any },
+      pushSubscription: { not: Prisma.DbNull },
     },
     select: { id: true },
     take: 5, // No envías a los 50 admins de una multi-tenant

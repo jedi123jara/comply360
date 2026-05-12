@@ -15,7 +15,6 @@ import {
   MessageSquare,
   X,
   Send,
-  Camera,
   MapPin,
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'

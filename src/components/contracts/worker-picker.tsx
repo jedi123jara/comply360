@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Loader2, Search, UserPlus, Users, X } from 'lucide-react'
+import { Check, Loader2, Search, UserPlus, X } from 'lucide-react'
 
 export interface WorkerSummary {
   id: string

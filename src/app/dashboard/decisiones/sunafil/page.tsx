@@ -11,7 +11,6 @@ import {
   Sparkles,
   ShieldAlert,
   ShieldCheck,
-  FileText,
   Calendar,
   Banknote,
   Package,

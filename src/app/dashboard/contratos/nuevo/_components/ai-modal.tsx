@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { WorkerPicker, type WorkerSummary } from '@/components/contracts/worker-picker'
 import { CostSummaryPill } from '@/components/contracts/cost-summary-pill'
 import { LiveValidationPanel } from '@/components/contracts/live-validation-panel'
+import type { CostoEmpleadorResult } from '@/lib/legal-engine/calculators/costo-empleador'
+import type { UseLiveValidationReturn } from '@/hooks/use-live-validation'
 
 export interface AIContractClause {
   numero: number
@@ -59,8 +61,8 @@ export interface AiModalProps {
   remuneracion: string
   formaPago: string
   beneficios: string
-  costoEmpleador: any
-  liveValidation: any
+  costoEmpleador: CostoEmpleadorResult | null
+  liveValidation: UseLiveValidationReturn
   aiError: string | null
   aiSaving: boolean
   aiSavedId: string | null

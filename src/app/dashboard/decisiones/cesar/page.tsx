@@ -211,7 +211,6 @@ export default function CesarWizardPage() {
         )}
         {step === 3 && (
           <Step3Liquidacion
-            worker={selectedWorker}
             tipo={selectedTipo}
             liquidacion={liquidacion}
             loading={liqLoading}
@@ -544,14 +543,12 @@ function Step2Motivo({
 }
 
 function Step3Liquidacion({
-  worker,
   tipo,
   liquidacion,
   loading,
   riesgoAsumido,
   setRiesgoAsumido,
 }: {
-  worker: WorkerItem | null
   tipo: typeof TIPO_OPTIONS[number]
   liquidacion: LiquidacionEstimate | null
   loading: boolean

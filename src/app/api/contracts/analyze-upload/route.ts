@@ -115,7 +115,7 @@ function detectarDesnaturalizacion(
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   // pdf-parse v2: getText() → { pages: [{text,num}], text: string, total: number }
-  const pdfParse = require('pdf-parse')
+  const pdfParse = (await import('pdf-parse')).default
   const data = await pdfParse(buffer)
   const text = (data.text || '').trim()
 

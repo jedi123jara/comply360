@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withPlanGate } from '@/lib/plan-gate'
-import type { AuthContext } from '@/lib/auth'
 import { addAoaSheet, addJsonSheet, createWorkbook, workbookToArrayBuffer } from '@/lib/excel/exceljs'
 
 /**
@@ -13,7 +12,7 @@ import { addAoaSheet, addJsonSheet, createWorkbook, workbookToArrayBuffer } from
  *
  * No es un endpoint público — requiere auth para evitar scraping.
  */
-export const GET = withPlanGate('sst_completo', async (_req: NextRequest, _ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async () => {
   const wb = createWorkbook()
 
   // ── Hoja 1: Instrucciones ─────────────────────────────────────────────

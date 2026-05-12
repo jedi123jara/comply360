@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
-import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // GET /api/sst/catalogo/peligros — Catálogo seed global de peligros (~80 entradas)
@@ -10,7 +9,7 @@ import type { AuthContext } from '@/lib/auth'
 //   sectorCiiu    — filtrar por CIIU (sectores específicos)
 //   search        — búsqueda en nombre + descripción
 // =============================================
-export const GET = withPlanGate('sst_completo', async (req: NextRequest, _ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)
   const familia = searchParams.get('familia')
   const sectorCiiu = searchParams.get('sectorCiiu')

@@ -418,7 +418,7 @@ const STATUS_CONFIG = {
     badgeIcon: <Clock className="h-3 w-3" />,
     badgeLabel: 'Sin invitar',
     title: (n: string) => `Invita a ${n} a su portal personal`,
-    description: (_a: DescriptionArgs) =>
+    description: () =>
       'Le enviaremos un email con un enlace para crear su cuenta, completar sus datos personales (foto, dirección) y subir los documentos del legajo. Tú no tendrás que hacer nada — el trabajador lo hace solo desde su celular.',
     primaryButtonLabel: (n: string) => `Enviar invitación a ${n}`,
     primaryButtonVariant: 'primary' as const,
@@ -469,7 +469,7 @@ const STATUS_CONFIG = {
     badgeIcon: <CheckCircle2 className="h-3 w-3" />,
     badgeLabel: 'Completado',
     title: (n: string) => `${n} tiene su perfil completo`,
-    description: (_a: DescriptionArgs) =>
+    description: () =>
       'El trabajador entró a su portal y completó el legajo. Sigue activo gestionando sus boletas, vacaciones y solicitudes desde su /mi-portal.',
     primaryButtonLabel: () => `Reenviar comunicado`,
     primaryButtonVariant: 'ghost' as const,

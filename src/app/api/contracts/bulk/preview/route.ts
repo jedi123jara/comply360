@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withPlanGate } from '@/lib/plan-gate'
-import type { AuthContext } from '@/lib/auth'
 import { parseBulkFile } from '@/lib/contracts/bulk/parser'
 import { validateBulkPreview } from '@/lib/contracts/bulk/validator'
 
@@ -15,7 +14,7 @@ import { validateBulkPreview } from '@/lib/contracts/bulk/validator'
 
 const MAX_ROWS = 200
 
-export const POST = withPlanGate('contratos', async (req: NextRequest, _ctx: AuthContext) => {
+export const POST = withPlanGate('contratos', async (req: NextRequest) => {
   try {
     const formData = await req.formData()
     const file = formData.get('file')

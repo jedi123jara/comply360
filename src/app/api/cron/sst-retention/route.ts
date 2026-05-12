@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { runRetentionJob } from '@/lib/sst/retention'
 import { withCronIdempotency } from '@/lib/cron/wrap'

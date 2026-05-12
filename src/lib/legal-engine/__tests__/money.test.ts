@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { money, sumMoney, Money } from '../money'
+import { money, sumMoney } from '../money'
 
 describe('Money construcción', () => {
   it('acepta number', () => {

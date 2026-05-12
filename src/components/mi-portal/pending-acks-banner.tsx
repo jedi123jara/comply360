@@ -15,7 +15,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { FileSignature, Clock, AlertTriangle, X, ArrowRight } from 'lucide-react'
+import { FileSignature, AlertTriangle, X, ArrowRight } from 'lucide-react'
 
 interface PendingDoc {
   id: string

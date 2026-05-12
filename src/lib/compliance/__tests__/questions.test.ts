@@ -7,7 +7,7 @@ import {
   getFilteredQuestions,
   getAreaWeight,
 } from '../questions'
-import type { AreaKey, ComplianceQuestion } from '../questions/types'
+import type { AreaKey } from '../questions/types'
 
 // ---------------------------------------------------------------------------
 // Question collection counts

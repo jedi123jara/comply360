@@ -196,7 +196,6 @@ export default function ComitePage() {
       ) : (
         <ComiteDetail
           comite={vigente}
-          numeroTrabajadores={data?.numeroTrabajadores ?? 0}
           onChanged={reload}
           onAddMiembro={() => setShowAddMiembro(vigente.id)}
         />
@@ -256,12 +255,10 @@ export default function ComitePage() {
 
 function ComiteDetail({
   comite,
-  numeroTrabajadores,
   onChanged,
   onAddMiembro,
 }: {
   comite: ComiteData & { analisis: AnalisisData; diasRestantesMandato: number }
-  numeroTrabajadores: number
   onChanged: () => void
   onAddMiembro: () => void
 }) {

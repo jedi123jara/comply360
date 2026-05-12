@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ChevronLeft,
@@ -59,7 +59,6 @@ interface SedeMin {
 export default function AsignarPuestosPage() {
   const params = useParams<{ id: string }>()
   const sedeId = params.id
-  const router = useRouter()
 
   const [sede, setSede] = useState<SedeMin | null>(null)
   const [puestos, setPuestos] = useState<PuestoRow[]>([])

@@ -8,7 +8,6 @@ import {
   HardHat,
   ShieldAlert,
   CheckCircle2,
-  Circle,
   Loader2,
   ArrowRight,
   Sparkles,
@@ -18,7 +17,6 @@ import {
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 
 // ── Tipos ────────────────────────────────────────────────────────────────
@@ -81,8 +79,6 @@ export default function OnboardingPage() {
   // Estado intermedio: sedeId y puestoId que el usuario va creando en este wizard
   const [sedeIdActual, setSedeIdActual] = useState<string | null>(null)
   const [puestoIdActual, setPuestoIdActual] = useState<string | null>(null)
-  const [ipercIdActual, setIpercIdActual] = useState<string | null>(null)
-
   async function loadStatus(advanceIfComplete = true) {
     setLoading(true)
     setError(null)
@@ -213,7 +209,6 @@ export default function OnboardingPage() {
           sedeId={sedeIdActual}
           puestoIdActual={puestoIdActual}
           onCreated={(ipercId) => {
-            setIpercIdActual(ipercId)
             toast.success('Matriz IPERC creada')
             loadStatus(false)
             // Redirigir directo al editor para que llene filas con IA

@@ -50,7 +50,7 @@ export async function compressImageIfNeeded(
       originalSize,
       finalSize: compressedFile.size,
     }
-  } catch (err) {
+  } catch {
     // Si la compresión falla (canvas no disponible, formato exótico), validar
     // tamaño original
     if (originalSize > maxBytes) {

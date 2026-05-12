@@ -59,7 +59,6 @@ vi.mock('@/lib/email', () => ({
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   resolveTargetedWorkers,
-  getWorkerPendingDocs,
   recordAcknowledgment,
   notifyWorkersOfDocUpdate,
 } from '../acknowledgments'

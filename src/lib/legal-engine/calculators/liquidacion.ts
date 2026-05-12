@@ -11,7 +11,7 @@ import {
   calcularPeriodoLaboral,
   calcularRemuneracionComputable,
 } from '../peru-labor'
-import { money, sumMoney } from '../money'
+import { sumMoney } from '../money'
 
 export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult {
   const periodo = calcularPeriodoLaboral(input.fechaIngreso, input.fechaCese)

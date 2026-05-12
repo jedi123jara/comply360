@@ -13,9 +13,6 @@ import {
   AlertTriangle,
   Check,
   X,
-  FileUp,
-  Sparkles,
-  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

@@ -9,7 +9,6 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { treeKey } from '../queries/use-tree'
 import { snapshotsKey } from '../queries/use-snapshots'
 import { doctorKey } from '../queries/use-doctor-report'
 import { alertsKey } from '../queries/use-alerts'

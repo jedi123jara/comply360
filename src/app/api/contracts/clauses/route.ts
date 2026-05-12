@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
-import type { AuthContext } from '@/lib/auth'
 import type { ContractType } from '@/generated/prisma/client'
 
 // =============================================
@@ -11,7 +10,7 @@ import type { ContractType } from '@/generated/prisma/client'
 //   ?type=CONFIDENCIALIDAD|...
 //   ?contractType=LABORAL_PLAZO_FIJO|... (filtra por applicableTo)
 // =============================================
-export const GET = withPlanGate('contratos', async (req: NextRequest, _ctx: AuthContext) => {
+export const GET = withPlanGate('contratos', async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)
   const category = searchParams.get('category')
   const type = searchParams.get('type')

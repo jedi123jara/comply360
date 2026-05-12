@@ -9,7 +9,7 @@
  *  3. Inyecta el contexto normativo antes de las messages del usuario
  *  4. Genera la respuesta con el LLM (o fallback simulado)
  */
-import { callAIWithUsage, callAIRedacted, callAIStream, detectProvider, getModelName } from './provider'
+import { callAIRedacted, callAIStream, detectProvider, getModelName } from './provider'
 import { retrieveRelevantLaw, formatRetrievedContext, type RetrievalResult } from './rag/retriever'
 import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
 import { recordAiUsage } from './usage'

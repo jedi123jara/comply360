@@ -314,7 +314,10 @@ export async function getRiskWorkers(orgId: string): Promise<RiskWorkerItem[]> {
     }))
     .sort((a, b) => b.riskRank - a.riskRank)
     .slice(0, 5)
-    .map(({ riskRank: _r, ...rest }) => rest)
+    .map(({ riskRank, ...rest }) => {
+      void riskRank
+      return rest
+    })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

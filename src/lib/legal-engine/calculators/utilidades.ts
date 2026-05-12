@@ -125,10 +125,6 @@ export function calcularUtilidades(input: UtilidadesInput): UtilidadesResult {
 // Helpers
 // =============================================
 
-function round(n: number): number {
-  return Math.round(n * 100) / 100
-}
-
 // Format helper
 export function fmtUtilidades(n: number): string {
   return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

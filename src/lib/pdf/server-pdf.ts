@@ -31,7 +31,7 @@ export type JsPDFDoc = {
   internal: { pageSize: { getWidth: () => number; getHeight: () => number } }
   getNumberOfPages: () => number
   setPage: (n: number) => void
-  splitTextToSize: (text: string, maxLen: number, options?: any) => string[]
+  splitTextToSize: (text: string, maxLen: number, options?: Record<string, unknown>) => string[]
 }
 
 // ─── Brand colors ───────────────────────────────────────────────────────────

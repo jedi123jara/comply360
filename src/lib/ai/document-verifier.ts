@@ -745,7 +745,7 @@ async function verifyPdfDocument(
   // se rinda. Antes esto retornaba error y el doc quedaba sin verificar.
   let extractedText = ''
   try {
-    const pdfParse = require('pdf-parse')
+    const pdfParse = (await import('pdf-parse')).default
     const result = await pdfParse(pdfBuffer)
     extractedText = ((result.text as string) ?? '').trim()
   } catch (err) {

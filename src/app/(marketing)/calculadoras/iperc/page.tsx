@@ -18,7 +18,6 @@ import { useMemo, useState } from 'react'
 import { ShieldCheck, AlertTriangle, AlertCircle, AlertOctagon, Info } from 'lucide-react'
 import {
   calcularNivelRiesgo,
-  NivelRiesgoIPERC,
   type NivelRiesgoIPERC as NivelRiesgo,
 } from '@/lib/sst/iperc-matrix'
 import {

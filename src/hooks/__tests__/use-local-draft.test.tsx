@@ -27,7 +27,7 @@ describe('useLocalDraft', () => {
   })
 
   it('persiste y restaura un draft con TTL valido', () => {
-    const { result, rerender } = renderHook(() =>
+    const { result } = renderHook(() =>
       useLocalDraft<TestDraft>({ key: 'test', orgId: 'org_1', debounceMs: 100 })
     )
 

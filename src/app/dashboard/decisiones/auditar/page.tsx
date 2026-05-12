@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   ArrowRight,
@@ -63,7 +62,6 @@ function defaultPeriodo(): string {
 }
 
 export default function AuditarWizardPage() {
-  const router = useRouter()
   const [step, setStep] = useState(1)
   const [periodo, setPeriodo] = useState(defaultPeriodo())
   const [analyzing, setAnalyzing] = useState(false)

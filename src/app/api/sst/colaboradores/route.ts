@@ -11,7 +11,7 @@ import { colaboradorCreateSchema } from '@/lib/sst/schemas'
 // contratistas directos de COMPLY360. Cualquier user autenticado puede
 // listarlos para programar visitas.
 // =============================================
-export const GET = withAuth(async (req: NextRequest, _ctx: AuthContext) => {
+export const GET = withAuth(async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)
   const onlyActive = searchParams.get('activo') === 'true'
   const especialidad = searchParams.get('especialidad')

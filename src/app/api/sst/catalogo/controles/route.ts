@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
-import type { AuthContext } from '@/lib/auth'
 
 // =============================================
 // GET /api/sst/catalogo/controles — Catálogo seed global de controles (40 entradas)
@@ -10,7 +9,7 @@ import type { AuthContext } from '@/lib/auth'
 //   nivel             — ELIMINACION | SUSTITUCION | INGENIERIA | ADMINISTRATIVO | EPP
 //   peligroIdSugerido — filtrar controles sugeridos para un peligro
 // =============================================
-export const GET = withPlanGate('sst_completo', async (req: NextRequest, _ctx: AuthContext) => {
+export const GET = withPlanGate('sst_completo', async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)
   const nivel = searchParams.get('nivel')
   const peligroIdSugerido = searchParams.get('peligroIdSugerido')

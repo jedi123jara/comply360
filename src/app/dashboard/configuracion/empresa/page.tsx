@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Building2, Save, Loader2, CheckCircle2, AlertCircle, XCircle, Upload, X, Crown, Sparkles, Users, ChevronLeft, User, Phone, Mail, MapPin, FileText, Search, Landmark, ShieldAlert, Briefcase, MapPinned } from 'lucide-react'
 import Link from 'next/link'
-import { PLANS as PLANS_SOURCE, LAUNCH_DISCOUNT_PERCENT } from '@/lib/constants'
+import { PLANS as PLANS_SOURCE } from '@/lib/constants'
 
 // =============================================
 // Types

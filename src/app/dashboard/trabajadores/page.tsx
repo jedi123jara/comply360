@@ -361,7 +361,7 @@ export default function TrabajadoresPage() {
 
   // ── Bulk selection state ──────────────────────────────────
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [bulkAction, setBulkAction] = useState<string>('')
+  const [, setBulkAction] = useState<string>('')
   const [bulkLoading, setBulkLoading] = useState(false)
   // Modal de acciones masivas que requieren input adicional (Fase 1 + Fase 2 + Fase 3)
   type BulkModalKind =

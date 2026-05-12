@@ -1,5 +1,5 @@
 import { PERU_LABOR } from '../peru-labor'
-import { money, sumMoney } from '../money'
+import { money } from '../money'
 
 // =============================================
 // COSTO TOTAL EMPLEADOR

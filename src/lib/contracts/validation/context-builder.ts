@@ -130,7 +130,7 @@ export async function buildValidationContext(
     regimenLaboral: wc.worker.regimenLaboral,
     fechaIngreso: wc.worker.fechaIngreso,
     sueldoBruto: Number(wc.worker.sueldoBruto),
-    isPregnant: extractGestanteFlag(formData, wc.worker.id),
+    isPregnant: extractGestanteFlag(formData),
     nationality: wc.worker.nationality,
   }))
 
@@ -209,7 +209,6 @@ export async function buildValidationContext(
  */
 function extractGestanteFlag(
   formData: Record<string, unknown> | null,
-  _workerId: string,
 ): boolean {
   if (!formData) return false
   const raw = formData.trabajadora_gestante ?? formData.gestante ?? formData.es_gestante
@@ -297,7 +296,7 @@ export function buildValidationContextFromDraft(
     regimenLaboral: w.regimenLaboral as ValidationContext['workers'][number]['regimenLaboral'],
     fechaIngreso: w.fechaIngreso instanceof Date ? w.fechaIngreso : new Date(w.fechaIngreso),
     sueldoBruto: Number(w.sueldoBruto),
-    isPregnant: extractGestanteFlag(formData, w.id),
+    isPregnant: extractGestanteFlag(formData),
     nationality: w.nationality ?? null,
   }))
 

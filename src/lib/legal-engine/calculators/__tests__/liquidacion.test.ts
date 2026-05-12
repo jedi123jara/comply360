@@ -1,6 +1,5 @@
 import { calcularLiquidacion } from '../liquidacion'
 import { LiquidacionInput } from '../../types'
-import { PERU_LABOR } from '../../peru-labor'
 
 describe('calcularLiquidacion', () => {
   // -----------------------------------------------

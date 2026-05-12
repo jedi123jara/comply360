@@ -15,7 +15,6 @@ import {
   Scale,
   GraduationCap,
   Sparkles,
-  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calcularCostoEmpleador, type CostoEmpleadorResult } from '@/lib/legal-engine/calculators/costo-empleador'

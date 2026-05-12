@@ -159,23 +159,9 @@ function isValidGroqKey(): boolean {
  */
 // ─── Routing declarativo por feature ─────────────────────────────────────
 // FEATURE_ROUTING (en feature-routing.ts) es la fuente única de verdad.
-// Las listas debajo se mantienen por compat hacia atrás con detectProvider
-// pero ahora se derivan automáticamente del mapping.
-import { FEATURE_ROUTING, tierToDeepSeekModel, getFeatureConfig } from './feature-routing'
+import { FEATURE_ROUTING, tierToDeepSeekModel } from './feature-routing'
 import { redactPii, unredact, type RedactOptions } from './pii-redactor'
 import { rolloutProvider } from './rollout'
-
-const LEGAL_HIGH_STAKES_FEATURES: AIFeature[] = (
-  Object.entries(FEATURE_ROUTING) as Array<[AIFeature, typeof FEATURE_ROUTING[AIFeature]]>
-)
-  .filter(([, cfg]) => cfg.tier === 'pro')
-  .map(([feature]) => feature)
-
-const CHAT_FEATURES: AIFeature[] = (
-  Object.entries(FEATURE_ROUTING) as Array<[AIFeature, typeof FEATURE_ROUTING[AIFeature]]>
-)
-  .filter(([, cfg]) => cfg.tier === 'flash')
-  .map(([feature]) => feature)
 
 const EMBEDDING_FEATURES: AIFeature[] = ['rag-embed']
 const VISION_FEATURES: AIFeature[] = ['document-vision']

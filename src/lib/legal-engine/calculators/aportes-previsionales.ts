@@ -162,10 +162,6 @@ export function compararAfpVsOnp(input: Omit<AportesInput, 'tipoAporte' | 'afpNo
 // Helpers
 // =============================================
 
-function round(n: number): number {
-  return Math.round(n * 100) / 100
-}
-
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }

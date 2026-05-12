@@ -125,7 +125,6 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     descuentoTardanzasMonto = 0,
   } = input
 
-  const uitAnual = PERU_LABOR.UIT
   const rmv = PERU_LABOR.RMV
 
   // ── 1. Asignación familiar ──────────────────────────────────────────────────

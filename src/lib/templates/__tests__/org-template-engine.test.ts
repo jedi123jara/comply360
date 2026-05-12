@@ -3,11 +3,9 @@
  */
 import {
   PLACEHOLDER_CATALOG,
-  PLACEHOLDER_REGEX,
   detectPlaceholders,
   resolveFieldPath,
   renderTemplate,
-  TEMPLATE_TYPE_LABEL,
   type WorkerMergeData,
   type OrgMergeData,
   type RenderContext,

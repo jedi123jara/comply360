@@ -29,8 +29,7 @@ if (typeof globalThis.DOMMatrix === 'undefined') {
     inverse() { return this }
     toString() { return `matrix(${this.a},${this.b},${this.c},${this.d},${this.e},${this.f})` }
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(globalThis as any).DOMMatrix = DOMMatrixPolyfill
+  ;(globalThis as unknown as { DOMMatrix: typeof DOMMatrixPolyfill }).DOMMatrix = DOMMatrixPolyfill
 }
 
 /**
@@ -50,9 +49,9 @@ export async function extractTextFromBuffer(
   if (lower.endsWith('.pdf')) {
     // pdf-parse v2: new PDFParse({ data: buffer }).getText()
     // Retorna { pages: [{text, num}], text: string, total: number }
-    const pdfParse = require('pdf-parse')
+    const pdfParse = (await import('pdf-parse')).default
     const result = await pdfParse(buffer)
-    const text: string = cleanContractText((result.text || '').trim())
+    const text: string = cleanContractText(cleanPdfParseMarkers((result.text || '').trim()))
 
     // Si el texto es insuficiente → PDF escaneado → intentar OCR automático
     if (isTextInsufficient(text)) {
@@ -65,9 +64,8 @@ export async function extractTextFromBuffer(
   }
 
   if (lower.endsWith('.docx')) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mammoth = require('mammoth')
-    const result = await mammoth.extractRawText({ buffer })
+    const { extractRawText } = await import('mammoth')
+    const result = await extractRawText({ buffer })
     return result.value || ''
   }
 
@@ -126,11 +124,19 @@ export async function extractTextByPage(buffer: Buffer): Promise<PdfTextWithPage
   //   - pages: array de objetos por página (text = contenido, num = nro de página)
   //   - text: texto completo con marcadores "-- X of Y --"
   //   - total: cantidad total de páginas (NÚMERO, no array)
-  const pdfParse = require('pdf-parse')
+  const pdfParse = (await import('pdf-parse')).default
+
+  type PdfTextItem = { str: string; transform: number[] }
+  type PdfPageData = {
+    getTextContent: (options: {
+      normalizeWhitespace: boolean
+      disableCombineTextItems: boolean
+    }) => Promise<{ items: PdfTextItem[] }>
+  }
   
   // Custom pagerender to capture pages individually
   const pageTexts: string[] = []
-  const render_page = async (pageData: any) => {
+  const render_page = async (pageData: PdfPageData) => {
     const render_options = { normalizeWhitespace: false, disableCombineTextItems: false }
     const textContent = await pageData.getTextContent(render_options)
     let lastY, text = ''
@@ -230,8 +236,7 @@ export async function extractPdfPagesToBuffer(
   startPage: number,
   endPage: number
 ): Promise<Buffer> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { PDFDocument } = require('pdf-lib')
+  const { PDFDocument } = await import('pdf-lib')
   const src = await PDFDocument.load(new Uint8Array(sourceBuffer), {
     ignoreEncryption: true,
   })

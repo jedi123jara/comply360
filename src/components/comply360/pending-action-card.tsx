@@ -86,7 +86,7 @@ export function deriveSeverity(deadline: string | null | undefined): ActionSever
 /**
  * Formatea el deadline en texto humano relativo.
  */
-function formatDeadline(deadline: string, _severity: ActionSeverity): string {
+function formatDeadline(deadline: string): string {
   const now = Date.now()
   const due = new Date(deadline).getTime()
   const diffMs = due - now
@@ -171,7 +171,7 @@ export function PendingActionCard({
               style={{ color: palette.deadlineColor }}
             >
               <Clock className="h-3 w-3" />
-              {formatDeadline(deadline, sev)}
+              {formatDeadline(deadline)}
             </div>
           ) : null}
         </div>

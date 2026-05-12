@@ -145,7 +145,7 @@ describe('full PDF generation flow', () => {
       { label: 'Contratos', score: 90, weight: 20 },
       { label: 'SST', score: 55, weight: 19 },
     ]
-    y = drawBarChart(doc, items, 14, y)
+    drawBarChart(doc, items, 14, y)
 
     addPageNumbers(doc)
     const buffer = doc.output('arraybuffer')

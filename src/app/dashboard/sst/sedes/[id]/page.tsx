@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ChevronLeft,
-  MapPin,
   Plus,
   Loader2,
   AlertCircle,

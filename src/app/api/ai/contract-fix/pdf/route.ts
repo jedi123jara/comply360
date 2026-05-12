@@ -111,14 +111,14 @@ export const POST = withPlanGate('review_ia', async (req, ctx) => {
   doc.addPage()
   addContractHeader(doc, headerOpts)
 
-  let y = renderContractBody(doc, cleaned, {
+  const y = renderContractBody(doc, cleaned, {
     startY: 36,
     headerOpts,
   })
 
   // Bloque de firmas placeholder (sin datos del trabajador específicos —
   // este endpoint es preview de un contrato corregido, no instancia firmable)
-  y = addSignatureBlock(doc, y, {
+  addSignatureBlock(doc, y, {
     empleador: {
       razonSocial: org?.razonSocial ?? org?.name ?? '',
       ruc: org?.ruc ?? '',

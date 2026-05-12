@@ -87,7 +87,6 @@ export function FirmaDocClient({ doc, orgName, workerName, alreadySigned }: Prop
       const winHeight = window.innerHeight
       const scrollPos = window.scrollY + winHeight
       const elTop = el.getBoundingClientRect().top + window.scrollY
-      const elBottom = elTop + docHeight
       const visiblePct = Math.min(100, Math.max(0, ((scrollPos - elTop) / docHeight) * 100))
       setScrollPercent(Math.round(visiblePct))
       // Considerar "leído" si llegó al 95%+ del contenido
