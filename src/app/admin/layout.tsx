@@ -5,9 +5,16 @@
  */
 import './admin.css'
 import { AdminLayoutClient } from './admin-layout-client'
+import { getAuthContext } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const ctx = await getAuthContext()
+  if (ctx?.role !== 'SUPER_ADMIN') {
+    redirect(ctx?.role === 'WORKER' ? '/mi-portal' : '/dashboard')
+  }
+
   return <AdminLayoutClient>{children}</AdminLayoutClient>
 }

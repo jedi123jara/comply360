@@ -134,6 +134,17 @@ const STEPS = [
   { title: 'Confirmación', description: 'Revisa y comienza', icon: ShieldCheck },
 ] as const
 
+function isValidRuc(ruc: string) {
+  if (!/^\d{11}$/.test(ruc)) return false
+  if (!['10', '15', '17', '20', '30'].includes(ruc.slice(0, 2))) return false
+
+  const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
+  const sum = weights.reduce((acc, weight, index) => acc + Number(ruc[index]) * weight, 0)
+  const remainder = sum % 11
+  const checkDigit = remainder < 2 ? remainder : 11 - remainder
+  return checkDigit === Number(ruc[10])
+}
+
 export function OnboardingWizard() {
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -157,7 +168,7 @@ export function OnboardingWizard() {
     setRucLookupMessage('')
 
     try {
-      const res = await fetch(`/api/integrations/sunat?ruc=${ruc}`)
+      const res = await fetch(`/api/integrations/sunat?ruc=${encodeURIComponent(ruc)}`)
       const json = await res.json()
 
       if (!res.ok || json.error) {
@@ -211,19 +222,22 @@ export function OnboardingWizard() {
     }
 
     if (ruc.length !== 11) {
-      if (rucLookupStatus !== 'idle') {
-        setRucLookupStatus('idle')
-        setRucLookupMessage('')
-      }
-      lastLookedUpRuc.current = ''
-      return
+      const reset = window.setTimeout(() => {
+        if (rucLookupStatus !== 'idle') {
+          setRucLookupStatus('idle')
+          setRucLookupMessage('')
+        }
+        lastLookedUpRuc.current = ''
+      }, 0)
+      return () => window.clearTimeout(reset)
     }
 
-    const prefix = ruc.substring(0, 2)
-    if (!['10', '15', '17', '20', '30'].includes(prefix)) {
-      setRucLookupStatus('idle')
-      setRucLookupMessage('')
-      return
+    if (!isValidRuc(ruc)) {
+      const reset = window.setTimeout(() => {
+        setRucLookupStatus('idle')
+        setRucLookupMessage('')
+      }, 0)
+      return () => window.clearTimeout(reset)
     }
 
     if (lastLookedUpRuc.current === ruc) return
@@ -248,10 +262,14 @@ export function OnboardingWizard() {
           setShow(true)
         }
         if (d.org) {
+          const storedRuc = d.org.ruc || ''
+          if (storedRuc) {
+            lastLookedUpRuc.current = storedRuc
+          }
           setForm(prev => ({
             ...prev,
             razonSocial: d.org.razonSocial || d.org.name || '',
-            ruc: d.org.ruc || '',
+            ruc: storedRuc,
             sector: d.org.sector || '',
             sizeRange: d.org.sizeRange || '',
             regimenPrincipal: d.org.regimenPrincipal || 'GENERAL',

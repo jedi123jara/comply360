@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { listAgents } from '@/lib/agents/registry'
 import { ShieldAlert, Sparkles, ArrowRight, Scale, Receipt, Radar } from 'lucide-react'
+import type { ComponentType } from 'react'
 
 export const metadata = {
   title: 'Agentes IA · COMPLY360',
 }
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   ShieldAlert,
   Scale,
   Receipt,
@@ -35,22 +36,17 @@ export default function AgentesPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {agents.map(agent => {
           const Icon = ICON_MAP[agent.icon] ?? Sparkles
-          const href =
-            agent.slug === 'sunafil-analyzer'
-              ? '/dashboard/configuracion/automatizaciones/agentes/sunafil'
-              : `/dashboard/configuracion/automatizaciones/agentes/${agent.slug}`
-          return (
-            <Link
-              key={agent.slug}
-              href={href}
-              className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-white p-5 transition hover:border-gold-500/60 hover:bg-white"
-            >
+          const isAvailable = agent.slug === 'sunafil-analyzer'
+          const cardClass =
+            'group relative overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--bg-elevated)] p-5 transition hover:border-gold-500/60'
+          const content = (
+            <>
               <div className="mb-3 flex items-start justify-between">
                 <div className="rounded-lg bg-gold-500/10 p-2.5">
                   <Icon className="h-5 w-5 text-gold-500" />
                 </div>
                 <span className="rounded-full bg-gold-500/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gold-400">
-                  {agent.status}
+                  {isAvailable ? agent.status : 'Próximo'}
                 </span>
               </div>
               <h2 className="text-base font-semibold text-white">{agent.name}</h2>
@@ -58,9 +54,32 @@ export default function AgentesPage() {
               <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
                 <span>~{agent.estimatedTokens.toLocaleString('es-PE')} tokens</span>
                 <span className="flex items-center gap-1 text-gold-400 group-hover:gap-2 transition-all">
-                  Abrir <ArrowRight className="h-3 w-3" />
+                  {isAvailable ? 'Abrir' : 'En cola'} {isAvailable && <ArrowRight className="h-3 w-3" />}
                 </span>
               </div>
+            </>
+          )
+
+          if (!isAvailable) {
+            return (
+              <div
+                key={agent.slug}
+                className={`${cardClass} opacity-80`}
+                aria-disabled="true"
+              >
+                {content}
+              </div>
+            )
+          }
+
+          return (
+            <Link
+              key={agent.slug}
+              href="/dashboard/configuracion/automatizaciones/agentes/sunafil"
+              prefetch={false}
+              className={cardClass}
+            >
+              {content}
             </Link>
           )
         })}

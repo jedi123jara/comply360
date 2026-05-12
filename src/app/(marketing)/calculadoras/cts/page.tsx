@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Wallet } from 'lucide-react'
 import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import {
@@ -17,6 +17,8 @@ import {
 } from '@/components/calc/calc-shell'
 
 // Aproximamos al próximo corte semestral (15 may / 15 nov).
+const DEFAULT_CTS_CUTOFF = '2026-05-15'
+
 function nextCtsCutoff(today = new Date()): string {
   const y = today.getFullYear()
   const may15 = new Date(y, 4, 15)
@@ -30,8 +32,20 @@ export default function CTSCalculatorPage() {
   const [sueldo, setSueldo] = useState(2000)
   const [ultimaGrati, setUltimaGrati] = useState(2000)
   const [fechaIngreso, setFechaIngreso] = useState('2024-01-01')
-  const [fechaCorte, setFechaCorte] = useState(nextCtsCutoff())
+  const [fechaCorte, setFechaCorte] = useState(DEFAULT_CTS_CUTOFF)
   const [asigFam, setAsigFam] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const cutoff = nextCtsCutoff()
+    const timer = window.setTimeout(() => {
+      setFechaCorte((current) => (
+        current === DEFAULT_CTS_CUTOFF ? cutoff : current
+      ))
+      setMounted(true)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   const result = useMemo(() => {
     try {
@@ -113,7 +127,7 @@ export default function CTSCalculatorPage() {
         </CalcCard>
 
         <div className="lg:col-span-2 space-y-4">
-          {result ? (
+          {mounted && result ? (
             <>
               <BigNumberResult label="CTS a depositar" amount={result.ctsTotal} accent="emerald" />
 
@@ -156,7 +170,7 @@ export default function CTSCalculatorPage() {
 
       <LeadCaptureCTA
         source="calc-cts"
-        resultSummary={result ? { ctsDeposito: result.ctsTotal, sueldo, fechaCorte } : undefined}
+        resultSummary={mounted && result ? { ctsDeposito: result.ctsTotal, sueldo, fechaCorte } : undefined}
         title="¿Te enviamos el cálculo en PDF + tu calendario CTS?"
         subtitle="Te llega el resumen del cálculo con la fórmula desglosada + 14 días gratis del simulacro SUNAFIL completo. Sin tarjeta."
       />

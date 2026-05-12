@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
 import {
   Home,
@@ -60,8 +60,52 @@ const SECONDARY_NAV = [
 
 export default function MiPortalLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [roleGate, setRoleGate] = useState<'checking' | 'allowed'>('checking')
   const pathname = usePathname() ?? '/mi-portal'
+  const router = useRouter()
   const { signOut } = useClerk()
+  const isPublicRegistration = pathname === '/mi-portal/registrarse'
+
+  useEffect(() => {
+    if (isPublicRegistration) return
+
+    let cancelled = false
+
+    fetch('/api/me', { credentials: 'include' })
+      .then(async (res) => {
+        if (!res.ok) {
+          router.replace('/sign-in')
+          return
+        }
+
+        const me = await res.json().catch(() => null) as { role?: string } | null
+        if (cancelled) return
+
+        if (me?.role === 'WORKER') {
+          setRoleGate('allowed')
+          return
+        }
+
+        router.replace(me?.role === 'SUPER_ADMIN' ? '/admin' : '/dashboard')
+      })
+      .catch(() => {
+        if (!cancelled) router.replace('/post-login')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isPublicRegistration, router])
+
+  if (isPublicRegistration) {
+    return <>{children}</>
+  }
+
+  if (roleGate !== 'allowed') {
+    return (
+      <div className="min-h-screen bg-[color:var(--bg-canvas)] text-[color:var(--text-primary)]" />
+    )
+  }
 
   function isActive(href: string): boolean {
     if (href === '/mi-portal') return pathname === '/mi-portal'

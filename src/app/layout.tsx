@@ -12,6 +12,8 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import Script from "next/script";
 import { BRAND } from "@/lib/brand";
 
+const faviconVersion = "20260511-2";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -84,14 +86,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: `/favicon-32.png?v=${faviconVersion}`, sizes: "32x32", type: "image/png" },
+      { url: `/favicon.svg?v=${faviconVersion}`, type: "image/svg+xml" },
+      { url: `/favicon.ico?v=${faviconVersion}`, sizes: "any", type: "image/x-icon" },
+      { url: `/icon-192.png?v=${faviconVersion}`, sizes: "192x192", type: "image/png" },
+      { url: `/icon-512.png?v=${faviconVersion}`, sizes: "512x512", type: "image/png" },
     ],
-    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: [{ url: `/favicon.ico?v=${faviconVersion}`, type: "image/x-icon" }],
+    apple: [{ url: `/apple-touch-icon.png?v=${faviconVersion}`, sizes: "180x180", type: "image/png" }],
   },
   applicationName: BRAND.name,
   appleWebApp: {

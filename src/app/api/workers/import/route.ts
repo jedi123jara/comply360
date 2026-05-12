@@ -204,6 +204,58 @@ function buildDate(day: number, month: number, year: number): string {
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
 }
 
+function normalizeRegimenForImport(value: string): string {
+  const s = stripAccents(value).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim()
+  if (!s) return 'GENERAL'
+  if (s.includes('MYPE') && s.includes('MICRO')) return 'MYPE_MICRO'
+  if (s.includes('MYPE') && s.includes('PEQUENA')) return 'MYPE_PEQUENA'
+  if (s.includes('AGRARIO')) return 'AGRARIO'
+  if (s.includes('CONSTRUCCION')) return 'CONSTRUCCION_CIVIL'
+  if (s.includes('MINERO')) return 'MINERO'
+  if (s.includes('PESQUERO')) return 'PESQUERO'
+  if (s.includes('TEXTIL')) return 'TEXTIL_EXPORTACION'
+  if (s.includes('DOMESTICO')) return 'DOMESTICO'
+  if (s.includes('CAS')) return 'CAS'
+  if (s.includes('FORMATIVA')) return 'MODALIDAD_FORMATIVA'
+  if (s.includes('TELETRABAJO')) return 'TELETRABAJO'
+  if (s.includes('728') || s.includes('GENERAL') || s === 'RG') return 'GENERAL'
+  return value.trim()
+}
+
+function normalizeContratoForImport(value: string): string {
+  const s = stripAccents(value).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim()
+  if (!s) return 'INDEFINIDO'
+  if (s.includes('INDEFINIDO') || s.includes('INDETERMINADO')) return 'INDEFINIDO'
+  if (s.includes('TIEMPO PARCIAL')) return 'TIEMPO_PARCIAL'
+  if (s.includes('INICIO ACTIVIDAD')) return 'INICIO_ACTIVIDAD'
+  if (s.includes('NECESIDAD MERCADO')) return 'NECESIDAD_MERCADO'
+  if (s.includes('RECONVERSION')) return 'RECONVERSION'
+  if (s.includes('SUPLENCIA')) return 'SUPLENCIA'
+  if (s.includes('EMERGENCIA')) return 'EMERGENCIA'
+  if (s.includes('OBRA')) return 'OBRA_DETERMINADA'
+  if (s.includes('INTERMITENTE')) return 'INTERMITENTE'
+  if (s.includes('EXPORTACION')) return 'EXPORTACION'
+  if (s.includes('PLAZO') || s.includes('FIJO') || /\b\d+\s*M\b/.test(s)) return 'PLAZO_FIJO'
+  return value.trim()
+}
+
+function pensionInfoFromText(value: string, fallbackTipoAporte: string): { tipoAporte: string; afpNombre: string } {
+  const s = stripAccents(value).toUpperCase()
+  if (s.includes('ONP') || s.includes('SNP')) return { tipoAporte: 'ONP', afpNombre: '' }
+
+  if (s.includes('AFP') || fallbackTipoAporte === 'AFP') {
+    const afpNombre =
+      s.includes('INTEGRA') ? 'Integra' :
+      s.includes('PRIMA') ? 'Prima' :
+      s.includes('PROFUTURO') ? 'Profuturo' :
+      s.includes('HABITAT') ? 'Habitat' :
+      ''
+    return { tipoAporte: 'AFP', afpNombre }
+  }
+
+  return { tipoAporte: fallbackTipoAporte || 'AFP', afpNombre: '' }
+}
+
 function preprocessExcelToCsv(rows: CellVal[][]): string {
   const headerRowIdx = findHeaderRow(rows)
 
@@ -224,6 +276,7 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
   // Solo buscar columnas separadas si NO existe columna combinada
   const firstNameCol    = nameCol >= 0 ? -1 : findCol(rawHeaders, 'NOMBRES', 'NOMBRE', 'PRIMER NOMBRE')
   const lastNameCol     = nameCol >= 0 ? -1 : findCol(rawHeaders, 'APELLIDOS', 'APELLIDO', 'APELLIDO PATERNO')
+  const motherNameCol   = nameCol >= 0 ? -1 : findCol(rawHeaders, 'APELLIDO MATERNO', 'MATERNO')
   const cargoCol        = findCol(rawHeaders, 'CARGO', 'PUESTO', 'OCUPACION')
   const areaCol         = findCol(rawHeaders, 'AREA', 'DEPARTAMENTO', 'UNIDAD', 'SECCION')
   const anoCol          = findCol(rawHeaders, 'ANO', 'YEAR')
@@ -239,6 +292,9 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
   const afpComisionCol  = findCol(rawHeaders, 'AFP COMIS', 'AFP COMISION', 'COMISION AFP', '0602')
   //   "AFP COMIS+SEG 3.39%" → "AFP COMIS SEG 3 39" → contains "AFP COMIS" ✓
   const fechaIngresoCol = findCol(rawHeaders, 'FECHA INGRESO', 'FECHA DE INGRESO', 'FECHA INICIO', 'INICIO LABORES')
+  const regimenCol      = findCol(rawHeaders, 'REGIMEN LABORAL', 'REGIMEN')
+  const tipoContratoCol = findCol(rawHeaders, 'TIPO CONTRATO', 'CONTRATO', 'MODALIDAD CONTRATO')
+  const jornadaCol      = findCol(rawHeaders, 'JORNADA SEMANAL', 'JORNADA', 'HORAS SEMANA')
 
   // Ambas columnas deben existir Y ser distintas. Si apuntan al mismo índice
   // (mismo header), es la columna combinada en disfraz → tratar como nameCol
@@ -248,6 +304,7 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
   interface WorkerAccum {
     dni: string; firstName: string; lastName: string
     cargo: string; area: string
+    regimenLaboral: string; tipoContrato: string; afpNombre: string; jornadaSemanal: number
     // Latest period (for current salary/aporte)
     latestAno: number; latestMes: number
     sueldo: number; asigFamiliar: boolean
@@ -285,17 +342,32 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
     const afpVal  = afpAporteCol   >= 0 ? numericCell(row[afpAporteCol])   : 0
     const afpCom  = afpComisionCol >= 0 ? numericCell(row[afpComisionCol]) : 0
     const regPensText = regPensCol >= 0 ? cellStr(row[regPensCol] ?? '').toUpperCase() : ''
-    const tipoAporte =
+    const detectedTipoAporte =
       onpVal > 0                                         ? 'ONP' :
       (afpVal > 0 || afpCom > 0)                        ? 'AFP' :
       (regPensText.includes('ONP') || regPensText.includes('SNP')) ? 'ONP' :
       regPensText.includes('AFP')                        ? 'AFP' :
       'AFP'
+    const pensionInfo = pensionInfoFromText(regPensText, detectedTipoAporte)
+    const tipoAporte = pensionInfo.tipoAporte
+    const afpNombre = pensionInfo.afpNombre
+    const regimenLaboral = regimenCol >= 0
+      ? normalizeRegimenForImport(cellStr(row[regimenCol] ?? ''))
+      : 'GENERAL'
+    const tipoContrato = tipoContratoCol >= 0
+      ? normalizeContratoForImport(cellStr(row[tipoContratoCol] ?? ''))
+      : 'INDEFINIDO'
+    const jornadaParsed = jornadaCol >= 0 ? Math.round(numericCell(row[jornadaCol])) : 48
+    const jornadaSemanal = jornadaParsed >= 1 && jornadaParsed <= 48 ? jornadaParsed : 48
 
     let firstName = '', lastName = ''
     if (hasSeparateNames) {
       firstName = cellStr(row[firstNameCol] ?? '')
-      lastName  = cellStr(row[lastNameCol]  ?? '')
+      const paternal = cellStr(row[lastNameCol] ?? '')
+      const maternal = motherNameCol >= 0 && motherNameCol !== lastNameCol
+        ? cellStr(row[motherNameCol] ?? '')
+        : ''
+      lastName = [paternal, maternal].filter(Boolean).join(' ').trim()
       // Red de seguridad: si ambos campos son idénticos o uno contiene al otro
       // (PLAME con datos duplicados), tratar el más largo como nombre completo y dividirlo
       if (
@@ -340,6 +412,7 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
     if (!existing) {
       workerMap.set(dni, {
         dni, firstName, lastName, cargo, area,
+        regimenLaboral, tipoContrato, afpNombre, jornadaSemanal,
         latestAno: ano, latestMes: mes, sueldo, asigFamiliar, tipoAporte,
         earliestAno: ano > 0 ? ano : 9999,
         earliestMes: mes > 0 ? mes : 13,
@@ -354,6 +427,10 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
         existing.sueldo = sueldo
         existing.tipoAporte = tipoAporte
         existing.asigFamiliar = asigFamiliar
+        existing.regimenLaboral = regimenLaboral
+        existing.tipoContrato = tipoContrato
+        existing.afpNombre = afpNombre
+        existing.jornadaSemanal = jornadaSemanal
       }
       // Update EARLIEST period entry (for fechaIngreso)
       const existingEarliest = existing.earliestAno * 100 + existing.earliestMes
@@ -368,6 +445,9 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
       if (!existing.lastName  && lastName)  existing.lastName  = lastName
       if (!existing.cargo     && cargo)     existing.cargo     = cargo
       if (!existing.area      && area)      existing.area      = area
+      if (!existing.regimenLaboral && regimenLaboral) existing.regimenLaboral = regimenLaboral
+      if (!existing.tipoContrato && tipoContrato) existing.tipoContrato = tipoContrato
+      if (!existing.afpNombre && afpNombre) existing.afpNombre = afpNombre
     }
   }
 
@@ -382,7 +462,7 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
 
   // ── Build standard CSV for csv-parser.ts ─────────────────────
   const csvLines: string[] = [
-    'DNI,Nombres,Apellidos,Cargo,Departamento,Fecha Ingreso,Sueldo Bruto,Tipo Aporte,Asignacion Familiar',
+    'DNI,Nombres,Apellidos,Cargo,Departamento,Fecha Ingreso,Sueldo Bruto,Regimen Laboral,Tipo Contrato,Tipo Aporte,AFP Nombre,Asignacion Familiar,Jornada Semanal',
   ]
 
   for (const w of workerMap.values()) {
@@ -403,8 +483,12 @@ function preprocessExcelToCsv(rows: CellVal[][]): string {
       q(w.area),
       fechaIngreso,
       w.sueldo.toFixed(2),
+      w.regimenLaboral,
+      w.tipoContrato,
       w.tipoAporte,
+      q(w.afpNombre),
       w.asigFamiliar ? 'Si' : 'No',
+      String(w.jornadaSemanal),
     ].join(','))
   }
 

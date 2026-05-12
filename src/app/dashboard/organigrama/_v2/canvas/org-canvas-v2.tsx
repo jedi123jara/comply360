@@ -182,7 +182,7 @@ function OrgCanvasV2Inner({
 
   if (!tree || tree.units.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50 text-sm text-slate-500">
+      <div className="flex h-full items-center justify-center bg-[color:var(--bg-canvas)] text-sm text-[color:var(--text-secondary)]">
         No hay unidades para mostrar.
       </div>
     )
@@ -193,7 +193,7 @@ function OrgCanvasV2Inner({
   const allowReparent = positionMode && !readOnly
 
   return (
-    <div className="relative h-full w-full bg-slate-50">
+    <div className="relative h-full w-full bg-[color:var(--bg-canvas)]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -220,19 +220,21 @@ function OrgCanvasV2Inner({
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1}
-          color="rgb(0 0 0 / 0.05)"
+          color="rgb(148 163 184 / 0.16)"
         />
         <Controls
           showInteractive={false}
-          className="!rounded-xl !border !border-slate-200 !bg-white !shadow-md"
+          className="!rounded-xl !border !border-[color:var(--border-default)] !bg-[color:var(--bg-elevated)] !shadow-2xl [&_.react-flow__controls-button]:!border-[color:var(--border-subtle)] [&_.react-flow__controls-button]:!bg-[color:var(--bg-elevated)] [&_.react-flow__controls-button]:!text-[color:var(--text-secondary)] [&_.react-flow__controls-button:hover]:!bg-[color:var(--bg-surface-hover)] [&_.react-flow__controls-button_svg]:!fill-[color:var(--text-secondary)]"
         />
         <MiniMap
           nodeColor={minimapNodeColor}
+          nodeStrokeColor="rgb(203 213 225 / 0.85)"
           nodeStrokeWidth={2}
-          maskColor="rgb(0 0 0 / 0.04)"
+          bgColor="rgb(10 15 28)"
+          maskColor="rgb(6 10 18 / 0.7)"
           pannable
           zoomable
-          className="!rounded-xl !border !border-slate-200 !bg-white !shadow-md"
+          className="!rounded-xl !border !border-[color:var(--border-default)] !bg-[color:var(--bg-elevated)] !shadow-2xl"
         />
       </ReactFlow>
 

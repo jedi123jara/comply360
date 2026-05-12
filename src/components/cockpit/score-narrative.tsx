@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,6 +39,7 @@ export function ScoreNarrative({
   onOpenActionPlan,
   onAskCopilot,
 }: ScoreNarrativeProps) {
+  const [todayLabel, setTodayLabel] = useState('')
   const isPending = score === null
   const color = isPending ? '#94a0b4' : complianceScoreColor(score as number)
   const mood: 'pending' | 'critical' | 'warning' | 'good' | 'great' = isPending
@@ -58,10 +60,14 @@ export function ScoreNarrative({
     maximumFractionDigits: 0,
   })
 
-  const today = new Intl.DateTimeFormat('es-PE', {
-    day: 'numeric',
-    month: 'short',
-  }).format(new Date())
+  useEffect(() => {
+    setTodayLabel(
+      new Intl.DateTimeFormat('es-PE', {
+        day: 'numeric',
+        month: 'short',
+      }).format(new Date()),
+    )
+  }, [])
 
   return (
     <section className="c360-anim-slide-up relative grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-8 items-center rounded-2xl border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] p-6 lg:p-8 shadow-[var(--elevation-3)] motion-fade-in-up overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-[4px] before:bg-[image:var(--accent-bar-emerald)]">
@@ -84,7 +90,7 @@ export function ScoreNarrative({
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Badge variant="emerald" size="sm" dot>
-            Hoy {today}
+            {todayLabel ? `Hoy ${todayLabel}` : 'Hoy'}
           </Badge>
           {delta !== 0 ? (
             <Badge variant={delta > 0 ? 'success' : 'danger'} size="sm">

@@ -31,8 +31,13 @@ export function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
   const map = new Map<string, HeatmapDay>()
   for (const d of data) map.set(d.date, d)
 
-  // Build a 7 × weeks grid ending today (Sunday-ended weeks following ISO Monday=0)
-  const today = new Date()
+  // Build a 7 × weeks grid ending on the newest server-provided date. Avoid
+  // using "now" during SSR so the server/client trees hydrate identically.
+  const anchorDate = data.reduce<string | null>(
+    (latest, d) => (!latest || d.date > latest ? d.date : latest),
+    null,
+  ) ?? '2026-01-01'
+  const today = new Date(`${anchorDate}T12:00:00`)
   today.setHours(0, 0, 0, 0)
   const dayOfWeek = (today.getDay() + 6) % 7 // Monday=0 … Sunday=6
   const daysTotal = weeks * 7

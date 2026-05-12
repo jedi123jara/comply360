@@ -16,7 +16,6 @@ import {
   ChevronUp,
   ClipboardCheck,
   FileCheck2,
-  FileText,
   HardHat,
   Menu,
   MessageSquareText,
@@ -68,22 +67,26 @@ const outcomes = [
   },
 ] as const
 
-const painPoints = [
+const riskNarratives = [
   {
-    icon: Siren,
     title: 'El riesgo aparece tarde',
     body: 'SST vencido, contratos incompletos, boletas sin firma y capacitaciones dispersas salen a la luz cuando ya estás contra el reloj.',
   },
   {
-    icon: FileText,
     title: 'La evidencia vive en mil lugares',
     body: 'Excel, WhatsApp, PDFs sueltos, carpetas compartidas y correos. El inspector no espera a que tu equipo reconstruya la historia.',
   },
   {
-    icon: UsersRound,
     title: 'RRHH termina como mesa de ayuda',
     body: 'Vacaciones, boletas, documentos, firmas y consultas legales consumen horas que deberían ir a gestión y prevención.',
   },
+] as const
+
+const operatingShifts = [
+  'Los vencimientos dejan de depender de memoria o chats: aparecen por sede, criticidad y responsable.',
+  'Cada trabajador, contrato y evento SST deja rastro; la evidencia ya no se reconstruye de emergencia.',
+  'La gerencia ve prioridad, exposición y avance sin esperar que RRHH arme otro reporte manual.',
+  'Cuando llega una inspección, el equipo abre el expediente vivo y responde con trazabilidad.',
 ] as const
 
 const modules = [
@@ -102,7 +105,7 @@ const modules = [
   {
     icon: FileCheck2,
     title: 'Legajo digital',
-    body: 'Contratos, anexos, politicas, boletas y constancias con trazabilidad y vencimientos.',
+    body: 'Contratos, anexos, políticas, boletas y constancias con trazabilidad y vencimientos.',
     tag: 'Evidencia',
   },
   {
@@ -138,7 +141,7 @@ const sectors = [
   },
   {
     icon: Truck,
-    title: 'Logistica y servicios',
+    title: 'Logística y servicios',
     body: 'Turnos, asistencia, teletrabajo, terceros, EPPS, incidentes y reportes por centro de costo.',
   },
   {
@@ -157,12 +160,12 @@ const steps = [
   {
     label: 'Implementación',
     title: 'Ordenamos el expediente vivo',
-    body: 'Migramos legajos, configuramos roles, flujos, alertas y responsables por modulo.',
+    body: 'Migramos legajos, configuramos roles, flujos, alertas y responsables por módulo.',
   },
   {
     label: 'Operación',
     title: 'Tu equipo trabaja desde un solo lugar',
-    body: 'RRHH, SST, legal, jefes de sede y trabajadores firman, revisan y actuan sin perseguirse por chat.',
+    body: 'RRHH, SST, legal, jefes de sede y trabajadores firman, revisan y actúan sin perseguirse por chat.',
   },
   {
     label: 'Inspección',
@@ -181,7 +184,7 @@ const faqs = [
     a: 'Sí. Comply360 está pensado para empresas con obra, campo, tiendas, sedes y turnos. El portal del trabajador funciona como experiencia móvil para firmas, boletas, solicitudes y evidencias.',
   },
   {
-    q: '¿Cuanto demora implementarlo?',
+    q: '¿Cuánto demora implementarlo?',
     a: 'La primera versión operativa puede estar lista en unas dos semanas si la información base está disponible. Empresas con varias sedes o migraciones históricas pueden requerir un plan por fases.',
   },
   {
@@ -254,6 +257,7 @@ export default function LandingPage() {
       <Hero ctaHref={ctaHref} onCtaClick={handleCtaClick('hero_demo')} />
       <ProofRail />
       <ProblemSection />
+      <TransformationSection />
       <ProductSection ctaHref={ctaHref} onCtaClick={handleCtaClick('product_demo')} />
       <RiskSection ctaHref={ctaHref} onCtaClick={handleCtaClick('risk_diagnostic')} />
       <ModulesSection />
@@ -355,39 +359,100 @@ function Hero({
     <section className="lp-hero">
       <div className="lp-hero-lines" aria-hidden="true" />
       <div className="lp-shell lp-hero-content">
-        <div className="lp-hero-copy">
-          <div className="lp-eyebrow">
-            <Sparkles aria-hidden size={15} />
-            Plataforma peruana de compliance laboral
+        <div className="lp-hero-stage">
+          <div className="lp-hero-copy">
+            <div className="lp-eyebrow">
+              <Sparkles aria-hidden size={15} />
+              Plataforma peruana de compliance laboral
+            </div>
+            <h1>Convierte el riesgo laboral en una operación bajo control.</h1>
+            <p>
+              Comply360 une RRHH, SST, legal, jefes de sede y trabajadores en un solo
+              command center. Tu equipo deja de perseguir documentos y empieza a operar con
+              evidencia lista para SUNAFIL.
+            </p>
+            <div className="lp-hero-actions">
+              <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary lp-button-large">
+                <span>Agendar demo comercial</span>
+                <ArrowRight aria-hidden size={18} />
+              </Link>
+              <Link href="/diagnostico-gratis" className="lp-button lp-button-ghost lp-button-large">
+                <PlayCircle aria-hidden size={18} />
+                <span>Diagnóstico gratis</span>
+              </Link>
+            </div>
+            <div className="lp-signal-row" aria-label="Marcos legales cubiertos">
+              {complianceSignals.map((signal) => (
+                <span key={signal}>
+                  <Check aria-hidden size={14} />
+                  {signal}
+                </span>
+              ))}
+            </div>
           </div>
-          <h1>Convierte el cumplimiento laboral en una ventaja operativa.</h1>
-          <p>
-            Comply360 une RRHH, SST, legal, jefes de sede y trabajadores en un solo
-            command center. Menos persecución por chat. Más evidencia lista para SUNAFIL.
-          </p>
-          <div className="lp-hero-actions">
-            <Link href={ctaHref} onClick={onCtaClick} className="lp-button lp-button-primary lp-button-large">
-              <span>Agendar demo comercial</span>
-              <ArrowRight aria-hidden size={18} />
-            </Link>
-            <Link href="/diagnostico-gratis" className="lp-button lp-button-ghost lp-button-large">
-              <PlayCircle aria-hidden size={18} />
-              <span>Diagnóstico gratis</span>
-            </Link>
-          </div>
-          <div className="lp-signal-row" aria-label="Marcos legales cubiertos">
-            {complianceSignals.map((signal) => (
-              <span key={signal}>
-                <Check aria-hidden size={14} />
-                {signal}
-              </span>
-            ))}
-          </div>
+
+          <LeadCapturePanel />
         </div>
 
         <CommandCenterVisual />
       </div>
     </section>
+  )
+}
+
+function LeadCapturePanel() {
+  return (
+    <form
+      action="/diagnostico-gratis"
+      method="get"
+      className="lp-lead-panel"
+      onSubmit={() => track('free_diagnostic_started', { source: 'hero_panel' })}
+    >
+      <div className="lp-lead-kicker">
+        <ShieldCheck aria-hidden size={16} />
+        Diagnóstico gratis
+      </div>
+      <h2>Calcula tu exposición SUNAFIL en 90 segundos.</h2>
+      <p>
+        Recibe una lectura inicial del riesgo, los documentos críticos y el primer plan de
+        acción para ordenar tu operación.
+      </p>
+
+      <div className="lp-lead-fields">
+        <label className="lp-field">
+          <span>Sector</span>
+          <select name="sector" defaultValue="multi-sede">
+            <option value="multi-sede">Empresa multi-sede</option>
+            <option value="construccion">Construcción / campo</option>
+            <option value="retail">Retail / restaurantes</option>
+            <option value="servicios">Logística / servicios</option>
+          </select>
+        </label>
+        <label className="lp-field">
+          <span>Trabajadores</span>
+          <select name="workers" defaultValue="51-250">
+            <option value="1-50">1 a 50</option>
+            <option value="51-250">51 a 250</option>
+            <option value="251-1000">251 a 1000</option>
+            <option value="1000+">Más de 1000</option>
+          </select>
+        </label>
+        <label className="lp-field lp-field-wide">
+          <span>Correo corporativo</span>
+          <input name="email" type="email" placeholder="tu@empresa.pe" />
+        </label>
+      </div>
+
+      <button className="lp-button lp-button-primary lp-button-large" type="submit">
+        <span>Ver mi riesgo inicial</span>
+        <ArrowRight aria-hidden size={18} />
+      </button>
+
+      <div className="lp-lead-trust">
+        <Check aria-hidden size={14} />
+        Sin tarjeta. Sin spam. Con contexto laboral peruano.
+      </div>
+    </form>
   )
 }
 
@@ -427,7 +492,7 @@ function CommandCenterVisual() {
           <div className="lp-panel-header">
             <div>
               <span className="lp-panel-label">Plan de acción</span>
-              <h3>Hoy requiere atencion</h3>
+              <h3>Hoy requiere atención</h3>
             </div>
             <ClipboardCheck aria-hidden size={22} />
           </div>
@@ -443,7 +508,7 @@ function CommandCenterVisual() {
           <h3>Expediente listo</h3>
           <div className="lp-document-stack">
             <span>IPERC 2026</span>
-            <span>Comite SST</span>
+            <span>Comité SST</span>
             <span>Boletas marzo</span>
             <span>Contratos vigentes</span>
           </div>
@@ -502,16 +567,43 @@ function ProofRail() {
 
 function ProblemSection() {
   return (
-    <section className="lp-section" id="riesgo">
-      <div className="lp-shell">
-        <SectionHeading
-          eyebrow="El problema"
-          title="El cumplimiento laboral no falla por falta de esfuerzo. Falla por falta de sistema."
-          lead="Tu equipo puede ser excelente y aun así vivir expuesto si la evidencia está rota, los plazos no conversan y cada sede decide con su propio Excel."
-        />
-        <div className="lp-card-grid lp-card-grid-three">
-          {painPoints.map((item) => (
-            <InfoCard key={item.title} icon={item.icon} title={item.title} body={item.body} tone="danger" />
+    <section className="lp-section lp-narrative-section" id="riesgo">
+      <div className="lp-shell lp-narrative-shell">
+        <h2>El cumplimiento laboral no falla por falta de esfuerzo. Falla por falta de sistema.</h2>
+        <p>
+          Tu equipo puede ser excelente y aun así vivir expuesto si la evidencia está rota,
+          los plazos no conversan y cada sede decide con su propio Excel.
+        </p>
+        <div className="lp-narrative-lines">
+          {riskNarratives.map((item) => (
+            <div key={item.title}>
+              <strong>{item.title}</strong>
+              <span>{item.body}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function TransformationSection() {
+  return (
+    <section className="lp-section lp-shift-section">
+      <div className="lp-shell lp-shift-layout">
+        <div>
+          <h2>Del desorden defensivo a una operación que se anticipa.</h2>
+          <p>
+            Comply360 no maquilla carpetas. Convierte cumplimiento, SST y legal laboral en
+            una rutina clara: qué hacer, quién responde, qué falta y cómo se demuestra.
+          </p>
+        </div>
+        <div className="lp-shift-lines">
+          {operatingShifts.map((item, index) => (
+            <div key={item}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <p>{item}</p>
+            </div>
           ))}
         </div>
       </div>
@@ -550,7 +642,7 @@ function ProductSection({
 
         <div className="lp-system-map">
           <SystemNode icon={UsersRound} title="Trabajadores" body="Legajos, firmas, portal y solicitudes." />
-          <SystemNode icon={HardHat} title="SST" body="Plan anual, comite, IPERC, EMO y visitas." />
+          <SystemNode icon={HardHat} title="SST" body="Plan anual, comité, IPERC, EMO y visitas." />
           <SystemNode icon={Scale} title="Legal laboral" body="Contratos, denuncias y riesgo normativo." />
           <SystemNode icon={Radar} title="Gerencia" body="Score, alertas, evidencia y reportes." />
         </div>
@@ -633,7 +725,7 @@ function SectorSection() {
     <section className="lp-section lp-sector-section" id="sectores">
       <div className="lp-shell">
         <SectionHeading
-          eyebrow="Especializacion"
+          eyebrow="Especialización"
           title="Hecho para operaciones peruanas donde el cumplimiento se mueve todos los días."
           lead="Si tu operación tiene sedes, turnos, obra, campo o alta rotación, necesitas control vivo y no solo carpetas bien nombradas."
         />
@@ -1090,6 +1182,8 @@ function LandingStyles() {
         padding: 0 16px;
         border: 1px solid rgba(148, 163, 184, 0.18);
         color: #f8fafc;
+        cursor: pointer;
+        font-family: inherit;
         font-size: 0.91rem;
         font-weight: 760;
         line-height: 1;
@@ -1169,10 +1263,17 @@ function LandingStyles() {
         position: relative;
       }
 
+      .lp-hero-stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        align-items: center;
+        gap: 34px;
+      }
+
       .lp-hero-copy {
-        max-width: 930px;
-        margin: 0 auto;
-        text-align: center;
+        max-width: 760px;
+        margin: 0;
+        text-align: left;
       }
 
       .lp-eyebrow {
@@ -1200,7 +1301,7 @@ function LandingStyles() {
 
       .lp-hero-copy > p {
         max-width: 760px;
-        margin: 24px auto 0;
+        margin: 24px 0 0;
         color: #cbd5e1;
         font-size: 1.08rem;
         line-height: 1.7;
@@ -1209,7 +1310,7 @@ function LandingStyles() {
       .lp-hero-actions {
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 12px;
         margin-top: 28px;
       }
@@ -1217,7 +1318,7 @@ function LandingStyles() {
       .lp-signal-row {
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 10px;
         margin-top: 22px;
       }
@@ -1234,10 +1335,144 @@ function LandingStyles() {
         color: #5eead4;
       }
 
+      .lp-lead-panel {
+        position: relative;
+        overflow: hidden;
+        padding: 22px;
+        border: 1px solid rgba(94, 234, 212, 0.24);
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(20, 184, 166, 0.14), rgba(15, 23, 42, 0.92)),
+          rgba(15, 23, 42, 0.86);
+        box-shadow:
+          0 26px 70px rgba(0, 0, 0, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .lp-lead-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 3px;
+        background: linear-gradient(90deg, #14b8a6, #38bdf8, #facc15);
+      }
+
+      .lp-lead-panel > * {
+        position: relative;
+      }
+
+      .lp-lead-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #99f6e4;
+        font-size: 0.78rem;
+        font-weight: 820;
+        text-transform: uppercase;
+      }
+
+      .lp-lead-kicker svg {
+        color: #5eead4;
+      }
+
+      .lp-lead-panel h2 {
+        margin: 14px 0 0;
+        color: #f8fafc;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 1.82rem;
+        font-weight: 520;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .lp-lead-panel p {
+        margin: 12px 0 0;
+        color: #a8b8cc;
+        font-size: 0.92rem;
+        line-height: 1.58;
+      }
+
+      .lp-lead-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .lp-field {
+        display: grid;
+        gap: 7px;
+      }
+
+      .lp-field-wide {
+        grid-column: 1 / -1;
+      }
+
+      .lp-field span {
+        color: #dbe4f0;
+        font-size: 0.78rem;
+        font-weight: 720;
+      }
+
+      .lp-field input,
+      .lp-field select {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 8px;
+        background: rgba(2, 6, 23, 0.48);
+        color: #f8fafc;
+        font: inherit;
+        font-size: 0.9rem;
+        outline: none;
+        padding: 0 12px;
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          background 160ms ease;
+      }
+
+      .lp-field input::placeholder {
+        color: #64748b;
+      }
+
+      .lp-field input:focus,
+      .lp-field select:focus {
+        border-color: rgba(94, 234, 212, 0.6);
+        background: rgba(2, 6, 23, 0.68);
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+      }
+
+      .lp-field option {
+        background: #0f172a;
+        color: #f8fafc;
+      }
+
+      .lp-lead-panel .lp-button {
+        width: 100%;
+        margin-top: 16px;
+      }
+
+      .lp-lead-trust {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 12px;
+        color: #8b9bb1;
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+
+      .lp-lead-trust svg {
+        flex: none;
+        margin-top: 2px;
+        color: #5eead4;
+      }
+
       .lp-command {
         position: relative;
-        width: min(980px, 100%);
-        margin: 34px auto 0;
+        width: min(1060px, 100%);
+        margin: 30px auto 0;
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 8px;
         background:
@@ -1687,6 +1922,109 @@ function LandingStyles() {
         font-size: 0.93rem;
       }
 
+      .lp-narrative-section {
+        padding-bottom: 84px;
+      }
+
+      .lp-narrative-shell {
+        max-width: 1060px;
+        text-align: center;
+      }
+
+      .lp-narrative-shell h2,
+      .lp-shift-layout h2 {
+        margin: 0;
+        color: #f8fafc;
+        font-family: var(--font-serif), ui-serif, Georgia, serif;
+        font-size: 2.9rem;
+        font-weight: 520;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+
+      .lp-narrative-shell > p,
+      .lp-shift-layout > div > p {
+        max-width: 720px;
+        margin: 22px auto 0;
+        color: #a8b8cc;
+        font-size: 1.05rem;
+        line-height: 1.72;
+      }
+
+      .lp-narrative-lines {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        margin-top: 58px;
+        text-align: left;
+      }
+
+      .lp-narrative-lines div {
+        border-top: 1px solid rgba(94, 234, 212, 0.24);
+        padding-top: 18px;
+      }
+
+      .lp-narrative-lines strong {
+        display: block;
+        color: #f8fafc;
+        font-size: 1.05rem;
+        line-height: 1.3;
+      }
+
+      .lp-narrative-lines span {
+        display: block;
+        margin-top: 10px;
+        color: #a8b8cc;
+        font-size: 0.94rem;
+        line-height: 1.65;
+      }
+
+      .lp-shift-section {
+        padding-top: 84px;
+        background:
+          linear-gradient(180deg, rgba(2, 6, 23, 0.04), rgba(8, 16, 28, 0.54));
+      }
+
+      .lp-shift-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        align-items: start;
+        gap: 58px;
+      }
+
+      .lp-shift-layout > div > p {
+        margin-right: 0;
+        margin-left: 0;
+      }
+
+      .lp-shift-lines {
+        display: grid;
+        gap: 0;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .lp-shift-lines div {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 20px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        padding: 22px 0;
+      }
+
+      .lp-shift-lines span {
+        color: #5eead4;
+        font-family: var(--font-mono), ui-monospace, monospace;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .lp-shift-lines p {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 0.98rem;
+        line-height: 1.65;
+      }
+
       .lp-product-section,
       .lp-pricing-section {
         background:
@@ -2047,13 +2385,13 @@ function LandingStyles() {
 
       @media (min-width: 900px) {
         .lp-hero h1 {
-          font-size: 5rem;
+          font-size: 4.35rem;
         }
       }
 
       @media (min-width: 1160px) {
         .lp-hero h1 {
-          font-size: 5.65rem;
+          font-size: 4.9rem;
         }
       }
 
@@ -2086,11 +2424,21 @@ function LandingStyles() {
           background: rgba(148, 163, 184, 0.08);
         }
 
+        .lp-hero-stage {
+          grid-template-columns: 1fr;
+          gap: 28px;
+        }
+
+        .lp-hero-copy {
+          max-width: 880px;
+        }
+
         .lp-command-grid,
         .lp-card-grid-three,
         .lp-card-grid-four,
         .lp-product-layout,
         .lp-risk-layout,
+        .lp-shift-layout,
         .lp-timeline,
         .lp-pricing-grid,
         .lp-footer-grid {
@@ -2128,6 +2476,12 @@ function LandingStyles() {
           font-size: 1rem;
         }
 
+        .lp-lead-fields,
+        .lp-narrative-lines,
+        .lp-shift-layout {
+          grid-template-columns: 1fr;
+        }
+
         .lp-hero-actions,
         .lp-product-actions,
         .lp-risk-actions {
@@ -2147,6 +2501,15 @@ function LandingStyles() {
           margin-top: 34px;
         }
 
+        .lp-narrative-shell {
+          text-align: left;
+        }
+
+        .lp-narrative-shell h2,
+        .lp-shift-layout h2 {
+          font-size: 2.35rem;
+        }
+
         .lp-command-title {
           display: none;
         }
@@ -2161,6 +2524,7 @@ function LandingStyles() {
         .lp-card-grid-four,
         .lp-product-layout,
         .lp-risk-layout,
+        .lp-shift-layout,
         .lp-system-map,
         .lp-timeline,
         .lp-pricing-grid,
@@ -2227,6 +2591,7 @@ function LandingStyles() {
         }
 
         .lp-command-panel,
+        .lp-lead-panel,
         .lp-info-card,
         .lp-module-card,
         .lp-price-card,
