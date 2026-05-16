@@ -17,6 +17,7 @@ import {
   BookOpen,
   GraduationCap,
   Shield,
+  ShieldCheck,
   FileSignature,
   Clock,
 } from 'lucide-react'
@@ -145,10 +146,7 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
               boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <path d="m9 12 2 2 4-4" />
-            </svg>
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
           </div>
           <div className="leading-tight">
             <div className="text-[15px] font-bold tracking-tight text-gray-900">

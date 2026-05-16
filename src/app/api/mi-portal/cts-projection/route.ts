@@ -20,6 +20,7 @@ import { NextResponse } from 'next/server'
 import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
+import { getNextCtsCutDate, toIsoDate } from '@/lib/legal-engine/cts-cutoffs'
 
 export const GET = withWorkerAuth(async (_req, ctx) => {
   const worker = await prisma.worker.findUnique({
@@ -52,16 +53,7 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
     })
   }
 
-  // Determinar el próximo corte: 15 de mayo o 15 de noviembre.
-  const now = new Date()
-  const year = now.getFullYear()
-  const mayo15 = new Date(year, 4, 15) // mes 4 = mayo
-  const nov15 = new Date(year, 10, 15) // mes 10 = noviembre
-
-  let nextCut: Date
-  if (now < mayo15) nextCut = mayo15
-  else if (now < nov15) nextCut = nov15
-  else nextCut = new Date(year + 1, 4, 15) // siguiente mayo
+  const nextCut = getNextCtsCutDate()
 
   // Última gratificación: buscar en Payslip el último "gratificacion" no-cero.
   // El modelo Payslip tiene bonificaciones + totalIngresos. Como simplificación,
@@ -73,8 +65,8 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
     sueldoBruto: Number(worker.sueldoBruto),
     asignacionFamiliar: worker.asignacionFamiliar,
     ultimaGratificacion,
-    fechaIngreso: worker.fechaIngreso.toISOString(),
-    fechaCorte: nextCut.toISOString(),
+    fechaIngreso: toIsoDate(worker.fechaIngreso),
+    fechaCorte: toIsoDate(nextCut),
   })
 
   return NextResponse.json({

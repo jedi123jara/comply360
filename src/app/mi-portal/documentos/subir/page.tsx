@@ -63,7 +63,7 @@ export default function SubirDocumentoPage() {
       <div>
         <Link
           href="/mi-portal/documentos"
-          className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-2"
+          className="text-sm text-emerald-700 hover:underline flex items-center gap-1 mb-2"
         >
           <ArrowLeft className="w-4 h-4" /> Volver a mis documentos
         </Link>
@@ -84,13 +84,13 @@ export default function SubirDocumentoPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-[#141824] border border-slate-200 rounded-xl p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de documento</label>
           <select
             value={form.documentType}
             onChange={(e) => setForm({ ...form, documentType: e.target.value })}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
           >
             {DOC_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -99,20 +99,20 @@ export default function SubirDocumentoPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Titulo / Descripción</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Título / Descripción</label>
           <input
             type="text"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="Ej: Copia de DNI vigente"
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 outline-none"
             maxLength={120}
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Archivo (PDF, JPG, PNG)</label>
-          <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+          <div className="border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 p-6 text-center hover:border-emerald-400 transition-colors">
             <input
               id="file-input"
               type="file"
@@ -123,7 +123,7 @@ export default function SubirDocumentoPage() {
             <label htmlFor="file-input" className="cursor-pointer">
               {form.file ? (
                 <div className="flex flex-col items-center gap-2">
-                  <FileText className="w-8 h-8 text-blue-600" />
+                  <FileText className="w-8 h-8 text-emerald-600" />
                   <span className="text-sm font-medium text-slate-900">{form.file.name}</span>
                   <span className="text-xs text-slate-500">
                     {(form.file.size / 1024).toFixed(0)} KB
@@ -143,7 +143,7 @@ export default function SubirDocumentoPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors"
         >
           {submitting ? 'Subiendo...' : 'Subir documento'}
         </button>

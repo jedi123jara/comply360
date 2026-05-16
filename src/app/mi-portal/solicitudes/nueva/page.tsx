@@ -74,7 +74,7 @@ export default function NuevaSolicitudPage() {
       <div>
         <Link
           href="/mi-portal/solicitudes"
-          className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-2"
+          className="text-sm text-emerald-700 hover:underline flex items-center gap-1 mb-2"
         >
           <ArrowLeft className="w-4 h-4" /> Volver a mis solicitudes
         </Link>
@@ -92,13 +92,13 @@ export default function NuevaSolicitudPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-[#141824] border border-slate-200 rounded-xl p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de solicitud</label>
           <select
             value={form.type}
             onChange={(e) => setForm({ ...form, type: e.target.value })}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
           >
             {REQUEST_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -107,13 +107,13 @@ export default function NuevaSolicitudPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Titulo</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Título</label>
           <input
             type="text"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder={`Solicitud de ${selectedType.label}`}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 outline-none"
             maxLength={120}
           />
         </div>
@@ -125,13 +125,13 @@ export default function NuevaSolicitudPage() {
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={4}
             placeholder="Explica brevemente el motivo de tu solicitud..."
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 outline-none"
             maxLength={1000}
           />
         </div>
 
         {selectedType.requiresDates && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Fecha inicio</label>
               <input
@@ -139,7 +139,7 @@ export default function NuevaSolicitudPage() {
                 value={form.startDate}
                 onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                 required
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
             <div>
@@ -149,7 +149,7 @@ export default function NuevaSolicitudPage() {
                 value={form.endDate}
                 onChange={(e) => setForm({ ...form, endDate: e.target.value })}
                 required
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function NuevaSolicitudPage() {
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
             />
           </div>
         )}
@@ -173,7 +173,7 @@ export default function NuevaSolicitudPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors"
         >
           {submitting ? 'Enviando...' : 'Enviar solicitud'}
         </button>

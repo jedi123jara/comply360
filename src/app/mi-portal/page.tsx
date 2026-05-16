@@ -65,6 +65,23 @@ interface PortalSummary {
     solicitudesPendientes: number
     capacitacionesPendientes: number
     documentosFaltantes: number
+    vacacionesPendientes: number
+    vacacionesCriticas: boolean
+    asistenciaMes: {
+      diasMarcados: number
+      diasLaborales: number
+      tardanzas: number
+      horasTrabajadas: number
+      ultimaMarcacion: {
+        clockIn: string
+        clockOut: string | null
+        status: string
+      } | null
+    }
+    ctsProjection: {
+      nextCut: string
+      ctsTotal: number
+    } | null
   }
   ultimaBoleta: { periodo: string; netoPagar: string } | null
   proximasCapacitaciones: Array<{ id: string; title: string; deadline: string | null }>
@@ -98,6 +115,15 @@ function fmtSoles(v: string | number | null | undefined): string {
   const n = typeof v === 'string' ? parseFloat(v) : v
   if (!isFinite(n)) return '—'
   return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function formatShortDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })
+}
+
+function formatRegimen(value: string): string {
+  return value.replace(/_/g, ' ').toLowerCase()
 }
 
 /**
@@ -225,6 +251,22 @@ export default function MiPortalHomePage() {
       })
     }
 
+    if (data.stats.vacacionesPendientes > 0) {
+      actions.push({
+        id: 'vacaciones',
+        icon: Plane,
+        title:
+          data.stats.vacacionesPendientes === 1
+            ? 'Tienes 1 día de vacaciones disponible'
+            : `Tienes ${data.stats.vacacionesPendientes} días de vacaciones disponibles`,
+        description: data.stats.vacacionesCriticas
+          ? 'Hay vacaciones acumuladas que conviene coordinar pronto con RRHH.'
+          : 'Puedes solicitar fechas de descanso desde tu portal.',
+        severity: data.stats.vacacionesCriticas ? 'high' : 'info',
+        href: '/mi-portal/solicitudes/nueva',
+      })
+    }
+
     return actions
   }, [data])
 
@@ -232,6 +274,7 @@ export default function MiPortalHomePage() {
   if (error || !data) return <ErrorState message={error} />
 
   const { worker, ultimaBoleta, proximasCapacitaciones } = data
+  const { asistenciaMes, ctsProjection } = data.stats
   const aniv = aniversarioProximo(worker.fechaIngreso)
   const initial = worker.firstName.charAt(0).toUpperCase()
   const fullName = `${worker.firstName} ${worker.lastName}`.trim()
@@ -449,24 +492,24 @@ export default function MiPortalHomePage() {
           />
           <KpiTile
             icon={PiggyBank}
-            label="CTS estimada"
-            value="—"
-            sub="Próximo corte 15 may"
+            label="CTS proyectada"
+            value={ctsProjection ? `S/ ${fmtSoles(ctsProjection.ctsTotal)}` : 'No aplica'}
+            sub={ctsProjection ? `Corte ${formatShortDate(ctsProjection.nextCut)}` : formatRegimen(worker.regimenLaboral)}
             href="/mi-portal/perfil"
           />
           <KpiTile
             icon={Plane}
             label="Vacaciones"
-            value="20 días"
-            sub="Pendientes de goce"
+            value={`${data.stats.vacacionesPendientes} ${data.stats.vacacionesPendientes === 1 ? 'día' : 'días'}`}
+            sub={data.stats.vacacionesCriticas ? 'Coordinar pronto' : data.stats.vacacionesPendientes > 0 ? 'Pendientes de goce' : 'Al día'}
             href="/mi-portal/solicitudes"
           />
           <KpiTile
             icon={Calendar}
-            label="Días trabajados"
-            value="18/22"
-            sub="Este mes"
-            href="/mi-portal/perfil"
+            label="Asistencia"
+            value={`${asistenciaMes.diasMarcados}/${asistenciaMes.diasLaborales}`}
+            sub={`${asistenciaMes.tardanzas} ${asistenciaMes.tardanzas === 1 ? 'tardanza' : 'tardanzas'} · ${asistenciaMes.horasTrabajadas}h`}
+            href="/mi-portal/asistencia"
           />
         </div>
       </section>
