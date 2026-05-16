@@ -59,6 +59,11 @@ export interface UseLocalDraftReturn<T> {
   saving: boolean
 }
 
+interface DraftRestoreState<T> {
+  draft: T | null
+  restoredAt: Date | null
+}
+
 function buildKey(key: string, orgId: string | null | undefined): string {
   return `comply360:${key}:v${DRAFT_FORMAT_VERSION}:${orgId ?? 'no-org'}`
 }
@@ -75,56 +80,51 @@ function isLocalStorageAvailable(): boolean {
   }
 }
 
+function readStoredDraft<T>(storageKey: string, orgId: string | null | undefined): DraftRestoreState<T> {
+  if (typeof window === 'undefined' || !orgId) return { draft: null, restoredAt: null }
+
+  try {
+    const raw = window.localStorage.getItem(storageKey)
+    if (!raw) return { draft: null, restoredAt: null }
+
+    const env = JSON.parse(raw) as DraftEnvelope<T>
+    if (env.v !== DRAFT_FORMAT_VERSION || Date.now() > env.expiresAt) {
+      window.localStorage.removeItem(storageKey)
+      return { draft: null, restoredAt: null }
+    }
+
+    return { draft: env.data, restoredAt: new Date(env.savedAt) }
+  } catch {
+    try {
+      window.localStorage.removeItem(storageKey)
+    } catch {
+      // ignore
+    }
+    return { draft: null, restoredAt: null }
+  }
+}
+
 /**
  * Autosave con TTL a localStorage. SSR-safe (no toca window en server).
  */
 export function useLocalDraft<T>(options: UseLocalDraftOptions): UseLocalDraftReturn<T> {
   const { key, orgId, ttlDays = 7, debounceMs = 1500 } = options
+  const storageKey = buildKey(key, orgId)
 
-  const [draft, setDraft] = useState<T | null>(null)
-  const [restoredAt, setRestoredAt] = useState<Date | null>(null)
+  const [restoreState, setRestoreState] = useState<DraftRestoreState<T>>(() => readStoredDraft<T>(storageKey, orgId))
+  const { draft, restoredAt } = restoreState
   const [saving, setSaving] = useState(false)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const storageKey = buildKey(key, orgId)
 
   // Restaurar al montar (o al cambiar orgId)
   useEffect(() => {
-    if (!isLocalStorageAvailable()) return
-    if (!orgId) return
-
-    try {
-      const raw = window.localStorage.getItem(storageKey)
-      if (!raw) {
-        setDraft(null)
-        setRestoredAt(null)
-        return
-      }
-      const env = JSON.parse(raw) as DraftEnvelope<T>
-      if (env.v !== DRAFT_FORMAT_VERSION) {
-        // Formato viejo: descartar
-        window.localStorage.removeItem(storageKey)
-        setDraft(null)
-        setRestoredAt(null)
-        return
-      }
-      if (Date.now() > env.expiresAt) {
-        // Expirado: limpiar
-        window.localStorage.removeItem(storageKey)
-        setDraft(null)
-        setRestoredAt(null)
-        return
-      }
-      setDraft(env.data)
-      setRestoredAt(new Date(env.savedAt))
-    } catch {
-      // Si el JSON esta corrupto, descartamos
-      try {
-        window.localStorage.removeItem(storageKey)
-      } catch {
-        // ignore
-      }
-      setDraft(null)
-      setRestoredAt(null)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setRestoreState(readStoredDraft<T>(storageKey, orgId))
+    })
+    return () => {
+      cancelled = true
     }
   }, [storageKey, orgId])
 
@@ -170,8 +170,7 @@ export function useLocalDraft<T>(options: UseLocalDraftOptions): UseLocalDraftRe
       debounceTimer.current = null
     }
     writeNow(null)
-    setDraft(null)
-    setRestoredAt(null)
+    setRestoreState({ draft: null, restoredAt: null })
   }, [writeNow])
 
   // Cleanup

@@ -101,23 +101,26 @@ export function TabCapacitaciones({ workerId, workerFirstName }: Props) {
 
   useEffect(() => {
     let mounted = true
-    setLoading(true)
-    fetch(`/api/workers/${workerId}/capacitaciones`)
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`status ${r.status}`)
-        return r.json()
-      })
-      .then((json: CapacitacionesPayload) => {
-        if (!mounted) return
-        setData(json)
-      })
-      .catch((e: Error) => {
-        if (!mounted) return
-        setError(e.message || 'Error al cargar capacitaciones')
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
+    void Promise.resolve().then(() => {
+      if (!mounted) return
+      setLoading(true)
+      fetch(`/api/workers/${workerId}/capacitaciones`)
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`status ${r.status}`)
+          return r.json()
+        })
+        .then((json: CapacitacionesPayload) => {
+          if (!mounted) return
+          setData(json)
+        })
+        .catch((e: Error) => {
+          if (!mounted) return
+          setError(e.message || 'Error al cargar capacitaciones')
+        })
+        .finally(() => {
+          if (mounted) setLoading(false)
+        })
+    })
     return () => {
       mounted = false
     }

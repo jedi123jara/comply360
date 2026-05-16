@@ -93,7 +93,16 @@ export function ContractRiskBadge({ contractId, refreshKey }: Props) {
     }
   }, [contractId])
 
-  useEffect(() => { void load() }, [load, refreshKey])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load, refreshKey])
 
   if (loading) {
     return (

@@ -237,7 +237,16 @@ export default function SolicitudesPage() {
     }
   }, [statusFilter])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   return (
     <div className="space-y-6">

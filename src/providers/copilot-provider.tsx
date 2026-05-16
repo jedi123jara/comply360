@@ -73,11 +73,18 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
 
   // Restore persisted open state (non-critical — fails silently on SSR)
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(OPEN_STATE_KEY)
-      if (stored === '1') setIsOpen(true)
-    } catch {
-      // ignore
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      try {
+        const stored = localStorage.getItem(OPEN_STATE_KEY)
+        if (stored === '1') setIsOpen(true)
+      } catch {
+        // ignore
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [])
 

@@ -37,13 +37,20 @@ export function EditPositionModal() {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
-    if (open && position) {
-      setTitle(position.title)
-      setReportsToPositionId(position.reportsToPositionId)
-      setIsManagerial(Boolean(position.isManagerial))
-      setIsCritical(Boolean(position.isCritical))
-      setSeats(position.seats)
-      setConfirmDelete(false)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (open && position) {
+        setTitle(position.title)
+        setReportsToPositionId(position.reportsToPositionId)
+        setIsManagerial(Boolean(position.isManagerial))
+        setIsCritical(Boolean(position.isCritical))
+        setSeats(position.seats)
+        setConfirmDelete(false)
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [open, position])
 

@@ -56,6 +56,7 @@ export default function AdminColaboradoresSstPage() {
   const [error, setError] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [contractWarningCutoff] = useState(() => Date.now() + 60 * 24 * 60 * 60 * 1000)
 
   async function reload() {
     setLoading(true)
@@ -76,7 +77,14 @@ export default function AdminColaboradoresSstPage() {
   }
 
   useEffect(() => {
-    reload()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      reload()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function toggleActivo(c: Colaborador) {
@@ -168,7 +176,7 @@ export default function AdminColaboradoresSstPage() {
                 {colaboradores.map((c) => {
                   const venceProximo =
                     c.vigenciaContratoHasta &&
-                    new Date(c.vigenciaContratoHasta) < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+                    new Date(c.vigenciaContratoHasta).getTime() < contractWarningCutoff
                   return (
                     <tr key={c.id} className={c.activo ? '' : 'opacity-60'}>
                       <td className="px-3 py-3 font-medium text-slate-900">

@@ -71,10 +71,17 @@ export function AckConfigPanel({ documentId, documentTitle, initialConfig, worke
 
   // Reset state when initialConfig changes (e.g., navegando a otro doc)
   useEffect(() => {
-    setRequired(initialConfig.acknowledgmentRequired)
-    setDeadlineDays(initialConfig.acknowledgmentDeadlineDays)
-    setScopeRegimen(initialConfig.scopeFilter?.regimen ?? [])
-    setPublished(initialConfig.isPublishedToWorkers)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setRequired(initialConfig.acknowledgmentRequired)
+      setDeadlineDays(initialConfig.acknowledgmentDeadlineDays)
+      setScopeRegimen(initialConfig.scopeFilter?.regimen ?? [])
+      setPublished(initialConfig.isPublishedToWorkers)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [initialConfig])
 
   function toggleRegimen(value: string) {
@@ -137,7 +144,7 @@ export function AckConfigPanel({ documentId, documentTitle, initialConfig, worke
           <Bell className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="font-semibold text-slate-900">Configurar firma de "{documentTitle}"</h3>
+          <h3 className="font-semibold text-slate-900">Configurar firma de &quot;{documentTitle}&quot;</h3>
           <p className="text-xs text-slate-600 mt-0.5">
             Activa para que los trabajadores reciban notificación + firmen acuse de recibo con valor legal SUNAFIL.
           </p>
@@ -282,7 +289,7 @@ export function AckConfigPanel({ documentId, documentTitle, initialConfig, worke
               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <p className="text-xs text-amber-900 leading-relaxed">
                 <strong>El documento no se publicará</strong> a trabajadores. Necesitas activar
-                "Publicar a trabajadores" para que aparezca en sus portales.
+                &quot;Publicar a trabajadores&quot; para que aparezca en sus portales.
               </p>
             </div>
           )}

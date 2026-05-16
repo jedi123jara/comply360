@@ -387,7 +387,7 @@ export default function CapturaOfflinePage() {
         {draft.hallazgos.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-slate-500">
-              Aún no has capturado hallazgos. Toca "Agregar" para comenzar.
+              Aún no has capturado hallazgos. Toca &quot;Agregar&quot; para comenzar.
             </CardContent>
           </Card>
         ) : (

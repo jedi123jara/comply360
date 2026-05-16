@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -80,7 +80,7 @@ export default function EmoDetailPage() {
   const [revelando, setRevelando] = useState(false)
   const [showSealModal, setShowSealModal] = useState(false)
 
-  async function load(descifrar = false) {
+  const load = useCallback(async (descifrar = false) => {
     setLoading(true)
     setError(null)
     try {
@@ -100,12 +100,18 @@ export default function EmoDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
-    if (id) load(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (id) load(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [id, load])
 
   async function revelarRestricciones() {
     if (revelando) return

@@ -120,7 +120,16 @@ export default function JurisprudenciaPage() {
     }
   }, [filter])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   async function approve(id: string) {
     setActioning(id)

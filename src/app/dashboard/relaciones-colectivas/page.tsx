@@ -348,6 +348,7 @@ export default function RelacionesColectivasPage() {
   const [editingRecord, setEditingRecord] = useState<SindicalRecord | undefined>()
   const [saving, setSaving] = useState(false)
   const [showLegal, setShowLegal] = useState(false)
+  const [nowMs] = useState(() => Date.now())
 
   const load = async () => {
     try {
@@ -365,7 +366,16 @@ export default function RelacionesColectivasPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const filtered = useMemo(() => {
     if (activeTab === 'ALL') return records
@@ -597,7 +607,7 @@ export default function RelacionesColectivasPage() {
               .map((r) => {
                 const days = daysUntil(r.endDate)
                 const pct = r.startDate && r.endDate
-                  ? Math.max(0, Math.min(100, ((Date.now() - new Date(r.startDate).getTime()) /
+                  ? Math.max(0, Math.min(100, ((nowMs - new Date(r.startDate).getTime()) /
                     (new Date(r.endDate).getTime() - new Date(r.startDate).getTime())) * 100))
                   : 0
                 return (

@@ -93,7 +93,14 @@ export default function TareasPage() {
   }, [filter, gravityFilter])
 
   useEffect(() => {
-    load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   const counts = data?.countsByStatus

@@ -93,7 +93,14 @@ export function OnboardingCascadeCard({
   }, [workerId, hasEmail])
 
   useEffect(() => {
-    void fetchStatus()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void fetchStatus()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [fetchStatus])
 
   async function execute() {
@@ -162,7 +169,7 @@ export function OnboardingCascadeCard({
             </h3>
             <p className="mt-1 text-sm text-amber-800">
               Para invitarle a su portal personal necesitas registrar su email primero.
-              Edítalo en la sección de "Datos personales" arriba.
+              Edítalo en la sección de &quot;Datos personales&quot; arriba.
             </p>
           </div>
         </div>

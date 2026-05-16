@@ -122,24 +122,37 @@ export function AssignWorkerModal() {
   )
 
   useEffect(() => {
-    if (!open) return
-    setPositionId(presetPositionId ?? null)
-    setPositionSearch('')
-    setLoading(true)
-    fetch('/api/workers?limit=500')
-      .then((r) => r.json())
-      .then((data) => {
-        const items = data.workers ?? data.items ?? data.data ?? data
-        setWorkers(Array.isArray(items) ? items : [])
-      })
-      .catch(() => toast.error('No se pudieron cargar trabajadores'))
-      .finally(() => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!open) return
+      setPositionId(presetPositionId ?? null)
+      setPositionSearch('')
+      setLoading(true)
+      fetch('/api/workers?limit=500')
+        .then((r) => r.json())
+        .then((data) => {
+          const items = data.workers ?? data.items ?? data.data ?? data
+          setWorkers(Array.isArray(items) ? items : [])
+        })
+        .catch(() => toast.error('No se pudieron cargar trabajadores'))
+        .finally(() => setLoading(false))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, presetPositionId])
 
   useEffect(() => {
-    if (!open || positionId || !recommendedPositionId) return
-    setPositionId(recommendedPositionId)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!open || positionId || !recommendedPositionId) return
+      setPositionId(recommendedPositionId)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [open, positionId, recommendedPositionId])
 
   const filtered = useMemo(() => {

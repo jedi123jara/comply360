@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   ShieldAlert, Eye, Clock, CheckCircle2, XCircle, AlertTriangle,
   Loader2, ChevronDown, ChevronUp, UserX, Scale, MessageSquare,
@@ -121,7 +121,7 @@ export default function DenunciasPage() {
   const [statusFilter, setStatusFilter] = useState<ComplaintStatus | ''>('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
@@ -145,10 +145,18 @@ export default function DenunciasPage() {
       }
     } catch { /* ignore */ }
     finally { setLoading(false) }
-  }
+  }, [statusFilter])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadData() }, [statusFilter])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadData()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadData])
 
   async function updateComplaint(id: string, status: ComplaintStatus, timelineAction: string) {
     setUpdatingId(id)

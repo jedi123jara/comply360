@@ -160,7 +160,7 @@ export default function FloatingAiChat() {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      let assistantContent = ''
+      let receivedDelta = false
       let currentEvent = 'message'
 
       while (true) {
@@ -180,11 +180,13 @@ export default function FloatingAiChat() {
             try {
               const parsed = JSON.parse(payload) as { delta?: string; error?: string }
               if (currentEvent === 'delta' && parsed.delta) {
-                assistantContent += parsed.delta
+                receivedDelta = true
+                const delta = parsed.delta
                 // Update solo el último message (el placeholder del assistant)
                 setMessages((prev) => {
                   const next = [...prev]
-                  next[next.length - 1] = { role: 'assistant', content: assistantContent }
+                  const currentContent = next[next.length - 1]?.content ?? ''
+                  next[next.length - 1] = { role: 'assistant', content: currentContent + delta }
                   return next
                 })
               } else if (currentEvent === 'error' && parsed.error) {
@@ -199,7 +201,7 @@ export default function FloatingAiChat() {
         }
       }
 
-      if (!assistantContent) {
+      if (!receivedDelta) {
         throw new Error('Respuesta vacía del servidor')
       }
     } catch (e) {

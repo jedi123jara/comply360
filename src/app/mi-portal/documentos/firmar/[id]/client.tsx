@@ -64,18 +64,18 @@ export function FirmaDocClient({ doc, orgName, workerName, alreadySigned }: Prop
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [showSignModal, setShowSignModal] = useState(false)
+  const [startTime] = useState(() => Date.now())
 
-  const startTimeRef = useRef(Date.now())
   const contentRef = useRef<HTMLDivElement>(null)
 
   // ─── Tracker de tiempo en página ─────────────────────────────────
   useEffect(() => {
     if (alreadySigned) return
     const interval = setInterval(() => {
-      setReadingMs(Date.now() - startTimeRef.current)
+      setReadingMs(Date.now() - startTime)
     }, 1000)
     return () => clearInterval(interval)
-  }, [alreadySigned])
+  }, [alreadySigned, startTime])
 
   // ─── Tracker de scroll ───────────────────────────────────────────
   useEffect(() => {
@@ -110,7 +110,7 @@ export function FirmaDocClient({ doc, orgName, workerName, alreadySigned }: Prop
           signatureMethod: method,
           signatureProof,
           scrolledToEnd: true,
-          readingTimeMs: Date.now() - startTimeRef.current,
+          readingTimeMs: Date.now() - startTime,
         }),
       })
       const json = await res.json()
@@ -273,7 +273,7 @@ export function FirmaDocClient({ doc, orgName, workerName, alreadySigned }: Prop
             />
             <span className="text-sm text-slate-700 leading-relaxed">
               Yo, <strong>{workerName}</strong>, declaro que he leído y entiendo el contenido de{' '}
-              <strong>"{doc.title}"</strong> v{doc.version}, y acepto las disposiciones que en él se establecen.
+              <strong>&quot;{doc.title}&quot;</strong> v{doc.version}, y acepto las disposiciones que en él se establecen.
             </span>
           </label>
 
@@ -365,13 +365,20 @@ function SignMethodModal({
   const [biometricInProgress, setBiometricInProgress] = useState(false)
 
   useEffect(() => {
-    // Detectar si WebAuthn está disponible
-    if (typeof window !== 'undefined' && window.PublicKeyCredential) {
-      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        .then((avail) => setBiometricAvailable(avail))
-        .catch(() => setBiometricAvailable(false))
-    } else {
-      setBiometricAvailable(false)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      // Detectar si WebAuthn está disponible
+      if (typeof window !== 'undefined' && window.PublicKeyCredential) {
+        PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+          .then((avail) => setBiometricAvailable(avail))
+          .catch(() => setBiometricAvailable(false))
+      } else {
+        setBiometricAvailable(false)
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [])
 

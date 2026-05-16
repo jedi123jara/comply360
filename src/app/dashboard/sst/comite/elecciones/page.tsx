@@ -120,7 +120,14 @@ export default function EleccionesPage() {
   }
 
   useEffect(() => {
-    reload()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      reload()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (loading && !comite) {
@@ -197,13 +204,16 @@ function ConfigEleccion({
   workers: WorkerLite[]
   onCreated: () => void
 }) {
-  const today = new Date().toISOString().slice(0, 10)
-  const oneWeekLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10)
+  const [defaultDates] = useState(() => {
+    const todayMs = Date.now()
+    return {
+      today: new Date(todayMs).toISOString().slice(0, 10),
+      oneWeekLater: new Date(todayMs + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    }
+  })
 
-  const [fechaInicio, setFechaInicio] = useState(today)
-  const [fechaCierre, setFechaCierre] = useState(oneWeekLater)
+  const [fechaInicio, setFechaInicio] = useState(defaultDates.today)
+  const [fechaCierre, setFechaCierre] = useState(defaultDates.oneWeekLater)
   const [cuposE, setCuposE] = useState(2)
   const [cuposT, setCuposT] = useState(2)
   const [candidatos, setCandidatos] = useState<

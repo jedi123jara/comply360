@@ -78,11 +78,18 @@ export function RoleEvidenceModal() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (!open) return
-    setActaUrl(role?.actaUrl ?? '')
-    setElectedAt(toDateInput(role?.electedAt))
-    setEndsAt(toDateInput(role?.endsAt))
-    setSelectedFile(null)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!open) return
+      setActaUrl(role?.actaUrl ?? '')
+      setElectedAt(toDateInput(role?.electedAt))
+      setEndsAt(toDateInput(role?.endsAt))
+      setSelectedFile(null)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [open, role])
 
   const roleLabel = role

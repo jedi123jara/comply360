@@ -556,7 +556,16 @@ export default function ContratoDetailPage() {
     }
   }, [id, router, toast])
 
-  useEffect(() => { fetchContract() }, [fetchContract])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchContract()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchContract])
 
   // Fetch linked workers
   const fetchLinkedWorkers = useCallback(async () => {
@@ -568,11 +577,28 @@ export default function ContratoDetailPage() {
     } catch { /* silent */ }
   }, [id])
 
-  useEffect(() => { fetchLinkedWorkers() }, [fetchLinkedWorkers])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchLinkedWorkers()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchLinkedWorkers])
 
   // Search workers for linking
   useEffect(() => {
-    if (!workerSearch.trim()) { setWorkerResults([]); return }
+    let cancelled = false
+    if (!workerSearch.trim()) {
+      void Promise.resolve().then(() => {
+        if (!cancelled) setWorkerResults([])
+      })
+      return () => {
+        cancelled = true
+      }
+    }
     const t = setTimeout(async () => {
       setSearchingWorkers(true)
       try {
@@ -584,7 +610,10 @@ export default function ContratoDetailPage() {
         setSearchingWorkers(false)
       }
     }, 350)
-    return () => clearTimeout(t)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
   }, [workerSearch])
 
   async function linkWorker(workerId: string) {

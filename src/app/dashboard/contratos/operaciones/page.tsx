@@ -157,7 +157,14 @@ export default function ContractOpsPage() {
   }
 
   useEffect(() => {
-    void load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const healthLevel = useMemo(() => {

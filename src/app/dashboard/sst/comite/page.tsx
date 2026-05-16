@@ -139,7 +139,14 @@ export default function ComitePage() {
   }
 
   useEffect(() => {
-    reload()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      reload()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const vigente = data?.comites.find((c) => c.estado === 'VIGENTE')

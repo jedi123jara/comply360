@@ -560,7 +560,14 @@ export function DocumentUploader({ workerId, documents: initialDocuments, onDocu
 
   // Keep documents in sync with parent
   useEffect(() => {
-    setDocuments(initialDocuments)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setDocuments(initialDocuments)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [initialDocuments])
 
   // Refresh documents from server

@@ -67,7 +67,16 @@ export function ScheduledReportsPanel() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   async function toggle(id: string, active: boolean) {
     const res = await fetch(`/api/scheduled-reports/${id}`, {

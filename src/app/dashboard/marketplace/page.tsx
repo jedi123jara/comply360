@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Plug,
   CheckCircle2,
@@ -57,11 +57,7 @@ export default function MarketplacePage() {
   const [category, setCategory] = useState('ALL')
   const [query, setQuery] = useState('')
 
-  useEffect(() => {
-    void load()
-  }, [])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/integrations/catalog')
@@ -77,7 +73,17 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (!cancelled) void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   const filtered = integrations.filter(i => {
     if (category !== 'ALL' && i.category !== category) return false

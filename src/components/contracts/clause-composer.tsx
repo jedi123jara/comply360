@@ -106,7 +106,16 @@ export function ClauseComposer({ contractId, contractType, onChange }: Props) {
     }
   }, [contractId, contractType, toast])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   const grouped = useMemo(() => {
     const map: Record<CatalogClause['category'], CatalogClause[]> = {

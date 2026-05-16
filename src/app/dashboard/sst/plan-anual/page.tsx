@@ -115,7 +115,14 @@ export default function PlanAnualPage() {
   }
 
   useEffect(() => {
-    load(ano)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load(ano)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [ano])
 
   async function save() {

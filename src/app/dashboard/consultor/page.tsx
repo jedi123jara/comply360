@@ -172,7 +172,16 @@ export default function ConsultorPage() {
     }
   }, [])
 
-  useEffect(() => { loadClients() }, [loadClients])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadClients()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadClients])
 
   const filtered = clients.filter((c) =>
     !searchQ ||

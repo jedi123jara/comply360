@@ -120,7 +120,16 @@ export default function PerfilPage() {
     }
   }
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   const handleSave = async () => {
     if (!editing) return

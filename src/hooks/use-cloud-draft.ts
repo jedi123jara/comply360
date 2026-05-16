@@ -39,32 +39,39 @@ export function useCloudDraft<T>(options: UseCloudDraftOptions): UseCloudDraftRe
 
   // Fetch initial draft
   useEffect(() => {
-    if (!orgId) {
-      setLoading(false)
-      return
-    }
-
     let isMounted = true
-    setLoading(true)
-
-    fetch(`/api/drafts?key=${encodeURIComponent(key)}`)
-      .then(res => res.json())
-      .then(res => {
-        if (!isMounted) return
-        if (res.data) {
-          setDraft(res.data)
-          setRestoredAt(new Date(res.savedAt))
-        } else {
-          setDraft(null)
-          setRestoredAt(null)
-        }
-      })
-      .catch(err => {
-        console.error('Failed to load cloud draft:', err)
-      })
-      .finally(() => {
+    if (!orgId) {
+      void Promise.resolve().then(() => {
         if (isMounted) setLoading(false)
       })
+      return () => {
+        isMounted = false
+      }
+    }
+
+    void Promise.resolve().then(() => {
+      if (!isMounted) return
+      setLoading(true)
+
+      fetch(`/api/drafts?key=${encodeURIComponent(key)}`)
+        .then(res => res.json())
+        .then(res => {
+          if (!isMounted) return
+          if (res.data) {
+            setDraft(res.data)
+            setRestoredAt(new Date(res.savedAt))
+          } else {
+            setDraft(null)
+            setRestoredAt(null)
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load cloud draft:', err)
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false)
+        })
+    })
 
     return () => { isMounted = false }
   }, [key, orgId])

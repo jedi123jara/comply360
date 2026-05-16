@@ -269,7 +269,16 @@ export default function CapacitacionesPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { loadCourses() }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadCourses()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleSeed() {
     setSeeding(true)

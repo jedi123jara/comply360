@@ -78,7 +78,7 @@ export function DraftsListModal() {
           </div>
           <p className="text-sm font-medium text-slate-700">No hay escenarios guardados</p>
           <p className="mt-1 text-xs text-slate-500">
-            Usa "What-If" en el menú "Más" para simular un cambio en la estructura.
+            Usa &quot;What-If&quot; en el menú &quot;Más&quot; para simular un cambio en la estructura.
           </p>
         </div>
       )}

@@ -114,7 +114,14 @@ export default function WorkflowsPage() {
   }, [])
 
   useEffect(() => {
-    load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   async function toggleActive(id: string, active: boolean) {
@@ -286,7 +293,14 @@ function WorkflowDetail({
   }, [workflow.id])
 
   useEffect(() => {
-    loadRuns()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadRuns()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [loadRuns])
 
   async function handleRun() {

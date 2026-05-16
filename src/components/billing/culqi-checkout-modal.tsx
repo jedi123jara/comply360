@@ -115,6 +115,7 @@ export function CulqiCheckoutModal({
   useEffect(() => {
     if (!open) return
     if (typeof window === 'undefined') return
+    let cancelled = false
 
     // Checkout iniciado (tanto con Culqi real como con fallback WhatsApp)
     track('checkout_started', {
@@ -125,34 +126,38 @@ export function CulqiCheckoutModal({
 
     if (!hasKey) return
 
-    // Skip if already loaded
-    if (window.Culqi) {
-       
-      setStatus('sdk-ready')
-      return
-    }
-
-     
-    setStatus('loading-sdk')
-    const script = document.createElement('script')
-    script.src = 'https://checkout.culqi.com/js/v4'
-    script.async = true
-    script.onload = () => {
-      if (window.Culqi && publicKey) {
-        window.Culqi.publicKey = publicKey
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      // Skip if already loaded
+      if (window.Culqi) {
         setStatus('sdk-ready')
-      } else {
-        setStatus('error')
-        setError('No pudimos inicializar Culqi')
+        return
       }
-    }
-    script.onerror = () => {
-      setStatus('error')
-      setError('No pudimos cargar el SDK de pagos')
-    }
-    document.body.appendChild(script)
+
+      setStatus('loading-sdk')
+      const script = document.createElement('script')
+      script.src = 'https://checkout.culqi.com/js/v4'
+      script.async = true
+      script.onload = () => {
+        if (cancelled) return
+        if (window.Culqi && publicKey) {
+          window.Culqi.publicKey = publicKey
+          setStatus('sdk-ready')
+        } else {
+          setStatus('error')
+          setError('No pudimos inicializar Culqi')
+        }
+      }
+      script.onerror = () => {
+        if (cancelled) return
+        setStatus('error')
+        setError('No pudimos cargar el SDK de pagos')
+      }
+      document.body.appendChild(script)
+    })
 
     return () => {
+      cancelled = true
       // Don't remove the script — Culqi caches its state on window
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- plan.key + totalSoles incluidos in-body; re-correr en cambio re-trackearía falsamente.

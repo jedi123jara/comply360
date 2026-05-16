@@ -658,13 +658,20 @@ export default function CesePage() {
 
   // ── Sync faltas → causaDetalle ────────────────────────────────────────
   useEffect(() => {
-    if (selectedTipo !== 'DESPIDO_CAUSA_JUSTA') return
-    if (selectedFaltas.size === 0) return
-    const texto = FALTAS_GRAVES
-      .filter(f => selectedFaltas.has(f.id))
-      .map(f => `- ${f.texto} (${f.articulo})`)
-      .join('\n')
-    setCausaDetalle(texto)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (selectedTipo !== 'DESPIDO_CAUSA_JUSTA') return
+      if (selectedFaltas.size === 0) return
+      const texto = FALTAS_GRAVES
+        .filter(f => selectedFaltas.has(f.id))
+        .map(f => `- ${f.texto} (${f.articulo})`)
+        .join('\n')
+      setCausaDetalle(texto)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [selectedFaltas, selectedTipo])
 
   const toggleFalta = (id: string) => {
@@ -699,7 +706,14 @@ export default function CesePage() {
   }, [workerId])
 
   useEffect(() => {
-    loadCese()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadCese()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [loadCese])
 
   // ── Start cese process ──────────────────────────────────────────────

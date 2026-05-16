@@ -168,13 +168,13 @@ function PreviewBody({ preview, nothingToDo }: { preview: BootstrapPreviewDTO; n
               {preview.workersWithoutDepartment > 0 && (
                 <li>
                   · {preview.workersWithoutDepartment} sin área asignada (ve a Equipo →
-                  Trabajadores y completa el campo "Área")
+                  Trabajadores y completa el campo &quot;Área&quot;)
                 </li>
               )}
               {preview.workersWithoutPosition > 0 && (
                 <li>
                   · {preview.workersWithoutPosition} sin cargo asignado (completa el campo
-                  "Cargo")
+                  &quot;Cargo&quot;)
                 </li>
               )}
             </ul>

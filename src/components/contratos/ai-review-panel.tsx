@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Shield,
   AlertTriangle,
@@ -28,7 +28,7 @@ export function AIReviewPanel({ contractHtml, contractType, onComplete }: AIRevi
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null)
   const [expandedCompliance, setExpandedCompliance] = useState(false)
 
-  const runReview = async () => {
+  const runReview = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -48,14 +48,20 @@ export function AIReviewPanel({ contractHtml, contractType, onComplete }: AIRevi
     } finally {
       setLoading(false)
     }
-  }
+  }, [contractHtml, contractType, onComplete])
 
   useEffect(() => {
-    if (contractHtml) {
-      runReview()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (contractHtml) {
+        runReview()
+      }
+    })
+    return () => {
+      cancelled = true
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [contractHtml, runReview])
 
   if (loading) {
     return (

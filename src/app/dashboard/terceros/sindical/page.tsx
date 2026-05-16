@@ -45,6 +45,8 @@ type NegotiationStage = 'PLIEGO' | 'TRATO_DIRECTO' | 'CONCILIACION' | 'ARBITRAJE
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
+const EMPTY_SINDICAL_RECORDS: SindicalRecord[] = []
+
 const TYPE_CONFIG: Record<SindicalRecordType, { label: string; icon: React.ElementType; color: string; darkColor: string; bg: string; darkBg: string }> = {
   SINDICATO: { label: 'Sindicato', icon: Users, color: 'text-blue-700', darkColor: 'text-emerald-600', bg: 'bg-blue-50', darkBg: 'bg-blue-900/20' },
   CONVENIO_COLECTIVO: { label: 'Convenio Colectivo', icon: FileText, color: 'text-green-700', darkColor: 'text-green-400', bg: 'bg-green-50', darkBg: 'bg-green-900/20' },
@@ -490,7 +492,16 @@ export default function SindicalPage() {
     }
   }, [filterType])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -534,35 +545,37 @@ export default function SindicalPage() {
     }
   }
 
-  const filtered = data?.records.filter(
+  const records = data?.records ?? EMPTY_SINDICAL_RECORDS
+
+  const filtered = records.filter(
     (r) => filterType === 'ALL' || r.type === filterType
-  ) || []
+  )
 
   // Determine active negotiation stage from records
   const activeNegotiationStage = useMemo((): NegotiationStage | null => {
-    if (!data?.records) return null
-    const activeNeg = data.records.find(r => r.type === 'NEGOCIACION' && r.status === 'ACTIVE')
+    if (records.length === 0) return null
+    const activeNeg = records.find(r => r.type === 'NEGOCIACION' && r.status === 'ACTIVE')
     if (activeNeg) {
       const stageData = activeNeg.data as Record<string, unknown> | null
       if (stageData?.stage) return stageData.stage as NegotiationStage
       return 'TRATO_DIRECTO'
     }
-    const hasActivePliego = data.records.some(r => r.type === 'PLIEGO_RECLAMOS' && r.status === 'ACTIVE')
+    const hasActivePliego = records.some(r => r.type === 'PLIEGO_RECLAMOS' && r.status === 'ACTIVE')
     if (hasActivePliego) return 'PLIEGO'
-    const hasActiveHuelga = data.records.some(r => r.type === 'HUELGA' && r.status === 'ACTIVE')
+    const hasActiveHuelga = records.some(r => r.type === 'HUELGA' && r.status === 'ACTIVE')
     if (hasActiveHuelga) return 'ARBITRAJE_HUELGA'
     return null
-  }, [data?.records])
+  }, [records])
 
   // Count stats for KPI
   const kpiStats = useMemo(() => {
-    if (!data?.records) return { sindicatosActivos: 0, conveniosVigentes: 0, negociacionesEnCurso: 0, proximosVencimientos: 0 }
-    const sindicatosActivos = data.records.filter(r => r.type === 'SINDICATO' && r.status === 'ACTIVE').length
-    const conveniosVigentes = data.records.filter(r => r.type === 'CONVENIO_COLECTIVO' && r.status === 'ACTIVE' && !isExpired(r.endDate)).length
-    const negociacionesEnCurso = data.records.filter(r => (r.type === 'NEGOCIACION' || r.type === 'PLIEGO_RECLAMOS') && r.status === 'ACTIVE').length
-    const proximosVencimientos = data.records.filter(r => r.status === 'ACTIVE' && r.endDate && isExpiringSoon(r.endDate, 90)).length
+    if (records.length === 0) return { sindicatosActivos: 0, conveniosVigentes: 0, negociacionesEnCurso: 0, proximosVencimientos: 0 }
+    const sindicatosActivos = records.filter(r => r.type === 'SINDICATO' && r.status === 'ACTIVE').length
+    const conveniosVigentes = records.filter(r => r.type === 'CONVENIO_COLECTIVO' && r.status === 'ACTIVE' && !isExpired(r.endDate)).length
+    const negociacionesEnCurso = records.filter(r => (r.type === 'NEGOCIACION' || r.type === 'PLIEGO_RECLAMOS') && r.status === 'ACTIVE').length
+    const proximosVencimientos = records.filter(r => r.status === 'ACTIVE' && r.endDate && isExpiringSoon(r.endDate, 90)).length
     return { sindicatosActivos, conveniosVigentes, negociacionesEnCurso, proximosVencimientos }
-  }, [data?.records])
+  }, [records])
 
   if (loading) {
     return (

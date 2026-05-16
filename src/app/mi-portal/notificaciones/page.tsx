@@ -41,7 +41,16 @@ export default function NotificacionesPage() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   const unreadCount = items.filter((i) => !i.read).length
 

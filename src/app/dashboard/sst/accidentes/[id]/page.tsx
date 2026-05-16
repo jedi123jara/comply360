@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -116,7 +116,7 @@ export default function AccidenteDetailPage() {
   const [savingSat, setSavingSat] = useState(false)
   const [showSealModal, setShowSealModal] = useState(false)
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -139,12 +139,18 @@ export default function AccidenteDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
-    if (id) reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (id) reload()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [id, reload])
 
   async function guardarSat(e: FormEvent) {
     e.preventDefault()

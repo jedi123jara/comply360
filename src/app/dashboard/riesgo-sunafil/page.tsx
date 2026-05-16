@@ -201,7 +201,16 @@ export default function RiesgoSunafilPage() {
     }
   }
 
-  useEffect(() => { runScan() }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      runScan()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const filteredRiesgos = report?.riesgos.filter(r =>
     filterSev === 'ALL' || r.severidad === filterSev

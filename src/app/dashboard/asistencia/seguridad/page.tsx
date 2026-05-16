@@ -109,7 +109,16 @@ export default function AsistenciaSeguridadPage() {
     }
   }, [filter, days])
 
-  useEffect(() => { void fetchData() }, [fetchData])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void fetchData()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchData])
 
   const summary = data?.summary
   const success = summary?.byResult['SUCCESS'] ?? 0
@@ -372,7 +381,7 @@ export default function AsistenciaSeguridadPage() {
         <AlertTriangle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
         <p className="text-[11px] text-slate-700 leading-relaxed">
           Los intentos se almacenan por 30 días con propósito anti-fraude (R.M. 037-2024-TR
-          art. 5: "el sistema digital debe permitir auditar el control"). Después de ese plazo
+          art. 5: &quot;el sistema digital debe permitir auditar el control&quot;). Después de ese plazo
           se eliminan automáticamente. El IP y user-agent se guardan junto con la coordenada
           GPS al momento del intento — útil para identificar patrones de suplantación.
         </p>

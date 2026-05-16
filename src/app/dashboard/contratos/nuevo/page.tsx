@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useRef, Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -387,14 +387,6 @@ function NuevoContratoInner() {
       })
   }, [])
 
-  // ─── Auto-save template contract when entering preview step ────────────
-  useEffect(() => {
-    if (step === 'preview' && selectedTemplate && !templateSavedId && templateAutoSaveStatus === 'idle') {
-      void autoSaveTemplateContract()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedTemplate?.id])
-
   // Trabajador fields
   const [trabDni, setTrabDni] = useState('')
   const [trabNombre, setTrabNombre] = useState('')
@@ -407,21 +399,28 @@ function NuevoContratoInner() {
 
   // Pre-fill from query params (when coming from worker profile)
   useEffect(() => {
-    const dni = searchParams.get('dni')
-    const name = searchParams.get('workerName')
-    const cargo = searchParams.get('cargo')
-    const sueldo = searchParams.get('sueldo')
-    if (dni) {
-      setTrabDni(dni)
-      setTrabDniStatus('ok')
-      setFormData(prev => ({ ...prev, trabajador_dni: dni }))
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      const dni = searchParams.get('dni')
+      const name = searchParams.get('workerName')
+      const cargo = searchParams.get('cargo')
+      const sueldo = searchParams.get('sueldo')
+      if (dni) {
+        setTrabDni(dni)
+        setTrabDniStatus('ok')
+        setFormData(prev => ({ ...prev, trabajador_dni: dni }))
+      }
+      if (name) {
+        setTrabNombre(name)
+        setFormData(prev => ({ ...prev, trabajador_nombre: name }))
+      }
+      if (cargo) setFormData(prev => ({ ...prev, trabajador_cargo: cargo }))
+      if (sueldo) setFormData(prev => ({ ...prev, remuneracion_mensual: sueldo }))
+    })
+    return () => {
+      cancelled = true
     }
-    if (name) {
-      setTrabNombre(name)
-      setFormData(prev => ({ ...prev, trabajador_nombre: name }))
-    }
-    if (cargo) setFormData(prev => ({ ...prev, trabajador_cargo: cargo }))
-    if (sueldo) setFormData(prev => ({ ...prev, remuneracion_mensual: sueldo }))
   }, [searchParams])
 
   // MG4: Save & resume — si la URL trae ?resume=<id>, rehidratar contrato desde BD
@@ -494,11 +493,17 @@ function NuevoContratoInner() {
 
   // Mostrar banner de restaurar cuando el draft se restaura del storage
   useEffect(() => {
-    if (draftHook.draft && draftHook.restoredAt && step === 'select' && !selectedTemplate) {
-      setShowRestoreBanner(true)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (draftHook.draft && draftHook.restoredAt && step === 'select' && !selectedTemplate) {
+        setShowRestoreBanner(true)
+      }
+    })
+    return () => {
+      cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftHook.draft, draftHook.restoredAt])
+  }, [draftHook.draft, draftHook.restoredAt, selectedTemplate, step])
 
   // Persistir cambios al draft (debounced por el hook)
   useEffect(() => {
@@ -933,7 +938,7 @@ function NuevoContratoInner() {
     return null
   })()
 
-  const liveFormData: Record<string, string | number | boolean> = {
+  const liveFormData = useMemo<Record<string, string | number | boolean>>(() => ({
     ...formData,
     causa_objetiva: causaObjetiva,
     fecha_inicio: fechaInicio,
@@ -941,7 +946,7 @@ function NuevoContratoInner() {
     remuneracion: remuneracion ? Number(remuneracion) : '',
     cargo,
     jornada_semanal: jornada ? Number(jornada) : '',
-  }
+  }), [cargo, causaObjetiva, fechaFin, fechaInicio, formData, jornada, remuneracion])
 
   const liveValidation = useLiveValidation({
     contractType: liveContractType,
@@ -1022,7 +1027,7 @@ function NuevoContratoInner() {
    * Se dispara al entrar al step 'preview'. Si ya fue guardado una vez
    * (templateSavedId no nulo) no lo vuelve a crear.
    */
-  const autoSaveTemplateContract = async () => {
+  const autoSaveTemplateContract = useCallback(async () => {
     if (!selectedTemplate || templateSavedId || templateAutoSaveStatus === 'saving') return
     setTemplateAutoSaveStatus('saving')
     try {
@@ -1056,7 +1061,20 @@ function NuevoContratoInner() {
       console.error('Auto-save template contract failed:', e)
       setTemplateAutoSaveStatus('error')
     }
-  }
+  }, [draftHook, liveFormData, selectedTemplate, templateAutoSaveStatus, templateSavedId, toast])
+
+  // ─── Auto-save template contract when entering preview step ────────────
+  useEffect(() => {
+    let cancelled = false
+    if (step === 'preview' && selectedTemplate && !templateSavedId && templateAutoSaveStatus === 'idle') {
+      void Promise.resolve().then(() => {
+        if (!cancelled) void autoSaveTemplateContract()
+      })
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [autoSaveTemplateContract, selectedTemplate, step, templateAutoSaveStatus, templateSavedId])
 
   const handleDownloadDocx = async () => {
     if (!selectedTemplate) return
@@ -1366,7 +1384,7 @@ function NuevoContratoInner() {
 
       {/* AI Generation Step */}
       {step === 'ai-generate' && (
-        <AiStep 
+        <AiStep
           showAiModal={true}
           aiContract={aiContract}
           aiLoading={aiLoading}

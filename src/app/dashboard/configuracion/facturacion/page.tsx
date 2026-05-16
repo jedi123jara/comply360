@@ -98,8 +98,15 @@ export default function FacturacionConfigPage() {
   }, [])
 
   useEffect(() => {
-    fetchProfile()
-    fetchPayments()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchProfile()
+      fetchPayments()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [fetchProfile, fetchPayments])
 
   const planKey = org?.plan || 'FREE'

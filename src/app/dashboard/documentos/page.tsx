@@ -274,17 +274,24 @@ export default function DocumentosPage() {
   }, [])
 
   useEffect(() => {
-    if (loading || templates.length === 0 || selected || autoSelectedType === requestedType) return
-    const templateId = TEMPLATE_BY_QUERY_TYPE[requestedType]
-    if (!templateId) return
-    const template = templates.find((item) => item.id === templateId || item.type === requestedType)
-    if (!template) return
-    setAutoSelectedType(requestedType)
-    setSelected(template)
-    setFormValues({})
-    setError(null)
-    setSuccess(false)
-    setQualityRefresh({ status: 'idle' })
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (loading || templates.length === 0 || selected || autoSelectedType === requestedType) return
+      const templateId = TEMPLATE_BY_QUERY_TYPE[requestedType]
+      if (!templateId) return
+      const template = templates.find((item) => item.id === templateId || item.type === requestedType)
+      if (!template) return
+      setAutoSelectedType(requestedType)
+      setSelected(template)
+      setFormValues({})
+      setError(null)
+      setSuccess(false)
+      setQualityRefresh({ status: 'idle' })
+    })
+    return () => {
+      cancelled = true
+    }
   }, [autoSelectedType, loading, requestedType, selected, templates])
 
   const handleFieldChange = useCallback((id: string, val: string) => {

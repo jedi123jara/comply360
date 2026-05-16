@@ -291,7 +291,14 @@ export default function TercerosPage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchData()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [fetchData])
 
   // Computed values

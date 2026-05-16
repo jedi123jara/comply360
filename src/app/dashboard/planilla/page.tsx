@@ -219,7 +219,14 @@ export default function PlanillaPage() {
   }, [periodo])
 
   useEffect(() => {
-    load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   const generate = async () => {

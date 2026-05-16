@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Plus, Loader2, Download, ChevronRight, ChevronLeft, CheckCircle2, Clock, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -93,7 +93,7 @@ export default function IpercPage() {
   const [stepError, setStepError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (nivelFilter) params.set('nivel', nivelFilter)
@@ -107,12 +107,18 @@ export default function IpercPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [nivelFilter])
 
   useEffect(() => {
-    loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nivelFilter])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadData()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadData])
 
   function validateStep(currentStep: number): string | null {
     if (currentStep === 0) {

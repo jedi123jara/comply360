@@ -365,7 +365,7 @@ function WorkerLinkCard() {
         <div className="flex-1">
           <h2 className="text-lg font-bold text-slate-900">Vínculo Worker ↔ Cuenta</h2>
           <p className="text-sm text-slate-600 mt-0.5">
-            Si un trabajador entra al portal y ve "No se pudo cargar tu información" o "Este portal es solo para trabajadores",
+            Si un trabajador entra al portal y ve &quot;No se pudo cargar tu información&quot; o &quot;Este portal es solo para trabajadores&quot;,
             usa esto para diagnosticar el problema. Necesitas el ID del trabajador (lo ves en la URL de su perfil).
           </p>
         </div>
@@ -715,7 +715,7 @@ function AiTestCard() {
                   )}
                 </h3>
               </div>
-              <p className="text-sm text-slate-800 italic leading-relaxed">"{result.result.response}"</p>
+              <p className="text-sm text-slate-800 italic leading-relaxed">&quot;{result.result.response}&quot;</p>
             </div>
           )}
 

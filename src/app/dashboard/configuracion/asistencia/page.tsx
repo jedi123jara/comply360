@@ -56,7 +56,14 @@ export default function ConfiguracionAsistenciaPage() {
   }, [])
 
   useEffect(() => {
-    void loadFences()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void loadFences()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [loadFences])
 
   async function handleSubmit(e: React.FormEvent) {

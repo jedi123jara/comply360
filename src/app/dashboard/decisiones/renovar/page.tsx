@@ -160,7 +160,14 @@ export default function RenovarWizardPage() {
 
   // Auto-recomendar acción según análisis
   useEffect(() => {
-    if (analysis.level === 'high') setAction('convert_to_indefinite')
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (analysis.level === 'high') setAction('convert_to_indefinite')
+    })
+    return () => {
+      cancelled = true
+    }
   }, [analysis.level])
 
   const goNext = useCallback(() => {
@@ -467,6 +474,7 @@ function Step2Analysis({
   contract: ContractItem
   analysis: { level: 'low' | 'medium' | 'high'; message: string }
 }) {
+  const [nowMs] = useState(() => Date.now())
   const levelStyle = {
     low: 'border-emerald-200 bg-emerald-50/40 text-emerald-900',
     medium: 'border-amber-200 bg-amber-50 text-amber-900',
@@ -474,7 +482,7 @@ function Step2Analysis({
   }[analysis.level]
 
   const monthsActive = Math.floor(
-    (Date.now() - new Date(contract.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 30),
+    (nowMs - new Date(contract.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 30),
   )
 
   return (

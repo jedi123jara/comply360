@@ -85,7 +85,16 @@ export default function CertificacionPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadCertStatus() }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadCertStatus()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleSolicitarCertificacion = async () => {
     setIssuing(true)

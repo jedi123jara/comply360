@@ -134,7 +134,14 @@ export default function AdminNormUpdatesPage() {
   }, [status])
 
   useEffect(() => {
-    load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   async function review(id: string, action: 'approve' | 'reject') {

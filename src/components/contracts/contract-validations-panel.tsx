@@ -122,7 +122,16 @@ export function ContractValidationsPanel({ contractId, onSummaryChange }: Contra
     }
   }, [contractId, toast])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   useEffect(() => {
     if (summary && onSummaryChange) {

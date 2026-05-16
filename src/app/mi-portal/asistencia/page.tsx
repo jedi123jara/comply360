@@ -74,10 +74,17 @@ export default function MiPortalAsistenciaPage() {
   // para que cada worker recuerde su preferencia entre sesiones.
   const [selfieEnabled, setSelfieEnabled] = useState(false)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('comply360.selfieEnabled')
-      if (saved === '1') setSelfieEnabled(true)
-    } catch {/* localStorage no disponible */}
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      try {
+        const saved = localStorage.getItem('comply360.selfieEnabled')
+        if (saved === '1') setSelfieEnabled(true)
+      } catch {/* localStorage no disponible */}
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
   useEffect(() => {
     try {

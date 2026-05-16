@@ -111,7 +111,14 @@ export default function WebhooksConfigPage() {
   }
 
   useEffect(() => {
-    load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function handleDelete(id: string, url: string) {

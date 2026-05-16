@@ -64,7 +64,14 @@ export default function DbSyncPage() {
   }
 
   useEffect(() => {
-    void checkStatus()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void checkStatus()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (

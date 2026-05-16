@@ -80,9 +80,15 @@ export function WorkerAutoFill({
 
   // Sync external selectedWorkers
   useEffect(() => {
-    setMultiSelected(selectedWorkers)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedWorkers.length])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setMultiSelected(selectedWorkers)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedWorkers])
 
   // Close on outside click
   useEffect(() => {
@@ -102,7 +108,15 @@ export function WorkerAutoFill({
 
   // Cargar trabajadores: todos al abrir, filtrados al escribir
   useEffect(() => {
-    if (!open) { setResults([]); return }
+    let cancelled = false
+    if (!open) {
+      void Promise.resolve().then(() => {
+        if (!cancelled) setResults([])
+      })
+      return () => {
+        cancelled = true
+      }
+    }
 
     const delay = query.trim() ? 300 : 0
     const t = setTimeout(async () => {
@@ -119,7 +133,10 @@ export function WorkerAutoFill({
         setLoading(false)
       }
     }, delay)
-    return () => clearTimeout(t)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
   }, [query, open])
 
   // ── Single select ──

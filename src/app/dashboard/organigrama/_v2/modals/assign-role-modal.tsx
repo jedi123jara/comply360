@@ -60,25 +60,31 @@ export function AssignRoleModal() {
   )
 
   useEffect(() => {
-    if (!open) return
-    setRoleType(presetRole ?? 'PRESIDENTE_COMITE_SST')
-    setUnitId(presetUnit ?? null)
-    setWorkerId(presetWorker ?? null)
-    setEndsAt('')
-    setActaUrl('')
-    setSearch('')
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!open) return
+      setRoleType(presetRole ?? 'PRESIDENTE_COMITE_SST')
+      setUnitId(presetUnit ?? null)
+      setWorkerId(presetWorker ?? null)
+      setEndsAt('')
+      setActaUrl('')
+      setSearch('')
 
-    setLoadingWorkers(true)
-    fetch('/api/workers?limit=500')
-      .then((r) => r.json())
-      .then((data) => {
-        const items = data.workers ?? data.items ?? data.data ?? data
-        setWorkers(Array.isArray(items) ? items : [])
-      })
-      .catch(() => toast.error('No se pudieron cargar trabajadores'))
-      .finally(() => setLoadingWorkers(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+      setLoadingWorkers(true)
+      fetch('/api/workers?limit=500')
+        .then((r) => r.json())
+        .then((data) => {
+          const items = data.workers ?? data.items ?? data.data ?? data
+          setWorkers(Array.isArray(items) ? items : [])
+        })
+        .catch(() => toast.error('No se pudieron cargar trabajadores'))
+        .finally(() => setLoadingWorkers(false))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, presetRole, presetUnit, presetWorker])
 
   const roleTypesForUnit = useMemo(() => {
     if (!selectedUnit) return ALL_ROLE_TYPES
@@ -92,8 +98,15 @@ export function AssignRoleModal() {
   }, [selectedUnit])
 
   useEffect(() => {
-    if (!open || roleTypesForUnit.includes(roleType)) return
-    setRoleType(roleTypesForUnit[0] ?? 'PRESIDENTE_COMITE_SST')
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!open || roleTypesForUnit.includes(roleType)) return
+      setRoleType(roleTypesForUnit[0] ?? 'PRESIDENTE_COMITE_SST')
+    })
+    return () => {
+      cancelled = true
+    }
   }, [open, roleType, roleTypesForUnit])
 
   const def = COMPLIANCE_ROLES[roleType]

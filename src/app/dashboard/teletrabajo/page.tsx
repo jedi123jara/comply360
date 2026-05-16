@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Laptop2,
   Clock,
@@ -48,11 +48,7 @@ export default function TeletrabajoPage() {
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<string | null>(null)
 
-  useEffect(() => {
-    void load()
-  }, [])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
       const [sumRes, polRes] = await Promise.all([
@@ -76,7 +72,17 @@ export default function TeletrabajoPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (!cancelled) void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   async function savePolicy() {
     if (!policy) return

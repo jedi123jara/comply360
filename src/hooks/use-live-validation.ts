@@ -134,6 +134,7 @@ export function useLiveValidation(
   })
 
   useEffect(() => {
+    let cancelled = false
     const snapshot = JSON.parse(serialized) as {
       contractType: string | null
       formData: Record<string, string | number | boolean> | null
@@ -142,8 +143,12 @@ export function useLiveValidation(
     }
 
     if (!enabled || !snapshot.contractType) {
-      setData(null)
-      return
+      void Promise.resolve().then(() => {
+        if (!cancelled) setData(null)
+      })
+      return () => {
+        cancelled = true
+      }
     }
     // Sin workers ni datos minimos: no validar
     const hasMeaningful =
@@ -151,8 +156,12 @@ export function useLiveValidation(
       !!snapshot.inlineWorker ||
       (snapshot.formData && Object.keys(snapshot.formData).length > 0)
     if (!hasMeaningful) {
-      setData(null)
-      return
+      void Promise.resolve().then(() => {
+        if (!cancelled) setData(null)
+      })
+      return () => {
+        cancelled = true
+      }
     }
 
     if (debounceRef.current) clearTimeout(debounceRef.current)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -127,7 +127,7 @@ export default function VisitaDetailPage() {
   const [showSealModal, setShowSealModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -142,12 +142,18 @@ export default function VisitaDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
-    if (id) reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (id) reload()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [id, reload])
 
   async function cambiarEstado(estado: Estado, mensaje: string) {
     if (actionLoading) return

@@ -37,21 +37,28 @@ export function PendingAcksBanner() {
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    // Session-level dismiss (re-aparece en próxima sesión si sigue habiendo pendientes)
-    try {
-      if (sessionStorage.getItem(DISMISS_KEY) === '1') {
-        setDismissed(true)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      // Session-level dismiss (re-aparece en próxima sesión si sigue habiendo pendientes)
+      try {
+        if (sessionStorage.getItem(DISMISS_KEY) === '1') {
+          setDismissed(true)
+        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
 
-    fetch('/api/mi-portal/pending-acknowledgments')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: ApiResponse | null) => {
-        if (d) setData(d)
-      })
-      .catch(() => null)
+      fetch('/api/mi-portal/pending-acknowledgments')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: ApiResponse | null) => {
+          if (d) setData(d)
+        })
+        .catch(() => null)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   function handleDismiss() {

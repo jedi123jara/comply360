@@ -15,7 +15,7 @@
  */
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { m, AnimatePresence } from 'framer-motion'
 import {
   History,
@@ -334,7 +334,7 @@ function SnapshotDiffModal({ onClose, snapshots }: SnapshotDiffModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchDiff = async () => {
+  const fetchDiff = useCallback(async () => {
     if (!fromId || !toId || fromId === toId) {
       setError('Elige dos snapshots distintos')
       return
@@ -365,12 +365,18 @@ function SnapshotDiffModal({ onClose, snapshots }: SnapshotDiffModalProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fromId, toId])
 
   useEffect(() => {
-    fetchDiff()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromId, toId])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchDiff()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchDiff])
 
   return (
     <AnimatePresence>

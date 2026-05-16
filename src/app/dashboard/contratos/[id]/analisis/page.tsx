@@ -187,7 +187,16 @@ export default function AnalisisContratoPaje() {
     setLoading(false)
   }, [id, router])
 
-  useEffect(() => { fetchContract() }, [fetchContract])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchContract()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchContract])
 
   async function runAnalysis() {
     if (!contract) return

@@ -112,17 +112,24 @@ export default function CesarWizardPage() {
 
   // Pre-cargar liquidación al entrar al paso 3
   useEffect(() => {
-    if (step !== 3 || !workerId || liquidacion) return
-    setLiqLoading(true)
-    fetch(`/api/workers/${workerId}/liquidacion`)
-      .then((r) => r.json())
-      .then((body: { result?: LiquidacionEstimate }) => {
-        if (body.result) setLiquidacion(body.result)
-      })
-      .catch(() => {
-        // Falla silenciosa — el wizard continúa sin estimación
-      })
-      .finally(() => setLiqLoading(false))
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (step !== 3 || !workerId || liquidacion) return
+      setLiqLoading(true)
+      fetch(`/api/workers/${workerId}/liquidacion`)
+        .then((r) => r.json())
+        .then((body: { result?: LiquidacionEstimate }) => {
+          if (body.result) setLiquidacion(body.result)
+        })
+        .catch(() => {
+          // Falla silenciosa — el wizard continúa sin estimación
+        })
+        .finally(() => setLiqLoading(false))
+    })
+    return () => {
+      cancelled = true
+    }
   }, [step, workerId, liquidacion])
 
   const filteredWorkers = useMemo(() => {

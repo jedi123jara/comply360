@@ -210,11 +210,18 @@ export default function ContratarWizardPage() {
 
   // Hidratar draft al montar
   useEffect(() => {
-    const draft = loadDraft()
-    if (draft && draft.data && draft.step) {
-      setData(draft.data)
-      setStep(draft.step)
-      setRestoredDraft(true)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      const draft = loadDraft()
+      if (draft && draft.data && draft.step) {
+        setData(draft.data)
+        setStep(draft.step)
+        setRestoredDraft(true)
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -226,18 +233,25 @@ export default function ContratarWizardPage() {
 
   // Cargar cursos cuando entra al paso 4
   useEffect(() => {
-    if (step !== 4 || courses.length > 0) return
-    setCoursesLoading(true)
-    fetch('/api/courses')
-      .then((r) => r.json())
-      .then((body: { courses?: Array<CourseOption & { stats: unknown }> }) => {
-        const obligatory = (body.courses ?? []).filter((c) => c.isObligatory)
-        setCourses(obligatory)
-      })
-      .catch(() => {
-        // Falla silenciosa — el wizard continúa sin cursos
-      })
-      .finally(() => setCoursesLoading(false))
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (step !== 4 || courses.length > 0) return
+      setCoursesLoading(true)
+      fetch('/api/courses')
+        .then((r) => r.json())
+        .then((body: { courses?: Array<CourseOption & { stats: unknown }> }) => {
+          const obligatory = (body.courses ?? []).filter((c) => c.isObligatory)
+          setCourses(obligatory)
+        })
+        .catch(() => {
+          // Falla silenciosa — el wizard continúa sin cursos
+        })
+        .finally(() => setCoursesLoading(false))
+    })
+    return () => {
+      cancelled = true
+    }
   }, [step, courses.length])
 
   const update = useCallback(<K extends keyof WizardData>(key: K, value: WizardData[K]) => {

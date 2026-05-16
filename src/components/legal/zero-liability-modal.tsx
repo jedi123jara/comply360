@@ -26,10 +26,17 @@ export function ZeroLiabilityModal() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(ACK_KEY) : null
-    if (stored !== ACK_VERSION) {
-       
-      setVisible(true)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      const stored = typeof window !== 'undefined' ? localStorage.getItem(ACK_KEY) : null
+      if (stored !== ACK_VERSION) {
+
+        setVisible(true)
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [])
 

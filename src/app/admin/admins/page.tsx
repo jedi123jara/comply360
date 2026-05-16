@@ -58,7 +58,14 @@ export default function AdminsPage() {
   }
 
   useEffect(() => {
-    void refresh()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void refresh()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function onInvite(e: React.FormEvent) {

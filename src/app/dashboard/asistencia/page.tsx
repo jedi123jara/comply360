@@ -281,7 +281,16 @@ export default function AsistenciaPage() {
     setLoading(false)
   }, [date])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchData()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchData])
 
   // Navigate date
   const changeDate = (delta: number) => {

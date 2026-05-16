@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -79,7 +79,7 @@ export default function OnboardingPage() {
   // Estado intermedio: sedeId y puestoId que el usuario va creando en este wizard
   const [sedeIdActual, setSedeIdActual] = useState<string | null>(null)
   const [puestoIdActual, setPuestoIdActual] = useState<string | null>(null)
-  async function loadStatus(advanceIfComplete = true) {
+  const loadStatus = useCallback(async (advanceIfComplete = true) => {
     setLoading(true)
     setError(null)
     try {
@@ -101,12 +101,18 @@ export default function OnboardingPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [step])
 
   useEffect(() => {
-    loadStatus(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadStatus(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadStatus])
 
   if (loading && !status) {
     return (

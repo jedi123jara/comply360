@@ -118,7 +118,14 @@ export default function SunafilReadyPage() {
   }, [])
 
   useEffect(() => {
-    load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   const toggleCategory = (cat: string) => {

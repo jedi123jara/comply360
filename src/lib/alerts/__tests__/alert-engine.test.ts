@@ -520,7 +520,7 @@ describe('Ola 1 — T_REGISTRO_NO_PRESENTADO', () => {
     )
 
     await generateWorkerAlerts('w1')
-    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    const alerts = (mockCreateMany.mock.calls[0]?.[0]?.data ?? []) as Array<{ type: string }>
     expect(alerts?.some(a => a.type === 'T_REGISTRO_NO_PRESENTADO')).toBeFalsy()
   })
 
@@ -533,7 +533,7 @@ describe('Ola 1 — T_REGISTRO_NO_PRESENTADO', () => {
     )
 
     await generateWorkerAlerts('w1')
-    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    const alerts = (mockCreateMany.mock.calls[0]?.[0]?.data ?? []) as Array<{ type: string }>
     expect(alerts?.some(a => a.type === 'T_REGISTRO_NO_PRESENTADO')).toBeFalsy()
   })
 })
@@ -582,7 +582,7 @@ describe('Ola 1 — SCTR_VENCIDO', () => {
     )
 
     await generateWorkerAlerts('w1')
-    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    const alerts = (mockCreateMany.mock.calls[0]?.[0]?.data ?? []) as Array<{ type: string }>
     expect(alerts?.some(a => a.type === 'SCTR_VENCIDO')).toBeFalsy()
   })
 
@@ -592,7 +592,7 @@ describe('Ola 1 — SCTR_VENCIDO', () => {
     )
 
     await generateWorkerAlerts('w1')
-    const alerts = mockCreateMany.mock.calls[0][0]?.data as Array<{ type: string }> | undefined
+    const alerts = (mockCreateMany.mock.calls[0]?.[0]?.data ?? []) as Array<{ type: string }>
     expect(alerts?.some(a => a.type === 'SCTR_VENCIDO')).toBeFalsy()
   })
 })

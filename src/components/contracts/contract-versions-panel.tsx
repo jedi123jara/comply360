@@ -114,7 +114,16 @@ export function ContractVersionsPanel({ contractId }: Props) {
     }
   }, [contractId, toast])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   async function verifyChain() {
     setVerifying(true)

@@ -109,7 +109,16 @@ export default function EquipoPage() {
     }
   }, [])
 
-  useEffect(() => { loadTeam() }, [loadTeam])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadTeam()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadTeam])
 
   async function sendInvite(e: React.FormEvent) {
     e.preventDefault()

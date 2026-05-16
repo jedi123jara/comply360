@@ -286,7 +286,16 @@ export default function IgualdadSalarialPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      loadData()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function saveCategoria() {
     if (!formData.categoryName) return

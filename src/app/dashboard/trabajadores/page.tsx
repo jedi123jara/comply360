@@ -192,7 +192,16 @@ export default function TrabajadoresPage() {
       .finally(() => setLoading(false))
   }, [search, statusFilter, regimenFilter, departmentFilter, incluirCesados, pagination.page, sortBy, sortDir])
 
-  useEffect(() => { fetchWorkers() }, [fetchWorkers])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchWorkers()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWorkers])
 
   // Cargar rol del usuario (define si puede ver cesados)
   useEffect(() => {
@@ -430,23 +439,30 @@ export default function TrabajadoresPage() {
 
   // Lazy-load del catálogo de cursos cuando se abre el modal de "Asignar curso"
   useEffect(() => {
-    if (bulkModal !== 'enroll-course') return
-    if (coursesList.length > 0) return
-    setCoursesLoading(true)
-    fetch('/api/courses')
-      .then(r => r.json())
-      .then((d: { courses?: { id: string; title: string; category: string; isObligatory: boolean; isActive: boolean }[] }) => {
-        const active = (d.courses ?? []).filter(c => c.isActive)
-        setCoursesList(active.map(c => ({
-          id: c.id,
-          title: c.title,
-          category: c.category,
-          isObligatory: c.isObligatory,
-        })))
-        if (active[0]) setBulkCourseId(prev => prev || active[0].id)
-      })
-      .catch(() => toast.error('No pudimos cargar el catálogo de cursos'))
-      .finally(() => setCoursesLoading(false))
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (bulkModal !== 'enroll-course') return
+      if (coursesList.length > 0) return
+      setCoursesLoading(true)
+      fetch('/api/courses')
+        .then(r => r.json())
+        .then((d: { courses?: { id: string; title: string; category: string; isObligatory: boolean; isActive: boolean }[] }) => {
+          const active = (d.courses ?? []).filter(c => c.isActive)
+          setCoursesList(active.map(c => ({
+            id: c.id,
+            title: c.title,
+            category: c.category,
+            isObligatory: c.isObligatory,
+          })))
+          if (active[0]) setBulkCourseId(prev => prev || active[0].id)
+        })
+        .catch(() => toast.error('No pudimos cargar el catálogo de cursos'))
+        .finally(() => setCoursesLoading(false))
+    })
+    return () => {
+      cancelled = true
+    }
   }, [bulkModal, coursesList.length])
 
   const allSelected = workers.length > 0 && workers.every(w => selected.has(w.id))
@@ -510,7 +526,16 @@ export default function TrabajadoresPage() {
   }, [])
 
   // Clear selection when page/filter/sort changes
-  useEffect(() => { setSelected(new Set()) }, [pagination.page, statusFilter, regimenFilter, departmentFilter, search, sortBy, sortDir])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setSelected(new Set())
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [pagination.page, statusFilter, regimenFilter, departmentFilter, search, sortBy, sortDir])
 
   // Refresh stats after imports
   const refreshAll = () => { fetchWorkers(); fetchStats() }
@@ -582,7 +607,7 @@ export default function TrabajadoresPage() {
     setPagination(p => ({ ...p, page: 1 }))
   }
 
-  const SortIcon = ({ field }: { field: string }) => {
+  const renderSortIcon = (field: string) => {
     if (sortBy !== field) return <ArrowUpDown className="w-3 h-3 text-gray-600 ml-1" />
     return sortDir === 'asc'
       ? <ArrowUp className="w-3 h-3 text-primary ml-1" />
@@ -908,7 +933,7 @@ export default function TrabajadoresPage() {
                   </th>
                   <th className="text-left px-6 py-3">
                     <button onClick={() => handleSort('lastName')} className="flex items-center text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors">
-                      Trabajador <SortIcon field="lastName" />
+                      Trabajador {renderSortIcon('lastName')}
                     </button>
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">DNI</th>
@@ -916,17 +941,17 @@ export default function TrabajadoresPage() {
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Régimen</th>
                   <th className="text-left px-6 py-3">
                     <button onClick={() => handleSort('fechaIngreso')} className="flex items-center text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors">
-                      Ingreso <SortIcon field="fechaIngreso" />
+                      Ingreso {renderSortIcon('fechaIngreso')}
                     </button>
                   </th>
                   <th className="text-left px-6 py-3">
                     <button onClick={() => handleSort('sueldoBruto')} className="flex items-center text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors">
-                      Sueldo <SortIcon field="sueldoBruto" />
+                      Sueldo {renderSortIcon('sueldoBruto')}
                     </button>
                   </th>
                   <th className="text-left px-6 py-3">
                     <button onClick={() => handleSort('legajoScore')} className="flex items-center text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors">
-                      Legajo <SortIcon field="legajoScore" />
+                      Legajo {renderSortIcon('legajoScore')}
                     </button>
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>

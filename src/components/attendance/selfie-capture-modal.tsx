@@ -46,10 +46,11 @@ export function SelfieCaptureModal({
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    setPhase('init')
-    setError(null)
-    setPreview(null)
-    void (async () => {
+    void Promise.resolve().then(async () => {
+      if (cancelled) return
+      setPhase('init')
+      setError(null)
+      setPreview(null)
       try {
         const stream = await requestFrontCamera()
         if (cancelled) {
@@ -75,7 +76,7 @@ export function SelfieCaptureModal({
         }
         setPhase('error')
       }
-    })()
+    })
     return () => {
       cancelled = true
       stopMediaStream(streamRef.current)

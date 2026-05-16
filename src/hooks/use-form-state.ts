@@ -82,11 +82,11 @@ export function useFormState<T extends Record<string, unknown>>(
   const { initial, schema, validateOn = 'blur', debounceMs = 300, onChange } = options
 
   const [values, setValuesState] = useState<T>(initial)
+  const [initialValues, setInitialValues] = useState<T>(initial)
   const [errors, setErrors] = useState<FormErrors<T>>({})
   const [touched, setTouched] = useState<FormTouched<T>>({})
 
   // Guardamos el initial para detectar dirty + reset
-  const initialRef = useRef(initial)
   const debounceTimers = useRef<Map<keyof T, ReturnType<typeof setTimeout>>>(new Map())
 
   // Notificar onChange cuando cambian los values
@@ -99,9 +99,10 @@ export function useFormState<T extends Record<string, unknown>>(
 
   // Limpiar timers al desmontar
   useEffect(() => {
+    const timers = debounceTimers.current
     return () => {
-      debounceTimers.current.forEach(t => clearTimeout(t))
-      debounceTimers.current.clear()
+      timers.forEach(t => clearTimeout(t))
+      timers.clear()
     }
   }, [])
 
@@ -172,12 +173,12 @@ export function useFormState<T extends Record<string, unknown>>(
   }, [values])
 
   const reset = useCallback((next?: T) => {
-    const target = next ?? initialRef.current
-    if (next) initialRef.current = next
+    const target = next ?? initialValues
+    if (next) setInitialValues(next)
     setValuesState(target)
     setErrors({})
     setTouched({})
-  }, [])
+  }, [initialValues])
 
   const validateAll = useCallback(():
     | { ok: true; data: T }
@@ -223,12 +224,11 @@ export function useFormState<T extends Record<string, unknown>>(
   }, [schema, values])
 
   const isDirty = useMemo(() => {
-    const initialVals = initialRef.current
     for (const key of Object.keys(values) as (keyof T)[]) {
-      if (values[key] !== initialVals[key]) return true
+      if (values[key] !== initialValues[key]) return true
     }
     return false
-  }, [values])
+  }, [initialValues, values])
 
   return {
     values,

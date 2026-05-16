@@ -729,7 +729,16 @@ export default function VacacionesPage() {
     }
   }
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleDelete(workerId: string, recordId: string) {
     const ok = await confirm({

@@ -84,7 +84,16 @@ export default function NotificacionesConfigPage() {
     }
   }, [])
 
-  useEffect(() => { fetchProfile() }, [fetchProfile])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      fetchProfile()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchProfile])
 
   const handleToggle = (key: string, value: boolean) => {
     setToggles(prev => prev.map(t => t.key === key ? { ...t, enabled: value } : t))

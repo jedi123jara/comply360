@@ -88,7 +88,14 @@ export function DocumentosFirmaClient() {
   }, [])
 
   useEffect(() => {
-    void fetchDocs()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void fetchDocs()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [fetchDocs])
 
   if (selectedDocId) {
@@ -167,7 +174,7 @@ export function DocumentosFirmaClient() {
           </h2>
           <p className="text-sm text-slate-600 mb-5 max-w-md mx-auto leading-relaxed">
             Marca tu RIT, política SST, política de hostigamiento u otros documentos como
-            "requiere firma de los trabajadores" para activar el flujo automático de notificación
+            &quot;requiere firma de los trabajadores&quot; para activar el flujo automático de notificación
             + acuse de recibo + audit trail SUNAFIL.
           </p>
           <Link
@@ -328,7 +335,14 @@ function DrillDownView({ docId, onBack }: { docId: string; onBack: () => void })
   }, [docId])
 
   useEffect(() => {
-    void fetchData()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void fetchData()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [fetchData])
 
   async function handleRemind(force = true) {
@@ -622,7 +636,7 @@ function ActivateAckModal({
           <div>
             <h2 className="text-xl font-bold text-slate-900">Activar firma en otro documento</h2>
             <p className="text-sm text-slate-600 mt-1">
-              Selecciona un documento existente para marcarlo como "requiere firma de los trabajadores".
+              Selecciona un documento existente para marcarlo como &quot;requiere firma de los trabajadores&quot;.
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">

@@ -62,12 +62,19 @@ export function CalendarioWorkerClient() {
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
 
   useEffect(() => {
-    setLoading(true)
-    fetch('/api/mi-portal/calendar')
-      .then((r) => r.json())
-      .then((d: { data?: WorkerEvent[] }) => setEvents(d.data ?? []))
-      .catch(() => setEvents([]))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setLoading(true)
+      fetch('/api/mi-portal/calendar')
+        .then((r) => r.json())
+        .then((d: { data?: WorkerEvent[] }) => setEvents(d.data ?? []))
+        .catch(() => setEvents([]))
+        .finally(() => setLoading(false))
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Próximos 30 días

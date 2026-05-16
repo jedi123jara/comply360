@@ -156,13 +156,15 @@ export function ContractFixModal({
     }
   }, [open, contractHtml, contractType, reviewResult, result])
 
+  const fixedHtml = result?.fixedHtml
+
   // Diff word-level (cliente, sin libs externas) — memoizado, ~100-300ms para 5k palabras
   const diffTokens = useMemo(() => {
-    if (!result?.fixedHtml) return null
+    if (!fixedHtml) return null
     const a = stripHtmlForDiff(contractHtml)
-    const b = stripHtmlForDiff(result.fixedHtml)
+    const b = stripHtmlForDiff(fixedHtml)
     return diffWords(a, b)
-  }, [contractHtml, result?.fixedHtml])
+  }, [contractHtml, fixedHtml])
 
   const stats = useMemo(() => (diffTokens ? diffStats(diffTokens) : null), [diffTokens])
 

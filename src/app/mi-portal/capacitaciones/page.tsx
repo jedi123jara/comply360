@@ -49,7 +49,16 @@ export default function CapacitacionesPage() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   const pendientes = items.filter((i) => i.status !== 'PASSED')
   const completadas = items.filter((i) => i.status === 'PASSED')

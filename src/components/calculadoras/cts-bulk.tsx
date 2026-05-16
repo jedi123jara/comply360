@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import type { CTSInput } from '@/lib/legal-engine'
 import { Users, Download, RefreshCw, Loader2, CheckCircle, Search, ChevronDown, ChevronUp, FileSpreadsheet } from 'lucide-react'
@@ -53,8 +53,9 @@ export function BulkCTSCalculadora() {
   const [sortField, setSortField] = useState<'nombre' | 'cts' | 'regimen'>('cts')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const fetchedRef = useRef(false)
 
-  async function fetchAndCalculate() {
+  const fetchAndCalculate = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/workers?limit=500&status=ACTIVE')
@@ -88,18 +89,29 @@ export function BulkCTSCalculadora() {
       setWorkers(rows)
       setSelected(new Set(rows.filter(r => r.ctsResult !== null).map(r => r.id)))
       setFetched(true)
+      fetchedRef.current = true
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [fechaCorte])
+
+  useEffect(() => {
+    fetchedRef.current = fetched
+  }, [fetched])
 
   // Recalculate when fechaCorte changes (if already fetched)
   useEffect(() => {
-    if (fetched) fetchAndCalculate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fechaCorte])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (fetchedRef.current) void fetchAndCalculate()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fechaCorte, fetchAndCalculate])
 
   function updateGratificacion(id: string, value: number) {
     setWorkers(prev => prev.map(w => {
@@ -181,7 +193,7 @@ export function BulkCTSCalculadora() {
     URL.revokeObjectURL(url)
   }
 
-  const SortIcon = ({ field }: { field: typeof sortField }) =>
+  const renderSortIcon = (field: typeof sortField) =>
     sortField === field
       ? (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)
       : <ChevronDown className="w-3 h-3 opacity-30" />
@@ -301,12 +313,12 @@ export function BulkCTSCalculadora() {
                   <th className="px-3 py-2.5 w-8"></th>
                   <th className="px-4 py-2.5 text-left">
                     <button onClick={() => toggleSort('nombre')} className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300">
-                      Trabajador <SortIcon field="nombre" />
+                      Trabajador {renderSortIcon('nombre')}
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-left">
                     <button onClick={() => toggleSort('regimen')} className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300">
-                      Régimen <SortIcon field="regimen" />
+                      Régimen {renderSortIcon('regimen')}
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Sueldo</th>
@@ -315,7 +327,7 @@ export function BulkCTSCalculadora() {
                   <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Meses</th>
                   <th className="px-4 py-2.5 text-right">
                     <button onClick={() => toggleSort('cts')} className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300 ml-auto">
-                      CTS <SortIcon field="cts" />
+                      CTS {renderSortIcon('cts')}
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>

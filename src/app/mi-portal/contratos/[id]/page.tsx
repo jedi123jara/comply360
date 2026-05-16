@@ -102,7 +102,14 @@ export default function ContratoDetailPage() {
   }, [id, router])
 
   useEffect(() => {
-    void load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   useEffect(() => {

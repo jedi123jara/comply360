@@ -295,10 +295,17 @@ export default function PortalEmpleadoPage() {
   }, [])
 
   useEffect(() => {
-    if (dni.length === 8) {
-      lookupReniec(dni)
-    } else {
-      setReniecNombre('')
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (dni.length === 8) {
+        lookupReniec(dni)
+      } else {
+        setReniecNombre('')
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [dni, lookupReniec])
 

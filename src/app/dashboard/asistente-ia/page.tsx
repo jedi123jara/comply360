@@ -172,7 +172,16 @@ export default function AsistenteIAPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Load conversations from localStorage on mount
-  useEffect(() => { setConversations(loadConversations()) }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setConversations(loadConversations())
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Persist conversations to localStorage on change
   useEffect(() => { if (conversations.length > 0) saveConversations(conversations) }, [conversations])

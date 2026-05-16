@@ -230,20 +230,16 @@ function LiquidacionesInner() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  // ── Auto-load from URL param ?worker=<id> ───────────────────────────
-  useEffect(() => {
-    if (preselectedWorkerId) {
-      loadWorkerLiquidacion(preselectedWorkerId)
-    }
-  // Only run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   // ── Search workers ──────────────────────────────────────────────────
   useEffect(() => {
+    let cancelled = false
     if (searchQuery.trim().length < 2) {
-      setSearchResults([])
-      return
+      void Promise.resolve().then(() => {
+        if (!cancelled) setSearchResults([])
+      })
+      return () => {
+        cancelled = true
+      }
     }
     const t = setTimeout(async () => {
       setSearching(true)
@@ -259,7 +255,10 @@ function LiquidacionesInner() {
         setSearching(false)
       }
     }, 300)
-    return () => clearTimeout(t)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
   }, [searchQuery])
 
   // ── Load liquidacion for worker ──────────────────────────────────────
@@ -284,6 +283,19 @@ function LiquidacionesInner() {
       setLoading(false)
     }
   }, [])
+
+  // ── Auto-load from URL param ?worker=<id> ───────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (!cancelled && preselectedWorkerId) {
+        void loadWorkerLiquidacion(preselectedWorkerId)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [preselectedWorkerId, loadWorkerLiquidacion])
 
   // ── Recalculate with edited input ────────────────────────────────────
   const recalculate = useCallback(async () => {

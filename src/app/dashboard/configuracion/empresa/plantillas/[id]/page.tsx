@@ -105,7 +105,14 @@ export default function PlantillaEditorPage({
   }, [id, router])
 
   useEffect(() => {
-    void load()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load])
 
   const detectedPlaceholders = useMemo(() => {
@@ -486,20 +493,27 @@ function GenerateModal({
   const [downloadingPdf, setDownloadingPdf] = useState(false)
 
   useEffect(() => {
-    if (!open) {
-      setPreview(null)
-      setSelectedWorkerId('')
-      return
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!open) {
+        setPreview(null)
+        setSelectedWorkerId('')
+        return
+      }
+      setLoadingWorkers(true)
+      fetch('/api/workers?status=ACTIVE&limit=200')
+        .then((r) => r.json())
+        .then((body: { data?: WorkerOption[]; workers?: WorkerOption[] }) => {
+          const list = body.data ?? body.workers ?? []
+          setWorkers(list)
+        })
+        .catch(() => toast.error('No se pudieron cargar los trabajadores'))
+        .finally(() => setLoadingWorkers(false))
+    })
+    return () => {
+      cancelled = true
     }
-    setLoadingWorkers(true)
-    fetch('/api/workers?status=ACTIVE&limit=200')
-      .then((r) => r.json())
-      .then((body: { data?: WorkerOption[]; workers?: WorkerOption[] }) => {
-        const list = body.data ?? body.workers ?? []
-        setWorkers(list)
-      })
-      .catch(() => toast.error('No se pudieron cargar los trabajadores'))
-      .finally(() => setLoadingWorkers(false))
   }, [open])
 
   const handlePreview = async () => {

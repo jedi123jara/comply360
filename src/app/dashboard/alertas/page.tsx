@@ -598,8 +598,15 @@ export default function AlertasPage() {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
-    loadAlerts().catch(err => console.error('Error loading alerts:', err)).finally(() => setLoading(false))
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setLoading(true)
+      loadAlerts().catch(err => console.error('Error loading alerts:', err)).finally(() => setLoading(false))
+    })
+    return () => {
+      cancelled = true
+    }
   }, [loadAlerts])
 
   // ── KPI counts (from DB stats for accuracy) ──

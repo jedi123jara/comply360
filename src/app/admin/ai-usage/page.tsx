@@ -121,7 +121,14 @@ export default function AiUsagePage() {
   )
 
   useEffect(() => {
-    void load(days)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load(days)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [load, days])
 
   return (

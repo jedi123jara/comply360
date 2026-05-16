@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -124,7 +124,7 @@ export default function IpercEditorPage() {
   const [approving, setApproving] = useState(false)
   const [filtroClas, setFiltroClas] = useState<Clasificacion | 'TODOS'>('TODOS')
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -140,12 +140,18 @@ export default function IpercEditorPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [ipercId])
 
   useEffect(() => {
-    if (ipercId) reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ipercId])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (ipercId) reload()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [ipercId, reload])
 
   const editable = iperc?.estado === 'BORRADOR' || iperc?.estado === 'REVISION'
 

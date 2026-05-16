@@ -134,7 +134,14 @@ export function DependentsCard({ workerId, workerHasAsignacionFamiliar }: Depend
   }, [workerId])
 
   useEffect(() => {
-    refresh()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      refresh()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [refresh])
 
   async function handleDelete(id: string) {

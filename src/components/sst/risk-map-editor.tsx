@@ -117,15 +117,22 @@ export default function RiskMapEditor({
 
   // Cargar plano de fondo
   useEffect(() => {
-    if (!layout.planoUrl) {
-      setPlanoImage(null)
-      return
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!layout.planoUrl) {
+        setPlanoImage(null)
+        return
+      }
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => setPlanoImage(img)
+      img.onerror = () => setPlanoImage(null)
+      img.src = layout.planoUrl
+    })
+    return () => {
+      cancelled = true
     }
-    const img = new window.Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => setPlanoImage(img)
-    img.onerror = () => setPlanoImage(null)
-    img.src = layout.planoUrl
   }, [layout.planoUrl])
 
   // Resize observer
@@ -143,7 +150,14 @@ export default function RiskMapEditor({
 
   // Sync incoming initial prop changes (e.g. after save)
   useEffect(() => {
-    setLayout(initial)
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setLayout(initial)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [initial])
 
   function emit(next: RiskMapLayout) {

@@ -62,7 +62,14 @@ export function WhatIfModal() {
 
   // Cuando cierra el modal, limpiar.
   useEffect(() => {
-    if (!open) reset()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      if (!open) reset()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [open])
 
   const submit = async () => {

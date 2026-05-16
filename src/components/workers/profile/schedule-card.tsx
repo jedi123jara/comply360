@@ -60,7 +60,16 @@ export function ScheduleCard({ workerId }: { workerId: string }) {
     }
   }, [workerId])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   const startEdit = () => {
     setDraft(schedule)

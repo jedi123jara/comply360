@@ -174,6 +174,13 @@ export default function ImportarPdfPage() {
     }
   }, [])
 
+  function findNextPending(fromIdx: number): number | null {
+    for (let i = fromIdx + 1; i < items.length; i++) {
+      if (states[i] === 'pending') return i
+    }
+    return null
+  }
+
   // Cuando cambia el contrato actual, extraer sus datos + prefetch el siguiente
   useEffect(() => {
     if (!sessionId || items.length === 0) return
@@ -276,13 +283,6 @@ export default function ImportarPdfPage() {
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, currentIdx, items.length, retryTrigger])
-
-  function findNextPending(fromIdx: number): number | null {
-    for (let i = fromIdx + 1; i < items.length; i++) {
-      if (states[i] === 'pending') return i
-    }
-    return null
-  }
 
   // ─── Upload: solo split, sin IA ──────────────────────────────────────────
 

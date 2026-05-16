@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import {
   Plus,
   Loader2,
@@ -89,7 +89,14 @@ export default function ArcoPage() {
   }
 
   useEffect(() => {
-    reload()
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      reload()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
@@ -433,7 +440,7 @@ function DetalleModal({
   const [respuestaUrl, setRespuestaUrl] = useState('')
   const [saving, setSaving] = useState(false)
 
-  async function load(descifrar: boolean) {
+  const load = useCallback(async (descifrar: boolean) => {
     setLoading(true)
     try {
       const url = descifrar
@@ -455,12 +462,18 @@ function DetalleModal({
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
-    load(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      load(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   async function actualizar() {
     if (saving) return

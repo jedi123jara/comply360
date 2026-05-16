@@ -62,30 +62,39 @@ export function SealQRModal({
   const [copied, setCopied] = useState<'url' | 'hash' | null>(null)
 
   useEffect(() => {
-    if (!isOpen) {
-      setData(null)
-      setError(null)
-      return
-    }
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    fetch(`/api/sst/seal/${kind}/${resourceId}`, { cache: 'no-store' })
-      .then(async (r) => {
-        if (!r.ok) {
-          const j = await r.json().catch(() => ({}))
-          throw new Error(j?.error || 'No se pudo generar el sello')
+    if (!isOpen) {
+      void Promise.resolve().then(() => {
+        if (!cancelled) {
+          setData(null)
+          setError(null)
         }
-        return r.json() as Promise<SealResponse>
       })
-      .then((j) => {
-        if (!cancelled) setData(j)
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Error desconocido')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setLoading(true)
+      setError(null)
+      fetch(`/api/sst/seal/${kind}/${resourceId}`, { cache: 'no-store' })
+        .then(async (r) => {
+          if (!r.ok) {
+            const j = await r.json().catch(() => ({}))
+            throw new Error(j?.error || 'No se pudo generar el sello')
+          }
+          return r.json() as Promise<SealResponse>
+        })
+        .then((j) => {
+          if (!cancelled) setData(j)
+        })
+        .catch((e) => {
+          if (!cancelled) setError(e instanceof Error ? e.message : 'Error desconocido')
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false)
+        })
       })
     return () => {
       cancelled = true

@@ -61,12 +61,19 @@ export function ScoreNarrative({
   })
 
   useEffect(() => {
-    setTodayLabel(
-      new Intl.DateTimeFormat('es-PE', {
-        day: 'numeric',
-        month: 'short',
-      }).format(new Date()),
-    )
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setTodayLabel(
+        new Intl.DateTimeFormat('es-PE', {
+          day: 'numeric',
+          month: 'short',
+        }).format(new Date()),
+      )
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (

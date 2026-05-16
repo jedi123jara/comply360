@@ -86,7 +86,14 @@ export function WorkerPicker({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    setRecents(readRecents(orgId))
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      setRecents(readRecents(orgId))
+    })
+    return () => {
+      cancelled = true
+    }
   }, [orgId])
 
   useEffect(() => {

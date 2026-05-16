@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   FileText, RefreshCw, Plus, ChevronDown, ChevronUp,
@@ -495,7 +495,7 @@ export default function HonorariosPage() {
     hasSuspension: boolean
   } | null>(null)
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/honorarios?periodo=${periodo}`)
@@ -503,10 +503,18 @@ export default function HonorariosPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [periodo])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { void load() }, [periodo])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      void load()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [load])
 
   async function handleStatusChange(providerId: string, invoiceId: string, status: string) {
     await fetch(`/api/prestadores/${providerId}/recibos/${invoiceId}`, {
