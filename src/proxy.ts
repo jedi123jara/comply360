@@ -26,6 +26,7 @@ const isPublicRoute = createRouteMatcher([
   '/portal-empleado(.*)',    // Lookup publico del trabajador (DNI + codigo empresa)
   '/firmar(.*)',             // Firma biométrica por link público (mobile deep link)
   '/mi-portal/registrarse',  // Worker self-serve signup (sin invitación de empresa)
+  '/mi-portal/ingresar',     // Worker-specific login entrypoint
   '/audit/orgchart(.*)',     // Auditor Link público del organigrama (token JWT)
   '/verify(.*)',             // Verificación pública de sellos SST + contratos (slug en URL)
 
@@ -55,12 +56,6 @@ const isPublicRoute = createRouteMatcher([
 const isSuperAdminRoute = createRouteMatcher([
   '/admin(.*)',
   '/api/admin(.*)',
-])
-
-// Rutas que requieren rol WORKER (trabajadores con login)
-const isWorkerPortalRoute = createRouteMatcher([
-  '/mi-portal(.*)',
-  '/api/mi-portal(.*)',
 ])
 
 // Rutas del dashboard de gestion (OWNER/ADMIN/MEMBER/VIEWER)
@@ -138,12 +133,6 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
     if (isSuperAdminRoute(request) && role && role !== 'SUPER_ADMIN') {
       const url = request.nextUrl.clone()
       url.pathname = role === 'WORKER' ? '/mi-portal' : '/dashboard'
-      return NextResponse.redirect(url)
-    }
-
-    if (isWorkerPortalRoute(request) && role && role !== 'WORKER') {
-      const url = request.nextUrl.clone()
-      url.pathname = role === 'SUPER_ADMIN' ? '/admin' : '/dashboard'
       return NextResponse.redirect(url)
     }
 

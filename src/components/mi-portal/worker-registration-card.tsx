@@ -4,14 +4,17 @@ import { useEffect, useState } from 'react'
 import { SignUp, useClerk, useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
+import { workerAuthAppearance } from '@/components/mi-portal/worker-auth-appearance'
 
 interface MeResponse {
   role?: string
+  workerId?: string | null
 }
 
 interface MeState {
   userId: string
   role: string | null
+  workerId: string | null
 }
 
 export function WorkerRegistrationCard() {
@@ -27,10 +30,10 @@ export function WorkerRegistrationCard() {
     fetch('/api/me', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((me: MeResponse | null) => {
-        if (!cancelled) setMe({ userId: signedInUserId, role: me?.role ?? null })
+        if (!cancelled) setMe({ userId: signedInUserId, role: me?.role ?? null, workerId: me?.workerId ?? null })
       })
       .catch(() => {
-        if (!cancelled) setMe({ userId: signedInUserId, role: null })
+        if (!cancelled) setMe({ userId: signedInUserId, role: null, workerId: null })
       })
 
     return () => {
@@ -53,7 +56,7 @@ export function WorkerRegistrationCard() {
   }
 
   if (isSignedIn) {
-    const isWorker = role === 'WORKER'
+    const isWorker = role === 'WORKER' || Boolean(me?.workerId)
     const dashboardHref = role === 'SUPER_ADMIN' ? '/admin' : '/dashboard'
 
     return (
@@ -68,12 +71,12 @@ export function WorkerRegistrationCard() {
                 Sesión activa
               </p>
               <h2 className="mt-1 text-lg font-bold text-slate-950">
-                {isWorker ? 'Ya tienes una cuenta de trabajador abierta' : 'Estás usando una cuenta empresarial'}
+                {isWorker ? 'Ya tienes acceso a tu portal trabajador' : 'Estás usando una cuenta empresarial'}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-700">
                 {isWorker
-                  ? 'Puedes entrar directamente a tu portal.'
-                  : 'Para aceptar una invitación de trabajador, primero cierra esta sesión y vuelve a abrir el enlace con el correo del trabajador.'}
+                  ? 'Puedes entrar directamente. Si también tienes panel empresa, Comply360 mantendrá ambos accesos separados.'
+                  : 'Para aceptar una invitación de trabajador, entra con el correo del trabajador invitado. Si esta misma cuenta tiene ficha laboral, se vinculará automáticamente.'}
               </p>
               {user?.primaryEmailAddress?.emailAddress && (
                 <p className="mt-2 truncate rounded-lg bg-white px-3 py-2 text-xs font-mono text-slate-600 ring-1 ring-amber-200">
@@ -94,10 +97,10 @@ export function WorkerRegistrationCard() {
             ) : (
               <button
                 type="button"
-                onClick={() => signOut({ redirectUrl: '/mi-portal/registrarse' })}
+                onClick={() => signOut({ redirectUrl: '/mi-portal/ingresar' })}
                 className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
               >
-                Cerrar sesión y crear cuenta de trabajador
+                Cerrar sesión e ingresar como trabajador
               </button>
             )}
             <Link
@@ -113,37 +116,25 @@ export function WorkerRegistrationCard() {
   }
 
   return (
-    <div className="rounded-2xl bg-white p-2 shadow-2xl shadow-emerald-100 ring-1 ring-emerald-100 sm:p-4">
+    <div className="rounded-[28px] bg-white p-5 shadow-2xl shadow-emerald-950/30 ring-1 ring-white/70 sm:p-6">
+      <div className="mb-5">
+        <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+          Crear cuenta trabajador
+        </p>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+          Accede a tu portal personal
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Usa el correo donde recibiste la invitación. Si tu empresa ya te registró,
+          el vínculo se completa automáticamente.
+        </p>
+      </div>
       <SignUp
         forceRedirectUrl="/mi-portal/bienvenida"
         fallbackRedirectUrl="/mi-portal/bienvenida"
-        signInUrl="/sign-in"
+        signInUrl="/mi-portal/ingresar"
         unsafeMetadata={{ signupAs: 'WORKER' }}
-        appearance={{
-          variables: {
-            colorPrimary: '#2563eb',
-            colorText: '#0f172a',
-            colorTextSecondary: '#64748b',
-            colorBackground: '#ffffff',
-            colorInputBackground: '#ffffff',
-            colorInputText: '#0f172a',
-            borderRadius: '12px',
-            fontFamily: 'var(--font-jakarta), var(--font-geist-sans), sans-serif',
-          },
-          elements: {
-            rootBox: 'mx-auto w-full',
-            card: 'shadow-none border-none',
-            headerTitle: 'text-emerald-700 text-xl',
-            headerSubtitle: 'text-slate-600 text-sm',
-            formButtonPrimary:
-              'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md',
-            footerAction: 'text-emerald-700',
-            identityPreviewEditButton: 'text-emerald-700',
-            formFieldInput:
-              'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20',
-            socialButtonsBlockButton: 'border-slate-200 hover:bg-slate-50',
-          },
-        }}
+        appearance={workerAuthAppearance}
       />
     </div>
   )

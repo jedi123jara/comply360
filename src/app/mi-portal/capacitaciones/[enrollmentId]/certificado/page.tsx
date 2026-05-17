@@ -16,6 +16,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Award, CalendarDays, ShieldCheck } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext } from '@/lib/auth'
+import { resolveWorkerForAuth } from '@/lib/worker-auth'
 import { formatLongDate } from '@/lib/format/peruvian'
 import { PrintShareButtons } from './print-share-buttons'
 
@@ -29,11 +30,8 @@ export default async function CertificadoPage({ params }: PageParams) {
   const ctx = await getAuthContext()
   if (!ctx) notFound()
 
-  // Resolver worker del user logueado (1-1 cuando activa portal)
-  const worker = await prisma.worker.findFirst({
-    where: { userId: ctx.userId },
-    select: { id: true, orgId: true },
-  })
+  // Resolver worker del user logueado (incluye cuentas duales empresa+trabajador).
+  const worker = await resolveWorkerForAuth(ctx)
   if (!worker) notFound()
 
   // Verificar que la enrollment pertenece al worker + está PASSED

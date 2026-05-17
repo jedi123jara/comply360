@@ -67,10 +67,10 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
   const pathname = usePathname() ?? '/mi-portal'
   const router = useRouter()
   const { signOut } = useClerk()
-  const isPublicRegistration = pathname === '/mi-portal/registrarse'
+  const isPublicAuth = pathname === '/mi-portal/registrarse' || pathname === '/mi-portal/ingresar'
 
   useEffect(() => {
-    if (isPublicRegistration) return
+    if (isPublicAuth) return
 
     let cancelled = false
 
@@ -81,11 +81,11 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
           return
         }
 
-        const me = await res.json().catch(() => null) as { role?: string } | null
+        const me = await res.json().catch(() => null) as { role?: string; workerId?: string | null } | null
         if (cancelled) return
         setCurrentRole(me?.role ?? null)
 
-        if (me?.role === 'WORKER') {
+        if (me?.role === 'WORKER' || me?.workerId) {
           setRoleGate('allowed')
           return
         }
@@ -99,9 +99,9 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
     return () => {
       cancelled = true
     }
-  }, [isPublicRegistration, router])
+  }, [isPublicAuth, router])
 
-  if (isPublicRegistration) {
+  if (isPublicAuth) {
     return <>{children}</>
   }
 
@@ -110,7 +110,7 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
       return (
         <WorkerAccountMismatch
           role={currentRole}
-          onWorkerLogin={() => signOut({ redirectUrl: '/mi-portal/registrarse' })}
+          onWorkerLogin={() => signOut({ redirectUrl: '/mi-portal/ingresar' })}
         />
       )
     }
@@ -418,7 +418,8 @@ function WorkerAccountMismatch({
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
                 El portal del trabajador necesita una cuenta de trabajador. Para probar la invitación,
-                cierra esta sesión empresarial y entra con el correo del trabajador invitado.
+                entra por el acceso trabajador con el correo del trabajador invitado. Si este mismo
+                correo tiene ficha laboral, Comply360 lo vinculará automáticamente.
               </p>
 
               <div className="mt-6 flex flex-col gap-2 sm:flex-row">

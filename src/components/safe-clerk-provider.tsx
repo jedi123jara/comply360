@@ -2,6 +2,7 @@
 
 import React, { Component, type ReactNode } from 'react'
 import { ClerkProvider } from '@clerk/nextjs'
+import { esES } from '@clerk/localizations'
 
 /* -------------------------------------------------------------------------- */
 /*  SafeClerkProvider                                                         */
@@ -74,7 +75,7 @@ class ClerkErrorBoundary extends Component<Props, State> {
 export default function SafeClerkProvider({ children }: Props) {
   return (
     <ClerkErrorBoundary>
-      <ClerkProvider>
+      <ClerkProvider localization={esES}>
         {children}
       </ClerkProvider>
     </ClerkErrorBoundary>

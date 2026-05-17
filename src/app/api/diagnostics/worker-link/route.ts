@@ -87,8 +87,8 @@ export const GET = withRole('ADMIN', async (req: NextRequest, ctx) => {
     diagnosis = `✅ Worker correctamente vinculado a User ${linkedUser.id} (${linkedUser.email}, role=WORKER).`
     suggestion = 'Si el worker sigue viendo errores, pídele cerrar sesión completamente y volver a iniciar (refresh de Clerk session claims).'
   } else if (linkedUser && linkedUser.role !== 'WORKER') {
-    diagnosis = `⚠️ Worker vinculado a User ${linkedUser.id} pero ese User tiene role=${linkedUser.role} (no WORKER).`
-    suggestion = 'Esto ocurre si el usuario se registró desde /sign-up del dashboard en lugar de /mi-portal/registrarse. Solución: forzar role=WORKER en ese User (necesita endpoint de fix manual).'
+    diagnosis = `✅ Worker vinculado a User ${linkedUser.id} con acceso dual (role=${linkedUser.role}).`
+    suggestion = 'Correcto: esa persona mantiene acceso empresarial y también puede entrar por /mi-portal/ingresar si tiene ficha Worker activa.'
   } else if (worker.userId && !linkedUser) {
     diagnosis = `❌ Worker.userId apunta a un User huérfano (id=${worker.userId} ya no existe).`
     suggestion = 'El User fue eliminado pero el worker quedó con el FK. Limpiamos worker.userId y dejamos que se re-vincule cuando el usuario se loguee de nuevo.'
@@ -99,7 +99,7 @@ export const GET = withRole('ADMIN', async (req: NextRequest, ctx) => {
     const u = usersByEmail[0]
     diagnosis = `⚠️ Hay un User con email "${u.email}" (role=${u.role}, clerk=${u.clerkId.slice(0, 12)}...) pero el Worker.userId está NULL — el vínculo nunca se hizo.`
     if (u.role !== 'WORKER') {
-      suggestion = `El usuario se registró pero como ${u.role}, no como WORKER. Probablemente entró por /sign-up del dashboard en lugar del link de invitación. Necesita re-registrarse desde /mi-portal/registrarse.`
+      suggestion = `El usuario tiene role=${u.role}. Ya no hace falta convertirlo a WORKER: vincula Worker.userId a ese User y usará acceso dual desde /mi-portal/ingresar.`
     } else {
       suggestion = 'Bug residual del JIT. Llama a /api/diagnostics/worker-link/fix?workerId=' + workerId + ' (POST) para forzar el vínculo manualmente.'
     }
@@ -189,15 +189,12 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     data: { userId: user.id },
   })
 
-  // CRÍTICO: SIEMPRE actualizar User.orgId al orgId del Worker.
-  // Antes solo lo hacía si user.orgId era null. Pero si el User se registró
-  // mal (ej. sign-up genérico) tiene orgId='org-xxx-dummy' (org dummy del
-  // JIT) y endpoints /api/mi-portal/* buscan Worker en esa org dummy → 404.
-  // El orgId correcto es siempre el del Worker pre-existente que la empresa
-  // creó. Overwrite intencional (el admin tomó decisión consciente).
+  // Solo las cuentas worker-only heredan orgId del Worker. Si el User es
+  // OWNER/ADMIN/etc., conserva su orgId empresarial y el portal trabajador
+  // usa worker.orgId desde WorkerAuthContext.
   let orgIdChanged = false
   const oldOrgId: string | null = user.orgId
-  if (user.orgId !== worker.orgId) {
+  if (user.role === 'WORKER' && user.orgId !== worker.orgId) {
     await prisma.user.update({
       where: { id: user.id },
       data: { orgId: worker.orgId },
@@ -205,16 +202,8 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     orgIdChanged = true
   }
 
-  // Si el User no tiene role=WORKER, promoverlo (overwrite intencional —
-  // el admin tomó decisión consciente al hacer click "Vincular cuenta")
-  let rolePromoted = false
-  if (user.role !== 'WORKER') {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { role: 'WORKER' },
-    })
-    rolePromoted = true
-  }
+  // No promovemos OWNER/ADMIN/etc. a WORKER: ahora son cuentas duales.
+  const rolePromoted = false
 
   // Limpiar org dummy huérfana: si User estaba en una org dummy que se
   // creó automáticamente cuando se registró mal (formato 'org-xxx-gmail-com'
@@ -240,20 +229,18 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     }
   }
 
-  // CRÍTICO: sincronizar el rol a Clerk publicMetadata. Sin esto, el
-  // middleware Edge sigue leyendo el role viejo (OWNER) desde session
-  // claims y redirige al worker a /dashboard. El cambio en Prisma solo
-  // afecta queries server-side, NO al middleware.
-  try {
-    const { clerkClient } = await import('@clerk/nextjs/server')
-    const client = await clerkClient()
-    await client.users.updateUserMetadata(user.clerkId, {
-      publicMetadata: { role: 'WORKER' },
-    })
-  } catch (clerkErr) {
-    console.error('[worker-link/fix] syncRoleToClerk failed:', clerkErr)
-    // No-fatal: el cambio en Prisma sigue valiendo. El worker debe re-loguear
-    // (token refresh) para que el middleware lea el nuevo rol.
+  if (user.role === 'WORKER') {
+    try {
+      const { clerkClient } = await import('@clerk/nextjs/server')
+      const client = await clerkClient()
+      await client.users.updateUserMetadata(user.clerkId, {
+        publicMetadata: { role: 'WORKER' },
+      })
+    } catch (clerkErr) {
+      console.error('[worker-link/fix] syncRoleToClerk failed:', clerkErr)
+      // No-fatal: el cambio en Prisma sigue valiendo. El worker debe re-loguear
+      // (token refresh) para que el middleware lea el nuevo rol.
+    }
   }
 
   return NextResponse.json({
@@ -266,8 +253,8 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
     oldOrgId: orgIdChanged ? oldOrgId : null,
     newOrgId: orgIdChanged ? worker.orgId : null,
     dummyOrgCleaned,
-    note: (rolePromoted || orgIdChanged)
-      ? 'El User tenía role=' + (rolePromoted ? 'OWNER y/o ' : '') + 'orgId distintos (probablemente por registro mal). Corregidos en Prisma + Clerk publicMetadata. CRÍTICO: el worker DEBE cerrar sesión completamente y volver a iniciar — sin re-login, su JWT sigue cacheando los valores viejos.'
+    note: user.role !== 'WORKER'
+      ? 'Cuenta dual vinculada: mantiene acceso empresarial y puede entrar al portal trabajador desde /mi-portal/ingresar.'
       : 'Pídele que cierre sesión y vuelva a iniciar para refrescar la sesión de Clerk.',
   })
 })

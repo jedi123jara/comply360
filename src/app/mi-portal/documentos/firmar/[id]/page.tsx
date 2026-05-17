@@ -17,6 +17,7 @@
 import { redirect } from 'next/navigation'
 import { getAuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveWorkerForAuth } from '@/lib/worker-auth'
 import { FirmaDocClient } from './client'
 
 export const dynamic = 'force-dynamic'
@@ -24,13 +25,15 @@ export const dynamic = 'force-dynamic'
 export default async function FirmarDocPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await getAuthContext()
   if (!ctx) redirect('/sign-in')
-  if (ctx.role !== 'WORKER') redirect('/post-login')
 
   const { id } = await params
+  const resolvedWorker = await resolveWorkerForAuth(ctx, { includeTerminated: true })
+
+  if (!resolvedWorker) redirect('/post-login?intent=worker')
 
   // Worker entry vinculado
   const worker = await prisma.worker.findFirst({
-    where: { userId: ctx.userId, orgId: ctx.orgId, status: 'ACTIVE' },
+    where: { id: resolvedWorker.id, orgId: resolvedWorker.orgId, status: 'ACTIVE' },
     select: { id: true, firstName: true, lastName: true },
   })
   if (!worker) {
@@ -44,7 +47,7 @@ export default async function FirmarDocPage({ params }: { params: Promise<{ id: 
 
   // Doc + verificar que requiere ack
   const doc = await prisma.orgDocument.findFirst({
-    where: { id, orgId: ctx.orgId, acknowledgmentRequired: true },
+    where: { id, orgId: resolvedWorker.orgId, acknowledgmentRequired: true },
     select: {
       id: true,
       type: true,

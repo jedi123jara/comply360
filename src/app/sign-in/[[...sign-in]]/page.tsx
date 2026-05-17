@@ -1,6 +1,7 @@
 import { SignIn } from '@clerk/nextjs'
 import { BrandLogo } from '@/components/comply360/brand-logo'
-import { ShieldCheck, Users, Activity } from 'lucide-react'
+import Link from 'next/link'
+import { ShieldCheck, Users, Activity, ArrowRight } from 'lucide-react'
 
 /**
  * SignInPage — pantalla editorial de ingreso.
@@ -103,6 +104,16 @@ export default function SignInPage() {
             },
           }}
         />
+
+        <div className="mt-4 text-center">
+          <Link
+            href="/mi-portal/ingresar"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-300 hover:text-emerald-200"
+          >
+            ¿Eres trabajador? Entra a tu portal
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
 
         {/* Trust signals */}
         <div

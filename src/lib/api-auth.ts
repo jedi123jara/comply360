@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, type AuthContext } from '@/lib/auth'
+import { resolveWorkerForAuth } from '@/lib/worker-auth'
 import { workerPortalLimiter, superAdminLimiter } from '@/lib/rate-limit'
 import { checkIpBlock, getClientIp, recordAuthFailure, recordSuccess, trackRequest, logSecurityEvent } from '@/lib/security/middleware'
 
@@ -312,8 +313,9 @@ export interface WorkerAuthContext extends AuthContext {
 
 /**
  * Restringe acceso al portal del trabajador (/mi-portal).
- * Solo permite acceso a usuarios con rol WORKER que tengan un Worker vinculado.
- * Inyecta workerId en el contexto.
+ * Permite cuentas WORKER y cuentas duales (OWNER/ADMIN/etc.) que tengan una
+ * ficha Worker activa vinculada por userId o por email verificado.
+ * Inyecta workerId y orgId del trabajador en el contexto.
  */
 export function withWorkerAuth(
   handler: (req: NextRequest, ctx: WorkerAuthContext, params?: unknown) => Promise<NextResponse>
@@ -327,54 +329,20 @@ export function withWorkerAuth(
           { status: 401 }
         )
       }
-      if (!isWorkerRole(authCtx.role)) {
-        return NextResponse.json(
-          { error: 'Este portal es solo para trabajadores.' },
-          { status: 403 }
-        )
-      }
-
       // Rate limit por trabajador (30 req/min)
       const rl = await workerPortalLimiter.check(req, `worker:${authCtx.userId}`)
       if (!rl.success && rl.response) return rl.response
 
-      // Resolver el Worker vinculado al User
-      const { prisma } = await import('@/lib/prisma')
-      let worker = await prisma.worker.findUnique({
-        where: { userId: authCtx.userId },
-        select: { id: true, orgId: true, status: true },
-      })
-
-      // Self-healing: si no hay Worker vinculado por userId, intentar buscar
-      // por email match (caso típico: worker se registró antes que el JIT
-      // self-link estuviera activo, o el orden de eventos rompió el vínculo).
-      // Esto evita que TODOS los endpoints /api/mi-portal/* fallen con 404
-      // en cascada cuando el vínculo está pendiente.
-      if (!worker && authCtx.email) {
-        const orphan = await prisma.worker.findFirst({
-          where: { email: { equals: authCtx.email, mode: 'insensitive' }, userId: null },
-          select: { id: true, orgId: true, status: true },
-          orderBy: { createdAt: 'asc' },
-        })
-        if (orphan) {
-          await prisma.worker.update({
-            where: { id: orphan.id },
-            data: { userId: authCtx.userId },
-          })
-          // Si el User no tenía orgId, asignárselo del Worker
-          await prisma.user.update({
-            where: { id: authCtx.userId },
-            data: { orgId: orphan.orgId },
-          }).catch(() => { /* best-effort */ })
-          worker = orphan
-          console.log(`[withWorkerAuth] Auto-vinculado Worker ${orphan.id} → User ${authCtx.userId} (lazy)`)
-        }
-      }
+      const worker = await resolveWorkerForAuth(authCtx, { includeTerminated: true })
 
       if (!worker) {
         return NextResponse.json(
-          { error: 'No se encontro un perfil de trabajador asociado.' },
-          { status: 404 }
+          {
+            error: isWorkerRole(authCtx.role)
+              ? 'No se encontro un perfil de trabajador asociado.'
+              : 'Esta cuenta empresarial no tiene un trabajador vinculado.',
+          },
+          { status: isWorkerRole(authCtx.role) ? 404 : 403 }
         )
       }
 
@@ -420,47 +388,19 @@ export function withWorkerAuthParams<P extends Record<string, string>>(
           { status: 401 }
         )
       }
-      if (!isWorkerRole(authCtx.role)) {
-        return NextResponse.json(
-          { error: 'Este portal es solo para trabajadores.' },
-          { status: 403 }
-        )
-      }
-
       const rl = await workerPortalLimiter.check(req, `worker:${authCtx.userId}`)
       if (!rl.success && rl.response) return rl.response
 
-      const { prisma } = await import('@/lib/prisma')
-      let worker = await prisma.worker.findUnique({
-        where: { userId: authCtx.userId },
-        select: { id: true, orgId: true, status: true },
-      })
-
-      // Self-healing: idéntico a withWorkerAuth (ver razón ahí)
-      if (!worker && authCtx.email) {
-        const orphan = await prisma.worker.findFirst({
-          where: { email: { equals: authCtx.email, mode: 'insensitive' }, userId: null },
-          select: { id: true, orgId: true, status: true },
-          orderBy: { createdAt: 'asc' },
-        })
-        if (orphan) {
-          await prisma.worker.update({
-            where: { id: orphan.id },
-            data: { userId: authCtx.userId },
-          })
-          await prisma.user.update({
-            where: { id: authCtx.userId },
-            data: { orgId: orphan.orgId },
-          }).catch(() => { /* best-effort */ })
-          worker = orphan
-          console.log(`[withWorkerAuthParams] Auto-vinculado Worker ${orphan.id} → User ${authCtx.userId} (lazy)`)
-        }
-      }
+      const worker = await resolveWorkerForAuth(authCtx, { includeTerminated: true })
 
       if (!worker) {
         return NextResponse.json(
-          { error: 'No se encontro un perfil de trabajador asociado.' },
-          { status: 404 }
+          {
+            error: isWorkerRole(authCtx.role)
+              ? 'No se encontro un perfil de trabajador asociado.'
+              : 'Esta cuenta empresarial no tiene un trabajador vinculado.',
+          },
+          { status: isWorkerRole(authCtx.role) ? 404 : 403 }
         )
       }
 

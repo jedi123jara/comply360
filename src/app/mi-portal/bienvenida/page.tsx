@@ -22,6 +22,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getAuthContext } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveWorkerForAuth } from '@/lib/worker-auth'
 import { ArrowRight, User, FileText, GraduationCap, Briefcase, Building2, Sparkles } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -34,7 +35,8 @@ export const metadata = {
 export default async function BienvenidaPage() {
   const ctx = await getAuthContext()
   if (!ctx) redirect('/sign-in')
-  if (ctx.role !== 'WORKER') redirect('/post-login')
+  const resolvedWorker = await resolveWorkerForAuth(ctx, { includeProfile: true })
+  if (ctx.role !== 'WORKER' && !resolvedWorker) redirect('/post-login')
 
   // Detectar si el worker tiene Worker entry vinculada a alguna empresa
   // (el JIT puede haber creado la User pero el Worker se crea cuando una
