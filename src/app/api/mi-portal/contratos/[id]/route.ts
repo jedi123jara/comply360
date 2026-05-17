@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server'
 import { withWorkerAuthParams } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 export const runtime = 'nodejs'
 
@@ -57,7 +58,7 @@ export const GET = withWorkerAuthParams<{ id: string }>(async (_req, ctx, params
     type: c.type,
     status: c.status,
     pendingToSign: ['DRAFT', 'IN_REVIEW', 'APPROVED'].includes(c.status),
-    contentHtml: c.contentHtml ?? '',
+    contentHtml: sanitizeHtml(c.contentHtml ?? ''),
     signedAt: c.signedAt?.toISOString() ?? null,
     signature: signatureMeta
       ? {

@@ -12,8 +12,9 @@ export default function DenunciasPage() {
 
     fetch('/api/me', { credentials: 'include' })
       .then((res) => res.ok ? res.json() : null)
-      .then((me: { orgId?: string } | null) => {
-        if (!cancelled && me?.orgId) setComplaintHref(`/denuncias/${me.orgId}`)
+      .then((me: { orgId?: string | null; workerOrgId?: string | null } | null) => {
+        const orgId = me?.workerOrgId ?? me?.orgId
+        if (!cancelled && orgId) setComplaintHref(`/denuncias/${orgId}`)
       })
       .catch(() => null)
 

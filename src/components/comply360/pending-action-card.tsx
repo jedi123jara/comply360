@@ -126,12 +126,19 @@ export function PendingActionCard({
   return (
     <Link
       href={href}
-      className="group block rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-lift,0_8px_16px_-4px_rgba(15,23,42,0.08))]"
+      className="group relative block overflow-hidden rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-24px_rgba(15,23,42,0.35)]"
       style={{
         background: palette.bg,
-        border: `0.5px solid ${palette.border}`,
+        border: `1px solid ${palette.border}`,
+        boxShadow:
+          '0 10px 24px -20px rgba(15,23,42,0.28), inset 0 1px 0 rgba(255,255,255,0.78)',
       }}
     >
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-[3px]"
+        style={{ background: palette.ctaBg }}
+      />
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div
@@ -181,10 +188,11 @@ export function PendingActionCard({
           aria-hidden="true"
           className="flex items-center justify-center rounded-full flex-shrink-0 transition-transform group-hover:translate-x-0.5"
           style={{
-            width: 28,
-            height: 28,
-            background: palette.ctaBg,
+            width: 34,
+            height: 34,
+            background: `linear-gradient(135deg, ${palette.ctaBg}, #1d4ed8)`,
             color: '#fff',
+            boxShadow: '0 10px 18px -12px rgba(15,23,42,0.45)',
           }}
         >
           <ArrowRight className="h-3.5 w-3.5" />

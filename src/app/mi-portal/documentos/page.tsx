@@ -152,7 +152,6 @@ export default function MisDocumentosPage() {
         setError(e.message)
       })
       .finally(() => {
-         
         if (mounted) setLoading(false)
       })
     return () => {
@@ -208,10 +207,10 @@ export default function MisDocumentosPage() {
             color: 'var(--text-primary)',
             marginBottom: 6,
           }}
-          dangerouslySetInnerHTML={{
-            __html: `Tu <em style="color: var(--emerald-700); font-style: italic">legajo</em> está al ${completeness.pct}%`,
-          }}
-        />
+        >
+          Tu <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>legajo</em>{' '}
+          está al {completeness.pct}%
+        </h1>
         <p className="text-sm text-[color:var(--text-secondary)] max-w-xl">
           {completeness.missing > 0
             ? `Te faltan ${completeness.missing} de ${completeness.total} documentos. Completar el legajo protege tus derechos laborales y a tu empresa ante SUNAFIL.`

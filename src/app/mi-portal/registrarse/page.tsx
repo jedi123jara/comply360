@@ -122,7 +122,7 @@ export default function RegistrarseWorkerPage() {
 
           {/* Form Clerk — Lado derecho */}
           <div className="order-1 lg:order-2">
-            <div className="rounded-[32px] border border-emerald-400/30 bg-slate-900/80 p-4 shadow-2xl shadow-emerald-950/40 sm:p-6">
+            <div className="rounded-[32px] border border-emerald-400/30 bg-slate-900/80 p-3 shadow-2xl shadow-emerald-950/40 sm:p-6">
               <WorkerRegistrationCard />
             </div>
 

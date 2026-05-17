@@ -21,6 +21,7 @@ import {
   FileSignature,
   Clock,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import { ConsentGate } from '@/components/legal/consent-modal'
 import { PendingAcksBanner } from '@/components/mi-portal/pending-acks-banner'
@@ -115,9 +116,7 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
       )
     }
 
-    return (
-      <div className="min-h-screen bg-[color:var(--bg-canvas)] text-[color:var(--text-primary)]" />
-    )
+    return <WorkerPortalLoading />
   }
 
   function isActive(href: string): boolean {
@@ -134,7 +133,7 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg-canvas,#ffffff)] text-[color:var(--text-primary)]">
+    <div className="c360-worker-portal min-h-screen bg-[color:var(--bg-canvas,#ffffff)] text-[color:var(--text-primary)]">
       {/* Banner sticky de docs pendientes — solo aparece si hay alguno */}
       <PendingAcksBanner />
 
@@ -333,11 +332,13 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
       {/* MAIN CONTENT                                                   */}
       {/* ────────────────────────────────────────────────────────────── */}
       <main
-        className="lg:pl-64 px-4 py-5 lg:px-8 lg:py-8 max-w-4xl mx-auto"
+        className="px-4 py-5 lg:ml-64 lg:px-8 lg:py-8"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 88px)' /* bottom nav space on mobile */ }}
       >
-        {/* ConsentGate obliga al trabajador a autorizar tratamiento de datos (Ley 29733 Art. 14) */}
-        <ConsentGate scope="worker">{children}</ConsentGate>
+        <div className="mx-auto w-full max-w-6xl">
+          {/* ConsentGate obliga al trabajador a autorizar tratamiento de datos (Ley 29733 Art. 14) */}
+          <ConsentGate scope="worker">{children}</ConsentGate>
+        </div>
       </main>
 
       {/* ────────────────────────────────────────────────────────────── */}
@@ -392,6 +393,18 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
   )
 }
 
+function WorkerPortalLoading() {
+  return (
+    <div className="c360-worker-portal flex min-h-screen items-center justify-center bg-[color:var(--bg-canvas)] px-4 text-[color:var(--text-primary)]">
+      <div className="rounded-2xl border border-[color:var(--border-default)] bg-white px-6 py-5 text-center shadow-sm">
+        <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-emerald-600" />
+        <p className="text-sm font-semibold text-slate-900">Preparando tu portal</p>
+        <p className="mt-1 text-xs text-slate-500">Validando tu cuenta de trabajador...</p>
+      </div>
+    </div>
+  )
+}
+
 function WorkerAccountMismatch({
   role,
   onWorkerLogin,
@@ -402,7 +415,7 @@ function WorkerAccountMismatch({
   const dashboardHref = role === 'SUPER_ADMIN' ? '/admin' : '/dashboard'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-slate-50 px-4 py-10 text-slate-900">
+    <div className="c360-worker-portal min-h-screen bg-gradient-to-b from-emerald-50 via-white to-slate-50 px-4 py-10 text-slate-900">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center">
         <section className="w-full rounded-2xl border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/50">
           <div className="flex items-start gap-4">

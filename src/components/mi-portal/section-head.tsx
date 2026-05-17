@@ -34,7 +34,7 @@ export function SectionHead({ title, emPart, link }: SectionHeadProps) {
           fontFamily: 'var(--font-serif)',
           fontSize: 22,
           fontWeight: 400,
-          letterSpacing: '-0.02em',
+          letterSpacing: 0,
           lineHeight: 1.1,
           color: 'var(--text-primary)',
         }}

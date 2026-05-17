@@ -71,18 +71,6 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx) => {
     )
   }
 
-  // Resolver el Worker.id desde el User autenticado
-  const worker = await prisma.worker.findFirst({
-    where: { userId: ctx.userId, orgId: ctx.orgId, status: 'ACTIVE' },
-    select: { id: true },
-  })
-  if (!worker) {
-    return NextResponse.json(
-      { error: 'No estás vinculado a una empresa activa', code: 'NO_WORKER_LINK' },
-      { status: 403 },
-    )
-  }
-
   // Verificación criptográfica WebAuthn server-side si método=BIOMETRIC.
   // El cliente debe enviar:
   //   signatureProof: { challenge, challengeToken, credentialId, ... }
@@ -99,7 +87,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx) => {
       const verification = verifyChallenge({
         token: proof.challengeToken,
         challenge: proof.challenge,
-        workerId: worker.id,
+        workerId: ctx.workerId,
         action: 'sign_doc_acknowledgment',
         entityId: body.documentId,
       })
@@ -110,7 +98,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx) => {
         effectiveMethod = 'SIMPLE'
         webauthnVerification = { ok: false, reason: verification.reason }
         console.warn(
-          `[ack] WebAuthn verification failed for worker ${worker.id} doc ${body.documentId}: ${verification.reason}`,
+          `[ack] WebAuthn verification failed for worker ${ctx.workerId} doc ${body.documentId}: ${verification.reason}`,
         )
       }
     } else {
@@ -129,7 +117,7 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx) => {
 
   const result = await recordAcknowledgment({
     orgId: ctx.orgId,
-    workerId: worker.id,
+    workerId: ctx.workerId,
     documentId: body.documentId,
     documentVersion: body.documentVersion,
     signatureMethod: effectiveMethod,
@@ -164,16 +152,8 @@ export const POST = withWorkerAuth(async (req: NextRequest, ctx) => {
 // ─── GET histórico de firmas ────────────────────────────────────────────────
 
 export const GET = withWorkerAuth(async (_req, ctx) => {
-  const worker = await prisma.worker.findFirst({
-    where: { userId: ctx.userId, orgId: ctx.orgId },
-    select: { id: true },
-  })
-  if (!worker) {
-    return NextResponse.json({ acks: [], total: 0 })
-  }
-
   const acks = await prisma.documentAcknowledgment.findMany({
-    where: { workerId: worker.id },
+    where: { workerId: ctx.workerId },
     orderBy: { acknowledgedAt: 'desc' },
     take: 50,
     select: {

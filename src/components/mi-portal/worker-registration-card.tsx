@@ -116,7 +116,7 @@ export function WorkerRegistrationCard() {
   }
 
   return (
-    <div className="rounded-[28px] bg-[#ffffff] p-5 shadow-2xl shadow-emerald-950/30 ring-1 ring-white/70 sm:p-6">
+    <div className="rounded-[28px] bg-[#ffffff] p-4 shadow-2xl shadow-emerald-950/30 ring-1 ring-white/70 sm:p-6">
       <div className="mb-5">
         <p className="text-xs font-bold uppercase tracking-widest text-[#047857]">
           Crear cuenta trabajador
@@ -130,6 +130,7 @@ export function WorkerRegistrationCard() {
         </p>
       </div>
       <SignUp
+        routing="hash"
         forceRedirectUrl="/mi-portal/bienvenida"
         fallbackRedirectUrl="/mi-portal/bienvenida"
         signInUrl="/mi-portal/ingresar"

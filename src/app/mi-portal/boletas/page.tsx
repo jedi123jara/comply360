@@ -123,7 +123,6 @@ export default function BoletasPage() {
         setError(e.message)
       })
       .finally(() => {
-         
         if (mounted) setLoading(false)
       })
     return () => {
@@ -157,10 +156,12 @@ export default function BoletasPage() {
             color: 'var(--text-primary)',
             marginBottom: 6,
           }}
-          dangerouslySetInnerHTML={{
-            __html: `Mis <em style="color: var(--emerald-700); font-style: italic">boletas de pago</em>`,
-          }}
-        />
+        >
+          Mis{' '}
+          <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>
+            boletas de pago
+          </em>
+        </h1>
         <p className="text-sm text-[color:var(--text-secondary)] max-w-xl">
           Consulta, descarga y firma la recepción de cada boleta. La firma con huella tiene el mismo
           valor legal que la firma manuscrita (D.S. 001-98-TR · Ley 27269).
@@ -232,8 +233,7 @@ function PayslipCard({ boleta }: { boleta: PayslipItem }) {
   const isPending = !boleta.acceptedAt && boleta.status !== 'ANULADA'
 
   return (
-    <Link
-      href={`/mi-portal/boletas/${boleta.id}`}
+    <article
       className="group block rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-lift,0_8px_16px_-4px_rgba(15,23,42,0.08))]"
       style={{
         background: isPending
@@ -244,64 +244,69 @@ function PayslipCard({ boleta }: { boleta: PayslipItem }) {
           : '0.5px solid var(--border-default)',
       }}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3 className="text-sm font-bold text-[color:var(--text-primary)]">
-              {formatPeriodo(boleta.periodo)}
-            </h3>
-            <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+      <Link href={`/mi-portal/boletas/${boleta.id}`} className="block">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-sm font-bold text-[color:var(--text-primary)]">
+                {formatPeriodo(boleta.periodo)}
+              </h3>
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                style={{
+                  background: status.bg,
+                  color: status.text,
+                }}
+              >
+                <StatusIcon className="h-3 w-3" />
+                {status.label}
+              </span>
+            </div>
+            <p className="text-[11px] text-[color:var(--text-tertiary)]">
+              Emitida el {new Date(boleta.fechaEmision).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">
+              Neto
+            </p>
+            <p
               style={{
-                background: status.bg,
-                color: status.text,
+                fontFamily: 'var(--font-serif)',
+                fontSize: 22,
+                fontWeight: 400,
+                color: 'var(--emerald-700)',
+                letterSpacing: '-0.015em',
+                lineHeight: 1,
+                fontVariantNumeric: 'tabular-nums',
               }}
             >
-              <StatusIcon className="h-3 w-3" />
-              {status.label}
-            </span>
+              S/ {fmt(boleta.netoPagar)}
+            </p>
           </div>
-          <p className="text-[11px] text-[color:var(--text-tertiary)]">
-            Emitida el {new Date(boleta.fechaEmision).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </p>
         </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">
-            Neto
-          </p>
-          <p
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 22,
-              fontWeight: 400,
-              color: 'var(--emerald-700)',
-              letterSpacing: '-0.015em',
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            S/ {fmt(boleta.netoPagar)}
-          </p>
-        </div>
-      </div>
 
-      {/* Ingreso / descuento summary */}
-      <div className="flex items-center gap-4 text-[11px] text-[color:var(--text-tertiary)] mb-3">
-        <span>
-          Ingresos <span className="font-mono font-semibold text-[color:var(--text-secondary)]">S/ {fmt(boleta.totalIngresos)}</span>
-        </span>
-        <span>
-          Descuentos <span className="font-mono font-semibold text-[color:var(--text-secondary)]">-S/ {fmt(boleta.totalDescuentos)}</span>
-        </span>
-      </div>
+        {/* Ingreso / descuento summary */}
+        <div className="flex items-center gap-4 text-[11px] text-[color:var(--text-tertiary)] mb-3">
+          <span>
+            Ingresos <span className="font-mono font-semibold text-[color:var(--text-secondary)]">S/ {fmt(boleta.totalIngresos)}</span>
+          </span>
+          <span>
+            Descuentos <span className="font-mono font-semibold text-[color:var(--text-secondary)]">-S/ {fmt(boleta.totalDescuentos)}</span>
+          </span>
+        </div>
+      </Link>
 
       {/* Actions footer */}
       <div className="flex items-center justify-between pt-3" style={{ borderTop: '0.5px solid var(--border-subtle)' }}>
         {isPending ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700">
+          <Link
+            href={`/mi-portal/boletas/${boleta.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-amber-700 hover:bg-amber-50"
+          >
             <Fingerprint className="h-3.5 w-3.5" />
             Firma con huella
-          </span>
+          </Link>
         ) : boleta.acceptedAt ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700">
             <CheckCircle2 className="h-3.5 w-3.5" />
@@ -315,7 +320,6 @@ function PayslipCard({ boleta }: { boleta: PayslipItem }) {
             <a
               href={boleta.pdfUrl}
               download
-              onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center justify-center h-7 w-7 rounded-lg text-[color:var(--text-tertiary)] hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
               title="Descargar PDF"
               aria-label="Descargar"
@@ -323,12 +327,17 @@ function PayslipCard({ boleta }: { boleta: PayslipItem }) {
               <Download className="h-3.5 w-3.5" />
             </a>
           ) : null}
-          <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg text-emerald-700 group-hover:bg-emerald-50 transition-colors">
+          <Link
+            href={`/mi-portal/boletas/${boleta.id}`}
+            className="inline-flex items-center justify-center h-7 w-7 rounded-lg text-emerald-700 group-hover:bg-emerald-50 transition-colors"
+            title="Ver detalle"
+            aria-label="Ver detalle"
+          >
             <Eye className="h-3.5 w-3.5" />
-          </span>
+          </Link>
         </div>
       </div>
-    </Link>
+    </article>
   )
 }
 

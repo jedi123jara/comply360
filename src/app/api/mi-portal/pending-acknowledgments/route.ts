@@ -17,21 +17,10 @@
 
 import { NextResponse } from 'next/server'
 import { withWorkerAuth } from '@/lib/api-auth'
-import { prisma } from '@/lib/prisma'
 import { getWorkerPendingDocs } from '@/lib/documents/acknowledgments'
 
 export const GET = withWorkerAuth(async (_req, ctx) => {
-  // El worker auth context da userId — buscamos el Worker entry vinculado
-  const worker = await prisma.worker.findFirst({
-    where: { userId: ctx.userId, orgId: ctx.orgId, status: 'ACTIVE' },
-    select: { id: true },
-  })
-  if (!worker) {
-    // Worker self-serve sin empresa vinculada — no hay docs pendientes
-    return NextResponse.json({ pending: [], total: 0 })
-  }
-
-  const pending = await getWorkerPendingDocs(worker.id, ctx.orgId)
+  const pending = await getWorkerPendingDocs(ctx.workerId, ctx.orgId)
 
   return NextResponse.json({
     pending,

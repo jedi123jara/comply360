@@ -10,8 +10,11 @@ export const workerAuthAppearance = {
     fontFamily: 'var(--font-jakarta), var(--font-geist-sans), sans-serif',
   },
   elements: {
-    rootBox: 'mx-auto w-full',
-    card: 'w-full !rounded-[24px] !border !border-[#e2e8f0] !bg-[#ffffff] !p-6 !shadow-none',
+    rootBox: 'mx-auto !w-full !max-w-full !min-w-0',
+    cardBox: '!w-full !max-w-full !min-w-0',
+    card: '!w-full !max-w-full !min-w-0 !rounded-[24px] !border !border-[#e2e8f0] !bg-[#ffffff] !p-6 !shadow-none',
+    main: '!w-full !max-w-full !min-w-0',
+    form: '!w-full !max-w-full !min-w-0',
     header: 'hidden',
     headerTitle: 'hidden',
     headerSubtitle: 'hidden',

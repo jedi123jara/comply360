@@ -109,13 +109,24 @@ export default function MiPortalContratosPage() {
         <h1
           className="text-[32px] leading-tight text-[color:var(--text-primary)]"
           style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em' }}
-          dangerouslySetInnerHTML={{
-            __html:
-              pending.length > 0
-                ? `Tienes <em style="color:var(--emerald-700);font-style:italic;">${pending.length} contrato${pending.length === 1 ? '' : 's'}</em> pendiente${pending.length === 1 ? '' : 's'} de firma.`
-                : 'Al día con tus <em style="color:var(--emerald-700);font-style:italic;">contratos</em>.',
-          }}
-        />
+        >
+          {pending.length > 0 ? (
+            <>
+              Tienes{' '}
+              <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>
+                {pending.length} contrato{pending.length === 1 ? '' : 's'}
+              </em>{' '}
+              pendiente{pending.length === 1 ? '' : 's'} de firma.
+            </>
+          ) : (
+            <>
+              Al día con tus{' '}
+              <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>
+                contratos
+              </em>.
+            </>
+          )}
+        </h1>
         <p className="text-sm text-[color:var(--text-secondary)]">
           {pending.length > 0
             ? 'Lee el contenido y firma con tu huella o Face ID. La firma biométrica tiene validez legal entre partes.'

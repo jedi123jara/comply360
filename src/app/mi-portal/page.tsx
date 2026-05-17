@@ -19,6 +19,9 @@ import {
   ChevronRight,
   Sparkles,
   PartyPopper,
+  ArrowRight,
+  CheckCircle2,
+  Fingerprint,
 } from 'lucide-react'
 import { PendingActionCard } from '@/components/comply360/pending-action-card'
 import { EnableNotifications } from '@/components/pwa/enable-notifications'
@@ -279,110 +282,159 @@ export default function MiPortalHomePage() {
   const initial = worker.firstName.charAt(0).toUpperCase()
   const fullName = `${worker.firstName} ${worker.lastName}`.trim()
   const idCardCode = `C360-${worker.dni.slice(-4)}`
+  const totalPending = pendingActions.length
+  const asistenciaRatio =
+    asistenciaMes.diasLaborales > 0
+      ? Math.round((asistenciaMes.diasMarcados / asistenciaMes.diasLaborales) * 100)
+      : 0
+  const topAction = pendingActions[0] ?? null
 
   return (
     <div className="space-y-7 c360-page-enter">
       {/* ─── 1. Hero editorial ─────────────────────────────────────────── */}
-      <section
-        className="c360-anim-slide-up relative overflow-hidden rounded-2xl p-5 lg:p-7"
-        style={{
-          background:
-            'linear-gradient(rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.96) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
-          border: '0.5px solid rgba(16,185,129,0.2)',
-        }}
-      >
-        {/* Halo emerald */}
-        <div
-          aria-hidden="true"
-          className="absolute pointer-events-none"
-          style={{
-            top: '-30%',
-            right: '-15%',
-            width: 320,
-            height: 320,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.18), transparent 70%)',
-          }}
-        />
-
-        <div className="relative">
-          <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-3">
-            <span
-              className="h-1.5 w-1.5 rounded-full bg-emerald-500"
-              style={{ boxShadow: '0 0 0 3px rgba(16,185,129,0.15)' }}
-            />
-            <span>{greet()}</span>
-          </div>
-
-          <h1
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(1.75rem, 5vw, 2.5rem)',
-              fontWeight: 400,
-              lineHeight: 1.1,
-              letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-            }}
-          >
-            Hola, <em style={{ color: '#1e40af', fontStyle: 'italic' }}>{worker.firstName}</em>.
-          </h1>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-[color:var(--text-secondary)]">
-            {worker.position && (
-              <span className="inline-flex items-center gap-1.5">
-                <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
-                {worker.position}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <Building2 className="h-3.5 w-3.5 text-emerald-600" />
-              {worker.organization.name}
-            </span>
-          </div>
-
-          {/* Pills row: DNI + (opcional) racha de asistencia */}
-          <div className="mt-4 flex flex-wrap items-center gap-2.5">
-            <div
-              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
-              style={{
-                background: 'rgba(255,255,255,0.7)',
-                backdropFilter: 'blur(8px)',
-                border: '0.5px solid var(--border-subtle)',
-              }}
-            >
-              <span
-                className="font-medium"
-                style={{
-                  color: 'var(--text-tertiary)',
-                  fontSize: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                }}
-              >
-                DNI
-              </span>
-              <span
-                className="font-bold tracking-wider text-[color:var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-mono)' }}
-              >
-                {worker.dni}
-              </span>
+      <section className="c360-worker-home-hero">
+        <div className="relative z-[1] grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-2xl text-blue-800 shadow-xl shadow-slate-950/20 ring-1 ring-white/70">
+                <span className="font-serif">{initial}</span>
+              </div>
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[11px] font-bold uppercase text-cyan-100 ring-1 ring-white/18">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-lime-300"
+                    style={{ boxShadow: '0 0 0 4px rgba(190,242,100,0.18)' }}
+                  />
+                  <span>{greet()} · Portal personal</span>
+                </div>
+                <p className="mt-1 truncate text-xs font-semibold text-cyan-50/75">
+                  {fullName}
+                </p>
+              </div>
             </div>
 
-            {/* Streak pill — placeholder hasta que /api/mi-portal/resumen exponga la racha real */}
-            {/*
-            <div
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                border: '0.5px solid rgba(217,119,6,0.25)',
-                color: '#b45309',
-              }}
-            >
-              <Flame className="h-3 w-3" />
-              <span>12 días puntual</span>
+            <h1 className="mt-5 max-w-2xl font-serif text-[2.35rem] font-normal leading-[1.02] text-white sm:text-[3.1rem] lg:text-[3.7rem]">
+              Tu portal laboral, listo para avanzar.
+            </h1>
+
+            <p className="mt-4 max-w-xl text-[14px] leading-6 text-cyan-50/88 sm:text-[15px] sm:leading-7">
+              Firma lo pendiente, revisa tus pagos y mantén tu legajo al día sin entrar al
+              panel de la empresa.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Link href="#acciones" className="c360-worker-primary-cta">
+                Resolver pendientes
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="#credencial" className="c360-worker-secondary-cta">
+                Ver mi credencial
+              </Link>
             </div>
-            */}
+
+            {topAction ? (
+              <Link href={topAction.href} className="c360-worker-mobile-priority md:hidden">
+                <span className="text-[10px] font-black uppercase text-lime-200">
+                  Primero resuelve esto
+                </span>
+                <span className="mt-1 block text-sm font-black text-white">{topAction.title}</span>
+                <span className="mt-1 block text-xs leading-5 text-cyan-50/78">
+                  {topAction.description}
+                </span>
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-black text-lime-200">
+                  Ir ahora <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </Link>
+            ) : null}
+
+            <div className="mt-5 grid grid-cols-2 gap-2 md:hidden">
+              <div className="rounded-2xl bg-white/14 px-3 py-2 ring-1 ring-white/16">
+                <p className="text-[10px] font-bold uppercase text-cyan-100/80">Hoy</p>
+                <p className="mt-1 font-serif text-3xl leading-none text-white">{totalPending}</p>
+                <p className="text-[11px] font-semibold text-cyan-50/75">acciones</p>
+              </div>
+              <div className="rounded-2xl bg-lime-300 px-3 py-2 text-slate-950">
+                <p className="text-[10px] font-black uppercase">Asistencia</p>
+                <p className="mt-1 font-mono text-2xl font-black">{asistenciaRatio}%</p>
+                <p className="text-[11px] font-bold">este mes</p>
+              </div>
+            </div>
+
+            <div className="mt-5 hidden flex-wrap gap-2.5 sm:mt-6 sm:flex">
+              <HeroPill icon={Briefcase} label={worker.position ?? 'Trabajador'} />
+              <HeroPill icon={Building2} label={worker.organization.name} />
+              <HeroPill icon={ShieldCheck} label={`DNI ${worker.dni}`} mono />
+            </div>
+
+            <div className="mt-5 hidden flex-wrap gap-2 sm:flex">
+              <HeroTrust icon={Fingerprint} label="Firma con huella" />
+              <HeroTrust icon={CheckCircle2} label="Datos protegidos" />
+              <HeroTrust icon={ShieldCheck} label="Cuenta verificada" />
+            </div>
+          </div>
+
+          <div className="c360-worker-hero-panel hidden md:block">
+            {topAction ? (
+              <Link href={topAction.href} className="c360-worker-priority-card">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-lime-300 px-2.5 py-1 text-[10px] font-black uppercase text-slate-950">
+                  <Sparkles className="h-3 w-3" />
+                  Acción recomendada
+                </span>
+                <h2 className="mt-3 text-xl font-black leading-tight text-white">
+                  {topAction.title}
+                </h2>
+                <p className="mt-1.5 text-sm leading-6 text-cyan-50/78">
+                  {topAction.description}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-black text-blue-800 shadow-lg shadow-slate-950/20">
+                  Resolver ahora <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </Link>
+            ) : null}
+
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase text-cyan-100/80">
+                  Prioridades de hoy
+                </p>
+                <div className="mt-2 flex items-end gap-2">
+                  <span className="font-serif text-[4rem] leading-none text-white">
+                    {totalPending}
+                  </span>
+                  <span className="pb-2 text-sm font-semibold text-cyan-100">
+                    {totalPending === 1 ? 'acción' : 'acciones'}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-lime-300 px-3 py-2 text-right text-slate-950 shadow-lg shadow-lime-950/20">
+                <p className="text-[10px] font-black uppercase">Asistencia</p>
+                <p className="font-mono text-lg font-black">{asistenciaRatio}%</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              <HeroMetric
+                icon={FileText}
+                label="Legajo"
+                value={data.stats.documentosFaltantes > 0 ? `${data.stats.documentosFaltantes}` : 'OK'}
+                sub={data.stats.documentosFaltantes > 0 ? 'docs faltantes' : 'completo'}
+                tone="blue"
+              />
+              <HeroMetric
+                icon={Receipt}
+                label="Boleta"
+                value={data.stats.boletasPendientes > 0 ? `${data.stats.boletasPendientes}` : 'OK'}
+                sub={data.stats.boletasPendientes > 0 ? 'por firmar' : 'firmadas'}
+                tone="amber"
+              />
+              <HeroMetric
+                icon={Plane}
+                label="Vacaciones"
+                value={`${data.stats.vacacionesPendientes}`}
+                sub="días disponibles"
+                tone="green"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -392,15 +444,15 @@ export default function MiPortalHomePage() {
 
       {/* ─── 3. Acciones pendientes ────────────────────────────────────── */}
       {pendingActions.length > 0 ? (
-        <section>
+        <section id="acciones" className="scroll-mt-24">
           <SectionHead
-            title="Necesitan tu"
-            emPart="atención"
+            title="Tu siguiente"
+            emPart="movimiento"
             link={{
               label: `${pendingActions.length} ${pendingActions.length === 1 ? 'pendiente' : 'pendientes'}`,
             }}
           />
-          <div className="space-y-2.5">
+          <div className="grid gap-3 lg:grid-cols-2">
             {pendingActions.map((a) => (
               <PendingActionCard
                 key={a.id}
@@ -452,7 +504,7 @@ export default function MiPortalHomePage() {
       )}
 
       {/* ─── 4. Mi credencial (DigitalIdCard) ──────────────────────────── */}
-      <section>
+      <section id="credencial" className="scroll-mt-24">
         <SectionHead
           title="Mi"
           emPart="credencial"
@@ -599,6 +651,81 @@ export default function MiPortalHomePage() {
 //  Sub-components inline
 // ─────────────────────────────────────────────────────────────────────────────
 
+function HeroPill({
+  icon: Icon,
+  label,
+  mono,
+}: {
+  icon: typeof Briefcase
+  label: string
+  mono?: boolean
+}) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/12 px-3 py-1.5 text-xs font-semibold text-white/90 ring-1 ring-white/16 backdrop-blur">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-lime-200" />
+      <span className={mono ? 'truncate font-mono' : 'truncate'}>{label}</span>
+    </span>
+  )
+}
+
+function HeroTrust({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof Fingerprint
+  label: string
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-950/28 px-3 py-1.5 text-[11px] font-bold text-cyan-50/82 ring-1 ring-white/12 backdrop-blur">
+      <Icon className="h-3.5 w-3.5 text-lime-200" />
+      {label}
+    </span>
+  )
+}
+
+function HeroMetric({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  icon: typeof FileText
+  label: string
+  value: string
+  sub: string
+  tone: 'blue' | 'amber' | 'green'
+}) {
+  const colors = {
+    blue: { bg: 'rgba(96, 165, 250, 0.18)', icon: '#bfdbfe', accent: '#60a5fa' },
+    amber: { bg: 'rgba(251, 191, 36, 0.2)', icon: '#fde68a', accent: '#fbbf24' },
+    green: { bg: 'rgba(52, 211, 153, 0.2)', icon: '#bbf7d0', accent: '#34d399' },
+  }[tone]
+
+  return (
+    <div className="c360-worker-hero-metric">
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-xl"
+        style={{ background: colors.bg, color: colors.icon }}
+      >
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase text-cyan-100/70">{label}</p>
+        <div className="mt-0.5 flex items-baseline gap-1.5">
+          <span className="font-serif text-2xl leading-none text-white">{value}</span>
+          <span className="truncate text-[11px] font-semibold text-cyan-50/75">{sub}</span>
+        </div>
+      </div>
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-3 bottom-0 h-[2px] rounded-full"
+        style={{ background: colors.accent }}
+      />
+    </div>
+  )
+}
+
 function KpiTile({
   icon: Icon,
   label,
@@ -617,25 +744,42 @@ function KpiTile({
   return (
     <Link
       href={href}
-      className="group block rounded-xl p-3.5 transition-all hover:-translate-y-0.5"
+      className="group relative block overflow-hidden rounded-2xl p-4 transition-all hover:-translate-y-0.5"
       style={{
         background: accent
-          ? 'linear-gradient(135deg, rgba(16,185,129,0.06), white)'
-          : 'white',
+          ? 'linear-gradient(135deg, rgba(204,251,241,0.86), white 58%, rgba(219,234,254,0.58))'
+          : 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)',
         border: accent
-          ? '0.5px solid rgba(16,185,129,0.22)'
-          : '0.5px solid var(--border-default)',
+          ? '1px solid rgba(20,184,166,0.3)'
+          : '1px solid var(--border-default)',
         boxShadow:
-          '0 1px 2px rgba(15,23,42,0.05), 0 2px 4px rgba(15,23,42,0.04), 0 0 0 0.5px rgba(15,23,42,0.05)',
+          '0 18px 32px -28px rgba(15,23,42,0.34), inset 0 1px 0 rgba(255,255,255,0.8)',
       }}
     >
-      <div className="flex items-center gap-1.5 mb-2">
-        <Icon className="h-3 w-3" style={{ color: '#1d4ed8' }} />
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-[3px]"
+        style={{
+          background: accent
+            ? 'linear-gradient(90deg, #10b981, #22d3ee, #60a5fa)'
+            : 'linear-gradient(90deg, #60a5fa, #a78bfa)',
+        }}
+      />
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-xl"
+          style={{
+            background: accent ? '#ccfbf1' : '#eff6ff',
+            color: '#1d4ed8',
+          }}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
         <span
           className="font-bold uppercase"
           style={{
             fontSize: 10,
-            letterSpacing: '0.1em',
+            letterSpacing: 0,
             color: 'var(--text-tertiary)',
           }}
         >
@@ -648,7 +792,7 @@ function KpiTile({
           fontSize: 26,
           fontWeight: 400,
           color: 'var(--text-primary)',
-          letterSpacing: '-0.02em',
+          letterSpacing: 0,
           lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
         }}
@@ -677,19 +821,20 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="group flex flex-col items-start gap-2 rounded-xl p-3 transition-all hover:-translate-y-0.5"
+      className="group flex min-h-[106px] flex-col items-start justify-between gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5"
       style={{
-        background: 'white',
-        border: '0.5px solid var(--border-default)',
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)',
+        border: '1px solid var(--border-default)',
+        boxShadow: '0 16px 30px -26px rgba(15,23,42,0.28)',
       }}
     >
       <div
-        className="flex items-center justify-center rounded-lg transition-colors group-hover:scale-105"
+        className="flex items-center justify-center rounded-xl transition-transform group-hover:scale-105"
         style={{
-          width: 32,
-          height: 32,
-          background: '#eff6ff',
-          color: '#1e40af',
+          width: 38,
+          height: 38,
+          background: 'linear-gradient(135deg, #dbeafe, #ccfbf1)',
+          color: '#1d4ed8',
         }}
       >
         <Icon className="h-4 w-4" />
@@ -698,7 +843,7 @@ function QuickAction({
         className="leading-tight"
         style={{
           fontSize: 11,
-          fontWeight: 600,
+          fontWeight: 800,
           color: 'var(--text-primary)',
         }}
       >

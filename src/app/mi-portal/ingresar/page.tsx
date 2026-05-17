@@ -24,7 +24,7 @@ export default function WorkerSignInPage() {
         }}
       />
       <div className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_520px]">
-        <section className="max-w-xl">
+        <section className="order-2 max-w-xl lg:order-1">
           <Link href="/" className="inline-flex items-center gap-3 text-sm font-bold text-emerald-300">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400 text-slate-950">
               <ShieldCheck className="h-5 w-5" />
@@ -61,8 +61,8 @@ export default function WorkerSignInPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-emerald-400/30 bg-slate-900/80 p-4 shadow-2xl shadow-emerald-950/40 sm:p-6">
-          <div className="rounded-[28px] bg-[#ffffff] p-5 text-[#0f172a] shadow-2xl sm:p-6">
+        <section className="order-1 rounded-[32px] border border-emerald-400/30 bg-slate-900/80 p-3 shadow-2xl shadow-emerald-950/40 sm:p-6 lg:order-2">
+          <div className="rounded-[28px] bg-[#ffffff] p-4 text-[#0f172a] shadow-2xl sm:p-6">
             <div className="mb-5">
               <p className="text-xs font-bold uppercase tracking-widest text-[#047857]">
                 Ingreso trabajador
@@ -73,6 +73,7 @@ export default function WorkerSignInPage() {
               </p>
             </div>
             <SignIn
+              routing="hash"
               forceRedirectUrl="/post-login?intent=worker"
               fallbackRedirectUrl="/post-login?intent=worker"
               signUpUrl="/mi-portal/registrarse"

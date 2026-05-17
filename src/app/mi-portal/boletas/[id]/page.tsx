@@ -102,7 +102,6 @@ export default function BoletaDetailPage() {
         setBoleta(null)
       })
       .finally(() => {
-         
         if (mounted) setLoading(false)
       })
     return () => {
