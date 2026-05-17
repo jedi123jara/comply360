@@ -117,10 +117,35 @@ describe('runOnboardingCascade', () => {
 
     expect(result.success).toBe(false)
     expect(result.skipped).toBe(true)
-    expect(result.skipReason).toContain('terminated')
+    expect(result.skipReason).toContain('trabajador cesado')
   })
 
   // ── Idempotency ───────────────────────────────────────────────────────
+
+  it('uses a one-argument advisory lock and releases it after completing', async () => {
+    const result = await runOnboardingCascade('w1')
+
+    expect(result.success).toBe(true)
+    expect(mockQueryRaw).toHaveBeenCalledTimes(2)
+
+    const lockSql = (mockQueryRaw.mock.calls[0][0] as TemplateStringsArray).join('')
+    const unlockSql = (mockQueryRaw.mock.calls[1][0] as TemplateStringsArray).join('')
+    expect(lockSql).toContain('pg_try_advisory_lock')
+    expect(lockSql).not.toContain(', 1')
+    expect(unlockSql).toContain('pg_advisory_unlock')
+    expect(unlockSql).not.toContain(', 1')
+  })
+
+  it('returns a failed result instead of throwing when advisory lock query fails', async () => {
+    mockQueryRaw.mockRejectedValueOnce(new Error('function pg_try_advisory_lock(bigint, integer) does not exist'))
+
+    await expect(runOnboardingCascade('w1')).resolves.toMatchObject({
+      success: false,
+      skipped: false,
+      skipReason: expect.stringContaining('pg_try_advisory_lock'),
+    })
+    expect(mockWorkerRequestCreate).not.toHaveBeenCalled()
+  })
 
   it('skips when cascade was already executed (idempotency)', async () => {
     mockAuditLogFindFirst.mockResolvedValue({

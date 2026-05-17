@@ -115,198 +115,206 @@ export async function runOnboardingCascade(
     skipped: false,
   }
 
-  // ── 1. Fetch worker + org ────────────────────────────────────────────────
-  const worker = await prisma.worker.findUnique({
-    where: { id: workerId },
-    select: {
-      id: true,
-      orgId: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      status: true,
-      fechaIngreso: true,
-    },
-  })
+  let lockKey: number | null = null
+  let lockAcquired = false
 
-  if (!worker) {
-    result.skipReason = 'Worker not found'
-    return result
-  }
-
-  if (worker.status === 'TERMINATED') {
-    result.skipped = true
-    result.skipReason = 'Worker terminated'
-    return result
-  }
-
-  // FIX #4.H: race condition cierra con Postgres advisory lock.
-  // Antes findFirst + create estaban separados por mucho código: dos firmas
-  // simultáneas (doble-tap, retry de red) podían pasar el guard y ejecutar
-  // la cascada 2x — emails y WorkerRequest duplicados.
-  // Ahora tomamos un advisory lock por workerId a nivel sesión (se libera
-  // al final de la conexión Prisma). Los lockers concurrentes esperan o
-  // reciben false y abortan.
-  if (!force) {
-    // Hash workerId determinístico a int64 para pg_try_advisory_lock
-    const lockKey = Array.from(worker.id).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
-    const lockResult = await prisma.$queryRaw<Array<{ acquired: boolean }>>`
-      SELECT pg_try_advisory_lock(${lockKey}::bigint, 1)::boolean AS acquired
-    `
-    if (!lockResult[0]?.acquired) {
-      result.skipped = true
-      result.skipReason = 'Cascada en ejecución concurrente — abortando'
-      return result
-    }
-
-    const previousAudit = await prisma.auditLog.findFirst({
-      where: {
-        orgId: worker.orgId,
-        entityType: 'Worker',
-        entityId: worker.id,
-        action: 'ONBOARDING_CASCADE_EXECUTED',
-      },
-      select: { id: true, createdAt: true },
-    })
-    if (previousAudit) {
-      // Liberar lock antes de retornar
-      await prisma.$queryRaw`SELECT pg_advisory_unlock(${lockKey}::bigint, 1)`.catch(() => {})
-      result.skipped = true
-      result.skipReason = `Ya ejecutada el ${previousAudit.createdAt.toISOString()}. Usa force=true para re-ejecutar.`
-      return result
-    }
-    // El lock se libera implícitamente al cerrar la conexión Prisma; en serverless
-    // (Vercel) eso pasa al final de la request, lo cual es lo deseado.
-  }
-
-  // ── 2. Contar documentos org publicados ──────────────────────────────────
-  // No creamos nada nuevo: solo leemos lo publicado. El worker ya los ve vía
-  // /api/mi-portal/reglamento. El email incluye el conteo.
   try {
-    const docsPublished = await prisma.orgDocument.count({
-      where: {
-        orgId: worker.orgId,
-        isPublishedToWorkers: true,
-        OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
+    // ── 1. Fetch worker + org ────────────────────────────────────────────────
+    const worker = await prisma.worker.findUnique({
+      where: { id: workerId },
+      select: {
+        id: true,
+        orgId: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        status: true,
+        fechaIngreso: true,
       },
     })
-    result.documentsPublished = docsPublished
-  } catch (err) {
-    console.error('[onboarding-cascade] count org docs failed', err)
-  }
 
-  // ── 3. Crear WorkerRequests para documentos faltantes ────────────────────
-  let requestsCreated = 0
-  if (requestLegajo) {
+    if (!worker) {
+      result.skipReason = 'Worker not found'
+      return result
+    }
+
+    if (worker.status === 'TERMINATED') {
+      result.skipped = true
+      result.skipReason = 'No se puede invitar a un trabajador cesado. Reactívalo o registra su reingreso antes de enviar la invitación.'
+      return result
+    }
+
+    // FIX #4.H: race condition cierra con Postgres advisory lock.
+    // Antes findFirst + create estaban separados por mucho código: dos firmas
+    // simultáneas (doble-tap, retry de red) podían pasar el guard y ejecutar
+    // la cascada 2x — emails y WorkerRequest duplicados.
+    if (!force) {
+      lockKey = advisoryLockKey(worker.id)
+      const lockResult = await prisma.$queryRaw<Array<{ acquired: boolean }>>`
+        SELECT pg_try_advisory_lock(${lockKey}::bigint)::boolean AS acquired
+      `
+      if (!lockResult[0]?.acquired) {
+        result.skipped = true
+        result.skipReason = 'Cascada en ejecución concurrente — abortando'
+        return result
+      }
+      lockAcquired = true
+
+      const previousAudit = await prisma.auditLog.findFirst({
+        where: {
+          orgId: worker.orgId,
+          entityType: 'Worker',
+          entityId: worker.id,
+          action: 'ONBOARDING_CASCADE_EXECUTED',
+        },
+        select: { id: true, createdAt: true },
+      })
+      if (previousAudit) {
+        result.skipped = true
+        result.skipReason = `Ya ejecutada el ${previousAudit.createdAt.toISOString()}. Usa force=true para re-ejecutar.`
+        return result
+      }
+    }
+
+    // ── 2. Contar documentos org publicados ──────────────────────────────────
+    // No creamos nada nuevo: solo leemos lo publicado. El worker ya los ve vía
+    // /api/mi-portal/reglamento. El email incluye el conteo.
     try {
-      // ¿Qué documentos ya subió?
-      const existing = await prisma.workerDocument.findMany({
+      const docsPublished = await prisma.orgDocument.count({
         where: {
-          workerId: worker.id,
-          status: { in: ['UPLOADED', 'VERIFIED'] },
+          orgId: worker.orgId,
+          isPublishedToWorkers: true,
+          OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
         },
-        select: { documentType: true },
       })
-      const uploadedTypes = new Set(existing.map((d) => d.documentType))
+      result.documentsPublished = docsPublished
+    } catch (err) {
+      console.error('[onboarding-cascade] count org docs failed', err)
+    }
 
-      // Lista de docs pendientes (solo los que el trabajador sube)
-      const pendingForWorker = WORKER_UPLOADED_DOCS.filter(
-        (type) => !uploadedTypes.has(type),
-      )
+    // ── 3. Crear WorkerRequests para documentos faltantes ────────────────────
+    let requestsCreated = 0
+    if (requestLegajo) {
+      try {
+        // ¿Qué documentos ya subió?
+        const existing = await prisma.workerDocument.findMany({
+          where: {
+            workerId: worker.id,
+            status: { in: ['UPLOADED', 'VERIFIED'] },
+          },
+          select: { documentType: true },
+        })
+        const uploadedTypes = new Set(existing.map((d) => d.documentType))
 
-      // ¿Ya existe un WorkerRequest activo para el mismo documento?
-      const activeRequests = await prisma.workerRequest.findMany({
-        where: {
-          workerId: worker.id,
-          type: 'ACTUALIZAR_DATOS',
-          status: { in: ['PENDIENTE', 'EN_REVISION'] },
-        },
-        select: { description: true },
-      })
-      const alreadyRequested = new Set(
-        activeRequests
-          .map((r) => extractDocTypeFromRequestDescription(r.description))
-          .filter((t): t is string => Boolean(t)),
-      )
+        // Lista de docs pendientes (solo los que el trabajador sube)
+        const pendingForWorker = WORKER_UPLOADED_DOCS.filter(
+          (type) => !uploadedTypes.has(type),
+        )
 
-      for (const docType of pendingForWorker) {
-        if (alreadyRequested.has(docType)) continue
-        await prisma.workerRequest.create({
-          data: {
-            orgId: worker.orgId,
+        // ¿Ya existe un WorkerRequest activo para el mismo documento?
+        const activeRequests = await prisma.workerRequest.findMany({
+          where: {
             workerId: worker.id,
             type: 'ACTUALIZAR_DATOS',
-            status: 'PENDIENTE',
-            title: `Subí tu ${DOC_TYPE_LABELS[docType]}`,
-            description: formatRequestDescription(docType, DOC_TYPE_LABELS[docType]),
+            status: { in: ['PENDIENTE', 'EN_REVISION'] },
           },
+          select: { description: true },
         })
-        requestsCreated++
-      }
-      result.requestsCreated = requestsCreated
-    } catch (err) {
-      console.error('[onboarding-cascade] create worker requests failed', err)
-    }
-  }
+        const alreadyRequested = new Set(
+          activeRequests
+            .map((r) => extractDocTypeFromRequestDescription(r.description))
+            .filter((t): t is string => Boolean(t)),
+        )
 
-  // ── 4. Enviar email al trabajador ────────────────────────────────────────
-  if (doSendEmail && worker.email) {
+        for (const docType of pendingForWorker) {
+          if (alreadyRequested.has(docType)) continue
+          await prisma.workerRequest.create({
+            data: {
+              orgId: worker.orgId,
+              workerId: worker.id,
+              type: 'ACTUALIZAR_DATOS',
+              status: 'PENDIENTE',
+              title: `Subí tu ${DOC_TYPE_LABELS[docType]}`,
+              description: formatRequestDescription(docType, DOC_TYPE_LABELS[docType]),
+            },
+          })
+          requestsCreated++
+        }
+        result.requestsCreated = requestsCreated
+      } catch (err) {
+        console.error('[onboarding-cascade] create worker requests failed', err)
+      }
+    }
+
+    // ── 4. Enviar email al trabajador ────────────────────────────────────────
+    if (doSendEmail && worker.email) {
+      try {
+        // Obtener razón social para el email
+        const org = await prisma.organization.findUnique({
+          where: { id: worker.orgId },
+          select: { name: true, razonSocial: true },
+        })
+
+        const html = workerOnboardingEmail({
+          workerName: `${worker.firstName} ${worker.lastName}`.trim(),
+          orgName: org?.razonSocial ?? org?.name ?? 'tu empresa',
+          documentsCount: result.documentsPublished,
+          pendingActions: requestsCreated,
+        })
+
+        const emailRes = await sendEmail({
+          to: worker.email,
+          subject: `Bienvenido a bordo — Completa tu onboarding con ${org?.razonSocial ?? org?.name ?? ''}`,
+          html,
+        })
+        result.emailSent = emailRes.success
+        if (!emailRes.success) {
+          result.emailError = emailRes.error ?? 'Unknown email error'
+          console.error('[onboarding-cascade] email send failed', emailRes.error)
+        }
+      } catch (err) {
+        result.emailError = err instanceof Error ? err.message : String(err)
+        console.error('[onboarding-cascade] email exception', err)
+      }
+    }
+
+    // ── 5. Audit log ─────────────────────────────────────────────────────────
     try {
-      // Obtener razón social para el email
-      const org = await prisma.organization.findUnique({
-        where: { id: worker.orgId },
-        select: { name: true, razonSocial: true },
+      const audit = await prisma.auditLog.create({
+        data: {
+          orgId: worker.orgId,
+          userId: triggeredBy,
+          action: 'ONBOARDING_CASCADE_EXECUTED',
+          entityType: 'Worker',
+          entityId: worker.id,
+          metadataJson: {
+            documentsPublished: result.documentsPublished,
+            requestsCreated: result.requestsCreated,
+            emailSent: result.emailSent,
+            contractId: contractId ?? null,
+            force,
+          },
+        },
+        select: { id: true },
       })
-
-      const html = workerOnboardingEmail({
-        workerName: `${worker.firstName} ${worker.lastName}`.trim(),
-        orgName: org?.razonSocial ?? org?.name ?? 'tu empresa',
-        documentsCount: result.documentsPublished,
-        pendingActions: requestsCreated,
-      })
-
-      const emailRes = await sendEmail({
-        to: worker.email,
-        subject: `Bienvenido a bordo — Completa tu onboarding con ${org?.razonSocial ?? org?.name ?? ''}`,
-        html,
-      })
-      result.emailSent = emailRes.success
-      if (!emailRes.success) {
-        result.emailError = emailRes.error ?? 'Unknown email error'
-        console.error('[onboarding-cascade] email send failed', emailRes.error)
-      }
+      result.auditLogId = audit.id
     } catch (err) {
-      result.emailError = err instanceof Error ? err.message : String(err)
-      console.error('[onboarding-cascade] email exception', err)
+      console.error('[onboarding-cascade] audit log failed', err)
+    }
+
+    result.success = true
+    return result
+  } catch (err) {
+    result.skipReason = err instanceof Error ? err.message : String(err)
+    console.error('[onboarding-cascade] failed', err)
+    return result
+  } finally {
+    if (lockAcquired && lockKey !== null) {
+      await prisma.$queryRaw`SELECT pg_advisory_unlock(${lockKey}::bigint)`.catch((err) => {
+        console.error('[onboarding-cascade] advisory unlock failed', err)
+      })
     }
   }
-
-  // ── 5. Audit log ─────────────────────────────────────────────────────────
-  try {
-    const audit = await prisma.auditLog.create({
-      data: {
-        orgId: worker.orgId,
-        userId: triggeredBy,
-        action: 'ONBOARDING_CASCADE_EXECUTED',
-        entityType: 'Worker',
-        entityId: worker.id,
-        metadataJson: {
-          documentsPublished: result.documentsPublished,
-          requestsCreated: result.requestsCreated,
-          emailSent: result.emailSent,
-          contractId: contractId ?? null,
-          force,
-        },
-      },
-      select: { id: true },
-    })
-    result.auditLogId = audit.id
-  } catch (err) {
-    console.error('[onboarding-cascade] audit log failed', err)
-  }
-
-  result.success = true
-  return result
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -326,6 +334,10 @@ function extractDocTypeFromRequestDescription(desc: string | null): string | nul
   if (!desc) return null
   const m = /\[doc:([a-z_]+)\]/.exec(desc)
   return m?.[1] ?? null
+}
+
+function advisoryLockKey(value: string): number {
+  return Array.from(value).reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
