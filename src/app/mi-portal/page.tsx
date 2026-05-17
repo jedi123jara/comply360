@@ -1,56 +1,34 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import type { LucideIcon } from 'lucide-react'
 import {
-  Receipt,
-  ClipboardList,
-  GraduationCap,
-  FileText,
   AlertCircle,
-  Briefcase,
-  Building2,
+  ArrowRight,
+  BadgeCheck,
   Calendar,
-  Wallet,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardList,
+  Clock3,
+  FileText,
+  Fingerprint,
+  FolderOpen,
+  GraduationCap,
+  IdCard,
+  Lock,
+  PartyPopper,
+  PenLine,
   PiggyBank,
   Plane,
-  Upload,
+  Receipt,
   ShieldCheck,
-  ChevronRight,
   Sparkles,
-  PartyPopper,
-  ArrowRight,
-  CheckCircle2,
-  Fingerprint,
+  Wallet,
 } from 'lucide-react'
-import { PendingActionCard } from '@/components/comply360/pending-action-card'
 import { EnableNotifications } from '@/components/pwa/enable-notifications'
-import { DigitalIdCard } from '@/components/mi-portal/digital-id-card'
 import { ConfettiCard } from '@/components/mi-portal/confetti-card'
-import { SectionHead } from '@/components/mi-portal/section-head'
-
-/**
- * /mi-portal — Home del Portal del Trabajador.
- *
- * Diseño aplicado del handoff Claude Design 2026-04-28 (portal-worker/index.html):
- * Aesthetic "Emerald Light editorial" — Geist + Instrument Serif.
- *
- * Secciones (mobile-first, scroll vertical):
- *  1. Hero greet — emerald gradient, name italic, DNI pill + streak pill
- *  2. Push opt-in banner (conditional)
- *  3. Acciones pendientes (PendingActionCard con accent-bar por severity)
- *  4. Mi credencial — DigitalIdCard (tarjeta ID estilo "credencial física" oscura)
- *  5. Mi resumen — KPI grid 2x2 con Instrument Serif para los valores
- *  6. Próximas capacitaciones — list-card minimal
- *  7. Atajos rápidos — grid 2x3 con icon tiles emerald
- *  8. ConfettiCard milestone — aniversario / cumpleaños / capacitación cerrada
- *
- * Reusa el endpoint `/api/mi-portal/resumen` ya existente.
- */
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Types (matching /api/mi-portal/resumen response)
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface PortalSummary {
   worker: {
@@ -90,24 +68,35 @@ interface PortalSummary {
   proximasCapacitaciones: Array<{ id: string; title: string; deadline: string | null }>
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function greet(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'Buenos días'
-  if (h < 19) return 'Buenas tardes'
-  return 'Buenas noches'
+type PendingAction = {
+  id: string
+  icon: LucideIcon
+  title: string
+  description: string
+  deadline?: string | null
+  severity?: 'critical' | 'high' | 'medium' | 'info'
+  href: string
 }
+
+type Tone = 'emerald' | 'blue' | 'amber' | 'violet' | 'rose'
 
 function formatPeriodo(periodo: string): string {
   const parts = periodo.split('-')
   if (parts.length < 2) return periodo
   const [year, month] = parts
   const months = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
   ]
   const m = parseInt(month, 10) - 1
   return `${months[m] ?? month} ${year}`
@@ -125,14 +114,18 @@ function formatShortDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })
 }
 
+function formatTime(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('es-PE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function formatRegimen(value: string): string {
   return value.replace(/_/g, ' ').toLowerCase()
 }
 
-/**
- * Calcula años + meses transcurridos desde fechaIngreso.
- * Devuelve aniversario formateado si está cerca (<30 días) — sino null.
- */
 function aniversarioProximo(fechaIngresoIso: string): { years: number; daysUntil: number } | null {
   try {
     const ingreso = new Date(fechaIngresoIso)
@@ -150,10 +143,6 @@ function aniversarioProximo(fechaIngresoIso: string): { years: number; daysUntil
     return null
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Component
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function MiPortalHomePage() {
   const [data, setData] = useState<PortalSummary | null>(null)
@@ -181,58 +170,17 @@ export default function MiPortalHomePage() {
     }
   }, [])
 
-  /**
-   * Genera la lista de acciones pendientes dinámicamente según los `stats`.
-   */
-  const pendingActions = useMemo(() => {
+  const pendingActions = useMemo<PendingAction[]>(() => {
     if (!data) return []
-    const actions: Array<{
-      id: string
-      icon: typeof FileText
-      title: string
-      description: string
-      deadline?: string | null
-      severity?: 'critical' | 'high' | 'medium' | 'info'
-      href: string
-    }> = []
-
-    if (data.stats.documentosFaltantes > 0) {
-      actions.push({
-        id: 'docs',
-        icon: FileText,
-        title:
-          data.stats.documentosFaltantes === 1
-            ? 'Sube 1 documento faltante'
-            : `Sube ${data.stats.documentosFaltantes} documentos faltantes`,
-        description: 'Tu legajo está incompleto. Complétalo para cumplir con el registro laboral.',
-        severity: data.stats.documentosFaltantes > 5 ? 'high' : 'medium',
-        href: '/mi-portal/documentos',
-      })
-    }
-
-    if (data.stats.capacitacionesPendientes > 0) {
-      const firstDeadline = data.proximasCapacitaciones[0]?.deadline ?? null
-      actions.push({
-        id: 'capac',
-        icon: GraduationCap,
-        title:
-          data.stats.capacitacionesPendientes === 1
-            ? 'Tienes 1 capacitación pendiente'
-            : `Tienes ${data.stats.capacitacionesPendientes} capacitaciones pendientes`,
-        description:
-          'Ley 29783 exige capacitaciones obligatorias. Complétalas para mantener tu SST al día.',
-        deadline: firstDeadline,
-        href: '/mi-portal/capacitaciones',
-      })
-    }
+    const actions: PendingAction[] = []
 
     if (data.stats.boletasPendientes > 0) {
       actions.push({
         id: 'boletas',
-        icon: Receipt,
+        icon: PenLine,
         title:
           data.stats.boletasPendientes === 1
-            ? 'Firma tu boleta de pago'
+            ? 'Firma tu boleta pendiente'
             : `Firma ${data.stats.boletasPendientes} boletas pendientes`,
         description: 'Confirma la recepción con tu huella para que quede auditada.',
         severity: 'medium',
@@ -264,9 +212,37 @@ export default function MiPortalHomePage() {
             : `Tienes ${data.stats.vacacionesPendientes} días de vacaciones disponibles`,
         description: data.stats.vacacionesCriticas
           ? 'Hay vacaciones acumuladas que conviene coordinar pronto con RRHH.'
-          : 'Puedes solicitar fechas de descanso desde tu portal.',
+          : 'Días acumulados que puedes disfrutar cuando lo necesites.',
         severity: data.stats.vacacionesCriticas ? 'high' : 'info',
         href: '/mi-portal/solicitudes/nueva',
+      })
+    }
+
+    if (data.stats.documentosFaltantes > 0) {
+      actions.push({
+        id: 'docs',
+        icon: FileText,
+        title:
+          data.stats.documentosFaltantes === 1
+            ? 'Sube 1 documento faltante'
+            : `Sube ${data.stats.documentosFaltantes} documentos faltantes`,
+        description: 'Tu legajo está incompleto. Complétalo para cumplir con el registro laboral.',
+        severity: data.stats.documentosFaltantes > 5 ? 'high' : 'medium',
+        href: '/mi-portal/documentos',
+      })
+    }
+
+    if (data.stats.capacitacionesPendientes > 0) {
+      actions.push({
+        id: 'capac',
+        icon: GraduationCap,
+        title:
+          data.stats.capacitacionesPendientes === 1
+            ? 'Tienes 1 capacitación pendiente'
+            : `Tienes ${data.stats.capacitacionesPendientes} capacitaciones pendientes`,
+        description: 'Completa tus cursos obligatorios y guarda tu constancia en el portal.',
+        deadline: data.proximasCapacitaciones[0]?.deadline ?? null,
+        href: '/mi-portal/capacitaciones',
       })
     }
 
@@ -278,604 +254,659 @@ export default function MiPortalHomePage() {
 
   const { worker, ultimaBoleta, proximasCapacitaciones } = data
   const { asistenciaMes, ctsProjection } = data.stats
-  const aniv = aniversarioProximo(worker.fechaIngreso)
-  const initial = worker.firstName.charAt(0).toUpperCase()
   const fullName = `${worker.firstName} ${worker.lastName}`.trim()
+  const initial = worker.firstName.charAt(0).toUpperCase()
   const idCardCode = `C360-${worker.dni.slice(-4)}`
-  const totalPending = pendingActions.length
+  const topAction = pendingActions[0] ?? null
+  const aniv = aniversarioProximo(worker.fechaIngreso)
   const asistenciaRatio =
     asistenciaMes.diasLaborales > 0
       ? Math.round((asistenciaMes.diasMarcados / asistenciaMes.diasLaborales) * 100)
       : 0
-  const topAction = pendingActions[0] ?? null
+  const documentosDisponibles = Math.max(0, 12 - data.stats.documentosFaltantes)
+
+  const quickActions = [
+    {
+      href: '/mi-portal/boletas',
+      icon: PenLine,
+      title: 'Firmar boletas',
+      description:
+        data.stats.boletasPendientes > 0
+          ? `Tienes ${data.stats.boletasPendientes} ${data.stats.boletasPendientes === 1 ? 'boleta pendiente' : 'boletas pendientes'} de firma`
+          : 'Todas tus boletas están al día',
+      tone: 'emerald' as const,
+    },
+    {
+      href: '/mi-portal/asistencia',
+      icon: Clock3,
+      title: 'Ver asistencia',
+      description: `${asistenciaRatio}% registrado este mes`,
+      tone: 'blue' as const,
+    },
+    {
+      href: '/mi-portal/solicitudes/nueva',
+      icon: Plane,
+      title: 'Solicitar vacaciones',
+      description:
+        data.stats.vacacionesPendientes > 0
+          ? `Tienes ${data.stats.vacacionesPendientes} días disponibles`
+          : 'Solicita tus días libres',
+      tone: 'amber' as const,
+    },
+    {
+      href: '/mi-portal/documentos',
+      icon: FolderOpen,
+      title: 'Mis documentos',
+      description: 'Accede a tus documentos',
+      tone: 'violet' as const,
+    },
+  ]
 
   return (
-    <div className="space-y-7 c360-page-enter">
-      {/* ─── 1. Hero editorial ─────────────────────────────────────────── */}
-      <section className="c360-worker-home-hero">
-        <div className="relative z-[1] grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-2xl text-blue-800 shadow-xl shadow-slate-950/20 ring-1 ring-white/70">
-                <span className="font-serif">{initial}</span>
-              </div>
-              <div className="min-w-0">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[11px] font-bold uppercase text-cyan-100 ring-1 ring-white/18">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-lime-300"
-                    style={{ boxShadow: '0 0 0 4px rgba(190,242,100,0.18)' }}
-                  />
-                  <span>{greet()} · Portal personal</span>
-                </div>
-                <p className="mt-1 truncate text-xs font-semibold text-cyan-50/75">
-                  {fullName}
-                </p>
-              </div>
-            </div>
-
-            <h1 className="mt-5 max-w-2xl font-serif text-[2.35rem] font-normal leading-[1.02] text-white sm:text-[3.1rem] lg:text-[3.7rem]">
-              Tu portal laboral, listo para avanzar.
+    <div className="c360-worker-reference c360-page-enter">
+      <section className="c360-ref-top-grid" aria-label="Inicio del portal trabajador">
+        <div className="c360-ref-hero">
+          <div className="c360-ref-hero-copy">
+            <h1>
+              Hola, {worker.firstName}
+              <span aria-hidden="true"> 👋</span>
             </h1>
-
-            <p className="mt-4 max-w-xl text-[14px] leading-6 text-cyan-50/88 sm:text-[15px] sm:leading-7">
-              Firma lo pendiente, revisa tus pagos y mantén tu legajo al día sin entrar al
-              panel de la empresa.
-            </p>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link href="#acciones" className="c360-worker-primary-cta">
+            <p>Todo lo que necesitas de tu relación laboral, en un solo lugar.</p>
+            <div className="c360-ref-hero-actions">
+              <Link href="#pendientes" className="c360-ref-primary">
+                <CheckCircle2 className="h-5 w-5" />
                 Resolver pendientes
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-5 w-5" />
               </Link>
-              <Link href="#credencial" className="c360-worker-secondary-cta">
+              <Link href="#credencial" className="c360-ref-secondary">
+                <IdCard className="h-5 w-5" />
                 Ver mi credencial
               </Link>
             </div>
-
-            {topAction ? (
-              <Link href={topAction.href} className="c360-worker-mobile-priority md:hidden">
-                <span className="text-[10px] font-black uppercase text-lime-200">
-                  Primero resuelve esto
-                </span>
-                <span className="mt-1 block text-sm font-black text-white">{topAction.title}</span>
-                <span className="mt-1 block text-xs leading-5 text-cyan-50/78">
-                  {topAction.description}
-                </span>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-black text-lime-200">
-                  Ir ahora <ArrowRight className="h-3.5 w-3.5" />
-                </span>
-              </Link>
-            ) : null}
-
-            <div className="mt-5 grid grid-cols-2 gap-2 md:hidden">
-              <div className="rounded-2xl bg-white/14 px-3 py-2 ring-1 ring-white/16">
-                <p className="text-[10px] font-bold uppercase text-cyan-100/80">Hoy</p>
-                <p className="mt-1 font-serif text-3xl leading-none text-white">{totalPending}</p>
-                <p className="text-[11px] font-semibold text-cyan-50/75">acciones</p>
-              </div>
-              <div className="rounded-2xl bg-lime-300 px-3 py-2 text-slate-950">
-                <p className="text-[10px] font-black uppercase">Asistencia</p>
-                <p className="mt-1 font-mono text-2xl font-black">{asistenciaRatio}%</p>
-                <p className="text-[11px] font-bold">este mes</p>
-              </div>
-            </div>
-
-            <div className="mt-5 hidden flex-wrap gap-2.5 sm:mt-6 sm:flex">
-              <HeroPill icon={Briefcase} label={worker.position ?? 'Trabajador'} />
-              <HeroPill icon={Building2} label={worker.organization.name} />
-              <HeroPill icon={ShieldCheck} label={`DNI ${worker.dni}`} mono />
-            </div>
-
-            <div className="mt-5 hidden flex-wrap gap-2 sm:flex">
-              <HeroTrust icon={Fingerprint} label="Firma con huella" />
-              <HeroTrust icon={CheckCircle2} label="Datos protegidos" />
-              <HeroTrust icon={ShieldCheck} label="Cuenta verificada" />
-            </div>
           </div>
+          <WorkerHeroIllustration />
+        </div>
 
-          <div className="c360-worker-hero-panel hidden md:block">
-            {topAction ? (
-              <Link href={topAction.href} className="c360-worker-priority-card">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-lime-300 px-2.5 py-1 text-[10px] font-black uppercase text-slate-950">
-                  <Sparkles className="h-3 w-3" />
-                  Acción recomendada
-                </span>
-                <h2 className="mt-3 text-xl font-black leading-tight text-white">
-                  {topAction.title}
-                </h2>
-                <p className="mt-1.5 text-sm leading-6 text-cyan-50/78">
-                  {topAction.description}
-                </p>
-                <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-black text-blue-800 shadow-lg shadow-slate-950/20">
-                  Resolver ahora <ArrowRight className="h-3.5 w-3.5" />
-                </span>
-              </Link>
-            ) : null}
-
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase text-cyan-100/80">
-                  Prioridades de hoy
-                </p>
-                <div className="mt-2 flex items-end gap-2">
-                  <span className="font-serif text-[4rem] leading-none text-white">
-                    {totalPending}
-                  </span>
-                  <span className="pb-2 text-sm font-semibold text-cyan-100">
-                    {totalPending === 1 ? 'acción' : 'acciones'}
-                  </span>
-                </div>
-              </div>
-              <div className="rounded-2xl bg-lime-300 px-3 py-2 text-right text-slate-950 shadow-lg shadow-lime-950/20">
-                <p className="text-[10px] font-black uppercase">Asistencia</p>
-                <p className="font-mono text-lg font-black">{asistenciaRatio}%</p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              <HeroMetric
-                icon={FileText}
-                label="Legajo"
-                value={data.stats.documentosFaltantes > 0 ? `${data.stats.documentosFaltantes}` : 'OK'}
-                sub={data.stats.documentosFaltantes > 0 ? 'docs faltantes' : 'completo'}
-                tone="blue"
-              />
-              <HeroMetric
-                icon={Receipt}
-                label="Boleta"
-                value={data.stats.boletasPendientes > 0 ? `${data.stats.boletasPendientes}` : 'OK'}
-                sub={data.stats.boletasPendientes > 0 ? 'por firmar' : 'firmadas'}
-                tone="amber"
-              />
-              <HeroMetric
-                icon={Plane}
-                label="Vacaciones"
-                value={`${data.stats.vacacionesPendientes}`}
-                sub="días disponibles"
-                tone="green"
-              />
-            </div>
+        <Link href={topAction?.href ?? '/mi-portal'} className="c360-ref-recommendation">
+          <div>
+            <span className="c360-ref-pill">
+              <Sparkles className="h-3.5 w-3.5" />
+              Recomendado para ti
+            </span>
+            <h2>{topAction ? topAction.title : 'Tu portal está al día'}</h2>
+            <p>
+              {topAction
+                ? topAction.description
+                : 'No hay acciones urgentes. Puedes revisar tu credencial o tus movimientos.'}
+            </p>
+            <span className="c360-ref-small-button">
+              Resolver ahora
+              <ArrowRight className="h-4 w-4" />
+            </span>
           </div>
+          <FingerprintDocGraphic />
+        </Link>
+      </section>
+
+      <section className="c360-ref-section" aria-label="Accesos rápidos">
+        <h2>Accesos rápidos</h2>
+        <div className="c360-ref-quick-grid">
+          {quickActions.map((item) => (
+            <QuickCard key={item.href} {...item} />
+          ))}
         </div>
       </section>
 
-      {/* ─── 2. Push opt-in banner (conditional) ───────────────────────── */}
-      <EnableNotifications variant="inline" />
-
-      {/* ─── 3. Acciones pendientes ────────────────────────────────────── */}
-      {pendingActions.length > 0 ? (
-        <section id="acciones" className="scroll-mt-24">
-          <SectionHead
-            title="Tu siguiente"
-            emPart="movimiento"
-            link={{
-              label: `${pendingActions.length} ${pendingActions.length === 1 ? 'pendiente' : 'pendientes'}`,
-            }}
-          />
-          <div className="grid gap-3 lg:grid-cols-2">
-            {pendingActions.map((a) => (
-              <PendingActionCard
-                key={a.id}
-                icon={a.icon}
-                title={a.title}
-                description={a.description}
-                deadline={a.deadline}
-                severity={a.severity}
-                href={a.href}
+      <section className="c360-ref-main-grid">
+        <div className="space-y-6">
+          <section className="c360-ref-section">
+            <div className="c360-ref-section-head">
+              <h2>Lo importante hoy</h2>
+              <Link href="/mi-portal/notificaciones">Ver todo</Link>
+            </div>
+            <div className="c360-ref-important-grid">
+              <ImportantCard
+                icon={Receipt}
+                label="Boletas pendientes"
+                value={`${data.stats.boletasPendientes}`}
+                description={
+                  data.stats.boletasPendientes > 0
+                    ? `Tienes ${data.stats.boletasPendientes} ${data.stats.boletasPendientes === 1 ? 'boleta pendiente' : 'boletas pendientes'} de firma.`
+                    : 'No tienes boletas por firmar.'
+                }
+                href="/mi-portal/boletas"
+                tone="emerald"
               />
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section
-          className="rounded-2xl p-6 text-center"
-          style={{
-            background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
-            border: '0.5px solid rgba(16,185,129,0.2)',
-          }}
-        >
-          <div
-            className="inline-flex items-center justify-center rounded-2xl mb-3"
-            style={{
-              width: 48,
-              height: 48,
-              background: 'linear-gradient(165deg, #2563eb 0%, #1e40af 100%)',
-              boxShadow: '0 8px 20px -6px rgba(4,120,87,0.45)',
-            }}
-          >
-            <ShieldCheck className="h-5 w-5 text-white" />
-          </div>
-          <h3
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 22,
-              fontWeight: 400,
-              color: 'var(--text-primary)',
-              lineHeight: 1.2,
-              marginBottom: 4,
-            }}
-          >
-            Todo al día — <em style={{ color: '#1e40af', fontStyle: 'italic' }}>excelente</em>
-          </h3>
-          <p className="text-sm text-[color:var(--text-secondary)] max-w-sm mx-auto">
-            No tienes acciones pendientes. Sigue manteniendo tu información actualizada.
-          </p>
-        </section>
-      )}
+              <ImportantCard
+                icon={ClipboardList}
+                label="Solicitudes en trámite"
+                value={`${data.stats.solicitudesPendientes}`}
+                description={
+                  data.stats.solicitudesPendientes > 0
+                    ? `Tienes ${data.stats.solicitudesPendientes} solicitudes en proceso.`
+                    : 'No tienes solicitudes activas.'
+                }
+                href="/mi-portal/solicitudes"
+                tone="blue"
+              />
+            </div>
+          </section>
 
-      {/* ─── 4. Mi credencial (DigitalIdCard) ──────────────────────────── */}
-      <section id="credencial" className="scroll-mt-24">
-        <SectionHead
-          title="Mi"
-          emPart="credencial"
-          link={{ label: 'Compartir', href: '/mi-portal/perfil' }}
-        />
-        <DigitalIdCard
-          name={fullName}
-          position={worker.position}
-          dni={worker.dni}
-          code={idCardCode}
-          org={worker.organization.name}
-          initial={initial}
-        />
+          <section className="c360-ref-section">
+            <h2>Tus métricas personales</h2>
+            <div className="c360-ref-metric-grid">
+              <MetricTile
+                icon={CheckCircle2}
+                label="Última marca"
+                value={formatTime(asistenciaMes.ultimaMarcacion?.clockIn)}
+                description={
+                  asistenciaMes.ultimaMarcacion
+                    ? `Hoy · ${formatShortDate(asistenciaMes.ultimaMarcacion.clockIn)}`
+                    : 'Sin marca reciente'
+                }
+                badge={asistenciaMes.ultimaMarcacion ? 'A tiempo' : undefined}
+                tone="emerald"
+              />
+              <MetricTile
+                icon={PenLine}
+                label="Firmas pendientes"
+                value={`${data.stats.boletasPendientes}`}
+                description="Boletas por firmar"
+                tone="blue"
+              />
+              <MetricTile
+                icon={FolderOpen}
+                label="Documentos disponibles"
+                value={`${documentosDisponibles}`}
+                description="Documentos listos para descargar"
+                tone="violet"
+              />
+            </div>
+          </section>
+
+          <section id="pendientes" className="c360-ref-section scroll-mt-24">
+            <div className="c360-ref-section-head">
+              <h2>Últimos movimientos</h2>
+              <Link href="/mi-portal/notificaciones">Ver todos</Link>
+            </div>
+            {pendingActions.length > 0 ? (
+              <div className="c360-ref-movement-list">
+                {pendingActions.slice(0, 4).map((action) => (
+                  <MovementRow key={action.id} action={action} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState />
+            )}
+          </section>
+        </div>
+
+        <aside className="space-y-6">
+          <section id="credencial" className="c360-ref-section scroll-mt-24">
+            <h2>Mi credencial digital</h2>
+            <ReferenceCredential
+              name={fullName}
+              position={worker.position}
+              dni={worker.dni}
+              code={idCardCode}
+              organization={worker.organization.name}
+              initial={initial}
+            />
+          </section>
+
+          <section className="c360-ref-section">
+            <h2>Tu estado laboral</h2>
+            <div className="c360-ref-status-grid">
+              <StatusCard
+                icon={ShieldCheck}
+                title={data.stats.documentosFaltantes > 0 ? 'Legajo pendiente' : 'Legajo completo'}
+                description={
+                  data.stats.documentosFaltantes > 0
+                    ? `${data.stats.documentosFaltantes} documentos por completar`
+                    : 'Toda tu información está al día'
+                }
+                tone="emerald"
+              />
+              <StatusCard
+                icon={BadgeCheck}
+                title="Cuenta verificada"
+                description="Tu identidad ha sido verificada"
+                tone="blue"
+              />
+              <StatusCard
+                icon={Lock}
+                title="Datos protegidos"
+                description="Tu información está segura con nosotros"
+                tone="emerald"
+              />
+              <StatusCard
+                icon={IdCard}
+                title="Credencial activa"
+                description="Tu credencial digital está activa"
+                tone="violet"
+              />
+            </div>
+          </section>
+        </aside>
       </section>
 
-      {/* ─── 5. Resumen financiero (KPI grid) ──────────────────────────── */}
-      <section>
-        <SectionHead
-          title="Mi"
-          emPart="resumen"
-          link={{ label: 'Ver detalle', href: '/mi-portal/perfil' }}
-        />
-        <div
-          style={{
-            display: 'grid',
-            gap: 8,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          }}
-        >
-          <KpiTile
+      <EnableNotifications variant="inline" />
+
+      <section className="c360-ref-section">
+        <div className="c360-ref-section-head">
+          <h2>Resumen adicional</h2>
+          <Link href="/mi-portal/perfil">Ver perfil</Link>
+        </div>
+        <div className="c360-ref-extra-grid">
+          <InfoTile
             icon={Wallet}
             label="Última boleta"
             value={ultimaBoleta ? `S/ ${fmtSoles(ultimaBoleta.netoPagar)}` : '—'}
-            sub={ultimaBoleta ? formatPeriodo(ultimaBoleta.periodo) : 'Sin emisiones'}
+            description={ultimaBoleta ? formatPeriodo(ultimaBoleta.periodo) : 'Sin emisiones'}
             href="/mi-portal/boletas"
-            accent
+            tone="blue"
           />
-          <KpiTile
+          <InfoTile
             icon={PiggyBank}
             label="CTS proyectada"
             value={ctsProjection ? `S/ ${fmtSoles(ctsProjection.ctsTotal)}` : 'No aplica'}
-            sub={ctsProjection ? `Corte ${formatShortDate(ctsProjection.nextCut)}` : formatRegimen(worker.regimenLaboral)}
+            description={ctsProjection ? `Corte ${formatShortDate(ctsProjection.nextCut)}` : formatRegimen(worker.regimenLaboral)}
             href="/mi-portal/perfil"
+            tone="amber"
           />
-          <KpiTile
-            icon={Plane}
-            label="Vacaciones"
-            value={`${data.stats.vacacionesPendientes} ${data.stats.vacacionesPendientes === 1 ? 'día' : 'días'}`}
-            sub={data.stats.vacacionesCriticas ? 'Coordinar pronto' : data.stats.vacacionesPendientes > 0 ? 'Pendientes de goce' : 'Al día'}
-            href="/mi-portal/solicitudes"
-          />
-          <KpiTile
+          <InfoTile
             icon={Calendar}
             label="Asistencia"
             value={`${asistenciaMes.diasMarcados}/${asistenciaMes.diasLaborales}`}
-            sub={`${asistenciaMes.tardanzas} ${asistenciaMes.tardanzas === 1 ? 'tardanza' : 'tardanzas'} · ${asistenciaMes.horasTrabajadas}h`}
+            description={`${asistenciaMes.tardanzas} tardanzas · ${asistenciaMes.horasTrabajadas}h`}
             href="/mi-portal/asistencia"
+            tone="emerald"
           />
         </div>
       </section>
 
-      {/* ─── 6. Próximas capacitaciones ────────────────────────────────── */}
-      {proximasCapacitaciones.length > 0 && (
-        <section>
-          <SectionHead
-            title="Próximas"
-            emPart="capacitaciones"
-            link={{ label: 'Ver todas', href: '/mi-portal/capacitaciones' }}
-          />
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{ background: 'white', border: '0.5px solid var(--border-default)' }}
-          >
-            <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-              {proximasCapacitaciones.slice(0, 3).map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href="/mi-portal/capacitaciones"
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-[color:var(--neutral-50)] transition-colors"
-                  >
-                    <div
-                      className="flex items-center justify-center rounded-lg flex-shrink-0"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        background: '#eff6ff',
-                        color: '#1e40af',
-                      }}
-                    >
-                      <GraduationCap className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[color:var(--text-primary)] truncate">
-                        {c.title}
-                      </p>
-                      {c.deadline && (
-                        <p className="mt-0.5 text-[11px] text-[color:var(--text-tertiary)] inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          Hasta {new Date(c.deadline).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}
-                        </p>
-                      )}
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-[color:var(--text-tertiary)]" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+      {proximasCapacitaciones.length > 0 ? (
+        <section className="c360-ref-section">
+          <div className="c360-ref-section-head">
+            <h2>Capacitaciones próximas</h2>
+            <Link href="/mi-portal/capacitaciones">Ver todas</Link>
+          </div>
+          <div className="c360-ref-movement-list">
+            {proximasCapacitaciones.slice(0, 3).map((course) => (
+              <Link key={course.id} href="/mi-portal/capacitaciones" className="c360-ref-movement-row c360-tone-blue">
+                <span className="c360-ref-movement-icon">
+                  <GraduationCap className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <strong>{course.title}</strong>
+                  <small>{course.deadline ? `Hasta ${formatShortDate(course.deadline)}` : 'Sin fecha límite'}</small>
+                </span>
+                <ChevronRight className="h-5 w-5 text-slate-400" />
+              </Link>
+            ))}
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* ─── 7. Atajos rápidos (grid) ──────────────────────────────────── */}
-      <section>
-        <SectionHead title="Atajos" emPart="rápidos" link={null} />
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
-          <QuickAction href="/mi-portal/solicitudes/nueva" icon={Plane} label="Solicitar vacaciones" />
-          <QuickAction href="/mi-portal/solicitudes/nueva" icon={FileText} label="Pedir constancia" />
-          <QuickAction href="/mi-portal/documentos" icon={Upload} label="Subir documento" />
-          <QuickAction href="/mi-portal/perfil" icon={Briefcase} label="Actualizar datos" />
-          <QuickAction href="/mi-portal/reglamento" icon={ShieldCheck} label="Ver el RIT" />
-          <QuickAction href="/mi-portal/denuncias" icon={Sparkles} label="Reportar incidente" />
-        </div>
-      </section>
-
-      {/* ─── 8. Confetti milestone (aniversario) ────────────────────────── */}
-      {aniv && (
+      {aniv ? (
         <ConfettiCard
           icon={PartyPopper}
           eyebrow="Aniversario"
-          title={`¡${aniv.years} ${aniv.years === 1 ? 'año' : 'años'}, chamba dura!`}
-          titleEmText="chamba dura"
+          title={`¡${aniv.years} ${aniv.years === 1 ? 'año' : 'años'}, buen avance!`}
+          titleEmText="buen avance"
           sub={
             aniv.daysUntil === 0
-              ? 'Tu aniversario es HOY. Te toca día de descanso opcional.'
-              : `Tu aniversario es en ${aniv.daysUntil} ${aniv.daysUntil === 1 ? 'día' : 'días'}. Te toca día de descanso opcional.`
+              ? 'Tu aniversario es hoy. Revisa con RRHH el beneficio disponible.'
+              : `Tu aniversario es en ${aniv.daysUntil} ${aniv.daysUntil === 1 ? 'día' : 'días'}.`
           }
         />
-      )}
+      ) : null}
     </div>
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Sub-components inline
-// ─────────────────────────────────────────────────────────────────────────────
-
-function HeroPill({
+function QuickCard({
+  href,
   icon: Icon,
-  label,
-  mono,
-}: {
-  icon: typeof Briefcase
-  label: string
-  mono?: boolean
-}) {
-  return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/12 px-3 py-1.5 text-xs font-semibold text-white/90 ring-1 ring-white/16 backdrop-blur">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-lime-200" />
-      <span className={mono ? 'truncate font-mono' : 'truncate'}>{label}</span>
-    </span>
-  )
-}
-
-function HeroTrust({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof Fingerprint
-  label: string
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-950/28 px-3 py-1.5 text-[11px] font-bold text-cyan-50/82 ring-1 ring-white/12 backdrop-blur">
-      <Icon className="h-3.5 w-3.5 text-lime-200" />
-      {label}
-    </span>
-  )
-}
-
-function HeroMetric({
-  icon: Icon,
-  label,
-  value,
-  sub,
+  title,
+  description,
   tone,
 }: {
-  icon: typeof FileText
-  label: string
-  value: string
-  sub: string
-  tone: 'blue' | 'amber' | 'green'
-}) {
-  const colors = {
-    blue: { bg: 'rgba(96, 165, 250, 0.18)', icon: '#bfdbfe', accent: '#60a5fa' },
-    amber: { bg: 'rgba(251, 191, 36, 0.2)', icon: '#fde68a', accent: '#fbbf24' },
-    green: { bg: 'rgba(52, 211, 153, 0.2)', icon: '#bbf7d0', accent: '#34d399' },
-  }[tone]
-
-  return (
-    <div className="c360-worker-hero-metric">
-      <div
-        className="flex h-9 w-9 items-center justify-center rounded-xl"
-        style={{ background: colors.bg, color: colors.icon }}
-      >
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase text-cyan-100/70">{label}</p>
-        <div className="mt-0.5 flex items-baseline gap-1.5">
-          <span className="font-serif text-2xl leading-none text-white">{value}</span>
-          <span className="truncate text-[11px] font-semibold text-cyan-50/75">{sub}</span>
-        </div>
-      </div>
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-3 bottom-0 h-[2px] rounded-full"
-        style={{ background: colors.accent }}
-      />
-    </div>
-  )
-}
-
-function KpiTile({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  href,
-  accent,
-}: {
-  icon: typeof Wallet
-  label: string
-  value: string
-  sub: string
   href: string
-  accent?: boolean
+  icon: LucideIcon
+  title: string
+  description: string
+  tone: Tone
 }) {
   return (
-    <Link
-      href={href}
-      className="group relative block overflow-hidden rounded-2xl p-4 transition-all hover:-translate-y-0.5"
-      style={{
-        background: accent
-          ? 'linear-gradient(135deg, rgba(204,251,241,0.86), white 58%, rgba(219,234,254,0.58))'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)',
-        border: accent
-          ? '1px solid rgba(20,184,166,0.3)'
-          : '1px solid var(--border-default)',
-        boxShadow:
-          '0 18px 32px -28px rgba(15,23,42,0.34), inset 0 1px 0 rgba(255,255,255,0.8)',
-      }}
-    >
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-[3px]"
-        style={{
-          background: accent
-            ? 'linear-gradient(90deg, #10b981, #22d3ee, #60a5fa)'
-            : 'linear-gradient(90deg, #60a5fa, #a78bfa)',
-        }}
-      />
-      <div className="mb-3 flex items-center gap-2">
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-xl"
-          style={{
-            background: accent ? '#ccfbf1' : '#eff6ff',
-            color: '#1d4ed8',
-          }}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-        <span
-          className="font-bold uppercase"
-          style={{
-            fontSize: 10,
-            letterSpacing: 0,
-            color: 'var(--text-tertiary)',
-          }}
-        >
-          {label}
-        </span>
-      </div>
-      <div
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: 26,
-          fontWeight: 400,
-          color: 'var(--text-primary)',
-          letterSpacing: 0,
-          lineHeight: 1,
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {value}
-      </div>
-      <p
-        className="mt-1.5"
-        style={{ fontSize: 11, color: 'var(--text-tertiary)' }}
-      >
-        {sub}
-      </p>
-    </Link>
-  )
-}
-
-function QuickAction({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string
-  icon: typeof Plane
-  label: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex min-h-[106px] flex-col items-start justify-between gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5"
-      style={{
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)',
-        border: '1px solid var(--border-default)',
-        boxShadow: '0 16px 30px -26px rgba(15,23,42,0.28)',
-      }}
-    >
-      <div
-        className="flex items-center justify-center rounded-xl transition-transform group-hover:scale-105"
-        style={{
-          width: 38,
-          height: 38,
-          background: 'linear-gradient(135deg, #dbeafe, #ccfbf1)',
-          color: '#1d4ed8',
-        }}
-      >
-        <Icon className="h-4 w-4" />
-      </div>
-      <span
-        className="leading-tight"
-        style={{
-          fontSize: 11,
-          fontWeight: 800,
-          color: 'var(--text-primary)',
-        }}
-      >
-        {label}
+    <Link href={href} className={`c360-ref-quick-card c360-tone-${tone}`}>
+      <span className="c360-ref-card-icon">
+        <Icon className="h-8 w-8" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <strong>{title}</strong>
+        <small>{description}</small>
+      </span>
+      <span className="c360-ref-arrow">
+        <ChevronRight className="h-5 w-5" />
       </span>
     </Link>
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Loading + Error states
-// ─────────────────────────────────────────────────────────────────────────────
+function ImportantCard({
+  icon: Icon,
+  label,
+  value,
+  description,
+  href,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  description: string
+  href: string
+  tone: Tone
+}) {
+  return (
+    <Link href={href} className={`c360-ref-important-card c360-tone-${tone}`}>
+      <span className="c360-ref-important-icon">
+        <Icon className="h-8 w-8" />
+      </span>
+      <span className="min-w-0">
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <p>{description}</p>
+        <em>Ver detalle <ArrowRight className="h-3.5 w-3.5" /></em>
+      </span>
+    </Link>
+  )
+}
+
+function MetricTile({
+  icon: Icon,
+  label,
+  value,
+  description,
+  badge,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  description: string
+  badge?: string
+  tone: Tone
+}) {
+  return (
+    <div className={`c360-ref-metric c360-tone-${tone}`}>
+      <span className="c360-ref-metric-icon">
+        <Icon className="h-6 w-6" />
+      </span>
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <p>{description}</p>
+        {badge ? <em>{badge}</em> : null}
+      </span>
+    </div>
+  )
+}
+
+function MovementRow({ action }: { action: PendingAction }) {
+  const Icon = action.icon
+  const tone = action.id === 'vacaciones' ? 'amber' : action.id === 'solicitudes' ? 'violet' : 'blue'
+  return (
+    <Link href={action.href} className={`c360-ref-movement-row c360-tone-${tone}`}>
+      <span className="c360-ref-movement-icon">
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <strong>{action.title}</strong>
+        <small>{action.description}</small>
+      </span>
+      <span className="c360-ref-movement-arrow">
+        <ArrowRight className="h-5 w-5" />
+      </span>
+    </Link>
+  )
+}
+
+function StatusCard({
+  icon: Icon,
+  title,
+  description,
+  tone,
+}: {
+  icon: LucideIcon
+  title: string
+  description: string
+  tone: Tone
+}) {
+  return (
+    <div className={`c360-ref-status-card c360-tone-${tone}`}>
+      <span className="c360-ref-status-check">
+        <CheckCircle2 className="h-4 w-4" />
+      </span>
+      <span className="c360-ref-status-icon">
+        <Icon className="h-7 w-7" />
+      </span>
+      <strong>{title}</strong>
+      <small>{description}</small>
+    </div>
+  )
+}
+
+function InfoTile({
+  icon: Icon,
+  label,
+  value,
+  description,
+  href,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  description: string
+  href: string
+  tone: Tone
+}) {
+  return (
+    <Link href={href} className={`c360-ref-info-tile c360-tone-${tone}`}>
+      <span className="c360-ref-metric-icon">
+        <Icon className="h-5 w-5" />
+      </span>
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <p>{description}</p>
+      </span>
+      <ChevronRight className="ml-auto h-5 w-5 text-slate-400" />
+    </Link>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="c360-ref-empty">
+      <ShieldCheck className="h-8 w-8" />
+      <strong>Todo al día</strong>
+      <p>No tienes acciones pendientes en este momento.</p>
+    </div>
+  )
+}
+
+function ReferenceCredential({
+  name,
+  position,
+  dni,
+  code,
+  organization,
+  initial,
+}: {
+  name: string
+  position: string | null
+  dni: string
+  code: string
+  organization: string
+  initial: string
+}) {
+  return (
+    <div className="c360-ref-credential">
+      <div className="c360-ref-credential-lines" aria-hidden="true" />
+      <div className="c360-ref-credential-avatar">{initial}</div>
+      <div className="c360-ref-credential-body">
+        <span className="c360-ref-verified">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Verificada
+        </span>
+        <h3>{name}</h3>
+        <p>{position ?? 'Trabajador'}</p>
+        <div className="c360-ref-credential-data">
+          <span>
+            <small>DNI</small>
+            <strong>{dni}</strong>
+          </span>
+          <span>
+            <small>Código</small>
+            <strong>{code}</strong>
+          </span>
+        </div>
+      </div>
+      <div className="c360-ref-qr" aria-label="QR visual de verificación">
+        <QrPattern />
+      </div>
+      <div className="c360-ref-credential-footer">
+        <ShieldCheck className="h-5 w-5" />
+        <span>Verificado por</span>
+        <strong>{organization}</strong>
+      </div>
+    </div>
+  )
+}
+
+function QrPattern() {
+  return (
+    <svg viewBox="0 0 29 29" role="img" aria-hidden="true">
+      {Array.from({ length: 29 }).map((_, y) =>
+        Array.from({ length: 29 }).map((__, x) => {
+          const finder =
+            ((x < 7 && y < 7) || (x > 21 && y < 7) || (x < 7 && y > 21)) &&
+            (x === 0 || x === 6 || y === 0 || y === 6 || (x > 1 && x < 5 && y > 1 && y < 5))
+          const seed = (x * 13 + y * 7 + x * y) % 9
+          return finder || seed < 3 ? (
+            <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill="currentColor" />
+          ) : null
+        }),
+      )}
+    </svg>
+  )
+}
+
+function FingerprintDocGraphic() {
+  return (
+    <div className="c360-fingerprint-graphic" aria-hidden="true">
+      <div className="c360-fingerprint-paper">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="c360-fingerprint-mark">
+        <Fingerprint className="h-12 w-12" />
+      </div>
+    </div>
+  )
+}
+
+function WorkerHeroIllustration() {
+  return (
+    <div className="c360-worker-illustration" aria-hidden="true">
+      <svg viewBox="0 0 520 330" role="img">
+        <defs>
+          <linearGradient id="c360Sky" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stopColor="#eafffb" />
+            <stop offset="100%" stopColor="#d9efff" />
+          </linearGradient>
+          <linearGradient id="c360Hoodie" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stopColor="#12c4aa" />
+            <stop offset="100%" stopColor="#058176" />
+          </linearGradient>
+          <linearGradient id="c360Bag" x1="0" x2="1">
+            <stop offset="0%" stopColor="#0f3b6d" />
+            <stop offset="100%" stopColor="#155e75" />
+          </linearGradient>
+        </defs>
+        <rect width="520" height="330" rx="34" fill="url(#c360Sky)" />
+        <g className="c360-clouds" fill="#ffffff" opacity="0.9">
+          <path d="M95 73c11-24 48-22 55 4 18-6 36 7 39 24H61c3-15 17-27 34-28Z" />
+          <path d="M353 89c10-18 38-18 48 1 15-3 29 7 33 22H323c3-13 15-22 30-23Z" />
+          <circle cx="444" cy="70" r="23" fill="#f8d56e" opacity="0.9" />
+        </g>
+        <g className="c360-city" fill="#8bd2ee" opacity="0.72">
+          <rect x="56" y="180" width="36" height="86" rx="4" />
+          <rect x="103" y="150" width="44" height="116" rx="4" />
+          <rect x="163" y="122" width="58" height="144" rx="4" />
+          <rect x="233" y="160" width="44" height="106" rx="4" />
+          <rect x="287" y="135" width="52" height="131" rx="4" />
+          <rect x="358" y="178" width="38" height="88" rx="4" />
+          <rect x="407" y="145" width="48" height="121" rx="4" />
+          {Array.from({ length: 28 }).map((_, i) => (
+            <rect
+              key={i}
+              x={68 + (i % 7) * 55}
+              y={170 + Math.floor(i / 7) * 28}
+              width="10"
+              height="16"
+              rx="2"
+              fill="#dff8ff"
+              opacity="0.9"
+            />
+          ))}
+        </g>
+        <g className="c360-trees">
+          <path d="M31 281c26-60 73-58 102 0Z" fill="#6ed2b5" />
+          <path d="M392 281c26-64 78-66 107 0Z" fill="#65c5ad" />
+          <path d="M0 288h520v42H0Z" fill="#bdebdc" />
+          <path d="M459 167c15 41 20 82 10 126" stroke="#159979" strokeWidth="7" strokeLinecap="round" />
+          <path d="M469 207c22-14 37-33 41-56" stroke="#20a980" strokeWidth="8" strokeLinecap="round" />
+          <path d="M466 230c19-4 35-14 48-31" stroke="#20a980" strokeWidth="8" strokeLinecap="round" />
+        </g>
+        <g className="c360-worker-person">
+          <path d="M329 142c-43 9-70 50-64 100l10 82h120l14-86c9-55-26-106-80-96Z" fill="url(#c360Hoodie)" />
+          <path d="M282 166c-36 24-55 61-62 112" fill="none" stroke="#087b74" strokeWidth="28" strokeLinecap="round" />
+          <path d="M390 168c40 30 49 77 34 123" fill="none" stroke="#087b74" strokeWidth="30" strokeLinecap="round" />
+          <path d="M292 144c9-31 56-39 77-15 11 13 13 34 2 51-15 22-51 25-70 7-12-11-15-27-9-43Z" fill="#f0aa79" />
+          <path d="M286 136c9-36 62-51 91-22 8 8 11 18 10 29-26-5-44-15-55-32-10 24-25 36-46 37Z" fill="#072b48" />
+          <path d="M317 153c9 9 24 8 32-2" fill="none" stroke="#7f3f2d" strokeWidth="4" strokeLinecap="round" />
+          <circle cx="317" cy="137" r="3" fill="#09263d" />
+          <circle cx="355" cy="137" r="3" fill="#09263d" />
+          <path d="M337 139c1 11-2 18-10 20" fill="none" stroke="#c56f4f" strokeWidth="3" strokeLinecap="round" />
+          <path d="M285 167c15 30 55 34 80 3" fill="none" stroke="#d8fff4" strokeWidth="8" strokeLinecap="round" opacity="0.7" />
+          <path d="M252 178c-19 37-15 91 8 139" fill="none" stroke="url(#c360Bag)" strokeWidth="13" strokeLinecap="round" />
+          <rect className="c360-phone" x="235" y="168" width="42" height="70" rx="9" fill="#0d345d" transform="rotate(-12 256 203)" />
+          <rect className="c360-phone" x="244" y="180" width="24" height="38" rx="4" fill="#a7f3d0" opacity="0.75" transform="rotate(-12 256 203)" />
+          <path className="c360-phone-hand" d="M275 219c-10-5-25-2-30 8-6 12 5 27 21 22 14-4 23-20 9-30Z" fill="#f0aa79" />
+          <path d="M318 324h-54l-7-58h67Z" fill="#12264c" />
+          <path d="M388 324h-55l12-58h63Z" fill="#16365f" />
+        </g>
+        <path className="c360-bird" d="M448 123c11-12 25-12 36 0 8-9 18-11 30-5" fill="none" stroke="#67b8d3" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+    </div>
+  )
+}
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-7 animate-pulse">
-      <div className="rounded-2xl h-48 bg-emerald-50/40" />
-      <div className="space-y-2.5">
-        {[1, 2].map((i) => (
-          <div key={i} className="rounded-2xl h-24 bg-[color:var(--neutral-100)]" />
-        ))}
+    <div className="c360-worker-reference animate-pulse">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+        <div className="h-72 rounded-[30px] bg-white/80" />
+        <div className="h-72 rounded-[30px] bg-white/80" />
       </div>
-      <div className="rounded-2xl h-52 bg-slate-900/10" />
-      <div
-        style={{
-          display: 'grid',
-          gap: 8,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        }}
-      >
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="rounded-xl h-24 bg-[color:var(--neutral-100)]" />
+          <div key={i} className="h-32 rounded-[26px] bg-white/80" />
         ))}
       </div>
     </div>
@@ -884,21 +915,18 @@ function LoadingSkeleton() {
 
 function ErrorState({ message }: { message: string | null }) {
   return (
-    <div
-      className="rounded-2xl p-6"
-      style={{ background: '#fef2f2', border: '0.5px solid rgba(239,68,68,0.25)' }}
-    >
+    <div className="rounded-3xl border border-red-200 bg-red-50 p-6">
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
         <div>
           <h3 className="font-bold text-red-900">No pudimos cargar tu información</h3>
-          <p className="text-sm text-red-800 mt-1">
+          <p className="mt-1 text-sm text-red-800">
             {message || 'Contacta al área de RRHH si el problema persiste.'}
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700"
           >
             Reintentar
           </button>

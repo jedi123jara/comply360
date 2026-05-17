@@ -1,8 +1,28 @@
 'use client'
 
-import { useCallback, useEffect, useState, useRef } from 'react'
-import { User, Mail, Phone, MapPin, Calendar, Briefcase, Building2, Save, AlertCircle, CheckCircle2, Loader2, Camera, Smile } from 'lucide-react'
-import { PageHeader, ErrorState, DetailSkeleton } from '@/components/mi-portal'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  AlertCircle,
+  BadgeCheck,
+  Briefcase,
+  Building2,
+  Calendar,
+  Camera,
+  CheckCircle2,
+  IdCard,
+  Loader2,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  ShieldCheck,
+  Smile,
+  Sparkles,
+  User,
+  UserRound,
+} from 'lucide-react'
+import { ErrorState, DetailSkeleton } from '@/components/mi-portal'
 import { formatLongDate, formatPhonePE } from '@/lib/format/peruvian'
 
 interface PerfilData {
@@ -25,11 +45,6 @@ interface PerfilData {
   bio: string | null
 }
 
-/**
- * Comprime y redimensiona una foto a max 400x400 JPEG quality 0.85.
- * Output: data URL (base64) listo para guardar en DB.
- * Tamaño típico: ~30-80KB por foto (vs ~2-4MB original de cámara móvil).
- */
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -164,190 +179,267 @@ export default function PerfilPage() {
     editing.photoUrl !== (data.photoUrl ?? '')
 
   const initials = `${data.firstName.charAt(0)}${data.lastName.charAt(0)}`.toUpperCase()
+  const fullName = `${data.firstName} ${data.lastName}`.trim()
 
   return (
-    <div className="space-y-5 max-w-3xl">
-      <PageHeader
-        title="Mi perfil"
-        subtitle="Tus datos personales y laborales. Solo puedes actualizar email, teléfono y dirección."
-        icon={<User className="w-5 h-5" />}
-      />
-
+    <div className="c360-worker-profile c360-page-enter mx-auto max-w-5xl space-y-5">
       {message && (
         <div
           role="status"
           aria-live="polite"
-          className={`flex items-start gap-3 p-3.5 rounded-lg border ${
+          className={`flex items-start gap-3 rounded-2xl border p-4 shadow-sm ${
             message.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-              : 'bg-red-50 border-red-200 text-red-900'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border-red-200 bg-red-50 text-red-900'
           }`}
         >
           {message.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-600" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
           ) : (
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
           )}
-          <p className="text-sm">{message.text}</p>
+          <p className="text-sm font-semibold">{message.text}</p>
         </div>
       )}
 
-      {/* ─── Tu identidad: foto + bio (humaniza el perfil del worker) ─── */}
-      <Section
-        title="Tu identidad"
-        subtitle="Sube una foto y cuéntanos algo de ti. Tus compañeros y RRHH te verán más cerca."
-      >
-        <div className="flex flex-col sm:flex-row gap-5 items-start">
-          {/* Avatar grande con upload */}
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <div className="relative">
-              {editing.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={editing.photoUrl}
-                  alt={`Foto de ${data.firstName}`}
-                  className="w-28 h-28 rounded-2xl object-cover ring-2 ring-emerald-200 shadow-md"
+      <section className="c360-profile-hero">
+        <div className="relative z-[1]">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="flex shrink-0 flex-col items-center gap-2">
+                <div className="relative">
+                  {editing.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={editing.photoUrl}
+                      alt={`Foto de ${data.firstName}`}
+                      className="h-32 w-32 rounded-[28px] object-cover ring-4 ring-white shadow-xl shadow-slate-900/15"
+                    />
+                  ) : (
+                    <div className="c360-profile-avatar">{initials}</div>
+                  )}
+                  {uploadingPhoto ? (
+                    <div className="absolute inset-0 grid place-items-center rounded-[28px] bg-slate-950/45">
+                      <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100 transition-colors hover:bg-emerald-50 disabled:opacity-50"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    {editing.photoUrl ? 'Cambiar' : 'Subir foto'}
+                  </button>
+                  {editing.photoUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditing({ ...editing, photoUrl: '' })}
+                      className="inline-flex min-h-9 items-center rounded-full bg-white px-3 text-xs font-black text-rose-600 shadow-sm ring-1 ring-rose-100 transition-colors hover:bg-rose-50"
+                    >
+                      Quitar
+                    </button>
+                  ) : null}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handlePhotoChange}
+                  className="hidden"
                 />
-              ) : (
-                <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 ring-2 ring-emerald-300 flex items-center justify-center text-3xl font-bold text-emerald-700">
-                  {initials}
+              </div>
+
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-emerald-700 shadow-sm ring-1 ring-white/80">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  Cuenta verificada
                 </div>
-              )}
-              {uploadingPhoto && (
-                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                <h1 className="mt-3 text-3xl font-black leading-tight text-slate-950 sm:text-4xl">
+                  {fullName}
+                </h1>
+                <p className="mt-1 text-sm font-semibold text-slate-600">
+                  {data.position ?? 'Trabajador'} · {data.organization.name}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <ProfileChip icon={IdCard} label={`DNI ${data.dni}`} mono />
+                  <ProfileChip icon={Building2} label={data.department ?? 'Área no asignada'} />
+                  <ProfileChip icon={ShieldCheck} label={data.regimenLaboral.replaceAll('_', ' ')} />
                 </div>
-              )}
+              </div>
             </div>
+
             <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-900 disabled:opacity-50"
+              onClick={handleSave}
+              disabled={saving || !changed}
+              className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-black text-white shadow-lg shadow-slate-900/15 transition-all hover:-translate-y-0.5 hover:bg-slate-800 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
             >
-              <Camera className="w-3.5 h-3.5" />
-              {editing.photoUrl ? 'Cambiar foto' : 'Subir foto'}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? 'Guardando' : changed ? 'Guardar cambios' : 'Perfil al día'}
             </button>
-            {editing.photoUrl && (
-              <button
-                type="button"
-                onClick={() => editing && setEditing({ ...editing, photoUrl: '' })}
-                className="text-[10px] text-rose-600 hover:text-rose-800"
-              >
-                Quitar foto
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="user"
-              onChange={handlePhotoChange}
-              className="hidden"
-            />
           </div>
 
-          {/* Bio */}
-          <div className="flex-1 w-full">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
-              <Smile className="w-3.5 h-3.5 text-emerald-600" />
-              Cuéntanos algo de ti
+          <div className="mt-6 rounded-[24px] bg-white/92 p-4 shadow-sm ring-1 ring-slate-200/80">
+            <label className="mb-2 flex items-center gap-2 text-xs font-black uppercase text-slate-500">
+              <Smile className="h-3.5 w-3.5 text-emerald-600" />
+              Algo sobre mí
             </label>
             <textarea
               rows={3}
               maxLength={200}
               value={editing.bio}
               onChange={(e) => setEditing({ ...editing, bio: e.target.value })}
-              placeholder="Ej. Me encanta el fútbol los fines de semana · Soy fan de la cocina criolla · Tengo 2 perros · Me gusta viajar al sur"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 resize-none"
+              placeholder="Ej. Me gusta cocinar, aprender algo nuevo los fines de semana y mantener mi equipo al día."
+              className="c360-profile-bio-input"
             />
-            <p className="text-[11px] text-slate-500 mt-1">
-              {editing.bio.length}/200 caracteres · Es opcional pero recomendado
+            <p className="mt-2 text-[11px] font-semibold text-slate-500">
+              {editing.bio.length}/200 caracteres
             </p>
           </div>
         </div>
-      </Section>
+      </section>
 
-      <Section title="Datos personales" subtitle="Estos datos solo pueden ser modificados por RRHH.">
-        <Field icon={User} label="Nombre completo" value={`${data.firstName} ${data.lastName}`} />
-        <Field icon={User} label="DNI" value={data.dni} />
-        <Field icon={Calendar} label="Fecha de nacimiento" value={formatLongDate(data.birthDate)} />
-        <Field icon={User} label="Género" value={data.gender ?? '—'} />
-        <Field icon={MapPin} label="Nacionalidad" value={data.nationality ?? '—'} />
-      </Section>
+      <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="space-y-5">
+          <ProfilePanel
+            title="Contacto directo"
+            subtitle="Datos que usará RRHH para enviarte avisos, firmas y respuestas."
+            icon={Mail}
+          >
+            <EditField
+              icon={Mail}
+              label="Email personal"
+              type="email"
+              value={editing.email}
+              onChange={(v) => setEditing({ ...editing, email: v })}
+            />
+            <EditField
+              icon={Phone}
+              label="Teléfono"
+              type="tel"
+              value={editing.phone}
+              onChange={(v) => setEditing({ ...editing, phone: v })}
+              hint={editing.phone ? formatPhonePE(editing.phone) : undefined}
+            />
+            <EditField
+              icon={MapPin}
+              label="Dirección"
+              type="text"
+              value={editing.address}
+              onChange={(v) => setEditing({ ...editing, address: v })}
+            />
+          </ProfilePanel>
 
-      <Section title="Datos de contacto" subtitle="Mantén actualizada esta información para recibir notificaciones importantes.">
-        <EditField
-          icon={Mail}
-          label="Email personal"
-          type="email"
-          value={editing.email}
-          onChange={(v) => setEditing({ ...editing, email: v })}
-        />
-        <EditField
-          icon={Phone}
-          label="Teléfono"
-          type="tel"
-          value={editing.phone}
-          onChange={(v) => setEditing({ ...editing, phone: v })}
-          hint={editing.phone ? formatPhonePE(editing.phone) : undefined}
-        />
-        <EditField
-          icon={MapPin}
-          label="Dirección"
-          type="text"
-          value={editing.address}
-          onChange={(v) => setEditing({ ...editing, address: v })}
-        />
-        <button
-          onClick={handleSave}
-          disabled={saving || !changed}
-          className="mt-2 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-4 py-2.5 rounded-lg min-h-[44px] transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? 'Guardando…' : 'Guardar cambios'}
-        </button>
-      </Section>
+          <ProfilePanel
+            title="Datos personales"
+            subtitle="Información legal administrada por la empresa."
+            icon={UserRound}
+          >
+            <Field icon={User} label="Nombre completo" value={fullName} />
+            <Field icon={IdCard} label="DNI" value={data.dni} />
+            <Field icon={Calendar} label="Fecha de nacimiento" value={formatLongDate(data.birthDate)} />
+            <Field icon={User} label="Género" value={data.gender ?? '—'} />
+            <Field icon={MapPin} label="Nacionalidad" value={data.nationality ?? '—'} />
+          </ProfilePanel>
+        </section>
 
-      <Section title="Datos laborales" subtitle="Para cualquier cambio, contacta al área de RRHH.">
-        <Field icon={Building2} label="Empresa" value={data.organization.name} />
-        {data.organization.ruc && <Field icon={Building2} label="RUC" value={data.organization.ruc} />}
-        <Field icon={Briefcase} label="Puesto" value={data.position ?? '—'} />
-        <Field icon={Briefcase} label="Departamento" value={data.department ?? '—'} />
-        <Field icon={Calendar} label="Fecha de ingreso" value={formatLongDate(data.fechaIngreso)} />
-        <Field icon={Briefcase} label="Régimen laboral" value={data.regimenLaboral.replaceAll('_', ' ')} />
-        <Field icon={Briefcase} label="Tipo de contrato" value={data.tipoContrato.replaceAll('_', ' ')} />
-      </Section>
+        <section className="space-y-5">
+          <ProfilePanel
+            title="Relación laboral"
+            subtitle="Tu vínculo vigente con la empresa."
+            icon={Briefcase}
+          >
+            <Field icon={Building2} label="Empresa" value={data.organization.name} />
+            {data.organization.ruc ? <Field icon={Building2} label="RUC" value={data.organization.ruc} /> : null}
+            <Field icon={Briefcase} label="Puesto" value={data.position ?? '—'} />
+            <Field icon={Briefcase} label="Departamento" value={data.department ?? '—'} />
+            <Field icon={Calendar} label="Fecha de ingreso" value={formatLongDate(data.fechaIngreso)} />
+            <Field icon={Briefcase} label="Régimen laboral" value={data.regimenLaboral.replaceAll('_', ' ')} />
+            <Field icon={Briefcase} label="Tipo de contrato" value={data.tipoContrato.replaceAll('_', ' ')} />
+          </ProfilePanel>
+
+          <section className="c360-profile-highlight">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-blue-700 shadow-sm">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase text-blue-800">Perfil laboral</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">Mantén tu información lista</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Con tu foto, contacto y dirección actualizados, tus firmas y comunicaciones quedan
+                mejor vinculadas a tu historial.
+              </p>
+            </div>
+          </section>
+        </section>
+      </div>
     </div>
   )
 }
 
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function ProfileChip({ icon: Icon, label, mono }: { icon: LucideIcon; label: string; mono?: boolean }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5">
-      <h3 className="font-semibold text-slate-900">{title}</h3>
-      {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
-      <div className="mt-4 space-y-3">{children}</div>
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200/80">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+      <span className={mono ? 'truncate font-mono' : 'truncate'}>{label}</span>
+    </span>
+  )
+}
+
+function ProfilePanel({
+  title,
+  subtitle,
+  icon: Icon,
+  children,
+}: {
+  title: string
+  subtitle: string
+  icon: LucideIcon
+  children: React.ReactNode
+}) {
+  return (
+    <div className="c360-profile-panel">
+      <div className="flex items-start gap-3">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-lg font-black text-slate-950">{title}</h2>
+          <p className="mt-1 text-sm leading-5 text-slate-500">{subtitle}</p>
+        </div>
+      </div>
+      <div className="mt-5 space-y-3">{children}</div>
     </div>
   )
 }
 
-function Field({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+function Field({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
-      <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="text-sm font-medium text-slate-900 truncate">{value}</p>
+    <div className="c360-profile-field">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-500">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-bold text-slate-500">{label}</p>
+        <p className="truncate text-sm font-black text-slate-950">{value}</p>
       </div>
     </div>
   )
 }
 
 function EditField({
-  icon: Icon, label, type, value, onChange, hint,
+  icon: Icon,
+  label,
+  type,
+  value,
+  onChange,
+  hint,
 }: {
-  icon: React.ComponentType<{ className?: string }>
+  icon: LucideIcon
   label: string
   type: string
   value: string
@@ -355,17 +447,18 @@ function EditField({
   hint?: string
 }) {
   return (
-    <div>
-      <label className="text-xs font-semibold text-slate-700 flex items-center gap-2 mb-1">
-        <Icon className="w-3.5 h-3.5" /> {label}
+    <div className="space-y-1.5">
+      <label className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
+        <Icon className="h-3.5 w-3.5 text-emerald-600" />
+        {label}
       </label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm min-h-[44px] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+        className="c360-profile-input"
       />
-      {hint && <p className="text-[11px] text-slate-500 mt-1">{hint}</p>}
+      {hint ? <p className="text-[11px] font-semibold text-slate-500">{hint}</p> : null}
     </div>
   )
 }

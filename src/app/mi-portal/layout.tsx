@@ -178,6 +178,13 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
           >
             <Bell className="h-4 w-4 text-[color:var(--text-secondary)]" />
           </Link>
+          <Link
+            href="/mi-portal/perfil"
+            aria-label="Mi perfil"
+            className="hidden h-10 w-10 items-center justify-center rounded-full bg-cyan-50 ring-1 ring-cyan-100 transition-transform hover:-translate-y-0.5 sm:flex"
+          >
+            <WorkerTopAvatar />
+          </Link>
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
@@ -390,6 +397,23 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
         </div>
       </nav>
     </div>
+  )
+}
+
+function WorkerTopAvatar() {
+  return (
+    <span className="relative block h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-cyan-100 to-emerald-100">
+      <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
+        <circle cx="24" cy="24" r="24" fill="#dff8f5" />
+        <path d="M12 43c2.4-9.5 9.1-14.1 12.2-14.1S34.6 33.5 37 43" fill="#0f9f8b" />
+        <path d="M16 18c.7-8.2 12.5-11.2 18-5.2 4.4 4.8 2.7 14.8-4.4 18.3-8.4 4.1-14.2-4-13.6-13.1Z" fill="#f0aa79" />
+        <path d="M15.9 17.1c1.9-9.5 16.5-12.4 21.3-3.5-6.5 1.2-12.2.3-17.1-2.8-.7 3.5-2 5.6-4.2 6.3Z" fill="#0b2545" />
+        <circle cx="21" cy="21" r="1.5" fill="#08233f" />
+        <circle cx="30" cy="21" r="1.5" fill="#08233f" />
+        <path d="M22.5 26c2.4 2.2 5.5 2.1 8-.1" fill="none" stroke="#7c3f2e" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+      <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+    </span>
   )
 }
 
