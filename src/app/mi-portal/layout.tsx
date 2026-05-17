@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   FileSignature,
   Clock,
+  AlertTriangle,
 } from 'lucide-react'
 import { ConsentGate } from '@/components/legal/consent-modal'
 import { PendingAcksBanner } from '@/components/mi-portal/pending-acks-banner'
@@ -61,7 +62,8 @@ const SECONDARY_NAV = [
 
 export default function MiPortalLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [roleGate, setRoleGate] = useState<'checking' | 'allowed'>('checking')
+  const [roleGate, setRoleGate] = useState<'checking' | 'allowed' | 'wrong_role'>('checking')
+  const [currentRole, setCurrentRole] = useState<string | null>(null)
   const pathname = usePathname() ?? '/mi-portal'
   const router = useRouter()
   const { signOut } = useClerk()
@@ -81,13 +83,14 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
 
         const me = await res.json().catch(() => null) as { role?: string } | null
         if (cancelled) return
+        setCurrentRole(me?.role ?? null)
 
         if (me?.role === 'WORKER') {
           setRoleGate('allowed')
           return
         }
 
-        router.replace(me?.role === 'SUPER_ADMIN' ? '/admin' : '/dashboard')
+        setRoleGate('wrong_role')
       })
       .catch(() => {
         if (!cancelled) router.replace('/post-login')
@@ -103,6 +106,15 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
   }
 
   if (roleGate !== 'allowed') {
+    if (roleGate === 'wrong_role') {
+      return (
+        <WorkerAccountMismatch
+          role={currentRole}
+          onWorkerLogin={() => signOut({ redirectUrl: '/mi-portal/registrarse' })}
+        />
+      )
+    }
+
     return (
       <div className="min-h-screen bg-[color:var(--bg-canvas)] text-[color:var(--text-primary)]" />
     )
@@ -376,6 +388,58 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
           })}
         </div>
       </nav>
+    </div>
+  )
+}
+
+function WorkerAccountMismatch({
+  role,
+  onWorkerLogin,
+}: {
+  role: string | null
+  onWorkerLogin: () => void
+}) {
+  const dashboardHref = role === 'SUPER_ADMIN' ? '/admin' : '/dashboard'
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-slate-50 px-4 py-10 text-slate-900">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center">
+        <section className="w-full rounded-2xl border border-amber-200 bg-white p-6 shadow-xl shadow-amber-100/50">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
+                Cuenta empresarial activa
+              </p>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                Este navegador está usando el panel de la empresa.
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                El portal del trabajador necesita una cuenta de trabajador. Para probar la invitación,
+                cierra esta sesión empresarial y entra con el correo del trabajador invitado.
+              </p>
+
+              <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={onWorkerLogin}
+                  className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                >
+                  Cerrar sesión e ingresar como trabajador
+                </button>
+                <Link
+                  href={dashboardHref}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                >
+                  Volver al panel empresa
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

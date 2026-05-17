@@ -21,9 +21,9 @@
  *   - Foundation para app móvil nativa (cuando 5,000+ workers activos)
  */
 
-import { SignUp } from '@clerk/nextjs'
 import Link from 'next/link'
 import { ArrowRight, FileText, GraduationCap, Briefcase, ShieldCheck } from 'lucide-react'
+import { WorkerRegistrationCard } from '@/components/mi-portal/worker-registration-card'
 
 export const metadata = {
   title: 'Crea tu cuenta gratis | Trabajadores Comply360',
@@ -109,41 +109,7 @@ export default function RegistrarseWorkerPage() {
 
           {/* Form Clerk — Lado derecho */}
           <div className="order-1 lg:order-2">
-            <div className="bg-white rounded-2xl shadow-2xl shadow-emerald-100 ring-1 ring-emerald-100 p-2 sm:p-4">
-              <SignUp
-                forceRedirectUrl="/mi-portal/bienvenida"
-                fallbackRedirectUrl="/mi-portal/bienvenida"
-                signInUrl="/sign-in"
-                /* unsafeMetadata se persiste en el Clerk User y JIT lo lee
-                   para crear el User como WORKER sin organization. */
-                unsafeMetadata={{ signupAs: 'WORKER' }}
-                appearance={{
-                  variables: {
-                    colorPrimary: '#2563eb',
-                    colorText: '#0f172a',
-                    colorTextSecondary: '#64748b',
-                    colorBackground: '#ffffff',
-                    colorInputBackground: '#ffffff',
-                    colorInputText: '#0f172a',
-                    borderRadius: '12px',
-                    fontFamily: 'var(--font-jakarta), var(--font-geist-sans), sans-serif',
-                  },
-                  elements: {
-                    rootBox: 'mx-auto w-full',
-                    card: 'shadow-none border-none',
-                    headerTitle: 'text-emerald-700 text-xl',
-                    headerSubtitle: 'text-slate-600 text-sm',
-                    formButtonPrimary:
-                      'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md',
-                    footerAction: 'text-emerald-700',
-                    identityPreviewEditButton: 'text-emerald-700',
-                    formFieldInput:
-                      'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20',
-                    socialButtonsBlockButton: 'border-slate-200 hover:bg-slate-50',
-                  },
-                }}
-              />
-            </div>
+            <WorkerRegistrationCard />
 
             <p className="mt-4 text-center text-xs text-slate-500">
               Al registrarte aceptas nuestros{' '}
