@@ -46,11 +46,11 @@ export function WorkerRegistrationCard() {
 
   if (!isLoaded || checkingRole) {
     return (
-      <div className="min-h-[420px] rounded-2xl bg-white p-6 shadow-2xl shadow-emerald-100 ring-1 ring-emerald-100">
-        <div className="h-5 w-40 animate-pulse rounded bg-slate-100" />
-        <div className="mt-4 h-10 w-full animate-pulse rounded bg-slate-100" />
-        <div className="mt-3 h-10 w-full animate-pulse rounded bg-slate-100" />
-        <div className="mt-6 h-11 w-full animate-pulse rounded bg-slate-100" />
+      <div className="min-h-[420px] rounded-2xl bg-[#ffffff] p-6 shadow-2xl shadow-emerald-950/20 ring-1 ring-white/70">
+        <div className="h-5 w-40 animate-pulse rounded bg-[#e2e8f0]" />
+        <div className="mt-4 h-10 w-full animate-pulse rounded bg-[#e2e8f0]" />
+        <div className="mt-3 h-10 w-full animate-pulse rounded bg-[#e2e8f0]" />
+        <div className="mt-6 h-11 w-full animate-pulse rounded bg-[#e2e8f0]" />
       </div>
     )
   }
@@ -60,26 +60,26 @@ export function WorkerRegistrationCard() {
     const dashboardHref = role === 'SUPER_ADMIN' ? '/admin' : '/dashboard'
 
     return (
-      <div className="rounded-2xl bg-white p-5 shadow-2xl shadow-emerald-100 ring-1 ring-emerald-100">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="rounded-2xl bg-[#ffffff] p-5 shadow-2xl shadow-emerald-950/20 ring-1 ring-white/70">
+        <div className="rounded-xl border border-[#fde68a] bg-[#fffbeb] p-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#fef3c7] text-[#b45309]">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#b45309]">
                 Sesión activa
               </p>
-              <h2 className="mt-1 text-lg font-bold text-slate-950">
+              <h2 className="mt-1 text-lg font-bold text-[#0f172a]">
                 {isWorker ? 'Ya tienes acceso a tu portal trabajador' : 'Estás usando una cuenta empresarial'}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-700">
+              <p className="mt-2 text-sm leading-6 text-[#334155]">
                 {isWorker
                   ? 'Puedes entrar directamente. Si también tienes panel empresa, Comply360 mantendrá ambos accesos separados.'
                   : 'Para aceptar una invitación de trabajador, entra con el correo del trabajador invitado. Si esta misma cuenta tiene ficha laboral, se vinculará automáticamente.'}
               </p>
               {user?.primaryEmailAddress?.emailAddress && (
-                <p className="mt-2 truncate rounded-lg bg-white px-3 py-2 text-xs font-mono text-slate-600 ring-1 ring-amber-200">
+                <p className="mt-2 truncate rounded-lg bg-[#ffffff] px-3 py-2 text-xs font-mono text-[#475569] ring-1 ring-[#fde68a]">
                   {user.primaryEmailAddress.emailAddress}
                 </p>
               )}
@@ -105,7 +105,7 @@ export function WorkerRegistrationCard() {
             )}
             <Link
               href={isWorker ? '/' : dashboardHref}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-xl border border-[#e2e8f0] bg-[#ffffff] px-4 py-2.5 text-sm font-semibold text-[#334155] transition-colors hover:bg-[#f8fafc]"
             >
               {isWorker ? 'Volver al inicio' : 'Volver al panel empresa'}
             </Link>
@@ -116,15 +116,15 @@ export function WorkerRegistrationCard() {
   }
 
   return (
-    <div className="rounded-[28px] bg-white p-5 shadow-2xl shadow-emerald-950/30 ring-1 ring-white/70 sm:p-6">
+    <div className="rounded-[28px] bg-[#ffffff] p-5 shadow-2xl shadow-emerald-950/30 ring-1 ring-white/70 sm:p-6">
       <div className="mb-5">
-        <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#047857]">
           Crear cuenta trabajador
         </p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+        <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
           Accede a tu portal personal
         </h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
+        <p className="mt-2 text-sm leading-6 text-[#475569]">
           Usa el correo donde recibiste la invitación. Si tu empresa ya te registró,
           el vínculo se completa automáticamente.
         </p>

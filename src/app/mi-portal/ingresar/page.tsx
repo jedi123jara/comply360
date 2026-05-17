@@ -62,13 +62,13 @@ export default function WorkerSignInPage() {
         </section>
 
         <section className="rounded-[32px] border border-emerald-400/30 bg-slate-900/80 p-4 shadow-2xl shadow-emerald-950/40 sm:p-6">
-          <div className="rounded-[28px] bg-white p-5 text-slate-950 shadow-2xl sm:p-6">
+          <div className="rounded-[28px] bg-[#ffffff] p-5 text-[#0f172a] shadow-2xl sm:p-6">
             <div className="mb-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#047857]">
                 Ingreso trabajador
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">Mi portal personal</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <p className="mt-2 text-sm leading-6 text-[#475569]">
                 Usa el mismo correo donde recibiste la invitación de tu empresa.
               </p>
             </div>

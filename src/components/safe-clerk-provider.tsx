@@ -21,6 +21,11 @@ interface State {
   error: Error | null
 }
 
+const clerkLocalization = {
+  ...esES,
+  formFieldInputPlaceholder__signUpPassword: 'Crea una contraseña',
+}
+
 class ClerkErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
@@ -75,7 +80,7 @@ class ClerkErrorBoundary extends Component<Props, State> {
 export default function SafeClerkProvider({ children }: Props) {
   return (
     <ClerkErrorBoundary>
-      <ClerkProvider localization={esES}>
+      <ClerkProvider localization={clerkLocalization}>
         {children}
       </ClerkProvider>
     </ClerkErrorBoundary>
