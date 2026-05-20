@@ -29,6 +29,10 @@ import type {
   SstRecordForEvaluator,
   PuestoTrabajoForEvaluator,
   TerceroForEvaluator,
+  WorkerCapacitacionSSTForEvaluator,
+  WorkerEPPForEvaluator,
+  SimulacroForEvaluator,
+  CuadroCategoriasForEvaluator,
 } from './types'
 
 const ATTENDANCE_DAYS_BACK = 90 // ventana suficiente para JD-01/02/05
@@ -59,6 +63,10 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
     sstRecordsRaw,
     puestosRaw,
     tercerosRaw,
+    capacitacionesRaw,
+    eppRaw,
+    simulacrosRaw,
+    cuadroVigenteRaw,
   ] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
@@ -106,6 +114,7 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
         flagTRegistroFecha: true,
         legajoScore: true,
         gender: true,
+        cuadroCategoriaId: true,
       },
     }),
     prisma.contract.findMany({
@@ -329,6 +338,63 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
         isActive: true,
       },
     }),
+    prisma.workerCapacitacionSST.findMany({
+      where: { orgId },
+      select: {
+        id: true,
+        workerId: true,
+        tipo: true,
+        fechaCapacitacion: true,
+        duracionHoras: true,
+        certificadoUrl: true,
+        firmaWorkerUrl: true,
+      },
+      orderBy: { fechaCapacitacion: 'desc' },
+      take: 5000,
+    }),
+    prisma.workerEPP.findMany({
+      where: { orgId },
+      select: {
+        id: true,
+        workerId: true,
+        tipoEpp: true,
+        fechaEntrega: true,
+        fechaVencimiento: true,
+      },
+      orderBy: { fechaEntrega: 'desc' },
+      take: 5000,
+    }),
+    prisma.simulacro.findMany({
+      where: { orgId },
+      select: {
+        id: true,
+        tipo: true,
+        fechaProgramada: true,
+        fechaEjecutada: true,
+        estado: true,
+        actaUrl: true,
+      },
+      orderBy: { fechaProgramada: 'desc' },
+    }),
+    prisma.cuadroCategorias.findFirst({
+      where: {
+        orgId,
+        vigenteDesde: { lte: now },
+        OR: [{ vigenteHasta: null }, { vigenteHasta: { gte: now } }],
+      },
+      orderBy: { vigenteDesde: 'desc' },
+      include: {
+        categorias: {
+          select: {
+            id: true,
+            cuadroId: true,
+            codigo: true,
+            rangoSalarialMin: true,
+            rangoSalarialMax: true,
+          },
+        },
+      },
+    }),
   ])
 
   if (!organization) {
@@ -336,10 +402,15 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
   }
 
   // Normalización: Prisma Decimal → number, Date → Date, null-safety
-  const workers: WorkerForEvaluator[] = workersRaw.map((w) => ({
-    ...w,
-    sueldoBruto: Number(w.sueldoBruto),
-  }))
+  const workerCategoriaMap = new Map<string, string>()
+  const workers: WorkerForEvaluator[] = workersRaw.map((w) => {
+    if (w.cuadroCategoriaId) workerCategoriaMap.set(w.id, w.cuadroCategoriaId)
+    const { cuadroCategoriaId: _, ...rest } = w
+    return {
+      ...rest,
+      sueldoBruto: Number(w.sueldoBruto),
+    }
+  })
 
   const contracts: ContractForEvaluator[] = contractsRaw
 
@@ -390,6 +461,27 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
 
   const terceros: TerceroForEvaluator[] = tercerosRaw
 
+  const capacitacionesSST: WorkerCapacitacionSSTForEvaluator[] = capacitacionesRaw
+
+  const epps: WorkerEPPForEvaluator[] = eppRaw
+
+  const simulacros: SimulacroForEvaluator[] = simulacrosRaw
+
+  const cuadroCategoriasVigente: CuadroCategoriasForEvaluator | null = cuadroVigenteRaw
+    ? {
+        id: cuadroVigenteRaw.id,
+        vigenteDesde: cuadroVigenteRaw.vigenteDesde,
+        vigenteHasta: cuadroVigenteRaw.vigenteHasta,
+        items: cuadroVigenteRaw.categorias.map((c) => ({
+          id: c.id,
+          cuadroId: c.cuadroId,
+          codigo: c.codigo,
+          rangoSalarialMin: Number(c.rangoSalarialMin),
+          rangoSalarialMax: Number(c.rangoSalarialMax),
+        })),
+      }
+    : null
+
   return {
     orgId,
     now,
@@ -413,6 +505,11 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
     sstRecords,
     puestosTrabajo,
     terceros,
+    capacitacionesSST,
+    epps,
+    simulacros,
+    cuadroCategoriasVigente,
+    workerCategoriaMap,
   }
 }
 

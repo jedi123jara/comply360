@@ -64,14 +64,19 @@ import { evaluatorSST02 } from './sst-02'
 import { evaluatorSST03 } from './sst-03'
 import { evaluatorSST04 } from './sst-04'
 import { evaluatorSST05 } from './sst-05'
+import { evaluatorSST06 } from './sst-06'
 import { evaluatorSST07 } from './sst-07'
+import { evaluatorSST08 } from './sst-08'
+import { evaluatorSST12 } from './sst-12'
 import { evaluatorSST10 } from './sst-10'
 import { evaluatorSST11 } from './sst-11'
 import { evaluatorSST13 } from './sst-13'
 import { evaluatorSST14 } from './sst-14'
 import { evaluatorSST17 } from './sst-17'
 import { evaluatorSST18 } from './sst-18'
+import { evaluatorSST20 } from './sst-20'
 import { evaluatorSST21 } from './sst-21'
+import { evaluatorSST22 } from './sst-22'
 import { evaluatorSST24 } from './sst-24'
 import { evaluatorSST25 } from './sst-25'
 
@@ -84,6 +89,7 @@ import { evaluatorDO06 } from './do-06'
 import { evaluatorDO08 } from './do-08'
 import { evaluatorDO09 } from './do-09'
 import { evaluatorDO10 } from './do-10'
+import { evaluatorDO11 } from './do-11'
 import { evaluatorDO12 } from './do-12'
 import { evaluatorDO13 } from './do-13'
 import { evaluatorDO14 } from './do-14'
@@ -95,8 +101,11 @@ import { evaluatorRL07 } from './rl-07'
 import { evaluatorRL08 } from './rl-08'
 
 // ── IN — Igualdad y No Discriminación ────────────────────────────────
+import { evaluatorIN01 } from './in-01'
+import { evaluatorIN02 } from './in-02'
 import { evaluatorIN03 } from './in-03'
 import { evaluatorIN06 } from './in-06'
+import { evaluatorIN07 } from './in-07'
 import { evaluatorIN09 } from './in-09'
 
 // ── TE — Trabajadores Especiales ─────────────────────────────────────
@@ -120,6 +129,7 @@ import { evaluatorHS01 } from './hs-01'
 import { evaluatorHS02 } from './hs-02'
 import { evaluatorHS03 } from './hs-03'
 import { evaluatorHS04 } from './hs-04'
+import { evaluatorHS06 } from './hs-06'
 import { evaluatorHS07 } from './hs-07'
 
 export const ALL_EVALUATORS: QuestionEvaluator[] = [
@@ -165,23 +175,28 @@ export const ALL_EVALUATORS: QuestionEvaluator[] = [
   evaluatorJD13,
   evaluatorJD14,
   evaluatorJD15,
-  // SST (15)
+  // SST (19)
   evaluatorSST01,
   evaluatorSST02,
   evaluatorSST03,
   evaluatorSST04,
   evaluatorSST05,
+  evaluatorSST06,
   evaluatorSST07,
+  evaluatorSST08,
   evaluatorSST10,
   evaluatorSST11,
+  evaluatorSST12,
   evaluatorSST13,
   evaluatorSST14,
   evaluatorSST17,
   evaluatorSST18,
+  evaluatorSST20,
   evaluatorSST21,
+  evaluatorSST22,
   evaluatorSST24,
   evaluatorSST25,
-  // DO (12)
+  // DO (13)
   evaluatorDO01,
   evaluatorDO02,
   evaluatorDO04,
@@ -190,6 +205,7 @@ export const ALL_EVALUATORS: QuestionEvaluator[] = [
   evaluatorDO08,
   evaluatorDO09,
   evaluatorDO10,
+  evaluatorDO11,
   evaluatorDO12,
   evaluatorDO13,
   evaluatorDO14,
@@ -198,9 +214,12 @@ export const ALL_EVALUATORS: QuestionEvaluator[] = [
   evaluatorRL02,
   evaluatorRL07,
   evaluatorRL08,
-  // IN (3)
+  // IN (6)
+  evaluatorIN01,
+  evaluatorIN02,
   evaluatorIN03,
   evaluatorIN06,
+  evaluatorIN07,
   evaluatorIN09,
   // TE (8)
   evaluatorTE01,
@@ -216,10 +235,11 @@ export const ALL_EVALUATORS: QuestionEvaluator[] = [
   evaluatorTI04,
   evaluatorTI05,
   evaluatorTI08,
-  // HS (5)
+  // HS (6)
   evaluatorHS01,
   evaluatorHS02,
   evaluatorHS03,
   evaluatorHS04,
+  evaluatorHS06,
   evaluatorHS07,
 ]

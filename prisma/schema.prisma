@@ -79,6 +79,10 @@ model Organization {
   complianceTasks         ComplianceTask[]
   diagnosticAutoAnswers   DiagnosticAutoAnswer[]
   documentRequirements    DocumentRequirement[]
+  workerCapacitacionesSST WorkerCapacitacionSST[]
+  workerEpps              WorkerEPP[]
+  simulacrosEmergencia    Simulacro[]
+  cuadrosCategorias       CuadroCategorias[]
   complaints              Complaint[]
   invitations             Invitation[]
   payslips                Payslip[]
@@ -379,11 +383,17 @@ model Worker {
   miembroComites          MiembroComite[]
   emos                    EMO[]
   consentimientosLey29733 ConsentimientoLey29733[]
+  // Fase 3 — SST operativo + Ley 30709
+  capacitacionesSST       WorkerCapacitacionSST[]
+  epps                    WorkerEPP[]
+  cuadroCategoriaId       String?                  @map("cuadro_categoria_id")
+  cuadroCategoria         CuadroCategoriaItem?     @relation(fields: [cuadroCategoriaId], references: [id])
 
   @@unique([orgId, dni])
   @@index([orgId, status])
   @@index([orgId, regimenLaboral])
   @@index([orgId, deletedAt]) // listas activas filtran rápido por deletedAt IS NULL
+  @@index([cuadroCategoriaId])
   @@map("workers")
 }
 
@@ -3776,4 +3786,125 @@ model UserDraft {
   @@unique([userId, orgId, key])
   @@index([expiresAt])
   @@map("user_drafts")
+}
+
+// =============================================
+// FASE 3 — SST OPERATIVO + LEY 30709 CUADRO CATEGORÍAS
+// =============================================
+
+// Capacitación SST por trabajador, con firma del asistente.
+// Cubre SST-06 (4 capacitaciones anuales), SST-12 (inducción), SST-22 (con firma),
+// IN-07 (capacitación hostigamiento), HS-06 (cobertura ≥ 100%), DO-11 (certificados).
+model WorkerCapacitacionSST {
+  id                String   @id @default(cuid())
+  orgId             String   @map("org_id")
+  workerId          String   @map("worker_id")
+  tipo              String // INDUCCION | ANUAL | ESPECIFICA | HOSTIGAMIENTO | EMERGENCIAS | ERGONOMIA | EPP_USO
+  fechaCapacitacion DateTime @map("fecha_capacitacion")
+  duracionHoras     Float    @map("duracion_horas")
+  temario           String   @db.Text
+  instructorNombre  String?  @map("instructor_nombre")
+  instructorEmpresa String?  @map("instructor_empresa")
+  certificadoUrl    String?  @map("certificado_url")
+  firmaWorkerUrl    String?  @map("firma_worker_url")
+  evidenciaFotoUrl  String?  @map("evidencia_foto_url")
+  observaciones     String?  @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, fechaCapacitacion])
+  @@index([workerId, tipo])
+  @@index([orgId, tipo, fechaCapacitacion])
+  @@map("worker_capacitaciones_sst")
+}
+
+// Entrega de EPP por trabajador. Cubre SST-08.
+model WorkerEPP {
+  id                String    @id @default(cuid())
+  orgId             String    @map("org_id")
+  workerId          String    @map("worker_id")
+  tipoEpp           String    @map("tipo_epp")
+  marca             String?
+  modelo            String?
+  fechaEntrega      DateTime  @map("fecha_entrega")
+  cantidadEntregada Int       @default(1) @map("cantidad_entregada")
+  fechaVencimiento  DateTime? @map("fecha_vencimiento")
+  evidenciaFotoUrl  String?   @map("evidencia_foto_url")
+  firmaWorkerUrl    String?   @map("firma_worker_url")
+  observaciones     String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([workerId, fechaEntrega])
+  @@map("worker_epp")
+}
+
+// Simulacros de emergencia programables + acta upload. Cubre SST-20 + SST-15.
+model Simulacro {
+  id                 String    @id @default(cuid())
+  orgId              String    @map("org_id")
+  sedeId             String?   @map("sede_id")
+  tipo               String // EVACUACION | SISMO | INCENDIO | EMERGENCIA_MEDICA | DERRAME_QUIMICO
+  fechaProgramada    DateTime  @map("fecha_programada")
+  fechaEjecutada     DateTime? @map("fecha_ejecutada")
+  participantesCount Int?      @map("participantes_count")
+  brigadistasCount   Int?      @map("brigadistas_count")
+  duracionMinutos    Int?      @map("duracion_minutos")
+  observaciones      String?   @db.Text
+  actaUrl            String?   @map("acta_url")
+  fotoEvidenciaUrl   String?   @map("foto_evidencia_url")
+  estado             String    @default("PROGRAMADO")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, fechaProgramada])
+  @@index([orgId, estado])
+  @@map("simulacros")
+}
+
+// Cuadro de categorías y funciones (Ley 30709). Cubre IN-01, IN-02, DO-10.
+model CuadroCategorias {
+  id           String    @id @default(cuid())
+  orgId        String    @map("org_id")
+  version      Int       @default(1)
+  vigenteDesde DateTime  @map("vigente_desde")
+  vigenteHasta DateTime? @map("vigente_hasta")
+  metodologia  String    @db.Text
+  pdfUrl       String?   @map("pdf_url")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  organization Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  categorias   CuadroCategoriaItem[]
+
+  @@index([orgId, vigenteDesde])
+  @@map("cuadro_categorias")
+}
+
+model CuadroCategoriaItem {
+  id                      String  @id @default(cuid())
+  cuadroId                String  @map("cuadro_id")
+  codigo                  String
+  nombre                  String
+  descripcion             String  @db.Text
+  rangoSalarialMin        Decimal @map("rango_salarial_min") @db.Decimal(10, 2)
+  rangoSalarialMax        Decimal @map("rango_salarial_max") @db.Decimal(10, 2)
+  conocimientosRequeridos String  @map("conocimientos_requeridos") @db.Text
+  responsabilidad         String  @db.Text
+  esfuerzoFisico          String  @map("esfuerzo_fisico") @db.Text
+  condicionesAmbientales  String  @map("condiciones_ambientales") @db.Text
+
+  cuadro  CuadroCategorias @relation(fields: [cuadroId], references: [id], onDelete: Cascade)
+  workers Worker[]
+
+  @@unique([cuadroId, codigo])
+  @@index([cuadroId])
+  @@map("cuadro_categoria_items")
 }

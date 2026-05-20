@@ -101,6 +101,13 @@ export interface EvaluatorContext {
   puestosTrabajo: PuestoTrabajoForEvaluator[]
   /** Terceros (tercerización + intermediación). */
   terceros: TerceroForEvaluator[]
+  // Fase 3 — capacitaciones, EPP, simulacros, cuadro categorías
+  capacitacionesSST: WorkerCapacitacionSSTForEvaluator[]
+  epps: WorkerEPPForEvaluator[]
+  simulacros: SimulacroForEvaluator[]
+  cuadroCategoriasVigente: CuadroCategoriasForEvaluator | null
+  /** Workers con su categoría asignada (workerId → categoriaId). */
+  workerCategoriaMap: Map<string, string>
 }
 
 /**
@@ -343,4 +350,47 @@ export interface TerceroForEvaluator {
   fechaInicio: Date | null
   fechaFin: Date | null
   isActive: boolean
+}
+
+// Fase 3 — modelos SST operativos + Cuadro Categorías
+export interface WorkerCapacitacionSSTForEvaluator {
+  id: string
+  workerId: string
+  tipo: string
+  fechaCapacitacion: Date
+  duracionHoras: number
+  certificadoUrl: string | null
+  firmaWorkerUrl: string | null
+}
+
+export interface WorkerEPPForEvaluator {
+  id: string
+  workerId: string
+  tipoEpp: string
+  fechaEntrega: Date
+  fechaVencimiento: Date | null
+}
+
+export interface SimulacroForEvaluator {
+  id: string
+  tipo: string
+  fechaProgramada: Date
+  fechaEjecutada: Date | null
+  estado: string
+  actaUrl: string | null
+}
+
+export interface CuadroCategoriaItemForEvaluator {
+  id: string
+  cuadroId: string
+  codigo: string
+  rangoSalarialMin: number
+  rangoSalarialMax: number
+}
+
+export interface CuadroCategoriasForEvaluator {
+  id: string
+  vigenteDesde: Date
+  vigenteHasta: Date | null
+  items: CuadroCategoriaItemForEvaluator[]
 }
