@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   CheckCircle2,
   AlertTriangle,
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { resolveTaskRoute, type ResolvedTaskRoute } from '@/lib/compliance/task-route-resolver'
 
 /**
  * /dashboard/tareas — Gestor de Compliance Tasks.
@@ -66,6 +68,7 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
 }
 
 export default function TareasPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<TasksResponse | null>(null)
@@ -121,6 +124,21 @@ export default function TareasPage() {
     } finally {
       setUpdating(null)
     }
+  }
+
+  /**
+   * Click en la tarjeta → navega al módulo donde subsanar y marca IN_PROGRESS
+   * en background si aún estaba PENDING. Fire-and-forget para no bloquear navegación.
+   */
+  function handleResolveNavigate(task: ComplianceTask, route: ResolvedTaskRoute) {
+    if (task.status === 'PENDING') {
+      void fetch('/api/compliance-tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, status: 'IN_PROGRESS' }),
+      }).catch((e) => console.error('[tareas] no se pudo marcar IN_PROGRESS', e))
+    }
+    router.push(route.href)
   }
 
   const totalOpen = (counts?.PENDING ?? 0) + (counts?.IN_PROGRESS ?? 0)
@@ -216,17 +234,22 @@ export default function TareasPage() {
           <EmptyPanel filter={filter} />
         ) : (
           <ul className="space-y-2">
-            {tasks.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                updating={updating === t.id}
-                onStart={() => patchTask(t.id, { status: 'IN_PROGRESS' })}
-                onComplete={() => setEvidenceFor(t)}
-                onDismiss={() => patchTask(t.id, { status: 'DISMISSED' })}
-                onReopen={() => patchTask(t.id, { status: 'PENDING' })}
-              />
-            ))}
+            {tasks.map((t) => {
+              const route = resolveTaskRoute({ sourceId: t.sourceId, area: t.area })
+              return (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  updating={updating === t.id}
+                  route={route}
+                  onNavigate={route ? () => handleResolveNavigate(t, route) : null}
+                  onStart={() => patchTask(t.id, { status: 'IN_PROGRESS' })}
+                  onComplete={() => setEvidenceFor(t)}
+                  onDismiss={() => patchTask(t.id, { status: 'DISMISSED' })}
+                  onReopen={() => patchTask(t.id, { status: 'PENDING' })}
+                />
+              )
+            })}
           </ul>
         )}
       </div>
@@ -288,6 +311,8 @@ function FilterPill({
 function TaskRow({
   task,
   updating,
+  route,
+  onNavigate,
   onStart,
   onComplete,
   onDismiss,
@@ -295,6 +320,8 @@ function TaskRow({
 }: {
   task: ComplianceTask
   updating: boolean
+  route: ResolvedTaskRoute | null
+  onNavigate: (() => void) | null
   onStart: () => void
   onComplete: () => void
   onDismiss: () => void
@@ -333,10 +360,32 @@ function TaskRow({
     n && n > 0 ? `S/ ${n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}` : null
 
   const open = task.status === 'PENDING' || task.status === 'IN_PROGRESS'
+  const isClickable = open && onNavigate !== null
 
   return (
     <li>
-      <Card padding="md" className={cn('transition-all', open ? 'hover:border-emerald-300' : 'opacity-70')}>
+      <Card
+        padding="md"
+        className={cn(
+          'transition-all',
+          open ? 'hover:border-emerald-300' : 'opacity-70',
+          isClickable && 'cursor-pointer hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60'
+        )}
+        onClick={isClickable ? onNavigate : undefined}
+        onKeyDown={
+          isClickable
+            ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onNavigate()
+                }
+              }
+            : undefined
+        }
+        role={isClickable ? 'button' : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        aria-label={isClickable && route ? `${task.title} — ${route.label}` : undefined}
+      >
         <div className="flex items-start gap-3">
           <span
             className={cn(
@@ -421,25 +470,40 @@ function TaskRow({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div
+            className="flex items-center gap-1 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             {updating ? (
               <Loader2 className="h-4 w-4 animate-spin text-[color:var(--text-tertiary)]" />
             ) : task.status === 'PENDING' ? (
               <>
-                <Button size="sm" variant="ghost" onClick={onStart}>
-                  Empezar
-                </Button>
-                <Button size="sm" onClick={onComplete} iconRight={<ArrowRight className="h-3 w-3" />}>
-                  Resolver
+                {onNavigate && route ? (
+                  <Button size="sm" onClick={onNavigate} iconRight={<ArrowRight className="h-3 w-3" />}>
+                    {route.label}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={onStart}>
+                    Empezar
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={onComplete}>
+                  Marcar resuelta
                 </Button>
               </>
             ) : task.status === 'IN_PROGRESS' ? (
               <>
+                {onNavigate && route ? (
+                  <Button size="sm" onClick={onNavigate} iconRight={<ArrowRight className="h-3 w-3" />}>
+                    {route.label}
+                  </Button>
+                ) : null}
+                <Button size="sm" variant="ghost" onClick={onComplete}>
+                  Marcar resuelta
+                </Button>
                 <Button size="sm" variant="ghost" onClick={onDismiss}>
                   Descartar
-                </Button>
-                <Button size="sm" onClick={onComplete} iconRight={<ArrowRight className="h-3 w-3" />}>
-                  Resolver
                 </Button>
               </>
             ) : (
@@ -540,7 +604,7 @@ function EvidenceModal({
           <div>
             <CardTitle>Marcar como resuelta</CardTitle>
             <CardDescription>
-              Adjuntá el link a la evidencia (documento subido al legajo, captura, link interno) y
+              Adjunta el link a la evidencia (documento subido al legajo, captura, link interno) y
               una nota opcional.
             </CardDescription>
           </div>
