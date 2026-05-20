@@ -80,6 +80,42 @@ export function hasOrgDocument(ctx: EvaluatorContext, type: string): boolean {
   return ctx.orgDocuments.some((d) => d.type === type)
 }
 
+/** Devuelve el doc más reciente del tipo dado, o null. */
+export function latestOrgDocument(ctx: EvaluatorContext, type: string) {
+  const matches = ctx.orgDocuments.filter((d) => d.type === type)
+  if (matches.length === 0) return null
+  return matches.reduce((latest, d) =>
+    !latest || (d.publishedAt && (!latest.publishedAt || d.publishedAt > latest.publishedAt))
+      ? d
+      : latest
+  )
+}
+
+/**
+ * Verifica si una constancia está vigente:
+ *  - validUntil > now → SI
+ *  - validUntil null → asumimos vigente (no expira)
+ *  - validUntil <= now → NO
+ */
+export function isOrgDocumentVigente(
+  ctx: EvaluatorContext,
+  type: string,
+  now: Date = ctx.now
+): { has: boolean; vigente: boolean; daysUntilExpiry: number | null; docId: string | null } {
+  const doc = latestOrgDocument(ctx, type)
+  if (!doc) return { has: false, vigente: false, daysUntilExpiry: null, docId: null }
+  if (!doc.validUntil) return { has: true, vigente: true, daysUntilExpiry: null, docId: doc.id }
+  const daysUntilExpiry = Math.ceil(
+    (doc.validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  )
+  return {
+    has: true,
+    vigente: daysUntilExpiry > 0,
+    daysUntilExpiry,
+    docId: doc.id,
+  }
+}
+
 /** Devuelve true si hay al menos un SstRecord vigente del tipo dado. */
 export function hasSstRecord(ctx: EvaluatorContext, type: string): boolean {
   return ctx.sstRecords.some((r) => r.type === type)

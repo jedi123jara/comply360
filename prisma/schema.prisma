@@ -78,6 +78,7 @@ model Organization {
   diagnostics             ComplianceDiagnostic[]
   complianceTasks         ComplianceTask[]
   diagnosticAutoAnswers   DiagnosticAutoAnswer[]
+  documentRequirements    DocumentRequirement[]
   complaints              Complaint[]
   invitations             Invitation[]
   payslips                Payslip[]
@@ -2300,7 +2301,61 @@ enum OrgDocType {
   PROTOCOLO_DENUNCIAS // Protocolo canal de denuncias
   CONVENIO_COLECTIVO // Convenio colectivo vigente
   COMUNICADO // Comunicado general
+  // Fase 2 — constancias del cliente para auto-derivación SUNAFIL
+  SCTR_POLIZA
+  REMYPE_CONSTANCIA
+  CTS_DEPOSITO_CONSTANCIA
+  AFP_PAGO_CONSTANCIA
+  ONP_PAGO_CONSTANCIA
+  ESSALUD_PAGO_CONSTANCIA
+  PLAME_CONFIRMACION
+  DJ_UTILIDADES
+  INFORME_LAB_FISICO
+  INFORME_LAB_QUIMICO
+  INFORME_LAB_BIOLOGICO
+  INFORME_LAB_ERGONOMICO
+  INFORME_LAB_PSICOSOCIAL
+  ACTA_SIMULACRO_EVACUACION
+  ACTA_COMITE_SST_MENSUAL
+  INFORME_ANUAL_HOSTIGAMIENTO_MTPE
+  CONVENIO_PRACTICAS_REGISTRADO_MTPE
+  AUTORIZACION_MTPE_EXTRANJERO
+  REGISTRO_SUNAFIL_TERCERIZADORA
+  CONSTANCIA_SEGURO_VIDA_LEY
+  CUADRO_CATEGORIAS_LEY_30709
+  MAPA_RIESGOS_ACTUALIZADO
+  POLITICA_SST
+  T_REGISTRO_CONSTANCIA_ALTA
+  T_REGISTRO_CONSTANCIA_BAJA
+  SINTESIS_LEGISLACION_LABORAL
+  REPORTE_HIGIENE_INSTALACIONES
   OTRO
+}
+
+// Define las constancias que cada org debe mantener subidas y vigentes.
+// La matriz de requirements se inicializa por seed según régimen + sector + tamaño
+// y se puede customizar por org. Cada OrgDocument(type=X) cuenta como evidencia
+// del requirement correspondiente; el cron `check-document-expiry` genera alertas
+// cuando se acerca el vencimiento.
+model DocumentRequirement {
+  id                   String     @id @default(cuid())
+  orgId                String     @map("org_id")
+  documentType         OrgDocType @map("document_type")
+  isRequired           Boolean    @default(true) @map("is_required")
+  renewalFrequencyDays Int?       @map("renewal_frequency_days")
+  criticality          String     @default("MEDIUM")
+  appliesToRegimen     String[]   @default([]) @map("applies_to_regimen")
+  appliesToSector      String?    @map("applies_to_sector")
+  helpText             String?    @map("help_text")
+  baseLegal            String?    @map("base_legal")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, documentType])
+  @@index([orgId])
+  @@map("document_requirements")
 }
 
 // =============================================
