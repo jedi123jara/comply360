@@ -96,7 +96,11 @@ import { evaluatorDO14 } from './do-14'
 import { evaluatorDO15 } from './do-15'
 
 // ── RL — Relaciones Laborales ────────────────────────────────────────
+import { evaluatorRL01 } from './rl-01'
 import { evaluatorRL02 } from './rl-02'
+import { evaluatorRL03 } from './rl-03'
+import { evaluatorRL04 } from './rl-04'
+import { evaluatorRL05 } from './rl-05'
 import { evaluatorRL07 } from './rl-07'
 import { evaluatorRL08 } from './rl-08'
 
@@ -210,8 +214,12 @@ export const ALL_EVALUATORS: QuestionEvaluator[] = [
   evaluatorDO13,
   evaluatorDO14,
   evaluatorDO15,
-  // RL (3)
+  // RL (7)
+  evaluatorRL01,
   evaluatorRL02,
+  evaluatorRL03,
+  evaluatorRL04,
+  evaluatorRL05,
   evaluatorRL07,
   evaluatorRL08,
   // IN (6)

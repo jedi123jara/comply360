@@ -83,6 +83,9 @@ model Organization {
   workerEpps              WorkerEPP[]
   simulacrosEmergencia    Simulacro[]
   cuadrosCategorias       CuadroCategorias[]
+  // Fase 4 — Relaciones Laborales
+  disciplinaryActions     DisciplinaryAction[]
+  sindicatos              Sindicato[]
   complaints              Complaint[]
   invitations             Invitation[]
   payslips                Payslip[]
@@ -388,6 +391,9 @@ model Worker {
   epps                    WorkerEPP[]
   cuadroCategoriaId       String?                  @map("cuadro_categoria_id")
   cuadroCategoria         CuadroCategoriaItem?     @relation(fields: [cuadroCategoriaId], references: [id])
+  // Fase 4 — Relaciones Laborales
+  disciplinaryActions     DisciplinaryAction[]
+  afiliacionesSindicales  WorkerAfiliacionSindical[]
 
   @@unique([orgId, dni])
   @@index([orgId, status])
@@ -3907,4 +3913,93 @@ model CuadroCategoriaItem {
   @@unique([cuadroId, codigo])
   @@index([cuadroId])
   @@map("cuadro_categoria_items")
+}
+
+// =============================================
+// FASE 4 — RELACIONES LABORALES
+// =============================================
+
+// Acciones disciplinarias contra trabajadores. Cubre RL-02 y RL-03.
+model DisciplinaryAction {
+  id                 String    @id @default(cuid())
+  orgId              String    @map("org_id")
+  workerId           String    @map("worker_id")
+  tipo               String // AMONESTACION_VERBAL | AMONESTACION_ESCRITA | SUSPENSION | DESPIDO
+  fechaAccion        DateTime  @map("fecha_accion")
+  motivo             String    @db.Text
+  baseLegal          String?   @map("base_legal")
+  diasSuspension     Int?      @map("dias_suspension")
+  descargosPlazo     DateTime? @map("descargos_plazo")
+  descargosRecibidos Boolean   @default(false) @map("descargos_recibidos")
+  descargosTexto     String?   @map("descargos_texto") @db.Text
+  resolucionFinal    String?   @map("resolucion_final") @db.Text
+  cartaUrl           String?   @map("carta_url")
+  appeladoPor        Boolean   @default(false) @map("apelado_por")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, workerId, fechaAccion])
+  @@index([orgId, fechaAccion])
+  @@map("disciplinary_actions")
+}
+
+// Sindicato. Cubre RL-01.
+model Sindicato {
+  id                   String    @id @default(cuid())
+  orgId                String    @map("org_id")
+  nombre               String
+  fechaConstitucion    DateTime  @map("fecha_constitucion")
+  registroMtpe         String?   @map("registro_mtpe")
+  numeroAfiliados      Int       @default(0) @map("numero_afiliados")
+  presidente           String?
+  fechaProximaEleccion DateTime? @map("fecha_proxima_eleccion")
+  isActive             Boolean   @default(true) @map("is_active")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  organization Organization               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  afiliaciones WorkerAfiliacionSindical[]
+  convenios    ConvencionColectiva[]
+
+  @@index([orgId])
+  @@map("sindicatos")
+}
+
+// Cubre RL-04 (fuero sindical).
+model WorkerAfiliacionSindical {
+  id                 String    @id @default(cuid())
+  workerId           String    @map("worker_id")
+  sindicatoId        String    @map("sindicato_id")
+  fechaAfiliacion    DateTime  @map("fecha_afiliacion")
+  fechaBaja          DateTime? @map("fecha_baja")
+  esDirigente        Boolean   @default(false) @map("es_dirigente")
+  cargoDirigencial   String?   @map("cargo_dirigencial")
+  fueroSindicalDesde DateTime? @map("fuero_sindical_desde")
+  fueroSindicalHasta DateTime? @map("fuero_sindical_hasta")
+
+  worker    Worker    @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  sindicato Sindicato @relation(fields: [sindicatoId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, sindicatoId])
+  @@index([sindicatoId])
+  @@map("worker_afiliaciones_sindicales")
+}
+
+// Cubre RL-05.
+model ConvencionColectiva {
+  id                       String    @id @default(cuid())
+  sindicatoId              String    @map("sindicato_id")
+  vigenciaDesde            DateTime  @map("vigencia_desde")
+  vigenciaHasta            DateTime  @map("vigencia_hasta")
+  fileUrl                  String    @map("file_url")
+  resumenJson              Json?     @map("resumen_json")
+  cumplimientoVerificadoAt DateTime? @map("cumplimiento_verificado_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+
+  sindicato Sindicato @relation(fields: [sindicatoId], references: [id], onDelete: Cascade)
+
+  @@index([sindicatoId, vigenciaDesde])
+  @@map("convenciones_colectivas")
 }

@@ -33,6 +33,10 @@ import type {
   WorkerEPPForEvaluator,
   SimulacroForEvaluator,
   CuadroCategoriasForEvaluator,
+  DisciplinaryActionForEvaluator,
+  SindicatoForEvaluator,
+  WorkerAfiliacionSindicalForEvaluator,
+  ConvencionColectivaForEvaluator,
 } from './types'
 
 const ATTENDANCE_DAYS_BACK = 90 // ventana suficiente para JD-01/02/05
@@ -67,6 +71,10 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
     eppRaw,
     simulacrosRaw,
     cuadroVigenteRaw,
+    disciplinaryRaw,
+    sindicatosRaw,
+    afiliacionesRaw,
+    convencionesRaw,
   ] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
@@ -395,6 +403,48 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
         },
       },
     }),
+    prisma.disciplinaryAction.findMany({
+      where: { orgId },
+      select: {
+        id: true,
+        workerId: true,
+        tipo: true,
+        fechaAccion: true,
+        motivo: true,
+        descargosRecibidos: true,
+      },
+      orderBy: { fechaAccion: 'desc' },
+    }),
+    prisma.sindicato.findMany({
+      where: { orgId },
+      select: {
+        id: true,
+        nombre: true,
+        numeroAfiliados: true,
+        isActive: true,
+      },
+    }),
+    prisma.workerAfiliacionSindical.findMany({
+      where: { worker: { orgId } },
+      select: {
+        workerId: true,
+        sindicatoId: true,
+        esDirigente: true,
+        fechaBaja: true,
+        fueroSindicalDesde: true,
+        fueroSindicalHasta: true,
+      },
+    }),
+    prisma.convencionColectiva.findMany({
+      where: { sindicato: { orgId } },
+      select: {
+        id: true,
+        sindicatoId: true,
+        vigenciaDesde: true,
+        vigenciaHasta: true,
+        cumplimientoVerificadoAt: true,
+      },
+    }),
   ])
 
   if (!organization) {
@@ -510,6 +560,10 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
     simulacros,
     cuadroCategoriasVigente,
     workerCategoriaMap,
+    disciplinaryActions: disciplinaryRaw as DisciplinaryActionForEvaluator[],
+    sindicatos: sindicatosRaw as SindicatoForEvaluator[],
+    afiliacionesSindicales: afiliacionesRaw as WorkerAfiliacionSindicalForEvaluator[],
+    convencionesColectivas: convencionesRaw as ConvencionColectivaForEvaluator[],
   }
 }
 

@@ -108,6 +108,11 @@ export interface EvaluatorContext {
   cuadroCategoriasVigente: CuadroCategoriasForEvaluator | null
   /** Workers con su categoría asignada (workerId → categoriaId). */
   workerCategoriaMap: Map<string, string>
+  // Fase 4 — Relaciones Laborales
+  disciplinaryActions: DisciplinaryActionForEvaluator[]
+  sindicatos: SindicatoForEvaluator[]
+  afiliacionesSindicales: WorkerAfiliacionSindicalForEvaluator[]
+  convencionesColectivas: ConvencionColectivaForEvaluator[]
 }
 
 /**
@@ -393,4 +398,38 @@ export interface CuadroCategoriasForEvaluator {
   vigenteDesde: Date
   vigenteHasta: Date | null
   items: CuadroCategoriaItemForEvaluator[]
+}
+
+// Fase 4 — Relaciones Laborales
+export interface DisciplinaryActionForEvaluator {
+  id: string
+  workerId: string
+  tipo: string
+  fechaAccion: Date
+  motivo: string
+  descargosRecibidos: boolean
+}
+
+export interface SindicatoForEvaluator {
+  id: string
+  nombre: string
+  numeroAfiliados: number
+  isActive: boolean
+}
+
+export interface WorkerAfiliacionSindicalForEvaluator {
+  workerId: string
+  sindicatoId: string
+  esDirigente: boolean
+  fechaBaja: Date | null
+  fueroSindicalDesde: Date | null
+  fueroSindicalHasta: Date | null
+}
+
+export interface ConvencionColectivaForEvaluator {
+  id: string
+  sindicatoId: string
+  vigenciaDesde: Date
+  vigenciaHasta: Date
+  cumplimientoVerificadoAt: Date | null
 }
