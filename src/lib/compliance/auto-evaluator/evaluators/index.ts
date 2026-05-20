@@ -133,6 +133,7 @@ import { evaluatorHS01 } from './hs-01'
 import { evaluatorHS02 } from './hs-02'
 import { evaluatorHS03 } from './hs-03'
 import { evaluatorHS04 } from './hs-04'
+import { evaluatorHS05 } from './hs-05'
 import { evaluatorHS06 } from './hs-06'
 import { evaluatorHS07 } from './hs-07'
 
@@ -243,11 +244,12 @@ export const ALL_EVALUATORS: QuestionEvaluator[] = [
   evaluatorTI04,
   evaluatorTI05,
   evaluatorTI08,
-  // HS (6)
+  // HS (7)
   evaluatorHS01,
   evaluatorHS02,
   evaluatorHS03,
   evaluatorHS04,
+  evaluatorHS05,
   evaluatorHS06,
   evaluatorHS07,
 ]
