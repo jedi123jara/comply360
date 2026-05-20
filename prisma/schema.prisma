@@ -77,6 +77,7 @@ model Organization {
   subscription            Subscription?
   diagnostics             ComplianceDiagnostic[]
   complianceTasks         ComplianceTask[]
+  diagnosticAutoAnswers   DiagnosticAutoAnswer[]
   complaints              Complaint[]
   invitations             Invitation[]
   payslips                Payslip[]
@@ -1320,6 +1321,40 @@ model ComplianceScore {
 
   @@index([orgId, calculatedAt])
   @@map("compliance_scores")
+}
+
+// Auto-derivación del diagnóstico SUNAFIL: cachea las respuestas que el motor
+// evaluator pudo derivar a partir de datos del SaaS (Worker, Contract, Payslip,
+// Attendance, IPERC, Complaint, CeseRecord, OrgDocument, etc.).
+//
+// El wizard del diagnóstico llama al endpoint /api/diagnostico/auto-prefill al
+// iniciar; ese endpoint corre los evaluators registrados y persiste el resultado
+// acá. Si computedAt < NOW() - 24h se recomputa.
+//
+// answer = null significa "no determinable" → la pregunta vuelve al wizard manual.
+model DiagnosticAutoAnswer {
+  id            String   @id @default(cuid())
+  orgId         String   @map("org_id")
+  questionId    String   @map("question_id") // CR-01, RB-03, etc.
+  answer        String? // SI | NO | PARCIAL | null
+  confidence    Int      @default(0) // 0-100
+  evidence      Json     @default("[]") // array de Evidence
+  sources       Json     @default("[]") // tablas/modelos consultados
+  evaluatorName String?  @map("evaluator_name") // identificador del evaluator que produjo este resultado
+  computedAt    DateTime @default(now()) @map("computed_at")
+  // Si el usuario override manualmente esta respuesta auto, guardamos el override
+  // y de qué usuario. La respuesta auto se mantiene como reference; el override
+  // gana en el scoring final.
+  overrideAnswer String?   @map("override_answer")
+  overrideBy     String?   @map("override_by")
+  overrideAt     DateTime? @map("override_at")
+  overrideReason String?   @map("override_reason") @db.Text
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, questionId])
+  @@index([orgId, computedAt])
+  @@map("diagnostic_auto_answers")
 }
 
 // =============================================

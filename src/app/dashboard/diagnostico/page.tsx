@@ -52,21 +52,53 @@ interface QuestionsResponse {
 
 type AnswerMap = Record<string, AnswerValue>
 
+interface AutoAnswerEvidence {
+  type: string
+  label: string
+  value: string
+  href?: string
+}
+
+interface AutoAnswerRecord {
+  questionId: string
+  answer: AnswerValue | null
+  confidence: number
+  evidence: AutoAnswerEvidence[]
+  sources: string[]
+}
+
 const AREA_LABEL = Object.fromEntries(AREAS.map((a) => [a.key, a.label])) as Record<AreaKey, string>
+
+/** Confianza mínima para que una auto-answer se aplique sin pasar por el wizard manual. */
+const MIN_CONFIDENCE = 70
 
 export default function DiagnosticoPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [mode, setMode] = useState<Mode>('EXPRESS')
   const [answers, setAnswers] = useState<AnswerMap>({})
-  const [questions, setQuestions] = useState<ComplianceQuestion[] | null>(null)
+  const [allQuestions, setAllQuestions] = useState<ComplianceQuestion[] | null>(null)
+  const [autoMap, setAutoMap] = useState<Map<string, AutoAnswerRecord>>(new Map())
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const total = questions?.length ?? 0
+  /** Preguntas que el usuario debe responder a mano (filtradas las auto-resueltas). */
+  const questions =
+    allQuestions === null
+      ? null
+      : allQuestions.filter((q) => {
+          const auto = autoMap.get(q.id)
+          // Si tiene auto-answer con confianza suficiente y respuesta no-null → la saltamos
+          return !(auto && auto.confidence >= MIN_CONFIDENCE && auto.answer !== null)
+        })
 
-  // Prefetch the right question set when mode changes (only after leaving cover).
+  const total = questions?.length ?? 0
+  const autoAnswered = allQuestions
+    ? allQuestions.length - (questions?.length ?? 0)
+    : 0
+
+  // Carga preguntas + auto-prefill en paralelo al entrar al wizard
   useEffect(() => {
     if (step < 1) return
     let cancelled = false
@@ -74,12 +106,33 @@ export default function DiagnosticoPage() {
       setLoading(true)
       setError(null)
       try {
-        const r = await fetch(`/api/diagnostics?action=questions&type=${mode}`, {
-          cache: 'no-store',
-        })
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        const data = (await r.json()) as QuestionsResponse
-        if (!cancelled) setQuestions(data.questions)
+        const [qRes, autoRes] = await Promise.all([
+          fetch(`/api/diagnostics?action=questions&type=${mode}`, { cache: 'no-store' }),
+          fetch(`/api/diagnostico/auto-prefill`, { method: 'POST', cache: 'no-store' }).catch(
+            () => null
+          ),
+        ])
+        if (!qRes.ok) throw new Error(`HTTP ${qRes.status}`)
+        const qData = (await qRes.json()) as QuestionsResponse
+        if (cancelled) return
+        setAllQuestions(qData.questions)
+
+        if (autoRes && autoRes.ok) {
+          const autoData = (await autoRes.json()) as {
+            answers: AutoAnswerRecord[]
+          }
+          const map = new Map<string, AutoAnswerRecord>()
+          // Pre-rellena el AnswerMap con las auto-respuestas aplicables
+          const prefilled: AnswerMap = {}
+          for (const a of autoData.answers ?? []) {
+            map.set(a.questionId, a)
+            if (a.confidence >= MIN_CONFIDENCE && a.answer !== null) {
+              prefilled[a.questionId] = a.answer
+            }
+          }
+          setAutoMap(map)
+          setAnswers((prev) => ({ ...prefilled, ...prev }))
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Error desconocido')
       } finally {
@@ -154,7 +207,8 @@ export default function DiagnosticoPage() {
             setMode={(m) => {
               setMode(m)
               setAnswers({})
-              setQuestions(null)
+              setAllQuestions(null)
+              setAutoMap(new Map())
             }}
             onStart={() => setStep(1)}
           />
@@ -163,14 +217,19 @@ export default function DiagnosticoPage() {
         ) : error ? (
           <ErrorPanel error={error} onRetry={() => setStep(step)} />
         ) : step > 0 && step <= total ? (
-          <QuestionStep
-            total={total}
-            step={step}
-            question={questions[step - 1]}
-            submitting={submitting && step === total}
-            onAnswer={(a) => answer(questions[step - 1], a, step === total)}
-            onBack={() => setStep((s) => Math.max(0, s - 1))}
-          />
+          <>
+            {autoAnswered > 0 && step === 1 ? (
+              <AutoPrefillBanner autoAnswered={autoAnswered} totalOriginal={allQuestions?.length ?? 0} />
+            ) : null}
+            <QuestionStep
+              total={total}
+              step={step}
+              question={questions[step - 1]}
+              submitting={submitting && step === total}
+              onAnswer={(a) => answer(questions[step - 1], a, step === total)}
+              onBack={() => setStep((s) => Math.max(0, s - 1))}
+            />
+          </>
         ) : null}
       </div>
     </main>
@@ -450,5 +509,37 @@ function QuestionStep({
         </div>
       </div>
     </section>
+  )
+}
+
+/* ── Auto prefill banner ───────────────────────────────────────────── */
+
+function AutoPrefillBanner({
+  autoAnswered,
+  totalOriginal,
+}: {
+  autoAnswered: number
+  totalOriginal: number
+}) {
+  const pct = totalOriginal > 0 ? Math.round((autoAnswered / totalOriginal) * 100) : 0
+  return (
+    <Card padding="md" variant="emerald" className="motion-fade-in-up">
+      <div className="flex items-start gap-3">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 border border-emerald-200 shrink-0">
+          <Sparkles className="h-4 w-4 text-emerald-700" />
+        </span>
+        <div className="flex-1">
+          <p className="text-base font-bold text-emerald-900">
+            Cruzamos {autoAnswered} de {totalOriginal} preguntas con tus datos
+          </p>
+          <p className="mt-1 text-sm text-emerald-800/80 leading-relaxed">
+            La plataforma respondió el {pct}% del diagnóstico usando los datos que ya tienes
+            cargados (trabajadores, contratos, boletas, asistencias, SST, denuncias). Solo te
+            pedimos lo que no podemos verificar automáticamente. Verás la evidencia completa
+            al final.
+          </p>
+        </div>
+      </div>
+    </Card>
   )
 }
