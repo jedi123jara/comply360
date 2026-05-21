@@ -31,6 +31,7 @@ import { PageHeader } from '@/components/comply360/editorial-title'
 import { KpiCard as PremiumKpi, KpiGrid } from '@/components/comply360/kpi-card'
 import { PremiumEmptyState } from '@/components/comply360/premium-empty-state'
 import { toast } from 'sonner'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -823,8 +824,7 @@ export default function AlertasPage() {
           icon={DollarSign}
           label="Multa potencial"
           value={stats.multaTotalEstimada}
-          prefix="S/"
-          formatValue={(n) => n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
+          formatValue={(n) => formatSoles(n)}
           variant={stats.multaTotalEstimada > 5000 ? 'crimson' : 'amber'}
           footer="Expuesto si hay inspección"
         />

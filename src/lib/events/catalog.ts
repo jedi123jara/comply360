@@ -125,7 +125,14 @@ const sstIncidentPayload = basePayload.extend({
 
 const complaintReceivedPayload = basePayload.extend({
   complaintId: z.string(),
-  type: z.enum(['HOSTIGAMIENTO_SEXUAL', 'DISCRIMINACION', 'ACOSO_LABORAL', 'OTRO']),
+  regime: z.enum(['HSL', 'SST', 'MPD']).optional(),
+  type: z.enum([
+    'HOSTIGAMIENTO_SEXUAL', 'DISCRIMINACION', 'ACOSO_LABORAL',
+    'SST_ACCIDENTE_MORTAL', 'SST_INCIDENTE_PELIGROSO', 'SST_ACCIDENTE_NO_MORTAL',
+    'SST_ENFERMEDAD_OCUPACIONAL', 'SST_CONDICION_INSEGURA',
+    'MPD_CORRUPCION', 'MPD_LAVADO_ACTIVOS', 'MPD_TRIBUTARIO_ADUANERO',
+    'MPD_TERRORISMO', 'MPD_OTRO', 'OTRO',
+  ]),
   anonymous: z.boolean(),
   receivedAt: z.string(),
 })
@@ -306,7 +313,7 @@ export const EVENT_CATALOG = {
     entityKey: 'complaintId',
     category: 'Denuncias',
     label: 'Denuncia recibida',
-    description: 'Se dispara al registrar una denuncia en el canal Ley 27942.',
+    description: 'Se dispara al registrar un caso en el canal HSL, SST o MPD.',
   },
   'complaint.triaged': {
     schema: complaintTriagedPayload,

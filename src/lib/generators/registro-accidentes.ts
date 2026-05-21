@@ -17,6 +17,7 @@
  * El registro debe conservarse **10 años** (accidentes) / **20 años** (enfermedades).
  */
 import type { GeneratedDocument, GeneratedSection, GeneratorOrgContext } from './types'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export type TipoEvento = 'accidente_leve' | 'accidente_incapacitante' | 'accidente_mortal' | 'incidente_peligroso' | 'enfermedad_ocupacional'
 
@@ -224,7 +225,7 @@ export function generarRegistroAccidentes(
       id: 'consecuencias',
       numbering: 'VI',
       title: 'Consecuencias',
-      content: `**Días de descanso médico / incapacidad:** ${params.diasIncapacidad} día${params.diasIncapacidad === 1 ? '' : 's'}${params.fallecimiento ? '\n**Fallecimiento:** SÍ — accidente mortal' : ''}${params.costoEstimadoSoles !== undefined ? `\n**Costo económico estimado:** S/ ${params.costoEstimadoSoles.toLocaleString('es-PE')}` : ''}\n\n**Índice de gravedad del evento:** ${calcularGravedad(params)}`,
+      content: `**Días de descanso médico / incapacidad:** ${params.diasIncapacidad} día${params.diasIncapacidad === 1 ? '' : 's'}${params.fallecimiento ? '\n**Fallecimiento:** SÍ — accidente mortal' : ''}${params.costoEstimadoSoles !== undefined ? `\n**Costo económico estimado:** ${formatSoles(params.costoEstimadoSoles)}` : ''}\n\n**Índice de gravedad del evento:** ${calcularGravedad(params)}`,
       baseLegal: 'R.M. 050-2013-TR · Cálculo Índice de Severidad',
     },
     ...(params.testigos && params.testigos.length > 0

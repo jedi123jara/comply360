@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { alertEmail } from '@/lib/email/templates'
 import { sendPushToOrg } from '@/lib/notifications/web-push-server'
-import { diasLaborables } from '@/lib/legal-engine/feriados-peru'
 import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
+import { buildComplaintDeadlines, type ComplaintRegimeValue, type ComplaintTypeValue } from '@/lib/complaints/regime-rules'
 
 // ==============================================
 // GET /api/cron/daily-alerts
@@ -213,14 +213,16 @@ export async function GET(request: NextRequest) {
     }
 
     // ------------------------------------------------
-    // 4. Complaint deadline alerts
-    //    3 days: proteccion, 30 days: investigacion, 5 days: resolucion
+    // 4. Complaint deadline alerts — HSL, SST y MPD
     // ------------------------------------------------
     type OpenComplaint = {
       id: string
       code: string
+      regime: ComplaintRegimeValue
+      type: ComplaintTypeValue
       status: string
       receivedAt: Date
+      occurredAt: Date | null
       organization: { id: string; name: string; alertEmail: string | null }
     }
     let openComplaints: OpenComplaint[] = []
@@ -236,8 +238,11 @@ export async function GET(request: NextRequest) {
       openComplaints = rows.map((r) => ({
         id: r.id,
         code: r.code,
+        regime: r.regime as ComplaintRegimeValue,
+        type: r.type as ComplaintTypeValue,
         status: String(r.status),
         receivedAt: r.receivedAt,
+        occurredAt: r.occurredAt,
         organization: r.organization,
       }))
     } catch (err) {
@@ -247,33 +252,22 @@ export async function GET(request: NextRequest) {
 
     const complaintAlerts: { orgId: string; email: string | null; orgName: string; title: string; desc: string; due: string }[] = []
     for (const c of openComplaints) {
-      const received = new Date(c.receivedAt)
-      const calendarDaysSince = Math.floor((now.getTime() - received.getTime()) / 86400000)
-      const businessDaysSince = diasLaborables(received, now)
-
-      // 3 dias HABILES para medidas de proteccion (D.S. 014-2019-MIMP Art. 18)
-      if (c.status === 'RECEIVED' && businessDaysSince >= 1 && businessDaysSince <= 4) {
+      const deadlines = buildComplaintDeadlines({
+        regime: c.regime,
+        type: c.type,
+        receivedAt: c.receivedAt,
+        occurredAt: c.occurredAt,
+        now,
+      })
+      for (const d of deadlines.filter((item) => item.status !== 'OK')) {
+        const due = new Date(d.dueDate)
         complaintAlerts.push({
           orgId: c.organization.id,
           email: c.organization.alertEmail,
           orgName: c.organization.name,
-          title: `Denuncia ${c.code}: plazo de proteccion vence pronto`,
-          desc: `La denuncia ${c.code} requiere medidas de proteccion dentro de 3 dias habiles (Art. 18 D.S. 014-2019-MIMP). ${businessDaysSince >= 3 ? 'PLAZO VENCIDO.' : `Quedan ${3 - businessDaysSince} dia(s) habil(es).`}`,
-          due: new Date(received.getTime() + 5 * 86400000).toLocaleDateString('es-PE'), // ~5 calendar days ≈ 3 business days
-        })
-      }
-
-      // 30 dias CALENDARIO para investigacion (Art. 20)
-      if (['INVESTIGATING', 'PROTECTION_APPLIED'].includes(c.status) && calendarDaysSince >= 25 && calendarDaysSince <= 32) {
-        const deadline = new Date(received)
-        deadline.setDate(deadline.getDate() + 30)
-        complaintAlerts.push({
-          orgId: c.organization.id,
-          email: c.organization.alertEmail,
-          orgName: c.organization.name,
-          title: `Denuncia ${c.code}: plazo de investigacion vence pronto`,
-          desc: `La investigacion de ${c.code} debe completarse en 30 dias calendario (Art. 20). ${calendarDaysSince >= 30 ? 'PLAZO VENCIDO.' : `Quedan ${30 - calendarDaysSince} dia(s).`}`,
-          due: deadline.toLocaleDateString('es-PE'),
+          title: `Caso ${c.code}: ${d.label}`,
+          desc: `${d.action ?? 'Revisar obligacion pendiente.'} Base: ${d.baseLegal}. ${d.status === 'OVERDUE' ? 'PLAZO VENCIDO.' : `Vence en ${d.daysRemaining} dia(s).`}`,
+          due: due.toLocaleDateString('es-PE'),
         })
       }
     }

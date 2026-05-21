@@ -16,6 +16,7 @@ import {
   Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * /dashboard/decisiones/cesar — Wizard "Cesar trabajador".
@@ -70,10 +71,6 @@ interface LiquidacionEstimate {
     indemnizacion?: { amount: number; label: string }
   }
   warnings?: Array<{ type?: string; message: string }>
-}
-
-function fmtPEN(n: number) {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export default function CesarWizardPage() {
@@ -589,7 +586,7 @@ function Step3Liquidacion({
               Total liquidación
             </span>
             <span className="text-xl font-bold text-emerald-700 tabular-nums">
-              {fmtPEN(liquidacion.totalBruto)}
+              {formatSoles(liquidacion.totalBruto)}
             </span>
           </div>
           {liquidacion.breakdown && (
@@ -600,7 +597,7 @@ function Step3Liquidacion({
                 .map((b) => (
                   <div key={b!.label} className="flex items-center justify-between text-[color:var(--text-secondary)]">
                     <dt>{b!.label}</dt>
-                    <dd className="tabular-nums">{fmtPEN(b!.amount)}</dd>
+                    <dd className="tabular-nums">{formatSoles(b!.amount)}</dd>
                   </div>
                 ))}
             </dl>
@@ -682,7 +679,7 @@ function Step4Confirm({
         {liquidacion && (
           <Row
             label="Liquidación estimada"
-            value={fmtPEN(liquidacion.totalBruto)}
+            value={formatSoles(liquidacion.totalBruto)}
             bold
           />
         )}

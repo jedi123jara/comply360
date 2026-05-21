@@ -14,6 +14,7 @@ import {
   checkPageBreak,
   type TableColumn,
 } from '@/lib/pdf/server-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const MOTIVO_LABEL: Record<string, string> = {
   despido_arbitrario: 'Despido Arbitrario',
@@ -34,10 +35,6 @@ const REGIMEN_LABEL: Record<string, string> = {
   DOMESTICO: 'Trabajador del Hogar (Ley 27986)',
   MODALIDAD_FORMATIVA: 'Modalidad Formativa (Ley 28518)',
   TELETRABAJO: 'Teletrabajo (Ley 31572)',
-}
-
-function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function fmtDate(d: string | Date): string {
@@ -144,16 +141,17 @@ export const GET = withPlanGateParams<{ id: string }>('workers',
     y = kv(doc, 'Fecha de Ingreso', fmtDate(input.fechaIngreso), col1, y, 50)
     y = kv(doc, 'Fecha de Cese', fmtDate(input.fechaCese), col1, y, 50)
     y = kv(doc, 'Motivo de Cese', MOTIVO_LABEL[input.motivoCese] ?? input.motivoCese, col1, y, 50)
-    y = kv(doc, 'Sueldo Bruto', fmt(input.sueldoBruto), col2, y - 18, 50) + 18
+    y = kv(doc, 'Sueldo Bruto', formatSoles(input.sueldoBruto), col2, y - 18, 50) + 18
 
     // ── Breakdown table ──────────────────────────────────────────────────
     y = sectionTitle(doc, '3. DETALLE DE LIQUIDACIÓN', y)
 
+    // TODO: revisar ancho columna tras refactor formato
     const columns: TableColumn[] = [
       { header: 'Concepto', x: 14 },
       { header: 'Base Legal', x: 85 },
       { header: 'Fórmula', x: 130 },
-      { header: 'Monto (S/)', x: 192, align: 'right' },
+      { header: 'Monto', x: 192, align: 'right' },
     ]
 
     const items = [
@@ -170,7 +168,7 @@ export const GET = withPlanGateParams<{ id: string }>('workers',
       item!.label,
       item!.baseLegal.slice(0, 40),
       item!.formula.slice(0, 35),
-      `${item!.amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      formatSoles(item!.amount),
     ])
 
     y = drawTable(doc, columns, rows, y, {
@@ -192,7 +190,7 @@ export const GET = withPlanGateParams<{ id: string }>('workers',
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.text('TOTAL LIQUIDACIÓN', 16, y + 2)
-    doc.text(fmt(result.totalBruto), w - 16, y + 2, { align: 'right' })
+    doc.text(formatSoles(result.totalBruto), w - 16, y + 2, { align: 'right' })
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(60, 60, 60)
     y += 16

@@ -27,6 +27,7 @@
  */
 
 import Decimal from 'decimal.js'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // Configuración global de decimal.js
 //   - precision 30: suficiente para cualquier cálculo laboral peruano
@@ -130,12 +131,9 @@ export class Money {
     return this.value.toFixed(decimals, Decimal.ROUND_HALF_EVEN)
   }
 
-  /** Formato es-PE con dos decimales y símbolo S/. */
+  /** Formato canónico: "1,234.56 nuevos soles". */
   toFormatted(): string {
-    return `S/ ${this.toNumber().toLocaleString('es-PE', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`
+    return formatSoles(this.toNumber())
   }
 
   /** Para JSON.stringify y debugging. */

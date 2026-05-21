@@ -17,15 +17,12 @@ import {
   drawTable,
   type TableColumn,
 } from '@/lib/pdf/server-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export const runtime = 'nodejs'
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-
-function fmt(n: number): string {
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 
 function fmtPeriodo(p: string): string {
   const [y, m] = p.split('-')
@@ -86,9 +83,9 @@ export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ct
   // ── KPI summary boxes ────────────────────────────────────────────────────────
   const boxW = (W - 28 - 8) / 3
   const kpis: { label: string; value: string; color: [number, number, number] }[] = [
-    { label: 'Masa Salarial (Ingresos)', value: `S/ ${fmt(totalIngresos)}`, color: [30, 58, 110] },
-    { label: 'Neto a Pagar', value: `S/ ${fmt(totalNeto)}`, color: [22, 163, 74] },
-    { label: 'Costo Empleador', value: `S/ ${fmt(totalIngresos + totalEssalud)}`, color: [124, 58, 237] },
+    { label: 'Masa Salarial (Ingresos)', value: formatSoles(totalIngresos), color: [30, 58, 110] },
+    { label: 'Neto a Pagar', value: formatSoles(totalNeto), color: [22, 163, 74] },
+    { label: 'Costo Empleador', value: formatSoles(totalIngresos + totalEssalud), color: [124, 58, 237] },
   ]
 
   for (let i = 0; i < kpis.length; i++) {
@@ -111,10 +108,10 @@ export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ct
   // ── Secondary metrics ─────────────────────────────────────────────────────────
   y = sectionTitle(doc, 'RESUMEN DE APORTES Y DESCUENTOS', y)
   const metrics = [
-    { label: 'Total AFP/ONP Trabajadores', value: `S/ ${fmt(totalAfpOnp)}` },
-    { label: 'Renta 5ta Categoría Retenida', value: `S/ ${fmt(totalRenta)}` },
-    { label: 'Total Descuentos Trabajadores', value: `S/ ${fmt(totalDescuentos)}` },
-    { label: 'EsSalud Empleador (9%)', value: `S/ ${fmt(totalEssalud)}` },
+    { label: 'Total AFP/ONP Trabajadores', value: formatSoles(totalAfpOnp) },
+    { label: 'Renta 5ta Categoría Retenida', value: formatSoles(totalRenta) },
+    { label: 'Total Descuentos Trabajadores', value: formatSoles(totalDescuentos) },
+    { label: 'EsSalud Empleador (9%)', value: formatSoles(totalEssalud) },
     { label: 'Trabajadores con boleta', value: `${withPayslip.length} / ${workers.length}` },
   ]
 
@@ -136,6 +133,7 @@ export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ct
   // ── Detail table ──────────────────────────────────────────────────────────────
   y = sectionTitle(doc, 'DETALLE POR TRABAJADOR', y)
 
+  // TODO: revisar ancho columna tras refactor formato
   const columns: TableColumn[] = [
     { header: 'DNI', x: 14, width: 18 },
     { header: 'Trabajador', x: 36, width: 50 },
@@ -170,20 +168,20 @@ export const GET = withPlanGate('t_registro_export', async (req: NextRequest, ct
       w.dni,
       `${w.lastName}, ${w.firstName}`.slice(0, 32),
       (w.department ?? '').slice(0, 14),
-      fmt(ing),
-      fmt(des),
-      fmt(net),
-      fmt(ess),
+      formatSoles(ing),
+      formatSoles(des),
+      formatSoles(net),
+      formatSoles(ess),
     ])
   }
 
   // Totals row
   rows.push([
     '', 'TOTALES', '',
-    fmt(runningIngresos),
-    fmt(runningDescuentos),
-    fmt(runningNeto),
-    fmt(runningEssalud),
+    formatSoles(runningIngresos),
+    formatSoles(runningDescuentos),
+    formatSoles(runningNeto),
+    formatSoles(runningEssalud),
   ])
 
   y = drawTable(doc, columns, rows, y, {

@@ -3,6 +3,8 @@
 // All templates use inline styles for email compatibility
 // ==============================================
 
+import { formatSoles } from '@/lib/format/peruvian'
+
 const BRAND_BLUE = '#1e3a6e'
 const BRAND_LIGHT = '#f0f4fa'
 const CTA_BLUE = '#2563eb'
@@ -399,7 +401,7 @@ export interface FounderDigestData {
 }
 
 function fmtS(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`
+  return formatSoles(n)
 }
 function fmtDelta(n: number): string {
   const sign = n > 0 ? '+' : ''

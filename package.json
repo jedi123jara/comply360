@@ -20,6 +20,9 @@
     "preflight": "node scripts/preflight/check.mjs",
     "preflight:voseo": "node scripts/preflight/check-voseo.mjs",
     "preflight:multitenant": "node scripts/preflight/check-multitenant.mjs",
+    "security:secrets": "node scripts/security/secret-scan.mjs",
+    "security:deps": "pnpm audit --prod --audit-level high",
+    "security": "pnpm security:secrets && pnpm security:deps && pnpm preflight:multitenant",
     "test:super": "vitest run && node scripts/preflight/super-test.mjs",
     "test:full": "vitest run && playwright test && node scripts/preflight/super-test.mjs",
     "seed:demo": "tsx scripts/seed-demo-empresas.ts",
@@ -34,11 +37,13 @@
   },
   "overrides": {
     "@hono/node-server": "^1.19.13",
+    "js-cookie": "^3.0.7",
     "postcss": "^8.5.14"
   },
   "pnpm": {
     "overrides": {
       "@hono/node-server": "^1.19.13",
+      "js-cookie": "^3.0.7",
       "postcss": "^8.5.14"
     }
   },

@@ -10,6 +10,7 @@ import {
   sectionTitle,
   checkPageBreak,
 } from '@/lib/pdf/server-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * GET /api/sst/plan-anual/pdf?ano=2026
@@ -182,7 +183,7 @@ export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: Au
     y = kv(
       doc,
       'Presupuesto SST',
-      `S/ ${data.presupuestoSoles.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      formatSoles(data.presupuestoSoles),
       14,
       y,
     )

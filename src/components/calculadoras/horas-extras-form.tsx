@@ -5,6 +5,7 @@ import { calcularHorasExtras } from '@/lib/legal-engine/calculators/horas-extras
 import { openWhatsApp } from '@/lib/whatsapp'
 import type { HorasExtrasInput, HorasExtrasResult } from '@/lib/legal-engine'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   Download,
@@ -216,7 +217,7 @@ export function HorasExtrasCalculadora() {
                 </div>
               </div>
               <div className="text-5xl font-black tracking-tight mb-2">
-                S/ {fmt(result.montoTotal)}
+                {formatSoles(result.montoTotal)}
               </div>
               <p className="text-orange-100 text-sm">
                 {result.totalHoras} horas extras acumuladas en {input.mesesAcumulados} mes(es)
@@ -228,11 +229,11 @@ export function HorasExtrasCalculadora() {
                   type="button"
                   onClick={() => {
                     const items = [
-                      { label: `Horas al 25% (${fmt(result.breakdown.horas25.cantidad)} hrs)`, amount: result.breakdown.horas25.monto, formula: `${fmt(result.breakdown.horas25.cantidad)} hrs x S/ ${fmt(result.valorHoraExtra25)}` },
-                      { label: `Horas al 35% (${fmt(result.breakdown.horas35.cantidad)} hrs)`, amount: result.breakdown.horas35.monto, formula: `${fmt(result.breakdown.horas35.cantidad)} hrs x S/ ${fmt(result.valorHoraExtra35)}` },
+                      { label: `Horas al 25% (${fmt(result.breakdown.horas25.cantidad)} hrs)`, amount: result.breakdown.horas25.monto, formula: `${fmt(result.breakdown.horas25.cantidad)} hrs x ${formatSoles(result.valorHoraExtra25)}` },
+                      { label: `Horas al 35% (${fmt(result.breakdown.horas35.cantidad)} hrs)`, amount: result.breakdown.horas35.monto, formula: `${fmt(result.breakdown.horas35.cantidad)} hrs x ${formatSoles(result.valorHoraExtra35)}` },
                     ]
                     if (result.breakdown.horasDomingo.cantidad > 0) {
-                      items.push({ label: `Domingos/Feriados (${fmt(result.breakdown.horasDomingo.cantidad)} hrs)`, amount: result.breakdown.horasDomingo.monto, formula: `${fmt(result.breakdown.horasDomingo.cantidad)} hrs x S/ ${fmt(result.valorHora * 2)} (sobretasa 100%)` })
+                      items.push({ label: `Domingos/Feriados (${fmt(result.breakdown.horasDomingo.cantidad)} hrs)`, amount: result.breakdown.horasDomingo.monto, formula: `${fmt(result.breakdown.horasDomingo.cantidad)} hrs x ${formatSoles(result.valorHora * 2)} (sobretasa 100%)` })
                     }
                     const content = calculationToHTML({
                       title: 'Desglose de Horas Extras',
@@ -243,8 +244,8 @@ export function HorasExtrasCalculadora() {
                         { norm: 'D.Leg. 854', description: 'Ley de Jornada de Trabajo - sobretasa por horas extras (25% y 35%)' },
                       ],
                       metadata: {
-                        'Remuneracion Mensual Bruta': `S/ ${input.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
-                        'Valor Hora Base': `S/ ${fmt(result.valorHora)}`,
+                        'Remuneracion Mensual Bruta': formatSoles(input.sueldoBruto),
+                        'Valor Hora Base': formatSoles(result.valorHora),
                         'Horas Extras Semanales': `${input.horasSemanales}`,
                         'Meses Acumulados': `${input.mesesAcumulados}`,
                         'Total Horas Extras': `${result.totalHoras}`,
@@ -299,15 +300,15 @@ export function HorasExtrasCalculadora() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-500">Valor hora base</p>
-                    <p className="text-2xl font-black text-white">S/ {fmt(result.valorHora)}</p>
+                    <p className="text-2xl font-black text-white">{formatSoles(result.valorHora)}</p>
                   </div>
                 </div>
                 <div className="text-right space-y-1">
                   <div className="text-xs text-gray-500">
-                    <span className="font-semibold">+25%:</span> S/ {fmt(result.valorHoraExtra25)}
+                    <span className="font-semibold">+25%:</span> {formatSoles(result.valorHoraExtra25)}
                   </div>
                   <div className="text-xs text-gray-500">
-                    <span className="font-semibold">+35%:</span> S/ {fmt(result.valorHoraExtra35)}
+                    <span className="font-semibold">+35%:</span> {formatSoles(result.valorHoraExtra35)}
                   </div>
                 </div>
               </div>
@@ -348,10 +349,10 @@ export function HorasExtrasCalculadora() {
                         {fmt(result.breakdown.horas25.cantidad)} hrs
                       </td>
                       <td className="px-6 py-4 text-right text-sm text-gray-500 tabular-nums">
-                        S/ {fmt(result.valorHoraExtra25)}
+                        {formatSoles(result.valorHoraExtra25)}
                       </td>
                       <td className="px-6 py-4 text-right text-lg font-bold text-white tabular-nums">
-                        S/ {fmt(result.breakdown.horas25.monto)}
+                        {formatSoles(result.breakdown.horas25.monto)}
                       </td>
                     </tr>
 
@@ -370,10 +371,10 @@ export function HorasExtrasCalculadora() {
                         {fmt(result.breakdown.horas35.cantidad)} hrs
                       </td>
                       <td className="px-6 py-4 text-right text-sm text-gray-500 tabular-nums">
-                        S/ {fmt(result.valorHoraExtra35)}
+                        {formatSoles(result.valorHoraExtra35)}
                       </td>
                       <td className="px-6 py-4 text-right text-lg font-bold text-white tabular-nums">
-                        S/ {fmt(result.breakdown.horas35.monto)}
+                        {formatSoles(result.breakdown.horas35.monto)}
                       </td>
                     </tr>
 
@@ -393,10 +394,10 @@ export function HorasExtrasCalculadora() {
                           {fmt(result.breakdown.horasDomingo.cantidad)} hrs
                         </td>
                         <td className="px-6 py-4 text-right text-sm text-gray-500 tabular-nums">
-                          S/ {fmt(result.valorHora * 2)}
+                          {formatSoles(result.valorHora * 2)}
                         </td>
                         <td className="px-6 py-4 text-right text-lg font-bold text-white tabular-nums">
-                          S/ {fmt(result.breakdown.horasDomingo.monto)}
+                          {formatSoles(result.breakdown.horasDomingo.monto)}
                         </td>
                       </tr>
                     )}
@@ -408,7 +409,7 @@ export function HorasExtrasCalculadora() {
                       </td>
                       <td className="px-6 py-4" />
                       <td className="px-6 py-4 text-right text-lg text-primary tabular-nums">
-                        S/ {fmt(result.montoTotal)}
+                        {formatSoles(result.montoTotal)}
                       </td>
                     </tr>
                   </tbody>

@@ -24,6 +24,7 @@ export const POST = withRoleParams<{ id: string }>(
       where: { id, orgId: ctx.orgId },
       select: {
         id: true,
+        regime: true,
         type: true,
         description: true,
         accusedPosition: true,
@@ -36,6 +37,7 @@ export const POST = withRoleParams<{ id: string }>(
     }
 
     const result = await triageComplaint({
+      regime: complaint.regime,
       type: complaint.type,
       description: complaint.description,
       accusedPosition: complaint.accusedPosition ?? null,

@@ -19,6 +19,7 @@
  */
 
 import { PERU_LABOR } from '../peru-labor'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -119,7 +120,7 @@ export function validateWorkerLegality(input: WorkerLegalityInput): LegalityResu
         field: 'sueldoBruto',
         severity: 'ERROR',
         code: 'MOD_FORMATIVA_SUELDO_DEBE_SER_RMV',
-        message: `Modalidad formativa exige subvención exactamente igual a la RMV (S/ ${RMV}). Valor recibido: S/ ${sueldoBruto}.`,
+        message: `Modalidad formativa exige subvención exactamente igual a la RMV (${formatSoles(RMV)}). Valor recibido: ${formatSoles(sueldoBruto)}.`,
         baseLegal: 'Ley 28518 Art. 45',
       })
     }
@@ -129,7 +130,7 @@ export function validateWorkerLegality(input: WorkerLegalityInput): LegalityResu
         field: 'sueldoBruto',
         severity: 'ERROR',
         code: 'SUELDO_MENOR_A_RMV',
-        message: `El sueldo (S/ ${sueldoBruto}) está por debajo de la RMV vigente (S/ ${RMV}). Infracción muy grave SUNAFIL.`,
+        message: `El sueldo (${formatSoles(sueldoBruto)}) está por debajo de la RMV vigente (${formatSoles(RMV)}). Infracción muy grave SUNAFIL.`,
         baseLegal: 'D.S. 007-2012-TR (RMV) + Ley 28051',
       })
     }
@@ -220,7 +221,7 @@ export function validateWorkerLegality(input: WorkerLegalityInput): LegalityResu
       field: 'sueldoBruto',
       severity: 'WARNING',
       code: 'SUELDO_FUERA_DE_RANGO',
-      message: `Sueldo mensual de S/ ${sueldoBruto} es atípico. Verifica que no haya un error de tipeo (¿separador miles?).`,
+      message: `Sueldo mensual de ${formatSoles(sueldoBruto)} es atípico. Verifica que no haya un error de tipeo (¿separador miles?).`,
     })
   }
 

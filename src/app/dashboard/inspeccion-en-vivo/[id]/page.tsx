@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Download, Loader2, Play, CheckCircle2, XCircle, MinusCircle, HelpCircle, Shield, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { SolicitudInspector, HallazgoInspeccion, ResultadoSimulacro } from '@/lib/compliance/simulacro-engine'
 
 interface SessionDetail {
@@ -148,7 +149,7 @@ export default function InspeccionDetailPage({ params }: { params: Promise<{ id:
           <p className={cn('text-4xl font-bold', score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600')}>
             {score}/100
           </p>
-          <p className="text-sm text-gray-600 mt-1">Multa estimada: S/ {Number(multa).toLocaleString('es-PE')}</p>
+          <p className="text-sm text-gray-600 mt-1">Multa estimada: {formatSoles(multa)}</p>
         </div>
       )}
 
@@ -205,7 +206,7 @@ export default function InspeccionDetailPage({ params }: { params: Promise<{ id:
                     </td>
                     <td className="px-4 py-2.5 text-center text-xs">{h.gravedad}</td>
                     <td className="px-4 py-2.5 text-right font-medium text-red-600 tabular-nums">
-                      {h.multaPEN > 0 ? `S/ ${h.multaPEN.toLocaleString()}` : '—'}
+                      {h.multaPEN > 0 ? formatSoles(h.multaPEN) : '—'}
                     </td>
                   </tr>
                 )

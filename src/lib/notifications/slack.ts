@@ -15,6 +15,8 @@
  * NO envía PII sensible — emails/DNIs nunca van al webhook por privacidad.
  */
 
+import { formatSoles } from '@/lib/format/peruvian'
+
 type FounderEvent =
   | { type: 'signup_completed'; orgName: string; plan?: string; sector?: string }
   | { type: 'payment_completed'; orgName: string; plan: string; amount: number }
@@ -42,7 +44,7 @@ function formatEvent(evt: FounderEvent): string {
     case 'signup_completed':
       return `${emoji} *Nueva empresa registrada:* ${evt.orgName}${evt.plan ? ` (${evt.plan})` : ''}${evt.sector ? ` — ${evt.sector}` : ''}`
     case 'payment_completed':
-      return `${emoji} *Pago recibido:* ${evt.orgName} → ${evt.plan} · S/ ${evt.amount.toFixed(2)}`
+      return `${emoji} *Pago recibido:* ${evt.orgName} → ${evt.plan} · ${formatSoles(evt.amount)}`
     case 'trial_expiring':
       return `${emoji} *Trial expira en ${evt.daysLeft}d:* ${evt.orgName} — momento de outreach`
     case 'trial_expired':

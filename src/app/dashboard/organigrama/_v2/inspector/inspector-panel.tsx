@@ -46,6 +46,7 @@ import {
   commissionTypeLabel,
   isCommissionUnit,
 } from '../utils/commission-classification'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const TABS: Array<{ id: InspectorTab; label: string }> = [
   { id: 'info', label: 'Información' },
@@ -1184,11 +1185,11 @@ function CostsTab({ tree, unitId, positions, occupants }: CostsTabProps) {
         <>
           <Stat
             label="Costo anual mínimo"
-            value={`S/ ${totalMinAnnual.toLocaleString('es-PE')}`}
+            value={formatSoles(totalMinAnnual)}
           />
           <Stat
             label="Costo anual máximo"
-            value={`S/ ${totalMaxAnnual.toLocaleString('es-PE')}`}
+            value={formatSoles(totalMaxAnnual)}
           />
           <p className="text-[10px] text-slate-500">
             Estimación basada en bandas salariales registradas y 14 sueldos al año

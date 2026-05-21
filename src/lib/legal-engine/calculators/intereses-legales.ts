@@ -5,6 +5,7 @@
 // =============================================
 
 import { money } from '../money'
+import { formatSoles as fmt } from '@/lib/format/peruvian'
 
 // =============================================
 // Types
@@ -108,10 +109,6 @@ export function calcularInteresesLegales(
 // =============================================
 // Helpers
 // =============================================
-
-function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 function formatDate(d: Date): string {
   return d.toLocaleDateString('es-PE', {

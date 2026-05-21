@@ -32,10 +32,10 @@ interface PaymentRecord {
 }
 
 const PLAN_INFO: Record<string, { name: string; price: number; features: number }> = {
-  STARTER: { name: 'Starter', price: 49, features: 6 },
-  EMPRESA: { name: 'Empresa', price: 149, features: 8 },
-  PRO: { name: 'Pro', price: 399, features: 10 },
-  FREE: { name: 'Prueba Gratuita', price: 0, features: 6 },
+  STARTER: { name: 'Starter', price: 249, features: 6 },
+  PRO: { name: 'Pro', price: 699, features: 10 },
+  EMPRESA: { name: 'Empresa', price: 1899, features: 12 },
+  FREE: { name: 'Gratuito', price: 0, features: 6 },
 }
 
 function getStatusBadge(status: string) {

@@ -21,6 +21,7 @@ import type {
   AgentResult,
   AgentAction,
 } from './types'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // =============================================
 // CONSTANTES PERÚ 2026
@@ -127,11 +128,11 @@ function auditPayslip(data: Omit<PayslipAuditOutput, 'findings' | 'resumen' | 't
     findings.push({
       severidad: 'CRITICO',
       campo: 'sueldoBasico',
-      descripcion: `El sueldo básico (S/${sueldoBasico.toFixed(2)}) está por debajo de la RMV vigente`,
+      descripcion: `El sueldo básico (${formatSoles(sueldoBasico)}) está por debajo de la RMV vigente`,
       valorBoleta: sueldoBasico,
       valorEsperado: RMV_2026,
       diferenciaSoles: RMV_2026 - sueldoBasico,
-      baseLegal: 'D.S. 005-2022-TR (RMV S/1,025)',
+      baseLegal: `D.S. 005-2022-TR (RMV ${formatSoles(RMV_2026)})`,
       recomendacion: 'Ajustar el básico a la RMV vigente y pagar el reintegro retroactivo',
     })
   }
@@ -146,7 +147,7 @@ function auditPayslip(data: Omit<PayslipAuditOutput, 'findings' | 'resumen' | 't
       valorEsperado: ASIG_FAMILIAR_2026,
       diferenciaSoles: ASIG_FAMILIAR_2026 - asigFam,
       baseLegal: 'Ley 25129 — 10% de la RMV',
-      recomendacion: 'Recalcular asignación familiar a S/102.50 mensuales',
+      recomendacion: `Recalcular asignación familiar a ${formatSoles(ASIG_FAMILIAR_2026)} mensuales`,
     })
   }
 
@@ -306,7 +307,7 @@ async function runPayslipAuditor(
     resumen:
       findings.length === 0
         ? '✅ La boleta cumple con todas las verificaciones automáticas.'
-        : `Se detectaron ${findings.length} hallazgos en la boleta. Diferencia total estimada: S/${totalDiferencia.toFixed(2)}.`,
+        : `Se detectaron ${findings.length} hallazgos en la boleta. Diferencia total estimada: ${formatSoles(totalDiferencia)}.`,
   }
 
   // 4. Acciones recomendadas

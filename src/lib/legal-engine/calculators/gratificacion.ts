@@ -4,6 +4,7 @@ import {
   calcularRemuneracionComputable,
 } from '../peru-labor'
 import { money } from '../money'
+import { formatSoles as fmt } from '@/lib/format/peruvian'
 
 // =============================================
 // GRATIFICACIÓN - Fiestas Patrias / Navidad
@@ -54,7 +55,3 @@ export function calcularGratificacion(input: GratificacionInput): GratificacionR
   }
 }
 
-// Format helper
-function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}

@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 import BenchmarkSectorial from '@/components/dashboard/benchmark-sectorial'
 import { AIActionPlanCard } from '@/components/dashboard/ai-action-plan-card'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface GapItem {
   questionId: string
@@ -337,14 +338,14 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
         <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6">
           <AlertTriangle className={cn('h-10 w-10', data.totalMultaRiesgo > 50000 ? 'text-red-500' : 'text-yellow-500')} />
-          <p className="mt-2 text-2xl font-bold text-white">S/ {data.totalMultaRiesgo.toLocaleString()}</p>
+          <p className="mt-2 text-2xl font-bold text-white">{formatSoles(data.totalMultaRiesgo)}</p>
           <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Multa Potencial Total</h3>
           <p className="mt-1 text-xs text-slate-500">Riesgo estimado ante inspeccion SUNAFIL</p>
         </div>
 
         <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6">
           <ShieldCheck className="h-10 w-10 text-green-500" />
-          <p className="mt-2 text-2xl font-bold text-green-600">S/ {subsanacion90.toLocaleString()}</p>
+          <p className="mt-2 text-2xl font-bold text-green-600">{formatSoles(subsanacion90)}</p>
           <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Si Subsana al 90%</h3>
           <p className="mt-1 text-xs text-slate-500">Descuento Art. 40 Ley 28806 por subsanacion voluntaria</p>
         </div>
@@ -410,7 +411,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                     {gap.gravedad.replace('_', ' ')}
                   </span>
                   <span className="text-xs text-gray-500">{gap.baseLegal}</span>
-                  <span className="text-xs font-medium text-red-600">S/ {gap.multaPEN.toLocaleString()}</span>
+                  <span className="text-xs font-medium text-red-600">{formatSoles(gap.multaPEN)}</span>
                 </div>
               </div>
               {gap.answer === 'NO' ? (
@@ -449,10 +450,11 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
               <p className="text-xs text-green-400 font-medium">Completadas</p>
               <p className="text-xl font-bold text-green-300">{completedActions.size}/{actionPlan.length}</p>
               <p className="text-xs text-green-400">
-                S/ {actionPlan
-                  .filter(a => completedActions.has(a.questionId))
-                  .reduce((sum, a) => sum + a.multaEvitable, 0)
-                  .toLocaleString()} evitados
+                {formatSoles(
+                  actionPlan
+                    .filter(a => completedActions.has(a.questionId))
+                    .reduce((sum, a) => sum + a.multaEvitable, 0),
+                )} evitados
               </p>
             </div>
           )}
@@ -518,7 +520,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                 {/* Fine reduction */}
                 <div className="shrink-0 text-right">
                   <p className={cn('text-sm font-semibold', done ? 'text-green-400' : 'text-red-400')}>
-                    {done ? '✓ ' : ''}S/ {item.multaEvitable.toLocaleString()}
+                    {done ? '✓ ' : ''}{formatSoles(item.multaEvitable)}
                   </p>
                   <p className="text-xs text-slate-500">multa evitable</p>
                 </div>

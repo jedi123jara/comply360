@@ -5,6 +5,7 @@ import { calcularGratificacion } from '@/lib/legal-engine/calculators/gratificac
 import { openWhatsApp } from '@/lib/whatsapp'
 import type { GratificacionInput, GratificacionResult } from '@/lib/legal-engine'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   Download,
@@ -61,9 +62,6 @@ export function GratificacionCalculadora() {
   ) => {
     setInput(prev => ({ ...prev, [key]: value }))
   }
-
-  const fmt = (n: number) =>
-    n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const saveCalculation = async () => {
     if (!result) return
@@ -218,7 +216,7 @@ export function GratificacionCalculadora() {
                 </span>
               </div>
               <div className="text-5xl font-black tracking-tight mb-2">
-                S/ {fmt(result.totalNeto)}
+                {formatSoles(result.totalNeto)}
               </div>
               <p className="text-purple-100 text-sm">
                 Gratificacion{' '}
@@ -244,7 +242,7 @@ export function GratificacionCalculadora() {
                         { norm: 'Ley 30334', description: 'Ley que establece medidas para dinamizar la economia - exoneracion de aportes y bonificacion extraordinaria del 9%' },
                       ],
                       metadata: {
-                        'Sueldo Bruto': `S/ ${input.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Sueldo Bruto': formatSoles(input.sueldoBruto),
                         'Fecha de Ingreso': input.fechaIngreso,
                         'Periodo': periodoLabel,
                         'Meses Trabajados en el Semestre': `${input.mesesTrabajados}`,
@@ -316,7 +314,7 @@ export function GratificacionCalculadora() {
                     </div>
                   </div>
                   <span className="text-lg font-bold text-white tabular-nums">
-                    S/ {fmt(result.gratificacionBruta)}
+                    {formatSoles(result.gratificacionBruta)}
                   </span>
                 </div>
 
@@ -334,7 +332,7 @@ export function GratificacionCalculadora() {
                     </div>
                   </div>
                   <span className="text-lg font-bold text-white tabular-nums">
-                    S/ {fmt(result.bonificacionExtraordinaria)}
+                    {formatSoles(result.bonificacionExtraordinaria)}
                   </span>
                 </div>
 
@@ -350,7 +348,7 @@ export function GratificacionCalculadora() {
                     </div>
                   </div>
                   <span className="text-lg font-black text-purple-900 tabular-nums">
-                    S/ {fmt(result.totalNeto)}
+                    {formatSoles(result.totalNeto)}
                   </span>
                 </div>
               </div>

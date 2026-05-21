@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, FileText, Download, Calculator, ChevronDown, ChevronUp, AlertTriangle, Info, Loader2, User, Calendar, Banknote, ArrowRight, RefreshCw, CheckCircle2, XCircle, Scale, Save } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -98,10 +99,6 @@ const REGIMEN_LABEL: Record<string, string> = {
   TELETRABAJO: 'Teletrabajo',
 }
 
-function fmt(n: number) {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function BreakdownRow({
@@ -146,7 +143,7 @@ function BreakdownRow({
             isZero ? 'text-[color:var(--text-tertiary)]' : 'text-amber-500',
           )}
         >
-          {fmt(item.amount)}
+          {formatSoles(item.amount)}
         </span>
       </button>
 
@@ -708,7 +705,7 @@ function LiquidacionesInner() {
                     Total Liquidación
                   </p>
                   <p className="text-4xl font-bold text-amber-500 tabular-nums">
-                    {fmt(result.totalBruto)}
+                    {formatSoles(result.totalBruto)}
                   </p>
                   <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">
                     Monto bruto · sin retención de renta en liquidaciones laborales
@@ -734,7 +731,7 @@ function LiquidacionesInner() {
                         'text-sm font-bold tabular-nums',
                         item.value > 0 ? 'text-white' : 'text-gray-600',
                       )}>
-                        {fmt(item.value)}
+                        {formatSoles(item.value)}
                       </p>
                     </div>
                   ))}
@@ -759,7 +756,7 @@ function LiquidacionesInner() {
                   <div className="mt-4 flex items-center justify-between rounded-lg bg-white/10 px-4 py-3">
                     <span className="text-sm font-bold text-white">TOTAL LIQUIDACIÓN</span>
                     <span className="text-lg font-bold text-amber-500 tabular-nums">
-                      {fmt(result.totalBruto)}
+                      {formatSoles(result.totalBruto)}
                     </span>
                   </div>
                 </div>

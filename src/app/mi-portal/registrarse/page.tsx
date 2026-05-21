@@ -87,7 +87,7 @@ export default function RegistrarseWorkerPage() {
               <Beneficio
                 icon={<FileText className="w-5 h-5" />}
                 title="CV profesional gratis"
-                body="Crea tu CV con plantillas modernas. Auto-llenado con tus datos. Exportá PDF y compartí con quien quieras."
+                body="Crea tu CV con plantillas modernas. Auto-llenado con tus datos. Exporta PDF y comparte con quien quieras."
               />
               <Beneficio
                 icon={<GraduationCap className="w-5 h-5" />}

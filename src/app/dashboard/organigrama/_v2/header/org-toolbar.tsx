@@ -32,6 +32,7 @@ import {
   Activity,
   Scale,
   History,
+  ListChecks,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -392,6 +393,18 @@ export function OrgToolbar({
             >
               <History className="h-3.5 w-3.5" />
               Historial
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                openModal('delegated-tasks')
+                setMoreOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              Tareas delegadas
             </button>
             <button
               type="button"

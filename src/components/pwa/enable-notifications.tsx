@@ -31,6 +31,7 @@ type Status =
 
 interface EnableNotificationsProps {
   variant?: 'inline' | 'floating'
+  context?: 'admin' | 'worker'
   onSubscribed?: () => void
 }
 
@@ -47,14 +48,29 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 export function EnableNotifications({
   variant = 'floating',
+  context = 'admin',
   onSubscribed,
 }: EnableNotificationsProps) {
   const [status, setStatus] = useState<Status>('loading')
   const [error, setError] = useState<string | null>(null)
+  const dismissKey = context === 'worker' ? `${DISMISS_KEY}.worker` : DISMISS_KEY
+  const copy = context === 'worker'
+    ? {
+        activeTitle: 'Notificaciones activas',
+        activeBody: 'Te avisaremos solo cuando haya algo accionable.',
+        defaultTitle: 'Activa avisos útiles',
+        defaultBody: 'Recibe boletas por firmar, retos Pulse, solicitudes y recordatorios importantes.',
+      }
+    : {
+        activeTitle: 'Notificaciones activas',
+        activeBody: 'Recibirás push en el navegador cuando haya alertas críticas.',
+        defaultTitle: 'Alertas SUNAFIL en tu celular',
+        defaultBody: 'Activá las notificaciones push y enterate al instante de contratos por vencer, alertas críticas y vencimientos CTS.',
+      }
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === 'undefined') return false
     try {
-      return localStorage.getItem(DISMISS_KEY) === '1'
+      return localStorage.getItem(dismissKey) === '1'
     } catch {
       return false
     }
@@ -140,7 +156,7 @@ export function EnableNotifications({
 
   function dismiss() {
     try {
-      localStorage.setItem(DISMISS_KEY, '1')
+      localStorage.setItem(dismissKey, '1')
     } catch {
       /* ignore */
     }
@@ -167,7 +183,9 @@ export function EnableNotifications({
   return (
     <div style={containerStyle} role="dialog" aria-live="polite">
       <div
-        className={variant === 'floating' ? 'motion-fade-in-up' : ''}
+        className={`${variant === 'floating' ? 'motion-fade-in-up' : ''} ${
+          context === 'worker' ? 'c360-worker-notification-optin' : ''
+        }`}
         style={{
           background: 'var(--bg-surface)',
           borderRadius: 12,
@@ -202,21 +220,21 @@ export function EnableNotifications({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-[color:var(--text-primary)]">
               {status === 'subscribed'
-                ? 'Notificaciones activas'
+                ? copy.activeTitle
                 : status === 'denied'
                   ? 'Notificaciones bloqueadas'
                   : status === 'error'
                     ? 'No se pudieron activar'
-                    : 'Alertas SUNAFIL en tu celular'}
+                    : copy.defaultTitle}
             </p>
             <p className="mt-0.5 text-xs text-[color:var(--text-secondary)] leading-relaxed">
               {status === 'subscribed'
-                ? 'Recibirás push en el navegador cuando haya alertas críticas.'
+                ? copy.activeBody
                 : status === 'denied'
                   ? 'Para reactivar: configuración del navegador → Notificaciones → Permitir.'
                   : status === 'error'
                     ? error ?? 'Intenta nuevamente en unos segundos.'
-                    : 'Activá las notificaciones push y enterate al instante de contratos por vencer, alertas críticas y vencimientos CTS.'}
+                    : copy.defaultBody}
             </p>
             {(status === 'not_subscribed' || status === 'error') && (
               <div className="mt-3 flex items-center gap-2">

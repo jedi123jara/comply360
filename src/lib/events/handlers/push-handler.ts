@@ -84,7 +84,7 @@ async function dispatchByEvent<K extends EventName>(event: DomainEvent<K>): Prom
       if (!userId) return
       await sendPushToUser(userId, {
         title: 'Documento vencido',
-        body: `Tu ${p.documentType.replaceAll('_', ' ')} venció el ${new Date(p.expiryDate).toLocaleDateString('es-PE')}. Subí uno nuevo desde el portal.`,
+        body: `Tu ${p.documentType.replaceAll('_', ' ')} venció el ${new Date(p.expiryDate).toLocaleDateString('es-PE')}. Sube uno nuevo desde el portal.`,
         url: '/mi-portal/documentos',
         severity: 'HIGH',
         tag: `doc-exp-${p.workerId}`,

@@ -22,6 +22,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export const runtime = 'nodejs'
 
@@ -127,7 +128,7 @@ export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: A
         payslipId: p.id,
         workerId: p.workerId,
         workerName,
-        message: `Sueldo bruto S/${sueldo.toFixed(2)} bajo el RMV (S/${RMV}).`,
+        message: `Sueldo bruto ${formatSoles(sueldo)} bajo el RMV (${formatSoles(RMV)}).`,
         expected: RMV,
         actual: sueldo,
       })
@@ -168,7 +169,7 @@ export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: A
           payslipId: p.id,
           workerId: p.workerId,
           workerName,
-          message: `EsSalud S/${essalud.toFixed(2)} no coincide con 9% del sueldo (esperado S/${expectedEssalud.toFixed(2)}).`,
+          message: `EsSalud ${formatSoles(essalud)} no coincide con 9% del sueldo (esperado ${formatSoles(expectedEssalud)}).`,
           expected: expectedEssalud,
           actual: essalud,
         })
@@ -184,7 +185,7 @@ export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: A
         payslipId: p.id,
         workerId: p.workerId,
         workerName,
-        message: `Total ingresos S/${totalIngresos.toFixed(2)} no coincide con suma componentes (S/${expectedIngresos.toFixed(2)}).`,
+        message: `Total ingresos ${formatSoles(totalIngresos)} no coincide con suma componentes (${formatSoles(expectedIngresos)}).`,
       })
     }
 
@@ -197,7 +198,7 @@ export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: A
         payslipId: p.id,
         workerId: p.workerId,
         workerName,
-        message: `Neto pagar S/${netoPagar.toFixed(2)} no coincide con ingresos - descuentos (S/${expectedNeto.toFixed(2)}).`,
+        message: `Neto pagar ${formatSoles(netoPagar)} no coincide con ingresos - descuentos (${formatSoles(expectedNeto)}).`,
       })
     }
 
@@ -210,7 +211,7 @@ export const POST = withPlanGate('ia_contratos', async (req: NextRequest, ctx: A
         payslipId: p.id,
         workerId: p.workerId,
         workerName,
-        message: `Total descuentos S/${totalDescuentos.toFixed(2)} no coincide con suma componentes (S/${expectedDescuentos.toFixed(2)}).`,
+        message: `Total descuentos ${formatSoles(totalDescuentos)} no coincide con suma componentes (${formatSoles(expectedDescuentos)}).`,
       })
     }
   }

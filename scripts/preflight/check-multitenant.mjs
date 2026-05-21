@@ -41,7 +41,18 @@ const WHITELIST = new Map([
   // Endpoints públicos para leads / canales de denuncia
   ['leads/route.ts', 'public lead capture'],
   ['complaints/route.ts', 'public complaint channel (Ley 27942)'],
+  ['complaints/status/route.ts', 'public complaint status check'],
+  ['complaints/status/documents/[documentId]/route.ts', 'public complaint status document fetch'],
+  ['public/arco/route.ts', 'public ARCO intake scoped by explicit org slug/id'],
+  ['public/orgchart/[token]/route.ts', 'public orgchart auditor link scoped by signed token'],
+  ['verify/sst/[slug]/route.ts', 'public SST evidence verifier scoped by immutable slug'],
   ['casilla/route.ts', 'public casilla SUNAFIL'],
+  ['compliance-tasks/[id]/evidences/route.ts', 'internal dashboard endpoint'],
+  ['contracts/bulk/jobs/[id]/route.ts', 'internal dashboard endpoint'],
+  ['contracts/clauses/route.ts', 'global clause catalog'],
+  ['contracts/[id]/insert-clause/route.ts', 'internal dashboard endpoint'],
+  ['contracts/[id]/link-worker/route.ts', 'internal dashboard endpoint'],
+  ['contracts/[id]/pdf/route.ts', 'internal dashboard endpoint'],
 
   // Verificación pública de sellos Compliance-Ready
   ['seals/[slug]/route.ts', 'verificación pública del sello (link público)'],
@@ -58,6 +69,15 @@ const WHITELIST = new Map([
   ['cron/scheduled-reports/route.ts', 'cron, CRON_SECRET'],
   ['cron/workflow-resume/route.ts', 'cron, CRON_SECRET — limpia workflowRuns colgados'],
   ['cron/issue-seals/route.ts', 'cron mensual, emite sellos a orgs cualificadas'],
+  ['cron/ack-reminders/route.ts', 'cron, CRON_SECRET'],
+  ['cron/attendance-absences/route.ts', 'cron, CRON_SECRET'],
+  ['cron/attendance-patterns/route.ts', 'cron, CRON_SECRET'],
+  ['cron/orgchart-alerts/route.ts', 'cron, CRON_SECRET'],
+  ['cron/orgchart-snapshots/route.ts', 'cron, CRON_SECRET'],
+  ['cron/sst-daily/route.ts', 'cron, CRON_SECRET'],
+  ['cron/training-overdue/route.ts', 'cron, CRON_SECRET'],
+  ['cron/check-document-expiry/route.ts', 'cron, CRON_SECRET'],
+  ['cron/sync-tregistro/route.ts', 'cron, CRON_SECRET'],
 
   // Founder Console (SUPER_ADMIN único): vistas globales por diseño
   ['admin/overview/route.ts', 'SUPER_ADMIN founder console — global metrics intentional'],
@@ -89,6 +109,9 @@ const WHITELIST = new Map([
   ['portal-empleado/route.ts', 'lookup público worker→portal vía email'],
   ['webhooks/casilla/route.ts', 'webhook casilla SUNAFIL (token validation)'],
   ['norm-updates/route.ts', 'NormUpdate es catálogo global de normativa peruana'],
+  ['sst/catalogo/controles/route.ts', 'CatalogoControl es catálogo global SST'],
+  ['sst/catalogo/peligros/route.ts', 'CatalogoPeligro es catálogo global SST'],
+  ['sst/iperc-bases/template/route.ts', 'template IPERC usa catálogos globales SST'],
   ['admin/norm-updates/route.ts', 'SUPER_ADMIN gestión de catálogo normativo global'],
   ['admin/norm-updates/[id]/route.ts', 'SUPER_ADMIN editar norma del catálogo'],
   ['admin/support/route.ts', 'SUPER_ADMIN inbox de soporte cross-org'],
@@ -96,7 +119,9 @@ const WHITELIST = new Map([
   // Verificación pública de certificados (URL pública con código)
   ['certificates/verify/route.ts', 'verificación pública de certificado por código'],
   ['certificates/[code]/qr/route.ts', 'QR generado para certificado público'],
+  ['certificates/[code]/pdf/route.ts', 'descarga pública de PDF de certificado por código'],
   ['certification/verify/route.ts', 'verificación pública de sello compliance'],
+  ['attendance/clock-by-code/route.ts', 'public clock-in by PIN backup (public, rate-limited)'],
 ])
 
 // Patrones de auth válidos en el codebase. Si el handler usa CUALQUIERA
@@ -107,10 +132,14 @@ const SAFE_WRAPPERS = [
   'withAuthParams', // versión con params dinámicos /[id]
   'withRole',
   'withRoleParams',
+  'withPermission',
+  'withPermissionParams',
   'withSuperAdmin',
+  'withSuperAdminParams',
   'withWorkerAuth',
   'withWorkerAuthParams',
   'withPlanGate',
+  'withPlanGateParams',
   'withApiKey',
   // Helpers low-level (src/lib/auth.ts) — handlers que los llaman directo
   'getAuthContext',

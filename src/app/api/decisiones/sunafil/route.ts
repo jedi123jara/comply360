@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { AuthContext } from '@/lib/auth'
 
 export const runtime = 'nodejs'
@@ -106,7 +107,7 @@ export const POST = withPlanGate('ia_contratos', async (_req: NextRequest, ctx: 
   const snapshot = await buildSnapshot(ctx.orgId)
 
   const description = snapshot.lastDiagnostic
-    ? `Plan de preparación para inspección SUNAFIL basado en diagnóstico del ${new Date(snapshot.lastDiagnostic.createdAt).toLocaleDateString('es-PE')} (score ${snapshot.lastDiagnostic.scoreGlobal}/100). ${snapshot.openTasks} tareas abiertas (${snapshot.criticalTasks} críticas). Multa evitable estimada: S/${snapshot.multaEvitableTotal.toLocaleString('es-PE')}.`
+    ? `Plan de preparación para inspección SUNAFIL basado en diagnóstico del ${new Date(snapshot.lastDiagnostic.createdAt).toLocaleDateString('es-PE')} (score ${snapshot.lastDiagnostic.scoreGlobal}/100). ${snapshot.openTasks} tareas abiertas (${snapshot.criticalTasks} críticas). Multa evitable estimada: ${formatSoles(snapshot.multaEvitableTotal)}.`
     : `Plan de preparación inicial para inspección SUNAFIL. No hay diagnóstico previo — el primer paso es correr /dashboard/diagnostico.`
 
   const task = await prisma.complianceTask.create({

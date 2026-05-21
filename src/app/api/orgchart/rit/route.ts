@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { generateOrgChartRitDocx, RitOrganizationNotFoundError } from '@/lib/orgchart/rit-docx'
 import {
@@ -11,7 +11,7 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const snapshotId = req.nextUrl.searchParams.get('snapshotId')
   const asOfStr = req.nextUrl.searchParams.get('asOf')
   const asOf = asOfStr ? new Date(asOfStr) : null

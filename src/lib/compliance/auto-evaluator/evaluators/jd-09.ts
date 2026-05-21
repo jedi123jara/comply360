@@ -6,6 +6,7 @@
  */
 import type { QuestionEvaluator } from '../types'
 import { metricEvidence, pctToAnswer, workerEvidence, RMV_2026 } from './_helpers'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export const evaluatorJD09: QuestionEvaluator = {
   questionId: 'JD-09',
@@ -32,10 +33,10 @@ export const evaluatorJD09: QuestionEvaluator = {
       confidence: 80,
       evidence: [
         metricEvidence('Trabajadores nocturno/mixto', nocturnos.length),
-        metricEvidence('Sueldo mínimo legal (RMV+35%)', `S/ ${minRequired.toFixed(2)}`),
+        metricEvidence('Sueldo mínimo legal (RMV+35%)', formatSoles(minRequired)),
         metricEvidence('Cumplen sobretasa', `${pct}%`),
         ...faltantes.map((w) =>
-          workerEvidence(w, `Nocturno con sueldo S/ ${w.sueldoBruto.toFixed(2)}`)
+          workerEvidence(w, `Nocturno con sueldo ${formatSoles(w.sueldoBruto)}`)
         ),
       ],
       sources: ['Worker.tipoJornada', 'Worker.sueldoBruto'],

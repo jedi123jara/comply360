@@ -10,6 +10,7 @@ import type {
   ComplianceCheck,
   ClausulaObligatoria,
 } from '@/lib/ai/contract-review'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -399,7 +400,7 @@ export default function AnalisisContratoPaje() {
                     value={result.multaEstimadaUIT ? `${result.multaEstimadaUIT} UIT` : '—'}
                     color={result.multaEstimadaUIT ? 'text-red-600' : 'text-green-600'}
                     icon={TrendingDown}
-                    sub={result.multaEstimadaUIT ? `S/ ${(result.multaEstimadaUIT * 5500).toLocaleString('es-PE')}` : undefined}
+                    sub={result.multaEstimadaUIT ? formatSoles(result.multaEstimadaUIT * 5500) : undefined}
                   />
                 </div>
               </div>

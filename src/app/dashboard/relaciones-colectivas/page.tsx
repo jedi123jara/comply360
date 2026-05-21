@@ -417,7 +417,7 @@ export default function RelacionesColectivasPage() {
       toast.success('Registro eliminado')
       await load()
     } catch {
-      toast.error('No se pudo eliminar. Intentá de nuevo.')
+      toast.error('No se pudo eliminar. Intenta de nuevo.')
     }
   }
 

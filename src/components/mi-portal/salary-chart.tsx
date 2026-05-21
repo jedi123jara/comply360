@@ -119,7 +119,7 @@ export function SalaryChart() {
               fontSize={10}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `S/${(v / 1000).toFixed(0)}K`}
+              tickFormatter={(v) => v.toLocaleString('en-US', { maximumFractionDigits: 0 })}
               width={45}
             />
             <Tooltip

@@ -7,6 +7,7 @@ import {
   Shield, Key, AlertTriangle, XCircle, CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 type ExportAction = 't-registro' | 'plame'
 type ExportFormat = 'txt' | 'csv'
@@ -219,23 +220,23 @@ export default function IntegracionesPage() {
               </div>
               <div className="rounded-lg bg-[color:var(--neutral-50)] p-3 text-center">
                 <p className="text-xs text-gray-500">Remuneraciones</p>
-                <p className="text-sm font-bold text-slate-900">S/ {result.summary.totalRemuneraciones.toLocaleString('es-PE')}</p>
+                <p className="text-sm font-bold text-slate-900">{formatSoles(result.summary.totalRemuneraciones)}</p>
               </div>
               <div className="rounded-lg bg-blue-50 p-3 text-center">
                 <p className="text-xs text-blue-700">EsSalud</p>
-                <p className="text-sm font-bold text-blue-600">S/ {result.summary.totalEssalud.toLocaleString('es-PE')}</p>
+                <p className="text-sm font-bold text-blue-600">{formatSoles(result.summary.totalEssalud)}</p>
               </div>
               <div className="rounded-lg bg-emerald-50 p-3 text-center">
                 <p className="text-xs text-emerald-700">AFP</p>
-                <p className="text-sm font-bold text-emerald-600">S/ {result.summary.totalAfp.toLocaleString('es-PE')}</p>
+                <p className="text-sm font-bold text-emerald-600">{formatSoles(result.summary.totalAfp)}</p>
               </div>
               <div className="rounded-lg bg-purple-50 p-3 text-center">
                 <p className="text-xs text-purple-700">ONP</p>
-                <p className="text-sm font-bold text-purple-600">S/ {result.summary.totalOnp.toLocaleString('es-PE')}</p>
+                <p className="text-sm font-bold text-purple-600">{formatSoles(result.summary.totalOnp)}</p>
               </div>
               <div className="rounded-lg bg-amber-50 p-3 text-center">
                 <p className="text-xs text-amber-700">SCTR</p>
-                <p className="text-sm font-bold text-amber-600">S/ {result.summary.totalSctr.toLocaleString('es-PE')}</p>
+                <p className="text-sm font-bold text-amber-600">{formatSoles(result.summary.totalSctr)}</p>
               </div>
             </div>
           )}

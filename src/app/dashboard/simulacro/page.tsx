@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useMemo, useState } from 'react'
 import {
   Siren,
@@ -14,12 +15,14 @@ import {
   Clock,
   Loader2,
   XCircle,
+  ChevronLeft,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 import { INFRAC_META } from '@/lib/legal-engine/infracciones-sunafil'
 import type {
   InspeccionTipo,
@@ -104,6 +107,13 @@ export default function SimulacroPage() {
       />
 
       <div className="mx-auto w-full max-w-4xl space-y-8">
+        <Link
+          href="/dashboard/centro-sunafil?tab=inspecciones"
+          className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] px-3 py-2 text-sm font-semibold text-[color:var(--text-secondary)] transition hover:border-emerald-300 hover:text-emerald-700"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Centro SUNAFIL
+        </Link>
         <PageHeader
           eyebrow="Simulacro"
           title="Vive una inspección SUNAFIL <em>simulada</em>."
@@ -472,7 +482,7 @@ function VerdictMessage({ hallazgo }: { hallazgo: HallazgoInspeccion }) {
   const v = map[hallazgo.estado]
   const VIcon = v.icon
   const multa = hallazgo.multaPEN > 0
-    ? `S/ ${hallazgo.multaPEN.toLocaleString('es-PE')}`
+    ? formatSoles(hallazgo.multaPEN)
     : null
 
   return (
@@ -519,9 +529,6 @@ function ResultCover({
 }) {
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
-
-  const fmt = (n: number) =>
-    n > 0 ? `S/ ${n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}` : '—'
 
   const sumMultaByGravity = (g: 'LEVE' | 'GRAVE' | 'MUY_GRAVE') =>
     resultado.hallazgos
@@ -580,10 +587,10 @@ function ResultCover({
             {resultado.noCumple + resultado.parcial}
           </strong>{' '}
           {resultado.noCumple + resultado.parcial === 1 ? 'observación' : 'observaciones'} · multa potencial{' '}
-          <strong className="text-crimson-700">{fmt(resultado.multaTotal)}</strong>.
+          <strong className="text-crimson-700">{formatSoles(resultado.multaTotal)}</strong>.
           Subsanando antes de una inspección real:{' '}
           <strong className="text-emerald-700">
-            {fmt(resultado.multaConSubsanacion)}
+            {formatSoles(resultado.multaConSubsanacion)}
           </strong>{' '}
           (−90%).
         </p>
@@ -615,19 +622,19 @@ function ResultCover({
         <FindingCard
           label="Infracciones leves"
           count={resultado.infraccionesLeves}
-          total={fmt(sumMultaByGravity('LEVE'))}
+          total={formatSoles(sumMultaByGravity('LEVE'))}
           color="amber"
         />
         <FindingCard
           label="Infracciones graves"
           count={resultado.infraccionesGraves}
-          total={fmt(sumMultaByGravity('GRAVE'))}
+          total={formatSoles(sumMultaByGravity('GRAVE'))}
           color="crimson"
         />
         <FindingCard
           label="Infracciones muy graves"
           count={resultado.infraccionesMuyGraves}
-          total={fmt(sumMultaByGravity('MUY_GRAVE'))}
+          total={formatSoles(sumMultaByGravity('MUY_GRAVE'))}
           color="neutral"
         />
       </div>
@@ -672,7 +679,7 @@ function ResultCover({
                     </p>
                   </div>
                   <span className="text-xs font-mono font-bold text-crimson-700 shrink-0">
-                    S/ {h.multaPEN.toLocaleString('es-PE')}
+                    {formatSoles(h.multaPEN)}
                   </span>
                 </li>
               ))}

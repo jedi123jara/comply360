@@ -2,7 +2,7 @@
  * /api/compliance-tasks
  *
  * GET    — Lista tasks del org, con filtros opcionales (status, area, gravedad).
- * POST   — Crea task manual (no desde diagnostico).
+ * POST   — Crea task manual o idempotente desde un hallazgo con sourceId.
  * PATCH  — Actualiza una task: cambiar status, asignar, adjuntar evidencia.
  *
  * Las tasks se generan automáticamente al correr diagnostico/simulacro
@@ -23,6 +23,26 @@ export const runtime = 'nodejs'
 
 const VALID_STATUS: ComplianceTaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'DISMISSED']
 const VALID_GRAVEDAD: InfracGravedad[] = ['LEVE', 'GRAVE', 'MUY_GRAVE']
+const TASK_INCLUDE = {
+  evidences: {
+    orderBy: { createdAt: 'desc' as const },
+    take: 20,
+  },
+}
+
+type ComplianceTaskPayload = Prisma.ComplianceTaskGetPayload<{ include: typeof TASK_INCLUDE }>
+
+function serializeTask(task: ComplianceTaskPayload) {
+  return {
+    ...task,
+    multaEvitable: task.multaEvitable ? Number(task.multaEvitable) : null,
+    evidences: task.evidences.map((evidence) => ({
+      ...evidence,
+      createdAt: evidence.createdAt,
+      updatedAt: evidence.updatedAt,
+    })),
+  }
+}
 
 /* ── GET ───────────────────────────────────────────────────────────── */
 
@@ -51,6 +71,7 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
 
     const tasks = await prisma.complianceTask.findMany({
       where,
+      include: TASK_INCLUDE,
       orderBy: [
         { status: 'asc' },      // PENDING/IN_PROGRESS primero
         { priority: 'asc' },    // 1 = más urgente
@@ -70,10 +91,7 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
     )
 
     return NextResponse.json({
-      tasks: tasks.map((t) => ({
-        ...t,
-        multaEvitable: t.multaEvitable ? Number(t.multaEvitable) : null,
-      })),
+      tasks: tasks.map(serializeTask),
       countsByStatus,
     })
   } catch (error) {
@@ -87,7 +105,7 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
 export const POST = withPlanGate('diagnostico', async (req: NextRequest, ctx: AuthContext) => {
   try {
     const body = await req.json()
-    const { title, area, description, baseLegal, gravedad, multaEvitable, dueDate, priority } = body as {
+    const { title, area, description, baseLegal, gravedad, multaEvitable, dueDate, priority, sourceId, plazoSugerido } = body as {
       title?: string
       area?: string
       description?: string
@@ -96,6 +114,8 @@ export const POST = withPlanGate('diagnostico', async (req: NextRequest, ctx: Au
       multaEvitable?: number
       dueDate?: string
       priority?: number
+      sourceId?: string
+      plazoSugerido?: string
     }
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json({ error: 'title es requerido' }, { status: 400 })
@@ -108,9 +128,31 @@ export const POST = withPlanGate('diagnostico', async (req: NextRequest, ctx: Au
       ? (gravedad as InfracGravedad)
       : 'LEVE'
 
+    const normalizedSourceId = typeof sourceId === 'string' && sourceId.trim().length > 0
+      ? sourceId.trim().slice(0, 255)
+      : null
+
+    if (normalizedSourceId) {
+      const existing = await prisma.complianceTask.findFirst({
+        where: {
+          orgId: ctx.orgId,
+          sourceId: normalizedSourceId,
+          status: { in: ['PENDING', 'IN_PROGRESS'] },
+        },
+        include: TASK_INCLUDE,
+      })
+      if (existing) {
+        return NextResponse.json({
+          task: serializeTask(existing),
+          deduped: true,
+        })
+      }
+    }
+
     const task = await prisma.complianceTask.create({
       data: {
         orgId: ctx.orgId,
+        sourceId: normalizedSourceId,
         area,
         title: title.slice(0, 255),
         description: description ?? null,
@@ -118,10 +160,14 @@ export const POST = withPlanGate('diagnostico', async (req: NextRequest, ctx: Au
         gravedad: gravedadValue,
         multaEvitable: multaEvitable ?? null,
         priority: priority ?? 999,
+        plazoSugerido: plazoSugerido ?? null,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
+      include: TASK_INCLUDE,
     })
-    return NextResponse.json({ task }, { status: 201 })
+    return NextResponse.json({
+      task: serializeTask(task),
+    }, { status: 201 })
   } catch (error) {
     console.error('[compliance-tasks POST]', error)
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
@@ -181,12 +227,10 @@ export const PATCH = withPlanGate('diagnostico', async (req: NextRequest, ctx: A
     const updated = await prisma.complianceTask.update({
       where: { id },
       data,
+      include: TASK_INCLUDE,
     })
     return NextResponse.json({
-      task: {
-        ...updated,
-        multaEvitable: updated.multaEvitable ? Number(updated.multaEvitable) : null,
-      },
+      task: serializeTask(updated),
     })
   } catch (error) {
     console.error('[compliance-tasks PATCH]', error)

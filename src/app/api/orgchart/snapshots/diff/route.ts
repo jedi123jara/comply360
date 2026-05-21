@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import { diffSnapshots, getSnapshot, hashSnapshotPayload } from '@/lib/orgchart/snapshot-service'
 import { getTree } from '@/lib/orgchart/tree-service'
 import type { OrgChartTree } from '@/lib/orgchart/types'
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 type SnapshotPayload = Partial<OrgChartTree>
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const fromId = req.nextUrl.searchParams.get('from') ?? req.nextUrl.searchParams.get('fromId')
   const toId = req.nextUrl.searchParams.get('to') ?? req.nextUrl.searchParams.get('toId') ?? 'current'
 

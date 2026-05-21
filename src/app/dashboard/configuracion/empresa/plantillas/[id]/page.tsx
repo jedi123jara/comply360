@@ -669,7 +669,7 @@ function GenerateModal({
                 Seleccioná un trabajador y previsualizá
               </p>
               <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                Antes de descargar el PDF, confirmá que los datos estén correctos.
+                Antes de descargar el PDF, confirma que los datos estén correctos.
               </p>
             </div>
           </div>

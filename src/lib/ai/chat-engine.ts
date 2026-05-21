@@ -13,6 +13,7 @@ import { callAIRedacted, callAIStream, detectProvider, getModelName } from './pr
 import { retrieveRelevantLaw, formatRetrievedContext, type RetrievalResult } from './rag/retriever'
 import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
 import { recordAiUsage } from './usage'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export type { RetrievalResult }
 
@@ -47,7 +48,7 @@ REGLAS:
 2. Usa los datos del contexto de la empresa para personalizar tus respuestas
 3. Si no estas seguro de algo, indicalo y sugiere consultar con un abogado
 4. Responde en espanol, de forma clara y practica
-5. Cuando sea relevante, menciona los montos en soles y UITs (UIT 2026 = S/ 5,500)
+5. Cuando sea relevante, menciona los montos en soles y UITs (UIT 2026 = 5,500 nuevos soles)
 6. Si te preguntan algo que no es laboral, indica que tu especialidad es derecho laboral peruano
 7. No inventes normas. Si no conoces la norma exacta, indícalo.
 8. Ofrece pasos concretos y accionables cuando sea posible`
@@ -366,7 +367,7 @@ ${ctx.regimenPrincipal === 'MYPE_MICRO' ? '⚠️ **Importante para tu empresa**
 
 **Base legal**: D.S. 001-97-TR (TUO de la Ley de CTS), Art. 2, 9-10, 21-22.
 
-**Multa por incumplimiento**: Infraccion grave — hasta 1.57 UIT (S/ ${Math.round(1.57 * 5500).toLocaleString()}) por trabajador afectado.`
+**Multa por incumplimiento**: Infraccion grave — hasta 1.57 UIT (${formatSoles(Math.round(1.57 * 5500))}) por trabajador afectado.`
   }
 
   if (msg.includes('gratifica')) {
@@ -429,7 +430,7 @@ ${ctx.regimenPrincipal === 'MYPE_MICRO' ? '- **Microempresa**: 10 remuneraciones
 | Grave | 0.27 - 1.57 UIT | 1.57 - 6.30 | 6.30 - 15.75 | 15.75+ |
 | Muy Grave | 0.45 - 2.63 UIT | 2.63 - 10.13 | 10.13 - 26.32 | 26.32+ |
 
-**UIT 2026 = S/ 5,500**
+**UIT 2026 = 5,500 nuevos soles**
 
 ### Descuentos por subsanacion:
 - **Antes de inspeccion**: -90% (Art. 40 Ley 28806)

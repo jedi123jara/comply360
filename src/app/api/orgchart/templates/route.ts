@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { withPermission, withRole } from '@/lib/api-auth'
 import {
   applyOrgTemplate,
   OrgTemplateNotFoundError,
@@ -9,7 +9,7 @@ import {
 import { requestIp } from '@/lib/orgchart/change-log'
 import { takeSnapshot } from '@/lib/orgchart/snapshot-service'
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const templateId = req.nextUrl.searchParams.get('templateId')
   if (!templateId) {
     const templates = await recommendOrgTemplates(ctx.orgId)

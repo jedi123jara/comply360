@@ -274,10 +274,10 @@ function getSuggestionByStatus(status: number, body: string): string {
     return 'Anthropic temporalmente no disponible (503). Reintenta en 1-5 min. Revisa https://status.anthropic.com'
   }
   if (status === 400 && body.toLowerCase().includes('model')) {
-    return 'Modelo no disponible para tu cuenta. Si estás en plan "Acceso de evaluación", probá con claude-3-5-sonnet-20241022 (estable y disponible para todos). Los modelos Claude 4 requieren saldo cargado en https://console.anthropic.com/settings/billing'
+    return 'Modelo no disponible para tu cuenta. Si estás en plan "Acceso de evaluación", prueba con claude-3-5-sonnet-20241022 (estable y disponible para todos). Los modelos Claude 4 requieren saldo cargado en https://console.anthropic.com/settings/billing'
   }
   if (status === 400) {
-    return `Anthropic rechazó el request (400). Causa típica: modelo no existe, prompt mal formado, o cuenta sin permisos. Detalle del error: ${body.slice(0, 200)}. Probá con claude-3-5-sonnet-20241022 que está disponible para todos los planes.`
+    return `Anthropic rechazó el request (400). Causa típica: modelo no existe, prompt mal formado, o cuenta sin permisos. Detalle del error: ${body.slice(0, 200)}. Prueba con claude-3-5-sonnet-20241022 que está disponible para todos los planes.`
   }
   return `Anthropic devolvió ${status}. Revisa los logs en https://console.anthropic.com/dashboard para detalles.`
 }

@@ -3,6 +3,9 @@ import {
   calcularRemuneracionComputable,
 } from '../peru-labor'
 import { money, sumMoney } from '../money'
+import { formatSoles } from '@/lib/format/peruvian'
+
+const fmt = formatSoles
 
 // =============================================
 // APORTES PREVISIONALES - AFP/ONP/EsSalud/SCTR
@@ -166,7 +169,5 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }
 
-// Format helper
-export function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+/** @deprecated usar `formatSoles` desde `@/lib/format/peruvian`. */
+export { fmt }

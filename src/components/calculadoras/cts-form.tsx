@@ -5,6 +5,7 @@ import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import { openWhatsApp } from '@/lib/whatsapp'
 import type { CTSInput, CTSResult } from '@/lib/legal-engine'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   Download,
@@ -60,9 +61,6 @@ export function CTSCalculadora() {
   ) => {
     setInput(prev => ({ ...prev, [key]: value }))
   }
-
-  const fmt = (n: number) =>
-    n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const saveCalculation = async () => {
     if (!result) return
@@ -221,7 +219,7 @@ export function CTSCalculadora() {
                 </span>
               </div>
               <div className="text-5xl font-black tracking-tight mb-2">
-                S/ {fmt(result.ctsTotal)}
+                {formatSoles(result.ctsTotal)}
               </div>
               <p className="text-emerald-100 text-sm">
                 Compensacion por Tiempo de Servicios - deposito semestral
@@ -245,11 +243,11 @@ export function CTSCalculadora() {
                         { norm: 'D.S. 001-97-TR', description: 'TUO de la Ley de Compensacion por Tiempo de Servicios' },
                       ],
                       metadata: {
-                        'Sueldo Bruto': `S/ ${input.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Sueldo Bruto': formatSoles(input.sueldoBruto),
                         'Fecha de Ingreso': input.fechaIngreso,
                         'Periodo de Deposito': periodoLabel,
                         'Asignacion Familiar': input.asignacionFamiliar ? 'Si' : 'No',
-                        'Ultima Gratificacion': `S/ ${input.ultimaGratificacion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Ultima Gratificacion': formatSoles(input.ultimaGratificacion),
                         'Formula Aplicada': result.formula,
                       },
                     })
@@ -315,7 +313,7 @@ export function CTSCalculadora() {
                     </div>
                   </div>
                   <span className="text-lg font-bold text-white tabular-nums">
-                    S/ {fmt(result.remuneracionComputable)}
+                    {formatSoles(result.remuneracionComputable)}
                   </span>
                 </div>
 

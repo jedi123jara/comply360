@@ -109,7 +109,7 @@ export function ComplianceExecutivePDF({ data }: { data: ComplianceExecutiveData
     },
     {
       label: 'Multa potencial',
-      value: `S/ ${formatMoney(multaPotencial)}`,
+      value: formatMoney(multaPotencial),
       tone: multaPotencial > 10000 ? 'bad' : multaPotencial > 0 ? 'warn' : 'good',
       sub: 'si SUNAFIL inspecciona hoy',
     },
@@ -167,10 +167,10 @@ export function ComplianceExecutivePDF({ data }: { data: ComplianceExecutiveData
         <Text style={local.intro}>
           Calculada a partir de las alertas pendientes y los documentos faltantes,
           aplicando el cuadro de infracciones del D.S. 019-2006-TR y la UIT vigente
-          (S/ 5,500 para 2026).
+          (5,500 nuevos soles para 2026).
         </Text>
         <View style={local.multaBox}>
-          <Text style={local.multaAmount}>S/ {formatMoney(multaPotencial)}</Text>
+          <Text style={local.multaAmount}>{formatMoney(multaPotencial)}</Text>
           <Text style={local.multaCaption}>
             Monto estimado si SUNAFIL inspeccionara hoy. La subsanación voluntaria
             antes de inspección reduce la multa en 90% (Art. 40, Ley 28806).

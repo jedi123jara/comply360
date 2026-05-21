@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { calcularVacaciones } from '@/lib/legal-engine/calculators/vacaciones'
 import { openWhatsApp } from '@/lib/whatsapp'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   Download,
@@ -237,7 +238,7 @@ export function VacacionesCalculadora() {
                 </div>
               </div>
               <div className="text-5xl font-black tracking-tight mb-2">
-                S/ {result.total.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                {formatSoles(result.total)}
               </div>
               <p className="text-cyan-100 text-sm">
                 Monto total por concepto de vacaciones truncas, no gozadas e indemnizacion
@@ -261,7 +262,7 @@ export function VacacionesCalculadora() {
                         { norm: 'D.Leg. 713', description: 'Ley de Descansos Remunerados - regulacion de vacaciones anuales, truncas, no gozadas e indemnizacion vacacional' },
                       ],
                       metadata: {
-                        'Sueldo Bruto Mensual': `S/ ${input.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Sueldo Bruto Mensual': formatSoles(input.sueldoBruto),
                         'Fecha de Ingreso': input.fechaIngreso,
                         'Fecha de Cese': input.fechaCese,
                         'Dias de Vacaciones Gozados': `${input.diasGozados}`,
@@ -338,7 +339,7 @@ export function VacacionesCalculadora() {
                             {item.label}
                           </span>
                           <span className="text-lg font-bold text-white tabular-nums">
-                            S/ {item.amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                            {formatSoles(item.amount)}
                           </span>
                         </div>
                         {/* Percentage bar */}

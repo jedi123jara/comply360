@@ -1,230 +1,312 @@
 import Link from 'next/link'
-import { Check, Sparkles, ArrowRight, Building2, Zap, Rocket, Star } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  FileSearch,
+  Layers3,
+  ShieldCheck,
+  Sparkles,
+  UsersRound,
+} from 'lucide-react'
+import { MarketingPricingGrid } from '@/components/marketing/pricing-grid'
 import { PLANS } from '@/lib/constants'
-
-type PlanKey = 'FREE' | 'STARTER' | 'EMPRESA' | 'PRO' | 'ENTERPRISE'
-
-const ORDER: PlanKey[] = ['STARTER', 'EMPRESA', 'PRO', 'ENTERPRISE']
-
-const PLAN_META: Record<PlanKey, { icon: typeof Building2; tagline: string; color: string }> = {
-  FREE: { icon: Star, tagline: 'Prueba las calculadoras', color: 'slate' },
-  STARTER: {
-    icon: Building2,
-    tagline: 'Ideal para MYPE de hasta 20 trabajadores',
-    color: 'slate',
-  },
-  EMPRESA: {
-    icon: Zap,
-    tagline: 'El plan más elegido — compliance completo',
-    color: 'emerald',
-  },
-  PRO: { icon: Rocket, tagline: 'Para empresas que escalan con IA', color: 'indigo' },
-  ENTERPRISE: {
-    icon: Sparkles,
-    tagline: 'Para estudios contables y grupos empresariales',
-    color: 'amber',
-  },
-}
+import { getMarketingPlanLimit, type MarketingPlanKey } from '@/lib/marketing-pricing'
+import { formatSolesMarketing } from '@/lib/format/peruvian'
 
 export const metadata = {
   title: 'Planes y precios',
   description:
-    'Elige el plan ideal para tu empresa. Desde S/ 149/mes. Cancela cuando quieras. Trial 14 días en Starter y Empresa.',
+    'Planes Comply360 para compliance laboral peruano. Desde 249 nuevos soles/mes, con Pro como plan recomendado para empresas en crecimiento.',
 }
+
+const fitCards: Array<{
+  plan: MarketingPlanKey
+  title: string
+  body: string
+  signal: string
+}> = [
+  {
+    plan: 'STARTER',
+    title: 'Ordenar lo básico',
+    body: 'Para dejar atrás Excel, carpetas sueltas y alertas manuales en una MYPE.',
+    signal: 'Hasta 20 trabajadores',
+  },
+  {
+    plan: 'PRO',
+    title: 'Crecer con control',
+    body: 'Para sumar IA, SST, simulacro SUNAFIL, denuncias y trazabilidad diaria.',
+    signal: 'Hasta 75 trabajadores',
+  },
+  {
+    plan: 'EMPRESA',
+    title: 'Operar multi-sede',
+    body: 'Para sumar portal trabajador, e-learning, reportes ejecutivos y SLA alto.',
+    signal: 'Hasta 250 trabajadores',
+  },
+]
+
+const comparison: Array<{
+  plan: MarketingPlanKey
+  ideal: string
+  value: string
+}> = [
+  {
+    plan: 'FREE',
+    ideal: 'Validar calculadoras y diagnóstico inicial.',
+    value: 'Primer mapa de riesgo sin tarjeta.',
+  },
+  {
+    plan: 'STARTER',
+    ideal: 'MYPE con documentación dispersa.',
+    value: 'Legajo, contratos, PLAME/T-Registro y alertas diarias.',
+  },
+  {
+    plan: 'PRO',
+    ideal: 'Empresas que ya sienten riesgo operativo.',
+    value: 'IA, SST, simulacro SUNAFIL, canal de denuncias y notificaciones.',
+  },
+  {
+    plan: 'EMPRESA',
+    ideal: 'Operaciones con sedes, jefaturas y trabajadores móviles.',
+    value: 'Portal trabajador, e-learning, multi-empresa y reportes ejecutivos.',
+  },
+  {
+    plan: 'ENTERPRISE',
+    ideal: 'Holdings, corporativos y 300+ trabajadores.',
+    value: 'API, integraciones, SLA dedicado y gobierno multi-empresa.',
+  },
+]
+
+const faqs = [
+  {
+    q: '¿Cuál es el plan más recomendado?',
+    a: 'Para la mayoría de empresas en crecimiento recomendamos Pro: combina IA, SST, simulacro SUNAFIL, canal de denuncias y alertas accionables sin llegar todavía a una implementación corporativa.',
+  },
+  {
+    q: '¿Puedo cambiar de plan más adelante?',
+    a: 'Sí. Puedes subir o bajar de plan desde tu dashboard. Si tu operación crece, pasas de Starter a Pro o Empresa sin rehacer tu información.',
+  },
+  {
+    q: '¿Incluye IGV?',
+    a: 'Sí. Los precios mostrados están en soles peruanos e incluyen IGV. Recibes comprobante electrónico formal.',
+  },
+  {
+    q: '¿Esto reemplaza mi planilla?',
+    a: 'No necesariamente. Comply360 se enfoca en cumplimiento, evidencia, SST, documentos, alertas y portal trabajador. Puede convivir con tu sistema de planilla actual.',
+  },
+  {
+    q: '¿Qué pasa con mis datos si cancelo?',
+    a: 'Puedes exportar tu información en cualquier momento. Si cancelas, retenemos tus datos por un periodo razonable para que puedas volver o solicitar eliminación según la política vigente.',
+  },
+]
 
 export default function PlanesPage() {
   return (
-    <>
-      <section className="text-center max-w-3xl mx-auto mb-14">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium ring-1 ring-emerald-200 mb-5">
-          <Sparkles className="w-3 h-3" />
-          Precios en soles peruanos · IGV incluido · cancelas cuando quieras
+    <div className="space-y-20">
+      <section className="relative overflow-hidden rounded-lg border border-slate-200 bg-white px-5 py-12 shadow-[0_32px_100px_rgba(15,23,42,0.08)] sm:px-8 lg:px-12">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.035)_1px,transparent_1px),linear-gradient(0deg,rgba(15,23,42,0.03)_1px,transparent_1px)] bg-[size:56px_56px]" />
+        <div className="pointer-events-none absolute -right-24 top-0 h-80 w-80 rounded-full bg-teal-200/60 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-12 h-52 w-52 rounded-full bg-blue-200/50 blur-3xl" />
+
+        <div className="relative mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-teal-700">
+            <Sparkles className="h-3.5 w-3.5" />
+            Precios 2026, soles peruanos, IGV incluido
+          </div>
+          <h1 className="mt-6 font-serif text-4xl font-medium leading-[0.98] tracking-tight text-slate-950 sm:text-6xl">
+            Elige el nivel de control que necesita tu operación laboral.
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+            Comply360 te ayuda a pasar de documentos dispersos, WhatsApp y Excel a una
+            operación laboral con evidencia, responsables y alertas antes de que el riesgo
+            explote.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/sign-up"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 px-5 text-sm font-bold text-white shadow-[0_20px_56px_rgba(20,184,166,0.22)] transition hover:-translate-y-0.5"
+            >
+              Crear cuenta gratis
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/diagnostico-gratis"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:bg-teal-50"
+            >
+              Hacer diagnóstico
+              <FileSearch className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
-        <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight">
-          Un precio simple. <span className="text-emerald-600">Pagas lo que usas.</span>
-        </h1>
-        <p className="mt-5 text-lg text-slate-600">
-          Un abogado laboralista te cobra S/ 3,000–8,000 por llevarte la planilla mensual. Nosotros
-          cubrimos lo mismo (y más) por una fracción del costo, 24/7, con IA.
-        </p>
       </section>
 
-      <section className="grid lg:grid-cols-2 xl:grid-cols-4 gap-5">
-        {ORDER.map((key) => {
-          const plan = PLANS[key]
-          const meta = PLAN_META[key]
-          const Icon = meta.icon
-          const highlighted = key === 'EMPRESA'
-          return (
-            <div
-              key={key}
-              className={`rounded-2xl p-6 sm:p-7 flex flex-col ${
-                highlighted
-                  ? 'bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-xl shadow-emerald-200 ring-1 ring-emerald-500 relative'
-                  : 'bg-white ring-1 ring-slate-200 shadow-sm'
-              }`}
-            >
-              {highlighted && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-900 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ring-2 ring-white">
-                  Más popular
-                </span>
-              )}
+      <section>
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">
+              Planes
+            </p>
+            <h2 className="mt-3 font-serif text-3xl font-medium tracking-tight text-slate-950 sm:text-5xl">
+              Una misma escala para todo Comply360.
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-slate-600 sm:text-base">
+              Starter ordena la base, Pro acelera control con IA y SST, Empresa suma operación
+              multi-sede y portal trabajador. Enterprise queda para integraciones y gobierno corporativo.
+            </p>
+          </div>
+          <div className="rounded-lg border border-teal-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+            <strong className="block text-slate-950">Recomendación honesta</strong>
+            Pro es el sweet spot para la mayoría de empresas de 30 a 75 trabajadores.
+          </div>
+        </div>
 
-              <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${
-                  highlighted ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-              </div>
+        <MarketingPricingGrid
+          variant="plans"
+          includeFree
+          includeEnterprise
+          featuredPlan="PRO"
+          ctaHref="/sign-up"
+          featureLimit={7}
+        />
+      </section>
 
-              <div className="flex items-baseline gap-1 mb-1">
-                <span
-                  className={`text-3xl font-bold tracking-tight ${
-                    highlighted ? 'text-white' : 'text-slate-900'
-                  }`}
-                >
-                  {plan.price === 0 ? 'A medida' : `S/ ${plan.price.toLocaleString('es-PE')}`}
-                </span>
-                {plan.price !== 0 && (
-                  <span
-                    className={`text-sm ${highlighted ? 'text-emerald-100' : 'text-slate-500'}`}
-                  >
-                    /mes
-                  </span>
-                )}
-              </div>
-
-              <h3
-                className={`text-lg font-semibold mb-0.5 ${
-                  highlighted ? 'text-white' : 'text-slate-900'
-                }`}
-              >
-                {plan.name}
-              </h3>
-              <p
-                className={`text-xs mb-5 ${highlighted ? 'text-emerald-100' : 'text-slate-500'}`}
-              >
-                {meta.tagline}
-              </p>
-
-              <ul className="space-y-2.5 text-sm flex-1 mb-6">
-                {plan.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                        highlighted ? 'text-emerald-200' : 'text-emerald-600'
-                      }`}
-                    />
-                    <span className={highlighted ? 'text-emerald-50' : 'text-slate-700'}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={key === 'ENTERPRISE' ? 'mailto:contacto@comply360.pe' : '/sign-up'}
-                className={`inline-flex items-center justify-center gap-1.5 rounded-xl font-semibold text-sm px-5 py-3 transition-colors ${
-                  highlighted
-                    ? 'bg-white text-emerald-700 hover:bg-emerald-50'
-                    : 'bg-slate-900 text-white hover:bg-slate-800'
-                }`}
-              >
-                {key === 'ENTERPRISE' ? 'Hablar con ventas' : 'Empezar prueba gratuita'}
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+      <section className="grid gap-4 lg:grid-cols-3">
+        {fitCards.map((item) => (
+          <article
+            key={item.plan}
+            className="rounded-lg border border-slate-200 bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)]"
+          >
+            <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-200">
+              <UsersRound className="h-5 w-5" />
             </div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-700">
+              {PLANS[item.plan].name}
+            </p>
+            <h3 className="mt-2 text-xl font-semibold text-slate-950">{item.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{item.body}</p>
+            <p className="mt-5 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+              {item.signal}
+            </p>
+          </article>
+        ))}
+      </section>
+
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-4 border-b border-slate-200 bg-slate-50/70 p-5 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">
+              Comparación rápida
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+              Qué gana tu equipo en cada nivel
+            </h2>
+          </div>
+          <Link
+            href="/diagnostico-gratis"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-4 text-sm font-bold text-teal-800 transition hover:bg-teal-100"
+          >
+            No sé qué plan elegir
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="divide-y divide-slate-200">
+          {comparison.map((row) => (
+            <div
+              key={row.plan}
+              className="grid gap-4 px-5 py-5 text-sm sm:px-6 lg:grid-cols-[180px_220px_1fr_1.2fr] lg:items-center"
+            >
+              <div>
+                <p className="font-semibold text-slate-950">{PLANS[row.plan].name}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {row.plan === 'ENTERPRISE'
+                    ? 'Cotización'
+                    : PLANS[row.plan].price === 0
+                      ? 'Gratis'
+                      : `${formatSolesMarketing(PLANS[row.plan].price)}/mes`}
+                </p>
+              </div>
+              <p className="font-medium text-teal-800">{getMarketingPlanLimit(row.plan)}</p>
+              <p className="leading-6 text-slate-600">{row.ideal}</p>
+              <p className="leading-6 text-slate-600">{row.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {[
+          {
+            icon: CheckCircle2,
+            title: 'Sin tarjeta para empezar',
+            body: 'Crea cuenta, revisa la plataforma y corre el diagnóstico inicial antes de hablar de pago.',
+          },
+          {
+            icon: ShieldCheck,
+            title: 'Migración acompañada',
+            body: 'Te ayudamos a ordenar trabajadores, legajos y documentos críticos para que el valor aparezca rápido.',
+          },
+          {
+            icon: Layers3,
+            title: 'Diseñado para Perú',
+            body: 'SST, SUNAFIL, boletas, contratos, denuncias y portal trabajador con lenguaje laboral peruano.',
+          },
+        ].map((item) => {
+          const Icon = item.icon
+          return (
+            <article key={item.title} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <Icon className="h-5 w-5 text-teal-700" />
+              <h3 className="mt-4 font-semibold text-slate-950">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
+            </article>
           )
         })}
       </section>
 
-      <section className="mt-16 grid md:grid-cols-3 gap-4">
-        {[
-          {
-            title: '14 días de prueba sin tarjeta',
-            body:
-              'Los planes Starter y Empresa arrancan con 14 días gratis. Sin poner tu tarjeta. Cancelas con un click si no te sirve.',
-          },
-          {
-            title: 'Migración gratuita',
-            body:
-              '¿Ya estás en Buk, Ofisis o un Excel? Te importamos tus trabajadores, contratos y legajo en menos de 24 hs sin costo.',
-          },
-          {
-            title: 'Acreditación SUNAFIL',
-            body:
-              'Nuestros generadores de política SST, IPERC y reglamento interno están actualizados a la ley peruana 2026 y firmados por abogados laboralistas.',
-          },
-        ].map((item, i) => (
-          <div key={i} className="rounded-xl bg-white ring-1 ring-slate-200 p-5">
-            <h4 className="text-sm font-semibold text-slate-900 mb-1.5">{item.title}</h4>
-            <p className="text-sm text-slate-600">{item.body}</p>
-          </div>
-        ))}
-      </section>
-
-      {/* FAQ */}
-      <section className="mt-16 max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
-          Preguntas frecuentes
-        </h2>
+      <section className="mx-auto max-w-3xl">
+        <div className="mb-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">FAQ</p>
+          <h2 className="mt-3 font-serif text-3xl font-medium text-slate-950 sm:text-4xl">
+            Preguntas frecuentes
+          </h2>
+        </div>
         <div className="space-y-3">
-          {[
-            {
-              q: '¿Puedo cambiar de plan más adelante?',
-              a: 'Sí. Puedes subir o bajar de plan con un click desde tu dashboard. El cambio se aplica al próximo ciclo y se prorratea el saldo.',
-            },
-            {
-              q: '¿Incluye IGV?',
-              a: 'Sí, los precios mostrados ya incluyen el 18% de IGV. Recibes factura electrónica formal mensual.',
-            },
-            {
-              q: '¿Puedo llevar las planillas de mis clientes si soy contador?',
-              a: 'Sí — el plan Enterprise permite multi-cuenta para estudios contables. Gestionás 10, 50 o 200 empresas desde una sola cuenta con un dashboard consolidado.',
-            },
-            {
-              q: '¿Qué pasa con mis datos si cancelo?',
-              a: 'Puedes exportar todos tus datos en Excel/PDF en cualquier momento. Al cancelar, retenemos tu info 90 días por si quieres volver; luego la borramos salvo que pidas retención extendida.',
-            },
-            {
-              q: '¿Necesito instalar algo?',
-              a: 'No. Comply360 corre 100% en el navegador. Funciona en cualquier compu y también tenemos app móvil (PWA) para trabajadores.',
-            },
-            {
-              q: '¿La IA realmente funciona para derecho peruano?',
-              a: 'Sí. Entrenamos nuestro copilot con +75 normas peruanas vigentes (D.Leg. 728, Ley 29783, Ley 32353, etc.), resoluciones del TFL y jurisprudencia SUNAFIL. No inventa artículos.',
-            },
-          ].map((item, i) => (
+          {faqs.map((item) => (
             <details
-              key={i}
-              className="group rounded-xl bg-white ring-1 ring-slate-200 p-5 open:shadow-sm"
+              key={item.q}
+              className="group rounded-lg border border-slate-200 bg-white p-5 text-slate-950 shadow-sm open:border-teal-200 open:bg-teal-50/50"
             >
-              <summary className="flex items-center justify-between cursor-pointer list-none">
-                <span className="font-medium text-slate-900">{item.q}</span>
-                <span className="text-slate-400 group-open:rotate-45 transition-transform text-xl leading-none">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                <span className="font-semibold">{item.q}</span>
+                <span className="text-xl leading-none text-teal-700 transition group-open:rotate-45">
                   +
                 </span>
               </summary>
-              <p className="mt-3 text-sm text-slate-600">{item.a}</p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{item.a}</p>
             </details>
           ))}
         </div>
       </section>
 
-      <section className="mt-16 rounded-3xl bg-slate-900 p-8 sm:p-12 text-center text-white">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-          ¿Todavía no sabes si tu empresa necesita compliance?
+      <section className="rounded-lg border border-teal-200 bg-gradient-to-r from-teal-50 via-white to-blue-50 p-7 text-center shadow-[0_20px_70px_rgba(15,23,42,0.07)] sm:p-10">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">
+          Siguiente paso
+        </p>
+        <h2 className="mx-auto mt-3 max-w-2xl font-serif text-3xl font-medium text-slate-950 sm:text-4xl">
+          Mira tu riesgo real antes de elegir plan.
         </h2>
-        <p className="text-slate-300 max-w-xl mx-auto mb-6">
-          Hacé nuestro diagnóstico express gratis (2 min, 20 preguntas) y obtené un estimado de
-          cuánta multa SUNAFIL podrías evitar al año.
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+          En dos minutos puedes obtener una lectura inicial de exposición SUNAFIL, documentos
+          críticos y módulos que conviene activar primero.
         </p>
         <Link
           href="/diagnostico-gratis"
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-sm px-6 py-3 transition-colors"
+          className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 px-5 text-sm font-bold text-white shadow-[0_18px_48px_rgba(20,184,166,0.22)] transition hover:-translate-y-0.5"
         >
-          Hacer diagnóstico gratis <ArrowRight className="w-4 h-4" />
+          Hacer diagnóstico gratis
+          <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
-    </>
+    </div>
   )
 }

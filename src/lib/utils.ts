@@ -1,24 +1,17 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatSoles } from "@/lib/format/peruvian";
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
 /**
- * Format a number as Peruvian Soles (S/).
- *
- * @example
- * formatCurrency(1500)    // "S/ 1,500.00"
- * formatCurrency(49.9)    // "S/ 49.90"
+ * @deprecated Importar `formatSoles` desde `@/lib/format/peruvian`.
+ * Mantener este wrapper solo para no romper imports existentes.
  */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-PE", {
-    style: "currency",
-    currency: "PEN",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return formatSoles(amount);
 }
 
 /**

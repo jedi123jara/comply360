@@ -10,6 +10,7 @@ import {
   Plus,
   FileText,
 } from 'lucide-react'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * TabRemuneraciones — histórico de boletas del trabajador.
@@ -40,9 +41,6 @@ interface TabRemuneracionesProps {
   workerId: string
   workerFirstName: string
 }
-
-const pen = (n: number) =>
-  n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const periodoLabel = (p: string) => {
   const [y, m] = p.split('-')
@@ -185,8 +183,7 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
             <span>Último neto</span>
           </div>
           <div className="c360-kpi-value">
-            <span style={{ fontSize: '0.55em', marginRight: 2, opacity: 0.7 }}>S/</span>
-            {pen(stats.lastNeto)}
+            {formatSoles(stats.lastNeto)}
           </div>
           <div className="c360-kpi-foot">
             {stats.lastPeriodo ? periodoLabel(stats.lastPeriodo) : 'Sin emisiones todavía'}
@@ -199,8 +196,7 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
             <span>Acumulado {new Date().getFullYear()}</span>
           </div>
           <div className="c360-kpi-value">
-            <span style={{ fontSize: '0.55em', marginRight: 2, opacity: 0.7 }}>S/</span>
-            {pen(stats.acumuladoYear)}
+            {formatSoles(stats.acumuladoYear)}
           </div>
           <div className="c360-kpi-foot">Suma de netos emitidos este año</div>
         </div>
@@ -266,16 +262,16 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
                       {periodoLabel(p.periodo)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-[color:var(--text-secondary)]">
-                      S/ {pen(p.totalIngresos ?? p.sueldoBruto)}
+                      {formatSoles(p.totalIngresos ?? p.sueldoBruto)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-[color:var(--text-tertiary)]">
-                      - S/ {pen(p.totalDescuentos ?? 0)}
+                      - {formatSoles(p.totalDescuentos ?? 0)}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-mono"
                       style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: 'var(--text-primary)' }}
                     >
-                      S/ {pen(p.netoPagar ?? 0)}
+                      {formatSoles(p.netoPagar ?? 0)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span

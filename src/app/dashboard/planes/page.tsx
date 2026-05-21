@@ -53,10 +53,10 @@ const IGV_RATE = 0.18
 // Acá solo mergemos UI metadata (icon, highlighted, badge, description corta).
 //
 // Pricing oficial 2026-04-30 (ver docs/PRICING.md):
-//   FREE → S/0 / 5 workers
-//   STARTER → S/249 / 20 workers
-//   PRO ⭐ → S/699 / 75 workers (sweet spot — "Más popular")
-//   EMPRESA → S/1,899 / 250 workers
+//   FREE → S/0 / 5 trabajadores
+//   STARTER → S/249 / 20 trabajadores
+//   PRO ⭐ → S/699 / 75 trabajadores (sweet spot — "Más popular")
+//   EMPRESA → S/1,899 / 250 trabajadores
 //   ENTERPRISE → custom desde S/4,990 / ilimitado
 const PLAN_UI_META: Record<
   'FREE' | 'STARTER' | 'PRO' | 'EMPRESA' | 'ENTERPRISE',
@@ -74,17 +74,17 @@ const PLAN_UI_META: Record<
     icon: Rocket,
     highlighted: true,
     badge: 'Más popular',
-    description: 'IA + Diagnóstico SUNAFIL + AI Review para empresas 30-75 workers.',
+    description: 'IA + Diagnóstico SUNAFIL + AI Review para empresas de 30 a 75 trabajadores.',
   },
   EMPRESA: {
     icon: Building2,
-    badge: 'Portal worker + SLA 4h',
+    badge: 'Portal trabajador + SLA 4h',
     description: 'Compliance integral + Portal del trabajador + SLA 4h 24/7 (hasta 250).',
   },
   ENTERPRISE: {
     icon: Crown,
     badge: 'Contáctanos',
-    description: 'Empresas 300+ workers · API + integración SUNAT + CSM dedicado.',
+    description: 'Empresas 300+ trabajadores · API + integración SUNAT + CSM dedicado.',
   },
 }
 
@@ -183,7 +183,7 @@ export default function PlanesPage() {
     // ENTERPRISE es contact-sales: abrir WhatsApp directamente, no el modal Culqi
     if (plan.key === 'ENTERPRISE') {
       const msg = encodeURIComponent(
-        'Hola, quiero info del plan Enterprise de COMPLY360 (300+ workers + API + integración SUNAT + CSM dedicado).'
+        'Hola, quiero info del plan Enterprise de COMPLY360 (300+ trabajadores + API + integración SUNAT + CSM dedicado).'
       )
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank')
       return
@@ -223,7 +223,7 @@ export default function PlanesPage() {
       {/* ---- Header editorial ---- */}
       <PageHeader
         eyebrow="Planes y precios"
-        title="Elegí el plan que <em>protege tu planilla</em>."
+        title="Elige el plan que <em>protege tu planilla</em>."
         subtitle="Todos los planes incluyen actualizaciones automáticas de normativa laboral peruana, calendario fiscal y motor de alertas. Pagos en soles procesados por Culqi."
       />
 
@@ -452,7 +452,7 @@ export default function PlanesPage() {
           />
           <FaqCard
             question="Hay periodo de prueba?"
-            answer="Ofrecemos una demo personalizada gratuita. Contactanos via WhatsApp para coordinar una demostracion de la plataforma completa."
+            answer="Ofrecemos una demo personalizada gratuita. Contáctanos por WhatsApp para coordinar una demostración de la plataforma completa."
           />
         </div>
       </div>
@@ -467,7 +467,7 @@ export default function PlanesPage() {
             <h3 className="text-lg font-bold text-slate-900">Necesitas un plan personalizado?</h3>
             <p className="mt-1 text-sm text-slate-600">
               Para empresas con mas de 200 trabajadores o necesidades especificas,
-              contactanos para un plan a medida.
+              contáctanos para un plan a medida.
             </p>
           </div>
           <Button

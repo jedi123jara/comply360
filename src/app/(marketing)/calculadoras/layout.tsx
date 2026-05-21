@@ -48,7 +48,7 @@ export default function CalculadorasLayout({ children }: { children: ReactNode }
               href="/sign-up"
               className="ml-2 inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium transition-colors"
             >
-              Registrate gratis
+              Regístrate gratis
             </Link>
           </nav>
         </div>

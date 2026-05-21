@@ -11,6 +11,7 @@ import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { callAIStream } from '@/lib/ai/provider'
 import { recordAiUsage } from '@/lib/ai/usage'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -74,7 +75,7 @@ CONTEXTO DEL TRABAJADOR (usa solo si es relevante):
 - Régimen laboral: ${body.workerContext.regimenLaboral || 'N/A'}
 - Tipo de contrato: ${body.workerContext.tipoContrato || 'N/A'}
 - Fecha de ingreso: ${body.workerContext.fechaIngreso || 'N/A'}
-- Sueldo bruto: ${body.workerContext.sueldoBruto ? `S/${body.workerContext.sueldoBruto}` : 'N/A'}
+- Sueldo bruto: ${body.workerContext.sueldoBruto ? formatSoles(body.workerContext.sueldoBruto) : 'N/A'}
 `
     : ''
 

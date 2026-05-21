@@ -200,6 +200,55 @@ export async function applyLegacySeed(orgId: string, takenById?: string | null) 
     }
   }
 
+  // ---- Heurística de auto-inferencia de jerarquía inicial (Ola 2) ----
+  // Buscamos todos los puestos vigentes creados o existentes para esta organización.
+  const allPositions = await prisma.orgPosition.findMany({
+    where: { orgId, validTo: null },
+  })
+
+  // Agrupamos los ids de los puestos de gerencia/jefatura por su orgUnitId.
+  const managerialPositionsByUnit = new Map<string, string[]>()
+  for (const pos of allPositions) {
+    if (pos.isManagerial) {
+      if (!managerialPositionsByUnit.has(pos.orgUnitId)) {
+        managerialPositionsByUnit.set(pos.orgUnitId, [])
+      }
+      managerialPositionsByUnit.get(pos.orgUnitId)!.push(pos.id)
+    }
+  }
+
+  // Para cada puesto que NO sea de gerencia y que NO tenga un reportsToPositionId asignado
+  for (const pos of allPositions) {
+    if (!pos.isManagerial && !pos.reportsToPositionId) {
+      const managers = managerialPositionsByUnit.get(pos.orgUnitId)
+      if (managers && managers.length > 0) {
+        const managerPositionId = managers[0]
+
+        // Actualizar puesto en DB
+        await prisma.orgPosition.update({
+          where: { id: pos.id },
+          data: { reportsToPositionId: managerPositionId },
+        })
+
+        // Registrar AuditLog
+        await prisma.auditLog.create({
+          data: {
+            orgId,
+            userId: takenById ?? null,
+            action: 'orgchart.subordination_inferred',
+            entityType: 'OrgPosition',
+            entityId: pos.id,
+            metadataJson: {
+              inferredManagerPositionId: managerPositionId,
+              orgUnitId: pos.orgUnitId,
+              reason: 'Auto-inferencia de jerarquía inicial por unidad y cargo directivo',
+            } as any,
+          },
+        }).catch(() => {})
+      }
+    }
+  }
+
   return { ...created, totalWorkers: workers.length, takenById: takenById ?? null }
 }
 

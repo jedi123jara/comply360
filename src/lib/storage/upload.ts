@@ -1,5 +1,6 @@
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { validateUploadWithMagicBytes, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads')
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024 // 4.5MB (límite plan gratuito Vercel)
@@ -119,7 +120,7 @@ async function ensureBucketExists(supabaseUrl: string, serviceKey: string): Prom
 
   // Falló de verdad → no marcamos cache, que reintenten siguiente upload
   throw new Error(
-    `No se pudo crear el bucket "${SUPABASE_BUCKET}" en Supabase. Crea el bucket manualmente en Supabase Dashboard → Storage → New bucket → name: ${SUPABASE_BUCKET} → public access. Detalle: ${errText}`,
+    `No se pudo crear el bucket "${SUPABASE_BUCKET}" en Supabase. Crea el bucket manualmente en Supabase Dashboard → Storage → New bucket → name: ${SUPABASE_BUCKET} → private access. Detalle: ${errText}`,
   )
 }
 
@@ -155,7 +156,7 @@ async function uploadToSupabase(file: File, subfolder: string): Promise<UploadRe
       // Reset cache para que el siguiente intento reintente crear
       bucketEnsured = false
       throw new Error(
-        `El bucket "${SUPABASE_BUCKET}" no existe en Supabase. Ve a Supabase Dashboard → Storage → New bucket → name: ${SUPABASE_BUCKET} → marca "Public bucket". También puedes intentar de nuevo en 30s y la app intentará crearlo.`,
+        `El bucket "${SUPABASE_BUCKET}" no existe en Supabase. Ve a Supabase Dashboard → Storage → New bucket → name: ${SUPABASE_BUCKET} → marca "Private bucket". También puedes intentar de nuevo en 30s y la app intentará crearlo.`,
       )
     }
     if (res.status === 413 || err.toLowerCase().includes('payload')) {
@@ -261,6 +262,11 @@ async function uploadToLocal(file: File, subfolder: string): Promise<UploadResul
 // Public API — auto-selects storage backend
 // =============================================
 export async function uploadFile(file: File, subfolder: string): Promise<UploadResult> {
+  const validation = await validateUploadWithMagicBytes(file, UPLOAD_PROFILES.workerDocument)
+  if (!validation.ok) {
+    throw new Error(validation.error)
+  }
+
   if (USE_SUPABASE) return uploadToSupabase(file, subfolder)
   return uploadToLocal(file, subfolder)
 }

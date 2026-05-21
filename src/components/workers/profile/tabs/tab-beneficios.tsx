@@ -14,6 +14,7 @@ import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import { calcularGratificacion } from '@/lib/legal-engine/calculators/gratificacion'
 import { calcularVacaciones } from '@/lib/legal-engine/calculators/vacaciones'
 import { calcularIndemnizacion } from '@/lib/legal-engine/calculators/indemnizacion'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { WorkerSummary } from '../worker-profile-header'
 
 /**
@@ -191,7 +192,7 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
           </em> hoy.
         </h2>
         <p className="text-sm text-[color:var(--text-secondary)] max-w-2xl">
-          Proyección en base a sueldo bruto <b>S/ {sueldo.toLocaleString('es-PE')}</b> e ingreso el{' '}
+          Proyección en base a sueldo bruto <b>{formatSoles(sueldo)}</b> e ingreso el{' '}
           <b>{fechaIngreso ? new Date(fechaIngreso).toLocaleDateString('es-PE') : '—'}</b>.
           Fórmulas y base legal citadas en cada card — usa el drawer de calculadoras para
           escenarios alternativos.
@@ -214,7 +215,7 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
             icon={<Banknote size={14} />}
             label={`Gratificación de ${nextGratiPeriodo}`}
             value={grati.totalNeto}
-            meta={`Bruto S/ ${grati.gratificacionBruta.toLocaleString('es-PE', { maximumFractionDigits: 2 })} + bono extraordinario ${grati.bonificacionExtraordinaria > 0 ? `S/ ${grati.bonificacionExtraordinaria.toLocaleString('es-PE', { maximumFractionDigits: 2 })}` : 'no aplica'}`}
+            meta={`Bruto ${formatSoles(grati.gratificacionBruta)} + bono extraordinario ${grati.bonificacionExtraordinaria > 0 ? formatSoles(grati.bonificacionExtraordinaria) : 'no aplica'}`}
             formula={grati.formula}
             baseLegal={grati.baseLegal}
           />
@@ -311,8 +312,7 @@ function BenefitCard({
         <span>{label}</span>
       </div>
       <div className="c360-kpi-value">
-        <span style={{ fontSize: '0.55em', marginRight: 2, opacity: 0.7 }}>S/</span>
-        {value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {formatSoles(value)}
       </div>
       <p className="text-xs text-[color:var(--text-secondary)]" style={{ marginTop: 4 }}>
         {meta}

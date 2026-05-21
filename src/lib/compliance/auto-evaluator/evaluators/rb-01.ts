@@ -6,6 +6,7 @@
  */
 import type { QuestionEvaluator } from '../types'
 import { affectedWorkers, metricEvidence, pctToAnswer, RMV_2026, workerEvidence, workerPct } from './_helpers'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export const evaluatorRB01: QuestionEvaluator = {
   questionId: 'RB-01',
@@ -19,10 +20,10 @@ export const evaluatorRB01: QuestionEvaluator = {
       answer: pctToAnswer(pct),
       confidence: 98,
       evidence: [
-        metricEvidence('RMV vigente 2026', `S/ ${RMV_2026}`),
+        metricEvidence('RMV vigente 2026', formatSoles(RMV_2026)),
         metricEvidence('Trabajadores tiempo completo ≥ RMV', `${pct}%`),
         ...debajo.map((w) =>
-          workerEvidence(w, `Sueldo bruto S/ ${w.sueldoBruto.toFixed(2)} (< RMV)`)
+          workerEvidence(w, `Sueldo bruto ${formatSoles(w.sueldoBruto)} (< RMV)`)
         ),
       ],
       sources: ['Worker.sueldoBruto', 'Worker.tiempoCompleto'],

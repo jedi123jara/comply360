@@ -61,6 +61,7 @@ vi.mock('@/lib/notifications/web-push-server', () => ({
 
 vi.mock('@/lib/legal-engine/feriados-peru', () => ({
   diasLaborables: (...args: unknown[]) => mockDiasLaborables(...args),
+  isFeriado: vi.fn().mockReturnValue({ isFeriado: false }),
 }))
 
 // FIX #5.A: el cron ahora usa claimCronRun para idempotencia. En tests

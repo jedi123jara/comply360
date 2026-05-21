@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { FileSpreadsheet, Download, RefreshCw, CheckCircle2, Clock, Loader2, Users, Banknote, TrendingUp, FileText, Play, ChevronDown, Filter } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -53,10 +54,6 @@ interface PlanillaSummary {
 function getPeriodoActual() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
-
-function fmt(n: number | null | undefined) {
-  return `S/ ${(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 // ─── WorkerRow ────────────────────────────────────────────────────────────────
@@ -114,7 +111,7 @@ function WorkerRow({ row, onPdfDownload }: {
             <div className="hidden sm:block text-right">
               <p className="text-[11px] text-gray-500 mb-0.5">Neto a Pagar</p>
               <p className="text-base font-bold text-gold tabular-nums">
-                {fmt(payslip.netoPagar)}
+                {formatSoles(payslip.netoPagar)}
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
@@ -144,12 +141,12 @@ function WorkerRow({ row, onPdfDownload }: {
         <div className="border-t border-white/[0.06] bg-[#0f1219] px-6 pb-5 pt-4">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {[
-              { label: 'Total Ingresos', value: fmt(payslip.totalIngresos), type: 'total-income' as const },
-              { label: 'AFP/ONP', value: fmt(payslip.aporteAfpOnp), type: 'deduction' as const },
-              { label: 'Renta 5ta', value: fmt(payslip.rentaQuintaCat), type: 'deduction' as const },
-              { label: 'Total Descuentos', value: fmt(payslip.totalDescuentos), type: 'total-deduction' as const },
-              { label: 'Neto a Pagar', value: fmt(payslip.netoPagar), type: 'gold' as const },
-              { label: 'EsSalud (emp.)', value: fmt(payslip.essalud), type: 'info' as const },
+              { label: 'Total Ingresos', value: formatSoles(payslip.totalIngresos), type: 'total-income' as const },
+              { label: 'AFP/ONP', value: formatSoles(payslip.aporteAfpOnp), type: 'deduction' as const },
+              { label: 'Renta 5ta', value: formatSoles(payslip.rentaQuintaCat), type: 'deduction' as const },
+              { label: 'Total Descuentos', value: formatSoles(payslip.totalDescuentos), type: 'total-deduction' as const },
+              { label: 'Neto a Pagar', value: formatSoles(payslip.netoPagar), type: 'gold' as const },
+              { label: 'EsSalud (emp.)', value: formatSoles(payslip.essalud), type: 'info' as const },
             ].map(item => (
               <div key={item.label} className="space-y-1">
                 <p className="text-[11px] text-gray-500">{item.label}</p>
@@ -374,10 +371,10 @@ export default function PlanillaPage() {
             { label: 'Trabajadores', value: String(summary.totalWorkers), icon: <Users className="h-5 w-5 text-emerald-600" />, bg: 'bg-blue-500/10' },
             { label: 'Con boleta', value: String(summary.generadas), icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />, bg: 'bg-emerald-50' },
             { label: 'Pendientes', value: String(summary.pendientes), icon: <Clock className="h-5 w-5 text-amber-400" />, bg: 'bg-amber-500/10' },
-            { label: 'Masa Salarial', value: `S/ ${summary.totales.masaSalarial.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <TrendingUp className="h-5 w-5 text-gold" />, bg: 'bg-gold/10' },
-            { label: 'Neto a Pagar', value: `S/ ${summary.totales.neto.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <Banknote className="h-5 w-5 text-emerald-600" />, bg: 'bg-emerald-50' },
-            { label: 'AFP/ONP', value: `S/ ${summary.totales.afpOnp.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <FileText className="h-5 w-5 text-purple-400" />, bg: 'bg-purple-500/10' },
-            { label: 'EsSalud emp.', value: `S/ ${summary.totales.essalud.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`, icon: <FileText className="h-5 w-5 text-cyan-400" />, bg: 'bg-cyan-500/10' },
+            { label: 'Masa Salarial', value: formatSoles(summary.totales.masaSalarial), icon: <TrendingUp className="h-5 w-5 text-gold" />, bg: 'bg-gold/10' },
+            { label: 'Neto a Pagar', value: formatSoles(summary.totales.neto), icon: <Banknote className="h-5 w-5 text-emerald-600" />, bg: 'bg-emerald-50' },
+            { label: 'AFP/ONP', value: formatSoles(summary.totales.afpOnp), icon: <FileText className="h-5 w-5 text-purple-400" />, bg: 'bg-purple-500/10' },
+            { label: 'EsSalud emp.', value: formatSoles(summary.totales.essalud), icon: <FileText className="h-5 w-5 text-cyan-400" />, bg: 'bg-cyan-500/10' },
           ].map(item => (
             <div key={item.label} className="rounded-2xl border border-white/[0.08] bg-white p-4">
               <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl mb-3', item.bg)}>
@@ -527,15 +524,15 @@ export default function PlanillaPage() {
               <div className="flex items-center gap-6 text-sm">
                 <div className="text-center">
                   <p className="text-[10px] text-gray-500">Ingresos</p>
-                  <p className="font-bold text-white tabular-nums">{fmt(summary.totales.masaSalarial)}</p>
+                  <p className="font-bold text-white tabular-nums">{formatSoles(summary.totales.masaSalarial)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-gray-500">Descuentos</p>
-                  <p className="font-bold text-red-400 tabular-nums">{fmt(summary.totales.descuentos)}</p>
+                  <p className="font-bold text-red-400 tabular-nums">{formatSoles(summary.totales.descuentos)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-gray-500">Neto</p>
-                  <p className="text-lg font-bold text-gold tabular-nums">{fmt(summary.totales.neto)}</p>
+                  <p className="text-lg font-bold text-gold tabular-nums">{formatSoles(summary.totales.neto)}</p>
                 </div>
               </div>
             </div>

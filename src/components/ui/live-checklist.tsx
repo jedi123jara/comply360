@@ -7,6 +7,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -148,7 +149,7 @@ export function LiveChecklist({
               {/* Multa */}
               {item.multaPEN > 0 && (
                 <span className="text-xs font-bold text-red-600 tabular-nums shrink-0">
-                  S/{item.multaPEN.toLocaleString()}
+                  {formatSoles(item.multaPEN)}
                 </span>
               )}
 

@@ -14,6 +14,7 @@ import {
   Banknote,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * /dashboard/plan-accion — Vista agregadora de acciones pendientes.
@@ -66,10 +67,6 @@ const SEVERITY_CONFIG: Record<Severity, { label: string; bg: string; text: strin
   HIGH: { label: 'Alta', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
   MEDIUM: { label: 'Media', bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
   LOW: { label: 'Baja', bg: 'bg-blue-50', text: 'text-emerald-700', border: 'border-blue-200' },
-}
-
-function fmtSoles(n: number) {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 function fmtDate(iso: string) {
@@ -157,7 +154,7 @@ export default function PlanAccionPage() {
         />
         <KpiCard
           label="Multa evitable"
-          value={stats ? fmtSoles(stats.multaEvitableTotal) : 'S/ 0'}
+          value={stats ? formatSoles(stats.multaEvitableTotal) : formatSoles(0)}
           loading={loading}
           accent="emerald"
         />
@@ -369,7 +366,7 @@ function ItemRow({ item }: { item: PlanItem }) {
             {item.multaEvitable != null && item.multaEvitable > 0 && (
               <span className="inline-flex items-center gap-1 text-emerald-700">
                 <Banknote className="h-3 w-3" />
-                Evita {fmtSoles(item.multaEvitable)}
+                Evita {formatSoles(item.multaEvitable)}
               </span>
             )}
           </div>

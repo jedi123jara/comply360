@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/toast'
+import { formatSoles } from '@/lib/format/peruvian'
 
 type ContractType = 'LABORAL_INDEFINIDO' | 'LABORAL_PLAZO_FIJO' | 'LABORAL_TIEMPO_PARCIAL'
 
@@ -287,7 +288,7 @@ export default function BulkContractsPage() {
                       <td className="p-3">{String(norm.cargo ?? '—')}</td>
                       <td className="p-3 text-xs">{String(norm.fecha_inicio ?? '—')}</td>
                       <td className="p-3 text-right font-mono">
-                        {norm.remuneracion ? `S/ ${Number(norm.remuneracion).toFixed(2)}` : '—'}
+                        {norm.remuneracion ? formatSoles(Number(norm.remuneracion)) : '—'}
                       </td>
                       <td className="p-3">
                         {r.errors.length > 0 && (

@@ -363,7 +363,7 @@ const groups: EndpointGroup[] = [
       {
         method: 'POST',
         path: '/complaints',
-        description: 'Crear una denuncia a través del canal de denuncias (endpoint publico, no requiere autenticacion del denunciante). Compatible con Ley 31572.',
+        description: 'Crear un caso a traves del canal de denuncias (endpoint publico, no requiere autenticacion del denunciante). Compatible con HSL, SST y MPD.',
         requestBody: JSON.stringify({
           tipo: 'hostigamiento_sexual',
           descripcion: 'Descripción detallada del incidente reportado...',

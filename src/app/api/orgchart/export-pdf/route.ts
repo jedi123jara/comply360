@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import { exportOrgChartPdf } from '@/lib/orgchart/export-pdf'
 import {
   getVerifiedSnapshotTree,
@@ -10,7 +10,7 @@ import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const snapshotId = req.nextUrl.searchParams.get('snapshotId')
   const asOfStr = req.nextUrl.searchParams.get('asOf')
   const asOf = asOfStr ? new Date(asOfStr) : null

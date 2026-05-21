@@ -67,88 +67,96 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users                   User[]
-  workers                 Worker[]
-  attendanceQrSessions    AttendanceQrSession[]
-  contracts               Contract[]
-  calculations            Calculation[]
-  orgAlerts               OrgAlert[]
-  auditLogs               AuditLog[]
-  subscription            Subscription?
-  diagnostics             ComplianceDiagnostic[]
-  complianceTasks         ComplianceTask[]
-  diagnosticAutoAnswers   DiagnosticAutoAnswer[]
-  documentRequirements    DocumentRequirement[]
-  workerCapacitacionesSST WorkerCapacitacionSST[]
-  workerEpps              WorkerEPP[]
-  simulacrosEmergencia    Simulacro[]
-  cuadrosCategorias       CuadroCategorias[]
+  users                    User[]
+  workers                  Worker[]
+  attendanceQrSessions     AttendanceQrSession[]
+  contracts                Contract[]
+  calculations             Calculation[]
+  orgAlerts                OrgAlert[]
+  auditLogs                AuditLog[]
+  subscription             Subscription?
+  diagnostics              ComplianceDiagnostic[]
+  complianceTasks          ComplianceTask[]
+  complianceTaskEvidences  ComplianceTaskEvidence[]
+  sunafilExpedienteExports SunafilExpedienteExport[]
+  diagnosticAutoAnswers    DiagnosticAutoAnswer[]
+  documentRequirements     DocumentRequirement[]
+  workerCapacitacionesSST  WorkerCapacitacionSST[]
+  workerEpps               WorkerEPP[]
+  simulacrosEmergencia     Simulacro[]
+  cuadrosCategorias        CuadroCategorias[]
   // Fase 4 — Relaciones Laborales
-  disciplinaryActions     DisciplinaryAction[]
-  sindicatos              Sindicato[]
-  complaints              Complaint[]
-  invitations             Invitation[]
-  payslips                Payslip[]
-  workerRequests          WorkerRequest[]
-  documents               OrgDocument[]
-  orgTemplates            OrgTemplate[]
-  documentAcknowledgments DocumentAcknowledgment[]
-  serviceProviders        ServiceProvider[]
-  rhInvoices              RhInvoice[]
-  inspecciones            InspeccionEnVivo[]
-  ownedClients            ConsultorClient[]        @relation("ConsultorOwner")
-  managedBy               ConsultorClient[]        @relation("ConsultorManaged")
-  integrationCredentials  IntegrationCredential[]
+  disciplinaryActions      DisciplinaryAction[]
+  sindicatos               Sindicato[]
+  complaints               Complaint[]
+  complaintDocuments       ComplaintDocument[]
+  workerChallenges         WorkerChallenge[]
+  workerPulseEvents        WorkerPulseEvent[]
+  workerPulseReactions     WorkerPulseReaction[]
+  workerChallengeProgress  WorkerChallengeProgress[]
+  invitations              Invitation[]
+  payslips                 Payslip[]
+  workerRequests           WorkerRequest[]
+  documents                OrgDocument[]
+  orgTemplates             OrgTemplate[]
+  documentAcknowledgments  DocumentAcknowledgment[]
+  serviceProviders         ServiceProvider[]
+  rhInvoices               RhInvoice[]
+  inspecciones             InspeccionEnVivo[]
+  ownedClients             ConsultorClient[]         @relation("ConsultorOwner")
+  managedBy                ConsultorClient[]         @relation("ConsultorManaged")
+  integrationCredentials   IntegrationCredential[]
   // Organigrama
-  orgUnits                OrgUnit[]
-  orgPositions            OrgPosition[]
-  orgAssignments          OrgAssignment[]
-  orgComplianceRoles      OrgComplianceRole[]
-  orgChartSnapshots       OrgChartSnapshot[]
-  orgChartDrafts          OrgChartDraft[]
-  orgStructureChangeLogs  OrgStructureChangeLog[]
+  orgUnits                 OrgUnit[]
+  orgPositions             OrgPosition[]
+  orgAssignments           OrgAssignment[]
+  orgComplianceRoles       OrgComplianceRole[]
+  orgChartSnapshots        OrgChartSnapshot[]
+  orgChartDrafts           OrgChartDraft[]
+  orgStructureChangeLogs   OrgStructureChangeLog[]
   // Fase 5 — SST Premium
-  sedes                   Sede[]
-  iperBases               IPERCBase[]
-  accidentes              Accidente[]
-  comitesSst              ComiteSST[]
-  visitasFieldAudit       VisitaFieldAudit[]
-  emos                    EMO[]
-  consentimientosLey29733 ConsentimientoLey29733[]
-  solicitudesArco         SolicitudARCO[]
+  sedes                    Sede[]
+  iperBases                IPERCBase[]
+  accidentes               Accidente[]
+  comitesSst               ComiteSST[]
+  visitasFieldAudit        VisitaFieldAudit[]
+  emos                     EMO[]
+  consentimientosLey29733  ConsentimientoLey29733[]
+  solicitudesArco          SolicitudARCO[]
   // FIX #7.B — relaciones inversas para los 32 modelos huérfanos
-  aiBudgetCounters        AiBudgetCounter[]
-  aiUsage                 AiUsage[]
-  attendance              Attendance[]
-  attendanceApprovals     AttendanceApproval[]
-  attendanceAttempts      AttendanceAttempt[]
-  attendanceEvidence      AttendanceEvidence[]
+  aiBudgetCounters         AiBudgetCounter[]
+  aiUsage                  AiUsage[]
+  attendance               Attendance[]
+  attendanceApprovals      AttendanceApproval[]
+  attendanceAttempts       AttendanceAttempt[]
+  attendanceEvidence       AttendanceEvidence[]
   attendanceJustifications AttendanceJustification[]
-  bulkContractJobs        BulkContractJob[]
-  certificates            Certificate[]
-  ceseRecords             CeseRecord[]
-  complianceScores        ComplianceScore[]
-  contractValidations     ContractValidation[]
-  contractVersions        ContractVersion[]
-  enrollments             Enrollment[]
-  gamificationEvents      GamificationEvent[]
-  geofences               Geofence[]
-  merkleAnchors           MerkleAnchor[]
-  npsFeedback             NpsFeedback[]
-  orgComplianceSeals      OrgComplianceSeal[]
-  puestosTrabajo          PuestoTrabajo[]
-  scheduledReports        ScheduledReport[]
-  sindicalRecords         SindicalRecord[]
-  sstRecords              SstRecord[]
-  sunatQueryCache         SunatQueryCache[]
-  terceros                Tercero[]
-  webhookDeliveries       WebhookDelivery[]
-  webhookSubscriptions    WebhookSubscription[]
-  workerAlerts            WorkerAlert[]
-  workerDependents        WorkerDependent[]
-  workerHistoryEvents     WorkerHistoryEvent[]
-  workflowRuns            WorkflowRun[]
-  workflows               Workflow[]
+  bulkContractJobs         BulkContractJob[]
+  certificates             Certificate[]
+  ceseRecords              CeseRecord[]
+  complianceScores         ComplianceScore[]
+  contractValidations      ContractValidation[]
+  contractVersions         ContractVersion[]
+  enrollments              Enrollment[]
+  gamificationEvents       GamificationEvent[]
+  geofences                Geofence[]
+  merkleAnchors            MerkleAnchor[]
+  npsFeedback              NpsFeedback[]
+  orgComplianceSeals       OrgComplianceSeal[]
+  puestosTrabajo           PuestoTrabajo[]
+  scheduledReports         ScheduledReport[]
+  sindicalRecords          SindicalRecord[]
+  sstRecords               SstRecord[]
+  sunatQueryCache          SunatQueryCache[]
+  terceros                 Tercero[]
+  webhookDeliveries        WebhookDelivery[]
+  webhookSubscriptions     WebhookSubscription[]
+  workerAlerts             WorkerAlert[]
+  workerDependents         WorkerDependent[]
+  workerHistoryEvents      WorkerHistoryEvent[]
+  workflowRuns             WorkflowRun[]
+  workflows                Workflow[]
+  orgDelegatedTasks        OrgDelegatedTask[]
 
   @@map("organizations")
 }
@@ -228,7 +236,7 @@ model GamificationEvent {
   metadata  Json?
   createdAt DateTime              @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
   organization Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([userId, createdAt])
@@ -363,8 +371,8 @@ model Worker {
   // D.S. 019-2006-TR (retención obligatoria 6 años) + Ley 29733 (datos
   // médicos cifrados). Soft-delete a nivel Organization es lo correcto;
   // si realmente hay que purgar, requiere proceso explícito.
-  organization            Organization             @relation(fields: [orgId], references: [id], onDelete: Restrict)
-  user                    User?                    @relation(fields: [userId], references: [id])
+  organization            Organization               @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  user                    User?                      @relation(fields: [userId], references: [id])
   documents               WorkerDocument[]
   workerContracts         WorkerContract[]
   vacations               VacationRecord[]
@@ -389,11 +397,15 @@ model Worker {
   // Fase 3 — SST operativo + Ley 30709
   capacitacionesSST       WorkerCapacitacionSST[]
   epps                    WorkerEPP[]
-  cuadroCategoriaId       String?                  @map("cuadro_categoria_id")
-  cuadroCategoria         CuadroCategoriaItem?     @relation(fields: [cuadroCategoriaId], references: [id])
+  cuadroCategoriaId       String?                    @map("cuadro_categoria_id")
+  cuadroCategoria         CuadroCategoriaItem?       @relation(fields: [cuadroCategoriaId], references: [id])
   // Fase 4 — Relaciones Laborales
   disciplinaryActions     DisciplinaryAction[]
   afiliacionesSindicales  WorkerAfiliacionSindical[]
+  pulseEvents             WorkerPulseEvent[]         @relation("WorkerPulseSubject")
+  pulseActorEvents        WorkerPulseEvent[]         @relation("WorkerPulseActor")
+  pulseReactions          WorkerPulseReaction[]
+  challengeProgress       WorkerChallengeProgress[]
 
   @@unique([orgId, dni])
   @@index([orgId, status])
@@ -401,6 +413,131 @@ model Worker {
   @@index([orgId, deletedAt]) // listas activas filtran rápido por deletedAt IS NULL
   @@index([cuadroCategoriaId])
   @@map("workers")
+}
+
+enum WorkerPulseEventType {
+  SYSTEM_ACHIEVEMENT
+  KUDO
+  TEAM_CHALLENGE
+}
+
+enum WorkerPulseVisibility {
+  WORKER
+  TEAM
+  ORG
+}
+
+enum WorkerPulseReactionType {
+  APPLAUSE
+  THANKS
+  CELEBRATE
+}
+
+enum WorkerKudoType {
+  BUEN_COMPANERO
+  PUNTUALIDAD
+  APOYO_EQUIPO
+  CAPACITACION_COMPLETADA
+}
+
+enum WorkerChallengeType {
+  DOCUMENTS_COMPLETE
+  TRAINING_COMPLETE
+  PAYSLIPS_SIGNED
+  ATTENDANCE_STREAK
+}
+
+enum WorkerChallengeStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model WorkerChallenge {
+  id          String                @id @default(cuid())
+  orgId       String                @map("org_id")
+  title       String
+  description String
+  type        WorkerChallengeType
+  status      WorkerChallengeStatus @default(ACTIVE)
+  scopeLabel  String?               @map("scope_label")
+  target      Int                   @default(100)
+  progress    Int                   @default(0)
+  startsAt    DateTime              @default(now()) @map("starts_at")
+  endsAt      DateTime?             @map("ends_at")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  organization Organization              @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  events       WorkerPulseEvent[]
+  progressRows WorkerChallengeProgress[]
+
+  @@index([orgId, status])
+  @@index([orgId, endsAt])
+  @@map("worker_challenges")
+}
+
+model WorkerPulseEvent {
+  id            String                @id @default(cuid())
+  orgId         String                @map("org_id")
+  workerId      String?               @map("worker_id")
+  actorWorkerId String?               @map("actor_worker_id")
+  challengeId   String?               @map("challenge_id")
+  type          WorkerPulseEventType
+  visibility    WorkerPulseVisibility @default(ORG)
+  title         String
+  description   String
+  icon          String?
+  tone          String?
+  metadata      Json?
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  organization Organization          @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  worker       Worker?               @relation("WorkerPulseSubject", fields: [workerId], references: [id], onDelete: SetNull)
+  actorWorker  Worker?               @relation("WorkerPulseActor", fields: [actorWorkerId], references: [id], onDelete: SetNull)
+  challenge    WorkerChallenge?      @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  reactions    WorkerPulseReaction[]
+
+  @@index([orgId, createdAt])
+  @@index([workerId, createdAt])
+  @@index([actorWorkerId, createdAt])
+  @@index([challengeId])
+  @@map("worker_pulse_events")
+}
+
+model WorkerPulseReaction {
+  id        String                  @id @default(cuid())
+  eventId   String                  @map("event_id")
+  workerId  String                  @map("worker_id")
+  orgId     String                  @map("org_id")
+  type      WorkerPulseReactionType
+  createdAt DateTime                @default(now()) @map("created_at")
+
+  event        WorkerPulseEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  worker       Worker           @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Restrict)
+
+  @@unique([eventId, workerId, type])
+  @@index([orgId, createdAt])
+  @@map("worker_pulse_reactions")
+}
+
+model WorkerChallengeProgress {
+  id          String   @id @default(cuid())
+  challengeId String   @map("challenge_id")
+  workerId    String?  @map("worker_id")
+  orgId       String   @map("org_id")
+  progress    Int      @default(0)
+  metadata    Json?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  challenge    WorkerChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  worker       Worker?         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Restrict)
+
+  @@unique([challengeId, workerId])
+  @@index([orgId, updatedAt])
+  @@map("worker_challenge_progress")
 }
 
 enum RegimenLaboral {
@@ -532,8 +669,8 @@ model WorkerAlert {
   resolvedBy    String?         @map("resolved_by")
   createdAt     DateTime        @default(now()) @map("created_at")
 
-  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, severity])
   @@index([orgId, resolvedAt]) // hot path: filtro resolvedAt IS NULL (12 archivos)
@@ -598,8 +735,8 @@ model WorkerDependent {
   updatedAt             DateTime          @updatedAt @map("updated_at")
   deletedAt             DateTime?         @map("deleted_at")
 
-  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([workerId, documentoTipo, documentoNum])
   @@index([workerId, deletedAt])
@@ -635,8 +772,8 @@ model WorkerHistoryEvent {
   triggeredBy String          @map("triggered_by") // userId del admin
   createdAt   DateTime        @default(now()) @map("created_at")
 
-  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([workerId, createdAt])
   @@index([orgId, type])
@@ -814,9 +951,9 @@ model ContractValidation {
   acknowledgedReason String?            @map("acknowledged_reason") @db.Text
   createdAt          DateTime           @default(now()) @map("created_at")
 
-  rule     ContractValidationRule @relation(fields: [ruleId], references: [id])
-  contract Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  rule         ContractValidationRule @relation(fields: [ruleId], references: [id])
+  contract     Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  organization Organization           @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, contractId])
   @@index([contractId, passed])
@@ -865,8 +1002,8 @@ model MerkleAnchor {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  versions ContractVersion[]
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  versions     ContractVersion[]
+  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([orgId, anchorDate])
   @@index([anchorDate])
@@ -913,7 +1050,7 @@ model BulkContractJob {
   finishedAt     DateTime?     @map("finished_at")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, status])
   @@index([orgId, createdAt])
@@ -1047,8 +1184,8 @@ model ContractVersion {
   /// `versionHash` está incluido en `MerkleAnchor.merkleRoot` sin recargar todo.
   merkleProof    Json?         @map("merkle_proof")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([contractId, versionNumber])
   @@index([orgId, contractId])
@@ -1297,11 +1434,59 @@ model ComplianceTask {
 
   organization Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
   diagnostic   ComplianceDiagnostic? @relation(fields: [diagnosticId], references: [id], onDelete: SetNull)
+  evidences    ComplianceTaskEvidence[]
 
   @@index([orgId, status])
   @@index([orgId, dueDate])
   @@index([diagnosticId])
   @@map("compliance_tasks")
+}
+
+model ComplianceTaskEvidence {
+  id          String   @id @default(cuid())
+  orgId       String   @map("org_id")
+  taskId      String   @map("task_id")
+  sourceId    String?  @map("source_id")
+  title       String?
+  fileName    String?  @map("file_name")
+  fileUrl     String   @map("file_url")
+  storagePath String?  @map("storage_path")
+  bucket      String?
+  mimeType    String?  @map("mime_type")
+  sizeBytes   Int?     @map("size_bytes")
+  hashSha256  String?  @map("hash_sha256")
+  notes       String?  @db.Text
+  uploadedBy  String?  @map("uploaded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  task         ComplianceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, taskId])
+  @@index([orgId, createdAt])
+  @@map("compliance_task_evidences")
+}
+
+model SunafilExpedienteExport {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  format         String
+  filename       String
+  score          Int?
+  totalRisks     Int      @default(0) @map("total_risks")
+  tasksCount     Int      @default(0) @map("tasks_count")
+  evidenceCount  Int      @default(0) @map("evidence_count")
+  pdfHashSha256  String?  @map("pdf_hash_sha256")
+  zipHashSha256  String?  @map("zip_hash_sha256")
+  manifest       Json
+  createdBy      String?  @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+  @@map("sunafil_expediente_exports")
 }
 
 enum ComplianceTaskStatus {
@@ -1324,17 +1509,17 @@ enum DiagnosticType {
 }
 
 model ComplianceScore {
-  id                String   @id @default(cuid())
-  orgId             String   @map("org_id")
-  scoreGlobal       Int      @map("score_global")
-  scoreContratos    Int?     @map("score_contratos")
-  scoreSst          Int?     @map("score_sst")
-  scoreDocumentos   Int?     @map("score_documentos")
-  scoreVencimientos Int?     @map("score_vencimientos")
-  scorePlanilla     Int?     @map("score_planilla")
-  multaEvitada      Decimal? @map("multa_evitada") @db.Decimal(12, 2)
-  calculatedAt      DateTime @default(now()) @map("calculated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  id                String       @id @default(cuid())
+  orgId             String       @map("org_id")
+  scoreGlobal       Int          @map("score_global")
+  scoreContratos    Int?         @map("score_contratos")
+  scoreSst          Int?         @map("score_sst")
+  scoreDocumentos   Int?         @map("score_documentos")
+  scoreVencimientos Int?         @map("score_vencimientos")
+  scorePlanilla     Int?         @map("score_planilla")
+  multaEvitada      Decimal?     @map("multa_evitada") @db.Decimal(12, 2)
+  calculatedAt      DateTime     @default(now()) @map("calculated_at")
+  organization      Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, calculatedAt])
   @@map("compliance_scores")
@@ -1350,15 +1535,15 @@ model ComplianceScore {
 //
 // answer = null significa "no determinable" → la pregunta vuelve al wizard manual.
 model DiagnosticAutoAnswer {
-  id            String   @id @default(cuid())
-  orgId         String   @map("org_id")
-  questionId    String   @map("question_id") // CR-01, RB-03, etc.
-  answer        String? // SI | NO | PARCIAL | null
-  confidence    Int      @default(0) // 0-100
-  evidence      Json     @default("[]") // array de Evidence
-  sources       Json     @default("[]") // tablas/modelos consultados
-  evaluatorName String?  @map("evaluator_name") // identificador del evaluator que produjo este resultado
-  computedAt    DateTime @default(now()) @map("computed_at")
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  questionId     String    @map("question_id") // CR-01, RB-03, etc.
+  answer         String? // SI | NO | PARCIAL | null
+  confidence     Int       @default(0) // 0-100
+  evidence       Json      @default("[]") // array de Evidence
+  sources        Json      @default("[]") // tablas/modelos consultados
+  evaluatorName  String?   @map("evaluator_name") // identificador del evaluator que produjo este resultado
+  computedAt     DateTime  @default(now()) @map("computed_at")
   // Si el usuario override manualmente esta respuesta auto, guardamos el override
   // y de qué usuario. La respuesta auto se mantiene como reference; el override
   // gana en el scoring final.
@@ -1391,7 +1576,7 @@ model SstRecord {
   status        SstStatus     @default(PENDING)
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, type])
   @@index([orgId, status])
@@ -1425,48 +1610,83 @@ enum SstStatus {
 // =============================================
 
 model Complaint {
-  id                 String             @id @default(cuid())
-  orgId              String             @map("org_id")
-  code               String             @unique // DENUNCIA-2026-001
-  type               ComplaintType
-  isAnonymous        Boolean            @default(true) @map("is_anonymous")
-  reporterName       String?            @map("reporter_name")
-  reporterEmail      String?            @map("reporter_email")
-  reporterPhone      String?            @map("reporter_phone")
-  accusedName        String?            @map("accused_name")
-  accusedPosition    String?            @map("accused_position")
-  description        String
-  evidenceUrls       String[]           @map("evidence_urls")
-  status             ComplaintStatus    @default(RECEIVED)
-  assignedTo         String?            @map("assigned_to")
-  resolution         String?
-  protectionMeasures Json?              @map("protection_measures")
-  receivedAt         DateTime           @default(now()) @map("received_at")
-  resolvedAt         DateTime?          @map("resolved_at")
+  id                     String             @id @default(cuid())
+  orgId                  String             @map("org_id")
+  code                   String             @unique // DENUNCIA-2026-001
+  regime                 ComplaintRegime    @default(HSL)
+  type                   ComplaintType
+  channel                ComplaintChannel   @default(WEB)
+  isAnonymous            Boolean            @default(true) @map("is_anonymous")
+  reporterName           String?            @map("reporter_name")
+  reporterEmail          String?            @map("reporter_email")
+  reporterPhone          String?            @map("reporter_phone")
+  accusedName            String?            @map("accused_name")
+  accusedPosition        String?            @map("accused_position")
+  description            String
+  occurredAt             DateTime?          @map("occurred_at")
+  location               String?
+  witnesses              Json?
+  caseMetadata           Json?              @map("case_metadata")
+  evidenceUrls           String[]           @map("evidence_urls")
+  trackingTokenHash      String?            @map("tracking_token_hash")
+  trackingTokenRotatedAt DateTime?          @map("tracking_token_rotated_at")
+  status                 ComplaintStatus    @default(RECEIVED)
+  assignedTo             String?            @map("assigned_to")
+  resolution             String?
+  protectionMeasures     Json?              @map("protection_measures")
+  receivedAt             DateTime           @default(now()) @map("received_at")
+  resolvedAt             DateTime?          @map("resolved_at")
   // Triaje IA (Fase γ) — la IA clasifica severidad/urgencia al recibir la
   // denuncia y sugiere medidas de protección. Ver `src/lib/ai/complaint-triage.ts`.
   // `severityAi` y `urgencyAi` se promueven a columnas para índice + WHERE.
   // El payload rico (summary, redFlags, medidas sugeridas, model) vive en triageJson.
-  severityAi         ComplaintSeverity? @map("severity_ai")
-  urgencyAi          ComplaintUrgency?  @map("urgency_ai")
-  triageJson         Json?              @map("triage_json")
-  triagedAt          DateTime?          @map("triaged_at")
-  triageVersion      Int                @default(1) @map("triage_version")
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
+  severityAi             ComplaintSeverity? @map("severity_ai")
+  urgencyAi              ComplaintUrgency?  @map("urgency_ai")
+  triageJson             Json?              @map("triage_json")
+  triagedAt              DateTime?          @map("triaged_at")
+  triageVersion          Int                @default(1) @map("triage_version")
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
 
   organization Organization        @relation(fields: [orgId], references: [id])
   timeline     ComplaintTimeline[]
+  documents    ComplaintDocument[]
 
   @@index([orgId, status])
+  @@index([orgId, regime, status])
   @@index([orgId, severityAi])
+  @@index([orgId, code, trackingTokenHash])
   @@map("complaints")
+}
+
+enum ComplaintRegime {
+  HSL
+  SST
+  MPD
+}
+
+enum ComplaintChannel {
+  WEB
+  EMAIL
+  PHONE
+  IN_PERSON
+  ANONYMOUS
 }
 
 enum ComplaintType {
   HOSTIGAMIENTO_SEXUAL
   DISCRIMINACION
   ACOSO_LABORAL
+  SST_ACCIDENTE_MORTAL
+  SST_INCIDENTE_PELIGROSO
+  SST_ACCIDENTE_NO_MORTAL
+  SST_ENFERMEDAD_OCUPACIONAL
+  SST_CONDICION_INSEGURA
+  MPD_CORRUPCION
+  MPD_LAVADO_ACTIVOS
+  MPD_TRIBUTARIO_ADUANERO
+  MPD_TERRORISMO
+  MPD_OTRO
   OTRO
 }
 
@@ -1494,16 +1714,68 @@ enum ComplaintStatus {
 }
 
 model ComplaintTimeline {
-  id          String   @id @default(cuid())
-  complaintId String   @map("complaint_id")
-  action      String
-  description String?
-  performedBy String?  @map("performed_by")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                String   @id @default(cuid())
+  complaintId       String   @map("complaint_id")
+  action            String
+  description       String?
+  visibleToReporter Boolean  @default(false) @map("visible_to_reporter")
+  publicDescription String?  @map("public_description")
+  performedBy       String?  @map("performed_by")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   complaint Complaint @relation(fields: [complaintId], references: [id])
 
   @@map("complaint_timeline")
+}
+
+enum ComplaintStage {
+  RECEPCION
+  EVALUACION
+  MEDIDAS_PROTECCION
+  INVESTIGACION
+  INFORME_COMITE
+  DECISION_FINAL
+  COMUNICACION_AUTORIDAD
+  CIERRE
+  APELACION
+}
+
+enum ComplaintDocumentKind {
+  ACTA
+  QUEJA
+  INFORME
+  MEDIDA_PROTECCION
+  COMUNICACION_AUTORIDAD
+  DESCARGO
+  EVIDENCIA
+  RESOLUCION
+  OTRO
+}
+
+model ComplaintDocument {
+  id                String                @id @default(cuid())
+  complaintId       String                @map("complaint_id")
+  orgId             String                @map("org_id")
+  title             String
+  stage             ComplaintStage
+  kind              ComplaintDocumentKind @default(OTRO)
+  url               String
+  storagePath       String?               @map("storage_path")
+  mimeType          String?               @map("mime_type")
+  size              Int?
+  hashSha256        String?               @map("hash_sha256")
+  visibleToReporter Boolean               @default(false) @map("visible_to_reporter")
+  uploadedBy        String?               @map("uploaded_by")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  complaint    Complaint    @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, complaintId])
+  @@index([complaintId, visibleToReporter])
+  @@index([stage])
+  @@map("complaint_documents")
 }
 
 // =============================================
@@ -1591,7 +1863,7 @@ model Enrollment {
   course         Course           @relation(fields: [courseId], references: [id])
   certificate    Certificate?     @relation(fields: [certificateId], references: [id])
   lessonProgress LessonProgress[]
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organization   Organization     @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([courseId, workerId, orgId])
   @@index([orgId, status])
@@ -1653,8 +1925,8 @@ model Certificate {
   qrData         String?        @map("qr_data") // URL de verificacion
   createdAt      DateTime       @default(now()) @map("created_at")
 
-  enrollments Enrollment[]
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  enrollments  Enrollment[]
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@index([code])
@@ -1749,8 +2021,8 @@ model CeseRecord {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  worker Worker @relation(fields: [workerId], references: [id])
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  worker       Worker       @relation(fields: [workerId], references: [id])
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@map("cese_records")
@@ -1784,21 +2056,21 @@ enum EtapaCese {
 // =============================================
 
 model Tercero {
-  id                    String    @id @default(cuid())
-  orgId                 String    @map("org_id")
-  razonSocial           String    @map("razon_social")
+  id                    String       @id @default(cuid())
+  orgId                 String       @map("org_id")
+  razonSocial           String       @map("razon_social")
   ruc                   String
-  actividadPrincipal    String?   @map("actividad_principal")
-  tipoServicio          String?   @map("tipo_servicio") // "TERCERIZACION" | "INTERMEDIACION"
-  contratoUrl           String?   @map("contrato_url")
-  fechaInicio           DateTime  @map("fecha_inicio")
-  fechaFin              DateTime? @map("fecha_fin")
-  trabajadoresAsignados Int       @default(0) @map("trabajadores_asignados")
-  isActividadPrincipal  Boolean   @default(false) @map("is_actividad_principal") // RED FLAG
-  isActive              Boolean   @default(true) @map("is_active")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  actividadPrincipal    String?      @map("actividad_principal")
+  tipoServicio          String?      @map("tipo_servicio") // "TERCERIZACION" | "INTERMEDIACION"
+  contratoUrl           String?      @map("contrato_url")
+  fechaInicio           DateTime     @map("fecha_inicio")
+  fechaFin              DateTime?    @map("fecha_fin")
+  trabajadoresAsignados Int          @default(0) @map("trabajadores_asignados")
+  isActividadPrincipal  Boolean      @default(false) @map("is_actividad_principal") // RED FLAG
+  isActive              Boolean      @default(true) @map("is_active")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+  organization          Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@map("terceros")
@@ -1809,18 +2081,18 @@ model Tercero {
 // =============================================
 
 model SindicalRecord {
-  id          String             @id @default(cuid())
-  orgId       String             @map("org_id")
-  type        SindicalRecordType
-  title       String
-  description String?
-  data        Json?
-  startDate   DateTime?          @map("start_date")
-  endDate     DateTime?          @map("end_date")
-  status      String             @default("ACTIVE")
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  id           String             @id @default(cuid())
+  orgId        String             @map("org_id")
+  type         SindicalRecordType
+  title        String
+  description  String?
+  data         Json?
+  startDate    DateTime?          @map("start_date")
+  endDate      DateTime?          @map("end_date")
+  status       String             @default("ACTIVE")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, type])
   @@map("sindical_records")
@@ -1875,14 +2147,14 @@ model AuditLog {
 // con localStorage + check server-side via existing record).
 
 model NpsFeedback {
-  id        String   @id @default(cuid())
-  orgId     String   @map("org_id")
-  userId    String   @map("user_id")
-  score     Int // 0-10
-  comment   String?  @db.Text
-  source    String? // "dashboard", "post-onboarding", etc.
-  createdAt DateTime @default(now()) @map("created_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  id           String       @id @default(cuid())
+  orgId        String       @map("org_id")
+  userId       String       @map("user_id")
+  score        Int // 0-10
+  comment      String?      @db.Text
+  source       String? // "dashboard", "post-onboarding", etc.
+  createdAt    DateTime     @default(now()) @map("created_at")
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([userId]) // un solo feedback por user
   @@index([orgId, createdAt])
@@ -1925,7 +2197,7 @@ model Attendance {
   justifications AttendanceJustification[]
   approvals      AttendanceApproval[]
   evidence       AttendanceEvidence[]
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organization   Organization              @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([orgId, workerId, workDate])
   @@index([orgId, clockIn])
@@ -1960,7 +2232,7 @@ model Geofence {
   isActive     Boolean      @default(true) @map("is_active")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, isActive])
   @@map("geofences")
@@ -2004,8 +2276,8 @@ model AttendanceJustification {
   requestedBy  String   @map("requested_by")
   requestedAt  DateTime @default(now()) @map("requested_at")
 
-  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  attendance   Attendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, workerId, requestedAt])
   @@index([attendanceId])
@@ -2023,8 +2295,8 @@ model AttendanceApproval {
   approvedByName  String?  @map("approved_by_name")
   approvedAt      DateTime @default(now()) @map("approved_at")
 
-  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  attendance   Attendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, approvedAt])
   @@index([attendanceId])
@@ -2041,8 +2313,8 @@ model AttendanceEvidence {
   metadataJson Json?    @map("metadata_json")
   capturedAt   DateTime @default(now()) @map("captured_at")
 
-  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  attendance   Attendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, workerId, capturedAt])
   @@index([attendanceId])
@@ -2067,7 +2339,7 @@ model AttendanceAttempt {
   userAgent    String?                 @map("user_agent") @db.Text
   metadataJson Json?                   @map("metadata_json")
   createdAt    DateTime                @default(now()) @map("created_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organization Organization            @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, createdAt])
   @@index([workerId, createdAt])
@@ -2565,13 +2837,13 @@ enum LeadSource {
 // =============================================
 
 model SunatQueryCache {
-  id         String   @id @default(cuid())
-  orgId      String?  @map("org_id")
-  ruc        String
-  queryType  String   @map("query_type") // "deuda", "representantes", "trabajadores", "establecimientos"
-  resultJson Json     @map("result_json")
-  queriedAt  DateTime @default(now()) @map("queried_at")
-  expiresAt  DateTime @map("expires_at")
+  id           String        @id @default(cuid())
+  orgId        String?       @map("org_id")
+  ruc          String
+  queryType    String        @map("query_type") // "deuda", "representantes", "trabajadores", "establecimientos"
+  resultJson   Json          @map("result_json")
+  queriedAt    DateTime      @default(now()) @map("queried_at")
+  expiresAt    DateTime      @map("expires_at")
   organization Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([ruc, queryType])
@@ -2601,7 +2873,7 @@ model Workflow {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  runs WorkflowRun[]
+  runs         WorkflowRun[]
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, active])
@@ -2622,21 +2894,21 @@ model Workflow {
 // La UI calcula el próximo disparo client-side con `cron-parser`.
 
 model ScheduledReport {
-  id             String    @id @default(cuid())
-  orgId          String    @map("org_id")
-  reportType     String    @map("report_type") // 'compliance-ejecutivo' | 'sst-anual' | 'workers' | ...
-  cronExpression String    @map("cron_expression") // ej "0 8 1 * *"
+  id             String       @id @default(cuid())
+  orgId          String       @map("org_id")
+  reportType     String       @map("report_type") // 'compliance-ejecutivo' | 'sst-anual' | 'workers' | ...
+  cronExpression String       @map("cron_expression") // ej "0 8 1 * *"
   recipients     String[] // emails destinatarios
   format         String // 'PDF' | 'XLSX' | 'BOTH'
   params         Json? // filtros por tipo (year, department, regime)
-  active         Boolean   @default(true)
-  lastRunAt      DateTime? @map("last_run_at")
-  lastRunStatus  String?   @map("last_run_status") // 'SUCCESS' | 'FAILED'
-  lastRunError   String?   @map("last_run_error") @db.Text
-  createdBy      String?   @map("created_by")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  active         Boolean      @default(true)
+  lastRunAt      DateTime?    @map("last_run_at")
+  lastRunStatus  String?      @map("last_run_status") // 'SUCCESS' | 'FAILED'
+  lastRunError   String?      @map("last_run_error") @db.Text
+  createdBy      String?      @map("created_by")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, active])
   @@map("scheduled_reports")
@@ -2662,8 +2934,8 @@ model WorkflowRun {
    */
   idempotencyKey   String?   @unique @map("idempotency_key")
 
-  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  workflow     Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([workflowId, startedAt])
   @@index([orgId, startedAt])
@@ -2701,8 +2973,8 @@ model WebhookSubscription {
   updatedAt           DateTime  @updatedAt @map("updated_at")
   createdBy           String?   @map("created_by")
 
-  deliveries WebhookDelivery[]
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  deliveries   WebhookDelivery[]
+  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, active])
   @@map("webhook_subscriptions")
@@ -2732,7 +3004,7 @@ model WebhookDelivery {
   completedAt    DateTime? @map("completed_at")
 
   subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organization Organization        @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([status, nextRetryAt])
   @@index([subscriptionId, createdAt])
@@ -2755,17 +3027,17 @@ model WebhookDelivery {
  * - GOLD:   score ≥95
  */
 model OrgComplianceSeal {
-  id            String    @id @default(cuid())
-  orgId         String    @map("org_id")
-  slug          String    @unique
-  scoreAtIssue  Int       @map("score_at_issue")
-  scoreAvg90d   Int       @map("score_avg_90d")
-  tier          String    @default("BRONZE")
-  issuedAt      DateTime  @default(now()) @map("issued_at")
-  validUntil    DateTime  @map("valid_until")
-  revokedAt     DateTime? @map("revoked_at")
-  revokedReason String?   @map("revoked_reason")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  id            String       @id @default(cuid())
+  orgId         String       @map("org_id")
+  slug          String       @unique
+  scoreAtIssue  Int          @map("score_at_issue")
+  scoreAvg90d   Int          @map("score_avg_90d")
+  tier          String       @default("BRONZE")
+  issuedAt      DateTime     @default(now()) @map("issued_at")
+  validUntil    DateTime     @map("valid_until")
+  revokedAt     DateTime?    @map("revoked_at")
+  revokedReason String?      @map("revoked_reason")
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, issuedAt])
   @@index([validUntil])
@@ -2818,50 +3090,50 @@ model CronRun {
  * usuario. Se logea el error a console.
  */
 model AiUsage {
-  id               String   @id @default(cuid())
-  orgId            String?  @map("org_id") // null para llamadas de cron/health
-  userId           String?  @map("user_id")
+  id               String        @id @default(cuid())
+  orgId            String?       @map("org_id") // null para llamadas de cron/health
+  userId           String?       @map("user_id")
   feature          String // 'chat' | 'contract-review' | 'document-verify' | 'action-plan' | 'agents:<name>' | 'unknown'
   provider         String // 'openai' | 'groq' | 'deepseek' | 'ollama' | 'simulated'
   model            String
-  promptTokens     Int      @default(0) @map("prompt_tokens")
-  completionTokens Int      @default(0) @map("completion_tokens")
-  totalTokens      Int      @default(0) @map("total_tokens")
+  promptTokens     Int           @default(0) @map("prompt_tokens")
+  completionTokens Int           @default(0) @map("completion_tokens")
+  totalTokens      Int           @default(0) @map("total_tokens")
   /**
    * Tokens servidos desde cache de contexto del provider (DeepSeek devuelve
    * `prompt_cache_hit_tokens` en la respuesta). Se cobran ~10x menos que
    * promptTokens. Permite calcular cache hit rate y costo real.
    */
-  cachedTokens     Int?     @map("cached_tokens")
+  cachedTokens     Int?          @map("cached_tokens")
   /**
    * Tokens de reasoning interno (DeepSeek-reasoner / o1). Se cobran como completion.
    */
-  reasoningTokens  Int?     @map("reasoning_tokens")
+  reasoningTokens  Int?          @map("reasoning_tokens")
   /**
    * Time-to-first-token en streams. Null si no fue stream.
    */
-  ttftMs           Int?     @map("ttft_ms")
+  ttftMs           Int?          @map("ttft_ms")
   /**
    * True si el primario falló y se sirvió desde fallback.
    */
-  fallbackUsed     Boolean  @default(false) @map("fallback_used")
+  fallbackUsed     Boolean       @default(false) @map("fallback_used")
   /**
    * Score producido por el eval harness (si esta llamada vino de un eval run).
    */
   // FIX #7.G: era el único Float del schema (resto usa Decimal). Score 0..1
   // con 4 decimales de precisión cubre cualquier eval realista.
-  evalScore        Decimal? @map("eval_score") @db.Decimal(5, 4)
+  evalScore        Decimal?      @map("eval_score") @db.Decimal(5, 4)
   /**
    * Costo estimado en USD calculado con la pricing table local.
    * NO refleja ningún descuento de volumen ni precio enterprise — sirve
    * como guía para alertas y presupuesto, no como factura.
    */
-  costUsd          Decimal  @default(0) @map("cost_usd") @db.Decimal(12, 6)
-  latencyMs        Int?     @map("latency_ms")
-  success          Boolean  @default(true)
-  errorMessage     String?  @map("error_message")
-  createdAt        DateTime @default(now()) @map("created_at")
-  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  costUsd          Decimal       @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  latencyMs        Int?          @map("latency_ms")
+  success          Boolean       @default(true)
+  errorMessage     String?       @map("error_message")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  organization     Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId, createdAt])
   @@index([orgId, feature, createdAt])
@@ -2875,19 +3147,19 @@ model AiUsage {
  * costosas en cada checkCapacity.
  */
 model AiBudgetCounter {
-  id            String   @id @default(cuid())
-  orgId         String   @map("org_id")
+  id            String       @id @default(cuid())
+  orgId         String       @map("org_id")
   /**
    * Mes calendario UTC en formato YYYY-MM-01 (DateTime al inicio del mes).
    */
-  monthStart    DateTime @map("month_start")
-  totalCalls    Int      @default(0) @map("total_calls")
-  totalTokens   Int      @default(0) @map("total_tokens")
-  totalCostUsd  Decimal  @default(0) @map("total_cost_usd") @db.Decimal(12, 6)
-  hourlyCalls   Int      @default(0) @map("hourly_calls")
-  hourlyResetAt DateTime @default(now()) @map("hourly_reset_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  monthStart    DateTime     @map("month_start")
+  totalCalls    Int          @default(0) @map("total_calls")
+  totalTokens   Int          @default(0) @map("total_tokens")
+  totalCostUsd  Decimal      @default(0) @map("total_cost_usd") @db.Decimal(12, 6)
+  hourlyCalls   Int          @default(0) @map("hourly_calls")
+  hourlyResetAt DateTime     @default(now()) @map("hourly_reset_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@unique([orgId, monthStart])
   @@index([orgId])
@@ -3310,9 +3582,9 @@ model PuestoTrabajo {
   createdAt                 DateTime @default(now()) @map("created_at")
   updatedAt                 DateTime @updatedAt @map("updated_at")
 
-  sede   Sede    @relation(fields: [sedeId], references: [id], onDelete: Cascade)
-  worker Worker? @relation(fields: [workerId], references: [id], onDelete: SetNull)
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  sede         Sede         @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  worker       Worker?      @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
 
   @@index([orgId])
   @@index([sedeId])
@@ -4003,3 +4275,23 @@ model ConvencionColectiva {
   @@index([sindicatoId, vigenciaDesde])
   @@map("convenciones_colectivas")
 }
+
+model OrgDelegatedTask {
+  id               String   @id @default(cuid())
+  orgId            String   @map("org_id")
+  creatorUserId    String   @map("creator_user_id")
+  assigneeWorkerId String   @map("assignee_worker_id")
+  sourcePositionId String?  @map("source_position_id")
+  title            String
+  description      String?  @db.Text
+  dueAt            DateTime? @map("due_at")
+  status           String   @default("OPEN")
+  evidenceUrl      String?  @map("evidence_url")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  @@index([orgId, assigneeWorkerId, status])
+  @@map("org_delegated_tasks")
+}
+

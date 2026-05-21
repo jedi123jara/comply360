@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import type { LucideIcon } from 'lucide-react'
 import {
   AlertCircle,
@@ -12,23 +15,30 @@ import {
   ChevronRight,
   ClipboardList,
   Clock3,
+  Copy,
   FileText,
   Fingerprint,
   FolderOpen,
   GraduationCap,
   IdCard,
+  ListChecks,
   Lock,
   PartyPopper,
   PenLine,
   PiggyBank,
   Plane,
-  Receipt,
   ShieldCheck,
   Sparkles,
+  Flame,
+  Trophy,
+  Users,
   Wallet,
+  Share2,
+  X,
 } from 'lucide-react'
 import { EnableNotifications } from '@/components/pwa/enable-notifications'
 import { ConfettiCard } from '@/components/mi-portal/confetti-card'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface PortalSummary {
   worker: {
@@ -63,6 +73,15 @@ interface PortalSummary {
       nextCut: string
       ctsTotal: number
     } | null
+  }
+  pulse?: {
+    streakDays: number
+    levelName: string
+    score: number
+    teamProgress: number
+    percentileLabel: string
+    nextActionLabel: string
+    feedPreview: string[]
   }
   ultimaBoleta: { periodo: string; netoPagar: string } | null
   proximasCapacitaciones: Array<{ id: string; title: string; deadline: string | null }>
@@ -102,13 +121,6 @@ function formatPeriodo(periodo: string): string {
   return `${months[m] ?? month} ${year}`
 }
 
-function fmtSoles(v: string | number | null | undefined): string {
-  if (v === null || v === undefined) return '—'
-  const n = typeof v === 'string' ? parseFloat(v) : v
-  if (!isFinite(n)) return '—'
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 function formatShortDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })
@@ -145,13 +157,22 @@ function aniversarioProximo(fechaIngresoIso: string): { years: number; daysUntil
 }
 
 export default function MiPortalHomePage() {
+  const searchParams = useSearchParams()
   const [data, setData] = useState<PortalSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isWorkerPreview =
+    process.env.NODE_ENV === 'development' && searchParams.get('__workerPreview') === '1'
+
+  function withPortalHref(href: string): string {
+    if (!isWorkerPreview || href.startsWith('#') || /^https?:\/\//.test(href)) return href
+    if (href.includes('__workerPreview=')) return href
+    return `${href}${href.includes('?') ? '&' : '?'}__workerPreview=1`
+  }
 
   useEffect(() => {
     let mounted = true
-    fetch('/api/mi-portal/resumen')
+    fetch(`/api/mi-portal/resumen${isWorkerPreview ? '?__workerPreview=1' : ''}`)
       .then((r) => {
         if (!r.ok) throw new Error('No se pudo cargar tu información')
         return r.json()
@@ -168,7 +189,7 @@ export default function MiPortalHomePage() {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [isWorkerPreview])
 
   const pendingActions = useMemo<PendingAction[]>(() => {
     if (!data) return []
@@ -257,17 +278,22 @@ export default function MiPortalHomePage() {
   const fullName = `${worker.firstName} ${worker.lastName}`.trim()
   const initial = worker.firstName.charAt(0).toUpperCase()
   const idCardCode = `C360-${worker.dni.slice(-4)}`
-  const topAction = pendingActions[0] ?? null
+  const portalPendingActions = pendingActions.map((action) => ({
+    ...action,
+    href: withPortalHref(action.href),
+  }))
+  const topAction = portalPendingActions[0] ?? null
   const aniv = aniversarioProximo(worker.fechaIngreso)
   const asistenciaRatio =
     asistenciaMes.diasLaborales > 0
       ? Math.round((asistenciaMes.diasMarcados / asistenciaMes.diasLaborales) * 100)
       : 0
   const documentosDisponibles = Math.max(0, 12 - data.stats.documentosFaltantes)
+  const pulseHref = withPortalHref('/mi-portal/pulse')
 
   const quickActions = [
     {
-      href: '/mi-portal/boletas',
+      href: withPortalHref('/mi-portal/boletas'),
       icon: PenLine,
       title: 'Firmar boletas',
       description:
@@ -277,14 +303,14 @@ export default function MiPortalHomePage() {
       tone: 'emerald' as const,
     },
     {
-      href: '/mi-portal/asistencia',
+      href: withPortalHref('/mi-portal/asistencia'),
       icon: Clock3,
       title: 'Ver asistencia',
       description: `${asistenciaRatio}% registrado este mes`,
       tone: 'blue' as const,
     },
     {
-      href: '/mi-portal/solicitudes/nueva',
+      href: withPortalHref('/mi-portal/solicitudes/nueva'),
       icon: Plane,
       title: 'Solicitar vacaciones',
       description:
@@ -294,7 +320,7 @@ export default function MiPortalHomePage() {
       tone: 'amber' as const,
     },
     {
-      href: '/mi-portal/documentos',
+      href: withPortalHref('/mi-portal/documentos'),
       icon: FolderOpen,
       title: 'Mis documentos',
       description: 'Accede a tus documentos',
@@ -303,13 +329,26 @@ export default function MiPortalHomePage() {
   ]
 
   return (
-    <div className="c360-worker-reference c360-page-enter">
+    <div className="c360-worker-reference c360-worker-premium c360-page-enter">
       <section className="c360-ref-top-grid" aria-label="Inicio del portal trabajador">
         <div className="c360-ref-hero">
+          <div className="c360-premium-hero-ribbons" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <span className="c360-hero-dot-grid c360-hero-dots" aria-hidden="true" />
+          <span className="c360-hero-check-bubble" aria-hidden="true">
+            <CheckCircle2 className="h-9 w-9" />
+          </span>
+          <span className="c360-hero-live-badge" aria-hidden="true">
+            <ShieldCheck className="h-4 w-4" />
+            Verificado
+          </span>
           <div className="c360-ref-hero-copy">
             <h1>
               Hola, {worker.firstName}
-              <span aria-hidden="true"> 👋</span>
+              <span className="c360-wave-emoji" aria-hidden="true">👋</span>
             </h1>
             <p>Todo lo que necesitas de tu relación laboral, en un solo lugar.</p>
             <div className="c360-ref-hero-actions">
@@ -327,7 +366,7 @@ export default function MiPortalHomePage() {
           <WorkerHeroIllustration />
         </div>
 
-        <Link href={topAction?.href ?? '/mi-portal'} className="c360-ref-recommendation">
+        <Link href={topAction?.href ?? withPortalHref('/mi-portal')} className="c360-ref-recommendation">
           <div>
             <span className="c360-ref-pill">
               <Sparkles className="h-3.5 w-3.5" />
@@ -357,42 +396,18 @@ export default function MiPortalHomePage() {
         </div>
       </section>
 
-      <section className="c360-ref-main-grid">
-        <div className="space-y-6">
-          <section className="c360-ref-section">
-            <div className="c360-ref-section-head">
-              <h2>Lo importante hoy</h2>
-              <Link href="/mi-portal/notificaciones">Ver todo</Link>
-            </div>
-            <div className="c360-ref-important-grid">
-              <ImportantCard
-                icon={Receipt}
-                label="Boletas pendientes"
-                value={`${data.stats.boletasPendientes}`}
-                description={
-                  data.stats.boletasPendientes > 0
-                    ? `Tienes ${data.stats.boletasPendientes} ${data.stats.boletasPendientes === 1 ? 'boleta pendiente' : 'boletas pendientes'} de firma.`
-                    : 'No tienes boletas por firmar.'
-                }
-                href="/mi-portal/boletas"
-                tone="emerald"
-              />
-              <ImportantCard
-                icon={ClipboardList}
-                label="Solicitudes en trámite"
-                value={`${data.stats.solicitudesPendientes}`}
-                description={
-                  data.stats.solicitudesPendientes > 0
-                    ? `Tienes ${data.stats.solicitudesPendientes} solicitudes en proceso.`
-                    : 'No tienes solicitudes activas.'
-                }
-                href="/mi-portal/solicitudes"
-                tone="blue"
-              />
-            </div>
-          </section>
+      {data.pulse ? (
+        <PulseHomeModule pulse={data.pulse} href={pulseHref} />
+      ) : null}
 
-          <section className="c360-ref-section">
+      <section className="c360-ref-main-grid">
+        <div className="c360-ref-left-column space-y-6">
+          <TodayCommand
+            actions={portalPendingActions}
+            notificationsHref={withPortalHref('/mi-portal/notificaciones')}
+          />
+
+          <section className="c360-ref-section c360-ref-metrics-section">
             <h2>Tus métricas personales</h2>
             <div className="c360-ref-metric-grid">
               <MetricTile
@@ -424,14 +439,14 @@ export default function MiPortalHomePage() {
             </div>
           </section>
 
-          <section id="pendientes" className="c360-ref-section scroll-mt-24">
+          <section id="pendientes" className="c360-ref-section c360-ref-movements-section scroll-mt-24">
             <div className="c360-ref-section-head">
               <h2>Últimos movimientos</h2>
-              <Link href="/mi-portal/notificaciones">Ver todos</Link>
+              <Link href={withPortalHref('/mi-portal/notificaciones')}>Ver todos</Link>
             </div>
-            {pendingActions.length > 0 ? (
+            {portalPendingActions.length > 0 ? (
               <div className="c360-ref-movement-list">
-                {pendingActions.slice(0, 4).map((action) => (
+                {portalPendingActions.slice(0, 4).map((action) => (
                   <MovementRow key={action.id} action={action} />
                 ))}
               </div>
@@ -441,8 +456,8 @@ export default function MiPortalHomePage() {
           </section>
         </div>
 
-        <aside className="space-y-6">
-          <section id="credencial" className="c360-ref-section scroll-mt-24">
+        <aside className="c360-ref-side-column space-y-6">
+          <section id="credencial" className="c360-ref-section c360-ref-credential-section scroll-mt-24">
             <h2>Mi credencial digital</h2>
             <ReferenceCredential
               name={fullName}
@@ -454,7 +469,7 @@ export default function MiPortalHomePage() {
             />
           </section>
 
-          <section className="c360-ref-section">
+          <section className="c360-ref-section c360-ref-status-section">
             <h2>Tu estado laboral</h2>
             <div className="c360-ref-status-grid">
               <StatusCard
@@ -490,36 +505,36 @@ export default function MiPortalHomePage() {
         </aside>
       </section>
 
-      <EnableNotifications variant="inline" />
+      {isWorkerPreview ? null : <EnableNotifications variant="inline" context="worker" />}
 
       <section className="c360-ref-section">
         <div className="c360-ref-section-head">
           <h2>Resumen adicional</h2>
-          <Link href="/mi-portal/perfil">Ver perfil</Link>
+          <Link href={withPortalHref('/mi-portal/perfil')}>Ver perfil</Link>
         </div>
         <div className="c360-ref-extra-grid">
           <InfoTile
             icon={Wallet}
             label="Última boleta"
-            value={ultimaBoleta ? `S/ ${fmtSoles(ultimaBoleta.netoPagar)}` : '—'}
+            value={ultimaBoleta ? formatSoles(ultimaBoleta.netoPagar) : '—'}
             description={ultimaBoleta ? formatPeriodo(ultimaBoleta.periodo) : 'Sin emisiones'}
-            href="/mi-portal/boletas"
+            href={withPortalHref('/mi-portal/boletas')}
             tone="blue"
           />
           <InfoTile
             icon={PiggyBank}
             label="CTS proyectada"
-            value={ctsProjection ? `S/ ${fmtSoles(ctsProjection.ctsTotal)}` : 'No aplica'}
+            value={ctsProjection ? formatSoles(ctsProjection.ctsTotal) : 'No aplica'}
             description={ctsProjection ? `Corte ${formatShortDate(ctsProjection.nextCut)}` : formatRegimen(worker.regimenLaboral)}
-            href="/mi-portal/perfil"
+            href={withPortalHref('/mi-portal/perfil')}
             tone="amber"
           />
           <InfoTile
             icon={Calendar}
             label="Asistencia"
             value={`${asistenciaMes.diasMarcados}/${asistenciaMes.diasLaborales}`}
-            description={`${asistenciaMes.tardanzas} tardanzas · ${asistenciaMes.horasTrabajadas}h`}
-            href="/mi-portal/asistencia"
+            description={`Mes en curso · ${asistenciaMes.horasTrabajadas}h registradas`}
+            href={withPortalHref('/mi-portal/asistencia')}
             tone="emerald"
           />
         </div>
@@ -529,11 +544,11 @@ export default function MiPortalHomePage() {
         <section className="c360-ref-section">
           <div className="c360-ref-section-head">
             <h2>Capacitaciones próximas</h2>
-            <Link href="/mi-portal/capacitaciones">Ver todas</Link>
+            <Link href={withPortalHref('/mi-portal/capacitaciones')}>Ver todas</Link>
           </div>
           <div className="c360-ref-movement-list">
             {proximasCapacitaciones.slice(0, 3).map((course) => (
-              <Link key={course.id} href="/mi-portal/capacitaciones" className="c360-ref-movement-row c360-tone-blue">
+              <Link key={course.id} href={withPortalHref('/mi-portal/capacitaciones')} className="c360-ref-movement-row c360-tone-blue">
                 <span className="c360-ref-movement-icon">
                   <GraduationCap className="h-5 w-5" />
                 </span>
@@ -562,6 +577,67 @@ export default function MiPortalHomePage() {
         />
       ) : null}
     </div>
+  )
+}
+
+function PulseHomeModule({
+  pulse,
+  href,
+}: {
+  pulse: NonNullable<PortalSummary['pulse']>
+  href: string
+}) {
+  return (
+    <section className="c360-pulse-home-module" aria-label="Pulse Laboral">
+      <div className="c360-pulse-home-copy">
+        <span className="c360-pulse-eyebrow">
+          <Sparkles className="h-4 w-4" />
+          Pulse Laboral
+        </span>
+        <h2>Tu ritmo, tus logros y el avance del equipo</h2>
+        <p>
+          Revisa qué toca hoy, celebra progreso real y reconoce a compañeros por su aporte diario.
+        </p>
+        <Link href={href} className="c360-pulse-home-action">
+          Abrir Pulse
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <div className="c360-pulse-home-stats">
+        <div className="c360-pulse-home-score">
+          <span>{pulse.score}</span>
+          <small>{pulse.levelName}</small>
+        </div>
+        <div className="c360-pulse-home-microgrid">
+          <span>
+            <Flame className="h-4 w-4" />
+            {pulse.streakDays} días de racha
+          </span>
+          <span>
+            <Trophy className="h-4 w-4" />
+            {pulse.percentileLabel}
+          </span>
+          <span>
+            <Users className="h-4 w-4" />
+            Equipo al {pulse.teamProgress}%
+          </span>
+          <span>
+            <CheckCircle2 className="h-4 w-4" />
+            {pulse.nextActionLabel}
+          </span>
+        </div>
+      </div>
+
+      <div className="c360-pulse-home-feed">
+        {pulse.feedPreview.slice(0, 2).map((item) => (
+          <span key={item}>
+            <BadgeCheck className="h-4 w-4" />
+            {item}
+          </span>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -594,33 +670,116 @@ function QuickCard({
   )
 }
 
-function ImportantCard({
-  icon: Icon,
-  label,
-  value,
-  description,
-  href,
-  tone,
+function TodayCommand({
+  actions,
+  notificationsHref,
 }: {
-  icon: LucideIcon
-  label: string
-  value: string
-  description: string
-  href: string
-  tone: Tone
+  actions: PendingAction[]
+  notificationsHref: string
 }) {
+  const firstAction = actions[0] ?? null
+  const importantCount = actions.filter((action) => action.severity === 'high' || action.severity === 'medium').length
+  const estimatedMinutes = actions.length === 0 ? 0 : Math.min(8, Math.max(2, actions.length * 2))
+  const headline = actions.length === 0 ? 'Todo al día' : `${actions.length} ${actions.length === 1 ? 'pendiente' : 'pendientes'}`
+  const focusLabel =
+    actions.length === 0
+      ? 'Sin pendientes'
+      : importantCount > 0
+        ? `${importantCount} ${importantCount === 1 ? 'prioritario' : 'prioritarios'}`
+        : 'Sin urgencias'
+
   return (
-    <Link href={href} className={`c360-ref-important-card c360-tone-${tone}`}>
-      <span className="c360-ref-important-icon">
-        <Icon className="h-8 w-8" />
-      </span>
-      <span className="min-w-0">
-        <small>{label}</small>
-        <strong>{value}</strong>
-        <p>{description}</p>
-        <em>Ver detalle <ArrowRight className="h-3.5 w-3.5" /></em>
-      </span>
-    </Link>
+    <section className="c360-ref-section c360-today-command-section">
+      <div className="c360-ref-section-head c360-today-command-head">
+        <span>
+          <small>Plan diario</small>
+          <h2>Tu día en 2 minutos</h2>
+        </span>
+        <Link href={notificationsHref}>Ver todo</Link>
+      </div>
+
+      <div className="c360-today-command">
+        <div className="c360-today-command-summary">
+          <span className="c360-today-command-orb">
+            {actions.length === 0 ? <CheckCircle2 className="h-7 w-7" /> : <ListChecks className="h-7 w-7" />}
+          </span>
+          <div>
+            <strong>{headline}</strong>
+            <p>
+              {actions.length === 0
+                ? 'Tu portal no tiene acciones pendientes ahora mismo.'
+                : `Ordenamos tus acciones para que empieces por lo más útil.`}
+            </p>
+          </div>
+        </div>
+
+        <div className="c360-today-command-metrics" aria-label="Resumen del día">
+          <span>
+            <strong>{focusLabel}</strong>
+            <small>prioridad</small>
+          </span>
+          <span>
+            <strong>{estimatedMinutes || 'OK'}</strong>
+            <small>{estimatedMinutes ? 'min estimados' : 'sin tareas'}</small>
+          </span>
+          <span>
+            <strong>{actions.length > 0 ? '1 paso' : 'Listo'}</strong>
+            <small>siguiente</small>
+          </span>
+        </div>
+
+        {firstAction ? (
+          <Link href={firstAction.href} className="c360-today-command-primary">
+            <span>
+              <small>Empieza por</small>
+              <strong>{firstAction.title}</strong>
+            </span>
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+        ) : (
+          <Link href="#credencial" className="c360-today-command-primary is-calm">
+            <span>
+              <small>Siguiente recomendado</small>
+              <strong>Ten tu credencial lista</strong>
+            </span>
+            <IdCard className="h-5 w-5" />
+          </Link>
+        )}
+
+        <div className="c360-today-command-list">
+          {(actions.length > 0 ? actions.slice(0, 3) : [
+            {
+              id: 'done-portal',
+              icon: ShieldCheck,
+              title: 'Portal al día',
+              description: 'Sin acciones laborales pendientes.',
+              href: '#credencial',
+            },
+            {
+              id: 'done-credential',
+              icon: IdCard,
+              title: 'Credencial activa',
+              description: 'Lista para mostrar cuando la necesites.',
+              href: '#credencial',
+            },
+          ]).map((action, index) => {
+            const Icon = action.icon
+            return (
+              <Link key={action.id} href={action.href} className="c360-today-command-item">
+                <span className="c360-today-command-step">{index + 1}</span>
+                <span className="c360-today-command-item-icon">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <strong>{action.title}</strong>
+                  <small>{action.description}</small>
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -753,9 +912,146 @@ function ReferenceCredential({
   organization: string
   initial: string
 }) {
+  const [modalOpen, setModalOpen] = useState(false)
+  const [feedback, setFeedback] = useState<'idle' | 'copied' | 'shared'>('idle')
+  const safePosition = position ?? 'Trabajador'
+  const maskedDni = dni.length > 4 ? `••••${dni.slice(-4)}` : dni
+  const verificationText = `Credencial interna Comply360: ${name} · ${safePosition} · ${organization} · Código ${code}`
+
+  async function copyText(text: string, nextFeedback: 'copied' | 'shared') {
+    try {
+      await navigator.clipboard.writeText(text)
+      setFeedback(nextFeedback)
+    } catch {
+      setFeedback('copied')
+    }
+  }
+
+  async function copyCode() {
+    await copyText(code, 'copied')
+  }
+
+  async function shareCredential() {
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await navigator.share({
+          title: 'Credencial interna Comply360',
+          text: verificationText,
+        })
+        setFeedback('shared')
+        return
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+      }
+    }
+
+    await copyText(verificationText, 'shared')
+  }
+
   return (
-    <div className="c360-ref-credential">
+    <>
+      <CredentialCard
+        name={name}
+        position={safePosition}
+        dni={dni}
+        code={code}
+        organization={organization}
+        initial={initial}
+      />
+      <div className="c360-credential-actions" aria-label="Acciones de credencial">
+        <button type="button" onClick={() => setModalOpen(true)}>
+          <IdCard className="h-4 w-4" />
+          Mostrar credencial
+        </button>
+        <button type="button" onClick={copyCode}>
+          <Copy className="h-4 w-4" />
+          {feedback === 'copied' ? 'Código copiado' : 'Copiar código'}
+        </button>
+        <button type="button" onClick={shareCredential}>
+          <Share2 className="h-4 w-4" />
+          {feedback === 'shared' ? 'Verificación lista' : 'Compartir verificación'}
+        </button>
+      </div>
+      {feedback !== 'idle' ? (
+        <p className="c360-credential-feedback" role="status">
+          {feedback === 'shared'
+            ? 'Texto seguro de verificación listo. No incluye tu DNI completo.'
+            : 'Código interno copiado al portapapeles.'}
+        </p>
+      ) : null}
+
+      {modalOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="c360-credential-modal" role="dialog" aria-modal="true" aria-label="Credencial digital ampliada">
+              <button
+                type="button"
+                className="c360-credential-modal-backdrop"
+                aria-label="Cerrar credencial"
+                onClick={() => setModalOpen(false)}
+              />
+              <div className="c360-credential-modal-panel">
+                <div className="c360-credential-modal-head">
+                  <span>
+                    <small>Credencial interna</small>
+                    <strong>{code}</strong>
+                  </span>
+                  <button type="button" onClick={() => setModalOpen(false)} aria-label="Cerrar">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <CredentialCard
+                  name={name}
+                  position={safePosition}
+                  dni={maskedDni}
+                  code={code}
+                  organization={organization}
+                  initial={initial}
+                  large
+                />
+                <div className="c360-credential-modal-actions">
+                  <button type="button" onClick={copyCode}>
+                    <Copy className="h-4 w-4" />
+                    Copiar código
+                  </button>
+                  <button type="button" onClick={shareCredential}>
+                    <Share2 className="h-4 w-4" />
+                    Compartir verificación
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  )
+}
+
+function CredentialCard({
+  name,
+  position,
+  dni,
+  code,
+  organization,
+  initial,
+  large = false,
+}: {
+  name: string
+  position: string
+  dni: string
+  code: string
+  organization: string
+  initial: string
+  large?: boolean
+}) {
+  return (
+    <div className={`c360-ref-credential ${large ? 'is-large' : ''}`}>
+      <div className="c360-ref-credential-holo" aria-hidden="true" />
       <div className="c360-ref-credential-lines" aria-hidden="true" />
+      <div className="c360-ref-credential-chip" aria-hidden="true">
+        <span />
+        <span />
+      </div>
       <div className="c360-ref-credential-avatar">{initial}</div>
       <div className="c360-ref-credential-body">
         <span className="c360-ref-verified">
@@ -763,7 +1059,7 @@ function ReferenceCredential({
           Verificada
         </span>
         <h3>{name}</h3>
-        <p>{position ?? 'Trabajador'}</p>
+        <p>{position}</p>
         <div className="c360-ref-credential-data">
           <span>
             <small>DNI</small>
@@ -781,7 +1077,7 @@ function ReferenceCredential({
       <div className="c360-ref-credential-footer">
         <ShieldCheck className="h-5 w-5" />
         <span>Verificado por</span>
-        <strong>{organization}</strong>
+          <strong>{organization}</strong>
       </div>
     </div>
   )
@@ -823,76 +1119,15 @@ function FingerprintDocGraphic() {
 function WorkerHeroIllustration() {
   return (
     <div className="c360-worker-illustration" aria-hidden="true">
-      <svg viewBox="0 0 520 330" role="img">
-        <defs>
-          <linearGradient id="c360Sky" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="#eafffb" />
-            <stop offset="100%" stopColor="#d9efff" />
-          </linearGradient>
-          <linearGradient id="c360Hoodie" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="#12c4aa" />
-            <stop offset="100%" stopColor="#058176" />
-          </linearGradient>
-          <linearGradient id="c360Bag" x1="0" x2="1">
-            <stop offset="0%" stopColor="#0f3b6d" />
-            <stop offset="100%" stopColor="#155e75" />
-          </linearGradient>
-        </defs>
-        <rect width="520" height="330" rx="34" fill="url(#c360Sky)" />
-        <g className="c360-clouds" fill="#ffffff" opacity="0.9">
-          <path d="M95 73c11-24 48-22 55 4 18-6 36 7 39 24H61c3-15 17-27 34-28Z" />
-          <path d="M353 89c10-18 38-18 48 1 15-3 29 7 33 22H323c3-13 15-22 30-23Z" />
-          <circle cx="444" cy="70" r="23" fill="#f8d56e" opacity="0.9" />
-        </g>
-        <g className="c360-city" fill="#8bd2ee" opacity="0.72">
-          <rect x="56" y="180" width="36" height="86" rx="4" />
-          <rect x="103" y="150" width="44" height="116" rx="4" />
-          <rect x="163" y="122" width="58" height="144" rx="4" />
-          <rect x="233" y="160" width="44" height="106" rx="4" />
-          <rect x="287" y="135" width="52" height="131" rx="4" />
-          <rect x="358" y="178" width="38" height="88" rx="4" />
-          <rect x="407" y="145" width="48" height="121" rx="4" />
-          {Array.from({ length: 28 }).map((_, i) => (
-            <rect
-              key={i}
-              x={68 + (i % 7) * 55}
-              y={170 + Math.floor(i / 7) * 28}
-              width="10"
-              height="16"
-              rx="2"
-              fill="#dff8ff"
-              opacity="0.9"
-            />
-          ))}
-        </g>
-        <g className="c360-trees">
-          <path d="M31 281c26-60 73-58 102 0Z" fill="#6ed2b5" />
-          <path d="M392 281c26-64 78-66 107 0Z" fill="#65c5ad" />
-          <path d="M0 288h520v42H0Z" fill="#bdebdc" />
-          <path d="M459 167c15 41 20 82 10 126" stroke="#159979" strokeWidth="7" strokeLinecap="round" />
-          <path d="M469 207c22-14 37-33 41-56" stroke="#20a980" strokeWidth="8" strokeLinecap="round" />
-          <path d="M466 230c19-4 35-14 48-31" stroke="#20a980" strokeWidth="8" strokeLinecap="round" />
-        </g>
-        <g className="c360-worker-person">
-          <path d="M329 142c-43 9-70 50-64 100l10 82h120l14-86c9-55-26-106-80-96Z" fill="url(#c360Hoodie)" />
-          <path d="M282 166c-36 24-55 61-62 112" fill="none" stroke="#087b74" strokeWidth="28" strokeLinecap="round" />
-          <path d="M390 168c40 30 49 77 34 123" fill="none" stroke="#087b74" strokeWidth="30" strokeLinecap="round" />
-          <path d="M292 144c9-31 56-39 77-15 11 13 13 34 2 51-15 22-51 25-70 7-12-11-15-27-9-43Z" fill="#f0aa79" />
-          <path d="M286 136c9-36 62-51 91-22 8 8 11 18 10 29-26-5-44-15-55-32-10 24-25 36-46 37Z" fill="#072b48" />
-          <path d="M317 153c9 9 24 8 32-2" fill="none" stroke="#7f3f2d" strokeWidth="4" strokeLinecap="round" />
-          <circle cx="317" cy="137" r="3" fill="#09263d" />
-          <circle cx="355" cy="137" r="3" fill="#09263d" />
-          <path d="M337 139c1 11-2 18-10 20" fill="none" stroke="#c56f4f" strokeWidth="3" strokeLinecap="round" />
-          <path d="M285 167c15 30 55 34 80 3" fill="none" stroke="#d8fff4" strokeWidth="8" strokeLinecap="round" opacity="0.7" />
-          <path d="M252 178c-19 37-15 91 8 139" fill="none" stroke="url(#c360Bag)" strokeWidth="13" strokeLinecap="round" />
-          <rect className="c360-phone" x="235" y="168" width="42" height="70" rx="9" fill="#0d345d" transform="rotate(-12 256 203)" />
-          <rect className="c360-phone" x="244" y="180" width="24" height="38" rx="4" fill="#a7f3d0" opacity="0.75" transform="rotate(-12 256 203)" />
-          <path className="c360-phone-hand" d="M275 219c-10-5-25-2-30 8-6 12 5 27 21 22 14-4 23-20 9-30Z" fill="#f0aa79" />
-          <path d="M318 324h-54l-7-58h67Z" fill="#12264c" />
-          <path d="M388 324h-55l12-58h63Z" fill="#16365f" />
-        </g>
-        <path className="c360-bird" d="M448 123c11-12 25-12 36 0 8-9 18-11 30-5" fill="none" stroke="#67b8d3" strokeWidth="5" strokeLinecap="round" />
-      </svg>
+      <Image
+        src="/worker-portal/worker-hero-ronald-reference.png"
+        alt=""
+        fill
+        className="c360-worker-hero-asset"
+        draggable={false}
+        priority
+        sizes="(max-width: 760px) 342px, 500px"
+      />
     </div>
   )
 }

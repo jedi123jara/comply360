@@ -289,15 +289,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     key: "compliance",
     label: "Compliance",
     items: [
-      { label: "SUNAFIL-Ready · 28 docs", href: "/dashboard/sunafil-ready", icon: "CheckSquare" },
       { label: "Tareas de compliance", href: "/dashboard/tareas", icon: "ListChecks" },
+      { label: "Centro SUNAFIL", href: "/dashboard/centro-sunafil", icon: "ShieldCheck" },
       { label: "Casilla SUNAFIL", href: "/dashboard/casilla-sunafil", icon: "Inbox" },
-      { label: "Radar SUNAFIL", href: "/dashboard/radar", icon: "Radar" },
-      { label: "Diagnostico", href: "/dashboard/diagnostico", icon: "ShieldCheck" },
-      { label: "Riesgo SUNAFIL", href: "/dashboard/riesgo-sunafil", icon: "ShieldAlert" },
       { label: "Analizar Contrato", href: "/dashboard/analizar-contrato", icon: "FileSearch" },
-      { label: "Simulacro", href: "/dashboard/simulacro", icon: "ShieldAlert" },
-      { label: "Modo Inspeccion", href: "/dashboard/inspeccion-en-vivo", icon: "Siren" },
       { label: "SST", href: "/dashboard/sst", icon: "HardHat" },
       { label: "Sedes SST", href: "/dashboard/sst/sedes", icon: "Building2" },
       { label: "Accidentes SAT", href: "/dashboard/sst/accidentes", icon: "Activity" },
@@ -431,16 +426,12 @@ export const NAV_HUBS: readonly NavHub[] = [
     key: "riesgo",
     label: "Riesgo Laboral",
     icon: "ShieldAlert",
-    rootHref: "/dashboard/alertas",
-    description: "Compliance, diagnóstico, simulacro y denuncias",
+    rootHref: "/dashboard/centro-sunafil",
+    description: "Centro SUNAFIL, alertas, denuncias y riesgo laboral",
     items: [
       { label: "Alertas", href: "/dashboard/alertas", icon: "Bell" },
       { label: "Tareas de compliance", href: "/dashboard/tareas", icon: "ListChecks" },
-      { label: "Diagnóstico SUNAFIL", href: "/dashboard/diagnostico", icon: "ShieldCheck" },
-      { label: "Simulacro", href: "/dashboard/simulacro", icon: "ShieldAlert" },
-      { label: "Radar", href: "/dashboard/radar", icon: "Radar" },
-      { label: "Riesgo SUNAFIL", href: "/dashboard/riesgo-sunafil", icon: "ShieldAlert" },
-      { label: "Modo inspección", href: "/dashboard/inspeccion-en-vivo", icon: "Siren" },
+      { label: "Centro SUNAFIL", href: "/dashboard/centro-sunafil", icon: "ShieldCheck" },
       { label: "Casilla SUNAFIL", href: "/dashboard/casilla-sunafil", icon: "Inbox" },
       { label: "Denuncias", href: "/dashboard/denuncias", icon: "ShieldAlert" },
       { label: "Relaciones colectivas", href: "/dashboard/relaciones-colectivas", icon: "Scale" },
@@ -523,6 +514,14 @@ export const NAV_HUBS: readonly NavHub[] = [
   },
 ] as const;
 
+const LEGACY_RIESGO_ROUTE_PREFIXES = [
+  "/dashboard/diagnostico",
+  "/dashboard/simulacro",
+  "/dashboard/radar",
+  "/dashboard/riesgo-sunafil",
+  "/dashboard/inspeccion-en-vivo",
+] as const;
+
 /**
  * Dado un pathname del dashboard, devuelve el hub al que pertenece.
  * Usado por la sidebar para marcar el hub activo y por el topbar para breadcrumbs.
@@ -530,6 +529,12 @@ export const NAV_HUBS: readonly NavHub[] = [
 export function resolveActiveHub(pathname: string): NavHub {
   // Exact dashboard root → cockpit
   if (pathname === "/dashboard") return NAV_HUBS[0];
+
+  const riesgoHub = NAV_HUBS.find((hub) => hub.key === "riesgo") ?? NAV_HUBS[0];
+  if (LEGACY_RIESGO_ROUTE_PREFIXES.some((href) => pathname === href || pathname.startsWith(`${href}/`))) {
+    return riesgoHub;
+  }
+
   // Find best match by longest rootHref prefix or item prefix
   let best: NavHub = NAV_HUBS[0];
   let bestLen = 0;

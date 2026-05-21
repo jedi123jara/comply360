@@ -11,6 +11,7 @@
  */
 
 import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export interface ContractObservation {
   /** Tipo de observación */
@@ -55,7 +56,7 @@ export function validateContractData(data: WorkerDataForValidation): ContractObs
         obs.push({
           type: 'error',
           field: 'sueldoBruto',
-          message: `Sueldo S/${data.sueldoBruto} está por debajo de la RMV proporcional (S/${rmvProporcional} para ${horas}h/semana)`,
+          message: `Sueldo ${formatSoles(data.sueldoBruto)} está por debajo de la RMV proporcional (${formatSoles(rmvProporcional)} para ${horas}h/semana)`,
           baseLegal: 'D.S. 003-97-TR Art. 12',
         })
       }
@@ -64,7 +65,7 @@ export function validateContractData(data: WorkerDataForValidation): ContractObs
         obs.push({
           type: 'error',
           field: 'sueldoBruto',
-          message: `Sueldo S/${data.sueldoBruto} está por debajo de la RMV vigente (S/${RMV})`,
+          message: `Sueldo ${formatSoles(data.sueldoBruto)} está por debajo de la RMV vigente (${formatSoles(RMV)})`,
           baseLegal: 'Constitución Art. 24 / D.S. 003-97-TR',
         })
       }
@@ -162,7 +163,7 @@ export function validateContractData(data: WorkerDataForValidation): ContractObs
     obs.push({
       type: 'info',
       field: 'sueldoBruto',
-      message: `Subvención de S/${data.sueldoBruto} supera la RMV. Verificar que sea modalidad formativa y no relación laboral encubierta`,
+      message: `Subvención de ${formatSoles(data.sueldoBruto)} supera la RMV. Verificar que sea modalidad formativa y no relación laboral encubierta`,
       baseLegal: 'Ley 28518 Art. 47',
     })
   }

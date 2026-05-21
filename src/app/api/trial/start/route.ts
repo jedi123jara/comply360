@@ -119,7 +119,7 @@ export const POST = withRole('OWNER', async (_req, ctx: AuthContext) => {
   } catch (err) {
     console.error('[trial/start] failed', err)
     return NextResponse.json(
-      { error: 'No se pudo activar el trial. Intentá de nuevo o contactanos.' },
+      { error: 'No se pudo activar el trial. Intenta de nuevo o contáctanos.' },
       { status: 500 },
     )
   }

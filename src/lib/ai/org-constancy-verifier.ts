@@ -491,7 +491,7 @@ REGLAS:
 - decision="mismatch" si el RUC/datos no coinciden con la org.
 - decision="wrong-type" si el documento no es del tipo esperado.
 - decision="unreadable" si la imagen es ilegible.
-- NUNCA inventes datos. Si no podés leer un campo, usa null.
+- NUNCA inventes datos. Si no puedes leer un campo, usa null.
 - NO devuelvas markdown ni texto fuera del JSON.`
 }
 

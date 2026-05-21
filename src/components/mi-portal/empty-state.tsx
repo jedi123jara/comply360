@@ -19,15 +19,15 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center">
+    <div className="c360-worker-empty-state rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center">
       {icon && (
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm text-slate-400">
+        <div className="c360-worker-empty-icon mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
           {icon}
         </div>
       )}
-      <h3 className="text-base font-semibold text-slate-800">{title}</h3>
+      <h3 className="text-base font-black text-slate-900">{title}</h3>
       {description && (
-        <p className="mt-1.5 text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
+        <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-relaxed text-slate-600">
           {description}
         </p>
       )}

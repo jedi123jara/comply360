@@ -55,6 +55,7 @@ import type {
 import { WelcomeTour } from '@/components/dashboard/welcome-tour'
 import { HeroPanel } from '@/components/comply360/hero-panel'
 import type { CockpitFullPayload, ScoreSnapshot } from '@/lib/cockpit/data'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * Cockpit v2 — "Obsidian + Esmeralda".
@@ -352,7 +353,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
               </h2>
               <p className="text-sm text-rose-100/86 mt-2 max-w-2xl">
                 Tienes <strong>{subdeclarationGap} {subdeclarationGap === 1 ? 'trabajador' : 'trabajadores'} fuera de planilla</strong>.
-                SUNAFIL multa la subdeclaración con hasta <strong>S/ {(5500 * 9.55 * subdeclarationGap).toLocaleString('es-PE')}</strong>{' '}
+                SUNAFIL multa la subdeclaración con hasta <strong>{formatSoles(5500 * 9.55 * subdeclarationGap)}</strong>{' '}
                 (Art. 24.5 D.S. 019-2006-TR, infracción muy grave).
               </p>
               <div className="flex flex-wrap gap-2 mt-4">
@@ -426,7 +427,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
           title={topRisk}
           description={
             multaPotencial > 0
-              ? `Multa estimada ${formatPEN(multaPotencial)} si hay inspección.`
+              ? `Multa estimada ${formatSoles(multaPotencial)} si hay inspección.`
               : `${criticalAlerts} alertas críticas activas. Prioridad de resolución.`
           }
           icon={AlertTriangle}
@@ -510,14 +511,6 @@ function buildClosedTitle(recentContracts: Array<{ status: string }>): string {
   const closed = recentContracts.filter((c) => c.status === 'SIGNED').length
   if (closed > 0) return `${closed} contratos firmados`
   return 'Todo al día esta semana'
-}
-
-function formatPEN(n: number): string {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN',
-    maximumFractionDigits: 0,
-  }).format(n)
 }
 
 function PlaceholderRadar({ totalWorkers }: { totalWorkers: number }) {

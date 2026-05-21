@@ -234,7 +234,7 @@ export async function runOnboardingCascade(
               workerId: worker.id,
               type: 'ACTUALIZAR_DATOS',
               status: 'PENDIENTE',
-              title: `Subí tu ${DOC_TYPE_LABELS[docType]}`,
+              title: `Sube tu ${DOC_TYPE_LABELS[docType]}`,
               description: formatRequestDescription(docType, DOC_TYPE_LABELS[docType]),
             },
           })

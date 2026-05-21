@@ -89,7 +89,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'contrato_trabajo',
     hasExpiration: true, // plazo fijo vence
     generatorSlug: 'contrato-trabajo',
-    actionHint: 'Genera contratos desde el perfil del trabajador o subilos en su legajo.',
+    actionHint: 'Genera contratos desde el perfil del trabajador o súbelos en su legajo.',
   },
   {
     id: 't-registro',
@@ -104,7 +104,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     scope: 'worker',
     workerDocType: 't_registro',
     hasExpiration: false,
-    actionHint: 'Subí la constancia de T-REGISTRO desde el legajo del trabajador.',
+    actionHint: 'Sube la constancia de T-REGISTRO desde el legajo del trabajador.',
   },
   {
     id: 'dni-copia',
@@ -118,7 +118,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     scope: 'worker',
     workerDocType: 'dni_copia',
     hasExpiration: false,
-    actionHint: 'Subí escaneo del DNI al crear el trabajador.',
+    actionHint: 'Sube el escaneo del DNI al crear el trabajador.',
   },
 
   /* ── II. BOLETAS Y REMUNERACIONES ──────────────────────────────────── */
@@ -200,7 +200,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     scope: 'worker',
     workerDocType: 'essalud_registro',
     hasExpiration: false,
-    actionHint: 'Subí la constancia de pago EsSalud al legajo del trabajador.',
+    actionHint: 'Sube la constancia de pago EsSalud al legajo del trabajador.',
   },
 
   /* ── IV. JORNADA Y ASISTENCIA ──────────────────────────────────────── */
@@ -353,7 +353,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     workerDocType: 'examen_medico_ingreso',
     hasExpiration: true,
     expirationMonths: 24,
-    actionHint: 'Subí exámenes médicos por trabajador al legajo (ingreso + periódicos).',
+    actionHint: 'Sube exámenes médicos por trabajador al legajo (ingreso + periódicos).',
   },
   {
     id: 'entrega-epp',
@@ -469,7 +469,7 @@ export const SUNAFIL_READY_DOCS: SunafilDocSpec[] = [
     orgDocType: 'OTRO',
     hasExpiration: true,
     expirationMonths: 12,
-    actionHint: 'Subí la póliza anual de Vida Ley vigente.',
+    actionHint: 'Sube la póliza anual de Vida Ley vigente.',
   },
   {
     id: 'sctr-poliza',

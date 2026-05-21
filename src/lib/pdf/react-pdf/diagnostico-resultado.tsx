@@ -90,7 +90,7 @@ export function DiagnosticoResultadoPDF({ data }: { data: DiagnosticoResultadoDa
 
   const kpis: Kpi[] = [
     { label: 'Score global', value: `${scoreGlobal}/100`, tone: scoreGlobal >= 80 ? 'good' : scoreGlobal >= 60 ? 'warn' : 'bad' },
-    { label: 'Multa de riesgo', value: `S/ ${formatMoney(multaRiesgoTotal)}`, tone: multaRiesgoTotal > 10000 ? 'bad' : 'warn', sub: 'sin subsanar' },
+    { label: 'Multa de riesgo', value: formatMoney(multaRiesgoTotal), tone: multaRiesgoTotal > 10000 ? 'bad' : 'warn', sub: 'sin subsanar' },
     { label: 'Preguntas evaluadas', value: String(data.preguntasRespondidas) },
     { label: 'Áreas con brechas', value: String(scorePorArea.filter((a) => a.score < 80).length), tone: 'warn' },
   ]
@@ -124,10 +124,10 @@ export function DiagnosticoResultadoPDF({ data }: { data: DiagnosticoResultadoDa
         <Text style={styles.sectionTitle}>EXPOSICIÓN ECONÓMICA ESTIMADA</Text>
         <Text style={local.intro}>
           Multa potencial calculada a partir de las brechas detectadas, aplicando
-          el cuadro de infracciones del D.S. 019-2006-TR con UIT 2026 (S/ 5,500).
+          el cuadro de infracciones del D.S. 019-2006-TR con UIT 2026 (5,500 nuevos soles).
         </Text>
         <View style={local.multaSummary}>
-          <Text style={local.multaAmount}>S/ {formatMoney(multaRiesgoTotal)}</Text>
+          <Text style={local.multaAmount}>{formatMoney(multaRiesgoTotal)}</Text>
           <Text style={local.multaSub}>
             Subsanación voluntaria antes de inspección reduce la multa hasta 90%
             (Art. 40 Ley 28806). Durante inspección la reducción puede llegar al 70%.
@@ -156,7 +156,7 @@ export function DiagnosticoResultadoPDF({ data }: { data: DiagnosticoResultadoDa
             a.area,
             `${a.score}/100`,
             String(a.pendientes),
-            `S/ ${formatMoney(a.multa)}`,
+            formatMoney(a.multa),
           ])}
         />
 
@@ -178,7 +178,7 @@ export function DiagnosticoResultadoPDF({ data }: { data: DiagnosticoResultadoDa
                 r.base,
                 r.accion,
                 r.plazo,
-                `S/ ${formatMoney(r.multa)}`,
+                formatMoney(r.multa),
               ])}
             />
           </>

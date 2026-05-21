@@ -107,7 +107,7 @@ export default function CalculadorasIndex() {
             Esto es solo el 5% de Comply360
           </h2>
           <p className="text-slate-300 text-base sm:text-lg mb-6">
-            Registrate gratis y desbloqueá:
+            Regístrate gratis y desbloquea:
           </p>
           <ul className="space-y-2 mb-8">
             {[

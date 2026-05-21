@@ -201,7 +201,7 @@ describe('runOnboardingCascade', () => {
     // An existing active request for declaracion_jurada
     mockWorkerRequestFindMany.mockResolvedValue([
       {
-        description: 'Por favor subi declaracion jurada de domicilio a tu portal en Comply360. [doc:declaracion_jurada]',
+        description: 'Por favor sube declaracion jurada de domicilio a tu portal en Comply360. [doc:declaracion_jurada]',
       },
     ])
 

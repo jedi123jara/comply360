@@ -8,7 +8,7 @@ import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
 import { emit } from '@/lib/events'
-import { validateUpload, UPLOAD_PROFILES } from '@/lib/uploads/validation'
+import { validateUploadWithMagicBytes, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 
 // =============================================
 // GET /api/workers/[id]/documents - List worker documents
@@ -159,7 +159,7 @@ export const POST = withPlanGateParams<{ id: string }>('workers',
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'Se requiere un archivo' }, { status: 400 })
     }
-    const validation = validateUpload(file, UPLOAD_PROFILES.workerDocument)
+    const validation = await validateUploadWithMagicBytes(file, UPLOAD_PROFILES.workerDocument)
     if (!validation.ok) {
       return NextResponse.json({ error: validation.error, code: validation.code }, { status: 400 })
     }

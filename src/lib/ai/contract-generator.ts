@@ -6,12 +6,13 @@
  *
  * Casos de uso:
  *  - "Necesito un contrato part-time de 4 horas para vendedor con comisiones"
- *  - "Locacion de servicios para diseñador grafico, S/3500/mes, 6 meses"
+ *  - "Locacion de servicios para diseñador grafico, 3,500.00 nuevos soles/mes, 6 meses"
  *  - "Contrato MYPE con periodo de prueba 6 meses"
  */
 
 import { callAI, extractJson, getModelName } from './provider'
 import { getRelevantLegalContext } from './rag/retriever'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export type ContractKind =
   | 'LABORAL_INDEFINIDO'
@@ -46,7 +47,7 @@ export interface ContractGenInput {
   horario?: string             // "08:00 - 17:00"
   remuneracion?: number
   formaPago?: string           // MENSUAL | QUINCENAL | SEMANAL
-  beneficiosAdicionales?: string // texto libre: "movilidad S/150, bono por metas 5%..."
+  beneficiosAdicionales?: string // texto libre: "movilidad 150 nuevos soles, bono por metas 5%..."
 }
 
 export interface ContractClause {
@@ -178,7 +179,7 @@ function buildUserPrompt(input: ContractGenInput): string {
   if (input.cargo) datos.push(`Cargo/Servicio: ${input.cargo}`)
   if (input.jornadaHoras) datos.push(`Jornada: ${input.jornadaHoras} horas semanales`)
   if (input.horario) datos.push(`Horario: ${input.horario}`)
-  if (input.remuneracion) datos.push(`Remuneracion: S/ ${input.remuneracion.toLocaleString('es-PE')}`)
+  if (input.remuneracion) datos.push(`Remuneracion: ${formatSoles(input.remuneracion)}`)
   if (input.formaPago) datos.push(`Forma de pago: ${input.formaPago}`)
   if (input.beneficiosAdicionales) datos.push(`Beneficios adicionales: ${input.beneficiosAdicionales}`)
 
@@ -486,7 +487,7 @@ function generateSimulatedContract(input: ContractGenInput, generadoAt: string):
   const trabajador = input.trabajadorNombre || '{{trabajador_nombre}}'
   const trabajadorDni = input.trabajadorDni || '{{trabajador_dni}}'
   const cargo = input.cargo || '{{cargo}}'
-  const remuneracion = input.remuneracion ? `S/ ${input.remuneracion.toLocaleString('es-PE')}` : '{{remuneracion}}'
+  const remuneracion = input.remuneracion ? formatSoles(input.remuneracion) : '{{remuneracion}}'
   const fechaInicio = input.fechaInicio || '{{fecha_inicio}}'
   const horario = input.horario || '{{horario}} (08:00 a 17:00 con 1h refrigerio)'
   const jornadaHoras = input.jornadaHoras || (tipo === 'LABORAL_PARTTIME' ? 24 : 48)

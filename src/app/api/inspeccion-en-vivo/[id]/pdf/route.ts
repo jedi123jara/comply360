@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { HallazgoInspeccion, ResultadoSimulacro } from '@/lib/compliance/simulacro-engine'
 import {
   createPDFDoc,
@@ -96,7 +97,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     doc.text(score >= 80 ? 'NIVEL ACEPTABLE' : score >= 60 ? 'EN RIESGO' : 'NIVEL CRITICO', 50, y + 6)
     doc.setFontSize(9)
     doc.setTextColor(239, 68, 68)
-    doc.text(`Multa estimada: S/ ${multaTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`, 50, y + 13)
+    doc.text(`Multa estimada: ${formatSoles(multaTotal)}`, 50, y + 13)
     y += 22
 
     // Summary boxes
@@ -112,6 +113,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     y = checkPageBreak(doc, y, 80, headerArgs)
     y = sectionTitle(doc, 'III. Hallazgos Detallados', y)
 
+    // TODO: revisar ancho columna tras refactor formato
     const hCols = [
       { header: '#', x: 14 },
       { header: 'Documento', x: 20 },
@@ -129,7 +131,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
         (h.baseLegal ?? '').substring(0, 20),
         estado,
         h.gravedad ?? '',
-        h.multaPEN ? `S/${h.multaPEN.toLocaleString('es-PE')}` : '—',
+        h.multaPEN ? formatSoles(h.multaPEN) : '—',
       ]
     })
 
@@ -145,10 +147,11 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
       { header: 'Descuento', x: 120 },
       { header: 'Multa', x: 185, align: 'right' as const },
     ]
+    // TODO: revisar ancho columna tras refactor formato
     const mRows = [
-      ['Sin subsanacion', '0%', `S/ ${multaTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`],
-      ['Subsanacion DURANTE inspeccion', 'Hasta 70%', `S/ ${multaSub70.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`],
-      ['Subsanacion ANTES de inspeccion', '90%', `S/ ${multaSub90.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`],
+      ['Sin subsanacion', '0%', formatSoles(multaTotal)],
+      ['Subsanacion DURANTE inspeccion', 'Hasta 70%', formatSoles(multaSub70)],
+      ['Subsanacion ANTES de inspeccion', '90%', formatSoles(multaSub90)],
     ]
     y = drawTable(doc, mCols, mRows, y, { headerArgs, fontSize: 8, rowHeight: 7 })
     y += 6

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import { getTree } from '@/lib/orgchart/tree-service'
+import { auditLog, auditContext } from '@/lib/audit'
 import {
   getVerifiedSnapshotTree,
   OrgChartSnapshotIntegrityError,
@@ -9,12 +10,19 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const { searchParams } = new URL(req.url)
   const snapshotId = searchParams.get('snapshotId')
+  
   if (snapshotId) {
     try {
       const { tree } = await getVerifiedSnapshotTree(ctx.orgId, snapshotId)
+      await auditLog({
+        ...auditContext(req, ctx),
+        action: 'orgchart.snapshot_viewed',
+        resourceType: 'OrgChartSnapshot',
+        resourceId: snapshotId,
+      })
       return NextResponse.json(tree)
     } catch (error) {
       if (error instanceof OrgChartSnapshotNotFoundError) {
@@ -32,6 +40,16 @@ export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
   if (asOfStr && isNaN(asOf!.getTime())) {
     return NextResponse.json({ error: 'asOf inválido' }, { status: 400 })
   }
+  
   const tree = await getTree(ctx.orgId, asOf)
+  
+  await auditLog({
+    ...auditContext(req, ctx),
+    action: 'orgchart.viewed',
+    resourceType: 'Organization',
+    resourceId: ctx.orgId,
+    details: { asOf: asOf?.toISOString() },
+  })
+  
   return NextResponse.json(tree)
 })

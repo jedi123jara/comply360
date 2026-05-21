@@ -17,6 +17,7 @@ import {
   Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * /dashboard/decisiones/sunafil — Wizard "Prepararse para SUNAFIL".
@@ -48,10 +49,6 @@ interface SunafilSnapshot {
     area: string
   }>
   multaEvitableTotal: number
-}
-
-function fmtPEN(n: number) {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 function fmtDate(iso: string | null) {
@@ -266,7 +263,7 @@ function Step1Estado({ snapshot }: { snapshot: SunafilSnapshot }) {
         />
         <Stat label="Tareas abiertas" value={snapshot.openTasks} />
         <Stat label="Tareas críticas" value={snapshot.criticalTasks} accentClass="text-red-700" />
-        <Stat label="Multa evitable" value={fmtPEN(snapshot.multaEvitableTotal)} accentClass="text-emerald-700" />
+        <Stat label="Multa evitable" value={formatSoles(snapshot.multaEvitableTotal)} accentClass="text-emerald-700" />
       </div>
 
       {snapshot.lastDiagnostic ? (
@@ -371,7 +368,7 @@ function Step2Plan({ snapshot }: { snapshot: SunafilSnapshot }) {
                   )}
                   {t.multaEvitable > 0 && (
                     <span className="inline-flex items-center gap-1 text-emerald-700">
-                      <Banknote className="h-3 w-3" /> Evita {fmtPEN(t.multaEvitable)}
+                      <Banknote className="h-3 w-3" /> Evita {formatSoles(t.multaEvitable)}
                     </span>
                   )}
                 </div>
@@ -406,7 +403,7 @@ function Step3Confirmar({ snapshot }: { snapshot: SunafilSnapshot }) {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[color:var(--text-secondary)]">Multa evitable estimada</span>
-          <span className="font-bold tabular-nums text-emerald-700">{fmtPEN(snapshot.multaEvitableTotal)}</span>
+          <span className="font-bold tabular-nums text-emerald-700">{formatSoles(snapshot.multaEvitableTotal)}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[color:var(--text-secondary)]">Plazo objetivo</span>

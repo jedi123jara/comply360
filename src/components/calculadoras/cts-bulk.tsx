@@ -5,6 +5,7 @@ import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import type { CTSInput } from '@/lib/legal-engine'
 import { Users, Download, RefreshCw, Loader2, CheckCircle, Search, ChevronDown, ChevronUp, FileSpreadsheet } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ──────────────────────────────────────────────
 // Types
@@ -36,9 +37,6 @@ const CORTE_OPTIONS = [
 
 // Regímenes que tienen CTS
 const REGIMENES_CON_CTS = ['GENERAL', 'MYPE_PEQUENA', 'CONSTRUCCION_CIVIL', 'MINERO', 'PESQUERO', 'TELETRABAJO']
-
-const fmt = (n: number) =>
-  n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // ──────────────────────────────────────────────
 // Component
@@ -278,7 +276,7 @@ export function BulkCTSCalculadora() {
           </div>
           <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
             <p className="text-xs text-blue-600 font-semibold mb-1">Total CTS a depositar</p>
-            <p className="text-2xl font-bold text-blue-700">S/ {fmt(totalCTS)}</p>
+            <p className="text-2xl font-bold text-blue-700">{formatSoles(totalCTS)}</p>
           </div>
         </div>
       )}
@@ -387,7 +385,7 @@ export function BulkCTSCalculadora() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right text-sm font-medium text-gray-300">
-                        S/ {fmt(Number(w.sueldoBruto))}
+                        {formatSoles(Number(w.sueldoBruto))}
                       </td>
                       {/* Editable gratificación */}
                       <td className="px-4 py-3 text-right">
@@ -403,7 +401,7 @@ export function BulkCTSCalculadora() {
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-600">
-                        {w.ctsResult ? `S/ ${fmt(w.ctsResult.remuneracionComputable)}` : '—'}
+                        {w.ctsResult ? formatSoles(w.ctsResult.remuneracionComputable) : '—'}
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-600">
                         {w.ctsResult
@@ -413,7 +411,7 @@ export function BulkCTSCalculadora() {
                       <td className="px-4 py-3 text-right">
                         {w.ctsResult ? (
                           <span className="text-base font-bold text-blue-700">
-                            S/ {fmt(w.ctsResult.ctsTotal)}
+                            {formatSoles(w.ctsResult.ctsTotal)}
                           </span>
                         ) : <span className="text-xs text-gray-400">—</span>}
                       </td>
@@ -437,7 +435,7 @@ export function BulkCTSCalculadora() {
                       Total a depositar ({selectedRows.length} trabajadores):
                     </td>
                     <td className="px-4 py-3 text-right text-lg font-bold text-blue-700">
-                      S/ {fmt(totalCTS)}
+                      {formatSoles(totalCTS)}
                     </td>
                     <td></td>
                   </tr>

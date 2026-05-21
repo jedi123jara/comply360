@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calcularCostoEmpleador, type CostoEmpleadorResult } from '@/lib/legal-engine/calculators/costo-empleador'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * /dashboard/decisiones/contratar — Wizard piloto "Contratar trabajador".
@@ -130,10 +131,6 @@ const TIPO_CONTRATO_LABELS: Record<TipoContrato, string> = {
   OBRA_DETERMINADA: 'Obra determinada',
   INTERMITENTE: 'Intermitente',
   EXPORTACION: 'Exportación',
-}
-
-function fmtPEN(n: number) {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 /* ── Helpers ────────────────────────────────────────────────────────── */
@@ -731,8 +728,8 @@ function Step2Costo({
         <div className="space-y-4">
           {/* Headlines */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Stat label="Costo mensual" value={fmtPEN(costo.costoMensualEmpleador)} accent="emerald" />
-            <Stat label="Costo anual" value={fmtPEN(costo.costoAnualEmpleador)} accent="emerald" />
+            <Stat label="Costo mensual" value={formatSoles(costo.costoMensualEmpleador)} accent="emerald" />
+            <Stat label="Costo anual" value={formatSoles(costo.costoAnualEmpleador)} accent="emerald" />
             <Stat
               label="Sobre el bruto"
               value={`+${costo.porcentajeSobreSueldo.toFixed(1)}%`}
@@ -747,19 +744,19 @@ function Step2Costo({
               Desglose mensual
             </p>
             <dl className="space-y-1.5 text-sm">
-              <Row label="Sueldo bruto" value={fmtPEN(costo.sueldoBruto)} />
+              <Row label="Sueldo bruto" value={formatSoles(costo.sueldoBruto)} />
               {costo.asignacionFamiliar > 0 && (
-                <Row label="Asignación familiar" value={fmtPEN(costo.asignacionFamiliar)} />
+                <Row label="Asignación familiar" value={formatSoles(costo.asignacionFamiliar)} />
               )}
-              <Row label="EsSalud (empleador)" value={fmtPEN(costo.essalud)} />
-              {costo.sctr > 0 && <Row label="SCTR" value={fmtPEN(costo.sctr)} />}
-              {costo.seguroVida > 0 && <Row label="Seguro Vida Ley" value={fmtPEN(costo.seguroVida)} />}
-              <Row label="Provisión CTS" value={fmtPEN(costo.provisionCTS)} />
-              <Row label="Provisión gratificaciones" value={fmtPEN(costo.provisionGratificacion)} />
-              <Row label="Provisión vacaciones" value={fmtPEN(costo.provisionVacaciones)} />
-              <Row label="Bonif. extraordinaria 9%" value={fmtPEN(costo.provisionBonifExtraordinaria)} />
+              <Row label="EsSalud (empleador)" value={formatSoles(costo.essalud)} />
+              {costo.sctr > 0 && <Row label="SCTR" value={formatSoles(costo.sctr)} />}
+              {costo.seguroVida > 0 && <Row label="Seguro Vida Ley" value={formatSoles(costo.seguroVida)} />}
+              <Row label="Provisión CTS" value={formatSoles(costo.provisionCTS)} />
+              <Row label="Provisión gratificaciones" value={formatSoles(costo.provisionGratificacion)} />
+              <Row label="Provisión vacaciones" value={formatSoles(costo.provisionVacaciones)} />
+              <Row label="Bonif. extraordinaria 9%" value={formatSoles(costo.provisionBonifExtraordinaria)} />
               <hr className="border-[color:var(--border-subtle)] my-1.5" />
-              <Row label="Total mensual" value={fmtPEN(costo.costoMensualEmpleador)} bold />
+              <Row label="Total mensual" value={formatSoles(costo.costoMensualEmpleador)} bold />
             </dl>
             <p className="mt-3 text-[10px] text-[color:var(--text-tertiary)]">
               Base legal: {costo.baseLegal.join(' · ')}
@@ -1012,13 +1009,13 @@ function Step5Confirmar({ data, costo }: { data: WizardData; costo: CostoEmplead
         {data.position && <Row label="Cargo" value={data.position} />}
         {data.department && <Row label="Área" value={data.department} />}
         <Row label="Fecha de ingreso" value={new Date(data.fechaIngreso).toLocaleDateString('es-PE')} />
-        <Row label="Sueldo bruto" value={typeof data.sueldoBruto === 'number' ? fmtPEN(data.sueldoBruto) : '—'} />
+        <Row label="Sueldo bruto" value={typeof data.sueldoBruto === 'number' ? formatSoles(data.sueldoBruto) : '—'} />
       </ResumenSection>
 
       {costo && (
         <ResumenSection title="Costo total empleador">
-          <Row label="Costo mensual" value={fmtPEN(costo.costoMensualEmpleador)} bold />
-          <Row label="Costo anual" value={fmtPEN(costo.costoAnualEmpleador)} bold />
+          <Row label="Costo mensual" value={formatSoles(costo.costoMensualEmpleador)} bold />
+          <Row label="Costo anual" value={formatSoles(costo.costoAnualEmpleador)} bold />
           <Row label="Sobre el bruto" value={`+${costo.porcentajeSobreSueldo.toFixed(1)}%`} />
         </ResumenSection>
       )}

@@ -5,22 +5,22 @@
  */
 
 import React from 'react'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ──────────────────────────────────────────────────────────────────────
 // Formatters
 // ──────────────────────────────────────────────────────────────────────
 
+/**
+ * Formato canónico "1,234.56 nuevos soles".
+ * Nota: el modo `compact` se ignora — política unificada: siempre completo.
+ * Los parámetros se mantienen para compatibilidad con callers existentes.
+ */
 export function fmtPEN(
   n: number,
-  opts: { decimals?: number; compact?: boolean } = {},
+  _opts: { decimals?: number; compact?: boolean } = {},
 ): string {
-  const { decimals = 0, compact = false } = opts
-  if (compact && n >= 1_000_000) return `S/ ${(n / 1_000_000).toFixed(1)}M`
-  if (compact && n >= 1_000) return `S/ ${(n / 1_000).toFixed(1)}k`
-  return `S/ ${n.toLocaleString('es-PE', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })}`
+  return formatSoles(n)
 }
 
 export function fmtN(n: number, decimals = 0): string {

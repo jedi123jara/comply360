@@ -20,6 +20,7 @@
 import { prisma } from '@/lib/prisma'
 import type { Plan } from '@/generated/prisma/client'
 import { PLANS } from '@/lib/constants'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // =============================================================================
 // TYPES
@@ -368,9 +369,9 @@ export async function computeFounderMetrics(): Promise<FounderMetrics> {
   // ─── Narrativa (lista de oraciones cortas para el email digest) ─────────────
   const narrative: string[] = []
   if (mrrDeltaVsPrev30d > 0) {
-    narrative.push(`MRR subió S/ ${mrrDeltaVsPrev30d.toFixed(0)} en 30 días (${mrrDeltaPct}%).`)
+    narrative.push(`MRR subió ${formatSoles(mrrDeltaVsPrev30d)} en 30 días (${mrrDeltaPct}%).`)
   } else if (mrrDeltaVsPrev30d < 0) {
-    narrative.push(`MRR bajó S/ ${Math.abs(mrrDeltaVsPrev30d).toFixed(0)} en 30 días.`)
+    narrative.push(`MRR bajó ${formatSoles(Math.abs(mrrDeltaVsPrev30d))} en 30 días.`)
   }
   if (newOrgs7d > 0) {
     narrative.push(`${newOrgs7d} empresa${newOrgs7d === 1 ? '' : 's'} nueva${newOrgs7d === 1 ? '' : 's'} esta semana.`)

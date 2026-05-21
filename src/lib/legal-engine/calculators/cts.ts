@@ -4,6 +4,7 @@ import {
   calcularRemuneracionComputable,
 } from '../peru-labor'
 import { money } from '../money'
+import { formatSoles as fmt } from '@/lib/format/peruvian'
 
 // =============================================
 // CTS - Compensación por Tiempo de Servicios
@@ -77,11 +78,6 @@ export function calcularCTS(input: CTSInput): CTSResult {
     formula,
     baseLegal: PERU_LABOR.CTS.BASE_LEGAL,
   }
-}
-
-// Format helper
-function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 type DateParts = {

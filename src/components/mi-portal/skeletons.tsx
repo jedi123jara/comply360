@@ -12,7 +12,7 @@ interface SkeletonProps {
 function Bar({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`bg-slate-200 rounded animate-pulse ${className}`}
+      className={`c360-worker-skeleton-bar rounded bg-slate-200 ${className}`}
       aria-hidden="true"
     />
   )
@@ -25,8 +25,8 @@ export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Cargando lista">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse shrink-0" />
+        <div key={i} className="c360-worker-skeleton-card flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="c360-worker-skeleton-bar h-10 w-10 shrink-0 rounded-2xl bg-slate-200" />
           <div className="flex-1 min-w-0 space-y-2">
             <Bar className="h-3 w-3/4" />
             <Bar className="h-3 w-1/2" />
@@ -45,8 +45,8 @@ export function CardGridSkeleton({ cards = 4 }: { cards?: number }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2" aria-busy="true">
       {Array.from({ length: cards }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
-          <div className="h-10 w-10 rounded-xl bg-slate-200 animate-pulse" />
+        <div key={i} className="c360-worker-skeleton-card space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+          <div className="c360-worker-skeleton-bar h-10 w-10 rounded-2xl bg-slate-200" />
           <Bar className="h-4 w-2/3" />
           <Bar className="h-3 w-full" />
           <Bar className="h-3 w-4/5" />
@@ -68,7 +68,7 @@ export function DetailSkeleton() {
     <div className="space-y-5" aria-busy="true">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <div className="h-12 w-12 rounded-xl bg-slate-200 animate-pulse shrink-0" />
+        <div className="c360-worker-skeleton-bar h-12 w-12 shrink-0 rounded-2xl bg-slate-200" />
         <div className="flex-1 space-y-2">
           <Bar className="h-5 w-1/2" />
           <Bar className="h-3 w-1/3" />
@@ -78,7 +78,7 @@ export function DetailSkeleton() {
       {/* KPI strip */}
       <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+          <div key={i} className="c360-worker-skeleton-card space-y-2 rounded-xl border border-slate-200 bg-white p-4">
             <Bar className="h-3 w-2/3" />
             <Bar className="h-6 w-3/4" />
           </div>
@@ -86,7 +86,7 @@ export function DetailSkeleton() {
       </div>
 
       {/* Sections */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+      <div className="c360-worker-skeleton-card space-y-3 rounded-xl border border-slate-200 bg-white p-5">
         <Bar className="h-4 w-1/3" />
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex items-center justify-between">
@@ -104,7 +104,7 @@ export function DetailSkeleton() {
  */
 export function HeroSkeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3" aria-busy="true">
+    <div className="c360-worker-skeleton-card space-y-3 rounded-2xl border border-slate-200 bg-white p-6" aria-busy="true">
       <Bar className="h-6 w-2/3" />
       <Bar className="h-4 w-full" />
       <Bar className="h-4 w-5/6" />

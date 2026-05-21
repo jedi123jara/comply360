@@ -77,12 +77,14 @@ describe('plan-features / isRouteLocked', () => {
   })
 
   it('rutas gated se bloquean cuando el plan no tiene la feature', () => {
+    expect(isRouteLocked('STARTER', '/dashboard/centro-sunafil')).toBe(true)
     expect(isRouteLocked('STARTER', '/dashboard/diagnostico')).toBe(true)
     expect(isRouteLocked('STARTER', '/dashboard/ia-laboral')).toBe(true)
     expect(isRouteLocked('STARTER', '/dashboard/sst')).toBe(true)
   })
 
   it('rutas gated se desbloquean con el plan adecuado', () => {
+    expect(isRouteLocked('EMPRESA', '/dashboard/centro-sunafil')).toBe(false)
     expect(isRouteLocked('EMPRESA', '/dashboard/diagnostico')).toBe(false)
     expect(isRouteLocked('PRO', '/dashboard/ia-laboral')).toBe(false)
     expect(isRouteLocked('PRO', '/dashboard/sst')).toBe(false)
@@ -90,6 +92,7 @@ describe('plan-features / isRouteLocked', () => {
 
   it('ROUTE_FEATURE_MAP cubre las rutas criticas de los 7 hubs', () => {
     const keys = Object.keys(ROUTE_FEATURE_MAP)
+    expect(keys).toContain('/dashboard/centro-sunafil')
     expect(keys).toContain('/dashboard/diagnostico')
     expect(keys).toContain('/dashboard/simulacro')
     expect(keys).toContain('/dashboard/ia-laboral')

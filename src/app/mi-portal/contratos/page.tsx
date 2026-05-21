@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   FileSignature,
+  FileText,
   CheckCircle2,
   Clock,
   AlertTriangle,
   ChevronRight,
+  ExternalLink,
   Fingerprint,
   ShieldCheck,
   Loader2,
@@ -34,12 +36,23 @@ interface ContractItem {
   hasPdf: boolean
 }
 
+interface ContractDocumentItem {
+  id: string
+  title: string
+  documentType: string
+  status: string
+  fileUrl: string | null
+  updatedAt: string
+  createdAt: string
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Page
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function MiPortalContratosPage() {
   const [contracts, setContracts] = useState<ContractItem[]>([])
+  const [contractDocuments, setContractDocuments] = useState<ContractDocumentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [totals, setTotals] = useState<{ total: number; pending: number; signed: number }>({
     total: 0,
@@ -54,9 +67,11 @@ export default function MiPortalContratosPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const body = (await res.json()) as {
         contracts: ContractItem[]
+        contractDocuments?: ContractDocumentItem[]
         totals: typeof totals
       }
       setContracts(body.contracts)
+      setContractDocuments(body.contractDocuments ?? [])
       setTotals(body.totals)
     } catch (err) {
       console.error('[mi-portal/contratos] load', err)
@@ -187,8 +202,19 @@ export default function MiPortalContratosPage() {
         </Section>
       ) : null}
 
+      {contractDocuments.length > 0 ? (
+        <Section
+          title="Contratos en tu legajo"
+          subtitle="Documentos contractuales subidos por RR. HH. o verificados en tu expediente."
+        >
+          {contractDocuments.map((doc) => (
+            <ContractDocumentCard key={doc.id} document={doc} />
+          ))}
+        </Section>
+      ) : null}
+
       {/* Empty */}
-      {contracts.length === 0 ? (
+      {contracts.length === 0 && contractDocuments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[color:var(--border-default)] bg-white px-6 py-16 text-center">
           <FileSignature className="mx-auto mb-3 h-10 w-10 text-[color:var(--text-tertiary)]" />
           <p
@@ -198,9 +224,16 @@ export default function MiPortalContratosPage() {
             Aún no hay contratos vinculados a tu perfil.
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-[color:var(--text-secondary)]">
-            Cuando tu empleador te envíe un nuevo contrato, aparecerá acá. Vas a poder leerlo y
-            firmarlo con tu huella desde tu celular.
+            Cuando tu empleador vincule tu contrato o lo suba a tu legajo, aparecerá acá. Vas a
+            poder leerlo y, si requiere firma, completarlo con tu huella desde tu celular.
           </p>
+          <Link
+            href="/mi-portal/documentos"
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            Revisar mi legajo
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       ) : null}
 
@@ -292,9 +325,9 @@ function ContractCard({
       {highlight ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full"
+          className="pointer-events-none absolute inset-x-4 top-0 h-px opacity-80"
           style={{
-            background: 'radial-gradient(circle, rgba(245,158,11,0.12), transparent 70%)',
+            background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.72), rgba(37,99,235,0.28), transparent)',
           }}
         />
       ) : null}
@@ -349,6 +382,56 @@ function ContractCard({
 
         <ChevronRight className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)] transition-transform group-hover:translate-x-0.5" />
       </div>
+    </Link>
+  )
+}
+
+function ContractDocumentCard({ document }: { document: ContractDocumentItem }) {
+  const content = (
+    <div className="group relative block overflow-hidden rounded-2xl border border-[color:var(--border-default)] bg-white p-4 transition-all hover:border-emerald-300 hover:shadow-sm">
+      <div className="relative flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--text-tertiary)]">
+            Documento del legajo
+          </p>
+          <h3
+            className="mt-0.5 truncate text-[15px] font-semibold text-[color:var(--text-primary)]"
+            style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+          >
+            {document.title}
+          </h3>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-semibold text-blue-800 ring-1 ring-blue-200">
+              {document.status === 'VERIFIED' ? 'Verificado' : document.status === 'UPLOADED' ? 'Subido' : document.status}
+            </span>
+            <span className="text-[color:var(--text-tertiary)]">
+              Actualizado {formatDate(document.updatedAt)}
+            </span>
+          </div>
+        </div>
+        {document.fileUrl ? (
+          <ExternalLink className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)] transition-transform group-hover:translate-x-0.5" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)] transition-transform group-hover:translate-x-0.5" />
+        )}
+      </div>
+    </div>
+  )
+
+  if (document.fileUrl) {
+    return (
+      <a href={document.fileUrl} target="_blank" rel="noopener noreferrer" className="block">
+        {content}
+      </a>
+    )
+  }
+
+  return (
+    <Link href="/mi-portal/documentos" className="block">
+      {content}
     </Link>
   )
 }

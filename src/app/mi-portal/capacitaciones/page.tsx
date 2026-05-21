@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { GraduationCap, Award, Clock, CheckCircle2, PlayCircle } from 'lucide-react'
 import { PageHeader, EmptyState, ErrorState, Chip, CardGridSkeleton } from '@/components/mi-portal'
 
@@ -29,12 +30,72 @@ const STATUS_INFO: Record<string, { label: string; variant: Variant }> = {
   FAILED: { label: 'Reprobado', variant: 'danger' },
 }
 
+const MOCK_ENROLLMENTS: EnrollmentItem[] = [
+  {
+    id: 'preview',
+    courseId: 'course-sst-preview',
+    courseTitle: 'Inducción SST',
+    courseCategory: 'Seguridad y Salud en el Trabajo',
+    durationMin: 28,
+    status: 'IN_PROGRESS',
+    progress: 45,
+    examScore: null,
+    startedAt: '2026-05-17T09:00:00.000Z',
+    completedAt: null,
+    certificateCode: null,
+  },
+  {
+    id: 'hostigamiento-2026',
+    courseId: 'course-hostigamiento',
+    courseTitle: 'Prevención del hostigamiento sexual laboral',
+    courseCategory: 'Obligatorio',
+    durationMin: 35,
+    status: 'NOT_STARTED',
+    progress: 0,
+    examScore: null,
+    startedAt: null,
+    completedAt: null,
+    certificateCode: null,
+  },
+  {
+    id: 'certificado-primeros-auxilios',
+    courseId: 'course-primeros-auxilios',
+    courseTitle: 'Primeros auxilios básicos',
+    courseCategory: 'SST',
+    durationMin: 40,
+    status: 'PASSED',
+    progress: 100,
+    examScore: 92,
+    startedAt: '2026-05-10T10:00:00.000Z',
+    completedAt: '2026-05-10T10:42:00.000Z',
+    certificateCode: 'CERT-2026-001',
+  },
+]
+
+function withPreviewHref(href: string, enabled: boolean): string {
+  if (!enabled || !href.startsWith('/mi-portal')) return href
+  if (href.includes('__workerPreview=')) return href
+  const [pathAndQuery, hash = ''] = href.split('#')
+  const separator = pathAndQuery.includes('?') ? '&' : '?'
+  return `${pathAndQuery}${separator}__workerPreview=1${hash ? `#${hash}` : ''}`
+}
+
 export default function CapacitacionesPage() {
   const [items, setItems] = useState<EnrollmentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const isWorkerPreview =
+    process.env.NODE_ENV === 'development' && searchParams.get('__workerPreview') === '1'
+  const displayItems = isWorkerPreview ? MOCK_ENROLLMENTS : items
 
   const load = useCallback(async () => {
+    if (isWorkerPreview) {
+      setItems(MOCK_ENROLLMENTS)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
@@ -47,7 +108,7 @@ export default function CapacitacionesPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isWorkerPreview])
 
   useEffect(() => {
     let cancelled = false
@@ -60,8 +121,8 @@ export default function CapacitacionesPage() {
     }
   }, [load])
 
-  const pendientes = items.filter((i) => i.status !== 'PASSED')
-  const completadas = items.filter((i) => i.status === 'PASSED')
+  const pendientes = displayItems.filter((i) => i.status !== 'PASSED')
+  const completadas = displayItems.filter((i) => i.status === 'PASSED')
 
   return (
     <div className="space-y-6">
@@ -77,7 +138,7 @@ export default function CapacitacionesPage() {
         <ErrorState title="No se pudieron cargar las capacitaciones" message={error} onRetry={load} />
       )}
 
-      {!loading && !error && items.length === 0 && (
+      {!loading && !error && displayItems.length === 0 && (
         <EmptyState
           icon={<GraduationCap className="w-6 h-6" />}
           title="No tienes capacitaciones asignadas"
@@ -92,7 +153,7 @@ export default function CapacitacionesPage() {
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {pendientes.map((item) => (
-              <CourseCard key={item.id} item={item} />
+              <CourseCard key={item.id} item={item} isWorkerPreview={isWorkerPreview} />
             ))}
           </div>
         </section>
@@ -105,7 +166,7 @@ export default function CapacitacionesPage() {
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {completadas.map((item) => (
-              <CourseCard key={item.id} item={item} />
+              <CourseCard key={item.id} item={item} isWorkerPreview={isWorkerPreview} />
             ))}
           </div>
         </section>
@@ -114,17 +175,21 @@ export default function CapacitacionesPage() {
   )
 }
 
-function CourseCard({ item }: { item: EnrollmentItem }) {
+function CourseCard({ item, isWorkerPreview }: { item: EnrollmentItem; isWorkerPreview: boolean }) {
   const status = STATUS_INFO[item.status] ?? STATUS_INFO.NOT_STARTED
-  const href =
+  const detailHref =
     item.status === 'PASSED'
       ? `/mi-portal/capacitaciones/${item.id}/certificado`
       : `/mi-portal/capacitaciones/${item.id}`
+  const href = isWorkerPreview
+    ? `/mi-portal/capacitaciones?__workerPreview=1#enrollment-${item.id}`
+    : withPreviewHref(detailHref, isWorkerPreview)
 
   return (
     <Link
+      id={`enrollment-${item.id}`}
       href={href}
-      className="bg-white border border-slate-200 rounded-xl p-5 hover:border-emerald-400 hover:shadow-sm transition-all block focus-visible:ring-2 focus-visible:ring-emerald-500"
+      className="scroll-mt-24 bg-white border border-slate-200 rounded-xl p-5 hover:border-emerald-400 hover:shadow-sm transition-all block focus-visible:ring-2 focus-visible:ring-emerald-500"
     >
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">

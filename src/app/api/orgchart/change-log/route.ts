@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const limitParam = Number(req.nextUrl.searchParams.get('limit') ?? 50)
   const limit = Number.isFinite(limitParam) ? Math.max(1, Math.min(100, limitParam)) : 50
   const entityType = req.nextUrl.searchParams.get('entityType')

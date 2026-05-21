@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -196,6 +197,13 @@ export default function DiagnosticoPage() {
       />
 
       <div className="mx-auto w-full max-w-5xl space-y-12">
+        <Link
+          href="/dashboard/centro-sunafil?tab=diagnostico"
+          className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] px-3 py-2 text-sm font-semibold text-[color:var(--text-secondary)] transition hover:border-emerald-300 hover:text-emerald-700"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Centro SUNAFIL
+        </Link>
         <PageHeader
           eyebrow="Diagnóstico"
           title="Audita tu empresa contra <em>120 reglas SUNAFIL</em>."

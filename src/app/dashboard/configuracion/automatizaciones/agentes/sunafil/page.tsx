@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { ShieldAlert, Upload, Loader2, AlertTriangle, CheckCircle2, FileText } from 'lucide-react'
 import type { SunafilAnalysisOutput } from '@/lib/agents/sunafil-analyzer'
 import type { AgentResult, AgentAction } from '@/lib/agents/types'
+import { formatSoles } from '@/lib/format/peruvian'
 
 type TipoEmpresa = 'MICRO' | 'PEQUENA' | 'NO_MYPE'
 
@@ -144,8 +145,8 @@ export default function SunafilAgentPage() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <Metric label="Multa mín." value={`S/ ${data.multaTotalProyectada.min.toLocaleString('es-PE')}`} />
-              <Metric label="Multa máx." value={`S/ ${data.multaTotalProyectada.max.toLocaleString('es-PE')}`} />
+              <Metric label="Multa mín." value={formatSoles(data.multaTotalProyectada.min)} />
+              <Metric label="Multa máx." value={formatSoles(data.multaTotalProyectada.max)} />
               <Metric
                 label="Plazo descargo"
                 value={data.fechaLimiteDescargo || `${data.plazoDescargoDias} días háb.`}
@@ -205,8 +206,8 @@ export default function SunafilAgentPage() {
                       <div className="text-right">
                         <p className="text-xs text-slate-500">Multa estimada</p>
                         <p className="text-sm font-semibold text-gold-400">
-                          S/ {c.multaEstimadaSoles.min.toLocaleString('es-PE')} -{' '}
-                          {c.multaEstimadaSoles.max.toLocaleString('es-PE')}
+                          {formatSoles(c.multaEstimadaSoles.min)} -{' '}
+                          {formatSoles(c.multaEstimadaSoles.max)}
                         </p>
                       </div>
                     </div>

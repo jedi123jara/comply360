@@ -8,6 +8,7 @@ import {
 import type { AportesInput, AportesResult } from '@/lib/legal-engine/calculators/aportes-previsionales'
 import { openWhatsApp } from '@/lib/whatsapp'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   Download,
@@ -291,7 +292,7 @@ export function AportesCalculadora() {
                   </span>
                 </div>
                 <div className="text-2xl font-black tracking-tight">
-                  S/ {result.sueldoNeto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {formatSoles(result.sueldoNeto)}
                 </div>
                 <div className="flex items-center gap-1 mt-1 text-emerald-200 text-xs">
                   <ArrowDownRight className="w-3 h-3" />
@@ -308,7 +309,7 @@ export function AportesCalculadora() {
                   </span>
                 </div>
                 <div className="text-2xl font-black tracking-tight">
-                  S/ {result.totalDescuentoTrabajador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {formatSoles(result.totalDescuentoTrabajador)}
                 </div>
                 <div className="text-red-200 text-xs mt-1">{result.sistema}</div>
               </div>
@@ -322,7 +323,7 @@ export function AportesCalculadora() {
                   </span>
                 </div>
                 <div className="text-2xl font-black tracking-tight">
-                  S/ {result.costoTotalEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {formatSoles(result.costoTotalEmpleador)}
                 </div>
                 <div className="flex items-center gap-1 mt-1 text-blue-200 text-xs">
                   <ArrowUpRight className="w-3 h-3" />
@@ -367,7 +368,7 @@ export function AportesCalculadora() {
                 <div className="px-6 py-4 flex items-center justify-between bg-red-50">
                   <span className="text-sm font-bold text-red-800">Total Descuento</span>
                   <span className="text-lg font-black text-red-700 tabular-nums">
-                    S/ {result.totalDescuentoTrabajador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.totalDescuentoTrabajador)}
                   </span>
                 </div>
               </div>
@@ -401,7 +402,7 @@ export function AportesCalculadora() {
                 <div className="px-6 py-4 flex items-center justify-between bg-blue-50">
                   <span className="text-sm font-bold text-blue-800">Total Aporte Empleador</span>
                   <span className="text-lg font-black text-blue-700 tabular-nums">
-                    S/ {result.totalAporteEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.totalAporteEmpleador)}
                   </span>
                 </div>
               </div>
@@ -420,7 +421,7 @@ export function AportesCalculadora() {
                   </div>
                   <div>
                     <p className="text-lg font-black text-gray-300">
-                      S/ {result.remuneracionComputable.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      {formatSoles(result.remuneracionComputable)}
                     </p>
                     <p className="text-xs font-medium text-gray-500">Remuneracion computable</p>
                   </div>
@@ -465,26 +466,26 @@ export function AportesCalculadora() {
                         <tr key={name} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]">
                           <td className="px-4 py-3 font-semibold text-blue-700">AFP {name.charAt(0) + name.slice(1).toLowerCase()}</td>
                           <td className="px-4 py-3 text-right tabular-nums text-red-600 font-medium">
-                            S/ {res.totalDescuentoTrabajador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                            {formatSoles(res.totalDescuentoTrabajador)}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-emerald-600 font-bold">
-                            S/ {res.sueldoNeto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                            {formatSoles(res.sueldoNeto)}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-blue-600 font-medium">
-                            S/ {res.costoTotalEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                            {formatSoles(res.costoTotalEmpleador)}
                           </td>
                         </tr>
                       ))}
                       <tr className="hover:bg-emerald-50 bg-emerald-50/50">
                         <td className="px-4 py-3 font-semibold text-emerald-700">ONP</td>
                         <td className="px-4 py-3 text-right tabular-nums text-red-600 font-medium">
-                          S/ {comparison.onp.totalDescuentoTrabajador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          {formatSoles(comparison.onp.totalDescuentoTrabajador)}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-emerald-600 font-bold">
-                          S/ {comparison.onp.sueldoNeto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          {formatSoles(comparison.onp.sueldoNeto)}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-blue-600 font-medium">
-                          S/ {comparison.onp.costoTotalEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          {formatSoles(comparison.onp.costoTotalEmpleador)}
                         </td>
                       </tr>
                     </tbody>
@@ -551,9 +552,9 @@ export function AportesCalculadora() {
                     })),
                     metadata: {
                       'Sistema Previsional': result.sistema,
-                      'Sueldo Bruto': `S/ ${input.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
-                      'Sueldo Neto': `S/ ${result.sueldoNeto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
-                      'Costo Total Empleador': `S/ ${result.costoTotalEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                      'Sueldo Bruto': formatSoles(input.sueldoBruto),
+                      'Sueldo Neto': formatSoles(result.sueldoNeto),
+                      'Costo Total Empleador': formatSoles(result.costoTotalEmpleador),
                       'SCTR': input.sctr ? 'Si' : 'No',
                     },
                   })
@@ -637,7 +638,7 @@ function BreakdownRow({
           <span className="text-sm font-semibold text-white">{label}</span>
           <div className="text-right">
             <span className="text-lg font-bold text-white tabular-nums">
-              S/ {amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+              {formatSoles(amount)}
             </span>
             <span className={`ml-2 text-xs font-medium ${badgeText} ${badgeBg} px-2 py-0.5 rounded-full`}>
               {percentage.toFixed(2)}%

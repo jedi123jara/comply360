@@ -32,7 +32,13 @@ export const createWorkerSchema = z.object({
 // ===== COMPLAINT =====
 export const createComplaintSchema = z.object({
   orgId: z.string().min(1),
-  type: z.enum(['HOSTIGAMIENTO_SEXUAL', 'DISCRIMINACION', 'ACOSO_LABORAL', 'OTRO']),
+  type: z.enum([
+    'HOSTIGAMIENTO_SEXUAL', 'DISCRIMINACION', 'ACOSO_LABORAL',
+    'SST_ACCIDENTE_MORTAL', 'SST_INCIDENTE_PELIGROSO', 'SST_ACCIDENTE_NO_MORTAL',
+    'SST_ENFERMEDAD_OCUPACIONAL', 'SST_CONDICION_INSEGURA',
+    'MPD_CORRUPCION', 'MPD_LAVADO_ACTIVOS', 'MPD_TRIBUTARIO_ADUANERO',
+    'MPD_TERRORISMO', 'MPD_OTRO', 'OTRO',
+  ]),
   isAnonymous: z.boolean().optional(),
   reporterName: z.string().max(200).optional().or(z.literal('')),
   reporterEmail: z.string().email().optional().or(z.literal('')),

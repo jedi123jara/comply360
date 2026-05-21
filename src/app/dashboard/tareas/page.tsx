@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { resolveTaskRoute, type ResolvedTaskRoute } from '@/lib/compliance/task-route-resolver'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * /dashboard/tareas — Gestor de Compliance Tasks.
@@ -357,7 +358,7 @@ function TaskRow({
     dueDate !== null && task.status !== 'COMPLETED' && task.status !== 'DISMISSED' && dueDate < new Date()
 
   const fmtMulta = (n: number | null) =>
-    n && n > 0 ? `S/ ${n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}` : null
+    n && n > 0 ? formatSoles(n) : null
 
   const open = task.status === 'PENDING' || task.status === 'IN_PROGRESS'
   const isClickable = open && onNavigate !== null

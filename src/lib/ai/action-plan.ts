@@ -8,6 +8,7 @@
 
 import { callAI, extractJson, getModelName } from './provider'
 import { getRelevantLegalContext } from './rag/retriever'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export interface DiagnosticInput {
   orgName: string
@@ -101,7 +102,7 @@ function buildUserPrompt(input: DiagnosticInput): string {
 
   return `Empresa: ${input.orgName}
 Score global actual: ${input.scoreGlobal}/100
-Multa potencial estimada: S/ ${input.totalMultaRiesgo.toLocaleString('es-PE')}
+Multa potencial estimada: ${formatSoles(input.totalMultaRiesgo)}
 ${input.regimenLaboral ? `Régimen laboral: ${input.regimenLaboral}` : ''}
 ${input.numTrabajadores ? `Trabajadores: ${input.numTrabajadores}` : ''}
 
@@ -194,7 +195,7 @@ export async function generateActionPlan(input: DiagnosticInput): Promise<Action
  *
  * Cada template incluye `pasos` accionables (3-5 pasos imperativos cortos)
  * para que el usuario tenga un cronograma ejecutable real, no solo títulos
- * genéricos. Multas calibradas con D.S. 019-2006-TR + UIT 2026 (S/ 5,500).
+ * genéricos. Multas calibradas con D.S. 019-2006-TR + UIT 2026 (5,500 nuevos soles).
  */
 function generateSimulatedPlan(input: DiagnosticInput, generadoAt: string): ActionPlan {
   const sorted = Object.entries(input.scoreByArea).sort(([, a], [, b]) => a - b)
@@ -372,7 +373,7 @@ function generateSimulatedPlan(input: DiagnosticInput, generadoAt: string): Acti
     generadoPor: 'simulated',
     modelo: 'heuristic-v2',
     generadoAt,
-    resumen: `Plan base sugerido a partir de las áreas con menor puntaje y normativa peruana vigente. Atiende ${tareas.length} brechas para llevar el score de ${input.scoreGlobal} a ${estimadoTrasPlan}/100 y evitar S/ ${multaEvitadaTotal.toLocaleString('es-PE')} en multas SUNAFIL potenciales.`,
+    resumen: `Plan base sugerido a partir de las áreas con menor puntaje y normativa peruana vigente. Atiende ${tareas.length} brechas para llevar el score de ${input.scoreGlobal} a ${estimadoTrasPlan}/100 y evitar ${formatSoles(multaEvitadaTotal)} en multas SUNAFIL potenciales.`,
     tareas,
     proyeccionScore: {
       actual: input.scoreGlobal,

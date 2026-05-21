@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export const GET = withPlanGate('reportes_pdf', async (req, ctx) => {
   const orgId = ctx.orgId
@@ -130,7 +131,7 @@ export const GET = withPlanGate('reportes_pdf', async (req, ctx) => {
         id: c.id,
         type: 'calculation' as const,
         label: c.type.replace(/_/g, ' '),
-        detail: c.totalAmount ? `S/ ${Number(c.totalAmount).toFixed(2)}` : null,
+        detail: c.totalAmount ? formatSoles(c.totalAmount) : null,
         createdAt: c.createdAt,
       })),
       ...recentConts.map(c => ({

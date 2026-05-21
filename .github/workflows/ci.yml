@@ -33,6 +33,15 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Secret Scan
+        run: pnpm security:secrets
+
+      - name: Dependency Audit
+        run: pnpm security:deps
+
+      - name: Multi-tenant Preflight
+        run: pnpm preflight:multitenant
+
       - name: Lint
         run: pnpm lint
 

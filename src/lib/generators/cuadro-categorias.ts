@@ -13,6 +13,7 @@
  *  - Criterios objetivos (no género, edad, origen, etc.)
  */
 import type { GeneratedDocument, GeneratedSection, GeneratorOrgContext } from './types'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export type DimensionScore = 1 | 2 | 3 | 4 | 5
 
@@ -189,7 +190,7 @@ function buildCategoriaContent(
   const intro = `Puestos clasificados en la Categoría **${CATEGORIA_LABEL[cat]}**:\n`
   const table = puestos
     .map((p) => {
-      const range = `S/ ${p.salarioMin.toLocaleString('es-PE')} - S/ ${p.salarioMax.toLocaleString('es-PE')}`
+      const range = `${formatSoles(p.salarioMin)} - ${formatSoles(p.salarioMax)}`
       return `\n**${p.nombre}**${p.area ? ` (${p.area})` : ''}${p.count ? ` — ${p.count} trabajador${p.count === 1 ? '' : 'es'}` : ''}\n- Funciones: ${p.funciones}\n- Valorización: conocimientos ${p.dimensiones.conocimientos}/5 · responsabilidad ${p.dimensiones.responsabilidad}/5 · esfuerzo ${p.dimensiones.esfuerzo}/5 · condiciones ${p.dimensiones.condiciones}/5 (puntaje ponderado **${p.puntaje}/5**)\n- Rango salarial: **${range}** mensuales`
     })
     .join('\n')
@@ -224,12 +225,12 @@ function buildMarkdown(
   // Tabla resumen consolidada al final
   const resumen =
     '\n## Anexo — Tabla Resumen de Puestos\n\n' +
-    '| Puesto | Área | Cat. | Puntaje | Salario Mín. (S/) | Salario Máx. (S/) | N° Trab. |\n' +
+    '| Puesto | Área | Cat. | Puntaje | Salario Mín. | Salario Máx. | N° Trab. |\n' +
     '|---|---|---|---|---|---|---|\n' +
     puestos
       .map(
         (p) =>
-          `| ${p.nombre} | ${p.area ?? '—'} | ${p.categoria} | ${p.puntaje} | ${p.salarioMin.toLocaleString('es-PE')} | ${p.salarioMax.toLocaleString('es-PE')} | ${p.count ?? '—'} |`,
+          `| ${p.nombre} | ${p.area ?? '—'} | ${p.categoria} | ${p.puntaje} | ${formatSoles(p.salarioMin)} | ${formatSoles(p.salarioMax)} | ${p.count ?? '—'} |`,
       )
       .join('\n')
 

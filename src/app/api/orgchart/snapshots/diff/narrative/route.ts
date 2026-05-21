@@ -5,7 +5,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import {
   getVerifiedSnapshotTree,
   OrgChartSnapshotIntegrityError,
@@ -19,7 +19,7 @@ import {
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const sp = req.nextUrl.searchParams
   const fromId = sp.get('fromId')
   const toId = sp.get('toId')

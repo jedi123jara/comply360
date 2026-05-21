@@ -13,6 +13,7 @@ import type {
   BulkPreviewResult,
   BulkRowValidationResult,
 } from './types'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const PERU_RMV_2026 = 1130
 
@@ -97,7 +98,7 @@ export function validateBulkRow(
 
   // RMV
   if (data.remuneracion < PERU_RMV_2026) {
-    errors.push(`remuneracion: debe ser ≥ S/ ${PERU_RMV_2026} (RMV 2026 — D.S. 006-2024-TR).`)
+    errors.push(`remuneracion: debe ser ≥ ${formatSoles(PERU_RMV_2026)} (RMV 2026 — D.S. 006-2024-TR).`)
   } else if (data.remuneracion < PERU_RMV_2026 * 1.05) {
     warnings.push('remuneracion: muy cerca de la RMV — verifica que sea correcto.')
   }

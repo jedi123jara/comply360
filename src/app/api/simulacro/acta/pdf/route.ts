@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { AuthContext } from '@/lib/auth'
 import {
   createPDFDoc,
@@ -154,7 +155,7 @@ export const POST = withPlanGate('simulacro_basico', async (req: NextRequest, ct
 
     doc.setFontSize(9)
     doc.setTextColor(239, 68, 68)
-    doc.text(`Multa total estimada: S/ ${multaTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`, 50, y + 13)
+    doc.text(`Multa total estimada: ${formatSoles(multaTotal)}`, 50, y + 13)
     y += 22
 
     // Summary boxes
@@ -179,13 +180,14 @@ export const POST = withPlanGate('simulacro_basico', async (req: NextRequest, ct
     y = sectionTitle(doc, 'III. Hallazgos por Requerimiento', y)
 
     if (hallazgos.length > 0) {
+      // TODO: revisar ancho columna tras refactor formato
       const columns = [
         { header: '#', x: 14 },
         { header: 'Documento', x: 20 },
         { header: 'Base Legal', x: 90 },
         { header: 'Estado', x: 130 },
         { header: 'Gravedad', x: 155 },
-        { header: 'Multa (S/)', x: 185, align: 'right' as const },
+        { header: 'Multa', x: 185, align: 'right' as const },
       ]
 
       const rows = hallazgos.map((h, i) => {
@@ -196,7 +198,7 @@ export const POST = withPlanGate('simulacro_basico', async (req: NextRequest, ct
           (h.baseLegal ?? '').substring(0, 20),
           estadoStr,
           h.gravedad ?? '',
-          h.multaPEN ? h.multaPEN.toLocaleString('es-PE') : '0',
+          h.multaPEN ? formatSoles(h.multaPEN) : formatSoles(0),
         ]
       })
 
@@ -209,17 +211,18 @@ export const POST = withPlanGate('simulacro_basico', async (req: NextRequest, ct
     y = checkPageBreak(doc, y, 80, headerArgs)
     y = sectionTitle(doc, 'IV. Escala de Multas segun Subsanacion', y)
 
+    // TODO: revisar ancho columna tras refactor formato
     const multaColumns = [
       { header: 'Escenario', x: 14 },
       { header: 'Base Legal', x: 80 },
       { header: 'Descuento', x: 130 },
-      { header: 'Multa (S/)', x: 185, align: 'right' as const },
+      { header: 'Multa', x: 185, align: 'right' as const },
     ]
 
     const multaRows = [
-      ['Sin subsanacion (integra)', 'D.S. 019-2006-TR', '0%', `S/ ${multaTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`],
-      ['Subsanacion DURANTE inspeccion', 'Ley 28806, Art. 40', 'Hasta 70%', `S/ ${multaSub70.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`],
-      ['Subsanacion ANTES de inspeccion', 'Ley 28806, Art. 40', '90%', `S/ ${multaSub90.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`],
+      ['Sin subsanacion (integra)', 'D.S. 019-2006-TR', '0%', formatSoles(multaTotal)],
+      ['Subsanacion DURANTE inspeccion', 'Ley 28806, Art. 40', 'Hasta 70%', formatSoles(multaSub70)],
+      ['Subsanacion ANTES de inspeccion', 'Ley 28806, Art. 40', '90%', formatSoles(multaSub90)],
     ]
 
     y = drawTable(doc, multaColumns, multaRows, y, { headerArgs, fontSize: 8, rowHeight: 7 })

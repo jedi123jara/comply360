@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Inbox, AlertTriangle, Clock, Loader2, RefreshCw } from 'lucide-react'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface Notification {
   id: string
@@ -102,7 +103,7 @@ export default function CasillaPage() {
           />
           <Stat
             label="Multa expuesta"
-            value={`S/ ${summary.multaPotencialTotalSoles.toLocaleString('es-PE')}`}
+            value={formatSoles(summary.multaPotencialTotalSoles)}
             color="text-gold-400"
             icon={<AlertTriangle className="h-5 w-5 text-gold-400" />}
           />

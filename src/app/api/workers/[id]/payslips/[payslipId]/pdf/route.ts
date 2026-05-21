@@ -10,11 +10,7 @@ import {
   kv,
   checkPageBreak,
 } from '@/lib/pdf/server-pdf'
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function fmt(n: number): string {
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
+import { formatSoles } from '@/lib/format/peruvian'
 
 function fmtPeriodo(periodo: string): string {
   const [year, mm] = periodo.split('-')
@@ -98,6 +94,7 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
     doc.setTextColor(30, 30, 30)
     y += 9
 
+    // TODO: revisar ancho columna tras refactor formato
     // Row helper
     function row(
       leftLabel: string, leftAmt: number | null,
@@ -115,7 +112,7 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
         doc.text(leftLabel, colLeft + 2, y)
         if (leftAmt !== null) {
           doc.setFont('helvetica', 'bold')
-          doc.text(fmt(leftAmt), colLeft + colW - 2, y, { align: 'right' })
+          doc.text(formatSoles(leftAmt), colLeft + colW - 2, y, { align: 'right' })
           doc.setFont('helvetica', 'normal')
         }
       }
@@ -124,7 +121,7 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
         if (rightAmt !== null) {
           doc.setFont('helvetica', 'bold')
           doc.setTextColor(180, 30, 30)
-          doc.text(fmt(rightAmt), colRight + colW - 2, y, { align: 'right' })
+          doc.text(formatSoles(rightAmt), colRight + colW - 2, y, { align: 'right' })
           doc.setFont('helvetica', 'normal')
           doc.setTextColor(50, 50, 50)
         }
@@ -183,10 +180,10 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(30, 30, 30)
     doc.text('TOTAL INGRESOS', colLeft + 2, y + 3)
-    doc.text(fmt(Number(payslip.totalIngresos)), colLeft + colW - 2, y + 3, { align: 'right' })
+    doc.text(formatSoles(Number(payslip.totalIngresos)), colLeft + colW - 2, y + 3, { align: 'right' })
     doc.setTextColor(180, 30, 30)
     doc.text('TOTAL DESCUENTOS', colRight + 2, y + 3)
-    doc.text(fmt(Number(payslip.totalDescuentos)), colRight + colW - 2, y + 3, { align: 'right' })
+    doc.text(formatSoles(Number(payslip.totalDescuentos)), colRight + colW - 2, y + 3, { align: 'right' })
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(30, 30, 30)
     y += 10
@@ -198,7 +195,7 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
     doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
     doc.text('NETO A PAGAR', colLeft + 3, y + 8)
-    doc.text(`S/ ${fmt(Number(payslip.netoPagar))}`, W - 16, y + 8, { align: 'right' })
+    doc.text(formatSoles(Number(payslip.netoPagar)), W - 16, y + 8, { align: 'right' })
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(30, 30, 30)
     y += 18
@@ -212,11 +209,12 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
     const ctsEst = Number(detalle.ctsEstimadoMes ?? 0)
     const costoTotal = Number(detalle.costoTotalEmpleador ?? Number(payslip.totalIngresos) + essalud)
 
+    // TODO: revisar ancho columna tras refactor formato
     const empRows: [string, string, string][] = [
-      ['EsSalud', '9% sobre rem. computable', fmt(essalud)],
-      ...(sctrMonto > 0 ? [['SCTR', '~1.53%', fmt(sctrMonto)] as [string, string, string]] : []),
-      ['CTS devengada (est.)', 'Mes actual', fmt(ctsEst)],
-      ['Costo total empleador', 'Ingresos + EsSalud' + (sctrMonto > 0 ? ' + SCTR' : ''), fmt(costoTotal)],
+      ['EsSalud', '9% sobre rem. computable', formatSoles(essalud)],
+      ...(sctrMonto > 0 ? [['SCTR', '~1.53%', formatSoles(sctrMonto)] as [string, string, string]] : []),
+      ['CTS devengada (est.)', 'Mes actual', formatSoles(ctsEst)],
+      ['Costo total empleador', 'Ingresos + EsSalud' + (sctrMonto > 0 ? ' + SCTR' : ''), formatSoles(costoTotal)],
     ]
 
     doc.setFontSize(8)
@@ -232,7 +230,7 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
       doc.text(nota, 80, y)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(30, 30, 30)
-      doc.text(fmt(Number(valor)), W - 16, y, { align: 'right' })
+      doc.text(valor, W - 16, y, { align: 'right' })
       doc.setFont('helvetica', 'normal')
       y += 6
     }
@@ -248,11 +246,11 @@ export const GET = withPlanGateParams<{ id: string; payslipId: string }>('worker
     const impAnual = Number(detalle.impuestoAnualProyectado ?? 0)
 
     const rentaRows: [string, string][] = [
-      ['Renta Bruta Anual Proyectada', `S/ ${fmt(rbaProyectada)}`],
-      ['Menos: Deducción 7 UIT (S/ 5,500)', `S/ ${fmt(ded7UIT)}`],
-      ['Renta Neta Anual Imponible', `S/ ${fmt(rentaNeta)}`],
-      ['Impuesto Anual Proyectado', `S/ ${fmt(impAnual)}`],
-      ['Retención Este Mes', `S/ ${fmt(rentaQuinta)}`],
+      ['Renta Bruta Anual Proyectada', formatSoles(rbaProyectada)],
+      ['Menos: Deducción 7 UIT (5,500 nuevos soles)', formatSoles(ded7UIT)],
+      ['Renta Neta Anual Imponible', formatSoles(rentaNeta)],
+      ['Impuesto Anual Proyectado', formatSoles(impAnual)],
+      ['Retención Este Mes', formatSoles(rentaQuinta)],
     ]
 
     doc.setFontSize(8)

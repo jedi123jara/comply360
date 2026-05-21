@@ -127,7 +127,7 @@ export function ConfirmDialog({
       await onConfirm()
       if (autoCloseOnConfirm) onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ocurrió un error. Intentá de nuevo.')
+      setError(e instanceof Error ? e.message : 'Ocurrió un error. Intenta de nuevo.')
     } finally {
       setLoading(false)
     }

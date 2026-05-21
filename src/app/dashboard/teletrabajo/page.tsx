@@ -10,6 +10,7 @@ import {
   Save,
   ShieldCheck,
 } from 'lucide-react'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface Summary {
   totalLogs: number
@@ -284,7 +285,7 @@ export default function TeletrabajoPage() {
           <div className="rounded-2xl border border-slate-800 bg-white p-6">
             <p className="text-xs uppercase text-slate-500">Reembolsos pendientes</p>
             <p className="mt-2 text-3xl font-bold text-orange-400">
-              S/ {summary.totalReembolsosPendientes.toLocaleString('es-PE')}
+              {formatSoles(summary.totalReembolsosPendientes)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               Internet, electricidad y equipos asumidos por el trabajador
@@ -293,7 +294,7 @@ export default function TeletrabajoPage() {
           <div className="rounded-2xl border border-slate-800 bg-white p-6">
             <p className="text-xs uppercase text-slate-500">Reembolsos pagados</p>
             <p className="mt-2 text-3xl font-bold text-green-400">
-              S/ {summary.totalReembolsosPagados.toLocaleString('es-PE')}
+              {formatSoles(summary.totalReembolsosPagados)}
             </p>
             <p className="mt-1 text-xs text-slate-500">Total acumulado en el ejercicio actual</p>
           </div>

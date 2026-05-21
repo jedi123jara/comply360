@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   createPDFDoc,
   addHeader,
@@ -109,7 +110,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     // Multa potencial
     doc.setFontSize(10)
     doc.setTextColor(239, 68, 68)
-    doc.text(`Multa potencial estimada: S/ ${multa.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`, 55, y + 14)
+    doc.text(`Multa potencial estimada: ${formatSoles(multa)}`, 55, y + 14)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(60, 60, 60)
 
@@ -162,12 +163,13 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     y = sectionTitle(doc, `Brechas Detectadas (Top ${Math.min(gapAnalysis.length, 15)})`, y)
 
     if (gapAnalysis.length > 0) {
+      // TODO: revisar ancho columna tras refactor formato
       const columns = [
         { header: '#', x: 14 },
         { header: 'Hallazgo', x: 20 },
         { header: 'Base Legal', x: 120 },
         { header: 'Gravedad', x: 155 },
-        { header: 'Multa (S/)', x: 180 },
+        { header: 'Multa', x: 180 },
       ]
 
       const rows = gapAnalysis.slice(0, 15).map((gap, i) => [
@@ -175,7 +177,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
         gap.text.length > 55 ? gap.text.substring(0, 52) + '...' : gap.text,
         gap.baseLegal.length > 18 ? gap.baseLegal.substring(0, 15) + '...' : gap.baseLegal,
         gap.gravedad === 'MUY_GRAVE' ? 'MUY GRAVE' : gap.gravedad,
-        gap.multaPEN.toLocaleString('es-PE'),
+        formatSoles(gap.multaPEN),
       ])
 
       y = drawTable(doc, columns, rows, y, { headerArgs, zebraFill: true, rowHeight: 6 })
@@ -224,7 +226,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
         // Multa evitable
         doc.setFontSize(7)
         doc.setTextColor(239, 68, 68)
-        doc.text(`Multa evitable: S/ ${item.multaEvitable.toLocaleString('es-PE')}`, 20, y)
+        doc.text(`Multa evitable: ${formatSoles(item.multaEvitable)}`, 20, y)
         doc.setTextColor(150, 150, 150)
         doc.text(`Base legal: ${item.baseLegal}`, 90, y)
         y += 7
@@ -251,7 +253,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     )
     y += 4
     doc.text(
-      'con UIT 2026 = S/ 5,500. Los montos reales dependen de factores adicionales evaluados por SUNAFIL durante la inspeccion.',
+      'con UIT 2026 = 5,500 nuevos soles. Los montos reales dependen de factores adicionales evaluados por SUNAFIL durante la inspeccion.',
       14, y, { maxWidth: 180 },
     )
 

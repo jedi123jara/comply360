@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Building2, Save, Loader2, CheckCircle2, AlertCircle, XCircle, Upload, X, Crown, Sparkles, Users, ChevronLeft, User, Phone, Mail, MapPin, FileText, Search, Landmark, ShieldAlert, Briefcase, MapPinned } from 'lucide-react'
 import Link from 'next/link'
 import { PLANS as PLANS_SOURCE } from '@/lib/constants'
+import { formatSoles, formatSolesMarketing } from '@/lib/format/peruvian'
 
 // =============================================
 // Types
@@ -130,8 +131,8 @@ const VISUAL_DECORATION: Record<string, { color: string; gradient: string }> = {
 // price como literal: 0/199/599/1499/etc).
 function formatPrice(p: { price: number; isCustomQuote: boolean }): string {
   if (p.isCustomQuote) return 'Cotizar'
-  if (p.price === 0) return 'S/ 0/mes'
-  return `S/ ${p.price}/mes`
+  if (p.price === 0) return 'Gratis'
+  return `${formatSolesMarketing(p.price)}/mes`
 }
 
 const PLANS: PlanInfo[] = ['FREE', 'STARTER', 'EMPRESA', 'PRO'].map((key) => {
@@ -1069,7 +1070,7 @@ export default function EmpresaPage() {
                       <tbody>
                         {sunatData.deuda.items.map((d, i) => (
                           <tr key={i} className="border-b border-white/[0.04]">
-                            <td className="py-2 pr-4 text-red-400 font-mono">S/ {d.monto}</td>
+                            <td className="py-2 pr-4 text-red-400 font-mono">{formatSoles(d.monto)}</td>
                             <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{d.periodo}</td>
                             <td className="py-2 pr-4 text-[color:var(--text-secondary)]">{d.fechaCobranza}</td>
                             <td className="py-2 text-[color:var(--text-secondary)]">{d.entidad}</td>

@@ -159,6 +159,14 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
 })
 
 export default async function proxy(request: NextRequest) {
+  if (isDev && request.nextUrl.searchParams.get('__workerPreview') === '1') {
+    const response = NextResponse.next()
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
   try {
     return await clerkHandler(request, {} as unknown as Parameters<typeof clerkHandler>[1])
   } catch (error) {

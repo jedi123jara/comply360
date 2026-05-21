@@ -15,6 +15,7 @@ import {
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatSoles } from '@/lib/format/peruvian'
 
 type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO'
 type Prioridad = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
@@ -157,7 +158,7 @@ export default function SstScorePage() {
       <PageHeader
         eyebrow="SST · Scoring"
         title="Score SST"
-        subtitle="Diagnóstico ponderado de cumplimiento Ley 29783 + estimación de exposición económica según D.S. 019-2006-TR (UIT 2026 = S/ 5,500)."
+        subtitle={`Diagnóstico ponderado de cumplimiento Ley 29783 + estimación de exposición económica según D.S. 019-2006-TR (UIT 2026 = ${formatSoles(5500)}).`}
       />
 
       {/* Hero score */}
@@ -212,11 +213,11 @@ export default function SstScorePage() {
                   Exposición económica estimada
                 </h2>
                 <p className="mt-1 text-3xl font-black text-rose-700">
-                  S/ {data.exposicionEconomica.totalSoles.toLocaleString('es-PE')}
+                  {formatSoles(data.exposicionEconomica.totalSoles)}
                 </p>
                 <p className="text-xs text-slate-600">
                   Multa potencial si SUNAFIL inspecciona hoy con las brechas detectadas (D.S.
-                  019-2006-TR · UIT 2026 S/ 5,500
+                  019-2006-TR · UIT 2026 {formatSoles(5500)}
                   {data.contexto.esMype ? ' · régimen MYPE -50%' : ''}).
                 </p>
                 <ul className="mt-3 space-y-1 text-xs text-slate-700">
@@ -227,7 +228,7 @@ export default function SstScorePage() {
                       </Badge>
                       <span className="flex-1">{d.motivo}</span>
                       <span className="font-semibold text-slate-900">
-                        S/ {d.multaSoles.toLocaleString('es-PE')}
+                        {formatSoles(d.multaSoles)}
                       </span>
                     </li>
                   ))}
@@ -284,7 +285,7 @@ export default function SstScorePage() {
                       <p className="mt-1 text-xs text-slate-600">{r.detalle}</p>
                       {r.impactoSoles > 0 && (
                         <p className="mt-1 text-xs font-medium text-rose-700">
-                          Impacto evitable: S/ {r.impactoSoles.toLocaleString('es-PE')}
+                          Impacto evitable: {formatSoles(r.impactoSoles)}
                         </p>
                       )}
                     </div>

@@ -74,6 +74,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   contratos: 'Contratos',
   alertas: 'Alertas',
   calendario: 'Calendario',
+  'centro-sunafil': 'Centro SUNAFIL',
   simulacro: 'Simulacro',
   diagnostico: 'Diagnóstico',
   reportes: 'Reportes',

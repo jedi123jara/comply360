@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-auth'
+import { withPermission, withRole } from '@/lib/api-auth'
 import { requestIp } from '@/lib/orgchart/change-log'
 import { createWhatIfDraft, listWhatIfDrafts, WhatIfScenarioError } from '@/lib/orgchart/what-if'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const limitParam = Number(req.nextUrl.searchParams.get('limit') ?? 30)
   const drafts = await listWhatIfDrafts(ctx.orgId, Number.isFinite(limitParam) ? limitParam : 30)
   return NextResponse.json({ drafts })

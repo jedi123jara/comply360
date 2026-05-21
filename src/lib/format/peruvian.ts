@@ -6,31 +6,61 @@
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Dinero — siempre S/ con 2 decimales y separador de miles (1,234.56)
+// Dinero — sufijo "nuevos soles", 2 decimales, separadores US (1,234.56)
+// Convención BCRP/SUNAT: plural siempre, incluido 1.00 nuevos soles
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function formatSoles(value: number | string | null | undefined): string {
-  if (value === null || value === undefined) return 'S/ 0.00'
-  const num = typeof value === 'string' ? Number(value) : value
-  if (!Number.isFinite(num)) return 'S/ 0.00'
-  return `S/ ${num.toLocaleString('es-PE', {
+type SolesInput = number | string | { toNumber: () => number } | null | undefined
+
+function toNumeric(value: SolesInput): number {
+  if (value === null || value === undefined) return NaN
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') return Number(value)
+  if (typeof value === 'object' && typeof value.toNumber === 'function') return value.toNumber()
+  return NaN
+}
+
+export function formatSoles(value: SolesInput): string {
+  const num = toNumeric(value)
+  if (!Number.isFinite(num)) return '0.00 nuevos soles'
+  return `${num.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`
+  })} nuevos soles`
 }
 
 /**
- * Version "compacta" para mostrar en espacios chicos (KPI strips):
- * 1_250_000 → "S/ 1.25M"
- * 45_000    → "S/ 45K"
- * 2_350.55  → "S/ 2,350.55"
+ * Para precios de marketing donde el monto es entero (49, 349, 4990).
+ * Omite decimales cuando son enteros, mantiene formato completo si tiene céntimos.
+ *
+ * 49      → "49 nuevos soles"
+ * 4990    → "4,990 nuevos soles"
+ * 49.50   → "49.50 nuevos soles"
+ * null    → "Consultar"
  */
-export function formatSolesCompact(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return 'S/ 0'
-  const abs = Math.abs(value)
-  if (abs >= 1_000_000) return `S/ ${(value / 1_000_000).toFixed(2)}M`
-  if (abs >= 10_000) return `S/ ${(value / 1_000).toFixed(1)}K`
+export function formatSolesMarketing(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 'Consultar'
+  if (Number.isInteger(value)) {
+    return `${value.toLocaleString('en-US')} nuevos soles`
+  }
   return formatSoles(value)
+}
+
+/**
+ * Devuelve { amount, currency } para estilo jerárquico en KPIs / hero panels.
+ *
+ * Uso:
+ *   const { amount, currency } = formatSolesParts(2350.55)
+ *   <span className="text-3xl font-bold">{amount}</span>
+ *   <span className="text-sm text-muted ml-1">{currency}</span>
+ */
+export function formatSolesParts(value: SolesInput): { amount: string; currency: string } {
+  const num = toNumeric(value)
+  if (!Number.isFinite(num)) return { amount: '0.00', currency: 'nuevos soles' }
+  return {
+    amount: num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    currency: 'nuevos soles',
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

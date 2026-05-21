@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   LogIn,
@@ -50,6 +50,8 @@ export default function MiPortalAsistenciaPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const tokenFromUrl = searchParams?.get('t') ?? null
+  const isWorkerPreview =
+    process.env.NODE_ENV === 'development' && searchParams?.get('__workerPreview') === '1'
 
   const [state, setState] = useState<ClockState>('idle')
   const [resultMessage, setResultMessage] = useState<string | null>(null)
@@ -122,9 +124,10 @@ export default function MiPortalAsistenciaPage() {
   }, [])
 
   useEffect(() => {
+    if (isWorkerPreview) return
     // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch helper, no synchronous state update
     void loadHistory()
-  }, [loadHistory])
+  }, [isWorkerPreview, loadHistory])
 
   // Submit clock — acepta selfieHash y outOfBoundsReason como overrides opcionales
   const submitClock = useCallback(
@@ -262,9 +265,48 @@ export default function MiPortalAsistenciaPage() {
     minute: '2-digit',
   })
 
-  const today = history.find((h) => {
+  const displayHistory = useMemo<AttendanceHistory[]>(() => {
+    if (!isWorkerPreview || history.length > 0) return history
+
+    const y = currentTime.getFullYear()
+    const m = currentTime.getMonth()
+    const d = currentTime.getDate()
+
+    return [
+      {
+        id: 'preview-today',
+        clockIn: new Date(y, m, d, 8, 14).toISOString(),
+        clockOut: null,
+        status: 'PRESENT',
+        hoursWorked: null,
+      },
+      {
+        id: 'preview-yesterday',
+        clockIn: new Date(y, m, d - 1, 8, 3).toISOString(),
+        clockOut: new Date(y, m, d - 1, 17, 52).toISOString(),
+        status: 'PRESENT',
+        hoursWorked: 8.8,
+      },
+      {
+        id: 'preview-late',
+        clockIn: new Date(y, m, d - 2, 8, 41).toISOString(),
+        clockOut: new Date(y, m, d - 2, 18, 2).toISOString(),
+        status: 'LATE',
+        hoursWorked: 8.4,
+      },
+      {
+        id: 'preview-friday',
+        clockIn: new Date(y, m, d - 3, 7, 58).toISOString(),
+        clockOut: new Date(y, m, d - 3, 17, 39).toISOString(),
+        status: 'PRESENT',
+        hoursWorked: 8.6,
+      },
+    ]
+  }, [currentTime, history, isWorkerPreview])
+
+  const today = displayHistory.find((h) => {
     const d = new Date(h.clockIn)
-    const now = new Date()
+    const now = currentTime
     return (
       d.getFullYear() === now.getFullYear() &&
       d.getMonth() === now.getMonth() &&
@@ -273,13 +315,13 @@ export default function MiPortalAsistenciaPage() {
   })
 
   return (
-    <div className="space-y-5 pb-24">
+    <div className="c360-worker-os c360-attendance-os space-y-6 pb-24">
       {/* Reloj hero */}
-      <header className="relative overflow-hidden rounded-2xl border border-[color:var(--border-default)] bg-white p-6 text-center">
+      <header className="c360-attendance-hero relative overflow-hidden rounded-2xl border border-[color:var(--border-default)] bg-white p-6 text-center">
         <div
           aria-hidden="true"
-          className="absolute -top-10 -right-10 h-40 w-40 rounded-full blur-3xl opacity-40"
-          style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.35), transparent 70%)' }}
+          className="absolute inset-x-6 top-0 h-px opacity-70"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(20,184,166,0.72), rgba(37,99,235,0.42), transparent)' }}
         />
         <div className="relative">
           <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-2">
@@ -299,7 +341,7 @@ export default function MiPortalAsistenciaPage() {
 
       {/* Estado principal */}
       {state === 'submitting' ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+        <div className="c360-attendance-state rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
           <Loader2 className="mx-auto h-10 w-10 animate-spin text-emerald-600 mb-3" />
           <p className="text-sm font-semibold text-emerald-900">Registrando tu marcación…</p>
         </div>
@@ -307,7 +349,7 @@ export default function MiPortalAsistenciaPage() {
 
       {state === 'success' ? (
         <div
-          className="rounded-2xl border-2 p-8 text-center relative overflow-hidden"
+          className="c360-attendance-state rounded-2xl border-2 p-8 text-center relative overflow-hidden"
           style={{
             background:
               resultStatus === 'LATE'
@@ -353,7 +395,7 @@ export default function MiPortalAsistenciaPage() {
       ) : null}
 
       {state === 'error' ? (
-        <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-6 text-center">
+        <div className="c360-attendance-state rounded-2xl border-2 border-rose-300 bg-rose-50 p-6 text-center">
           <AlertTriangle className="mx-auto h-10 w-10 text-rose-600 mb-3" />
           <h2 className="text-lg font-semibold text-rose-900 mb-1">No se pudo marcar</h2>
           <p className="text-sm text-rose-800 mb-4">{error}</p>
@@ -372,7 +414,7 @@ export default function MiPortalAsistenciaPage() {
         <>
           {/* Hoy */}
           {today ? (
-            <section className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5">
+            <section className="c360-attendance-day-card rounded-2xl border border-[color:var(--border-default)] bg-white p-5">
               <p className="text-[11px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] mb-2">
                 Tu día hoy
               </p>
@@ -434,7 +476,7 @@ export default function MiPortalAsistenciaPage() {
               cuando la org la pide (anti-fraude PRO). Por defecto OFF — más
               rápido y menos fricción. Suficiente legal: token JWT firmado +
               sesión Clerk del worker + audit trail (IP, GPS, user-agent). */}
-          <section className="rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 p-6 text-center">
+          <section className="c360-attendance-action-card rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 p-6 text-center">
             <div
               className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-white"
               style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)' }}
@@ -539,7 +581,7 @@ export default function MiPortalAsistenciaPage() {
           )}
 
           {/* Input manual fallback */}
-          <details className="rounded-2xl border border-[color:var(--border-default)] bg-white">
+          <details className="c360-attendance-manual rounded-2xl border border-[color:var(--border-default)] bg-white">
             <summary className="cursor-pointer p-4 font-semibold text-sm text-[color:var(--text-primary)]">
               ¿No tienes cámara? Ingresa el código manual
             </summary>
@@ -742,14 +784,14 @@ export default function MiPortalAsistenciaPage() {
       )}
 
       {/* Historial últimas 7 */}
-      {history.length > 0 && state === 'idle' ? (
-        <section className="rounded-2xl border border-[color:var(--border-default)] bg-white p-4">
+      {displayHistory.length > 0 && state === 'idle' ? (
+        <section className="c360-attendance-history rounded-2xl border border-[color:var(--border-default)] bg-white p-4">
           <div className="flex items-center gap-2 mb-3">
             <History className="h-4 w-4 text-[color:var(--text-tertiary)]" />
             <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">Tus últimas marcaciones</h3>
           </div>
           <ul className="space-y-2">
-            {history.slice(0, 7).map((h) => {
+            {displayHistory.slice(0, 7).map((h) => {
               const d = new Date(h.clockIn)
               return (
                 <li key={h.id} className="flex items-center justify-between text-xs border-t border-[color:var(--border-subtle)] pt-2 first:border-t-0 first:pt-0">

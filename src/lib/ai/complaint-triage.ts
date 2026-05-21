@@ -1,11 +1,10 @@
 /**
- * Triaje automático de denuncias del canal Ley 27942.
+ * Triaje automático del canal de denuncias multi-regimen.
  *
  * Al recibir una denuncia, la IA:
  *  1. Clasifica severidad (BAJA | MEDIA | ALTA | CRITICA)
  *  2. Clasifica urgencia de respuesta (BAJA | MEDIA | ALTA | INMEDIATA)
- *  3. Sugiere medidas de protección específicas según el tipo (hostigamiento,
- *     discriminación, acoso laboral), alineadas al D.S. 014-2019-MIMP
+ *  3. Sugiere acciones específicas según el régimen: HSL, SST o MPD
  *  4. Detecta red flags que requieren escalamiento inmediato
  *  5. Genera un summary de 1-2 oraciones que va al panel del Comité
  *
@@ -31,11 +30,13 @@
 
 import { callAI, type AIMessage } from './provider'
 import type { ComplaintType } from '@/generated/prisma/client'
+import { COMPLAINT_REGIMES, COMPLAINT_TYPES, type ComplaintRegimeValue } from '@/lib/complaints/regime-rules'
 
 export type TriageSeverity = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA'
 export type TriageUrgency = 'BAJA' | 'MEDIA' | 'ALTA' | 'INMEDIATA'
 
 export interface TriageInput {
+  regime: ComplaintRegimeValue
   type: ComplaintType
   description: string
   accusedPosition?: string | null
@@ -93,17 +94,15 @@ function releaseSlot(): void {
 // Prompts
 // ═══════════════════════════════════════════════════════════════════════════
 
-const TYPE_LABELS: Record<ComplaintType, string> = {
-  HOSTIGAMIENTO_SEXUAL: 'hostigamiento sexual',
-  DISCRIMINACION: 'discriminación',
-  ACOSO_LABORAL: 'acoso laboral',
-  OTRO: 'denuncia laboral (otro)',
-}
-
 function buildSystemPrompt(): string {
-  return `Eres un asistente legal especializado en el canal de denuncias laborales del Perú, conforme a la Ley 27942 (Ley de Prevención y Sanción del Hostigamiento Sexual) y el D.S. 014-2019-MIMP.
+  return `Eres un asistente legal especializado en canales de denuncias internos para empresas peruanas.
 
-Tu rol es analizar la descripción de una denuncia y clasificarla para el Comité de Intervención.
+Tu rol es analizar la descripción de un caso y clasificarlo para el equipo responsable. No resuelves el caso, no determinas culpabilidad y no reemplazas asesoría legal. Solo haces triaje operativo.
+
+Regimenes:
+- HSL: hostigamiento sexual y violencia laboral. Base: Ley 27942, D. Leg. 1410, D.S. 014-2019-MIMP y D.S. 021-2021-MIMP.
+- SST: accidentes, incidentes peligrosos, enfermedades ocupacionales y condiciones inseguras. Base: Ley 29783, D.S. 005-2012-TR, R.M. 050-2013-TR y reglas SAT/MTPE.
+- MPD: canal del modelo de prevencion de delitos. Base: Ley 30424, Ley 31740 y D.S. 002-2025-JUS.
 
 Devuelves SIEMPRE JSON con el siguiente formato, sin texto adicional:
 {
@@ -111,22 +110,22 @@ Devuelves SIEMPRE JSON con el siguiente formato, sin texto adicional:
   "urgency": "BAJA" | "MEDIA" | "ALTA" | "INMEDIATA",
   "summary": "1-2 oraciones resumiendo objetivamente la denuncia",
   "redFlags": ["señal que requiere atención inmediata", ...],
-  "suggestedProtectionMeasures": ["medida concreta del D.S. 014-2019-MIMP", ...]
+  "suggestedProtectionMeasures": ["accion concreta para el regimen aplicable", ...]
 }
 
 Criterios de severidad:
-- CRITICA: hay amenaza física, agresión sexual consumada o intento, represalia activa, conducta reiterada con evidencia documentada.
-- ALTA: conducta reiterada, uso de jerarquía para presionar, afectación clara a la salud mental del denunciante.
-- MEDIA: hecho único con impacto moderado, comentarios inapropiados sin agresión física, ambiente laboral deteriorado.
+- CRITICA: riesgo vital o fisico actual, accidente mortal/incidente peligroso, agresion sexual consumada o intento, posible delito grave con alta direccion involucrada, represalia activa.
+- ALTA: conducta reiterada, subordinacion directa, afectacion clara a salud, evidencia documental, accidente con lesion, indicios de delito cubierto por Ley 30424.
+- MEDIA: hecho unico con impacto moderado, condicion insegura corregible, irregularidad MPD sin urgencia externa, ambiente laboral deteriorado.
 - BAJA: roce laboral puntual, malentendido, falta de evidencia específica más allá del relato.
 
 Criterios de urgencia (independiente de severidad):
-- INMEDIATA: hay riesgo físico actual, necesidad de separar al denunciado YA, la víctima necesita atención psicológica urgente.
-- ALTA: actuar en 24-48 horas para prevenir represalia o evidencia desaparecida.
-- MEDIA: investigar en los plazos legales normales (30 días).
+- INMEDIATA: hay riesgo fisico actual, accidente mortal/incidente peligroso con plazo SAT 24h, necesidad de separar al denunciado YA, indicios de flagrancia penal.
+- ALTA: actuar en 24-72 horas para prevenir represalia, preservar evidencia, brindar atencion medica/psicologica o acuse MPD.
+- MEDIA: investigar dentro del flujo legal o de mejores practicas.
 - BAJA: caso que admite investigación sin urgencia, sin riesgo inminente.
 
-Medidas de protección que puedes sugerir (elige las que apliquen):
+Acciones HSL que puedes sugerir:
 - Separación física del denunciado (cambio de oficina/turno)
 - Cambio de reporting line temporal
 - Licencia con goce para la víctima durante la investigación
@@ -137,6 +136,24 @@ Medidas de protección que puedes sugerir (elige las que apliquen):
 - Capacitación obligatoria al equipo (en discriminación / acoso)
 - Revisión de política interna de la empresa
 
+Acciones SST que puedes sugerir:
+- Primeros auxilios y derivacion medica inmediata
+- Asegurar/preservar la escena
+- Notificacion SAT-MTPE/SUNAFIL cuando corresponda
+- Reunion extraordinaria del Comite SST ante accidente mortal
+- Investigacion de causas inmediatas y basicas
+- Medidas correctivas con responsable y fecha
+- Registro obligatorio conforme R.M. 050-2013-TR
+
+Acciones MPD que puedes sugerir:
+- Acuse confidencial al denunciante
+- Preservar evidencia digital y cadena de custodia
+- Evaluar conflicto de interes del investigador
+- Activar Encargado de Prevencion / Comite de Etica
+- Definir plan de investigacion interna
+- Evaluar derivacion a Ministerio Publico si hay indicios de delito
+- Registrar decision y lecciones aprendidas del MPD
+
 Red flags que debes destacar si aparecen:
 - Mención de amenaza física o sexual
 - Mención explícita de represalia por denunciar previamente
@@ -145,16 +162,20 @@ Red flags que debes destacar si aparecen:
 - Relación de subordinación directa con el denunciado
 - Evidencia documental ofrecida (fotos, chats, audio)
 - Múltiples víctimas mencionadas
+- Accidente mortal, amputacion, hospitalizacion o incidente peligroso
+- Referencia a soborno, colusion, lavado, facturacion falsa, aduanas, terrorismo o alta direccion
 
 Sé conservador con "CRITICA" e "INMEDIATA": úsalas solo con evidencia clara en el texto. No inventes hechos no mencionados.`
 }
 
 function buildUserPrompt(input: TriageInput): string {
-  const typeLabel = TYPE_LABELS[input.type]
+  const regimeLabel = COMPLAINT_REGIMES[input.regime]?.label ?? input.regime
+  const typeLabel = COMPLAINT_TYPES[input.type]?.label ?? input.type
   const accusedInfo = input.accusedPosition
     ? `\nCargo del denunciado: ${input.accusedPosition}`
     : ''
-  return `Tipo de denuncia: ${typeLabel}${accusedInfo}
+  return `Regimen: ${regimeLabel}
+Tipo de caso: ${typeLabel}${accusedInfo}
 
 Descripción del denunciante:
 """

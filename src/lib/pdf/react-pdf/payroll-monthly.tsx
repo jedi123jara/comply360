@@ -75,9 +75,9 @@ export function PayrollMonthlyPDF({ data }: { data: PayrollMonthlyData }) {
 
   const kpis: Kpi[] = [
     { label: 'Trabajadores', value: String(data.totalTrabajadores) },
-    { label: 'Devengado total', value: `S/ ${formatMoney(data.totalDevengado)}` },
-    { label: 'Descuentos', value: `S/ ${formatMoney(data.totalDescuentos)}`, tone: 'warn' },
-    { label: 'Neto pagado', value: `S/ ${formatMoney(data.totalNetoPagado)}`, tone: 'good' },
+    { label: 'Devengado total', value: formatMoney(data.totalDevengado) },
+    { label: 'Descuentos', value: formatMoney(data.totalDescuentos), tone: 'warn' },
+    { label: 'Neto pagado', value: formatMoney(data.totalNetoPagado), tone: 'good' },
   ]
 
   return (
@@ -97,20 +97,20 @@ export function PayrollMonthlyPDF({ data }: { data: PayrollMonthlyData }) {
         <View style={local.totalsBox}>
           <View style={local.totalCol}>
             <Text style={local.totalLabel}>Devengado total</Text>
-            <Text style={local.totalValue}>S/ {formatMoney(data.totalDevengado)}</Text>
+            <Text style={local.totalValue}>{formatMoney(data.totalDevengado)}</Text>
           </View>
           <View style={local.totalCol}>
             <Text style={local.totalLabel}>Descuentos del trabajador</Text>
-            <Text style={local.totalValue}>S/ {formatMoney(data.totalDescuentos)}</Text>
+            <Text style={local.totalValue}>{formatMoney(data.totalDescuentos)}</Text>
           </View>
           <View style={local.totalCol}>
             <Text style={local.totalLabel}>Aportes empleador</Text>
-            <Text style={local.totalValue}>S/ {formatMoney(data.totalAportesEmpleador)}</Text>
+            <Text style={local.totalValue}>{formatMoney(data.totalAportesEmpleador)}</Text>
           </View>
           <View style={local.totalCol}>
             <Text style={local.totalLabel}>Neto pagado</Text>
             <Text style={[local.totalValue, { color: BRAND.accent }]}>
-              S/ {formatMoney(data.totalNetoPagado)}
+              {formatMoney(data.totalNetoPagado)}
             </Text>
           </View>
         </View>
@@ -131,8 +131,8 @@ export function PayrollMonthlyPDF({ data }: { data: PayrollMonthlyData }) {
               rows={desgloseRegimen.map((r) => [
                 r.regimen.replace(/_/g, ' '),
                 String(r.trabajadores),
-                `S/ ${formatMoney(r.totalBruto)}`,
-                `S/ ${formatMoney(r.totalNeto)}`,
+                formatMoney(r.totalBruto),
+                formatMoney(r.totalNeto),
               ])}
             />
           </>
@@ -157,10 +157,10 @@ export function PayrollMonthlyPDF({ data }: { data: PayrollMonthlyData }) {
             t.dni,
             t.cargo ?? '—',
             t.regimen.replace(/_/g, ' '),
-            `S/ ${formatMoney(t.sueldoBruto)}`,
-            `S/ ${formatMoney(t.descuentos)}`,
-            `S/ ${formatMoney(t.aportes)}`,
-            `S/ ${formatMoney(t.netoPagar)}`,
+            formatMoney(t.sueldoBruto),
+            formatMoney(t.descuentos),
+            formatMoney(t.aportes),
+            formatMoney(t.netoPagar),
           ])}
         />
 

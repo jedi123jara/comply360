@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatSoles,
-  formatSolesCompact,
+  formatSolesMarketing,
+  formatSolesParts,
   formatDni,
   formatDniMasked,
   formatRuc,
@@ -12,37 +13,87 @@ import {
 } from '../peruvian'
 
 describe('formatSoles', () => {
-  it('formatea con 2 decimales y separador de miles', () => {
-    expect(formatSoles(2350.55)).toBe('S/ 2,350.55')
-    expect(formatSoles(1234567.89)).toBe('S/ 1,234,567.89')
+  it('formatea con 2 decimales, separadores US y sufijo "nuevos soles"', () => {
+    expect(formatSoles(2350.55)).toBe('2,350.55 nuevos soles')
+    expect(formatSoles(1234567.89)).toBe('1,234,567.89 nuevos soles')
+  })
+
+  it('plural siempre, incluso para 1.00 (convención BCRP)', () => {
+    expect(formatSoles(1)).toBe('1.00 nuevos soles')
+    expect(formatSoles(0.01)).toBe('0.01 nuevos soles')
   })
 
   it('acepta strings numéricos', () => {
-    expect(formatSoles('1500.00')).toBe('S/ 1,500.00')
+    expect(formatSoles('1500.00')).toBe('1,500.00 nuevos soles')
   })
 
-  it('retorna S/ 0.00 para null/undefined/NaN', () => {
-    expect(formatSoles(null)).toBe('S/ 0.00')
-    expect(formatSoles(undefined)).toBe('S/ 0.00')
-    expect(formatSoles('not-a-number')).toBe('S/ 0.00')
+  it('acepta objetos tipo Decimal (con toNumber())', () => {
+    expect(formatSoles({ toNumber: () => 1234.5 })).toBe('1,234.50 nuevos soles')
+  })
+
+  it('retorna "0.00 nuevos soles" para null/undefined/NaN', () => {
+    expect(formatSoles(null)).toBe('0.00 nuevos soles')
+    expect(formatSoles(undefined)).toBe('0.00 nuevos soles')
+    expect(formatSoles('not-a-number')).toBe('0.00 nuevos soles')
   })
 
   it('maneja cero correctamente', () => {
-    expect(formatSoles(0)).toBe('S/ 0.00')
+    expect(formatSoles(0)).toBe('0.00 nuevos soles')
+  })
+
+  it('maneja negativos', () => {
+    expect(formatSoles(-1234.56)).toBe('-1,234.56 nuevos soles')
+  })
+
+  it('millones grandes mantienen formato completo (sin compactar)', () => {
+    expect(formatSoles(1_500_000)).toBe('1,500,000.00 nuevos soles')
+    expect(formatSoles(45_000)).toBe('45,000.00 nuevos soles')
   })
 })
 
-describe('formatSolesCompact', () => {
-  it('M para millones', () => {
-    expect(formatSolesCompact(1_500_000)).toBe('S/ 1.50M')
+describe('formatSolesMarketing', () => {
+  it('omite decimales cuando el monto es entero', () => {
+    expect(formatSolesMarketing(49)).toBe('49 nuevos soles')
+    expect(formatSolesMarketing(349)).toBe('349 nuevos soles')
+    expect(formatSolesMarketing(4990)).toBe('4,990 nuevos soles')
   })
 
-  it('K para valores >= 10K', () => {
-    expect(formatSolesCompact(45_000)).toBe('S/ 45.0K')
+  it('mantiene decimales si el monto no es entero', () => {
+    expect(formatSolesMarketing(49.5)).toBe('49.50 nuevos soles')
+    expect(formatSolesMarketing(99.99)).toBe('99.99 nuevos soles')
   })
 
-  it('formato completo para < 10K', () => {
-    expect(formatSolesCompact(2350.55)).toBe('S/ 2,350.55')
+  it('separadores US para enteros grandes', () => {
+    expect(formatSolesMarketing(150_000)).toBe('150,000 nuevos soles')
+  })
+
+  it('null/undefined/NaN → "Consultar"', () => {
+    expect(formatSolesMarketing(null)).toBe('Consultar')
+    expect(formatSolesMarketing(undefined)).toBe('Consultar')
+    expect(formatSolesMarketing(NaN)).toBe('Consultar')
+  })
+})
+
+describe('formatSolesParts', () => {
+  it('separa monto y moneda para estilo jerárquico', () => {
+    expect(formatSolesParts(2350.55)).toEqual({
+      amount: '2,350.55',
+      currency: 'nuevos soles',
+    })
+  })
+
+  it('null/NaN → defaults seguros', () => {
+    expect(formatSolesParts(null)).toEqual({
+      amount: '0.00',
+      currency: 'nuevos soles',
+    })
+  })
+
+  it('acepta Decimal', () => {
+    expect(formatSolesParts({ toNumber: () => 5000 })).toEqual({
+      amount: '5,000.00',
+      currency: 'nuevos soles',
+    })
   })
 })
 

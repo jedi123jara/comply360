@@ -94,7 +94,7 @@ describe('Money formateo', () => {
   })
 
   it('toFormatted', () => {
-    expect(money(1234.5).toFormatted()).toMatch(/S\/ 1[,.]234[.,]50/)
+    expect(money(1234.5).toFormatted()).toBe('1,234.50 nuevos soles')
   })
 
   it('toJSON da number', () => {

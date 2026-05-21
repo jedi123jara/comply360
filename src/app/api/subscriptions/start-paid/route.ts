@@ -27,6 +27,7 @@ import { withAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import { CulqiService, CulqiPaymentError, CULQI_PLANS } from '@/lib/payments/culqi'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const PAID_FIRST_MONTH_DISCOUNT = 0.2 // 20% off
 const VALID_PLANS = new Set(['STARTER', 'EMPRESA', 'PRO'])
@@ -226,10 +227,10 @@ function buildConfirmationEmailHtml(
       </p>
       <table style="width: 100%; margin: 16px 0; border-collapse: collapse; background: #f9fafb; border-radius: 8px; padding: 12px;">
         <tr><td style="padding: 8px;">Plan</td><td style="padding: 8px; text-align: right;"><strong>${plan}</strong></td></tr>
-        <tr><td style="padding: 8px;">Precio normal</td><td style="padding: 8px; text-align: right; color: #9ca3af; text-decoration: line-through;">S/ ${fullAmount.toFixed(2)}</td></tr>
-        <tr><td style="padding: 8px;">Descuento primer mes (20%)</td><td style="padding: 8px; text-align: right; color: #1e40af;">-S/ ${(fullAmount - paidAmount).toFixed(2)}</td></tr>
-        <tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 8px;"><strong>Cobrado hoy</strong></td><td style="padding: 8px; text-align: right;"><strong>S/ ${paidAmount.toFixed(2)}</strong></td></tr>
-        <tr><td style="padding: 8px;">Próxima renovación</td><td style="padding: 8px; text-align: right;">${formatDate} (S/ ${fullAmount.toFixed(2)})</td></tr>
+        <tr><td style="padding: 8px;">Precio normal</td><td style="padding: 8px; text-align: right; color: #9ca3af; text-decoration: line-through;">${formatSoles(fullAmount)}</td></tr>
+        <tr><td style="padding: 8px;">Descuento primer mes (20%)</td><td style="padding: 8px; text-align: right; color: #1e40af;">-${formatSoles(fullAmount - paidAmount)}</td></tr>
+        <tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 8px;"><strong>Cobrado hoy</strong></td><td style="padding: 8px; text-align: right;"><strong>${formatSoles(paidAmount)}</strong></td></tr>
+        <tr><td style="padding: 8px;">Próxima renovación</td><td style="padding: 8px; text-align: right;">${formatDate} (${formatSoles(fullAmount)})</td></tr>
       </table>
       <p style="color: #374151; font-size: 15px;">
         Recibirás tu factura electrónica formal en las próximas 24 horas.

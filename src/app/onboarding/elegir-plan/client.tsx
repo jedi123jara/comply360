@@ -6,7 +6,7 @@
  * Layout:
  *   - Hero "Elige tu plan, {orgName}"
  *   - Recomendación según sizeRange (highlight visual del plan sugerido)
- *   - Grid de 4 cards: FREE | STARTER | EMPRESA ★ | PRO
+ *   - Grid de 4 cards: FREE | STARTER | PRO ★ | EMPRESA
  *   - ENTERPRISE como link inferior "¿más de 300 trabajadores? Hablar con ventas"
  *   - Cada plan paid tiene 2 CTAs: trial gratis (default) + pagar -20%
  *   - Plan FREE tiene 1 CTA: "Continuar gratis"
@@ -22,12 +22,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Sparkles, Building2, Zap, Rocket, Star, ArrowRight, CreditCard, Clock, Loader2, Gem, MessageCircle } from 'lucide-react'
+import { Check, Sparkles, Building2, Zap, Rocket, Star, ArrowRight, CreditCard, Clock, Loader2, MessageCircle } from 'lucide-react'
 import { PLANS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/sonner-toaster'
+import { formatSolesMarketing } from '@/lib/format/peruvian'
 
-type PaidPlan = 'STARTER' | 'EMPRESA' | 'PRO' | 'BUSINESS'
+type PaidPlan = 'STARTER' | 'PRO' | 'EMPRESA'
 type PlanKey = 'FREE' | PaidPlan | 'ENTERPRISE'
 
 interface Props {
@@ -43,13 +44,12 @@ const PLAN_META: Record<PlanKey, {
 }> = {
   FREE: { icon: Star, tagline: 'Para probar las herramientas gratis', cta: 'Continuar gratis' },
   STARTER: { icon: Building2, tagline: 'Ideal para MYPE de hasta 20 trabajadores', cta: 'Iniciar 14 días gratis' },
-  EMPRESA: { icon: Zap, tagline: 'El plan más elegido — compliance completo', cta: 'Iniciar 14 días gratis' },
-  PRO: { icon: Rocket, tagline: 'Para empresas que escalan con IA', cta: 'Iniciar 14 días gratis' },
-  BUSINESS: { icon: Gem, tagline: 'Multi-empresa + soporte para empresas grandes', cta: 'Iniciar 14 días gratis' },
-  ENTERPRISE: { icon: Sparkles, tagline: 'Holdings, gobierno y +1,000 trabajadores', cta: 'Solicitar cotización' },
+  PRO: { icon: Rocket, tagline: 'Más elegido: IA, SST y SUNAFIL', cta: 'Iniciar 14 días gratis' },
+  EMPRESA: { icon: Zap, tagline: 'Multi-sede + portal trabajador', cta: 'Iniciar 14 días gratis' },
+  ENTERPRISE: { icon: Sparkles, tagline: 'Holdings, corporativos y 300+ trabajadores', cta: 'Solicitar cotización' },
 }
 
-const ORDER: PlanKey[] = ['FREE', 'STARTER', 'EMPRESA', 'PRO', 'BUSINESS']
+const ORDER: PlanKey[] = ['FREE', 'STARTER', 'PRO', 'EMPRESA']
 
 // WhatsApp de ventas para ENTERPRISE — mismo que /planes
 const SALES_WHATSAPP_NUMBER = '51999999999'
@@ -58,18 +58,15 @@ const SALES_WHATSAPP_NUMBER = '51999999999'
  * Recomienda el plan basado en sizeRange del onboarding.
  * Mapping:
  *   1-10 → STARTER (MYPE)
- *   11-100 → EMPRESA
- *   101-300 → PRO (la IA sale a cuenta)
- *   301-750 → BUSINESS (multi-empresa)
- *   750+ → ENTERPRISE (custom — UX te muestra "Cotizar")
+ *   11-100 → PRO (sweet spot)
+ *   101+ → EMPRESA (multi-sede / operación más compleja)
  */
 function recommendPlan(sizeRange: string | null): PlanKey {
-  if (!sizeRange) return 'EMPRESA'
+  if (!sizeRange) return 'PRO'
   if (sizeRange === '1-10') return 'STARTER'
-  if (sizeRange === '11-50' || sizeRange === '51-100') return 'EMPRESA'
-  if (sizeRange === '101-200') return 'PRO'
-  if (sizeRange === '200+') return 'BUSINESS'
-  return 'EMPRESA'
+  if (sizeRange === '11-50' || sizeRange === '51-100') return 'PRO'
+  if (sizeRange === '101-200' || sizeRange === '200+') return 'EMPRESA'
+  return 'PRO'
 }
 
 export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
@@ -155,8 +152,8 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
           ) : null}
         </div>
 
-        {/* Plan grid — 5 cards (FREE | STARTER | EMPRESA ★ | PRO | BUSINESS) */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Plan grid — FREE | STARTER | PRO ★ | EMPRESA */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {ORDER.map((key) => {
             const plan = PLANS[key]
             const meta = PLAN_META[key]
@@ -196,7 +193,7 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
 
                 <div className="mb-1">
                   <span className="text-2xl font-bold tracking-tight text-slate-900">
-                    {plan.price === 0 ? 'Gratis' : `S/ ${plan.price.toLocaleString('es-PE')}`}
+                    {plan.price === 0 ? 'Gratis' : formatSolesMarketing(plan.price)}
                   </span>
                   {plan.price !== 0 && <span className="text-sm text-slate-500"> /mes</span>}
                 </div>
@@ -252,7 +249,7 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
                       onClick={() => handlePayNow(key as PaidPlan)}
                       disabled={isLoadingThis || isPayLoadingThis}
                       className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl font-medium text-xs px-4 py-2 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50"
-                      title={`Pagar S/ ${(plan.price * 0.8).toFixed(0)} ahora (20% off el primer mes)`}
+                      title={`Pagar ${formatSolesMarketing(Math.round(plan.price * 0.8))} ahora (20% off el primer mes)`}
                     >
                       {isPayLoadingThis ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -282,9 +279,9 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
                 </span>
               </div>
               <p className="text-sm text-slate-300 leading-relaxed">
-                Para empresas con <strong className="text-white">+1,000 trabajadores</strong>, holdings con
-                múltiples RUCs, gobierno, banca o cualquier organización que necesite SLA garantizado,
-                API REST, multi-tenant ilimitado, Customer Success Manager dedicado y branding white-label.
+                Para empresas con <strong className="text-white">300+ trabajadores</strong>, holdings con
+                múltiples RUCs, corporativos o cualquier organización que necesite SLA garantizado,
+                API REST, multi-tenant ilimitado y Customer Success Manager dedicado.
               </p>
               <p className="text-xs text-slate-400 mt-2">
                 Te respondemos por WhatsApp en menos de 4 horas hábiles.
@@ -307,7 +304,7 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
           {[
             { title: 'Sin tarjeta de crédito', body: 'El trial de 14 días arranca sin pedirte tarjeta. Te avisamos 3 días antes de cobrar.' },
             { title: 'Cancela cuando quieras', body: 'Un click en tu dashboard y listo. No hay letras chicas ni penalidad.' },
-            { title: 'Migración gratuita', body: '¿Vienes de Buk u Ofisis? Te importamos workers + contratos en menos de 24h.' },
+            { title: 'Migración gratuita', body: '¿Vienes de Buk u Ofisis? Te importamos trabajadores y contratos en menos de 24 horas.' },
           ].map((item, i) => (
             <div key={i} className="rounded-xl bg-white ring-1 ring-slate-200 p-4 text-center">
               <h4 className="text-sm font-semibold text-slate-900 mb-1">{item.title}</h4>

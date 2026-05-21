@@ -35,7 +35,7 @@ function Form({ onSubmit, loading }: { onSubmit: (p: unknown) => void | Promise<
   return (
     <Card padding="lg" className="space-y-4">
       <p className="text-sm text-[color:var(--text-secondary)]">
-        Un cartel en 30 segundos. Solo confirmá los montos del año — el resto se genera automáticamente con los derechos laborales estándar.
+        Un cartel en 30 segundos. Solo confirma los montos del año — el resto se genera automáticamente con los derechos laborales estándar.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <Field label="Año">

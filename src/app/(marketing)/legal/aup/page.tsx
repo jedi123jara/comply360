@@ -92,7 +92,7 @@ export default function AupPage() {
 
       <h2>6. Reportar abusos</h2>
       <p>
-        Si detectás uso indebido, reportanos a{' '}
+        Si detectas uso indebido, repórtalo a{' '}
         <a href="mailto:abuse@comply360.pe">abuse@comply360.pe</a> con evidencia
         razonable. Investigamos en 72 horas y respondemos en 5 días hábiles.
       </p>

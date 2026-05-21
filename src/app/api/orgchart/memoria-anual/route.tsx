@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import {
   buildMemoriaAnualData,
@@ -24,7 +24,7 @@ export const runtime = 'nodejs'
 // Le subimos el límite de tiempo del Edge para evitar 504.
 export const maxDuration = 60
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const yearParam = req.nextUrl.searchParams.get('year')
   const year = yearParam ? Number(yearParam) : new Date().getFullYear()
 

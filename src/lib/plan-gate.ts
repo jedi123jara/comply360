@@ -81,6 +81,65 @@ export async function checkWorkerLimit(orgId: string, plan: string): Promise<{
 // API MIDDLEWARE
 // =============================================
 
+export async function requirePlanFeature(
+  req: NextRequest,
+  ctx: AuthContext,
+  requiredFeature: PlanFeature,
+): Promise<NextResponse | null> {
+  // Founder bypass: SUPER_ADMIN y emails en FOUNDER_EMAILS pueden usar
+  // todas las features sin pagar plan.
+  if (ctx.role === 'SUPER_ADMIN') return null
+
+  const founderEmails = (process.env.FOUNDER_EMAILS ?? process.env.FOUNDER_EMAIL ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+  const ctxEmail = typeof ctx.email === 'string' ? ctx.email.toLowerCase() : ''
+  if (ctxEmail && founderEmails.includes(ctxEmail)) return null
+
+  const org = await prisma.organization.findUnique({
+    where: { id: ctx.orgId },
+    select: { plan: true, planExpiresAt: true },
+  })
+
+  if (!org) {
+    return NextResponse.json(
+      { error: 'Organizacion no encontrada', code: 'ORG_NOT_FOUND' },
+      { status: 404 },
+    )
+  }
+
+  let effectivePlan = org.plan
+  if (org.planExpiresAt && new Date(org.planExpiresAt) < new Date()) {
+    effectivePlan = 'FREE'
+  }
+
+  tagRequestContext({ orgId: ctx.orgId, plan: effectivePlan, userId: ctx.userId, route: req.nextUrl?.pathname })
+
+  if (!planHasFeature(effectivePlan, requiredFeature)) {
+    const minPlan = FEATURE_MIN_PLAN[requiredFeature]
+    recordPlanGateDenial({
+      feature: requiredFeature,
+      currentPlan: effectivePlan,
+      requiredPlan: minPlan,
+      orgId: ctx.orgId,
+      route: req.nextUrl?.pathname ?? 'unknown',
+    })
+    return NextResponse.json(
+      {
+        error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+        code: 'PLAN_UPGRADE_REQUIRED',
+        requiredPlan: minPlan,
+        currentPlan: effectivePlan,
+        upgradeUrl: '/dashboard/planes',
+      },
+      { status: 403 },
+    )
+  }
+
+  return null
+}
+
 /**
  * Middleware that gates API access by plan feature.
  * Usage: export const POST = withPlanGate('asistente_ia', async (req, ctx) => { ... })

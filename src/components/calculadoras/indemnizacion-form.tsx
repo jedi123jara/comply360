@@ -5,6 +5,7 @@ import { calcularIndemnizacion } from '@/lib/legal-engine/calculators/indemnizac
 import { openWhatsApp } from '@/lib/whatsapp'
 import type { IndemnizacionInput, IndemnizacionResult } from '@/lib/legal-engine'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   AlertTriangle,
@@ -219,7 +220,7 @@ export function IndemnizacionCalculadora() {
                 </div>
               </div>
               <div className="text-5xl font-black tracking-tight mb-2">
-                S/ {result.indemnizacion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                {formatSoles(result.indemnizacion)}
               </div>
               <p className="text-red-200 text-sm">
                 Monto bruto por indemnización de despido arbitrario
@@ -234,21 +235,21 @@ export function IndemnizacionCalculadora() {
                     const content = calculationToHTML({
                       title: 'Desglose de Indemnizacion por Despido Arbitrario',
                       items: [
-                        { label: `Anos de servicio: ${result.anosServicio}`, amount: input.sueldoBruto * 1.5 * result.anosServicio, formula: `S/ ${input.sueldoBruto} x 1.5 x ${result.anosServicio} anos` },
-                        { label: `Meses de fraccion: ${result.mesesFraccion}`, amount: input.sueldoBruto * 1.5 * (result.mesesFraccion / 12), formula: `S/ ${input.sueldoBruto} x 1.5 x ${result.mesesFraccion}/12` },
+                        { label: `Anos de servicio: ${result.anosServicio}`, amount: input.sueldoBruto * 1.5 * result.anosServicio, formula: `${formatSoles(input.sueldoBruto)} x 1.5 x ${result.anosServicio} anos` },
+                        { label: `Meses de fraccion: ${result.mesesFraccion}`, amount: input.sueldoBruto * 1.5 * (result.mesesFraccion / 12), formula: `${formatSoles(input.sueldoBruto)} x 1.5 x ${result.mesesFraccion}/12` },
                       ],
                       total: result.indemnizacion,
-                      warnings: result.topeAplicado ? [{ message: `Tope legal aplicado: La indemnizacion calculada supera el maximo de 12 remuneraciones (S/ ${result.topeMaximo.toLocaleString('es-PE', { minimumFractionDigits: 2 })}).` }] : [],
+                      warnings: result.topeAplicado ? [{ message: `Tope legal aplicado: La indemnizacion calculada supera el maximo de 12 remuneraciones (${formatSoles(result.topeMaximo)}).` }] : [],
                       legalRefs: [
                         { norm: 'D.S. 003-97-TR', description: 'TUO del D.Leg. 728 - Ley de Productividad y Competitividad Laboral. Indemnizacion por despido arbitrario.' },
                       ],
                       metadata: {
-                        'Remuneracion Mensual Bruta': `S/ ${input.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Remuneracion Mensual Bruta': formatSoles(input.sueldoBruto),
                         'Fecha de Ingreso': input.fechaIngreso,
                         'Fecha de Despido': input.fechaDespido,
                         'Tipo de Contrato': tipoLabel,
                         ...(input.tipoContrato === 'plazo_fijo' && input.fechaFinContrato ? { 'Fecha Fin de Contrato': input.fechaFinContrato } : {}),
-                        'Tope Maximo (12 remuneraciones)': `S/ ${result.topeMaximo.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Tope Maximo (12 remuneraciones)': formatSoles(result.topeMaximo),
                         'Formula Aplicada': result.formula,
                       },
                     })
@@ -299,7 +300,7 @@ export function IndemnizacionCalculadora() {
                   <p className="text-sm font-bold">Tope legal aplicado</p>
                   <p className="text-sm">
                     La indemnización calculada supera el tope máximo de 12 remuneraciones
-                    (S/ {result.topeMaximo.toLocaleString('es-PE', { minimumFractionDigits: 2 })}).
+                    ({formatSoles(result.topeMaximo)}).
                     Se aplica el monto tope conforme a ley.
                   </p>
                 </div>
@@ -345,7 +346,7 @@ export function IndemnizacionCalculadora() {
                     <span className="text-sm font-semibold text-white">Indemnización calculada</span>
                   </div>
                   <span className="text-lg font-bold text-white tabular-nums">
-                    S/ {result.indemnizacion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.indemnizacion)}
                   </span>
                 </div>
 
@@ -356,7 +357,7 @@ export function IndemnizacionCalculadora() {
                     <span className="text-sm font-semibold text-gray-500">Tope máximo (12 remuneraciones)</span>
                   </div>
                   <span className="text-lg font-bold text-gray-500 tabular-nums">
-                    S/ {result.topeMaximo.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.topeMaximo)}
                   </span>
                 </div>
               </div>

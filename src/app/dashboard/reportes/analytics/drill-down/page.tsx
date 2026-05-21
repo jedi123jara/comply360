@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronRight, X, FileText, Award, Clock,
   Target, Layers, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /* ================================================================== */
 /*  Types                                                              */
@@ -368,8 +369,8 @@ export default function DrillDownAnalyticsPage() {
           },
           {
             label: 'Multas Evitadas',
-            value: `S/ ${finesAvoided.toLocaleString('es-PE')}`,
-            delta: `vs S/ ${subscriptionCost.toLocaleString('es-PE')} suscripcion`,
+            value: formatSoles(finesAvoided),
+            delta: `vs ${formatSoles(subscriptionCost)} suscripcion`,
             icon: <DollarSign className="h-5 w-5 text-emerald-500" />,
             positive: true,
           },
@@ -689,11 +690,11 @@ export default function DrillDownAnalyticsPage() {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="rounded-lg bg-emerald-900/20 border border-emerald-800 p-4 text-center">
               <p className="text-xs text-emerald-600 mb-1">Multas evitadas (anual)</p>
-              <p className="text-2xl font-bold text-emerald-700">S/ {finesAvoided.toLocaleString('es-PE')}</p>
+              <p className="text-2xl font-bold text-emerald-700">{formatSoles(finesAvoided)}</p>
             </div>
             <div className="rounded-lg bg-blue-900/20 border border-blue-800 p-4 text-center">
               <p className="text-xs text-emerald-600 mb-1">Costo suscripcion (anual)</p>
-              <p className="text-2xl font-bold text-emerald-600">S/ {subscriptionCost.toLocaleString('es-PE')}</p>
+              <p className="text-2xl font-bold text-emerald-600">{formatSoles(subscriptionCost)}</p>
             </div>
           </div>
 
@@ -711,7 +712,7 @@ export default function DrillDownAnalyticsPage() {
               />
             </div>
             <p className="mt-2 text-xs text-gray-400">
-              Ahorro neto: S/ {(finesAvoided - subscriptionCost).toLocaleString('es-PE')} al a&ntilde;o
+              Ahorro neto: {formatSoles(finesAvoided - subscriptionCost)} al a&ntilde;o
             </p>
           </div>
 
@@ -727,7 +728,7 @@ export default function DrillDownAnalyticsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between text-xs mb-0.5">
                     <span className="text-gray-400 truncate">{item.label}</span>
-                    <span className="text-white font-medium">S/ {item.amount.toLocaleString('es-PE')}</span>
+                    <span className="text-white font-medium">{formatSoles(item.amount)}</span>
                   </div>
                   <div className="w-full bg-[color:var(--neutral-100)] bg-gray-800 rounded-full h-1.5">
                     <div className="h-1.5 rounded-full bg-emerald-400" style={{ width: `${item.pct}%` }} />

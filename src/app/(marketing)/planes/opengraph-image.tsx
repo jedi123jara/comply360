@@ -1,11 +1,19 @@
 import { ImageResponse } from 'next/og'
+import { PLANS } from '@/lib/constants'
+import { formatSolesMarketing } from '@/lib/format/peruvian'
 
 export const runtime = 'edge'
-export const alt = 'Planes y precios COMPLY360 — desde S/ 149/mes'
+export const alt = 'Planes y precios COMPLY360 — desde 249 nuevos soles/mes'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 export default async function Image() {
+  const cards = [
+    { label: 'Starter', price: formatSolesMarketing(PLANS.STARTER.price) },
+    { label: 'Pro', price: formatSolesMarketing(PLANS.PRO.price) },
+    { label: 'Empresa', price: formatSolesMarketing(PLANS.EMPRESA.price) },
+  ]
+
   return new ImageResponse(
     (
       <div
@@ -53,7 +61,7 @@ export default async function Image() {
               color: '#ffffff',
               fontSize: 28,
               fontWeight: 700,
-              letterSpacing: '-0.02em',
+              letterSpacing: 0,
               display: 'flex',
               alignItems: 'baseline',
             }}
@@ -89,12 +97,12 @@ export default async function Image() {
               color: '#ffffff',
               fontSize: 74,
               fontWeight: 700,
-              letterSpacing: '-0.03em',
+              letterSpacing: 0,
               lineHeight: 1.05,
               display: 'flex',
             }}
           >
-            Desde S/ 149/mes
+            Desde {formatSolesMarketing(249)}/mes
           </div>
           <div
             style={{
@@ -106,7 +114,7 @@ export default async function Image() {
               display: 'flex',
             }}
           >
-            Menos que una consulta legal. Con garantía anti-multa SUNAFIL.
+            Compliance laboral peruano con evidencia, IA y alertas accionables.
           </div>
         </div>
 
@@ -122,11 +130,7 @@ export default async function Image() {
             comply360.pe/planes
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            {[
-              { label: 'Starter', price: 'S/ 149' },
-              { label: 'Empresa', price: 'S/ 349' },
-              { label: 'Pro', price: 'S/ 799' },
-            ].map(({ label, price }) => (
+            {cards.map(({ label, price }) => (
               <div
                 key={label}
                 style={{

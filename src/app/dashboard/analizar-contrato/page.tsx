@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ContractFixModal } from '@/components/contracts/contract-fix-modal'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -929,7 +930,7 @@ function AIReviewPanel({
               label="Multa estimada"
               value={`${(result.multaEstimadaUIT ?? 0).toFixed(2)}`}
               suffix=" UIT"
-              hint={`≈ S/ ${Math.round((result.multaEstimadaUIT ?? 0) * 5500).toLocaleString('es-PE')}`}
+              hint={`≈ ${formatSoles(Math.round((result.multaEstimadaUIT ?? 0) * 5500))}`}
               tone={
                 (result.multaEstimadaUIT ?? 0) >= 5 ? 'crimson' : (result.multaEstimadaUIT ?? 0) >= 1 ? 'amber' : 'emerald'
               }
@@ -1191,7 +1192,7 @@ function InlineAIReview({
             label="Multa estimada"
             value={`${(result.multaEstimadaUIT ?? 0).toFixed(2)}`}
             suffix=" UIT"
-            hint={`≈ S/ ${Math.round((result.multaEstimadaUIT ?? 0) * 5500).toLocaleString('es-PE')}`}
+            hint={`≈ ${formatSoles(Math.round((result.multaEstimadaUIT ?? 0) * 5500))}`}
             tone={
               (result.multaEstimadaUIT ?? 0) >= 5
                 ? 'crimson'

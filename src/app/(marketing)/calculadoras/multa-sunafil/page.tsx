@@ -44,7 +44,7 @@ export default function MultaSunafilPage() {
       <CalcHero
         eyebrow="Calculadora SUNAFIL — Perú 2026"
         title="¿Cuánto te costaría una multa SUNAFIL?"
-        description="Calcula el monto estimado de una multa laboral según D.S. 019-2006-TR, con el descuento por subsanación voluntaria (90%). UIT 2026 = S/ 5,500."
+        description="Calcula el monto estimado de una multa laboral según D.S. 019-2006-TR, con el descuento por subsanación voluntaria (90%). UIT 2026 = 5,500 nuevos soles."
         icon={<ShieldAlert className="w-6 h-6" />}
       />
 
@@ -125,7 +125,7 @@ export default function MultaSunafilPage() {
             citations={[
               'D.S. 019-2006-TR — Cuadro de infracciones laborales',
               'Ley 28806 — Ley General de Inspección del Trabajo',
-              'UIT 2026 = S/ 5,500 (según D.S. vigente)',
+              'UIT 2026 = 5,500 nuevos soles (según D.S. vigente)',
             ]}
           />
         </CalcCard>

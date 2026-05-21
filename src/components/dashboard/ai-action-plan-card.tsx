@@ -24,6 +24,7 @@ import {
   RefreshCw, Wand2, Zap, FileText, Clock, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ActionPlanTask {
@@ -290,7 +291,7 @@ export function AIActionPlanCard({ diagnosticId }: { diagnosticId: string }) {
           />
           <StatCard
             label="Multa evitada"
-            value={`S/ ${(plan.multaEvitadaTotal ?? 0).toLocaleString('es-PE')}`}
+            value={formatSoles(plan.multaEvitadaTotal ?? 0)}
             color="emerald"
             icon={<ShieldAlert className="h-3.5 w-3.5" />}
             small
@@ -393,7 +394,7 @@ export function AIActionPlanCard({ diagnosticId }: { diagnosticId: string }) {
                       {task.multaEvitada !== undefined && task.multaEvitada > 0 && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md ring-1 ring-emerald-200">
                           <ShieldAlert className="h-3 w-3" />
-                          S/ {task.multaEvitada.toLocaleString('es-PE')}
+                          {formatSoles(task.multaEvitada)}
                         </span>
                       )}
                     </div>

@@ -12,6 +12,7 @@ import {
   calcularRemuneracionComputable,
 } from '../peru-labor'
 import { sumMoney } from '../money'
+import { formatSoles as fmt } from '@/lib/format/peruvian'
 
 export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult {
   const periodo = calcularPeriodoLaboral(input.fechaIngreso, input.fechaCese)
@@ -357,7 +358,7 @@ function generarAlertas(
   if (input.sueldoBruto < PERU_LABOR.RMV) {
     warnings.push({
       type: 'riesgo',
-      message: `El sueldo ingresado (S/ ${input.sueldoBruto}) es menor que la RMV vigente (S/ ${PERU_LABOR.RMV}). Esto podría constituir una infracción laboral.`,
+      message: `El sueldo ingresado (${fmt(input.sueldoBruto)}) es menor que la RMV vigente (${fmt(PERU_LABOR.RMV)}). Esto podría constituir una infracción laboral.`,
     })
   }
 
@@ -378,7 +379,3 @@ function generarBasesTeoricasLiquidacion(): LegalReference[] {
   ]
 }
 
-// Format helper
-function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}

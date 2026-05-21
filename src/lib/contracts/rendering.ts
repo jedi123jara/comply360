@@ -25,6 +25,7 @@ import {
   renderPremiumContractHtml,
   type PremiumContractDocument,
 } from './premium-library'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export type ContractRenderSourceKind =
   | 'template-based'
@@ -563,6 +564,10 @@ function renderBulkHtml(
   const causa = contractType === 'LABORAL_PLAZO_FIJO' && formData.causa_objetiva
     ? `<h2>III. Causa objetiva</h2><p>${escapeHtml(String(formData.causa_objetiva))}</p>`
     : ''
+  const remuneracionRaw = formData.remuneracion
+  const remuneracionLabel = remuneracionRaw === undefined || remuneracionRaw === null || remuneracionRaw === ''
+    ? ''
+    : formatSoles(Number(remuneracionRaw))
   return legalDocumentShell({
     title,
     body: `
@@ -573,7 +578,7 @@ function renderBulkHtml(
       <h2>II. Condiciones laborales</h2>
       <p><strong>Fecha de inicio:</strong> ${escapeHtml(String(formData.fecha_inicio ?? ''))}</p>
       ${fechaFin}
-      <p><strong>Remuneracion:</strong> S/ ${escapeHtml(String(formData.remuneracion ?? ''))}</p>
+      <p><strong>Remuneracion:</strong> ${escapeHtml(remuneracionLabel)}</p>
       ${formData.jornada_semanal ? `<p><strong>Jornada semanal:</strong> ${escapeHtml(String(formData.jornada_semanal))}h</p>` : ''}
       ${causa}
     `,

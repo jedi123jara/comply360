@@ -10,6 +10,7 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, Loader2, Mail, ShieldCheck, Sparkles } from 'lucide-react'
+import { formatSoles, formatSolesParts } from '@/lib/format/peruvian'
 
 export function CalcHero({
   eyebrow,
@@ -326,11 +327,11 @@ export function Toggle({
 export function BigNumberResult({
   label,
   amount,
-  currency = 'S/',
   accent = 'emerald',
 }: {
   label: string
   amount: number
+  /** @deprecated currency es ignorado — `formatSoles` siempre incluye "nuevos soles" */
   currency?: string
   accent?: 'emerald' | 'red' | 'amber'
 }) {
@@ -339,17 +340,17 @@ export function BigNumberResult({
     red: 'from-red-500 to-red-600 ring-red-200',
     amber: 'from-amber-500 to-amber-600 ring-amber-200',
   }
+  const { amount: amountText, currency: currencyText } = formatSolesParts(amount)
   return (
     <div
       className={`rounded-2xl bg-gradient-to-br ${colors[accent]} p-6 sm:p-8 text-white ring-1`}
     >
       <div className="text-sm font-medium opacity-90 mb-1">{label}</div>
       <div className="text-4xl sm:text-5xl font-bold tracking-tight tabular-nums">
-        {currency}{' '}
-        {amount.toLocaleString('es-PE', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+        {amountText}
+        <span className="ml-2 text-base sm:text-lg font-medium opacity-90 align-baseline">
+          {currencyText}
+        </span>
       </div>
     </div>
   )
@@ -377,7 +378,7 @@ export function BreakdownRow({
         {note && <div className="text-xs text-slate-500 mt-0.5">{note}</div>}
       </div>
       <div className="tabular-nums font-semibold text-slate-900 whitespace-nowrap">
-        S/ {amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {formatSoles(amount)}
       </div>
     </div>
   )

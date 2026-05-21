@@ -27,6 +27,7 @@ import {
   Info,
   Lock,
 } from 'lucide-react'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Tipos ───────────────────────────────────────────────────────────
 interface EmpleadoData {
@@ -646,7 +647,7 @@ export default function PortalEmpleadoPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4">
                       <p className="text-xs font-medium text-blue-500 uppercase tracking-wide mb-1">Sueldo bruto</p>
-                      <p className="text-lg font-bold text-blue-700">S/ {data.perfil.remuneracion.toLocaleString('es-PE')}</p>
+                      <p className="text-lg font-bold text-blue-700">{formatSoles(data.perfil.remuneracion)}</p>
                       <p className="text-[10px] text-blue-500/70 mt-0.5">mensual</p>
                     </div>
 
@@ -701,7 +702,7 @@ export default function PortalEmpleadoPage() {
                             ? 'text-rose-600'
                             : 'text-gray-400'
                         }`}>
-                          {data.perfil.asignacionFamiliar ? 'S/ 113.00 / mes · Activa' : 'No aplica'}
+                          {data.perfil.asignacionFamiliar ? `${formatSoles(113)} / mes · Activa` : 'No aplica'}
                         </p>
                       </div>
                     </div>
@@ -763,7 +764,7 @@ export default function PortalEmpleadoPage() {
                         </div>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-blue-800">Próxima gratificación</p>
-                          <p className="text-xs text-blue-600">{beneficios.proximaGratificacion} · Estimado: S/ {beneficios.gratificacionEstimada}</p>
+                          <p className="text-xs text-blue-600">{beneficios.proximaGratificacion} · Estimado: {formatSoles(beneficios.gratificacionEstimada)}</p>
                         </div>
                         <ChevronRight className="w-4 h-4 text-blue-400" />
                       </div>
@@ -791,9 +792,9 @@ export default function PortalEmpleadoPage() {
                         <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-0.5">
                           CTS Acumulada — Semestre vigente
                         </p>
-                        <p className="text-2xl font-black text-emerald-700">S/ {beneficios.ctsEstimado}</p>
+                        <p className="text-2xl font-black text-emerald-700">{formatSoles(beneficios.ctsEstimado)}</p>
                         <p className="text-xs text-emerald-600/70 mt-0.5">
-                          Base: S/ {beneficios.remuneracionComputable} rem. computable · {beneficios.mesesSemestre}/6 meses
+                          Base: {formatSoles(beneficios.remuneracionComputable)} rem. computable · {beneficios.mesesSemestre}/6 meses
                         </p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -817,9 +818,9 @@ export default function PortalEmpleadoPage() {
                         <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-0.5">
                           Gratificación — {beneficios.proximaGratificacion}
                         </p>
-                        <p className="text-2xl font-black text-blue-700">S/ {beneficios.gratificacionEstimada}</p>
+                        <p className="text-2xl font-black text-blue-700">{formatSoles(beneficios.gratificacionEstimada)}</p>
                         <p className="text-xs text-blue-600/70 mt-0.5">
-                          + Bonif. Extraordinaria S/ {beneficios.bonificacionExtraordinaria} (9%)
+                          + Bonif. Extraordinaria {formatSoles(beneficios.bonificacionExtraordinaria)} (9%)
                         </p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -877,9 +878,9 @@ export default function PortalEmpleadoPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
                         { label: 'Tiempo de servicio', value: `${beneficios.aniosTrabajados}a ${beneficios.mesesExcedente}m` },
-                        { label: 'Remuneración base', value: `S/ ${data.perfil.remuneracion.toLocaleString('es-PE')}` },
-                        { label: 'Asig. familiar', value: beneficios.asignacionFamiliar > 0 ? `S/ ${beneficios.asignacionFamiliar.toFixed(2)}` : 'No aplica' },
-                        { label: 'Rem. computable', value: `S/ ${beneficios.remuneracionComputable}` },
+                        { label: 'Remuneración base', value: formatSoles(data.perfil.remuneracion) },
+                        { label: 'Asig. familiar', value: beneficios.asignacionFamiliar > 0 ? formatSoles(beneficios.asignacionFamiliar) : 'No aplica' },
+                        { label: 'Rem. computable', value: formatSoles(beneficios.remuneracionComputable) },
                       ].map(item => (
                         <div key={item.label}>
                           <p className="text-[10px] font-medium text-gray-400 uppercase mb-0.5">{item.label}</p>

@@ -14,6 +14,7 @@ import {
   Receipt,
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface ProviderItem {
   id: string
@@ -242,7 +243,7 @@ export default function PrestadoresPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 font-semibold text-white text-gray-100">
-                        S/ {p.monthlyAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        {formatSoles(p.monthlyAmount)}
                       </td>
                       <td className="px-4 py-3">
                         {p.hasSuspensionRetencion ? (
@@ -252,7 +253,7 @@ export default function PrestadoresPage() {
                           </span>
                         ) : p.monthlyAmount > 1500 ? (
                           <span className="text-xs text-amber-400 font-semibold">
-                            Aplica (S/ {(p.monthlyAmount * 0.08).toFixed(2)})
+                            Aplica ({formatSoles(p.monthlyAmount * 0.08)})
                           </span>
                         ) : (
                           <span className="text-xs text-gray-400">No aplica</span>

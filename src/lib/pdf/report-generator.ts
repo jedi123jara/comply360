@@ -3,6 +3,8 @@
  * Called from the browser after fetching report data from /api/reports/generate.
  */
 
+import { formatSoles } from '@/lib/format/peruvian'
+
 // jsPDF is imported dynamically to keep it out of server-side bundles
 type JsPDFInstance = {
   setFontSize: (n: number) => JsPDFInstance
@@ -147,7 +149,7 @@ export async function generatePDF(payload: ReportPayload): Promise<void> {
       doc.text(label, 45, y + 8)
       if (data.multaPotencial) {
         doc.setFontSize(9)
-        doc.text(`Multa potencial estimada: S/ ${Number(data.multaPotencial).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`, 45, y + 14)
+        doc.text(`Multa potencial estimada: ${formatSoles(Number(data.multaPotencial))}`, 45, y + 14)
       }
       y += 24
     } else {
@@ -158,7 +160,8 @@ export async function generatePDF(payload: ReportPayload): Promise<void> {
 
     if (data.diagnosticHistory?.length > 0) {
       y = sectionTitle(doc, 'Evolucion de Diagnosticos', y)
-      const headers = ['Fecha', 'Tipo', 'Score', 'Multa (S/)']
+      // TODO: revisar ancho columna tras refactor formato
+      const headers = ['Fecha', 'Tipo', 'Score', 'Multa']
       const cols = [14, 55, 100, 140]
       doc.setFontSize(8)
       doc.setFont('helvetica', 'bold')
@@ -174,7 +177,7 @@ export async function generatePDF(payload: ReportPayload): Promise<void> {
         doc.setFont('helvetica', 'bold')
         doc.text(String(h.score), cols[2], y)
         doc.setFont('helvetica', 'normal')
-        doc.text(h.multa ? `S/ ${Number(h.multa).toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : '—', cols[3], y)
+        doc.text(h.multa ? formatSoles(Number(h.multa)) : '—', cols[3], y)
         y += 6
         if (y > 270) { doc.addPage(); addHeader(doc, title, org, periodStr); y = 56 }
       }

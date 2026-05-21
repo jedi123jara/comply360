@@ -28,6 +28,7 @@ import {
   ListChecks,
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -232,10 +233,6 @@ const CHECKLIST_DEFAULT = [
 
 // ─── Utility functions ──────────────────────────────────────────────────
 
-function fmt(n: number) {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
 function fmtDate(d: string | undefined | null) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -422,7 +419,7 @@ function LiqRow({ label, sublabel, amount }: { label: string; sublabel: string; 
         'text-sm font-medium tabular-nums shrink-0',
         amount > 0 ? 'text-white' : 'text-[color:var(--text-secondary)]',
       )}>
-        S/ {amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {formatSoles(amount)}
       </span>
     </div>
   )
@@ -741,7 +738,7 @@ export default function CesePage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No pudimos iniciar el proceso de cese. Revisa la conexión e intentá de nuevo.',
+          : 'No pudimos iniciar el proceso de cese. Revisa la conexión e intenta de nuevo.',
       )
     } finally {
       setActionLoading(false)
@@ -767,7 +764,7 @@ export default function CesePage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No pudimos avanzar la etapa. Intentá en unos segundos.',
+          : 'No pudimos avanzar la etapa. Intenta en unos segundos.',
       )
     } finally {
       setActionLoading(false)
@@ -797,7 +794,7 @@ export default function CesePage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No pudimos guardar la liquidación. Intentá en unos segundos.',
+          : 'No pudimos guardar la liquidación. Intenta en unos segundos.',
       )
     } finally {
       setActionLoading(false)
@@ -853,7 +850,7 @@ export default function CesePage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No pudimos completar el cese. Intentá de nuevo en unos segundos.',
+          : 'No pudimos completar el cese. Intenta de nuevo en unos segundos.',
       )
     } finally {
       setActionLoading(false)
@@ -884,7 +881,7 @@ export default function CesePage() {
       setError(
         e instanceof Error
           ? e.message
-          : 'No pudimos anular. Intentá de nuevo.',
+          : 'No pudimos anular. Intenta de nuevo.',
       )
     } finally {
       setActionLoading(false)
@@ -982,7 +979,7 @@ export default function CesePage() {
           <InfoItem label="Tipo Contrato" value={worker.tipoContrato.replace(/_/g, ' ')} />
           <InfoItem label="Cargo" value={worker.position ?? '—'} />
           <InfoItem label="Fecha Ingreso" value={fmtDate(worker.fechaIngreso)} />
-          <InfoItem label="Sueldo Bruto" value={fmt(worker.sueldoBruto)} />
+          <InfoItem label="Sueldo Bruto" value={formatSoles(worker.sueldoBruto)} />
           <InfoItem
             label="Estado"
             value={worker.status === 'ACTIVE' ? 'Activo' : worker.status === 'TERMINATED' ? 'Cesado' : worker.status}
@@ -1477,7 +1474,7 @@ export default function CesePage() {
                         )}
                         <div className="border-t border-amber-500/30 pt-3 flex items-center justify-between">
                           <span className="text-sm font-bold text-white">TOTAL BRUTO</span>
-                          <span className="text-lg font-bold text-amber-400">{fmt(liquidacionData.totalLiquidacion)}</span>
+                          <span className="text-lg font-bold text-amber-400">{formatSoles(liquidacionData.totalLiquidacion)}</span>
                         </div>
                       </div>
                     </div>
@@ -1542,7 +1539,7 @@ export default function CesePage() {
                         )}
                         <div className="border-t border-amber-500/30 pt-3 flex items-center justify-between">
                           <span className="text-sm font-bold text-white">TOTAL BRUTO</span>
-                          <span className="text-lg font-bold text-amber-400">{fmt(ceseRecord.totalLiquidacion)}</span>
+                          <span className="text-lg font-bold text-amber-400">{formatSoles(ceseRecord.totalLiquidacion)}</span>
                         </div>
                       </div>
                     </div>
@@ -1604,7 +1601,7 @@ export default function CesePage() {
                 <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto" />
                 <h3 className="text-lg font-semibold text-green-300">Proceso de Cese Completado</h3>
                 <p className="text-sm text-green-400/80">
-                  El trabajador ha sido marcado como cesado. La liquidacion de {fmt(ceseRecord.totalLiquidacion)} ha sido registrada.
+                  El trabajador ha sido marcado como cesado. La liquidacion de {formatSoles(ceseRecord.totalLiquidacion)} ha sido registrada.
                 </p>
                 {ceseRecord.fechaPagoLiquidacion && (
                   <p className="text-xs text-slate-400">
@@ -1641,7 +1638,7 @@ export default function CesePage() {
                   <SummaryRow label="Carta Despido" value={fmtDate(ceseRecord.fechaCartaDespido)} />
                 )}
                 {ceseRecord.totalLiquidacion > 0 && (
-                  <SummaryRow label="Total Liquidacion" value={fmt(ceseRecord.totalLiquidacion)} highlight />
+                  <SummaryRow label="Total Liquidacion" value={formatSoles(ceseRecord.totalLiquidacion)} highlight />
                 )}
               </div>
               {ceseRecord.causaDetalle && (

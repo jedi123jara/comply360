@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Briefcase, Mail, Phone, MapPin, Calendar, DollarSig
 import { toast } from 'sonner'
 import { cn, displayWorkerName } from '@/lib/utils'
 import { confirm } from '@/components/ui/confirm-dialog'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface RhInvoice {
   id: string
@@ -195,7 +196,7 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
             <DollarSign className="w-4 h-4 text-gray-400" />
           </div>
           <p className="text-xl font-bold text-white text-gray-100 mt-2">
-            S/ {provider.monthlyAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            {formatSoles(provider.monthlyAmount)}
           </p>
         </div>
         <div className="bg-white rounded-xl border border-white/[0.08] p-4">
@@ -204,7 +205,7 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
             <Receipt className="w-4 h-4 text-gray-400" />
           </div>
           <p className="text-xl font-bold text-white text-gray-100 mt-2">
-            {aplicaRetencion ? `S/ ${retencion.toFixed(2)}` : '—'}
+            {aplicaRetencion ? formatSoles(retencion) : '—'}
           </p>
           <p className="text-[10px] text-gray-400">
             {provider.hasSuspensionRetencion ? 'Con suspensión' : aplicaRetencion ? 'Aplica' : 'No aplica'}
@@ -226,7 +227,7 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
           </div>
           <p className="text-xl font-bold text-white text-gray-100 mt-2">{provider.rhInvoices.length}</p>
           <p className="text-[10px] text-gray-400">
-            Total: S/ {totalFacturado.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            Total: {formatSoles(totalFacturado)}
           </p>
         </div>
       </div>
@@ -319,7 +320,7 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
                   <div className="rounded-lg bg-amber-900/20 border border-amber-700 p-3 text-xs">
                     <p className="font-semibold text-amber-400">Aplica retención 8% IR 4ta categoría</p>
                     <p className="text-amber-400 mt-1">
-                      Se debe retener S/ {retencion.toFixed(2)} de cada pago mensual. Neto a pagar: S/ {(provider.monthlyAmount - retencion).toFixed(2)}.
+                      Se debe retener {formatSoles(retencion)} de cada pago mensual. Neto a pagar: {formatSoles(provider.monthlyAmount - retencion)}.
                     </p>
                   </div>
                 ) : (
@@ -421,9 +422,9 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
                         <tr key={inv.id}>
                           <td className="px-3 py-2 font-mono text-xs">{inv.invoiceNumber}</td>
                           <td className="px-3 py-2">{inv.periodo}</td>
-                          <td className="px-3 py-2">S/ {inv.grossAmount.toFixed(2)}</td>
-                          <td className="px-3 py-2">S/ {inv.retention.toFixed(2)}</td>
-                          <td className="px-3 py-2 font-semibold">S/ {inv.netAmount.toFixed(2)}</td>
+                          <td className="px-3 py-2">{formatSoles(inv.grossAmount)}</td>
+                          <td className="px-3 py-2">{formatSoles(inv.retention)}</td>
+                          <td className="px-3 py-2 font-semibold">{formatSoles(inv.netAmount)}</td>
                           <td className="px-3 py-2">
                             <span className={cn(
                               'text-[10px] font-semibold px-2 py-0.5 rounded-full',
@@ -438,9 +439,9 @@ export default function PrestadorDetailPage({ params }: { params: Promise<{ id: 
                     <tfoot className="border-t-2 border-white/[0.08] border-[color:var(--border-default)]">
                       <tr className="font-bold">
                         <td className="px-3 py-2" colSpan={2}>Total</td>
-                        <td className="px-3 py-2">S/ {totalFacturado.toFixed(2)}</td>
-                        <td className="px-3 py-2">S/ {totalRetenido.toFixed(2)}</td>
-                        <td className="px-3 py-2">S/ {(totalFacturado - totalRetenido).toFixed(2)}</td>
+                        <td className="px-3 py-2">{formatSoles(totalFacturado)}</td>
+                        <td className="px-3 py-2">{formatSoles(totalRetenido)}</td>
+                        <td className="px-3 py-2">{formatSoles(totalFacturado - totalRetenido)}</td>
                         <td></td>
                       </tr>
                     </tfoot>

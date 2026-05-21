@@ -52,8 +52,11 @@ export function scoreSemantic(score: number): {
   return { color: BRAND.danger, bg: BRAND.dangerLight, label: 'RIESGO CRÍTICO' }
 }
 
+import { formatSoles } from '@/lib/format/peruvian'
+
+/** Re-export del helper canónico para evitar drift. */
 export function formatMoney(n: number): string {
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return formatSoles(n)
 }
 
 export function formatDate(d: Date): string {

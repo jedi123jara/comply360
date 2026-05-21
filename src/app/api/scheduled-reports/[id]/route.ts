@@ -4,16 +4,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuthParams } from '@/lib/api-auth'
+import { withPermissionParams } from '@/lib/api-auth'
+import { requirePlanFeature } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
 import type { AuthContext } from '@/lib/auth'
 import type { Prisma } from '@/generated/prisma/client'
 
-export const PATCH = withAuthParams<{ id: string }>(async (
+export const PATCH = withPermissionParams<{ id: string }>('REPORT_SCHEDULE_MANAGE', async (
   req: NextRequest,
   ctx: AuthContext,
   params,
 ) => {
+  const planDenied = await requirePlanFeature(req, ctx, 'reportes_pdf')
+  if (planDenied) return planDenied
+
   const existing = await prisma.scheduledReport.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
   })
@@ -57,11 +61,14 @@ export const PATCH = withAuthParams<{ id: string }>(async (
   return NextResponse.json({ report: updated })
 })
 
-export const DELETE = withAuthParams<{ id: string }>(async (
-  _req: NextRequest,
+export const DELETE = withPermissionParams<{ id: string }>('REPORT_SCHEDULE_MANAGE', async (
+  req: NextRequest,
   ctx: AuthContext,
   params,
 ) => {
+  const planDenied = await requirePlanFeature(req, ctx, 'reportes_pdf')
+  if (planDenied) return planDenied
+
   const existing = await prisma.scheduledReport.findFirst({
     where: { id: params.id, orgId: ctx.orgId },
   })

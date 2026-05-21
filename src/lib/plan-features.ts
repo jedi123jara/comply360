@@ -202,6 +202,7 @@ export const FEATURE_MIN_PLAN: Record<PlanFeature, string> = {
  * Extenderlo aquí (no en el sidebar) al agregar nuevas rutas gating.
  */
 export const ROUTE_FEATURE_MAP: Record<string, PlanFeature> = {
+  '/dashboard/centro-sunafil': 'diagnostico',
   '/dashboard/diagnostico': 'diagnostico',
   '/dashboard/simulacro': 'simulacro_basico',
   '/dashboard/ia-laboral': 'asistente_ia',

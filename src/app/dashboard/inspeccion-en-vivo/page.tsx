@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Siren, Shield, ShieldAlert, ShieldCheck, AlertTriangle, Pause, CheckCircle2, Download, ArrowLeft, Loader2, FileText, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 import { LiveChecklist, type ChecklistItem, type ChecklistItemStatus } from '@/components/ui/live-checklist'
 import type { SolicitudInspector, HallazgoInspeccion, ResultadoSimulacro } from '@/lib/compliance/simulacro-engine'
 
@@ -267,7 +268,7 @@ export default function InspeccionEnVivoPage() {
               <h3 className="text-sm font-semibold text-red-300">Cuando usar este modo</h3>
               <p className="text-xs text-red-400 mt-1">
                 Activa este modo cuando un inspector de SUNAFIL se presente en tu empresa. Te guiaremos documento por documento
-                verificando en tiempo real tu legajo digital. Podras subir fotos y evidencias al instante.
+                verificando en tiempo real tu legajo digital. Podrás subir fotos y evidencias al instante.
               </p>
             </div>
           </div>
@@ -404,7 +405,7 @@ export default function InspeccionEnVivoPage() {
                     </div>
                     {s.multaEstimada !== null && (
                       <span className="text-xs font-bold text-red-400 tabular-nums">
-                        S/ {Number(s.multaEstimada).toLocaleString('es-PE')}
+                        {formatSoles(s.multaEstimada)}
                       </span>
                     )}
                   </button>
@@ -444,7 +445,7 @@ export default function InspeccionEnVivoPage() {
               <div className="text-right hidden sm:block">
                 <p className="text-xs text-gray-400">Multa estimada</p>
                 <p className="text-lg font-bold text-red-400 tabular-nums">
-                  S/ {totalMulta.toLocaleString('es-PE')}
+                  {formatSoles(totalMulta)}
                 </p>
               </div>
 
@@ -482,7 +483,7 @@ export default function InspeccionEnVivoPage() {
             <span className="text-emerald-600 font-medium">{cumpleCount} cumple</span>
             <span className="text-amber-600 font-medium">{parcialCount} parcial</span>
             <span className="text-red-600 font-medium">{noCount} incumple</span>
-            <span className="sm:hidden text-red-600 font-bold">Multa: S/ {totalMulta.toLocaleString()}</span>
+            <span className="sm:hidden text-red-600 font-bold">Multa: {formatSoles(totalMulta)}</span>
           </div>
         </div>
 
@@ -551,7 +552,7 @@ export default function InspeccionEnVivoPage() {
             { label: 'Cumple', value: resultado.cumple, color: 'text-emerald-600 bg-emerald-900/20' },
             { label: 'Parcial', value: resultado.parcial, color: 'text-amber-600 bg-amber-900/20' },
             { label: 'Incumple', value: resultado.noCumple, color: 'text-red-600 bg-red-900/20' },
-            { label: 'Multa Total', value: `S/ ${multa.toLocaleString()}`, color: 'text-red-700 bg-red-900/30' },
+            { label: 'Multa Total', value: formatSoles(multa), color: 'text-red-700 bg-red-900/30' },
           ].map(({ label, value, color }) => (
             <div key={label} className={cn('rounded-xl p-4 text-center', color)}>
               <p className="text-2xl font-bold">{value}</p>
@@ -567,15 +568,15 @@ export default function InspeccionEnVivoPage() {
           </div>
           <div className="grid grid-cols-3 divide-x divide-slate-700 text-center">
             <div className="p-4">
-              <p className="text-lg font-bold text-red-600">S/ {multa.toLocaleString()}</p>
+              <p className="text-lg font-bold text-red-600">{formatSoles(multa)}</p>
               <p className="text-xs text-gray-400 mt-1">Sin subsanar (0%)</p>
             </div>
             <div className="p-4">
-              <p className="text-lg font-bold text-amber-600">S/ {sub70.toLocaleString()}</p>
+              <p className="text-lg font-bold text-amber-600">{formatSoles(sub70)}</p>
               <p className="text-xs text-gray-400 mt-1">Durante inspeccion (-70%)</p>
             </div>
             <div className="p-4 bg-emerald-900/10">
-              <p className="text-lg font-bold text-emerald-600">S/ {sub90.toLocaleString()}</p>
+              <p className="text-lg font-bold text-emerald-600">{formatSoles(sub90)}</p>
               <p className="text-xs text-emerald-600 mt-1 font-medium">Antes de inspeccion (-90%)</p>
             </div>
           </div>

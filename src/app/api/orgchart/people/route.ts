@@ -6,12 +6,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 
-import { withRole } from '@/lib/api-auth'
+import { withPermission } from '@/lib/api-auth'
 import { buildPeopleView } from '@/lib/orgchart/people-view'
 
 export const runtime = 'nodejs'
 
-export const GET = withRole('MEMBER', async (req: NextRequest, ctx) => {
+export const GET = withPermission('ORGCHART_VIEW', async (req: NextRequest, ctx) => {
   const sp = req.nextUrl.searchParams
   const result = await buildPeopleView(ctx.orgId, {
     search: sp.get('search') ?? undefined,

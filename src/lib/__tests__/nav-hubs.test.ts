@@ -46,6 +46,19 @@ describe('NAV_HUBS / estructura', () => {
     expect(hrefs).toContain('/dashboard/configuracion/automatizaciones/agentes')
     expect(hrefs).toContain('/dashboard/configuracion/automatizaciones/workflows')
   })
+
+  it('hub riesgo consolida SUNAFIL en una sola entrada visible', () => {
+    const riesgo = NAV_HUBS.find((h) => h.key === 'riesgo')!
+    const hrefs = riesgo.items.map((i) => i.href)
+
+    expect(riesgo.rootHref).toBe('/dashboard/centro-sunafil')
+    expect(hrefs).toContain('/dashboard/centro-sunafil')
+    expect(hrefs).not.toContain('/dashboard/diagnostico')
+    expect(hrefs).not.toContain('/dashboard/simulacro')
+    expect(hrefs).not.toContain('/dashboard/radar')
+    expect(hrefs).not.toContain('/dashboard/riesgo-sunafil')
+    expect(hrefs).not.toContain('/dashboard/inspeccion-en-vivo')
+  })
 })
 
 describe('resolveActiveHub', () => {
@@ -60,8 +73,16 @@ describe('resolveActiveHub', () => {
 
   it('/dashboard/alertas mapea a Riesgo', () => {
     expect(resolveActiveHub('/dashboard/alertas').key).toBe('riesgo')
+    expect(resolveActiveHub('/dashboard/centro-sunafil').key).toBe('riesgo')
+  })
+
+  it('rutas SUNAFIL legacy siguen mapeando a Riesgo aunque ya no salgan en el menu', () => {
     expect(resolveActiveHub('/dashboard/diagnostico').key).toBe('riesgo')
+    expect(resolveActiveHub('/dashboard/diagnostico/abc123/resultado').key).toBe('riesgo')
     expect(resolveActiveHub('/dashboard/simulacro').key).toBe('riesgo')
+    expect(resolveActiveHub('/dashboard/radar').key).toBe('riesgo')
+    expect(resolveActiveHub('/dashboard/riesgo-sunafil').key).toBe('riesgo')
+    expect(resolveActiveHub('/dashboard/inspeccion-en-vivo').key).toBe('riesgo')
   })
 
   it('/dashboard/calendario mapea a Cockpit (sub-item del Panel)', () => {

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { displayWorkerName, workerInitials } from '@/lib/utils'
 import { confirm } from '@/components/ui/confirm-dialog'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -62,10 +63,6 @@ interface OrgTotals {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function fmt(n: number) {
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 
 function fmtDate(d: string | null) {
   if (!d) return '—'
@@ -253,19 +250,19 @@ function NewInvoiceModal({
             <div className="bg-[color:var(--neutral-50)] border border-[color:var(--border-default)] rounded-xl p-3 space-y-1.5">
               <div className="flex justify-between text-xs">
                 <span className="text-[color:var(--text-tertiary)]">Monto bruto</span>
-                <span className="font-medium text-[color:var(--text-secondary)]">S/ {fmt(gross)}</span>
+                <span className="font-medium text-[color:var(--text-secondary)]">{formatSoles(gross)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-[color:var(--text-tertiary)]">
                   Retencion IR 4ta ({shouldRetain ? '8%' : hasSuspension ? 'Suspendida' : '< S/ 1,500'})
                 </span>
                 <span className={`font-medium ${shouldRetain ? 'text-red-400' : 'text-gray-600'}`}>
-                  {shouldRetain ? `- S/ ${fmt(retention)}` : 'S/ 0.00'}
+                  {shouldRetain ? `- ${formatSoles(retention)}` : formatSoles(0)}
                 </span>
               </div>
               <div className="flex justify-between text-sm pt-1.5 border-t border-[color:var(--border-default)]">
                 <span className="font-semibold text-[color:var(--text-secondary)]">Neto a pagar</span>
-                <span className="font-bold text-amber-500">S/ {fmt(netAmount)}</span>
+                <span className="font-bold text-amber-500">{formatSoles(netAmount)}</span>
               </div>
             </div>
           )}
@@ -329,14 +326,14 @@ function InvoiceRow({
         </div>
         <p className="text-[11px] text-[color:var(--text-tertiary)] mt-0.5">
           {fmtDate(invoice.issueDate)}
-          {invoice.hasRetention && <span className="ml-2 text-red-400">IR 8%: -S/ {fmt(invoice.retention)}</span>}
+          {invoice.hasRetention && <span className="ml-2 text-red-400">IR 8%: -{formatSoles(invoice.retention)}</span>}
           {invoice.paidAt && <span className="ml-2 text-emerald-600">Pagado: {fmtDate(invoice.paidAt)}</span>}
         </p>
       </div>
 
       <div className="text-right shrink-0">
-        <p className="text-xs text-[color:var(--text-tertiary)]">S/ {fmt(invoice.grossAmount)}</p>
-        <p className="text-sm font-bold text-amber-500">S/ {fmt(invoice.netAmount)}</p>
+        <p className="text-xs text-[color:var(--text-tertiary)]">{formatSoles(invoice.grossAmount)}</p>
+        <p className="text-sm font-bold text-amber-500">{formatSoles(invoice.netAmount)}</p>
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
@@ -432,7 +429,7 @@ function ProviderCard({
         <div className="flex items-center gap-4 shrink-0 ml-3">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-bold text-amber-500">
-              S/ {fmt(summary.totalNeto)}
+              {formatSoles(summary.totalNeto)}
             </p>
             <p className="text-xs text-[color:var(--text-tertiary)]">{summary.count} recibo{summary.count !== 1 ? 's' : ''}</p>
           </div>
@@ -603,22 +600,19 @@ export default function HonorariosPage() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <KpiCard
           label="Total bruto"
-          value={totals ? fmt(totals.totalBruto) : '—'}
-          prefix="S/"
+          value={totals ? formatSoles(totals.totalBruto) : '—'}
           icon={DollarSign}
           accent="blue"
         />
         <KpiCard
           label="Retencion IR 4ta"
-          value={totals ? fmt(totals.totalRetencion) : '—'}
-          prefix="S/"
+          value={totals ? formatSoles(totals.totalRetencion) : '—'}
           icon={Percent}
           accent="red"
         />
         <KpiCard
           label="Total neto"
-          value={totals ? fmt(totals.totalNeto) : '—'}
-          prefix="S/"
+          value={totals ? formatSoles(totals.totalNeto) : '—'}
           icon={DollarSign}
           accent="green"
         />
@@ -645,7 +639,7 @@ export default function HonorariosPage() {
               {totals.pendientes} recibo{totals.pendientes !== 1 ? 's' : ''} pendiente{totals.pendientes !== 1 ? 's' : ''} de pago
             </p>
             <p className="text-xs text-amber-700/70 mt-1">
-              Total por pagar: <strong className="text-amber-700">S/ {fmt(
+              Total por pagar: <strong className="text-amber-700">{formatSoles(
                 data?.providers
                   .flatMap(p => p.invoices)
                   .filter(i => i.status === 'PENDING')
@@ -722,9 +716,9 @@ export default function HonorariosPage() {
               · {totals.totalRecibos} recibo{totals.totalRecibos !== 1 ? 's' : ''}
             </span>
             <div className="flex gap-6 font-medium">
-              <span className="text-[color:var(--text-tertiary)]">Bruto: <strong className="text-[color:var(--text-secondary)]">S/ {fmt(totals.totalBruto)}</strong></span>
-              <span className="text-red-400">IR 4ta: <strong>S/ {fmt(totals.totalRetencion)}</strong></span>
-              <span className="text-amber-500">Neto: <strong>S/ {fmt(totals.totalNeto)}</strong></span>
+              <span className="text-[color:var(--text-tertiary)]">Bruto: <strong className="text-[color:var(--text-secondary)]">{formatSoles(totals.totalBruto)}</strong></span>
+              <span className="text-red-400">IR 4ta: <strong>{formatSoles(totals.totalRetencion)}</strong></span>
+              <span className="text-amber-500">Neto: <strong>{formatSoles(totals.totalNeto)}</strong></span>
             </div>
           </div>
         </div>

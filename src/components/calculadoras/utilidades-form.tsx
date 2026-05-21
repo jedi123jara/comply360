@@ -5,6 +5,7 @@ import { calcularUtilidades } from '@/lib/legal-engine/calculators/utilidades'
 import type { UtilidadesInput, UtilidadesResult, TrabajadorUtilidades } from '@/lib/legal-engine/calculators/utilidades'
 import { openWhatsApp } from '@/lib/whatsapp'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   Download,
@@ -286,10 +287,10 @@ export function UtilidadesCalculadora() {
                 </span>
               </div>
               <div className="text-5xl font-black tracking-tight mb-1">
-                S/ {result.montoTotalParticipacion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                {formatSoles(result.montoTotalParticipacion)}
               </div>
               <p className="text-purple-200 text-sm mt-1">
-                {(result.tasaParticipacion * 100).toFixed(0)}% de S/ {rentaAnualNeta.toLocaleString('es-PE', { minimumFractionDigits: 2 })} (renta neta)
+                {(result.tasaParticipacion * 100).toFixed(0)}% de {formatSoles(rentaAnualNeta)} (renta neta)
               </p>
 
               {/* Distribution split */}
@@ -297,13 +298,13 @@ export function UtilidadesCalculadora() {
                 <div className="bg-white/10 rounded-xl p-4 border border-white/10">
                   <p className="text-xs font-medium text-purple-200 uppercase tracking-wider mb-1">50% por Dias</p>
                   <p className="text-xl font-black">
-                    S/ {result.distribucionPorDias.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.distribucionPorDias)}
                   </p>
                 </div>
                 <div className="bg-white/10 rounded-xl p-4 border border-white/10">
                   <p className="text-xs font-medium text-purple-200 uppercase tracking-wider mb-1">50% por Remuneracion</p>
                   <p className="text-xl font-black">
-                    S/ {result.distribucionPorRemuneracion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.distribucionPorRemuneracion)}
                   </p>
                 </div>
               </div>
@@ -316,12 +317,12 @@ export function UtilidadesCalculadora() {
                     const items = result.detallePorTrabajador.map(t => ({
                       label: t.nombre,
                       amount: t.totalFinal,
-                      formula: `Por dias: S/ ${t.porDias.toFixed(2)} + Por rem: S/ ${t.porRemuneracion.toFixed(2)}${t.topeAplicado ? ' (TOPE APLICADO)' : ''}`,
+                      formula: `Por dias: ${formatSoles(t.porDias)} + Por rem: ${formatSoles(t.porRemuneracion)}${t.topeAplicado ? ' (TOPE APLICADO)' : ''}`,
                     }))
 
                     const warnings = result.detallePorTrabajador
                       .filter(t => t.topeAplicado)
-                      .map(t => ({ message: `${t.nombre}: Se aplico tope de 18 remuneraciones mensuales (S/ ${t.tope.toFixed(2)})` }))
+                      .map(t => ({ message: `${t.nombre}: Se aplico tope de 18 remuneraciones mensuales (${formatSoles(t.tope)})` }))
 
                     const content = calculationToHTML({
                       title: 'Distribucion de Utilidades',
@@ -333,12 +334,12 @@ export function UtilidadesCalculadora() {
                         { norm: 'D.S. 009-98-TR', description: 'Reglamento del D.Leg. 892' },
                       ],
                       metadata: {
-                        'Renta Neta Anual': `S/ ${rentaAnualNeta.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Renta Neta Anual': formatSoles(rentaAnualNeta),
                         'Sector': selectedSector?.label ?? sector,
                         'Tasa de Participacion': `${(result.tasaParticipacion * 100).toFixed(0)}%`,
-                        'Total Participacion': `S/ ${result.montoTotalParticipacion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
-                        'Total Distribuido': `S/ ${result.totalDistribuido.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
-                        'Remanente': `S/ ${result.remanente.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Total Participacion': formatSoles(result.montoTotalParticipacion),
+                        'Total Distribuido': formatSoles(result.totalDistribuido),
+                        'Remanente': formatSoles(result.remanente),
                         'Plazo Maximo': result.plazoMaximo,
                       },
                     })
@@ -407,13 +408,13 @@ export function UtilidadesCalculadora() {
                       <tr key={i} className="hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]">
                         <td className="px-4 py-3 font-semibold text-white">{t.nombre}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                          S/ {t.porDias.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          {formatSoles(t.porDias)}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                          S/ {t.porRemuneracion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          {formatSoles(t.porRemuneracion)}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-bold text-white">
-                          S/ {t.totalFinal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          {formatSoles(t.totalFinal)}
                         </td>
                         <td className="px-4 py-3 text-center">
                           {t.topeAplicado ? (
@@ -436,7 +437,7 @@ export function UtilidadesCalculadora() {
                       <td className="px-4 py-3 font-bold text-purple-800">Total Distribuido</td>
                       <td colSpan={2} />
                       <td className="px-4 py-3 text-right tabular-nums font-black text-purple-700 text-lg">
-                        S/ {result.totalDistribuido.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        {formatSoles(result.totalDistribuido)}
                       </td>
                       <td />
                     </tr>
@@ -458,7 +459,7 @@ export function UtilidadesCalculadora() {
                   </div>
                   <div>
                     <p className="text-2xl font-black text-purple-700">
-                      S/ {result.remanente.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      {formatSoles(result.remanente)}
                     </p>
                     <p className="text-xs font-medium text-purple-600">Remanente (topes)</p>
                   </div>
@@ -489,9 +490,9 @@ export function UtilidadesCalculadora() {
                     <li key={i} className="flex items-start gap-3 p-3 bg-amber-50/50 rounded-lg border border-amber-100/50">
                       <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm text-gray-300">
-                        <strong>{t.nombre}:</strong> Utilidades calculadas S/ {t.total.toLocaleString('es-PE', { minimumFractionDigits: 2 })},
-                        se aplica tope de 18 remuneraciones mensuales (S/ {t.tope.toLocaleString('es-PE', { minimumFractionDigits: 2 })}).
-                        Diferencia: S/ {(t.total - t.tope).toLocaleString('es-PE', { minimumFractionDigits: 2 })}.
+                        <strong>{t.nombre}:</strong> Utilidades calculadas {formatSoles(t.total)},
+                        se aplica tope de 18 remuneraciones mensuales ({formatSoles(t.tope)}).
+                        Diferencia: {formatSoles(t.total - t.tope)}.
                       </span>
                     </li>
                   ))}

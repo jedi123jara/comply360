@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { EXPRESS_QUESTIONS, AREAS } from '@/lib/compliance/questions'
 import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
 import { track } from '@/lib/analytics'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { ComplianceQuestion } from '@/lib/compliance/questions'
 import type { QuestionAnswer, DiagnosticResult } from '@/lib/compliance/diagnostic-scorer'
 import type { AnswerValue } from '@/lib/compliance/questions/types'
@@ -229,7 +230,7 @@ export default function DiagnosticoGratisPage() {
             }}
           />
           <p className="text-lg text-gray-600 leading-relaxed max-w-xl mx-auto mb-8">
-            Respondé 20 preguntas en 10 minutos y obtené tu <b>score de compliance</b>,
+            Responde 20 preguntas en 10 minutos y obtén tu <b>score de compliance</b>,
             la <b>multa potencial estimada</b> y un plan de acción priorizado — todo sin registro.
           </p>
 
@@ -320,7 +321,7 @@ export default function DiagnosticoGratisPage() {
               <ShieldCheck className="h-3.5 w-3.5" /> D.S. 019-2006-TR
             </span>
             <span className="inline-flex items-center gap-1.5 text-xs">
-              <Award className="h-3.5 w-3.5" /> UIT 2026: S/ 5,500
+              <Award className="h-3.5 w-3.5" /> UIT 2026: {formatSoles(5500)}
             </span>
           </div>
 
@@ -384,7 +385,7 @@ export default function DiagnosticoGratisPage() {
             </h2>
 
             <p className="text-xs text-gray-400 mb-8">
-              Base legal: {currentQ.baseLegal} | Multa: {currentQ.multaUIT} UIT (S/ {(currentQ.multaUIT * 5500).toLocaleString('es-PE')})
+              Base legal: {currentQ.baseLegal} | Multa: {currentQ.multaUIT} UIT ({formatSoles(currentQ.multaUIT * 5500)})
             </p>
 
             {/* Answer buttons */}
@@ -623,12 +624,12 @@ export default function DiagnosticoGratisPage() {
                 <div className="mt-4 flex items-center gap-2">
                   <TrendingDown className="h-5 w-5 text-red-500" />
                   <span className="text-sm text-gray-600">
-                    Multa potencial estimada: <strong className="text-red-600 text-lg">S/ {multa.toLocaleString('es-PE')}</strong>
+                    Multa potencial estimada: <strong className="text-red-600 text-lg">{formatSoles(multa)}</strong>
                   </span>
                 </div>
 
                 <p className="mt-2 text-xs text-gray-400">
-                  Basado en {companySize} trabajadores, UIT 2026 = S/ 5,500, D.S. 019-2006-TR
+                  Basado en {companySize} trabajadores, UIT 2026 = {formatSoles(5500)}, D.S. 019-2006-TR
                 </p>
               </div>
             </div>
@@ -654,7 +655,7 @@ export default function DiagnosticoGratisPage() {
                       <div className={cn('h-1.5 rounded-full transition-all', c)} style={{ width: `${area.score}%` }} />
                     </div>
                     {area.multaEstimada > 0 && (
-                      <p className="mt-1 text-xs text-red-500">Multa estimada: S/ {area.multaEstimada.toLocaleString('es-PE')}</p>
+                      <p className="mt-1 text-xs text-red-500">Multa estimada: {formatSoles(area.multaEstimada)}</p>
                     )}
                   </div>
                 )
@@ -680,7 +681,7 @@ export default function DiagnosticoGratisPage() {
                       <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium', GRAVEDAD_COLORS[gap.gravedad as keyof typeof GRAVEDAD_COLORS])}>
                         {gap.gravedad}
                       </span>
-                      <span className="text-red-500 font-medium">S/ {gap.multaPEN.toLocaleString('es-PE')}</span>
+                      <span className="text-red-500 font-medium">{formatSoles(gap.multaPEN)}</span>
                     </div>
                   </div>
                 </div>
@@ -698,7 +699,7 @@ export default function DiagnosticoGratisPage() {
                 <div key={i} className="mb-4 rounded-lg bg-[color:var(--neutral-50)] p-4">
                   <p className="text-sm font-medium text-gray-300">Prioridad {item.priority}: {item.areaLabel}</p>
                   <p className="text-xs text-gray-500 mt-1">{item.action}</p>
-                  <p className="text-xs text-red-500 mt-1">Multa evitable: S/ {item.multaEvitable.toLocaleString('es-PE')}</p>
+                  <p className="text-xs text-red-500 mt-1">Multa evitable: {formatSoles(item.multaEvitable)}</p>
                 </div>
               ))}
             </div>

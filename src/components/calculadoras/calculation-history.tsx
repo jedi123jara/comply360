@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Clock, TrendingUp } from 'lucide-react'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface HistoryEntry {
   id: string
@@ -65,7 +66,7 @@ export function CalculationHistory({ type }: CalculationHistoryProps) {
             <div className="text-right">
               {entry.totalAmount != null && (
                 <span className="text-xs font-bold text-white">
-                  S/ {entry.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {formatSoles(entry.totalAmount)}
                 </span>
               )}
               <p className="text-[10px] text-gray-400">

@@ -36,6 +36,8 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
     type: 'INFO' | 'WARNING' | 'SUCCESS' | 'CRITICAL'
     title: string
     body: string
+    href: string
+    actionLabel: string
     createdAt: string
     read: boolean
   }
@@ -47,7 +49,9 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
       id: `payslip-${b.id}`,
       type: 'INFO',
       title: `Nueva boleta — ${b.periodo}`,
-      body: `Tu boleta del periodo ${b.periodo} esta lista. Confirma su recepcion.`,
+      body: `Tu boleta del periodo ${b.periodo} está lista. Confirma su recepción.`,
+      href: `/mi-portal/boletas/${b.id}`,
+      actionLabel: 'Firmar boleta',
       createdAt: b.fechaEmision.toISOString(),
       read: false,
     })
@@ -60,6 +64,8 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
       type: isApproved ? 'SUCCESS' : r.status === 'RECHAZADA' ? 'WARNING' : 'INFO',
       title: `Solicitud ${r.status.toLowerCase()}`,
       body: `Tu solicitud "${r.title}" fue ${r.status.toLowerCase()}.${r.reviewNotes ? ' Nota: ' + r.reviewNotes : ''}`,
+      href: `/mi-portal/solicitudes#request-${r.id}`,
+      actionLabel: 'Ver solicitud',
       createdAt: r.reviewedAt?.toISOString() || r.createdAt.toISOString(),
       read: false,
     })
@@ -70,8 +76,10 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
       notifications.push({
         id: `enrollment-${e.id}`,
         type: 'WARNING',
-        title: `Capacitacion obligatoria pendiente`,
+        title: `Capacitación obligatoria pendiente`,
         body: `Tienes pendiente completar el curso "${e.course.title}".`,
+        href: `/mi-portal/capacitaciones#enrollment-${e.id}`,
+        actionLabel: 'Ir al curso',
         createdAt: e.createdAt.toISOString(),
         read: false,
       })

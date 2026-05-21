@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ClipboardList, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, RefreshCw, User, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,7 @@ function ReviewModal({
               <div className="flex justify-between">
                 <span className="text-gray-500">Monto:</span>
                 <span className="font-medium text-white">
-                  S/ {Number(request.amount).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {formatSoles(Number(request.amount))}
                 </span>
               </div>
             )}

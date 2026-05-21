@@ -23,6 +23,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { AuthContext } from '@/lib/auth'
 
 // ─── Types for diagnostic questionsJson ─────────────────────────────────────
@@ -117,7 +118,7 @@ function generateActaHtml(params: {
       <td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:10pt;text-align:center">${estadoLabel(h.estado ?? '')}</td>
       <td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:10pt;text-align:center">${gravedadBadge(h.gravedad ?? '')}</td>
       <td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:10pt;text-align:right">${h.multaUIT?.toFixed(2) ?? '—'} UIT</td>
-      <td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:10pt;text-align:right">${h.multaPEN ? `S/ ${h.multaPEN.toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : '—'}</td>
+      <td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:10pt;text-align:right">${h.multaPEN ? formatSoles(h.multaPEN) : '—'}</td>
     </tr>
   `).join('')
 
@@ -383,7 +384,7 @@ function generateActaHtml(params: {
     <div class="lbl">Infracciones Muy Graves</div>
   </div>
   <div class="summary-box" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">
-    <span class="val">S/ ${multaTotal.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+    <span class="val">${formatSoles(multaTotal)}</span>
     <div class="lbl">Multa Total Estimada</div>
   </div>
 </div>
@@ -421,19 +422,19 @@ function generateActaHtml(params: {
       <td style="padding:8px;border:1px solid #cbd5e1">Sin subsanación (multa íntegra)</td>
       <td style="padding:8px;border:1px solid #cbd5e1">D.S. 019-2006-TR</td>
       <td style="padding:8px;border:1px solid #cbd5e1;text-align:center">0%</td>
-      <td style="padding:8px;border:1px solid #cbd5e1;font-weight:bold;color:#dc2626;text-align:right">S/ ${multaTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</td>
+      <td style="padding:8px;border:1px solid #cbd5e1;font-weight:bold;color:#dc2626;text-align:right">${formatSoles(multaTotal)}</td>
     </tr>
     <tr style="background:#fef9c3">
       <td style="padding:8px;border:1px solid #cbd5e1">Subsanación DURANTE la inspección</td>
       <td style="padding:8px;border:1px solid #cbd5e1">Ley 28806, Art. 40°</td>
       <td style="padding:8px;border:1px solid #cbd5e1;text-align:center">Hasta 70%</td>
-      <td style="padding:8px;border:1px solid #cbd5e1;font-weight:bold;color:#d97706;text-align:right">S/ ${multaDurante.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</td>
+      <td style="padding:8px;border:1px solid #cbd5e1;font-weight:bold;color:#d97706;text-align:right">${formatSoles(multaDurante)}</td>
     </tr>
     <tr style="background:#dcfce7">
       <td style="padding:8px;border:1px solid #cbd5e1"><strong>Subsanación ANTES de la inspección (recomendado)</strong></td>
       <td style="padding:8px;border:1px solid #cbd5e1">Ley 28806, Art. 40°</td>
       <td style="padding:8px;border:1px solid #cbd5e1;text-align:center"><strong>90%</strong></td>
-      <td style="padding:8px;border:1px solid #cbd5e1;font-weight:bold;color:#16a34a;text-align:right"><strong>S/ ${multaSubsanacion.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</strong></td>
+      <td style="padding:8px;border:1px solid #cbd5e1;font-weight:bold;color:#16a34a;text-align:right"><strong>${formatSoles(multaSubsanacion)}</strong></td>
     </tr>
   </tbody>
 </table>
@@ -492,7 +493,7 @@ ${incumplimientos.length > 0 ? `
       <p><strong>Inspector SUNAFIL Virtual</strong></p>
       <p>Sistema COMPLY360</p>
       <p>Módulo de Simulacro</p>
-      <p style="font-size:9pt;color:#64748b">UIT 2026: S/ ${UIT_2026.toLocaleString('es-PE')}</p>
+      <p style="font-size:9pt;color:#64748b">UIT 2026: ${formatSoles(UIT_2026)}</p>
     </div>
   </div>
 </div>

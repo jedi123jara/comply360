@@ -3,7 +3,7 @@ import { withWorkerAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { uploadFile } from '@/lib/storage/upload'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
-import { validateUpload, UPLOAD_PROFILES } from '@/lib/uploads/validation'
+import { validateUploadWithMagicBytes, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 
 export const GET = withWorkerAuth(async (_req, ctx) => {
   // Defense in depth: verifica que el worker pertenece al org correcto via relation filter
@@ -44,7 +44,7 @@ export const POST = withWorkerAuth(async (req, ctx) => {
   // Validación centralizada (Ola 1 — seguridad).
   // Profile más restrictivo para portal del trabajador: solo imágenes y PDF, máx 10 MB.
   // Bloquea SVG, JS, EXE, PHP por dos capas (MIME + extensión).
-  const validation = validateUpload(file, UPLOAD_PROFILES.workerPortalUpload)
+  const validation = await validateUploadWithMagicBytes(file, UPLOAD_PROFILES.workerPortalUpload)
   if (!validation.ok) {
     return NextResponse.json({ error: validation.error, code: validation.code }, { status: 400 })
   }

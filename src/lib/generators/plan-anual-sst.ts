@@ -23,6 +23,7 @@
  * 14. Presupuesto
  */
 import type { GeneratedDocument, GeneratedSection, GeneratorOrgContext } from './types'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export interface ObjetivoSmart {
   objetivo: string
@@ -165,7 +166,7 @@ export function generarPlanAnualSst(
       id: 'presupuesto',
       numbering: 'XII',
       title: 'Presupuesto Anual',
-      content: `${org.razonSocial} asigna un presupuesto de **S/ ${params.presupuestoSoles.toLocaleString('es-PE')}** para la ejecución del presente Plan Anual de SST durante el año ${params.anio}.\n\n**Rubros típicos de asignación:**\n- Capacitaciones y certificaciones\n- Exámenes médicos ocupacionales\n- Equipos de protección personal\n- Señalización y equipamiento de emergencia\n- Honorarios de especialistas SST externos\n- Adecuaciones físicas derivadas de IPERC\n- Software y materiales de gestión SST\n\nLa ejecución presupuestal se reportará trimestralmente al Comité SST y anualmente a la Alta Dirección.`,
+      content: `${org.razonSocial} asigna un presupuesto de **${formatSoles(params.presupuestoSoles)}** para la ejecución del presente Plan Anual de SST durante el año ${params.anio}.\n\n**Rubros típicos de asignación:**\n- Capacitaciones y certificaciones\n- Exámenes médicos ocupacionales\n- Equipos de protección personal\n- Señalización y equipamiento de emergencia\n- Honorarios de especialistas SST externos\n- Adecuaciones físicas derivadas de IPERC\n- Software y materiales de gestión SST\n\nLa ejecución presupuestal se reportará trimestralmente al Comité SST y anualmente a la Alta Dirección.`,
       baseLegal: 'Art. 39 Ley 29783',
     },
     ...(params.observaciones?.trim()

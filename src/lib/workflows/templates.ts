@@ -164,7 +164,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           subject: 'Legajo incompleto: {{worker.fullName}}',
           body:
             'El legajo digital de {{worker.fullName}} está al {{worker.legajoScore}}%. ' +
-            'Subí los documentos pendientes antes de una inspección SUNAFIL.',
+            'Sube los documentos pendientes antes de una inspección SUNAFIL.',
         },
       },
     ],

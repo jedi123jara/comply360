@@ -3,6 +3,7 @@ import {
   PERU_LABOR,
 } from '../peru-labor'
 import { money, sumMoney } from '../money'
+import { formatSoles as fmt } from '@/lib/format/peruvian'
 
 // =============================================
 // HORAS EXTRAS (Sobretiempo)
@@ -105,7 +106,3 @@ export function calcularHorasExtras(input: HorasExtrasInput): HorasExtrasResult 
   }
 }
 
-// Format helper
-function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}

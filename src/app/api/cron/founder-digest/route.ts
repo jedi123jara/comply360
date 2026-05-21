@@ -4,6 +4,7 @@ import { founderDigestEmail } from '@/lib/email/templates'
 import { computeFounderMetrics } from '@/lib/metrics/founder-metrics'
 import { notifySlackRaw } from '@/lib/notifications/slack'
 import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * GET /api/cron/founder-digest
@@ -87,14 +88,14 @@ export async function GET(request: NextRequest) {
 
     const ok = await sendEmail({
       to: founderEmail,
-      subject: `[Comply360] Founder Digest · MRR ${metrics.business.mrr > 0 ? `S/ ${metrics.business.mrr}` : 'S/ 0'} · ${metrics.growth.newOrgs7d} nuevas 7d`,
+      subject: `[Comply360] Founder Digest · MRR ${formatSoles(metrics.business.mrr)} · ${metrics.growth.newOrgs7d} nuevas 7d`,
       html,
     })
 
     // Resumen corto para Slack (complementa el email)
     const slackSummary = [
       `*🌅 Comply360 Digest · ${date}*`,
-      `• MRR: *S/ ${metrics.business.mrr}* (${metrics.business.mrrDeltaVsPrev30d >= 0 ? '+' : ''}S/ ${metrics.business.mrrDeltaVsPrev30d} vs 30d)`,
+      `• MRR: *${formatSoles(metrics.business.mrr)}* (${metrics.business.mrrDeltaVsPrev30d >= 0 ? '+' : '-'}${formatSoles(Math.abs(metrics.business.mrrDeltaVsPrev30d))} vs 30d)`,
       `• Nuevas: *${metrics.growth.newOrgs7d}* empresas · activación ${metrics.growth.activationRate7d ?? '—'}%`,
       `• DAU/MAU: *${metrics.engagement.dau}/${metrics.engagement.mau}* · stickiness ${metrics.engagement.stickinessPct ?? '—'}%`,
       metrics.health.trialsExpiring7d > 0

@@ -1,30 +1,24 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import type { LucideIcon } from 'lucide-react'
 import {
-  FileText,
-  Upload,
-  CheckCircle2,
-  Clock,
   AlertCircle,
-  Download,
+  Archive,
+  CheckCircle2,
   ChevronRight,
+  Clock,
+  Download,
+  FileText,
   FolderOpen,
-  Shield,
   Heart,
   LogOut as DepartureIcon,
+  Shield,
+  ShieldCheck,
+  Upload,
 } from 'lucide-react'
-
-/**
- * /mi-portal/documentos — Legajo Digital del trabajador (Emerald Light).
- *
- * Muestra los 28 documentos clasificados en 5 categorías con score de completitud.
- * Cada doc tiene estado (PENDING / UPLOADED / VERIFIED / EXPIRED / MISSING) + acción
- * correspondiente (subir / ver / reemplazar / descargar).
- *
- * Consume `GET /api/mi-portal/documentos` — no altera contrato API.
- */
 
 interface DocItem {
   id: string
@@ -38,9 +32,63 @@ interface DocItem {
   createdAt: string
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Config
-// ─────────────────────────────────────────────────────────────────────────────
+const MOCK_DOCS: DocItem[] = [
+  {
+    id: 'dni',
+    category: 'INGRESO',
+    documentType: 'DNI',
+    title: 'DNI vigente',
+    status: 'VERIFIED',
+    fileUrl: null,
+    isRequired: true,
+    expiresAt: null,
+    createdAt: '2026-05-01T12:00:00.000Z',
+  },
+  {
+    id: 'cuenta',
+    category: 'INGRESO',
+    documentType: 'CUENTA_BANCARIA',
+    title: 'Constancia de cuenta bancaria',
+    status: 'UPLOADED',
+    fileUrl: null,
+    isRequired: true,
+    expiresAt: null,
+    createdAt: '2026-05-02T12:00:00.000Z',
+  },
+  {
+    id: 'emo',
+    category: 'SST',
+    documentType: 'CERTIFICADO_MEDICO',
+    title: 'Examen médico ocupacional',
+    status: 'MISSING',
+    fileUrl: null,
+    isRequired: true,
+    expiresAt: '2026-06-20T12:00:00.000Z',
+    createdAt: '2026-05-03T12:00:00.000Z',
+  },
+  {
+    id: 'afp',
+    category: 'PREVISIONAL',
+    documentType: 'AFP_ONP',
+    title: 'Constancia previsional',
+    status: 'PENDING',
+    fileUrl: null,
+    isRequired: true,
+    expiresAt: null,
+    createdAt: '2026-05-04T12:00:00.000Z',
+  },
+  {
+    id: 'epp',
+    category: 'SST',
+    documentType: 'ENTREGA_EPP',
+    title: 'Cargo de entrega de EPP',
+    status: 'VERIFIED',
+    fileUrl: null,
+    isRequired: false,
+    expiresAt: null,
+    createdAt: '2026-05-05T12:00:00.000Z',
+  },
+]
 
 const STATUS_META: Record<
   string,
@@ -48,78 +96,78 @@ const STATUS_META: Record<
     label: string
     bg: string
     text: string
-    icon: typeof CheckCircle2
+    icon: LucideIcon
     iconColor: string
   }
 > = {
   VERIFIED: {
     label: 'Verificado',
-    bg: 'rgba(16,185,129,0.12)',
-    text: 'var(--emerald-700)',
+    bg: 'rgba(16,185,129,0.14)',
+    text: '#047857',
     icon: CheckCircle2,
-    iconColor: 'var(--emerald-600)',
+    iconColor: '#059669',
   },
   UPLOADED: {
     label: 'Subido',
     bg: 'rgba(59,130,246,0.12)',
-    text: 'rgb(29, 78, 216)',
+    text: '#1d4ed8',
     icon: FileText,
-    iconColor: 'rgb(37, 99, 235)',
+    iconColor: '#2563eb',
   },
   PENDING: {
     label: 'Pendiente',
-    bg: 'rgba(245,158,11,0.12)',
-    text: 'var(--amber-700, #b45309)',
+    bg: 'rgba(245,158,11,0.14)',
+    text: '#b45309',
     icon: Clock,
-    iconColor: 'var(--amber-600, #d97706)',
+    iconColor: '#d97706',
   },
   MISSING: {
     label: 'Falta subir',
     bg: 'rgba(239,68,68,0.12)',
-    text: 'var(--crimson-700, #b91c1c)',
+    text: '#b91c1c',
     icon: AlertCircle,
-    iconColor: 'var(--crimson-600, #dc2626)',
+    iconColor: '#dc2626',
   },
   EXPIRED: {
     label: 'Vencido',
     bg: 'rgba(239,68,68,0.12)',
-    text: 'var(--crimson-700, #b91c1c)',
+    text: '#b91c1c',
     icon: AlertCircle,
-    iconColor: 'var(--crimson-600, #dc2626)',
+    iconColor: '#dc2626',
   },
 }
 
 const CATEGORY_META: Record<
   string,
-  { label: string; description: string; icon: typeof FolderOpen; accent: string }
+  { label: string; description: string; icon: LucideIcon; accent: string }
 > = {
   INGRESO: {
-    label: 'Documentos de ingreso',
-    description: 'DNI, CV, antecedentes y certificados iniciales',
+    label: 'Ingreso',
+    description: 'DNI, CV, antecedentes y datos de alta',
     icon: FolderOpen,
     accent: '#2563eb',
   },
   VIGENTE: {
-    label: 'Documentos vigentes',
-    description: 'Actualizaciones recurrentes durante tu vínculo laboral',
+    label: 'Vigentes',
+    description: 'Documentos activos durante tu vínculo',
     icon: FileText,
     accent: '#3b82f6',
   },
   SST: {
-    label: 'Seguridad y Salud (SST)',
-    description: 'Exámenes médicos, capacitaciones, entrega de EPP',
+    label: 'SST',
+    description: 'Salud ocupacional, EPP y seguridad',
     icon: Shield,
     accent: '#f59e0b',
   },
   PREVISIONAL: {
     label: 'Previsional',
-    description: 'AFP / ONP, SCTR, EsSalud y aportes',
+    description: 'AFP, ONP, SCTR, EsSalud y aportes',
     icon: Heart,
     accent: '#8b5cf6',
   },
   CESE: {
-    label: 'Documentos de cese',
-    description: 'Liquidación, carta de cese, certificado de trabajo',
+    label: 'Cese',
+    description: 'Liquidación y cierre documental',
     icon: DepartureIcon,
     accent: '#64748b',
   },
@@ -127,16 +175,18 @@ const CATEGORY_META: Record<
 
 const CATEGORY_ORDER = ['INGRESO', 'VIGENTE', 'SST', 'PREVISIONAL', 'CESE'] as const
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Component
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function MisDocumentosPage() {
   const [docs, setDocs] = useState<DocItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const isWorkerPreview =
+    process.env.NODE_ENV === 'development' && searchParams.get('__workerPreview') === '1'
+  const displayDocs = isWorkerPreview ? MOCK_DOCS : docs
 
   useEffect(() => {
+    if (isWorkerPreview) return
+
     let mounted = true
     fetch('/api/mi-portal/documentos')
       .then((r) => {
@@ -157,344 +207,261 @@ export default function MisDocumentosPage() {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [isWorkerPreview])
 
   const grouped = useMemo(() => {
     const g: Record<string, DocItem[]> = {}
-    for (const d of docs) {
+    for (const d of displayDocs) {
       if (!g[d.category]) g[d.category] = []
       g[d.category].push(d)
     }
     return g
-  }, [docs])
+  }, [displayDocs])
 
   const completeness = useMemo(() => {
-    if (docs.length === 0) return { pct: 0, verified: 0, missing: 0, total: 0 }
-    const verified = docs.filter((d) => d.status === 'VERIFIED' || d.status === 'UPLOADED').length
-    const missing = docs.filter((d) => d.status === 'MISSING' || d.status === 'PENDING').length
+    if (displayDocs.length === 0) return { pct: 0, verified: 0, missing: 0, total: 0, critical: 0 }
+    const verified = displayDocs.filter((d) => d.status === 'VERIFIED' || d.status === 'UPLOADED').length
+    const missing = displayDocs.filter((d) => d.status === 'MISSING' || d.status === 'PENDING' || d.status === 'EXPIRED').length
+    const critical = displayDocs.filter((d) => d.isRequired && (d.status === 'MISSING' || d.status === 'EXPIRED')).length
     return {
-      pct: Math.round((verified / docs.length) * 100),
+      pct: Math.round((verified / displayDocs.length) * 100),
       verified,
       missing,
-      total: docs.length,
+      total: displayDocs.length,
+      critical,
     }
-  }, [docs])
+  }, [displayDocs])
 
-  if (loading) return <LoadingSkeleton />
+  const criticalDocs = useMemo(
+    () => displayDocs.filter((d) => d.isRequired && (d.status === 'MISSING' || d.status === 'EXPIRED' || d.status === 'PENDING')).slice(0, 4),
+    [displayDocs],
+  )
+
+  if (!isWorkerPreview && loading) return <LoadingSkeleton />
   if (error) return <ErrorState message={error} />
 
   return (
-    <div className="space-y-6">
-      {/* ─── Header editorial ─────────────────────────────────────────── */}
-      <header
-        className="pb-4"
-        style={{ borderBottom: '0.5px solid var(--border-default)' }}
-      >
-        <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-2">
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-emerald-500"
-            style={{ boxShadow: '0 0 0 3px rgba(16,185,129,0.15)' }}
-          />
-          <span>Mi legajo digital</span>
-        </div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(1.75rem, 5vw, 2.25rem)',
-            fontWeight: 400,
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em',
-            color: 'var(--text-primary)',
-            marginBottom: 6,
-          }}
-        >
-          Tu <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>legajo</em>{' '}
-          está al {completeness.pct}%
-        </h1>
-        <p className="text-sm text-[color:var(--text-secondary)] max-w-xl">
-          {completeness.missing > 0
-            ? `Te faltan ${completeness.missing} de ${completeness.total} documentos. Completar el legajo protege tus derechos laborales y a tu empresa ante SUNAFIL.`
-            : 'Tu legajo está completo. Mantenelo actualizado cuando cambie algún documento.'}
-        </p>
-      </header>
-
-      {/* ─── Progress bar + CTA ──────────────────────────────────────── */}
-      <section
-        className="rounded-2xl p-5"
-        style={{
-          background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
-          border: '0.5px solid rgba(16,185,129,0.22)',
-        }}
-      >
-        <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
-          <div className="flex items-baseline gap-3">
-            <div
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 40,
-                fontWeight: 400,
-                color: 'var(--emerald-700)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {completeness.pct}
-              <span style={{ fontSize: 18, opacity: 0.6 }}>%</span>
-            </div>
-            <div className="text-xs text-[color:var(--text-secondary)]">
-              <div>
-                <b>{completeness.verified}</b> completos
-              </div>
-              <div>
-                <b>{completeness.missing}</b> pendientes
-              </div>
-            </div>
+    <div className="c360-worker-os c360-worker-passport space-y-6 pb-24">
+      <section className="c360-os-hero c360-passport-hero">
+        <div className="c360-os-hero-copy">
+          <span className="c360-os-eyebrow">
+            <Archive className="h-3.5 w-3.5" />
+            Pasaporte laboral
+          </span>
+          <h1>Tu legajo, completo y siempre defendible.</h1>
+          <p>
+            Cada documento cuenta para proteger tus derechos laborales y sostener
+            evidencia frente a auditorías o fiscalización.
+          </p>
+          <div className="c360-os-hero-actions">
+            <Link href="/mi-portal/documentos/subir" className="c360-os-primary-action">
+              Subir documento
+              <Upload className="h-4 w-4" />
+            </Link>
+            <span className="c360-os-audit-pill">
+              <ShieldCheck className="h-4 w-4" />
+              Legajo seguro
+            </span>
           </div>
-          <Link
-            href="/mi-portal/documentos/subir"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-sm font-bold transition-colors"
+        </div>
+
+        <aside className="c360-passport-card">
+          <div
+            className="c360-passport-ring"
             style={{
-              boxShadow:
-                '0 8px 20px -6px rgba(4,120,87,0.45), inset 0 1px 0 rgba(255,255,255,0.14)',
+              background: `conic-gradient(#14b8a6 ${completeness.pct * 3.6}deg, rgba(226,232,240,0.86) 0deg)`,
             }}
           >
-            <Upload className="h-4 w-4" />
-            Subir documento
-          </Link>
-        </div>
-
-        {/* Progress bar */}
-        <div
-          className="h-2 rounded-full overflow-hidden"
-          style={{ background: 'rgba(15,23,42,0.06)' }}
-        >
-          <div
-            className="h-full transition-all duration-700"
-            style={{
-              width: `${completeness.pct}%`,
-              background: 'linear-gradient(90deg, var(--emerald-500), var(--emerald-700))',
-            }}
-          />
-        </div>
+            <span>{completeness.pct}%</span>
+          </div>
+          <div>
+            <p>Estado del legajo</p>
+            <h2>{completeness.critical > 0 ? 'Requiere atención' : 'En buen estado'}</h2>
+            <small>
+              {completeness.verified}/{completeness.total} documentos completos
+            </small>
+          </div>
+        </aside>
       </section>
 
-      {/* ─── Empty state ──────────────────────────────────────────────── */}
-      {docs.length === 0 ? (
-        <div
-          className="rounded-2xl p-10 text-center"
-          style={{ background: 'white', border: '0.5px dashed var(--border-default)' }}
-        >
-          <FolderOpen className="h-12 w-12 text-[color:var(--text-tertiary)] mx-auto mb-3 opacity-60" />
-          <h3
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 20,
-              fontWeight: 400,
-              color: 'var(--text-primary)',
-              marginBottom: 4,
-            }}
-          >
-            No hay documentos asignados aún
-          </h3>
-          <p className="text-sm text-[color:var(--text-tertiary)] max-w-md mx-auto">
-            La empresa aún no ha configurado tu legajo digital. Cuando lo haga, aparecerá acá.
-          </p>
+      <section className="c360-os-metrics-grid">
+        <MetricCard icon={CheckCircle2} label="Completos" value={completeness.verified} helper="Verificados o subidos" tone="emerald" />
+        <MetricCard icon={Clock} label="Pendientes" value={completeness.missing} helper="Falta acción o revisión" tone="amber" />
+        <MetricCard icon={AlertCircle} label="Críticos" value={completeness.critical} helper="Obligatorios por resolver" tone="blue" />
+      </section>
+
+      {criticalDocs.length > 0 ? (
+        <section className="c360-os-panel c360-passport-critical">
+          <div className="c360-os-section-head">
+            <div>
+              <span>Prioridad</span>
+              <h2>Faltantes críticos</h2>
+            </div>
+            <small>{criticalDocs.length} por resolver</small>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {criticalDocs.map((doc) => (
+              <DocActionCard key={doc.id} doc={doc} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="c360-os-panel">
+        <div className="c360-os-section-head">
+          <div>
+            <span>Expediente</span>
+            <h2>Documentos por categoría</h2>
+          </div>
+          <small>{displayDocs.length} documentos</small>
         </div>
-      ) : (
-        <div className="space-y-5">
-          {CATEGORY_ORDER.filter((k) => grouped[k]?.length > 0).map((category) => {
-            const items = grouped[category] ?? []
-            const meta = CATEGORY_META[category] ?? {
-              label: category,
-              description: '',
-              icon: FileText,
-              accent: '#64748b',
-            }
-            const CatIcon = meta.icon
-            const verifiedCount = items.filter(
-              (i) => i.status === 'VERIFIED' || i.status === 'UPLOADED',
-            ).length
 
-            return (
-              <section key={category}>
-                {/* Category header */}
-                <div className="flex items-center gap-3 mb-3 px-1">
-                  <div
-                    className="flex items-center justify-center rounded-lg flex-shrink-0"
-                    style={{
-                      width: 36,
-                      height: 36,
-                      background: `${meta.accent}15`,
-                      color: meta.accent,
-                    }}
-                  >
-                    <CatIcon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-bold text-[color:var(--text-primary)]">
-                      {meta.label}
-                    </h2>
-                    <p className="text-[11px] text-[color:var(--text-tertiary)] truncate">
-                      {meta.description}
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold text-[color:var(--text-tertiary)] tabular-nums">
-                    {verifiedCount}/{items.length}
-                  </span>
-                </div>
+        {displayDocs.length === 0 ? (
+          <div className="c360-os-empty">
+            <FolderOpen className="h-9 w-9" />
+            <h3>No hay documentos asignados aún</h3>
+            <p>Cuando la empresa configure tu legajo digital, aparecerá acá.</p>
+          </div>
+        ) : (
+          <div className="c360-passport-category-grid">
+            {CATEGORY_ORDER.filter((k) => grouped[k]?.length > 0).map((category) => {
+              const items = grouped[category] ?? []
+              const meta = CATEGORY_META[category] ?? {
+                label: category,
+                description: '',
+                icon: FileText,
+                accent: '#64748b',
+              }
+              const CatIcon = meta.icon
+              const verifiedCount = items.filter((i) => i.status === 'VERIFIED' || i.status === 'UPLOADED').length
 
-                {/* Items */}
-                <div
-                  className="rounded-2xl overflow-hidden"
-                  style={{ background: 'white', border: '0.5px solid var(--border-default)' }}
-                >
-                  <ul
-                    className="divide-y"
-                    style={{ borderColor: 'var(--border-subtle)' }}
-                  >
+              return (
+                <article key={category} className="c360-passport-category">
+                  <div className="c360-passport-category-head">
+                    <div className="c360-passport-category-icon" style={{ color: meta.accent, background: `${meta.accent}16` }}>
+                      <CatIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3>{meta.label}</h3>
+                      <p>{meta.description}</p>
+                    </div>
+                    <span>{verifiedCount}/{items.length}</span>
+                  </div>
+                  <ul className="c360-passport-doc-list">
                     {items.map((doc) => (
                       <DocRow key={doc.id} doc={doc} />
                     ))}
                   </ul>
-                </div>
-              </section>
-            )
-          })}
-        </div>
-      )}
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  DocRow
-// ─────────────────────────────────────────────────────────────────────────────
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  helper,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string | number
+  helper: string
+  tone: 'emerald' | 'blue' | 'amber'
+}) {
+  return (
+    <article className={`c360-os-metric c360-os-tone-${tone}`}>
+      <div className="c360-os-metric-icon">
+        <Icon className="h-5 w-5" />
+      </div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{helper}</small>
+    </article>
+  )
+}
+
+function DocActionCard({ doc }: { doc: DocItem }) {
+  const status = STATUS_META[doc.status] ?? STATUS_META.PENDING
+  const StatusIcon = status.icon
+  return (
+    <Link href={`/mi-portal/documentos/subir?type=${doc.documentType}`} className="c360-passport-action-card">
+      <div className="c360-passport-action-icon">
+        <StatusIcon className="h-5 w-5" style={{ color: status.iconColor }} />
+      </div>
+      <div>
+        <h3>{doc.title}</h3>
+        <p>{status.label} · {doc.documentType.replaceAll('_', ' ').toLowerCase()}</p>
+      </div>
+      <ChevronRight className="h-4 w-4" />
+    </Link>
+  )
+}
 
 function DocRow({ doc }: { doc: DocItem }) {
   const status = STATUS_META[doc.status] ?? STATUS_META.PENDING
   const StatusIcon = status.icon
   const isActionable = doc.status === 'MISSING' || doc.status === 'PENDING' || doc.status === 'EXPIRED'
   const niceType = doc.documentType.replaceAll('_', ' ').toLowerCase()
-  const expires = doc.expiresAt ? new Date(doc.expiresAt) : null
-  const expiresText = expires
-    ? expires.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
-    : null
 
   return (
-    <li className="px-4 py-3 flex items-center gap-3 hover:bg-[color:var(--neutral-50)] transition-colors">
-      {/* Doc icon */}
-      <div
-        className="flex items-center justify-center rounded-lg flex-shrink-0"
-        style={{
-          width: 40,
-          height: 40,
-          background: 'var(--neutral-50)',
-          color: 'var(--text-tertiary)',
-        }}
-      >
-        <FileText className="h-5 w-5" />
+    <li className="c360-passport-doc-row">
+      <div className="c360-passport-doc-icon">
+        <FileText className="h-4 w-4" />
       </div>
-
-      {/* Title + meta */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-[color:var(--text-primary)] truncate">
-          {doc.title}
+      <div className="min-w-0 flex-1">
+        <h4>{doc.title}</h4>
+        <p>
+          <span>{niceType}</span>
+          {doc.isRequired ? <b>Obligatorio</b> : null}
         </p>
-        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[color:var(--text-tertiary)]">
-          <span className="capitalize truncate">{niceType}</span>
-          {doc.isRequired ? (
-            <span
-              className="px-1.5 py-0.5 rounded font-bold uppercase tracking-wider text-[9px]"
-              style={{
-                background: 'rgba(239,68,68,0.1)',
-                color: 'var(--crimson-700, #b91c1c)',
-              }}
-            >
-              Obligatorio
-            </span>
-          ) : null}
-          {expiresText ? (
-            <span className="hidden sm:inline truncate">· Vence {expiresText}</span>
-          ) : null}
-        </div>
       </div>
-
-      {/* Status badge */}
-      <span
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex-shrink-0"
-        style={{
-          background: status.bg,
-          color: status.text,
-        }}
-      >
+      <span className="c360-passport-status" style={{ background: status.bg, color: status.text }}>
         <StatusIcon className="h-3 w-3" style={{ color: status.iconColor }} />
-        <span className="hidden sm:inline">{status.label}</span>
+        {status.label}
       </span>
-
-      {/* Action */}
       {doc.fileUrl ? (
-        <a
-          href={doc.fileUrl}
-          download
-          className="flex items-center justify-center rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:text-emerald-700 hover:bg-emerald-50 transition-colors flex-shrink-0"
-          title="Descargar"
-          aria-label="Descargar documento"
-        >
+        <a href={doc.fileUrl} download aria-label="Descargar documento">
           <Download className="h-4 w-4" />
         </a>
       ) : isActionable ? (
-        <Link
-          href={`/mi-portal/documentos/subir?type=${doc.documentType}`}
-          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-xs font-bold transition-colors flex-shrink-0"
-        >
-          <Upload className="h-3 w-3" />
-          <span className="hidden sm:inline">Subir</span>
+        <Link href={`/mi-portal/documentos/subir?type=${doc.documentType}`} aria-label="Subir documento">
+          <Upload className="h-4 w-4" />
         </Link>
       ) : (
-        <ChevronRight className="h-4 w-4 text-[color:var(--text-tertiary)] flex-shrink-0" />
+        <ChevronRight className="h-4 w-4 text-slate-400" />
       )}
     </li>
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Loading + Error states
-// ─────────────────────────────────────────────────────────────────────────────
-
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div>
-        <div className="h-3 w-24 rounded bg-emerald-100 mb-2" />
-        <div className="h-9 w-72 rounded-lg bg-gray-200 mb-2" />
-        <div className="h-4 w-96 rounded bg-[color:var(--neutral-100)]" />
+    <div className="c360-worker-os space-y-6" aria-busy="true">
+      <div className="c360-os-skeleton-block h-[330px]" />
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="c360-os-skeleton-block h-32" />
+        <div className="c360-os-skeleton-block h-32" />
+        <div className="c360-os-skeleton-block h-32" />
       </div>
-      <div className="rounded-2xl h-24 bg-emerald-50/60" />
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i}>
-            <div className="h-4 w-40 rounded bg-gray-200 mb-2" />
-            <div className="rounded-2xl h-40 bg-[color:var(--neutral-100)]" />
-          </div>
-        ))}
-      </div>
+      <div className="c360-os-skeleton-block h-80" />
     </div>
   )
 }
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div
-      className="rounded-2xl p-6"
-      style={{ background: '#fef2f2', border: '0.5px solid rgba(239,68,68,0.25)' }}
-    >
-      <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <h3 className="font-bold text-red-900">No pudimos cargar tus documentos</h3>
-          <p className="text-sm text-red-800 mt-1">{message}</p>
-        </div>
+    <div className="c360-os-error">
+      <AlertCircle className="h-5 w-5" />
+      <div>
+        <h3>No pudimos cargar tus documentos</h3>
+        <p>{message}</p>
       </div>
     </div>
   )

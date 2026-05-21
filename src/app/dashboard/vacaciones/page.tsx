@@ -757,7 +757,7 @@ export default function VacacionesPage() {
       toast.success('Registro de vacaciones eliminado')
       void load()
     } catch {
-      toast.error('No se pudo eliminar. Intentá de nuevo.')
+      toast.error('No se pudo eliminar. Intenta de nuevo.')
     }
   }
 

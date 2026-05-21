@@ -23,6 +23,7 @@ import { StructureAnalyticsModal } from './structure-analytics-modal'
 import { DirectoryModal } from './directory-modal'
 import { SubordinationModal } from './subordination-modal'
 import { ChangeHistoryModal } from './change-history-modal'
+import { DelegatedTasksModal } from './delegated-tasks-modal'
 
 export function ModalsContainer() {
   return (
@@ -43,6 +44,7 @@ export function ModalsContainer() {
       <DirectoryModal />
       <SubordinationModal />
       <ChangeHistoryModal />
+      <DelegatedTasksModal />
     </>
   )
 }

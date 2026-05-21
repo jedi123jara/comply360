@@ -2,6 +2,7 @@
 
 import { ShieldCheck, Users, Activity, TrendingUp, ArrowUp } from 'lucide-react'
 import { AnimatedShield, RingPremium, useCountUp } from './animated-shield'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * HeroPanel — signature del dashboard.
@@ -37,10 +38,6 @@ export interface HeroPanelProps {
   onOpenDiagnostic?: () => void
   /** Callback click "Preguntar al asistente". */
   onAskAssistant?: () => void
-}
-
-function formatSoles(n: number): string {
-  return 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 export function HeroPanel({

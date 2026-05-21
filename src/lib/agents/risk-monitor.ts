@@ -18,6 +18,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { formatSoles } from '@/lib/format/peruvian'
 import type {
   AgentDefinition,
   AgentInput,
@@ -102,10 +103,10 @@ function checkSueldoBajoRMV(workers: WorkerLike[]): RiskFinding[] {
         categoria: 'REMUNERACION',
         severidad: 'CRITICO',
         titulo: `Sueldo bajo la RMV: ${w.firstName} ${w.lastName}`,
-        descripcion: `Sueldo registrado S/${w.sueldoBruto} < RMV S/${RMV_2026}`,
+        descripcion: `Sueldo registrado ${formatSoles(w.sueldoBruto)} < RMV ${formatSoles(RMV_2026)}`,
         entidadAfectada: `${w.firstName} ${w.lastName} (DNI ${w.dni})`,
         multaPotencialSoles: Math.round(7.65 * UIT_2026), // muy grave NO_MYPE máx
-        baseLegal: 'D.S. 004-2025-TR (RMV S/ 1,130 vigente 2026) — Infracción muy grave Art. 25.6 D.S. 019-2006-TR',
+        baseLegal: 'D.S. 004-2025-TR (RMV 1,130.00 nuevos soles vigente 2026) — Infracción muy grave Art. 25.6 D.S. 019-2006-TR',
         fixSugerido: 'Ajustar sueldo a la RMV vigente y pagar reintegro retroactivo',
         fixUrl: `/dashboard/trabajadores/${w.id}`,
       })
@@ -307,7 +308,7 @@ async function runRiskMonitor(
     priority: 'info',
   })
 
-  const summary = `Barrido completado sobre ${workers.length} trabajadores y ${contracts.length} contratos. Detectados ${findings.length} riesgos (${desglose.CRITICO} críticos, ${desglose.ALTO} altos). Exposición total estimada: S/${exposicionTotalSoles.toLocaleString('es-PE')}. Score de riesgo: ${scoreRiesgo}/100.`
+  const summary = `Barrido completado sobre ${workers.length} trabajadores y ${contracts.length} contratos. Detectados ${findings.length} riesgos (${desglose.CRITICO} críticos, ${desglose.ALTO} altos). Exposición total estimada: ${formatSoles(exposicionTotalSoles)}. Score de riesgo: ${scoreRiesgo}/100.`
 
   return {
     agentSlug: 'risk-monitor',

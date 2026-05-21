@@ -33,6 +33,7 @@ import {
   type JsPDFDoc,
 } from '@/lib/pdf/server-pdf'
 import { calcularLiquidacion } from '@/lib/legal-engine/calculators/liquidacion'
+import { formatSoles } from '@/lib/format/peruvian'
 import type { LiquidacionInput, LiquidacionResult, BreakdownItem } from '@/lib/legal-engine/types'
 
 export const runtime = 'nodejs'
@@ -62,11 +63,6 @@ interface RequestBody {
 }
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
-
-function fmtPEN(n: number | null | undefined): string {
-  if (n === null || n === undefined) return 'S/ 0.00'
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 function fmtFecha(iso: string): string {
   try {
@@ -152,7 +148,7 @@ function renderBreakdownSection(
   doc.setFontSize(11)
   doc.setTextColor(30, 58, 110)
   doc.setFont('helvetica', 'bold')
-  doc.text(fmtPEN(item.amount), 192, y + 3, { align: 'right' })
+  doc.text(formatSoles(item.amount), 192, y + 3, { align: 'right' })
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(60, 60, 60)
 
@@ -294,7 +290,7 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
     y = kv(doc, 'Fecha de ingreso', fmtFecha(body.input.fechaIngreso), 14, y)
     y = kv(doc, 'Fecha de cese', fmtFecha(body.input.fechaCese), 14, y)
     y = kv(doc, 'Motivo del cese', motivoCeseLabel(body.input.motivoCese), 14, y)
-    y = kv(doc, 'Sueldo bruto base', fmtPEN(body.input.sueldoBruto), 14, y)
+    y = kv(doc, 'Sueldo bruto base', formatSoles(body.input.sueldoBruto), 14, y)
     if (body.input.asignacionFamiliar) {
       y = kv(doc, 'Asignación familiar', 'Sí (10% RMV)', 14, y)
     }
@@ -321,7 +317,7 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
     doc.setFont('helvetica', 'bold')
     doc.text('TOTAL LIQUIDACIÓN', 18, y + 5)
     doc.setFontSize(14)
-    doc.text(fmtPEN(result.totalBruto), 192, y + 5, { align: 'right' })
+    doc.text(formatSoles(result.totalBruto), 192, y + 5, { align: 'right' })
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(60, 60, 60)
     y += 22

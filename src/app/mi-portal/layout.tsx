@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
 import {
   Home,
@@ -20,8 +21,10 @@ import {
   ShieldCheck,
   FileSignature,
   Clock,
+  MessageCircle,
   AlertTriangle,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { ConsentGate } from '@/components/legal/consent-modal'
 import { PendingAcksBanner } from '@/components/mi-portal/pending-acks-banner'
@@ -34,25 +37,24 @@ import { PendingAcksBanner } from '@/components/mi-portal/pending-acks-banner'
  *  - Desktop (>=lg): sidebar izquierda con nav completa + topbar fixed.
  *
  * 5 secciones principales (bottom nav mobile):
- *   Inicio · Documentos · Boletas · Solicitudes · Perfil
+ *   Inicio · Pulse · Asistencia · Boletas · Solicitudes
  *
  * Otras secciones (accesibles desde "Más" o sidebar desktop):
  *   Capacitaciones · RIT y Políticas · Canal denuncias · Notificaciones
  */
 
-/** Nav principal — los 5 tabs del bottom nav (mobile) + sidebar core (desktop).
- *  "Asistencia" reemplaza a "Documentos" en el bottom nav porque es uso DIARIO.
- *  Documentos queda en la nav secundaria (drawer). */
+/** Nav principal — los 5 tabs del bottom nav (mobile) + sidebar core (desktop). */
 const MAIN_NAV = [
   { href: '/mi-portal', label: 'Inicio', icon: Home },
+  { href: '/mi-portal/pulse', label: 'Pulse', icon: Sparkles },
   { href: '/mi-portal/asistencia', label: 'Asistencia', icon: Clock },
   { href: '/mi-portal/boletas', label: 'Boletas', icon: Receipt },
   { href: '/mi-portal/solicitudes', label: 'Solicitudes', icon: ClipboardList },
-  { href: '/mi-portal/perfil', label: 'Perfil', icon: UserCircle },
 ] as const
 
 /** Nav secundaria — visible en drawer mobile + sidebar desktop (sección "Más"). */
 const SECONDARY_NAV = [
+  { href: '/mi-portal/perfil', label: 'Perfil', icon: UserCircle },
   { href: '/mi-portal/documentos', label: 'Documentos', icon: FileText },
   { href: '/mi-portal/contratos', label: 'Contratos', icon: FileSignature },
   { href: '/mi-portal/capacitaciones', label: 'Capacitaciones', icon: GraduationCap },
@@ -66,12 +68,17 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
   const [roleGate, setRoleGate] = useState<'checking' | 'allowed' | 'wrong_role'>('checking')
   const [currentRole, setCurrentRole] = useState<string | null>(null)
   const pathname = usePathname() ?? '/mi-portal'
+  const searchParams = useSearchParams()
   const router = useRouter()
   const { signOut } = useClerk()
   const isPublicAuth = pathname === '/mi-portal/registrarse' || pathname === '/mi-portal/ingresar'
+  const isWorkerPreview =
+    process.env.NODE_ENV === 'development' && searchParams.get('__workerPreview') === '1'
+  const effectiveRoleGate = isWorkerPreview ? 'allowed' : roleGate
 
   useEffect(() => {
     if (isPublicAuth) return
+    if (isWorkerPreview) return
 
     let cancelled = false
 
@@ -100,14 +107,14 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
     return () => {
       cancelled = true
     }
-  }, [isPublicAuth, router])
+  }, [isPublicAuth, isWorkerPreview, router])
 
   if (isPublicAuth) {
     return <>{children}</>
   }
 
-  if (roleGate !== 'allowed') {
-    if (roleGate === 'wrong_role') {
+  if (effectiveRoleGate !== 'allowed') {
+    if (effectiveRoleGate === 'wrong_role') {
       return (
         <WorkerAccountMismatch
           role={currentRole}
@@ -124,6 +131,10 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
     return pathname.startsWith(href)
   }
 
+  function withPreviewHref(href: string): string {
+    return isWorkerPreview ? `${href}?__workerPreview=1` : href
+  }
+
   async function handleLogout() {
     try {
       await signOut({ redirectUrl: '/sign-in' })
@@ -135,13 +146,13 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
   return (
     <div className="c360-worker-portal min-h-screen bg-[color:var(--bg-canvas,#ffffff)] text-[color:var(--text-primary)]">
       {/* Banner sticky de docs pendientes — solo aparece si hay alguno */}
-      <PendingAcksBanner />
+      {isWorkerPreview ? null : <PendingAcksBanner />}
 
       {/* ────────────────────────────────────────────────────────────── */}
       {/* TOP BAR (visible siempre, sticky)                              */}
       {/* ────────────────────────────────────────────────────────────── */}
       <header
-        className="sticky top-0 z-40 h-14 flex items-center justify-between px-4 lg:px-6 bg-white"
+        className="c360-worker-topbar sticky top-0 z-40 flex h-20 items-center justify-between bg-white px-4 lg:fixed lg:left-72 lg:right-0 lg:h-20 lg:justify-end lg:px-8"
         style={{
           borderBottom: '0.5px solid var(--border-default)',
           backdropFilter: 'blur(8px)',
@@ -149,39 +160,26 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
         }}
       >
         {/* Mobile: brand compacto + toggle drawer secundario */}
-        <div className="flex items-center gap-2.5">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
-            style={{
-              background: 'linear-gradient(165deg, #1d4ed8 0%, #1e40af 55%, #1e3a8a 100%)',
-              boxShadow: '0 1px 2px rgba(4,120,87,0.25), inset 0 1px 0 rgba(255,255,255,0.18)',
-            }}
-          >
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-[15px] font-bold tracking-tight text-gray-900">
-              Comply<span className="text-emerald-700">360</span>
-            </div>
-            <div className="text-[9px] font-bold uppercase tracking-widest text-emerald-700">
-              Portal Trabajador
-            </div>
-          </div>
+        <div className="lg:hidden">
+          <WorkerPortalBrand href={withPreviewHref('/mi-portal')} />
         </div>
 
         {/* Right: notif bell + más (drawer) */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Link
-            href="/mi-portal/notificaciones"
+            href={withPreviewHref('/mi-portal/notificaciones')}
             aria-label="Notificaciones"
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[color:var(--neutral-50)] transition-colors"
+            className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-[color:var(--neutral-50)]"
           >
-            <Bell className="h-4 w-4 text-[color:var(--text-secondary)]" />
+            <Bell className="h-5 w-5" />
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              3
+            </span>
           </Link>
           <Link
-            href="/mi-portal/perfil"
+            href={withPreviewHref('/mi-portal/perfil')}
             aria-label="Mi perfil"
-            className="hidden h-10 w-10 items-center justify-center rounded-full bg-cyan-50 ring-1 ring-cyan-100 transition-transform hover:-translate-y-0.5 sm:flex"
+            className="hidden h-12 w-12 items-center justify-center rounded-full bg-cyan-50 ring-1 ring-cyan-100 transition-transform hover:-translate-y-0.5 sm:flex"
           >
             <WorkerTopAvatar />
           </Link>
@@ -200,18 +198,23 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
       {/* DESKTOP SIDEBAR                                                */}
       {/* ────────────────────────────────────────────────────────────── */}
       <aside
-        className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 bg-white overflow-y-auto"
+        className="c360-worker-sidebar fixed bottom-0 left-0 top-0 hidden w-72 overflow-y-auto bg-white lg:block"
         style={{ borderRight: '0.5px solid var(--border-default)' }}
       >
-        <nav aria-label="Navegación principal" className="px-3 py-4 space-y-0.5">
+        <div className="px-6 pb-7 pt-8">
+          <WorkerPortalBrand href={withPreviewHref('/mi-portal')} size="desktop" />
+        </div>
+
+        <nav aria-label="Navegación principal" className="space-y-1 px-5 pb-4">
           {MAIN_NAV.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
             return (
               <Link
                 key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                href={withPreviewHref(item.href)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-semibold transition-colors ${
                   active
                     ? 'bg-emerald-50 text-emerald-700'
                     : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:text-[color:var(--text-primary)]'
@@ -228,9 +231,9 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
           })}
 
           {/* Separator */}
-          <div className="h-px bg-[color:var(--border-subtle)] my-3" />
+          <div className="my-5 h-px bg-[color:var(--border-subtle)]" />
 
-          <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">
+          <p className="mb-2 px-4 text-[10px] font-bold uppercase text-[color:var(--text-tertiary)]">
             Más opciones
           </p>
           {SECONDARY_NAV.map((item) => {
@@ -239,8 +242,9 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
             return (
               <Link
                 key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                href={withPreviewHref(item.href)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-semibold transition-colors ${
                   active
                     ? 'bg-emerald-50 text-emerald-700'
                     : 'text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:text-[color:var(--text-primary)]'
@@ -258,11 +262,20 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
         </nav>
 
         {/* Footer sidebar: logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-3" style={{ borderTop: '0.5px solid var(--border-subtle)' }}>
+        <div className="absolute bottom-0 left-0 right-0 p-5" style={{ borderTop: '0.5px solid var(--border-subtle)' }}>
+          <div className="mb-4 flex items-center gap-3 rounded-2xl bg-gradient-to-br from-cyan-50 to-emerald-50 p-4 text-slate-700 ring-1 ring-cyan-100">
+            <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-white text-emerald-600 shadow-sm">
+              <MessageCircle className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <strong className="block text-sm font-bold text-slate-900">¿Necesitas ayuda?</strong>
+              <small className="block text-xs font-medium text-slate-500">Estamos para apoyarte</small>
+            </span>
+          </div>
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--text-secondary)] hover:bg-red-50 hover:text-red-700 transition-colors"
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[color:var(--text-secondary)] transition-colors hover:bg-red-50 hover:text-red-700"
           >
             <LogOut className="h-4 w-4 flex-shrink-0" />
             <span>Cerrar sesión</span>
@@ -303,8 +316,9 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={withPreviewHref(item.href)}
                     onClick={() => setDrawerOpen(false)}
+                    aria-current={active ? 'page' : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[15px] font-medium transition-colors ${
                       active
                         ? 'bg-emerald-50 text-emerald-700'
@@ -339,12 +353,14 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
       {/* MAIN CONTENT                                                   */}
       {/* ────────────────────────────────────────────────────────────── */}
       <main
-        className="px-4 py-5 lg:ml-64 lg:px-8 lg:py-8"
+        className="c360-worker-main px-4 py-5 lg:ml-72 lg:px-7 lg:pb-8 lg:pt-28"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 88px)' /* bottom nav space on mobile */ }}
       >
-        <div className="mx-auto w-full max-w-6xl">
+        <div className="c360-worker-main-inner mx-auto w-full max-w-[1420px]">
           {/* ConsentGate obliga al trabajador a autorizar tratamiento de datos (Ley 29733 Art. 14) */}
-          <ConsentGate scope="worker">{children}</ConsentGate>
+          <div className="c360-worker-route-shell">
+            {isWorkerPreview ? children : <ConsentGate scope="worker">{children}</ConsentGate>}
+          </div>
         </div>
       </main>
 
@@ -368,7 +384,7 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={withPreviewHref(item.href)}
                 className="flex flex-col items-center justify-center gap-0.5 relative"
                 aria-current={active ? 'page' : undefined}
               >
@@ -400,18 +416,51 @@ export default function MiPortalLayout({ children }: { children: React.ReactNode
   )
 }
 
+function WorkerPortalBrand({
+  href,
+  size = 'mobile',
+}: {
+  href: string
+  size?: 'mobile' | 'desktop'
+}) {
+  const isDesktop = size === 'desktop'
+
+  return (
+    <Link href={href} className="inline-flex items-center gap-3">
+      <span
+        className={`grid flex-shrink-0 place-items-center rounded-2xl text-white ${
+          isDesktop ? 'h-12 w-12' : 'h-11 w-11'
+        }`}
+        style={{
+          background: 'linear-gradient(155deg, #2b6dff 0%, #14b8a6 54%, #0f766e 100%)',
+          boxShadow: '0 10px 24px -16px rgba(37,99,235,0.9), inset 0 1px 0 rgba(255,255,255,0.35)',
+        }}
+      >
+        <ShieldCheck className={isDesktop ? 'h-7 w-7' : 'h-6 w-6'} aria-hidden="true" />
+      </span>
+      <span className="leading-tight">
+        <span className={`${isDesktop ? 'text-[22px]' : 'text-[21px]'} block font-black text-slate-950`}>
+          Comply<span className="text-emerald-600">360</span>
+        </span>
+        <span className={`${isDesktop ? 'text-[11px]' : 'text-[10px]'} block font-black uppercase text-teal-700`}>
+          Portal Trabajador
+        </span>
+      </span>
+    </Link>
+  )
+}
+
 function WorkerTopAvatar() {
   return (
-    <span className="relative block h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-cyan-100 to-emerald-100">
-      <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
-        <circle cx="24" cy="24" r="24" fill="#dff8f5" />
-        <path d="M12 43c2.4-9.5 9.1-14.1 12.2-14.1S34.6 33.5 37 43" fill="#0f9f8b" />
-        <path d="M16 18c.7-8.2 12.5-11.2 18-5.2 4.4 4.8 2.7 14.8-4.4 18.3-8.4 4.1-14.2-4-13.6-13.1Z" fill="#f0aa79" />
-        <path d="M15.9 17.1c1.9-9.5 16.5-12.4 21.3-3.5-6.5 1.2-12.2.3-17.1-2.8-.7 3.5-2 5.6-4.2 6.3Z" fill="#0b2545" />
-        <circle cx="21" cy="21" r="1.5" fill="#08233f" />
-        <circle cx="30" cy="21" r="1.5" fill="#08233f" />
-        <path d="M22.5 26c2.4 2.2 5.5 2.1 8-.1" fill="none" stroke="#7c3f2e" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
+    <span className="relative block h-full w-full overflow-hidden rounded-full bg-cyan-50">
+      <Image
+        src="/worker-portal/worker-avatar-ronald-reference.png"
+        alt=""
+        width={108}
+        height={108}
+        className="h-full w-full object-cover"
+        draggable={false}
+      />
       <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
     </span>
   )
@@ -447,10 +496,10 @@ function WorkerAccountMismatch({
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
+              <p className="text-xs font-bold uppercase text-amber-700">
                 Cuenta empresarial activa
               </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+              <h1 className="mt-2 text-2xl font-bold text-slate-950">
                 Este navegador está usando el panel de la empresa.
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">

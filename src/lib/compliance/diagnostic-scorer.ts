@@ -1,5 +1,6 @@
 import type { AnswerValue, AreaKey, ComplianceQuestion } from './questions/types'
 import { AREAS } from './questions/types'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const UIT = 5500 // 2026
 
@@ -215,5 +216,5 @@ function generateAction(gap: GapItem): string {
   if (gap.answer === 'PARCIAL') {
     return `Completar el cumplimiento de: ${gap.text.replace(/\?$/, '')}. Base legal: ${gap.baseLegal}.`
   }
-  return `Implementar: ${gap.text.replace(/\?$/, '')}. Subsanar antes de posible inspeccion para evitar multa de S/ ${gap.multaPEN.toLocaleString()}. Base legal: ${gap.baseLegal}.`
+  return `Implementar: ${gap.text.replace(/\?$/, '')}. Subsanar antes de posible inspeccion para evitar multa de ${formatSoles(gap.multaPEN)}. Base legal: ${gap.baseLegal}.`
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withPlanGate } from '@/lib/plan-gate'
+import { withPermission } from '@/lib/api-auth'
+import { requirePlanFeature } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { addJsonSheet, createWorkbook, rowsToCsv, workbookToArrayBuffer } from '@/lib/excel/exceljs'
 
@@ -15,7 +16,10 @@ import { addJsonSheet, createWorkbook, rowsToCsv, workbookToArrayBuffer } from '
  *
  * Para los attendance-* el rango defaultea al mes en curso si no se pasa.
  */
-export const GET = withPlanGate('reportes_pdf', async (req: NextRequest, ctx: AuthContext) => {
+export const GET = withPermission('PII_EXPORT', async (req: NextRequest, ctx: AuthContext) => {
+  const planDenied = await requirePlanFeature(req, ctx, 'reportes_pdf')
+  if (planDenied) return planDenied
+
   const { searchParams } = new URL(req.url)
   const type = searchParams.get('type') ?? 'workers'
   const format = searchParams.get('format') === 'csv' ? 'csv' : 'xlsx'

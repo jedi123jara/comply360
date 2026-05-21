@@ -7,6 +7,7 @@
 import { prisma } from '@/lib/prisma'
 import { calcularMultaSunafilSoles, type TipoEmpresaSunafil } from '@/lib/legal-engine/peru-labor'
 import { INFRACCIONES_SUNAFIL, type InfraccionSunafil } from './sunafil-infractions'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const RMV_2026 = 1130
 const UIT_2026 = 5500
@@ -106,7 +107,7 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
     riesgos.push(buildRiesgo(infraccion, trabajadoresBajoRMV.map(w => ({
       id: w.id,
       nombre: `${w.firstName} ${w.lastName}`,
-      detalle: `Sueldo S/ ${Number(w.sueldoBruto).toFixed(2)} — mínimo legal S/ ${RMV_2026}`,
+      detalle: `Sueldo ${formatSoles(Number(w.sueldoBruto))} — mínimo legal ${formatSoles(RMV_2026)}`,
     })), multaSoles, 10))
   }
 

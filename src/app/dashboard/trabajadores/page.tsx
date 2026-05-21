@@ -45,6 +45,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { KpiCard, KpiGrid } from '@/components/comply360/kpi-card'
 import { PremiumEmptyState } from '@/components/comply360/premium-empty-state'
@@ -185,7 +186,7 @@ export default function TrabajadoresPage() {
         console.error('Workers load error:', err)
         setFetchError(
           err.message ||
-            'No pudimos cargar los trabajadores. Revisa tu conexión o intentá recargar.',
+            'No pudimos cargar los trabajadores. Revisa tu conexión o intenta recargar.',
         )
         setWorkers([])
       })
@@ -701,17 +702,15 @@ export default function TrabajadoresPage() {
           icon={Wallet}
           label="Sueldo promedio"
           value={stats?.avgSueldo ?? 0}
-          prefix="S/"
           footer="Remuneración bruta media"
-          formatValue={(n) => n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
+          formatValue={(n) => formatSoles(n)}
         />
         <KpiCard
           icon={TrendingUp}
           label="Planilla mensual"
           value={stats?.totalPlanilla ?? 0}
-          prefix="S/"
           footer="Costo laboral total"
-          formatValue={(n) => n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
+          formatValue={(n) => formatSoles(n)}
         />
         <KpiCard
           icon={BarChart2}
@@ -1021,7 +1020,7 @@ export default function TrabajadoresPage() {
                         {new Date(worker.fechaIngreso).toLocaleDateString('es-PE')}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-white">
-                        S/ {worker.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        {formatSoles(worker.sueldoBruto)}
                       </td>
                       <td className="px-6 py-4">
                         {worker.legajoScore != null ? (
@@ -1194,7 +1193,7 @@ export default function TrabajadoresPage() {
                                   setWorkers((prev) => prev.filter((w) => w.id !== worker.id))
                                   toast.success(`${fullName} eliminado`)
                                 } else {
-                                  toast.error('No se pudo eliminar. Intentá de nuevo.')
+                                  toast.error('No se pudo eliminar. Intenta de nuevo.')
                                 }
                               } catch {
                                 toast.error('No se pudo eliminar. Revisa tu conexión.')
@@ -2225,7 +2224,7 @@ export default function TrabajadoresPage() {
               <button
                 onClick={async () => {
                   const ok = await confirm({
-                    title: `¿Aplicar ${bulkRaiseForm.mode === 'percent' ? `+${bulkRaiseForm.value}%` : `+S/ ${bulkRaiseForm.value}`} a ${selected.size}?`,
+                    title: `¿Aplicar ${bulkRaiseForm.mode === 'percent' ? `+${bulkRaiseForm.value}%` : `+${formatSoles(bulkRaiseForm.value)}`} a ${selected.size}?`,
                     description: 'Cambia el sueldo bruto de cada trabajador inmediatamente. Acción rastreada en AuditLog. Verifica el monto antes de confirmar.',
                     confirmLabel: 'Aplicar aumento',
                     tone: 'danger',
@@ -2762,7 +2761,7 @@ export default function TrabajadoresPage() {
                                 {displayWorkerName(row.firstName, row.lastName)}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {row.dni} · {row.position || 'Sin cargo'} · S/ {Number(row.sueldoBruto).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                {row.dni} · {row.position || 'Sin cargo'} · {formatSoles(Number(row.sueldoBruto))}
                               </p>
                             </div>
                             <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />

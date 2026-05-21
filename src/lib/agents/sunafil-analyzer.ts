@@ -3,7 +3,7 @@
  *
  * Recibe un acta de inspección de SUNAFIL en PDF/DOCX, extrae los cargos
  * imputados, los mapea a artículos legales peruanos, calcula la multa
- * proyectada con la UIT 2026 (S/5,500) y sugiere defensas/descargos.
+ * proyectada con la UIT 2026 (5,500.00 nuevos soles) y sugiere defensas/descargos.
  *
  * Este es el agente estrella de COMPLY360 v2.0 — el moat competitivo.
  * Ningún competidor LATAM tiene esto entrenado en jurisprudencia peruana.
@@ -11,12 +11,13 @@
  * Base legal:
  *  - Ley 28806 (Ley General de Inspección del Trabajo)
  *  - D.S. 019-2006-TR (Reglamento Ley General de Inspección)
- *  - UIT 2026: S/5,500 (D.S. 380-2025-EF)
+ *  - UIT 2026: 5,500.00 nuevos soles (D.S. 380-2025-EF)
  *  - Escala de multas: D.S. 008-2020-TR modificado por D.S. 015-2017-TR
  */
 
 import { callAI } from '@/lib/ai/provider'
 import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
+import { formatSoles } from '@/lib/format/peruvian'
 import { extractTextFromBuffer, truncateForLlm } from './extract-text'
 import type {
   AgentDefinition,
@@ -107,7 +108,7 @@ ${actaText}
 ---
 
 CONTEXTO LEGAL PERÚ 2026:
-- UIT vigente: S/${UIT_2026}
+- UIT vigente: ${formatSoles(UIT_2026)}
 - Tipo de empresa del inspeccionado: ${tipoEmpresa}
 - Marco legal: Ley 28806, D.S. 019-2006-TR, D.S. 008-2020-TR
 - Escala de multas en UITs (aproximada): MICRO leve 0.045-0.45 / grave 0.11-1.13 / muy grave 0.23-2.25 · PEQUENA leve 0.09-1.13 / grave 0.45-4.50 / muy grave 0.77-7.65 · NO_MYPE leve 0.26-26.12 / grave 1.57-52.53 / muy grave 2.63-52.53
@@ -347,7 +348,7 @@ async function runSunafilAnalyzer(
     recommendedActions.push({
       id: 'consult-lawyer',
       label: 'Consultar con abogado laboralista',
-      description: `La multa proyectada supera S/${parsed.multaTotalProyectada.max.toLocaleString('es-PE')}. Recomendamos asesoría legal humana antes del descargo.`,
+      description: `La multa proyectada supera ${formatSoles(parsed.multaTotalProyectada.max)}. Recomendamos asesoría legal humana antes del descargo.`,
       type: 'external',
       payload: { url: '/dashboard/marketplace/abogados' },
       priority: 'critical',
@@ -369,9 +370,7 @@ async function runSunafilAnalyzer(
     parsed.cargos.length > 0
       ? `Se identificaron ${parsed.cargos.length} cargos en el acta SUNAFIL${
           parsed.numeroActa ? ` Nº ${parsed.numeroActa}` : ''
-        }. Multa proyectada entre S/${parsed.multaTotalProyectada.min.toLocaleString(
-          'es-PE'
-        )} y S/${parsed.multaTotalProyectada.max.toLocaleString('es-PE')}. Nivel de riesgo: ${
+        }. Multa proyectada entre ${formatSoles(parsed.multaTotalProyectada.min)} y ${formatSoles(parsed.multaTotalProyectada.max)}. Nivel de riesgo: ${
           parsed.nivelRiesgo
         }. ${parsed.fechaLimiteDescargo ? `Plazo de descargo vence el ${parsed.fechaLimiteDescargo}.` : ''}`
       : `No se detectaron cargos formales en el documento. ${parsed.resumenActa || 'Verifica que sea un acta SUNAFIL válida.'}`

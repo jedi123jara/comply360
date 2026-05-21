@@ -1,5 +1,9 @@
 import { PERU_LABOR } from '../peru-labor'
 import { money, sumMoney } from '../money'
+import { formatSoles as fmtUtilidades } from '@/lib/format/peruvian'
+
+/** @deprecated importar `formatSoles` desde `@/lib/format/peruvian`. */
+export { fmtUtilidades }
 
 // =============================================
 // UTILIDADES - Participacion en las Utilidades
@@ -125,7 +129,3 @@ export function calcularUtilidades(input: UtilidadesInput): UtilidadesResult {
 // Helpers
 // =============================================
 
-// Format helper
-export function fmtUtilidades(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}

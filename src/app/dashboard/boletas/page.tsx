@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { EmptyState } from '@/components/ui/empty-state'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -90,11 +91,6 @@ function getPeriodoActual() {
 function fmtPeriodo(periodo: string) {
   const [y, m] = periodo.split('-')
   return `${MESES[parseInt(m, 10)]} ${y}`
-}
-
-function fmt(n: number | string | null | undefined) {
-  const v = Number(n ?? 0)
-  return `S/ ${v.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 const STATUS_STYLES: Record<string, { label: string; dot: string; bg: string }> = {
@@ -211,7 +207,7 @@ function GenerarModal({
             <p className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] mb-3">Vista previa</p>
             <div className="space-y-2">
               {[
-                { label: 'Sueldo bruto', value: fmt(worker.sueldoBruto) },
+                { label: 'Sueldo bruto', value: formatSoles(worker.sueldoBruto) },
                 { label: 'Sistema previsional', value: worker.tipoAporte ?? 'AFP' },
                 { label: 'Periodo', value: fmtPeriodo(periodo) },
               ].map(r => (
@@ -336,15 +332,15 @@ function PayslipsDrawer({
                   <div className="grid grid-cols-3 gap-3 text-xs">
                     <div>
                       <p className="text-[color:var(--text-tertiary)]">Ingresos</p>
-                      <p className="text-sm font-semibold text-emerald-600 mt-0.5">{fmt(p.totalIngresos)}</p>
+                      <p className="text-sm font-semibold text-emerald-600 mt-0.5">{formatSoles(p.totalIngresos)}</p>
                     </div>
                     <div>
                       <p className="text-[color:var(--text-tertiary)]">Descuentos</p>
-                      <p className="text-sm font-semibold text-red-400 mt-0.5">{fmt(p.totalDescuentos)}</p>
+                      <p className="text-sm font-semibold text-red-400 mt-0.5">{formatSoles(p.totalDescuentos)}</p>
                     </div>
                     <div>
                       <p className="text-[color:var(--text-tertiary)]">Neto</p>
-                      <p className="text-sm font-bold text-amber-500 mt-0.5">{fmt(p.netoPagar)}</p>
+                      <p className="text-sm font-bold text-amber-500 mt-0.5">{formatSoles(p.netoPagar)}</p>
                     </div>
                   </div>
                 </div>
@@ -413,7 +409,7 @@ function WorkerGridCard({
       {/* Sueldo */}
       <div className="rounded-lg bg-[color:var(--neutral-100)] border border-[color:var(--border-default)] px-3 py-2.5 mb-3">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-0.5">Sueldo Bruto</p>
-        <p className="text-base font-bold text-slate-900 tabular-nums">{fmt(worker.sueldoBruto)}</p>
+        <p className="text-base font-bold text-slate-900 tabular-nums">{formatSoles(worker.sueldoBruto)}</p>
       </div>
 
       {/* Footer: status + action */}

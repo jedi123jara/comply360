@@ -5,6 +5,7 @@ import { X, Check, Sparkles, Lock, ArrowRight } from 'lucide-react'
 import { PLANS, type PlanKey } from '@/lib/constants'
 import { FEATURE_MIN_PLAN, type PlanFeature } from '@/lib/plan-features'
 import { track } from '@/lib/analytics'
+import { formatSoles, formatSolesMarketing } from '@/lib/format/peruvian'
 
 /**
  * UpgradeModal — panel editorial de upgrade con comparativa de planes.
@@ -51,7 +52,7 @@ const FEATURE_SAVINGS: Partial<Record<PlanFeature, { max: number; label: string 
   simulacro_completo: { max: 289000, label: 'Multa muy grave acumulada (52.53 UIT — tope)' },
   ia_contratos: { max: 28000, label: 'Multa por contratos con cláusulas inválidas (5 UIT por trabajador)' },
   review_ia: { max: 44000, label: 'Multa por cláusulas abusivas detectadas en revisión IA' },
-  denuncias: { max: 165000, label: 'Multa hostigamiento sin canal de denuncias (30 UIT según Ley 27942)' },
+  denuncias: { max: 288915, label: 'Riesgo por canal interno deficiente: HSL/SST hasta 52.53 UIT' },
   sst_completo: { max: 208000, label: 'Multa muy grave SST (Ley 29783 — hasta 38 UIT)' },
   reportes_pdf: { max: 16500, label: 'Multa por no mantener registros (3 UIT)' },
   asistente_ia: { max: 55000, label: 'Multas derivadas de consultas mal respondidas (10 UIT promedio)' },
@@ -85,11 +86,11 @@ const FEATURE_COPY: Partial<Record<PlanFeature, { title: string; pitch: string }
   },
   review_ia: {
     title: 'Revisión IA de contratos',
-    pitch: 'Subí un PDF, obtené análisis clausula-por-clausula con score de riesgo 0-100 y recomendaciones.',
+    pitch: 'Sube un PDF y obtén análisis cláusula por cláusula con score de riesgo 0-100 y recomendaciones.',
   },
   denuncias: {
     title: 'Canal de denuncias',
-    pitch: 'URL pública para denuncias anónimas (Ley 27942). Triaje con IA y gestión del Comité.',
+    pitch: 'URL publica para reportes anonimos: Hostigamiento Sexual, SST y Compliance Penal/MPD con triaje IA.',
   },
   sst_completo: {
     title: 'SST integral',
@@ -249,7 +250,7 @@ export function UpgradeModal({
                   >
                     Hasta{' '}
                     <span style={{ color: '#c2410c' }}>
-                      S/ {featureSavings.max.toLocaleString('es-PE')}
+                      {formatSoles(featureSavings.max)}
                     </span>
                   </p>
                   <p className="text-xs text-amber-900/80 mt-1.5 leading-relaxed max-w-md">
@@ -273,7 +274,7 @@ export function UpgradeModal({
                       {roiMultiplier}×
                     </p>
                     <p className="text-[10px] text-emerald-700 mt-0.5">
-                      vs S/ {yearlyPlanCost.toLocaleString('es-PE')}/año
+                      vs {formatSolesMarketing(yearlyPlanCost)}/año
                     </p>
                   </div>
                 ) : null}
@@ -444,7 +445,7 @@ function PlanCard({
           className="text-sm text-[color:var(--text-tertiary)] font-mono"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          S/ {data.price}/mes
+          {formatSolesMarketing(data.price)}/mes
         </span>
       </div>
       <p className="text-xs text-[color:var(--text-secondary)]">

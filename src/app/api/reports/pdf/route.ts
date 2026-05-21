@@ -11,11 +11,7 @@ import {
   drawTable,
   checkPageBreak,
 } from '@/lib/pdf/server-pdf'
-
-// ── Helpers ─────────────────────────────────────────────────────────────
-function fmt(n: number): string {
-  return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
+import { formatSoles } from '@/lib/format/peruvian'
 
 // =============================================
 // GET /api/reports/pdf — Download report as PDF
@@ -88,6 +84,7 @@ async function buildTrabajadoresReport(
     return finalizePDF(doc, 'reporte-trabajadores.pdf')
   }
 
+  // TODO: revisar ancho columna tras refactor formato
   y = drawTable(doc,
     [
       { header: 'Apellidos y Nombres', x: 14, width: 45 },
@@ -103,7 +100,7 @@ async function buildTrabajadoresReport(
       w.dni,
       (w.position || '—').substring(0, 20),
       (w.regimenLaboral || '').replace(/_/g, ' ').substring(0, 15),
-      `S/ ${fmt(Number(w.sueldoBruto))}`,
+      formatSoles(Number(w.sueldoBruto)),
       `${w.legajoScore ?? 0}%`,
       w.status || 'ACTIVE',
     ]),
@@ -130,7 +127,7 @@ async function buildCumplimientoReport(
   const score = await calculateComplianceScore(orgId)
   y = sectionTitle(doc, 'SCORE DE COMPLIANCE', y)
   y = kv(doc, 'Score Global', `${score.scoreGlobal}/100`, 14, y, 45)
-  y = kv(doc, 'Multa Potencial', `S/ ${fmt(score.multaPotencial)}`, 14, y, 45)
+  y = kv(doc, 'Multa Potencial', formatSoles(score.multaPotencial), 14, y, 45)
   y += 4
 
   // Breakdown

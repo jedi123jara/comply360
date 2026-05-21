@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   Eye,
 } from 'lucide-react'
 import { tryBiometricCeremony as runCeremony, tryStrongBiometricCeremony, hasBiometricHardware } from '@/lib/webauthn'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * /mi-portal/boletas/[id] — Detalle de boleta + firma biométrica (Sprint 1 Fase 1).
@@ -55,12 +56,67 @@ interface PayslipDetail {
   acceptedAt: string | null
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function fmt(v: string | null | undefined): string {
-  if (!v) return '0.00'
-  return Number(v).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const MOCK_BOLETAS: Record<string, PayslipDetail> = {
+  'preview-may-2026': {
+    id: 'preview-may-2026',
+    periodo: '2026-05',
+    fechaEmision: '2026-05-15T12:00:00.000Z',
+    sueldoBruto: '2300.00',
+    asignacionFamiliar: '102.50',
+    horasExtras: '120.00',
+    bonificaciones: '30.00',
+    totalIngresos: '2450.00',
+    aporteAfpOnp: '265.40',
+    rentaQuintaCat: '0.00',
+    otrosDescuentos: '53.00',
+    totalDescuentos: '318.40',
+    netoPagar: '2131.60',
+    essalud: '220.50',
+    pdfUrl: null,
+    status: 'ENVIADA',
+    acceptedAt: null,
+  },
+  'preview-apr-2026': {
+    id: 'preview-apr-2026',
+    periodo: '2026-04',
+    fechaEmision: '2026-04-30T12:00:00.000Z',
+    sueldoBruto: '2300.00',
+    asignacionFamiliar: '102.50',
+    horasExtras: '80.00',
+    bonificaciones: '0.00',
+    totalIngresos: '2450.00',
+    aporteAfpOnp: '253.20',
+    rentaQuintaCat: '0.00',
+    otrosDescuentos: '53.00',
+    totalDescuentos: '306.20',
+    netoPagar: '2143.80',
+    essalud: '220.50',
+    pdfUrl: null,
+    status: 'ACEPTADA',
+    acceptedAt: '2026-05-01T09:14:00.000Z',
+  },
+  'preview-mar-2026': {
+    id: 'preview-mar-2026',
+    periodo: '2026-03',
+    fechaEmision: '2026-03-31T12:00:00.000Z',
+    sueldoBruto: '2300.00',
+    asignacionFamiliar: '102.50',
+    horasExtras: '0.00',
+    bonificaciones: '0.00',
+    totalIngresos: '2380.00',
+    aporteAfpOnp: '245.30',
+    rentaQuintaCat: '0.00',
+    otrosDescuentos: '53.00',
+    totalDescuentos: '298.30',
+    netoPagar: '2081.70',
+    essalud: '214.20',
+    pdfUrl: null,
+    status: 'ACEPTADA',
+    acceptedAt: '2026-04-01T08:42:00.000Z',
+  },
 }
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatPeriodo(periodo: string): string {
   const [year, month] = periodo.split('-')
@@ -75,7 +131,10 @@ function formatPeriodo(periodo: string): string {
 
 export default function BoletaDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : ''
+  const isWorkerPreview =
+    process.env.NODE_ENV === 'development' && searchParams.get('__workerPreview') === '1'
   const [boleta, setBoleta] = useState<PayslipDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [signingState, setSigningState] = useState<'idle' | 'ceremony' | 'biometric' | 'submitting' | 'success' | 'error'>('idle')
@@ -90,6 +149,18 @@ export default function BoletaDetailPage() {
 
   useEffect(() => {
     if (!id) return
+    if (isWorkerPreview) {
+      let cancelled = false
+      void Promise.resolve().then(() => {
+        if (cancelled) return
+        setBoleta(MOCK_BOLETAS[id] ?? null)
+        setLoading(false)
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
     let mounted = true
     fetch(`/api/mi-portal/boletas/${id}`)
       .then((r) => r.json())
@@ -107,11 +178,25 @@ export default function BoletaDetailPage() {
     return () => {
       mounted = false
     }
-  }, [id])
+  }, [id, isWorkerPreview])
 
   async function handleSign() {
     if (!boleta) return
     setSignError(null)
+
+    if (isWorkerPreview) {
+      setSigningState('submitting')
+      window.setTimeout(() => {
+        setBoleta({ ...boleta, status: 'ACEPTADA', acceptedAt: new Date().toISOString() })
+        setSigningState('success')
+        window.setTimeout(() => {
+          setShowCeremony(false)
+          setSigningState('idle')
+        }, 1200)
+      }, 700)
+      return
+    }
+
     setSigningState('biometric')
     try {
       let signatureLevel = 'SIMPLE'
@@ -201,7 +286,7 @@ export default function BoletaDetailPage() {
         <Receipt className="h-12 w-12 text-[color:var(--text-tertiary)] mx-auto mb-3 opacity-50" />
         <p className="text-[color:var(--text-secondary)] font-semibold">Boleta no encontrada</p>
         <Link
-          href="/mi-portal/boletas"
+          href={isWorkerPreview ? '/mi-portal/boletas?__workerPreview=1' : '/mi-portal/boletas'}
           className="text-emerald-700 text-sm font-semibold hover:underline mt-2 inline-block"
         >
           ← Volver a mis boletas
@@ -217,7 +302,7 @@ export default function BoletaDetailPage() {
     <div className="space-y-5 max-w-2xl">
       {/* Back */}
       <Link
-        href="/mi-portal/boletas"
+        href={isWorkerPreview ? '/mi-portal/boletas?__workerPreview=1' : '/mi-portal/boletas'}
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
       >
         <ArrowLeft className="h-4 w-4" /> Volver a mis boletas
@@ -288,11 +373,11 @@ export default function BoletaDetailPage() {
               fontVariantNumeric: 'tabular-nums',
             }}
           >
-            S/ {fmt(boleta.netoPagar)}
+            {formatSoles(boleta.netoPagar)}
           </p>
           {boleta.essalud && Number(boleta.essalud) > 0 ? (
             <p className="text-emerald-100 text-xs mt-3">
-              <b className="text-white">+ S/ {fmt(boleta.essalud)}</b> EsSalud (aporte del empleador)
+              <b className="text-white">+ {formatSoles(boleta.essalud)}</b> EsSalud (aporte del empleador)
             </p>
           ) : null}
         </div>
@@ -313,15 +398,15 @@ export default function BoletaDetailPage() {
           <h2 className="font-bold text-[color:var(--text-primary)] text-sm">Ingresos</h2>
         </div>
         <div className="space-y-2">
-          <Row label="Sueldo básico" value={fmt(boleta.sueldoBruto)} />
+          <Row label="Sueldo básico" value={boleta.sueldoBruto} />
           {boleta.asignacionFamiliar && Number(boleta.asignacionFamiliar) > 0 ? (
-            <Row label="Asignación familiar" value={fmt(boleta.asignacionFamiliar)} />
+            <Row label="Asignación familiar" value={boleta.asignacionFamiliar} />
           ) : null}
           {boleta.horasExtras && Number(boleta.horasExtras) > 0 ? (
-            <Row label="Horas extras" value={fmt(boleta.horasExtras)} />
+            <Row label="Horas extras" value={boleta.horasExtras} />
           ) : null}
           {boleta.bonificaciones && Number(boleta.bonificaciones) > 0 ? (
-            <Row label="Bonificaciones" value={fmt(boleta.bonificaciones)} />
+            <Row label="Bonificaciones" value={boleta.bonificaciones} />
           ) : null}
         </div>
         <div
@@ -333,7 +418,7 @@ export default function BoletaDetailPage() {
             className="font-mono tabular-nums"
             style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--emerald-700)' }}
           >
-            S/ {fmt(boleta.totalIngresos)}
+            {formatSoles(boleta.totalIngresos)}
           </span>
         </div>
       </section>
@@ -354,13 +439,13 @@ export default function BoletaDetailPage() {
         </div>
         <div className="space-y-2">
           {boleta.aporteAfpOnp && Number(boleta.aporteAfpOnp) > 0 ? (
-            <Row label="AFP / ONP" value={fmt(boleta.aporteAfpOnp)} negative />
+            <Row label="AFP / ONP" value={boleta.aporteAfpOnp} negative />
           ) : null}
           {boleta.rentaQuintaCat && Number(boleta.rentaQuintaCat) > 0 ? (
-            <Row label="Renta 5ta categoría" value={fmt(boleta.rentaQuintaCat)} negative />
+            <Row label="Renta 5ta categoría" value={boleta.rentaQuintaCat} negative />
           ) : null}
           {boleta.otrosDescuentos && Number(boleta.otrosDescuentos) > 0 ? (
-            <Row label="Otros descuentos" value={fmt(boleta.otrosDescuentos)} negative />
+            <Row label="Otros descuentos" value={boleta.otrosDescuentos} negative />
           ) : null}
         </div>
         <div
@@ -372,7 +457,7 @@ export default function BoletaDetailPage() {
             className="font-mono tabular-nums"
             style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--crimson-700, #b91c1c)' }}
           >
-            - S/ {fmt(boleta.totalDescuentos)}
+            - {formatSoles(boleta.totalDescuentos)}
           </span>
         </div>
       </section>
@@ -611,7 +696,7 @@ function BiometricCeremonyModal({
             ) : state === 'error' ? (
               'No se pudo firmar'
             ) : state === 'biometric' ? (
-              hasBiometric === false ? 'Procesando firma' : 'Confirmá tu identidad'
+              hasBiometric === false ? 'Procesando firma' : 'Confirma tu identidad'
             ) : state === 'submitting' ? (
               'Registrando firma...'
             ) : (
@@ -624,12 +709,12 @@ function BiometricCeremonyModal({
             {state === 'success'
               ? (hasBiometric === false ? 'La boleta quedó registrada en tu legajo digital de forma electrónica.' : 'La boleta quedó registrada en tu legajo digital con huella y timestamp auditable.')
               : state === 'error'
-                ? error || 'Intentá nuevamente en unos segundos.'
+                ? error || 'Intenta nuevamente en unos segundos.'
                 : state === 'biometric'
                   ? (hasBiometric === false ? 'Aplicando firma electrónica...' : 'Sigue las instrucciones de tu dispositivo para confirmar con huella, rostro o PIN.')
                   : state === 'submitting'
                     ? 'Firmando en el sistema...'
-                    : (hasBiometric === false ? 'Confirmá la recepción de tu boleta. La firma queda auditada legalmente (D.S. 001-98-TR).' : 'Confirmá la recepción de tu boleta con tu huella. La firma queda auditada legalmente (D.S. 001-98-TR).')}
+                    : (hasBiometric === false ? 'Confirma la recepción de tu boleta. La firma queda auditada legalmente (D.S. 001-98-TR).' : 'Confirma la recepción de tu boleta con tu huella. La firma queda auditada legalmente (D.S. 001-98-TR).')}
           </p>
         </div>
 
@@ -653,7 +738,7 @@ function BiometricCeremonyModal({
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              S/ {fmt(amount)}
+              {formatSoles(amount)}
             </p>
           </div>
         ) : null}
@@ -699,7 +784,7 @@ function BiometricCeremonyModal({
 
 // ─── Row ────────────────────────────────────────────────────────────────────
 
-function Row({ label, value, negative = false }: { label: string; value: string; negative?: boolean }) {
+function Row({ label, value, negative = false }: { label: string; value: string | number | null | undefined; negative?: boolean }) {
   return (
     <div className="flex justify-between items-center text-sm">
       <span className="text-[color:var(--text-secondary)]">{label}</span>
@@ -707,7 +792,7 @@ function Row({ label, value, negative = false }: { label: string; value: string;
         className="font-mono tabular-nums font-medium"
         style={{ color: negative ? 'var(--crimson-700, #b91c1c)' : 'var(--text-primary)' }}
       >
-        {negative ? '- ' : ''}S/ {value}
+        {negative ? '- ' : ''}{formatSoles(value)}
       </span>
     </div>
   )

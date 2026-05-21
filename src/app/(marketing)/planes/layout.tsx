@@ -1,64 +1,67 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { ArrowRight, ShieldCheck } from 'lucide-react'
 
 export default function PlanesLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#fafafa] to-white">
-      <header className="sticky top-0 z-40 backdrop-blur-lg bg-white/80 border-b border-slate-200/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-slate-900 font-semibold tracking-tight"
-          >
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-              C
+    <div className="c360-marketing-light min-h-screen bg-[#f6fbfb] text-slate-950">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/88 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[72px] max-w-[1480px] items-center justify-between gap-5 px-4 sm:px-6">
+          <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight text-slate-950">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-cyan-400 via-teal-400 to-blue-600 text-white shadow-[0_14px_34px_rgba(20,184,166,0.22)]">
+              <ShieldCheck className="h-4 w-4" />
             </span>
             <span>
-              COMPLY<span className="text-emerald-600">360</span>
+              Comply<span className="text-teal-600">360</span>
             </span>
           </Link>
-          <nav className="flex items-center gap-1 sm:gap-4 text-sm">
-            <Link
-              href="/calculadoras"
-              className="text-slate-600 hover:text-slate-900 px-2 py-1 hidden sm:block"
-            >
-              Calculadoras
+
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
+            <Link href="/#producto" className="transition hover:text-slate-950">
+              Producto
             </Link>
-            <Link
-              href="/diagnostico-gratis"
-              className="text-slate-600 hover:text-slate-900 px-2 py-1 hidden sm:block"
-            >
-              Diagnóstico
+            <Link href="/#riesgo" className="transition hover:text-slate-950">
+              Riesgo
             </Link>
-            <Link href="/planes" className="text-slate-900 font-medium px-2 py-1">
-              Planes
+            <Link href="/#sectores" className="transition hover:text-slate-950">
+              Sectores
             </Link>
+            <Link href="/planes" className="text-slate-950">
+              Precios
+            </Link>
+            <Link href="/#faq" className="transition hover:text-slate-950">
+              FAQ
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-2">
             <Link
               href="/sign-in"
-              className="text-slate-600 hover:text-slate-900 px-2 py-1 hidden sm:block"
+              className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 sm:inline-flex"
             >
-              Entrar
+              Iniciar sesión
             </Link>
             <Link
               href="/sign-up"
-              className="ml-2 inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium transition-colors"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-600 px-4 text-sm font-bold text-white shadow-[0_16px_44px_rgba(20,184,166,0.2)] transition hover:-translate-y-0.5"
             >
-              Registrate gratis
+              Regístrate gratis
+              <ArrowRight className="h-4 w-4" />
             </Link>
-          </nav>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">{children}</main>
+      <main className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 sm:py-12">{children}</main>
 
-      <footer className="mt-16 border-t border-slate-200/60 bg-white/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
-          <div>© {new Date().getFullYear()} COMPLY360 — Compliance laboral peruano</div>
+      <footer className="mt-16 border-t border-slate-200 bg-white/70">
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>© {new Date().getFullYear()} Comply360, compliance laboral peruano</div>
           <div className="flex gap-4">
-            <Link href="/terminos" className="hover:text-slate-700">
+            <Link href="/terminos" className="transition hover:text-slate-950">
               Términos
             </Link>
-            <Link href="/privacidad" className="hover:text-slate-700">
+            <Link href="/privacidad" className="transition hover:text-slate-950">
               Privacidad
             </Link>
           </div>

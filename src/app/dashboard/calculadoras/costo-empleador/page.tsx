@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { DollarSign, TrendingUp, Users, Building2, Info, Calculator } from 'lucide-react'
 import { calcularCostoEmpleador, type CostoEmpleadorInput, type CostoEmpleadorResult } from '@/lib/legal-engine/calculators/costo-empleador'
 import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const REGIMENES = [
   { value: 'GENERAL', label: 'General (D.Leg. 728)' },
@@ -74,7 +75,7 @@ export default function CostoEmpleadorPage() {
               min={0}
               step={50}
             />
-            <p className="text-xs text-text-tertiary mt-1">RMV 2026: S/ {PERU_LABOR.RMV.toLocaleString()}</p>
+            <p className="text-xs text-text-tertiary mt-1">RMV 2026: {formatSoles(PERU_LABOR.RMV)}</p>
           </div>
 
           {/* Regimen */}
@@ -163,7 +164,7 @@ export default function CostoEmpleadorPage() {
                   <TrendingUp className="h-5 w-5 text-gold" />
                 </div>
                 <p className="text-3xl font-bold text-white">
-                  S/ {result.costoMensualEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {formatSoles(result.costoMensualEmpleador)}
                 </p>
                 <p className="text-sm text-gold mt-1">
                   +{result.porcentajeSobreSueldo}% sobre el sueldo bruto
@@ -171,7 +172,7 @@ export default function CostoEmpleadorPage() {
                 <div className="mt-3 pt-3 border-t border-white/10 flex justify-between text-sm">
                   <span className="text-text-secondary">Costo anual</span>
                   <span className="text-white font-semibold">
-                    S/ {result.costoAnualEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.costoAnualEmpleador)}
                   </span>
                 </div>
               </div>
@@ -197,14 +198,14 @@ export default function CostoEmpleadorPage() {
                     <div key={i} className="flex justify-between items-center py-1">
                       <span className="text-sm text-text-secondary">{item.label}</span>
                       <span className={`text-sm font-medium ${item.color}`}>
-                        S/ {item.value.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        {formatSoles(item.value)}
                       </span>
                     </div>
                   ))}
                   <div className="border-t border-white/10 pt-2 mt-2 flex justify-between items-center">
                     <span className="text-sm font-semibold text-white">TOTAL MENSUAL</span>
                     <span className="text-sm font-bold text-gold">
-                      S/ {result.costoMensualEmpleador.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      {formatSoles(result.costoMensualEmpleador)}
                     </span>
                   </div>
                 </div>
@@ -219,30 +220,30 @@ export default function CostoEmpleadorPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between py-1">
                     <span className="text-sm text-text-secondary">Remuneracion bruta</span>
-                    <span className="text-sm text-white">S/ {result.remuneracionTotal.toFixed(2)}</span>
+                    <span className="text-sm text-white">{formatSoles(result.remuneracionTotal)}</span>
                   </div>
                   {result.descuentoAfp > 0 && (
                     <div className="flex justify-between py-1">
                       <span className="text-sm text-text-secondary">(-) AFP (~12.34%)</span>
-                      <span className="text-sm text-red-400">- S/ {result.descuentoAfp.toFixed(2)}</span>
+                      <span className="text-sm text-red-400">- {formatSoles(result.descuentoAfp)}</span>
                     </div>
                   )}
                   {result.descuentoOnp > 0 && (
                     <div className="flex justify-between py-1">
                       <span className="text-sm text-text-secondary">(-) ONP (13%)</span>
-                      <span className="text-sm text-red-400">- S/ {result.descuentoOnp.toFixed(2)}</span>
+                      <span className="text-sm text-red-400">- {formatSoles(result.descuentoOnp)}</span>
                     </div>
                   )}
                   {result.descuentoRenta5ta > 0 && (
                     <div className="flex justify-between py-1">
                       <span className="text-sm text-text-secondary">(-) Renta 5ta (estimado)</span>
-                      <span className="text-sm text-red-400">- S/ {result.descuentoRenta5ta.toFixed(2)}</span>
+                      <span className="text-sm text-red-400">- {formatSoles(result.descuentoRenta5ta)}</span>
                     </div>
                   )}
                   <div className="border-t border-white/10 pt-2 mt-2 flex justify-between items-center">
                     <span className="text-sm font-semibold text-white">NETO ESTIMADO</span>
                     <span className="text-sm font-bold text-emerald-600">
-                      S/ {result.netoEstimado.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      {formatSoles(result.netoEstimado)}
                     </span>
                   </div>
                 </div>

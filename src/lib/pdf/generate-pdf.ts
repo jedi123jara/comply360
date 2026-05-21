@@ -4,6 +4,8 @@
 // In production, use a server-side library like @react-pdf/renderer or puppeteer
 // =============================================
 
+import { formatSoles } from '@/lib/format/peruvian'
+
 export interface PDFOptions {
   title: string
   filename: string
@@ -198,19 +200,20 @@ export function calculationToHTML(data: {
   // Breakdown
   html += `<h2>${title}</h2>`
   html += '<table>'
-  html += '<tr><th>Concepto</th><th>Fórmula</th><th class="amount">Monto (S/)</th></tr>'
+  // TODO: revisar ancho columna tras refactor formato
+  html += '<tr><th>Concepto</th><th>Fórmula</th><th class="amount">Monto</th></tr>'
 
   items.forEach(item => {
     html += `<tr>
       <td>${item.label}</td>
       <td class="legal-ref">${item.formula || '-'}</td>
-      <td class="amount">${item.amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</td>
+      <td class="amount">${formatSoles(item.amount)}</td>
     </tr>`
   })
 
   html += `<tr class="total-row">
     <td colspan="2">TOTAL</td>
-    <td class="amount">S/ ${total.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</td>
+    <td class="amount">${formatSoles(total)}</td>
   </tr>`
   html += '</table>'
 

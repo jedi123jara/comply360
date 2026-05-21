@@ -23,6 +23,7 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { ProgressRing } from '@/components/ui/progress-ring'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 /**
  * /dashboard/sunafil-ready — Checklist visual de los 28 documentos SUNAFIL
@@ -189,10 +190,6 @@ function ScoreHero({ data }: { data: SunafilReadyPayload }) {
   const { stats, meta } = data
   const scoreTone =
     stats.scoreGlobal >= 80 ? 'text-emerald-700' : stats.scoreGlobal >= 60 ? 'text-amber-700' : 'text-crimson-700'
-  const fmtSoles = (n: number) =>
-    n > 0
-      ? `S/ ${n.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`
-      : '—'
 
   return (
     <Card padding="lg" className="bg-gradient-to-br from-emerald-50/60 to-white">
@@ -232,13 +229,13 @@ function ScoreHero({ data }: { data: SunafilReadyPayload }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <StatTile
               label="Multa potencial"
-              value={fmtSoles(stats.multaPotencialSoles)}
+              value={formatSoles(stats.multaPotencialSoles)}
               tone={stats.multaPotencialSoles > 0 ? 'crimson' : 'emerald'}
               icon={TrendingDown}
             />
             <StatTile
               label="Con subsanación (−90%)"
-              value={fmtSoles(stats.multaConSubsanacionSoles)}
+              value={formatSoles(stats.multaConSubsanacionSoles)}
               hint="Art. 40 Ley 28806"
               tone="amber"
               icon={TrendingUp}
@@ -377,7 +374,7 @@ function CategoryBlock({
         <div className="flex items-center gap-3">
           {cat.multaSoles > 0 ? (
             <span className="text-xs font-mono font-bold text-crimson-700">
-              −S/ {Math.round(cat.multaSoles).toLocaleString('es-PE')}
+              −{formatSoles(cat.multaSoles)}
             </span>
           ) : null}
           <span className={cn('text-2xl font-bold tabular-nums', scoreTone)}>{cat.score}</span>
@@ -485,7 +482,7 @@ function DocRow({ entry }: { entry: Entry }) {
           <span className="font-mono text-[color:var(--text-tertiary)]">{entry.baseLegal}</span>
           {needsAction && entry.multaSoles > 0 ? (
             <span className="text-crimson-700 font-semibold">
-              Multa estimada: S/ {Math.round(entry.multaSoles).toLocaleString('es-PE')}
+              Multa estimada: {formatSoles(entry.multaSoles)}
             </span>
           ) : null}
           {entry.conditionReason ? (

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { calcularMultaSunafil, type RegimenMype } from '@/lib/legal-engine/calculators/multa-sunafil'
 import { openWhatsApp } from '@/lib/whatsapp'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   Download,
@@ -299,12 +300,12 @@ export function MultaSunafilCalculadora() {
                 </div>
               </div>
               <div className="text-5xl font-black tracking-tight mb-1">
-                S/ {(result.multaConDescuento ?? result.multaEstimada).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                {formatSoles(result.multaConDescuento ?? result.multaEstimada)}
               </div>
               {(result.multaConDescuento !== null || result.mypeDescuento !== null) && (
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-amber-700 text-sm line-through">
-                    S/ {result.multaEstimada.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {formatSoles(result.multaEstimada)}
                   </span>
                   {result.mypeDescuento !== null && (
                     <span className="text-xs bg-blue-400/20 text-blue-100 px-2 py-0.5 rounded-full font-bold">
@@ -319,7 +320,7 @@ export function MultaSunafilCalculadora() {
                 </div>
               )}
               <p className="text-amber-100 text-sm mt-1">
-                Rango: S/ {result.multaMinima.toLocaleString('es-PE', { minimumFractionDigits: 2 })} — S/ {result.multaMaxima.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                Rango: {formatSoles(result.multaMinima)} — {formatSoles(result.multaMaxima)}
               </p>
 
               {/* Visual range bar */}
@@ -341,8 +342,8 @@ export function MultaSunafilCalculadora() {
                   )}
                 </div>
                 <div className="flex justify-between mt-1.5 text-xs text-amber-700">
-                  <span>Min: S/ {result.multaMinima.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
-                  <span>Max: S/ {result.multaMaxima.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                  <span>Min: {formatSoles(result.multaMinima)}</span>
+                  <span>Max: {formatSoles(result.multaMaxima)}</span>
                 </div>
               </div>
 
@@ -452,7 +453,7 @@ export function MultaSunafilCalculadora() {
                           </span>
                           <div className="text-right">
                             <span className="text-lg font-bold text-white tabular-nums">
-                              S/ {item.amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                              {formatSoles(item.amount)}
                             </span>
                             <span className="ml-2 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                               {item.uits.toFixed(2)} UIT
@@ -486,11 +487,11 @@ export function MultaSunafilCalculadora() {
                           Con Subsanacion Voluntaria (-25%)
                         </span>
                         <span className="text-lg font-bold text-green-700 tabular-nums">
-                          S/ {result.multaConDescuento.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          {formatSoles(result.multaConDescuento)}
                         </span>
                       </div>
                       <p className="text-xs text-green-600 mt-1">
-                        Ahorro de S/ {(result.multaEstimada - result.multaConDescuento).toLocaleString('es-PE', { minimumFractionDigits: 2 })} por subsanacion voluntaria
+                        Ahorro de {formatSoles(result.multaEstimada - result.multaConDescuento)} por subsanacion voluntaria
                       </p>
                     </div>
                   </div>

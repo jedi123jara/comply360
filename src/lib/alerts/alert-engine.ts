@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { REQUIRED_DOC_TYPES } from '@/lib/compliance/legajo-config'
+import { formatSoles } from '@/lib/format/peruvian'
 
 interface WorkerData {
   id: string
@@ -419,7 +420,7 @@ function computeAlerts(w: WorkerData): AlertInput[] {
       type: 'REGISTRO_INCOMPLETO',
       severity: 'CRITICAL',
       title: `Sueldo por debajo de la RMV — ${w.firstName} ${w.lastName}`,
-      description: `Sueldo actual S/ ${w.sueldoBruto.toFixed(2)} está por debajo de la RMV S/ ${RMV}. Infracción GRAVE (DS019 Art. 24.4). Ajustar inmediatamente.`,
+      description: `Sueldo actual ${formatSoles(w.sueldoBruto)} está por debajo de la RMV ${formatSoles(RMV)}. Infracción GRAVE (DS019 Art. 24.4). Ajustar inmediatamente.`,
       multaEstimada: UIT * 1.57,
     })
   }

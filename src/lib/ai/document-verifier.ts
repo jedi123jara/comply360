@@ -392,7 +392,7 @@ Detección anti-fraude (obligatoria):
   · "alineación del texto distinta al resto del documento"
   · "número de documento con artefactos de edición"
   · "sombras o iluminación inconsistente en el documento"
-  Si no detectás ninguna señal, devolvé array vacío []. No inventes banderas.
+  Si no detectas ninguna señal, devuelve array vacío []. No inventes banderas.
 - suspicionScore: score agregado de 0 a 1.
   · 0.0-0.2: documento probablemente auténtico
   · 0.3-0.5: zonas sospechosas pero puede ser artefacto de compresión/foto
@@ -400,7 +400,7 @@ Detección anti-fraude (obligatoria):
   · 0.9-1.0: documento casi con certeza manipulado
   No seas paranoico: artefactos de compresión JPEG o iluminación no uniforme NO son fraude.
 
-Si el documento no es del tipo esperado, devolvé isCorrectType=false pero igual intentá extracción para diagnóstico.`
+Si el documento no es del tipo esperado, devuelve isCorrectType=false pero igual intenta extracción para diagnóstico.`
 }
 
 function buildUserPrompt(
@@ -932,7 +932,7 @@ async function verifyPdfWithVision(
       confidence: 0,
       extracted: {},
       issues: [`PDF demasiado grande para auto-verificación (${Math.round(pdfBuffer.length / 1024 / 1024)}MB, máximo 20MB)`],
-      summary: 'El PDF es muy grande. Subí una versión más liviana o una foto del documento.',
+      summary: 'El PDF es muy grande. Sube una versión más liviana o una foto del documento.',
     }
   }
 

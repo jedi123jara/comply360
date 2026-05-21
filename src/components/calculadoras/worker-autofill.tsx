@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, UserCheck, X, Loader2, ChevronDown, Check, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ──────────────────────────────────────────────
 // Types
@@ -205,7 +206,7 @@ export function WorkerAutoFill({
                 <>
                   <span className="font-semibold">{selectedWorker!.lastName}, {selectedWorker!.firstName}</span>
                   <span className="text-xs ml-2 opacity-70">
-                    {selectedWorker!.dni} · S/ {Number(selectedWorker!.sueldoBruto).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    {selectedWorker!.dni} · {formatSoles(Number(selectedWorker!.sueldoBruto))}
                   </span>
                 </>
               )}
@@ -333,7 +334,7 @@ export function WorkerAutoFill({
                       {w.lastName}, {w.firstName}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
-                      {w.dni} · {w.position ?? 'Sin cargo'} · S/ {w.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      {w.dni} · {w.position ?? 'Sin cargo'} · {formatSoles(w.sueldoBruto)}
                     </p>
                   </div>
 

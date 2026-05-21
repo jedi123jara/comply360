@@ -3,6 +3,8 @@
 // Framework de constantes legales multi-pais para expansion LATAM
 // =============================================================================
 
+import { formatSoles } from '@/lib/format/peruvian'
+
 export interface CountryConfig {
   code: string;            // ISO 3166-1 alpha-2
   name: string;
@@ -352,15 +354,17 @@ export function getSupportedCountries(): {
 
 /**
  * Formatea un monto numerico segun la moneda del pais indicado.
- * Ejemplo: formatCurrency(1025, 'PE') => "S/ 1,025.00"
+ * Para PE delega al helper canónico ("1,025.00 nuevos soles").
+ * Para CO/CL/MX usa Intl.NumberFormat por país.
  */
 export function formatCurrency(amount: number, countryCode: string): string {
+  const upper = countryCode.toUpperCase();
+  if (upper === 'PE') return formatSoles(amount);
+
   const config = getCountryConfig(countryCode);
   const { code: currencyCode, symbol, decimals } = config.currency;
 
-  // Locale mapping para formato numerico correcto
   const localeMap: Record<string, string> = {
-    PE: 'es-PE',
     CO: 'es-CO',
     CL: 'es-CL',
     MX: 'es-MX',
@@ -376,7 +380,6 @@ export function formatCurrency(amount: number, countryCode: string): string {
       maximumFractionDigits: decimals,
     }).format(amount);
   } catch {
-    // Fallback manual si Intl no soporta la moneda
     const formatted = amount.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return `${symbol} ${formatted}`;
   }

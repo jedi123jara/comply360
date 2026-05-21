@@ -6,6 +6,7 @@ import {
   getDiasVacacionesPorRegimen,
 } from '../peru-labor'
 import { money } from '../money'
+import { formatSoles as fmt } from '@/lib/format/peruvian'
 
 // =============================================
 // VACACIONES - Truncas, No Gozadas e Indemnización
@@ -130,7 +131,3 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
   }
 }
 
-// Format helper
-function fmt(n: number): string {
-  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}

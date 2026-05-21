@@ -10,6 +10,7 @@
  */
 
 import type { Lead } from '@/generated/prisma/client'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const BRAND_BLUE = '#1e3a6e'
 const BRAND_LIGHT = '#f0f4fa'
@@ -67,8 +68,7 @@ function ctaButton(text: string, url: string): string {
   </table>`
 }
 
-const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 }).format(n)
+const formatCurrency = (n: number) => formatSoles(n)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Stage 1 — Día 1: "Tu diagnóstico ya está listo" + contexto

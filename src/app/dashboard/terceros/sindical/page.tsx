@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Users, AlertTriangle, CheckCircle, Plus, X, Loader2, FileText, Scale, Shield, Gavel, Info, Calendar, Clock, Download, Bell, TrendingUp, ChevronRight, Copy, Building2, Handshake, CircleDot } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatSoles } from '@/lib/format/peruvian'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -829,7 +830,7 @@ export default function SindicalPage() {
                               <span className="flex items-center gap-1 text-gray-400">
                                 <CircleDot className="h-3 w-3" />
                                 Cuota: <span className="font-medium text-slate-300">
-                                  {recordData.tipoCuota === 'porcentaje' ? `${String(recordData.cuotaSindical)}%` : `S/ ${String(recordData.cuotaSindical)}`}
+                                  {recordData.tipoCuota === 'porcentaje' ? `${String(recordData.cuotaSindical)}%` : formatSoles(Number(recordData.cuotaSindical))}
                                 </span>
                               </span>
                             )}

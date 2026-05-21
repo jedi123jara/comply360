@@ -5,6 +5,7 @@ import { calcularLiquidacion } from '@/lib/legal-engine'
 import { openWhatsApp } from '@/lib/whatsapp'
 import type { LiquidacionInput, LiquidacionResult, BreakdownItem } from '@/lib/legal-engine'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
+import { formatSoles } from '@/lib/format/peruvian'
 import {
   Calculator,
   AlertTriangle,
@@ -388,7 +389,7 @@ export function LiquidacionCalculadora() {
                 </div>
               </div>
               <div className="text-5xl font-black tracking-tight mb-2">
-                S/ {result.totalBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                {formatSoles(result.totalBruto)}
               </div>
               <p className="text-blue-200 text-sm">
                 Monto bruto total (los beneficios sociales no están sujetos a retención de renta de 5ta categoría)
@@ -418,7 +419,7 @@ export function LiquidacionCalculadora() {
                         description: `${ref.article} - ${ref.description}`,
                       })),
                       metadata: {
-                        'Remuneracion Mensual Bruta': `S/ ${input.sueldoBruto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+                        'Remuneracion Mensual Bruta': formatSoles(input.sueldoBruto),
                         'Fecha de Ingreso': input.fechaIngreso,
                         'Fecha de Cese': input.fechaCese,
                         'Motivo de Cese': motivoLabel,
@@ -518,7 +519,7 @@ export function LiquidacionCalculadora() {
                               {item.label}
                             </span>
                             <span className="text-lg font-bold text-white tabular-nums">
-                              S/ {item.amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                              {formatSoles(item.amount)}
                             </span>
                           </div>
                           {/* Percentage bar */}

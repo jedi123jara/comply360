@@ -7,6 +7,7 @@ import { callAIWithUsage } from './provider'
 import { retrieveRelevantLawVector, formatVectorContext } from './rag/vector-retriever'
 import { recordAiUsage } from './usage'
 import { redactPii } from './pii-redactor'
+import { formatSoles } from '@/lib/format/peruvian'
 
 export interface ContractReviewInput {
   contractHtml: string
@@ -92,7 +93,7 @@ MARCO NORMATIVO QUE APLICAS:
 - Ley 30709 + D.S. 002-2018-TR (No discriminación remunerativa)
 - Ley 32353 / D.Leg. 1086 (Régimen MYPE)
 - D.S. 019-2006-TR (Tabla de infracciones y sanciones SUNAFIL)
-- UIT 2026 = S/ 5,500 — RMV 2026 = S/ 1,130
+- UIT 2026 = 5,500 nuevos soles — RMV 2026 = 1,130 nuevos soles
 
 CRITERIOS DE EVALUACIÓN:
 1. Identifica si están presentes las cláusulas OBLIGATORIAS por ley
@@ -189,7 +190,7 @@ function getTypeInstructions(contractType: string): string {
 - Verificar AUSENCIA de elementos de subordinación (horario fijo, exclusividad, local del comitente obligatorio)
 - Verificar que el objeto sea un resultado específico, no una actividad continua
 - Si hay subordinación encubierta → riesgo CRITICAL de desnaturalización (multa: hasta 20 UIT)
-- Verificar retención IR 4ta categoría (cuando supera S/ 1,750/mes)
+- Verificar retención IR 4ta categoría (cuando supera 1,750.00 nuevos soles/mes)
 - Verificar inexistencia de beneficios laborales (CTS, gratificaciones, vacaciones) — si los tiene, el contrato ya está desnaturalizado
 
 Cláusulas obligatorias para locación: objeto, honorarios, plazo, entregables, autonomía del locador, datos de ambas partes, IR.`
@@ -201,7 +202,7 @@ Cláusulas OBLIGATORIAS a verificar:
 1. Identificación completa de partes (DNI, RUC, domicilio) — Art. 4 D.S. 003-97-TR
 2. Fecha de inicio y, si es plazo fijo, fecha de fin con causa objetiva — Art. 53-57 D.Leg. 728
 3. Cargo/puesto y funciones específicas — Art. 9 D.Leg. 728
-4. Remuneración ≥ RMV S/ 1,130 — Art. 24 Constitución
+4. Remuneración ≥ RMV 1,130 nuevos soles — Art. 24 Constitución
 5. Jornada: ≤ 8h diarias / 48h semanales — D.S. 007-2002-TR Art. 1
 6. Período de prueba: máx. 3 meses general, 6 meses cargos de confianza, 12 meses dirección — Art. 10 D.Leg. 728
 7. Beneficios sociales: CTS, gratificaciones, vacaciones (o indicar régimen especial)
@@ -347,7 +348,7 @@ function generateSimulatedReview(input: ContractReviewInput): ContractReviewResu
     },
     {
       nombre: 'Remuneración',
-      descripcion: 'Monto de remuneración mensual no inferior a la RMV (S/ 1,130)',
+      descripcion: 'Monto de remuneración mensual no inferior a la RMV (1,130.00 nuevos soles)',
       presente: text.includes('remuneraci') || text.includes('sueldo') || text.includes('salario'),
       baseLegal: 'Art. 24 Constitución / D.S. 003-97-TR',
       obligatoriedad: 'OBLIGATORIA',
@@ -513,7 +514,7 @@ function generateSimulatedReview(input: ContractReviewInput): ContractReviewResu
 
   const resumenEjecutivo = ausentes.length === 0
     ? `El contrato presenta un cumplimiento adecuado con la normativa laboral peruana. Score: ${overallScore}/100. Se recomienda revisión periódica para mantener el cumplimiento ante cambios normativos.`
-    : `El contrato presenta ${ausentes.length} cláusula(s) obligatoria(s) ausente(s): ${ausentes.slice(0, 3).map(c => c.nombre).join(', ')}${ausentes.length > 3 ? ' y más' : ''}. Score: ${overallScore}/100. Multa potencial estimada: ${multaEstimadaUIT} UIT (S/ ${(multaEstimadaUIT * 5500).toLocaleString('es-PE')}). Se requiere corrección inmediata antes de la firma.`
+    : `El contrato presenta ${ausentes.length} cláusula(s) obligatoria(s) ausente(s): ${ausentes.slice(0, 3).map(c => c.nombre).join(', ')}${ausentes.length > 3 ? ' y más' : ''}. Score: ${overallScore}/100. Multa potencial estimada: ${multaEstimadaUIT} UIT (${formatSoles(multaEstimadaUIT * 5500)}). Se requiere corrección inmediata antes de la firma.`
 
   return {
     overallScore,

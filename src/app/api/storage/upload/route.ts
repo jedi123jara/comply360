@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'node:crypto'
 import { withAuth } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { storageService, StorageError, type StorageBucket } from '@/lib/storage'
-import { validateUpload, UPLOAD_PROFILES } from '@/lib/uploads/validation'
+import { validateUploadWithMagicBytes, UPLOAD_PROFILES } from '@/lib/uploads/validation'
 
 // =============================================
 // POST /api/storage/upload - Upload file
@@ -18,7 +19,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     // ---- Validación centralizada (Ola 1 — seguridad) ----
     // Usa el profile genérico: imágenes + PDFs + DOCX + XLSX hasta 20 MB.
     // Bloquea SVG, JS, EXE, PHP, etc. independiente del MIME reportado.
-    const validation = validateUpload(file, UPLOAD_PROFILES.generic)
+    const validation = await validateUploadWithMagicBytes(file, UPLOAD_PROFILES.generic)
     if (!validation.ok) {
       return NextResponse.json({ error: validation.error, code: validation.code }, { status: 400 })
     }
@@ -31,6 +32,10 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
     const filePath = subfolder
       ? `${ctx.orgId}/${subfolder}/${fileName}`
       : `${ctx.orgId}/${fileName}`
+
+    const hashSha256 = createHash('sha256')
+      .update(Buffer.from(await (file as File).arrayBuffer()))
+      .digest('hex')
 
     // ---- Subir archivo (file ya validado arriba) ----
     const result = await storageService.uploadFile(
@@ -52,6 +57,7 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
         bucket: result.bucket,
         size: result.size,
         mimeType: result.mimeType,
+        hashSha256,
         storage: result.storage,
       },
     })

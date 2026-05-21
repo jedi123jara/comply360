@@ -1,9 +1,22 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ClipboardList, Plus, Calendar, CheckCircle2, XCircle, Clock } from 'lucide-react'
-import { PageHeader, EmptyState, ErrorState, Chip, ListSkeleton } from '@/components/mi-portal'
+import { useSearchParams } from 'next/navigation'
+import type { LucideIcon } from 'lucide-react'
+import {
+  Calendar,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  FileCheck2,
+  Plane,
+  Plus,
+  Sparkles,
+  Timer,
+  XCircle,
+} from 'lucide-react'
+import { EmptyState, ErrorState, Chip, ListSkeleton } from '@/components/mi-portal'
 import { formatShortDate } from '@/lib/format/peruvian'
 
 interface RequestItem {
@@ -19,6 +32,48 @@ interface RequestItem {
   reviewNotes: string | null
   createdAt: string
 }
+
+const MOCK_REQUESTS: RequestItem[] = [
+  {
+    id: 'vac-2026',
+    type: 'VACACIONES',
+    status: 'EN_REVISION',
+    title: 'Vacaciones de junio',
+    description: 'Solicitud para coordinar descanso familiar.',
+    startDate: '2026-06-10T12:00:00.000Z',
+    endDate: '2026-06-16T12:00:00.000Z',
+    daysRequested: 5,
+    reviewedAt: null,
+    reviewNotes: null,
+    createdAt: '2026-05-14T12:00:00.000Z',
+  },
+  {
+    id: 'constancia',
+    type: 'CONSTANCIA_TRABAJO',
+    status: 'APROBADA',
+    title: 'Constancia de trabajo',
+    description: 'Para trámite bancario.',
+    startDate: null,
+    endDate: null,
+    daysRequested: null,
+    reviewedAt: '2026-05-16T12:00:00.000Z',
+    reviewNotes: 'Documento aprobado por RRHH.',
+    createdAt: '2026-05-12T12:00:00.000Z',
+  },
+  {
+    id: 'permiso',
+    type: 'PERMISO',
+    status: 'PENDIENTE',
+    title: 'Permiso por cita médica',
+    description: 'Cita médica programada por la mañana.',
+    startDate: '2026-05-22T12:00:00.000Z',
+    endDate: '2026-05-22T12:00:00.000Z',
+    daysRequested: 1,
+    reviewedAt: null,
+    reviewNotes: null,
+    createdAt: '2026-05-17T12:00:00.000Z',
+  },
+]
 
 const TYPE_LABEL: Record<string, string> = {
   VACACIONES: 'Vacaciones',
@@ -36,20 +91,43 @@ const TYPE_LABEL: Record<string, string> = {
 
 type Variant = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
 
-const STATUS_INFO: Record<string, { label: string; variant: Variant; icon: typeof Clock }> = {
-  PENDIENTE: { label: 'Pendiente', variant: 'warning', icon: Clock },
-  EN_REVISION: { label: 'En revisión', variant: 'info', icon: Clock },
-  APROBADA: { label: 'Aprobada', variant: 'success', icon: CheckCircle2 },
-  RECHAZADA: { label: 'Rechazada', variant: 'danger', icon: XCircle },
-  CANCELADA: { label: 'Cancelada', variant: 'neutral', icon: XCircle },
+const STATUS_INFO: Record<string, { label: string; variant: Variant; icon: LucideIcon; step: number }> = {
+  PENDIENTE: { label: 'Pendiente', variant: 'warning', icon: Clock, step: 1 },
+  EN_REVISION: { label: 'En revisión', variant: 'info', icon: Timer, step: 2 },
+  APROBADA: { label: 'Aprobada', variant: 'success', icon: CheckCircle2, step: 3 },
+  RECHAZADA: { label: 'Rechazada', variant: 'danger', icon: XCircle, step: 3 },
+  CANCELADA: { label: 'Cancelada', variant: 'neutral', icon: XCircle, step: 0 },
+}
+
+const REQUEST_SHORTCUTS = [
+  { href: '/mi-portal/solicitudes/nueva?type=VACACIONES', label: 'Vacaciones', icon: Plane },
+  { href: '/mi-portal/solicitudes/nueva?type=PERMISO', label: 'Permiso', icon: Calendar },
+  { href: '/mi-portal/solicitudes/nueva?type=CONSTANCIA_TRABAJO', label: 'Constancia', icon: FileCheck2 },
+]
+
+function withPreviewHref(href: string, enabled: boolean): string {
+  if (!enabled || !href.startsWith('/mi-portal')) return href
+  if (href.includes('__workerPreview=')) return href
+  const [pathAndQuery, hash = ''] = href.split('#')
+  const separator = pathAndQuery.includes('?') ? '&' : '?'
+  return `${pathAndQuery}${separator}__workerPreview=1${hash ? `#${hash}` : ''}`
 }
 
 export default function SolicitudesPage() {
   const [items, setItems] = useState<RequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const isWorkerPreview =
+    process.env.NODE_ENV === 'development' && searchParams.get('__workerPreview') === '1'
 
   const load = useCallback(async () => {
+    if (isWorkerPreview) {
+      setItems(MOCK_REQUESTS)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
@@ -62,7 +140,7 @@ export default function SolicitudesPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isWorkerPreview])
 
   useEffect(() => {
     let cancelled = false
@@ -75,21 +153,62 @@ export default function SolicitudesPage() {
     }
   }, [load])
 
+  const stats = useMemo(() => {
+    const inProgress = items.filter((i) => i.status === 'PENDIENTE' || i.status === 'EN_REVISION').length
+    const approved = items.filter((i) => i.status === 'APROBADA').length
+    const vacationDays = items
+      .filter((i) => i.type === 'VACACIONES' && i.daysRequested)
+      .reduce((acc, i) => acc + (i.daysRequested ?? 0), 0)
+    return { inProgress, approved, vacationDays }
+  }, [items])
+
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Mis solicitudes"
-        subtitle="Gestiona vacaciones, permisos, certificados y otros trámites."
-        action={
-          <Link
-            href="/mi-portal/solicitudes/nueva"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg min-h-[44px] transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nueva
-          </Link>
-        }
-      />
+    <div className="c360-worker-os c360-worker-requests space-y-6 pb-24">
+      <section className="c360-os-hero c360-requests-hero">
+        <div className="c360-os-hero-copy">
+          <span className="c360-os-eyebrow">
+            <ClipboardList className="h-3.5 w-3.5" />
+            Workflow de trámites
+          </span>
+          <h1>Tus solicitudes con estado claro y próximos pasos.</h1>
+          <p>
+            Vacaciones, permisos, constancias y cambios de datos se muestran como un
+            tracker para saber exactamente en qué punto van.
+          </p>
+          <div className="c360-os-hero-actions">
+            <Link href={withPreviewHref('/mi-portal/solicitudes/nueva', isWorkerPreview)} className="c360-os-primary-action">
+              Nueva solicitud
+              <Plus className="h-4 w-4" />
+            </Link>
+            <span className="c360-os-audit-pill">
+              <Sparkles className="h-4 w-4" />
+              Respuesta de RRHH en el mismo canal
+            </span>
+          </div>
+        </div>
+
+        <aside className="c360-requests-command">
+          <p className="text-xs font-black text-emerald-700">Accesos rápidos</p>
+          <h2>Crear trámite</h2>
+          <div className="c360-requests-shortcuts">
+            {REQUEST_SHORTCUTS.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link key={item.href} href={withPreviewHref(item.href, isWorkerPreview)}>
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+        </aside>
+      </section>
+
+      <section className="c360-os-metrics-grid">
+        <MetricCard icon={Timer} label="En trámite" value={stats.inProgress} helper="Pendientes o en revisión" tone="amber" />
+        <MetricCard icon={CheckCircle2} label="Aprobadas" value={stats.approved} helper="Resueltas por RRHH" tone="emerald" />
+        <MetricCard icon={Plane} label="Días solicitados" value={stats.vacationDays} helper="Vacaciones registradas" tone="blue" />
+      </section>
 
       {loading && <ListSkeleton rows={4} />}
 
@@ -103,68 +222,108 @@ export default function SolicitudesPage() {
           title="Aún no tienes solicitudes"
           description="Pide vacaciones, permisos o certificados desde acá. La respuesta de RRHH llega por este mismo canal."
           action={
-            <Link
-              href="/mi-portal/solicitudes/nueva"
-              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg min-h-[44px]"
-            >
-              <Plus className="w-4 h-4" />
+            <Link href={withPreviewHref('/mi-portal/solicitudes/nueva', isWorkerPreview)} className="c360-os-primary-action">
               Crear tu primera solicitud
+              <Plus className="h-4 w-4" />
             </Link>
           }
         />
       )}
 
       {!loading && !error && items.length > 0 && (
-        <ul className="space-y-3">
-          {items.map((req) => {
-            const status = STATUS_INFO[req.status] ?? STATUS_INFO.PENDIENTE
-            const StatusIcon = status.icon
-            return (
-              <li
-                key={req.id}
-                className="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <ClipboardList className="w-5 h-5 text-emerald-700" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div>
-                        <p className="text-[11px] uppercase font-bold text-emerald-700 tracking-wide">
-                          {TYPE_LABEL[req.type] ?? req.type}
-                        </p>
-                        <h3 className="font-semibold text-slate-900 mt-0.5">{req.title}</h3>
-                      </div>
-                      <Chip variant={status.variant} icon={<StatusIcon className="w-3 h-3" />}>
-                        {status.label}
-                      </Chip>
-                    </div>
-                    {req.description && (
-                      <p className="text-sm text-slate-600 mt-2">{req.description}</p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2">
-                      {req.startDate && req.endDate && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatShortDate(req.startDate)} – {formatShortDate(req.endDate)}
-                          {req.daysRequested ? ` (${req.daysRequested} días)` : ''}
-                        </span>
-                      )}
-                      <span>Solicitado: {formatShortDate(req.createdAt)}</span>
-                    </div>
-                    {req.reviewNotes && (
-                      <div className="mt-3 bg-slate-50 border-l-2 border-emerald-500 p-2.5 text-xs text-slate-700 rounded-r">
-                        <strong className="text-slate-900">Nota de RRHH:</strong> {req.reviewNotes}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+        <section className="c360-os-panel">
+          <div className="c360-os-section-head">
+            <div>
+              <span>Tracker</span>
+              <h2>Trámites recientes</h2>
+            </div>
+            <small>{items.length} solicitudes</small>
+          </div>
+          <div className="c360-request-tracker-list">
+            {items.map((req) => (
+              <RequestTrackerCard key={req.id} req={req} />
+            ))}
+          </div>
+        </section>
       )}
     </div>
+  )
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  helper,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string | number
+  helper: string
+  tone: 'emerald' | 'blue' | 'amber'
+}) {
+  return (
+    <article className={`c360-os-metric c360-os-tone-${tone}`}>
+      <div className="c360-os-metric-icon">
+        <Icon className="h-5 w-5" />
+      </div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{helper}</small>
+    </article>
+  )
+}
+
+function RequestTrackerCard({ req }: { req: RequestItem }) {
+  const status = STATUS_INFO[req.status] ?? STATUS_INFO.PENDIENTE
+  const StatusIcon = status.icon
+  const typeLabel = TYPE_LABEL[req.type] ?? req.type
+
+  return (
+    <article id={`request-${req.id}`} className="c360-request-card scroll-mt-24">
+      <div className="c360-request-card-head">
+        <div className="c360-request-icon">
+          <ClipboardList className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p>{typeLabel}</p>
+          <h3>{req.title}</h3>
+        </div>
+        <Chip variant={status.variant} icon={<StatusIcon className="w-3 h-3" />}>
+          {status.label}
+        </Chip>
+      </div>
+
+      {req.description ? <p className="c360-request-description">{req.description}</p> : null}
+
+      <div className="c360-request-steps" aria-label={`Estado: ${status.label}`}>
+        {['Creada', 'En revisión', status.variant === 'danger' ? 'Rechazada' : 'Resuelta'].map((label, index) => (
+          <span
+            key={label}
+            className={index + 1 <= status.step ? 'is-active' : ''}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+
+      <div className="c360-request-meta">
+        {req.startDate && req.endDate ? (
+          <span>
+            <Calendar className="h-3.5 w-3.5" />
+            {formatShortDate(req.startDate)} - {formatShortDate(req.endDate)}
+            {req.daysRequested ? ` (${req.daysRequested} días)` : ''}
+          </span>
+        ) : null}
+        <span>Solicitado: {formatShortDate(req.createdAt)}</span>
+      </div>
+
+      {req.reviewNotes ? (
+        <div className="c360-request-note">
+          <strong>Nota de RRHH:</strong> {req.reviewNotes}
+        </div>
+      ) : null}
+    </article>
   )
 }

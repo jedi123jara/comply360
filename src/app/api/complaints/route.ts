@@ -1,29 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { withPlanGate } from '@/lib/plan-gate'
+import { withRole } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { sendEmail } from '@/lib/email/client'
 import { complaintNotification } from '@/lib/email/templates'
-import type { ComplaintType, ComplaintStatus } from '@/generated/prisma/client'
+import type { ComplaintChannel, ComplaintRegime, ComplaintStage, ComplaintStatus, ComplaintType } from '@/generated/prisma/client'
 import { emit } from '@/lib/events'
 import { triageComplaint } from '@/lib/ai/complaint-triage'
+import {
+  assertTypeMatchesRegime,
+  COMPLAINT_CHANNEL_VALUES,
+  COMPLAINT_REGIME_VALUES,
+  COMPLAINT_TYPES,
+  COMPLAINT_TYPE_VALUES,
+  inferRegimeFromType,
+  type ComplaintChannelValue,
+  type ComplaintRegimeValue,
+  type ComplaintTypeValue,
+} from '@/lib/complaints/regime-rules'
+import {
+  generateComplaintTrackingToken,
+  hashComplaintTrackingToken,
+} from '@/lib/complaints/tracking-token'
 
 // ---------------------------------------------------------------------------
 // Rate limiter: 5 req/min per IP for public complaint submissions
 // ---------------------------------------------------------------------------
 const complaintLimiter = rateLimit({ interval: 60_000, limit: 5 })
 
+export const maxDuration = 30
+
 // ---------------------------------------------------------------------------
 // Zod schema for complaint input validation
 // ---------------------------------------------------------------------------
-const VALID_COMPLAINT_TYPES = [
-  'HOSTIGAMIENTO_SEXUAL',
-  'DISCRIMINACION',
-  'ACOSO_LABORAL',
-  'OTRO',
-] as const
+const VALID_COMPLAINT_TYPES = COMPLAINT_TYPE_VALUES as [ComplaintTypeValue, ...ComplaintTypeValue[]]
+const VALID_COMPLAINT_REGIMES = COMPLAINT_REGIME_VALUES as [ComplaintRegimeValue, ...ComplaintRegimeValue[]]
+const VALID_COMPLAINT_CHANNELS = COMPLAINT_CHANNEL_VALUES as [ComplaintChannelValue, ...ComplaintChannelValue[]]
 
 // FIX #0.3: orgId NO puede venir del body. Antes el endpoint aceptaba
 // `orgId` arbitrario y caía a `'org-demo'` como fallback → cualquier
@@ -35,12 +49,14 @@ const VALID_COMPLAINT_TYPES = [
 // la organización exista. La protección definitiva contra orgIds
 // adivinables se cierra en Ola 1.C cuando orgId pase a ser `cuid()`.
 const complaintSchema = z.object({
+  regime: z.enum(VALID_COMPLAINT_REGIMES).optional(),
   type: z.enum(VALID_COMPLAINT_TYPES, {
     error: `El tipo de denuncia debe ser uno de: ${VALID_COMPLAINT_TYPES.join(', ')}`,
   }),
+  channel: z.enum(VALID_COMPLAINT_CHANNELS).default('WEB'),
   description: z
     .string({ error: 'La descripción es obligatoria' })
-    .min(10, 'La descripción debe tener al menos 10 caracteres')
+    .min(20, 'La descripción debe tener al menos 20 caracteres')
     .max(5000, 'La descripción no puede exceder 5000 caracteres'),
   isAnonymous: z.boolean().default(true),
   /** Token de reCAPTCHA v3 desde el cliente (FIX #5.B). Opcional sin
@@ -51,7 +67,30 @@ const complaintSchema = z.object({
   reporterPhone: z.string().max(30).optional().nullable(),
   accusedName: z.string().max(200).optional().nullable(),
   accusedPosition: z.string().max(200).optional().nullable(),
+  occurredAt: z.string().max(40).optional().nullable(),
+  location: z.string().max(300).optional().nullable(),
+  witnesses: z.array(z.object({
+    name: z.string().max(200).optional().nullable(),
+    contact: z.string().max(200).optional().nullable(),
+    notes: z.string().max(1000).optional().nullable(),
+  })).max(20).default([]),
+  medicalAttentionRequested: z.boolean().optional(),
+  protectionMeasuresRequested: z.string().max(1000).optional().nullable(),
   evidenceUrls: z.array(z.string().url()).max(10).default([]),
+})
+
+const complaintUpdateSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(['RECEIVED', 'UNDER_REVIEW', 'INVESTIGATING', 'PROTECTION_APPLIED', 'RESOLVED', 'DISMISSED']).optional(),
+  assignedTo: z.string().optional().nullable(),
+  resolution: z.string().max(5000).optional().nullable(),
+  protectionMeasures: z.unknown().optional(),
+  timelineAction: z.string().max(120).optional(),
+  timelineDescription: z.string().max(1000).optional().nullable(),
+  performedBy: z.string().max(120).optional().nullable(),
+  publicTimeline: z.boolean().default(false),
+  publicDescription: z.string().max(300).optional().nullable(),
+  closeExceptionReason: z.string().max(1000).optional().nullable(),
 })
 
 // ---------------------------------------------------------------------------
@@ -72,25 +111,34 @@ function looksLikeSpam(text: string): boolean {
   return false
 }
 
+function parseOptionalDate(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 // =============================================
 // GET /api/complaints — List complaints (admin, auth required)
 // =============================================
-export const GET = withPlanGate('denuncias', async (req, ctx) => {
+export const GET = withRole('ADMIN', async (req, ctx) => {
   try {
     const { searchParams } = new URL(req.url)
     const orgId = ctx.orgId
     const status = searchParams.get('status') as ComplaintStatus | null
+    const regime = searchParams.get('regime') as ComplaintRegime | null
 
     const where: Record<string, unknown> = { orgId }
     if (status) where.status = status
+    if (regime) where.regime = regime
 
-    const [complaints, stats] = await Promise.all([
+    const [complaints, stats, regimeStats] = await Promise.all([
       prisma.complaint.findMany({
         where,
         orderBy: { receivedAt: 'desc' },
         take: 50,
         include: {
           timeline: { orderBy: { createdAt: 'asc' } },
+          documents: { orderBy: { createdAt: 'desc' } },
         },
       }),
       prisma.complaint.groupBy({
@@ -98,9 +146,15 @@ export const GET = withPlanGate('denuncias', async (req, ctx) => {
         where: { orgId },
         _count: true,
       }),
+      prisma.complaint.groupBy({
+        by: ['regime'],
+        where: { orgId },
+        _count: true,
+      }),
     ])
 
     const statusMap = stats.reduce((acc, s) => { acc[s.status] = s._count; return acc }, {} as Record<string, number>)
+    const regimeMap = regimeStats.reduce((acc, s) => { acc[s.regime] = s._count; return acc }, {} as Record<string, number>)
 
     return NextResponse.json({
       complaints,
@@ -111,6 +165,7 @@ export const GET = withPlanGate('denuncias', async (req, ctx) => {
         investigating: statusMap['INVESTIGATING'] || 0,
         resolved: statusMap['RESOLVED'] || 0,
         dismissed: statusMap['DISMISSED'] || 0,
+        byRegime: regimeMap,
       },
     })
   } catch (error) {
@@ -149,10 +204,21 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-      type, description, isAnonymous,
+      regime, type, channel, description, isAnonymous,
       reporterName, reporterEmail, reporterPhone,
-      accusedName, accusedPosition, evidenceUrls,
+      accusedName, accusedPosition, occurredAt, location, witnesses,
+      medicalAttentionRequested, protectionMeasuresRequested, evidenceUrls,
     } = parsed.data
+
+    const resolvedRegime = regime ?? inferRegimeFromType(type)
+    if (!assertTypeMatchesRegime(type, resolvedRegime)) {
+      return NextResponse.json(
+        { error: 'El tipo de denuncia no corresponde al régimen seleccionado.' },
+        { status: 400 },
+      )
+    }
+    const typeConfig = COMPLAINT_TYPES[type]
+    const occurredAtDate = parseOptionalDate(occurredAt)
 
     // FIX #5.B: validar reCAPTCHA antes de procesar. Si la clave no está
     // configurada (dev), el helper hace bypass con success=true. En prod
@@ -186,13 +252,13 @@ export async function POST(request: NextRequest) {
     const orgIdParam = url.searchParams.get('org')?.trim()
     if (!orgIdParam) {
       return NextResponse.json(
-        { error: 'Debes accesar el formulario desde la URL pública de tu empresa (/denuncias/[empresa]).' },
+        { error: 'Debes acceder al formulario desde la URL pública de tu empresa (/denuncias/[empresa]).' },
         { status: 400 }
       )
     }
     const orgExists = await prisma.organization.findUnique({
       where: { id: orgIdParam },
-      select: { id: true },
+      select: { id: true, sizeRange: true, totalWorkersDeclared: true },
     })
     if (!orgExists) {
       return NextResponse.json(
@@ -203,16 +269,19 @@ export async function POST(request: NextRequest) {
     const orgId = orgIdParam
 
     // 5. Generate unique code
+    const trackingToken = generateComplaintTrackingToken()
     const year = new Date().getFullYear()
-    const count = await prisma.complaint.count({ where: { orgId } })
-    const code = `DENUNCIA-${year}-${String(count + 1).padStart(3, '0')}`
+    const count = await prisma.complaint.count({ where: { orgId, regime: resolvedRegime as ComplaintRegime } })
+    const code = `${resolvedRegime}-${year}-${String(count + 1).padStart(3, '0')}`
 
     // 6. Create complaint
     const complaint = await prisma.complaint.create({
       data: {
         orgId,
         code,
+        regime: resolvedRegime as ComplaintRegime,
         type: type as ComplaintType,
+        channel: channel as ComplaintChannel,
         description,
         isAnonymous,
         reporterName: isAnonymous ? null : (reporterName || null),
@@ -220,12 +289,28 @@ export async function POST(request: NextRequest) {
         reporterPhone: isAnonymous ? null : (reporterPhone || null),
         accusedName: accusedName || null,
         accusedPosition: accusedPosition || null,
+        occurredAt: occurredAtDate,
+        location: location || null,
+        witnesses: witnesses.length > 0 ? witnesses : undefined,
+        caseMetadata: {
+          regime: resolvedRegime,
+          regimeBaseLegal: typeConfig.baseLegal,
+          externalReport: typeConfig.externalReport ?? null,
+          medicalAttentionRequested: Boolean(medicalAttentionRequested),
+        protectionMeasuresRequested: protectionMeasuresRequested || null,
+          orgSizeRange: orgExists.sizeRange ?? null,
+          totalWorkersDeclared: orgExists.totalWorkersDeclared ?? null,
+        },
+        trackingTokenHash: hashComplaintTrackingToken(trackingToken),
+        trackingTokenRotatedAt: new Date(),
         evidenceUrls,
         status: 'RECEIVED',
         timeline: {
           create: {
-            action: 'DENUNCIA_RECIBIDA',
-            description: 'Denuncia registrada en el sistema',
+            action: `${resolvedRegime}_CASE_RECEIVED`,
+            description: `Caso ${resolvedRegime} registrado: ${typeConfig.label}`,
+            visibleToReporter: true,
+            publicDescription: 'Reporte recibido por el canal confidencial.',
             performedBy: 'Sistema',
           },
         },
@@ -255,17 +340,23 @@ export async function POST(request: NextRequest) {
     emit('complaint.received', {
       orgId,
       complaintId: complaint.id,
+      regime: complaint.regime,
       type: complaint.type,
       anonymous: complaint.isAnonymous,
       receivedAt: complaint.receivedAt.toISOString(),
     })
 
-    // Triaje IA fire-and-forget. Toma ~5-15s → no bloqueamos la respuesta.
-    // Al terminar emite `complaint.triaged` para que workflows reaccionen
-    // a severidad específica.
-    void runTriageAsync(complaint.id, orgId, type, description, accusedPosition)
+    // Triaje IA post-response. `after()` evita que Vercel corte el trabajo
+    // apenas enviamos el response, pero sin hacer esperar al denunciante.
+    after(() => runTriageAsync(complaint.id, orgId, resolvedRegime, type, description, accusedPosition))
 
-    return NextResponse.json({ complaint, code, triageStatus: 'PENDING' })
+    return NextResponse.json({
+      complaint,
+      code,
+      trackingToken,
+      trackingUrl: `/denuncias/${encodeURIComponent(orgId)}?seguimiento=${encodeURIComponent(code)}&token=${encodeURIComponent(trackingToken)}`,
+      triageStatus: 'PENDING',
+    })
   } catch (error) {
     console.error('Complaints POST error:', error)
     return NextResponse.json(
@@ -285,19 +376,22 @@ export async function POST(request: NextRequest) {
 // de otra org, devolvemos 404 sin tocar nada.
 // (Endurecimiento adicional a withRole('ADMIN') queda para Ola 3.)
 // =============================================
-export const PUT = withPlanGate('denuncias', async (req, ctx) => {
+export const PUT = withRole('ADMIN', async (req, ctx) => {
   try {
     const body = await req.json()
-    const { id, status, assignedTo, resolution, protectionMeasures, timelineAction, timelineDescription, performedBy } = body
-
-    if (!id || typeof id !== 'string') {
-      return NextResponse.json({ error: 'id is required' }, { status: 400 })
+    const parsed = complaintUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Datos invalidos', details: parsed.error.issues.map((issue) => issue.message) },
+        { status: 400 },
+      )
     }
+    const { id, status, assignedTo, resolution, protectionMeasures, timelineAction, timelineDescription, performedBy, publicTimeline, publicDescription, closeExceptionReason } = parsed.data
 
     // Confirmar pertenencia a la org antes de modificar
     const owned = await prisma.complaint.findFirst({
       where: { id, orgId: ctx.orgId },
-      select: { id: true },
+      select: { id: true, regime: true, code: true, caseMetadata: true },
     })
     if (!owned) {
       return NextResponse.json({ error: 'Denuncia no encontrada' }, { status: 404 })
@@ -322,29 +416,68 @@ export const PUT = withPlanGate('denuncias', async (req, ctx) => {
       }
     }
 
+    if (status === 'RESOLVED' || status === 'DISMISSED') {
+      const missingStages = await getMissingCloseStages(id, owned.regime, status)
+      if (missingStages.length > 0 && !closeExceptionReason) {
+        return NextResponse.json(
+          {
+            error: 'No se puede cerrar el caso sin expediente minimo documentado.',
+            missingStages,
+            hint: 'Sube los documentos requeridos o registra una excepcion justificada.',
+          },
+          { status: 409 },
+        )
+      }
+    }
+
     const updateData: Record<string, unknown> = {}
     if (status) updateData.status = status
     if (assignedTo) updateData.assignedTo = assignedTo
     if (resolution) updateData.resolution = resolution
     if (protectionMeasures) updateData.protectionMeasures = protectionMeasures
-    if (status === 'RESOLVED' || status === 'DISMISSED') updateData.resolvedAt = new Date()
-
-    const complaint = await prisma.complaint.update({
-      where: { id },
-      data: updateData,
-    })
-
-    // Add timeline entry if provided
-    if (timelineAction) {
-      await prisma.complaintTimeline.create({
-        data: {
-          complaintId: id,
-          action: timelineAction,
-          description: timelineDescription || null,
-          performedBy: performedBy || 'Admin',
-        },
-      })
+    if (status === 'RESOLVED' || status === 'DISMISSED') {
+      updateData.resolvedAt = new Date()
+      if (closeExceptionReason) {
+        updateData.caseMetadata = {
+          ...(owned.caseMetadata && typeof owned.caseMetadata === 'object' && !Array.isArray(owned.caseMetadata) ? owned.caseMetadata : {}),
+          closeExceptionReason,
+          closeExceptionAt: new Date().toISOString(),
+        }
+      }
     }
+
+    const complaint = await prisma.$transaction(async (tx) => {
+      const updated = await tx.complaint.update({
+        where: { id },
+        data: updateData,
+      })
+
+      if (timelineAction) {
+        await tx.complaintTimeline.create({
+          data: {
+            complaintId: id,
+            action: timelineAction,
+            description: timelineDescription || null,
+            visibleToReporter: publicTimeline,
+            publicDescription: publicTimeline ? (publicDescription || timelineDescription || null) : null,
+            performedBy: performedBy || ctx.email || 'Admin',
+          },
+        })
+      }
+
+      if (closeExceptionReason) {
+        await tx.complaintTimeline.create({
+          data: {
+            complaintId: id,
+            action: 'CLOSE_EXCEPTION_REGISTERED',
+            description: closeExceptionReason,
+            performedBy: ctx.email || 'Admin',
+          },
+        })
+      }
+
+      return updated
+    })
 
     return NextResponse.json(complaint)
   } catch (error) {
@@ -353,6 +486,28 @@ export const PUT = withPlanGate('denuncias', async (req, ctx) => {
   }
 })
 
+async function getMissingCloseStages(
+  complaintId: string,
+  regime: ComplaintRegime,
+  status: ComplaintStatus,
+): Promise<string[]> {
+  const requiredByRegime: Record<ComplaintRegime, ComplaintStage[]> = {
+    HSL: status === 'DISMISSED' ? ['DECISION_FINAL'] : ['INFORME_COMITE', 'DECISION_FINAL'],
+    SST: status === 'DISMISSED' ? ['DECISION_FINAL'] : ['INFORME_COMITE', 'DECISION_FINAL'],
+    MPD: status === 'DISMISSED' ? ['DECISION_FINAL'] : ['INFORME_COMITE', 'DECISION_FINAL'],
+  }
+  const required = requiredByRegime[regime] ?? ['DECISION_FINAL']
+  const documents = await prisma.complaintDocument.findMany({
+    where: {
+      complaintId,
+      stage: { in: required },
+    },
+    select: { stage: true },
+  })
+  const present = new Set(documents.map((document) => document.stage))
+  return required.filter((stage) => !present.has(stage))
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Triaje IA fire-and-forget
 // ═══════════════════════════════════════════════════════════════════════════
@@ -360,7 +515,7 @@ export const PUT = withPlanGate('denuncias', async (req, ctx) => {
 /**
  * Ejecuta el triaje IA en background tras crear una denuncia.
  *
- *  - Nunca bloquea el response del POST (fire-and-forget con void)
+ *  - Nunca bloquea el response del POST (programado con `after()`)
  *  - Persiste el resultado en `Complaint.severityAi/urgencyAi/triageJson`
  *  - Si falla, deja `triagedAt` con fecha + `triageJson.error` para debug;
  *    el admin ve "Triaje no disponible, clasifique manualmente" en la UI
@@ -370,12 +525,13 @@ export const PUT = withPlanGate('denuncias', async (req, ctx) => {
 async function runTriageAsync(
   complaintId: string,
   orgId: string,
+  regime: ComplaintRegimeValue,
   type: ComplaintType,
   description: string,
   accusedPosition: string | null | undefined,
 ): Promise<void> {
   try {
-    const result = await triageComplaint({ type, description, accusedPosition: accusedPosition ?? null })
+    const result = await triageComplaint({ regime, type, description, accusedPosition: accusedPosition ?? null })
 
     await prisma.complaint.update({
       where: { id: complaintId },
@@ -396,9 +552,31 @@ async function runTriageAsync(
       })
     }
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
     console.error('[complaints] triage async failed', {
       complaintId,
-      err: err instanceof Error ? err.message : String(err),
+      err: message,
     })
+
+    try {
+      await prisma.complaint.update({
+        where: { id: complaintId },
+        data: {
+          severityAi: null,
+          urgencyAi: null,
+          triageJson: {
+            ok: false,
+            reason: 'api_error',
+            error: message.slice(0, 500),
+          },
+          triagedAt: new Date(),
+        },
+      })
+    } catch (persistErr) {
+      console.error('[complaints] triage failure persist failed', {
+        complaintId,
+        err: persistErr instanceof Error ? persistErr.message : String(persistErr),
+      })
+    }
   }
 }

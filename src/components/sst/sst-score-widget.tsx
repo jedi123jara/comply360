@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Loader2, ShieldCheck, ArrowRight, AlertTriangle, Banknote } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { formatSoles } from '@/lib/format/peruvian'
 
 type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO'
 
@@ -160,7 +161,7 @@ export function SstScoreWidget({ compact = false }: { compact?: boolean }) {
                 <Banknote className="h-3.5 w-3.5 text-rose-600" />
                 <span className="text-slate-500">Exposición:</span>
                 <span className="font-bold text-rose-700">
-                  S/ {data.exposicionEconomica.totalSoles.toLocaleString('es-PE')}
+                  {formatSoles(data.exposicionEconomica.totalSoles)}
                 </span>
               </div>
             )}

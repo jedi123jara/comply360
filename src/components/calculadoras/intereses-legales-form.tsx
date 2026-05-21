@@ -5,6 +5,7 @@ import { calcularInteresesLegales } from '@/lib/legal-engine/calculators/interes
 import type { InteresesLegalesInput, InteresesLegalesResult } from '@/lib/legal-engine/calculators/intereses-legales'
 import { Calculator, Download, MessageCircle, Scale, TrendingUp, Percent, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const TIPOS_INTERES = [
   { value: 'laboral', label: 'Interés Legal Laboral (moneda nacional)' },
@@ -38,9 +39,6 @@ export function InteresesLegalesCalculadora() {
   ) => {
     setInput(prev => ({ ...prev, [key]: value }))
   }
-
-  const fmt = (n: number) =>
-    n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const saveCalculation = async () => {
     if (!result) return
@@ -184,10 +182,10 @@ export function InteresesLegalesCalculadora() {
                 </span>
               </div>
               <div className="text-5xl font-black tracking-tight mb-2">
-                S/ {fmt(result.total)}
+                {formatSoles(result.total)}
               </div>
               <p className="text-slate-300 text-sm">
-                Capital S/ {fmt(result.capital)} + Intereses S/ {fmt(result.interesAcumulado)} ({result.diasCalculados} dias)
+                Capital {formatSoles(result.capital)} + Intereses {formatSoles(result.interesAcumulado)} ({result.diasCalculados} dias)
               </p>
 
               {/* Action buttons */}
@@ -234,7 +232,7 @@ export function InteresesLegalesCalculadora() {
                     </div>
                   </div>
                   <span className="text-lg font-bold text-white tabular-nums">
-                    S/ {fmt(result.capital)}
+                    {formatSoles(result.capital)}
                   </span>
                 </div>
 
@@ -284,7 +282,7 @@ export function InteresesLegalesCalculadora() {
                     </div>
                   </div>
                   <span className="text-lg font-bold text-emerald-600 tabular-nums">
-                    + S/ {fmt(result.interesAcumulado)}
+                    + {formatSoles(result.interesAcumulado)}
                   </span>
                 </div>
 
@@ -300,7 +298,7 @@ export function InteresesLegalesCalculadora() {
                     </div>
                   </div>
                   <span className="text-xl font-black text-white tabular-nums">
-                    S/ {fmt(result.total)}
+                    {formatSoles(result.total)}
                   </span>
                 </div>
               </div>
