@@ -2,7 +2,7 @@
  * NudgeBadge — Smart Nudges proactivos in-canvas.
  *
  * Floats sobre los nodos visibles con findings críticos del Org Doctor.
- * Limita a 3 nudges visibles a la vez, ranking por severidad.
+ * Limita a 1 nudge visible para no tapar la lectura jerárquica del árbol.
  *
  * Estado dismissed se persiste en localStorage 7 días por orgId+rule+unitId.
  */
@@ -37,7 +37,7 @@ const SEVERITY_RANK: Record<DoctorFinding['severity'], number> = {
 
 const STORAGE_KEY = 'orgchart-v2:nudge-dismissals'
 const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000 // 7 días
-const MAX_VISIBLE = 3
+const MAX_VISIBLE = 1
 
 interface DismissalRecord {
   fingerprint: string
@@ -80,8 +80,8 @@ export interface NudgeBadgeListProps {
 
 /**
  * Capa flotante (no en el viewport del canvas — es absoluta sobre todo el
- * canvas-area) que muestra los nudges. Se posiciona en la esquina inferior
- * izquierda, no interfiere con minimap/controls.
+ * canvas-area) que muestra los nudges. Se posiciona arriba a la derecha y se
+ * mantiene compacto para priorizar la lectura del organigrama.
  */
 export function NudgeBadgeList({ findings, onFocusUnit }: NudgeBadgeListProps) {
   // Lazy initial state — el componente vive bajo dynamic({ ssr: false }),
@@ -112,7 +112,7 @@ export function NudgeBadgeList({ findings, onFocusUnit }: NudgeBadgeListProps) {
   if (visibleNudges.length === 0) return null
 
   return (
-    <div className="pointer-events-none absolute bottom-20 left-4 z-20 flex flex-col-reverse gap-2">
+    <div className="pointer-events-none absolute right-4 top-4 z-20 flex max-w-sm flex-col gap-2">
       <AnimatePresence>
         {visibleNudges.map((f) => (
           <m.div

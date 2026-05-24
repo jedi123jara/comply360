@@ -24,7 +24,7 @@ export interface LayoutResult {
  */
 const NODE_SIZE_BY_KIND: Record<string, { w: number; h: number }> = {
   unit: { w: 240, h: 120 },
-  position: { w: 200, h: 90 },
+  position: { w: 260, h: 126 },
 }
 
 function resolvedSize(node: Node) {
@@ -51,28 +51,28 @@ export function runLayout(
       return {
         nodes: applyDagreLayout(sizedNodes, edges, {
           direction: 'TB',
-          nodeWidth: 240,
-          nodeHeight: 120,
-          rankSep: 90,
-          nodeSep: 40,
+          nodeWidth: 260,
+          nodeHeight: 126,
+          rankSep: 126,
+          nodeSep: 54,
         }),
       }
     case 'left-right':
       return {
         nodes: applyDagreLayout(sizedNodes, edges, {
           direction: 'LR',
-          nodeWidth: 240,
-          nodeHeight: 120,
-          rankSep: 110,
-          nodeSep: 28,
+          nodeWidth: 260,
+          nodeHeight: 126,
+          rankSep: 150,
+          nodeSep: 38,
         }),
       }
     case 'radial':
       return {
         nodes: applyRadialLayout(sizedNodes, edges, {
           radius: Math.max(420, sizedNodes.length * 18),
-          nodeWidth: 240,
-          nodeHeight: 120,
+          nodeWidth: 260,
+          nodeHeight: 126,
         }),
       }
     case 'grouped-by-area':
@@ -82,10 +82,10 @@ export function runLayout(
       return {
         nodes: applyDagreLayout(sizedNodes, edges, {
           direction: 'TB',
-          nodeWidth: 240,
-          nodeHeight: 120,
-          rankSep: 110,
-          nodeSep: 60,
+          nodeWidth: 260,
+          nodeHeight: 126,
+          rankSep: 150,
+          nodeSep: 72,
         }),
       }
     default: {

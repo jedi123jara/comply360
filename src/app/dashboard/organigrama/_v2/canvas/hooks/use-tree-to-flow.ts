@@ -20,6 +20,8 @@ export interface UnitNodeData extends Record<string, unknown> {
   unitId: string
   name: string
   unitKind: string
+  hierarchyLevel: number
+  unitPath: string
   positionsCount: number
   occupantsCount: number
   coverage: UnitCoverage | null
@@ -32,11 +34,16 @@ export interface PositionNodeData extends Record<string, unknown> {
   positionId: string
   unitId: string
   unitName: string | null
+  unitKind: string | null
+  unitPath: string
+  hierarchyLevel: number
   title: string
   occupants: Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
   vacant: boolean
   isManagerial: boolean
   isCritical: boolean
+  isUnitLead: boolean
+  inferredReportsTo: boolean
   directReports: number
   coverage: UnitCoverage | null
 }
@@ -151,6 +158,8 @@ function overlayCopilotPreview(
         unitId: `ghost-${op.tempKey}`,
         name: `+ ${op.name}`,
         unitKind: op.kind,
+        hierarchyLevel: 0,
+        unitPath: `+ ${op.name}`,
         positionsCount: 0,
         occupantsCount: 0,
         coverage: null,
@@ -204,17 +213,22 @@ function overlayCopilotPreview(
           positionId: `ghost-${op.tempKey}`,
           unitId: op.unitRef,
           unitName: null,
+          unitKind: null,
+          unitPath: 'Propuesta IA',
+          hierarchyLevel: 0,
           title: `+ ${op.title}`,
           occupants: [],
           vacant: true,
           isManagerial: op.isManagerial ?? false,
           isCritical: op.isCritical ?? false,
+          isUnitLead: false,
+          inferredReportsTo: false,
           directReports: 0,
           coverage: null,
         } satisfies PositionNodeData,
         style: { opacity: 0.7 },
-        width: 200,
-        height: 90,
+        width: 260,
+        height: 126,
       })
 
       if (op.reportsToRef) {
@@ -244,6 +258,7 @@ function buildUnitFlow(
   layoutMode: LayoutMode,
   coverage: CoverageReport | null,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
+  const unitsById = new Map(tree.units.map((unit) => [unit.id, unit]))
   // 1) Indexar posiciones y asignaciones por unidad
   const positionsByUnit = new Map<string, number>()
   for (const p of tree.positions) {
@@ -266,6 +281,8 @@ function buildUnitFlow(
       unitId: u.id,
       name: u.name,
       unitKind: u.kind,
+      hierarchyLevel: u.level,
+      unitPath: buildUnitPath(u.id, unitsById),
       positionsCount: positionsByUnit.get(u.id) ?? 0,
       occupantsCount: occupantsByUnit.get(u.id) ?? 0,
       coverage: coverage?.byUnit.get(u.id) ?? null,
@@ -298,19 +315,15 @@ function buildPositionFlow(
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
   const unitsById = new Map(tree.units.map((u) => [u.id, u]))
   const positionIds = new Set(tree.positions.map((p) => p.id))
-
-  // direct reports counter
-  const directReportsByPos = new Map<string, number>()
-  for (const p of tree.positions) {
-    if (p.reportsToPositionId && positionIds.has(p.reportsToPositionId)) {
-      directReportsByPos.set(
-        p.reportsToPositionId,
-        (directReportsByPos.get(p.reportsToPositionId) ?? 0) + 1,
-      )
-    }
+  const positionsByUnit = new Map<string, typeof tree.positions>()
+  for (const position of tree.positions) {
+    positionsByUnit.set(position.orgUnitId, [
+      ...(positionsByUnit.get(position.orgUnitId) ?? []),
+      position,
+    ])
   }
 
-  // occupants by position
+  // Occupants by position
   const occupantsByPos = new Map<
     string,
     Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
@@ -326,23 +339,103 @@ function buildPositionFlow(
     occupantsByPos.set(a.positionId, list)
   }
 
+  const explicitReportsByPos = new Map<string, number>()
+  for (const p of tree.positions) {
+    if (p.reportsToPositionId && positionIds.has(p.reportsToPositionId)) {
+      explicitReportsByPos.set(
+        p.reportsToPositionId,
+        (explicitReportsByPos.get(p.reportsToPositionId) ?? 0) + 1,
+      )
+    }
+  }
+
+  const leadByUnit = new Map<string, (typeof tree.positions)[number]>()
+  for (const [unitId, unitPositions] of positionsByUnit) {
+    const sorted = [...unitPositions].sort((a, b) => {
+      const managerialDelta = Number(Boolean(b.isManagerial)) - Number(Boolean(a.isManagerial))
+      if (managerialDelta !== 0) return managerialDelta
+
+      const priorityDelta = titleRank(b.title) - titleRank(a.title)
+      if (priorityDelta !== 0) return priorityDelta
+
+      const reportsDelta =
+        (explicitReportsByPos.get(b.id) ?? 0) - (explicitReportsByPos.get(a.id) ?? 0)
+      if (reportsDelta !== 0) return reportsDelta
+
+      const occupiedDelta =
+        (occupantsByPos.get(b.id)?.length ?? 0) - (occupantsByPos.get(a.id)?.length ?? 0)
+      if (occupiedDelta !== 0) return occupiedDelta
+
+      return a.title.localeCompare(b.title, 'es')
+    })
+    if (sorted[0]) leadByUnit.set(unitId, sorted[0])
+  }
+
+  const inferredParentByPosition = new Map<string, string | null>()
+  const inferredEdgeIds = new Set<string>()
+
+  function nearestAncestorLead(unitId: string, positionId: string) {
+    let parentId = unitsById.get(unitId)?.parentId ?? null
+    while (parentId) {
+      const parentLead = leadByUnit.get(parentId)
+      if (parentLead && parentLead.id !== positionId) return parentLead.id
+      parentId = unitsById.get(parentId)?.parentId ?? null
+    }
+    return null
+  }
+
+  for (const position of tree.positions) {
+    let parentId =
+      position.reportsToPositionId && positionIds.has(position.reportsToPositionId)
+        ? position.reportsToPositionId
+        : null
+
+    if (!parentId) {
+      const unitLead = leadByUnit.get(position.orgUnitId)
+      if (unitLead && unitLead.id !== position.id) {
+        parentId = unitLead.id
+      } else {
+        parentId = nearestAncestorLead(position.orgUnitId, position.id)
+      }
+      if (parentId) inferredEdgeIds.add(`e-${parentId}-${position.id}`)
+    }
+
+    inferredParentByPosition.set(position.id, parentId && parentId !== position.id ? parentId : null)
+  }
+
+  const directReportsByPos = new Map<string, number>()
+  for (const parentId of inferredParentByPosition.values()) {
+    if (!parentId) continue
+    directReportsByPos.set(parentId, (directReportsByPos.get(parentId) ?? 0) + 1)
+  }
+
   const nodes: OrgFlowNode[] = tree.positions.map((p) => {
     const unit = unitsById.get(p.orgUnitId) ?? null
     const occupants = occupantsByPos.get(p.id) ?? []
+    const inferredReportsTo = Boolean(
+      inferredParentByPosition.get(p.id) && p.reportsToPositionId !== inferredParentByPosition.get(p.id),
+    )
     return {
       id: p.id,
       type: 'positionNode',
       position: { x: 0, y: 0 },
+      width: 260,
+      height: 126,
       data: {
         kind: 'position',
         positionId: p.id,
         unitId: p.orgUnitId,
         unitName: unit?.name ?? null,
+        unitKind: unit?.kind ?? null,
+        unitPath: buildUnitPath(unit?.id ?? null, unitsById),
+        hierarchyLevel: unit?.level ?? 0,
         title: p.title,
         occupants,
         vacant: occupants.length < p.seats,
         isManagerial: Boolean(p.isManagerial),
         isCritical: Boolean(p.isCritical),
+        isUnitLead: leadByUnit.get(p.orgUnitId)?.id === p.id,
+        inferredReportsTo,
         directReports: directReportsByPos.get(p.id) ?? 0,
         coverage: coverage?.byUnit.get(p.orgUnitId) ?? null,
       } satisfies PositionNodeData,
@@ -351,17 +444,49 @@ function buildPositionFlow(
 
   const edges: Edge[] = []
   for (const p of tree.positions) {
-    if (p.reportsToPositionId && positionIds.has(p.reportsToPositionId)) {
+    const parentId = inferredParentByPosition.get(p.id)
+    if (parentId && positionIds.has(parentId)) {
+      const edgeId = `e-${parentId}-${p.id}`
+      const inferred = inferredEdgeIds.has(edgeId)
       edges.push({
-        id: `e-${p.reportsToPositionId}-${p.id}`,
-        source: p.reportsToPositionId,
+        id: edgeId,
+        source: parentId,
         target: p.id,
         type: 'smoothstep',
-        style: { stroke: 'rgb(148 163 184 / 0.7)', strokeWidth: 1.5 },
+        style: inferred
+          ? { stroke: 'rgb(56 189 248 / 0.55)', strokeWidth: 1.6, strokeDasharray: '6 5' }
+          : { stroke: 'rgb(148 163 184 / 0.76)', strokeWidth: 1.8 },
       })
     }
   }
 
   const { nodes: laidOut } = runLayout(nodes as Node[], edges, layoutMode)
   return { nodes: laidOut as OrgFlowNode[], edges }
+}
+
+function titleRank(title: string) {
+  const value = title.toLocaleLowerCase('es')
+  if (/(gerente general|ceo|director ejecutivo|dirección general|direccion general)/i.test(value)) return 100
+  if (/(gerente|director|jefe de área|jefe de area)/i.test(value)) return 80
+  if (/(jefe|head|supervisor|responsable|líder|lider|coordinador)/i.test(value)) return 60
+  if (/(analista|especialista|asistente|auxiliar)/i.test(value)) return 20
+  return 40
+}
+
+function buildUnitPath(
+  unitId: string | null,
+  unitsById: Map<string, OrgChartTree['units'][number]>,
+) {
+  if (!unitId) return 'Sin unidad'
+  const path: string[] = []
+  const visited = new Set<string>()
+  let currentId: string | null = unitId
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId)
+    const unit = unitsById.get(currentId)
+    if (!unit) break
+    path.unshift(unit.name)
+    currentId = unit.parentId
+  }
+  return path.join(' / ')
 }
