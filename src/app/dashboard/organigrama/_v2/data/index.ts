@@ -30,6 +30,10 @@ export {
 
 export { useReparentPositionMutation, type ReparentInput } from './mutations/use-reparent-position'
 export {
+  useReorganizeHierarchyMutation,
+  type ReorganizeHierarchyResult,
+} from './mutations/use-reorganize-hierarchy'
+export {
   useCreateSnapshotMutation,
   type CreateSnapshotInput,
 } from './mutations/use-create-snapshot'

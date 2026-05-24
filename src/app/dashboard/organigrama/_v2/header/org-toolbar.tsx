@@ -33,6 +33,7 @@ import {
   Scale,
   History,
   ListChecks,
+  RefreshCw,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -48,6 +49,9 @@ interface OrgToolbarProps {
   onCreatePosition?: () => void
   onSnapshot?: () => void
   onOpenAuditor?: () => void
+  onReorganize?: () => void
+  reorganizeLoading?: boolean
+  reorganizeDisabled?: boolean
 }
 
 export function OrgToolbar({
@@ -56,6 +60,9 @@ export function OrgToolbar({
   onCreatePosition,
   onSnapshot,
   onOpenAuditor,
+  onReorganize,
+  reorganizeLoading = false,
+  reorganizeDisabled = false,
 }: OrgToolbarProps) {
   const [moreOpen, setMoreOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -180,6 +187,22 @@ export function OrgToolbar({
       >
         <UserPlus className="h-4 w-4" />
         <span className="hidden md:inline">Asignar</span>
+      </button>
+
+      <button
+        type="button"
+        onMouseDown={(e) => {
+          e.preventDefault()
+          onReorganize?.()
+        }}
+        disabled={reorganizeDisabled || reorganizeLoading}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-55"
+        title="Reorganizar cargos existentes por jerarquía"
+      >
+        <RefreshCw className={`h-4 w-4 ${reorganizeLoading ? 'animate-spin' : ''}`} />
+        <span className="hidden lg:inline">
+          {reorganizeLoading ? 'Reorganizando' : 'Reorganizar'}
+        </span>
       </button>
 
       {/* Copiloto IA — destacado */}
