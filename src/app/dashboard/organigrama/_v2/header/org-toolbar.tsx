@@ -197,7 +197,7 @@ export function OrgToolbar({
         }}
         disabled={reorganizeDisabled || reorganizeLoading}
         className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-55"
-        title="Reorganizar cargos existentes por jerarquía"
+        title="Abrir plantilla para reorganizar cargos"
       >
         <RefreshCw className={`h-4 w-4 ${reorganizeLoading ? 'animate-spin' : ''}`} />
         <span className="hidden lg:inline">

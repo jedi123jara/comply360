@@ -39,7 +39,6 @@ import {
   useDoctorReportQuery,
   useCreateSnapshotMutation,
   useBootstrapPreviewQuery,
-  useReorganizeHierarchyMutation,
   pendingBootstrapCount,
 } from '../data'
 import { useOrgStore } from '../state/org-store'
@@ -98,7 +97,6 @@ export function OrganigramaShellV2() {
   const snapshotsQuery = useSnapshotsQuery()
   const doctorQuery = useDoctorReportQuery(true) // arranca enabled para tener heatmap/nudges desde el inicio
   const createSnapshotMutation = useCreateSnapshotMutation()
-  const reorganizeMutation = useReorganizeHierarchyMutation(currentSnapshotId)
   // Solo calculamos el preview de bootstrap cuando estamos viendo el organigrama
   // actual (no un snapshot histórico) — no tiene sentido sugerir cambios sobre
   // una vista de solo lectura.
@@ -206,36 +204,6 @@ export function OrganigramaShellV2() {
     }
   }, [createSnapshotMutation])
 
-  const handleReorganize = useCallback(async () => {
-    if (currentSnapshotId) {
-      toast.error('No puedes reorganizar un snapshot histórico.')
-      return
-    }
-    if (!tree || tree.positions.length === 0) {
-      toast.info('Todavía no hay cargos para reorganizar.')
-      return
-    }
-
-    const ok = window.confirm(
-      'Reorganizar cargos existentes?\n\nSe conectarán automáticamente los cargos sin jefe inmediato usando gerencias, áreas y títulos. No se tocarán las líneas de mando que ya fueron asignadas manualmente.',
-    )
-    if (!ok) return
-
-    try {
-      const result = await reorganizeMutation.mutateAsync()
-      setDisplayMode('positions')
-      if (result.changedCount === 0) {
-        toast.info('El organigrama ya estaba organizado por jerarquía.')
-      } else {
-        toast.success(
-          `Organigrama reorganizado: ${result.changedCount} cargo${result.changedCount === 1 ? '' : 's'} actualizado${result.changedCount === 1 ? '' : 's'}.`,
-        )
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al reorganizar el organigrama')
-    }
-  }, [currentSnapshotId, reorganizeMutation, setDisplayMode, tree])
-
   // --- Side effects ---
   // Abrir doctor automáticamente si hay findings críticos
   useEffect(() => {
@@ -281,8 +249,8 @@ export function OrganigramaShellV2() {
             <OrgToolbar
               exportHref={exportHref}
               onSnapshot={handleSnapshot}
-              onReorganize={handleReorganize}
-              reorganizeLoading={reorganizeMutation.isPending}
+              onReorganize={() => useOrgStore.getState().openModal('reorganize')}
+              reorganizeLoading={false}
               reorganizeDisabled={
                 Boolean(currentSnapshotId) || treeQuery.isLoading || !tree || tree.positions.length === 0
               }
