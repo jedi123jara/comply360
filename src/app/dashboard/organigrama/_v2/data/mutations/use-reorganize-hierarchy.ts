@@ -12,7 +12,16 @@ import { doctorKey } from '../queries/use-doctor-report'
 export interface ReorganizeHierarchyResult {
   ok: boolean
   changedCount: number
+  unitsChanged: number
+  positionsChanged: number
+  totalUnits: number
   totalPositions: number
+  unitChanges: Array<{
+    unitId: string
+    name: string
+    previousParentId: string | null
+    nextParentId: string | null
+  }>
   changes: Array<{
     positionId: string
     title: string

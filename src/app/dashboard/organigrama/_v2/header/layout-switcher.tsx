@@ -17,7 +17,7 @@ const LAYOUTS: Array<{
   { mode: 'top-down', label: 'Vertical', shortKey: '1', icon: Network },
   { mode: 'left-right', label: 'Horizontal', shortKey: '2', icon: MoveRight },
   { mode: 'radial', label: 'Radial', shortKey: '3', icon: CircleDot },
-  { mode: 'grouped-by-area', label: 'Por área', shortKey: '4', icon: LayoutGrid },
+  { mode: 'grouped-by-area', label: 'Por proceso', shortKey: '4', icon: LayoutGrid },
 ]
 
 export function LayoutSwitcher() {

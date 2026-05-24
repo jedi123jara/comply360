@@ -21,6 +21,7 @@ import type { OrgChartTree, OrgPositionDTO, OrgUnitDTO } from '@/lib/orgchart/ty
 import {
   buildUnitPath,
   inferPositionHierarchy,
+  isParallelGovernanceUnit,
   type InferredPositionHierarchy,
 } from '@/lib/orgchart/hierarchy-inference'
 
@@ -111,7 +112,7 @@ export function ReorganizeHierarchyModal() {
         toast.info('La plantilla ya coincide con el organigrama actual.')
       } else {
         toast.success(
-          `Plantilla aplicada: ${result.changedCount} cargo${result.changedCount === 1 ? '' : 's'} reorganizado${result.changedCount === 1 ? '' : 's'}.`,
+          `Plantilla aplicada: ${result.unitsChanged} proceso${result.unitsChanged === 1 ? '' : 's'} y ${result.positionsChanged} cargo${result.positionsChanged === 1 ? '' : 's'} reorganizado${result.changedCount === 1 ? '' : 's'}.`,
         )
       }
     } catch (err) {
@@ -146,7 +147,7 @@ export function ReorganizeHierarchyModal() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-slate-500">
             {model
-              ? `${model.changes.length} cambio${model.changes.length === 1 ? '' : 's'} sugerido${model.changes.length === 1 ? '' : 's'} sobre ${model.positions.length} cargo${model.positions.length === 1 ? '' : 's'}.`
+              ? `${model.unitChanges.length + model.changes.length} cambio${model.unitChanges.length + model.changes.length === 1 ? '' : 's'} sugerido${model.unitChanges.length + model.changes.length === 1 ? '' : 's'}: ${model.unitChanges.length} proceso${model.unitChanges.length === 1 ? '' : 's'} y ${model.changes.length} cargo${model.changes.length === 1 ? '' : 's'}.`
               : 'Cargando plantilla...'}
           </div>
           <div className="flex items-center gap-2">
@@ -223,12 +224,29 @@ export function ReorganizeHierarchyModal() {
                 <CheckCircle2 className="h-4 w-4 text-emerald-300" />
                 <h3 className="text-sm font-semibold text-white">Cambios sugeridos</h3>
               </div>
-              {model.changes.length === 0 ? (
+              {model.unitChanges.length === 0 && model.changes.length === 0 ? (
                 <p className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-3 text-xs text-emerald-100">
                   La jerarquía guardada ya coincide con la plantilla sugerida.
                 </p>
               ) : (
                 <div className="max-h-[190px] space-y-2 overflow-y-auto pr-1">
+                  {model.unitChanges.map(({ unit, suggestedParent }) => (
+                    <div
+                      key={`unit-${unit.id}`}
+                      className="w-full rounded-lg border border-cyan-400/30 bg-cyan-500/10 p-2 text-left"
+                    >
+                      <div className="truncate text-xs font-semibold text-white">
+                        {unit.name}
+                      </div>
+                      <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-400">
+                        <span className="truncate">proceso raíz</span>
+                        <ArrowRight className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate font-medium text-slate-200">
+                          {suggestedParent?.name ?? 'Gerencia General'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                   {model.changes.map(({ position, suggestedParent }) => (
                     <button
                       key={position.id}
@@ -350,24 +368,33 @@ interface HierarchyModel {
   childrenByParent: Map<string | null, OrgPositionDTO[]>
   roots: OrgPositionDTO[]
   changes: Array<{ position: OrgPositionDTO; suggestedParent: OrgPositionDTO | null }>
+  unitChanges: Array<{ unit: OrgUnitDTO; suggestedParent: OrgUnitDTO | null }>
   assignmentsByPosition: Map<string, OrgChartTree['assignments']>
 }
 
 function buildHierarchyModel(tree: OrgChartTree): HierarchyModel {
-  const unitsById = new Map(tree.units.map((unit) => [unit.id, unit]))
-  const positions = [...tree.positions].sort((a, b) => a.title.localeCompare(b.title, 'es'))
+  const visibleUnits = tree.units.filter((unit) => !isParallelGovernanceUnit(unit))
+  const visibleUnitIds = new Set(visibleUnits.map((unit) => unit.id))
+  const positions = tree.positions
+    .filter((position) => visibleUnitIds.has(position.orgUnitId))
+    .sort((a, b) => a.title.localeCompare(b.title, 'es'))
+  const visiblePositionIds = new Set(positions.map((position) => position.id))
+  const visibleAssignments = tree.assignments.filter((assignment) =>
+    visiblePositionIds.has(assignment.positionId),
+  )
+  const unitsById = new Map(visibleUnits.map((unit) => [unit.id, unit]))
   const positionsById = new Map(positions.map((position) => [position.id, position]))
   const assignmentsByPosition = new Map<string, OrgChartTree['assignments']>()
-  for (const assignment of tree.assignments) {
+  for (const assignment of visibleAssignments) {
     assignmentsByPosition.set(assignment.positionId, [
       ...(assignmentsByPosition.get(assignment.positionId) ?? []),
       assignment,
     ])
   }
   const hierarchy = inferPositionHierarchy({
-    units: tree.units,
+    units: visibleUnits,
     positions,
-    assignments: tree.assignments,
+    assignments: visibleAssignments,
   })
 
   const childrenByParent = new Map<string | null, OrgPositionDTO[]>()
@@ -380,6 +407,17 @@ function buildHierarchyModel(tree: OrgChartTree): HierarchyModel {
   }
 
   const roots = sortHierarchyChildren(childrenByParent.get(null) ?? [], hierarchy)
+  const unitChanges = visibleUnits
+    .map((unit) => {
+      const suggestedParentId = hierarchy.unitHierarchy.parentByUnit.get(unit.id) ?? null
+      return {
+        unit,
+        suggestedParent: suggestedParentId ? unitsById.get(suggestedParentId) ?? null : null,
+      }
+    })
+    .filter(({ unit, suggestedParent }) => {
+      return unit.parentId !== (suggestedParent?.id ?? null)
+    })
   const changes = positions
     .map((position) => {
       const suggestedParentId = hierarchy.parentByPosition.get(position.id) ?? null
@@ -402,6 +440,7 @@ function buildHierarchyModel(tree: OrgChartTree): HierarchyModel {
     childrenByParent,
     roots,
     changes,
+    unitChanges,
     assignmentsByPosition,
   }
 }

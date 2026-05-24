@@ -12,7 +12,11 @@ import type { Node, Edge } from '@xyflow/react'
 import type { OrgChartTree } from '@/lib/orgchart/types'
 import type { CoverageReport, UnitCoverage } from '@/lib/orgchart/coverage-aggregator'
 import type { CopilotPlan } from '@/lib/orgchart/copilot/operations'
-import { buildUnitPath, inferPositionHierarchy } from '@/lib/orgchart/hierarchy-inference'
+import {
+  buildUnitPath,
+  inferPositionHierarchy,
+  inferUnitHierarchy,
+} from '@/lib/orgchart/hierarchy-inference'
 import { runLayout } from '../layouts/layout-engine'
 import type { LayoutMode } from '../../state/slices/canvas-slice'
 
@@ -290,16 +294,27 @@ function buildUnitFlow(
     } satisfies UnitNodeData,
   }))
 
-  // 3) Aristas: padre → hijo
+  const unitHierarchy = inferUnitHierarchy({
+    units: tree.units,
+    positions: tree.positions,
+    assignments: tree.assignments,
+  })
+
+  // 3) Aristas: padre → hijo. Si la estructura viene plana desde planilla,
+  // pintamos la jerarquía sugerida para que el organigrama nazca como árbol.
   const edges: Edge[] = []
   for (const u of tree.units) {
-    if (u.parentId) {
+    const parentId = unitHierarchy.parentByUnit.get(u.id) ?? null
+    if (parentId) {
+      const inferred = unitHierarchy.inferredUnitIds.has(u.id)
       edges.push({
-        id: `e-${u.parentId}-${u.id}`,
-        source: u.parentId,
+        id: `e-${parentId}-${u.id}`,
+        source: parentId,
         target: u.id,
         type: 'smoothstep',
-        style: { stroke: 'rgb(148 163 184 / 0.7)', strokeWidth: 1.5 },
+        style: inferred
+          ? { stroke: 'rgb(56 189 248 / 0.55)', strokeWidth: 1.6, strokeDasharray: '6 5' }
+          : { stroke: 'rgb(148 163 184 / 0.7)', strokeWidth: 1.5 },
       })
     }
   }

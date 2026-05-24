@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildUnitPath, inferPositionHierarchy } from '../hierarchy-inference'
+import {
+  buildUnitPath,
+  inferPositionHierarchy,
+  inferUnitHierarchy,
+  isParallelGovernanceUnit,
+} from '../hierarchy-inference'
 import type { OrgAssignmentDTO, OrgPositionDTO, OrgUnitDTO } from '../types'
 
 function unit(partial: Pick<OrgUnitDTO, 'id' | 'name'> & Partial<OrgUnitDTO>): OrgUnitDTO {
@@ -123,6 +128,70 @@ describe('inferPositionHierarchy', () => {
 
     expect(result.parentByPosition.get('p2')).toBe('p1')
     expect(result.inferredPositionIds.has('p2')).toBe(false)
+  })
+
+  it('conecta gerencias planas bajo una gerencia general detectada', () => {
+    const units = [
+      unit({ id: 'u-gg', name: 'Gerencia General', kind: 'GERENCIA' }),
+      unit({ id: 'u-ops', name: 'Operaciones' }),
+      unit({ id: 'u-admin', name: 'Administración' }),
+    ]
+    const positions = [
+      position({
+        id: 'p-gg',
+        orgUnitId: 'u-gg',
+        title: 'Gerente General',
+        isManagerial: true,
+      }),
+      position({
+        id: 'p-ops',
+        orgUnitId: 'u-ops',
+        title: 'Gerente de Operaciones',
+        isManagerial: true,
+      }),
+      position({
+        id: 'p-admin',
+        orgUnitId: 'u-admin',
+        title: 'Jefe de Administración',
+        isManagerial: true,
+      }),
+    ]
+
+    const unitResult = inferUnitHierarchy({ units, positions })
+    const positionResult = inferPositionHierarchy({ units, positions })
+
+    expect(unitResult.rootUnit?.id).toBe('u-gg')
+    expect(unitResult.parentByUnit.get('u-ops')).toBe('u-gg')
+    expect(unitResult.parentByUnit.get('u-admin')).toBe('u-gg')
+    expect(positionResult.parentByPosition.get('p-ops')).toBe('p-gg')
+    expect(positionResult.parentByPosition.get('p-admin')).toBe('p-gg')
+  })
+
+  it('permite excluir comisiones del arbol empresarial', () => {
+    const units = [
+      unit({ id: 'u-gg', name: 'Gerencia General', kind: 'GERENCIA' }),
+      unit({ id: 'u-csst', name: 'Comité SST', kind: 'AREA' }),
+    ]
+    const positions = [
+      position({
+        id: 'p-gg',
+        orgUnitId: 'u-gg',
+        title: 'Gerente General',
+        isManagerial: true,
+      }),
+      position({
+        id: 'p-csst',
+        orgUnitId: 'u-csst',
+        title: 'Presidente del Comité SST',
+        isManagerial: true,
+      }),
+    ]
+
+    const excludedUnitIds = units.filter(isParallelGovernanceUnit).map((item) => item.id)
+    const result = inferPositionHierarchy({ units, positions, excludedUnitIds })
+
+    expect(excludedUnitIds).toEqual(['u-csst'])
+    expect(result.parentByPosition.get('p-csst')).toBeNull()
   })
 
   it('construye ruta de unidad desde sus ancestros', () => {
