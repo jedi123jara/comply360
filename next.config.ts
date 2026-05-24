@@ -35,9 +35,31 @@ const nextConfig: NextConfig = {
       // reconvierte en historial de threads del copilot global (Cmd+I).
       // (El redirect anterior aquí se eliminó.)
       //
-      // /dashboard/agentes y /dashboard/workflows tienen su propio
-      // permanentRedirect server-side en sus page.tsx — no se necesitan
-      // entradas aquí porque el page.tsx se ejecuta primero.
+      {
+        source: '/dashboard/agentes',
+        destination: '/dashboard/configuracion/automatizaciones/agentes',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/agentes/sunafil',
+        destination: '/dashboard/configuracion/automatizaciones/agentes/sunafil',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/workflows',
+        destination: '/dashboard/configuracion/automatizaciones/workflows',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/radar',
+        destination: '/dashboard/centro-sunafil?tab=radar',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/riesgo-sunafil',
+        destination: '/dashboard/centro-sunafil?tab=brechas',
+        permanent: false,
+      },
       //
       // /dashboard/analizar-contrato se mantiene como ruta funcional propia
       // (no redirige más al hub IA Laboral eliminado).

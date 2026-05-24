@@ -3,6 +3,7 @@ import { getAuthContext, type AuthContext } from '@/lib/auth'
 import { resolveWorkerForAuth } from '@/lib/worker-auth'
 import { workerPortalLimiter, superAdminLimiter } from '@/lib/rate-limit'
 import { checkIpBlock, getClientIp, recordAuthFailure, recordSuccess, trackRequest, logSecurityEvent } from '@/lib/security/middleware'
+import { runUnsafeBypass, runWithOrgScope } from '@/lib/prisma-rls'
 
 // =============================================
 // ROLE HIERARCHY
@@ -68,6 +69,73 @@ export function isOrgRole(role: string): boolean {
 }
 
 // =============================================
+// REQUEST SECURITY HELPERS
+// =============================================
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
+function allowedOrigins(req: NextRequest): Set<string> {
+  const origins = new Set<string>()
+  const urlOrigin = req.nextUrl?.origin
+  if (urlOrigin) origins.add(urlOrigin)
+
+  for (const raw of [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+    'https://comply360.pe',
+    'https://www.comply360.pe',
+  ]) {
+    if (!raw) continue
+    try {
+      origins.add(new URL(raw).origin)
+    } catch {
+      // Ignore invalid env values; failing closed happens below.
+    }
+  }
+
+  return origins
+}
+
+function enforceSameOriginMutation(req: NextRequest): NextResponse | null {
+  if (SAFE_METHODS.has(req.method)) return null
+  if (process.env.NODE_ENV !== 'production' && process.env.CSRF_ENFORCED !== 'true') return null
+
+  const source = req.headers.get('origin') ?? req.headers.get('referer')
+  if (!source) {
+    return NextResponse.json(
+      { error: 'Solicitud rechazada: origen requerido.' },
+      { status: 403 },
+    )
+  }
+
+  let sourceOrigin: string
+  try {
+    sourceOrigin = new URL(source).origin
+  } catch {
+    return NextResponse.json(
+      { error: 'Solicitud rechazada: origen invalido.' },
+      { status: 403 },
+    )
+  }
+
+  if (!allowedOrigins(req).has(sourceOrigin)) {
+    logSecurityEvent({ type: 'AUTH_FAILURE', ip: getClientIp(req), path: req.nextUrl.pathname })
+    return NextResponse.json(
+      { error: 'Solicitud rechazada: origen no permitido.' },
+      { status: 403 },
+    )
+  }
+
+  return null
+}
+
+async function runTenantScoped<T>(ctx: AuthContext, fn: () => Promise<T>): Promise<T> {
+  if (!ctx.orgId) return fn()
+  return runWithOrgScope(ctx.orgId, fn)
+}
+
+// =============================================
 // BASE AUTH WRAPPER
 // =============================================
 
@@ -81,6 +149,8 @@ export function withAuth(
 ) {
   return async (req: NextRequest, routeCtx?: unknown) => {
     const isProd = process.env.NODE_ENV === 'production'
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
 
     // Security middleware only active in production
     if (isProd) {
@@ -108,7 +178,7 @@ export function withAuth(
         )
       }
       if (isProd) recordSuccess(getClientIp(req))
-      return await handler(req, authCtx, routeCtx)
+      return await runTenantScoped(authCtx, () => handler(req, authCtx, routeCtx))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -132,6 +202,9 @@ export function withAuthParams<P extends Record<string, string>>(
   handler: (req: NextRequest, ctx: AuthContext, params: P) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx: { params: Promise<P> }) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -141,7 +214,7 @@ export function withAuthParams<P extends Record<string, string>>(
         )
       }
       const params = await routeCtx.params
-      return await handler(req, authCtx, params)
+      return await runTenantScoped(authCtx, () => handler(req, authCtx, params))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -173,6 +246,9 @@ export function withRole(
   handler: (req: NextRequest, ctx: AuthContext, params?: unknown) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx?: unknown) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -187,7 +263,7 @@ export function withRole(
           { status: 403 }
         )
       }
-      return await handler(req, authCtx, routeCtx)
+      return await runTenantScoped(authCtx, () => handler(req, authCtx, routeCtx))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -212,6 +288,9 @@ export function withRoleParams<P extends Record<string, string>>(
   handler: (req: NextRequest, ctx: AuthContext, params: P) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx: { params: Promise<P> }) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -227,7 +306,7 @@ export function withRoleParams<P extends Record<string, string>>(
         )
       }
       const params = await routeCtx.params
-      return await handler(req, authCtx, params)
+      return await runTenantScoped(authCtx, () => handler(req, authCtx, params))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -259,6 +338,9 @@ export function withPermission(
   handler: (req: NextRequest, ctx: AuthContext, params?: unknown) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx?: unknown) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -273,7 +355,7 @@ export function withPermission(
           { status: 403 }
         )
       }
-      return await handler(req, authCtx, routeCtx)
+      return await runTenantScoped(authCtx, () => handler(req, authCtx, routeCtx))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -298,6 +380,9 @@ export function withPermissionParams<P extends Record<string, string>>(
   handler: (req: NextRequest, ctx: AuthContext, params: P) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx: { params: Promise<P> }) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -313,7 +398,7 @@ export function withPermissionParams<P extends Record<string, string>>(
         )
       }
       const params = await routeCtx.params
-      return await handler(req, authCtx, params)
+      return await runTenantScoped(authCtx, () => handler(req, authCtx, params))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -342,6 +427,9 @@ export function withSuperAdmin(
   handler: (req: NextRequest, ctx: AuthContext, params?: unknown) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx?: unknown) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -359,7 +447,10 @@ export function withSuperAdmin(
       // Rate limit por super-admin (500 req/min)
       const rl = await superAdminLimiter.check(req, `super-admin:${authCtx.userId}`)
       if (!rl.success && rl.response) return rl.response
-      return await handler(req, authCtx, routeCtx)
+      return await runUnsafeBypass(
+        { reason: `super-admin:${req.nextUrl.pathname}`, userId: authCtx.userId, orgId: authCtx.orgId },
+        () => handler(req, authCtx, routeCtx),
+      )
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -380,6 +471,9 @@ export function withSuperAdminParams<P extends Record<string, string>>(
   handler: (req: NextRequest, ctx: AuthContext, params: P) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx: { params: Promise<P> }) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -397,7 +491,10 @@ export function withSuperAdminParams<P extends Record<string, string>>(
       const rl = await superAdminLimiter.check(req, `super-admin:${authCtx.userId}`)
       if (!rl.success && rl.response) return rl.response
       const params = await routeCtx.params
-      return await handler(req, authCtx, params)
+      return await runUnsafeBypass(
+        { reason: `super-admin:${req.nextUrl.pathname}`, userId: authCtx.userId, orgId: authCtx.orgId },
+        () => handler(req, authCtx, params),
+      )
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -432,6 +529,9 @@ export function withWorkerAuth(
   handler: (req: NextRequest, ctx: WorkerAuthContext, params?: unknown) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx?: unknown) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -444,7 +544,14 @@ export function withWorkerAuth(
       const rl = await workerPortalLimiter.check(req, `worker:${authCtx.userId}`)
       if (!rl.success && rl.response) return rl.response
 
-      const worker = await resolveWorkerForAuth(authCtx, { includeTerminated: true })
+      const worker = authCtx.orgId
+        ? await runWithOrgScope(authCtx.orgId, () =>
+            resolveWorkerForAuth(authCtx, { includeTerminated: true }),
+          )
+        : await runUnsafeBypass(
+            { reason: 'worker-auth:resolve-orphan', userId: authCtx.userId },
+            () => resolveWorkerForAuth(authCtx, { includeTerminated: true }),
+          )
 
       if (!worker) {
         return NextResponse.json(
@@ -470,7 +577,7 @@ export function withWorkerAuth(
         workerId: worker.id,
       }
 
-      return await handler(req, workerCtx, routeCtx)
+      return await runWithOrgScope(worker.orgId, () => handler(req, workerCtx, routeCtx))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(
@@ -491,6 +598,9 @@ export function withWorkerAuthParams<P extends Record<string, string>>(
   handler: (req: NextRequest, ctx: WorkerAuthContext, params: P) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx: { params: Promise<P> }) => {
+    const csrf = enforceSameOriginMutation(req)
+    if (csrf) return csrf
+
     try {
       const authCtx = await getAuthContext()
       if (!authCtx) {
@@ -502,7 +612,14 @@ export function withWorkerAuthParams<P extends Record<string, string>>(
       const rl = await workerPortalLimiter.check(req, `worker:${authCtx.userId}`)
       if (!rl.success && rl.response) return rl.response
 
-      const worker = await resolveWorkerForAuth(authCtx, { includeTerminated: true })
+      const worker = authCtx.orgId
+        ? await runWithOrgScope(authCtx.orgId, () =>
+            resolveWorkerForAuth(authCtx, { includeTerminated: true }),
+          )
+        : await runUnsafeBypass(
+            { reason: 'worker-auth:resolve-orphan', userId: authCtx.userId },
+            () => resolveWorkerForAuth(authCtx, { includeTerminated: true }),
+          )
 
       if (!worker) {
         return NextResponse.json(
@@ -529,7 +646,7 @@ export function withWorkerAuthParams<P extends Record<string, string>>(
       }
 
       const params = await routeCtx.params
-      return await handler(req, workerCtx, params)
+      return await runWithOrgScope(worker.orgId, () => handler(req, workerCtx, params))
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return NextResponse.json(

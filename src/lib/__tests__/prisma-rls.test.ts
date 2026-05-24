@@ -21,12 +21,18 @@ const { mockPrisma } = vi.hoisted(() => {
     $transaction: vi.fn(async (fn: (tx: typeof tx) => unknown) => fn(tx)),
     auditLog: { create: vi.fn().mockResolvedValue({}) },
     organization: { findMany: vi.fn().mockResolvedValue([]) },
+    worker: { findMany: vi.fn().mockResolvedValue([]) },
     __tx: tx,
   }
   return { mockPrisma }
 })
 
-vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/prisma', () => ({
+  prisma: mockPrisma,
+  prismaBase: mockPrisma,
+  prismaAdmin: mockPrisma,
+  runWithPrismaClient: (_client: unknown, fn: () => unknown) => fn(),
+}))
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -60,7 +66,7 @@ describe('runWithOrgScope', () => {
     await runWithOrgScope('org_abc', (tx) => tx.worker.findMany())
 
     expect(mockPrisma.__tx.$queryRaw).not.toHaveBeenCalled()
-    expect(mockPrisma.__tx.worker.findMany).toHaveBeenCalledOnce()
+    expect(mockPrisma.worker.findMany).toHaveBeenCalledOnce()
   })
 
   test('rechaza orgId vacío', async () => {

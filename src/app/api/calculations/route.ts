@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { calcularLiquidacion } from '@/lib/legal-engine/calculators/liquidacion'
 import type { LiquidacionInput } from '@/lib/legal-engine/types'
 import { getAuthContext } from '@/lib/auth'
+import { runWithOrgScope } from '@/lib/prisma-rls'
 
 // =============================================
 // POST /api/calculations - Run and save a calculation
@@ -106,16 +107,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Save to database — link to org if authenticated
-    const calculation = await prisma.calculation.create({
-      data: {
-        type: type as 'LIQUIDACION',
-        inputsJson: inputs,
-        resultJson: result as object,
-        totalAmount: totalAmount,
-        isPublic: !orgId, // public only when no org
-        ...(orgId ? { orgId } : {}),
-      },
-    })
+    const saveCalculation = () =>
+      prisma.calculation.create({
+        data: {
+          type: type as 'LIQUIDACION',
+          inputsJson: inputs,
+          resultJson: result as object,
+          totalAmount: totalAmount,
+          isPublic: !orgId, // public only when no org
+          ...(orgId ? { orgId } : {}),
+        },
+      })
+    const calculation = orgId
+      ? await runWithOrgScope(orgId, saveCalculation)
+      : await saveCalculation()
 
     return NextResponse.json({
       data: {
@@ -160,21 +165,26 @@ export async function GET(request: NextRequest) {
       where.isPublic = true
     }
 
-    const [calculations, total] = await Promise.all([
-      prisma.calculation.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        select: {
-          id: true,
-          type: true,
-          totalAmount: true,
-          createdAt: true,
-        },
-      }),
-      prisma.calculation.count({ where }),
-    ])
+    const listCalculations = () =>
+      Promise.all([
+        prisma.calculation.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+          select: {
+            id: true,
+            type: true,
+            totalAmount: true,
+            createdAt: true,
+          },
+        }),
+        prisma.calculation.count({ where }),
+      ])
+
+    const [calculations, total] = orgId
+      ? await runWithOrgScope(orgId, listCalculations)
+      : await listCalculations()
 
     return NextResponse.json({
       data: calculations.map(c => ({

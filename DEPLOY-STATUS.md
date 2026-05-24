@@ -86,12 +86,12 @@ Alternativa manual: ir a Vercel → tu proyecto → Settings → Environment Var
 **Total de env vars a cargar:**
 ```
 NEXT_PUBLIC_APP_URL=https://comply360.pe
-DATABASE_URL=postgresql://postgres.spouhohutvofqzrcqmkl:N5B4SDONkrL8zw58@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
-DIRECT_URL=postgresql://postgres.spouhohutvofqzrcqmkl:N5B4SDONkrL8zw58@aws-1-us-east-1.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://<db-user>:<password>@<pooler-host>:6543/postgres?pgbouncer=true&connection_limit=1
+DIRECT_URL=postgresql://<db-user>:<password>@<pooler-host>:5432/postgres
 SUPABASE_URL=https://spouhohutvofqzrcqmkl.supabase.co
 SUPABASE_SERVICE_KEY=[tu service_role]
-CRON_SECRET=d66e0187801da1c5a7a369de2476ea2c245c625cd8aeacd543e6ef864c5945cf
-JWT_SECRET=6655348a250dc196ed15ecaf279409a75fd423a0ab016937fced1b97db5be800
+CRON_SECRET=<cron-secret>
+JWT_SECRET=<jwt-secret>
 FOUNDER_EMAIL=a.jaracarranza@gmail.com
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=[pk_live_...]
 CLERK_SECRET_KEY=[sk_live_...]
@@ -183,7 +183,7 @@ Pueden que aún NO estén disponibles mañana si DNS tarda >24h. No es bloqueant
 
 **Supabase connection string:**
 ```
-postgresql://postgres.spouhohutvofqzrcqmkl:N5B4SDONkrL8zw58@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+postgresql://<db-user>:<password>@<pooler-host>:6543/postgres
 ```
 
 **Project URL:**

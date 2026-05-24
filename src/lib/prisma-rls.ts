@@ -36,10 +36,10 @@
  * siendo seguro llamar en cualquier momento.
  */
 
-import { prisma } from '@/lib/prisma'
-import type { PrismaClient } from '@/generated/prisma/client'
+import { prisma, prismaAdmin, prismaBase, runWithPrismaClient } from '@/lib/prisma'
+import type { Prisma, PrismaClient } from '@/generated/prisma/client'
 
-type TxClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0]
+type TxClient = Prisma.TransactionClient
 
 const RLS_ENFORCED = process.env.RLS_ENFORCED === 'true'
 
@@ -59,20 +59,22 @@ export async function runWithOrgScope<T>(
     throw new Error('runWithOrgScope: orgId requerido y no vacío')
   }
 
-  return prisma.$transaction(async (tx) => {
+  if (!RLS_ENFORCED) {
+    return fn(prisma as unknown as TxClient)
+  }
+
+  return prismaBase.$transaction(async (tx) => {
     // FIX #1.B: cambiamos $executeRawUnsafe por set_config(), que SÍ acepta
     // parámetros bind. Antes interpolábamos orgId en string crudo (con sanity
     // regex como única defensa). Ahora la firma es:
     //   SELECT set_config('app.current_org_id', $1, true)
     // donde el `true` lo hace LOCAL (solo afecta la tx actual). Defense in
     // depth: la regex de validación se mantiene aunque ya no es necesaria.
-    if (RLS_ENFORCED) {
-      if (!/^[A-Za-z0-9_-]+$/.test(orgId)) {
-        throw new Error(`runWithOrgScope: orgId con caracteres inválidos: ${orgId}`)
-      }
-      await tx.$queryRaw`SELECT set_config('app.current_org_id', ${orgId}, true)`
+    if (!/^[A-Za-z0-9_-]+$/.test(orgId)) {
+      throw new Error(`runWithOrgScope: orgId con caracteres inválidos: ${orgId}`)
     }
-    return fn(tx)
+    await tx.$queryRaw`SELECT set_config('app.current_org_id', ${orgId}, true)`
+    return runWithPrismaClient(tx, () => fn(tx))
   })
 }
 
@@ -89,9 +91,12 @@ export async function runUnsafeBypass<T>(
   meta: { reason: string; userId?: string | null; orgId?: string | null },
   fn: (client: PrismaClient) => Promise<T>,
 ): Promise<T> {
+  const client = RLS_ENFORCED ? prismaAdmin : prisma
+  const auditLog = (client as PrismaClient & { auditLog?: PrismaClient['auditLog'] }).auditLog
+
   // Audit fire-and-forget — no bloquear si falla.
-  prisma.auditLog
-    .create({
+  auditLog
+    ?.create({
       data: {
         orgId: meta.orgId ?? 'system',
         userId: meta.userId ?? null,
@@ -101,11 +106,15 @@ export async function runUnsafeBypass<T>(
         metadataJson: { reason: meta.reason, at: new Date().toISOString() },
       },
     })
-    .catch((err) => {
+    ?.catch((err) => {
       console.error('[runUnsafeBypass] audit log failed:', err)
     })
 
-  return fn(prisma as PrismaClient)
+  if (!RLS_ENFORCED) {
+    return fn(client as PrismaClient)
+  }
+
+  return runWithPrismaClient(client, () => fn(client as PrismaClient))
 }
 
 /**

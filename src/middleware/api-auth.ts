@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { apiKeyService, type ApiPermission } from '@/lib/api-keys'
+import { runWithOrgScope } from '@/lib/prisma-rls'
 
 // =============================================
 // TYPES
@@ -123,7 +124,7 @@ export function withApiKey(
     }
 
     try {
-      return await handler(req, ctx)
+      return await runWithOrgScope(ctx.orgId, () => handler(req, ctx))
     } catch (error) {
       console.error('Error en API v1:', error)
       return NextResponse.json(

@@ -150,7 +150,16 @@ export type ValidateUploadErr = {
   ok: false
   error: string
   /** Código estable para que el frontend pueda diferenciar */
-  code: 'NO_FILE' | 'EMPTY' | 'TOO_LARGE' | 'BLOCKED_MIME' | 'BLOCKED_EXT' | 'MIME_NOT_ALLOWED' | 'MAGIC_BYTES_MISMATCH'
+  code:
+    | 'NO_FILE'
+    | 'EMPTY'
+    | 'TOO_LARGE'
+    | 'BLOCKED_MIME'
+    | 'BLOCKED_EXT'
+    | 'MIME_NOT_ALLOWED'
+    | 'MAGIC_BYTES_MISMATCH'
+    | 'MALWARE_DETECTED'
+    | 'ACTIVE_CONTENT_DETECTED'
 }
 
 export type ValidateUploadResult = ValidateUploadOk | ValidateUploadErr
@@ -266,6 +275,42 @@ async function verifyMagicBytes(
     return {
       ok: false,
       reason: `El MIME reportado (${reportedMime}) no coincide con el contenido real (${detected.mimeFamily}). Posible archivo renombrado.`,
+    }
+  }
+
+  return { ok: true }
+}
+
+async function scanForDangerousContent(
+  file: File,
+  ext: string,
+): Promise<{ ok: true } | { ok: false; code: 'MALWARE_DETECTED' | 'ACTIVE_CONTENT_DETECTED'; reason: string }> {
+  const buf = new Uint8Array(await file.arrayBuffer())
+  const text = new TextDecoder('latin1').decode(buf)
+
+  // EICAR standard antivirus test string. This is not a full AV engine, but it
+  // gives us a deterministic malware gate and catches scanner bypass regressions.
+  if (text.includes('EICAR-STANDARD-ANTIVIRUS-TEST-FILE')) {
+    return {
+      ok: false,
+      code: 'MALWARE_DETECTED',
+      reason: 'Se detectó una firma de malware de prueba (EICAR).',
+    }
+  }
+
+  if (ext === 'pdf' && /\/(JavaScript|JS|OpenAction|AA)\b/i.test(text)) {
+    return {
+      ok: false,
+      code: 'ACTIVE_CONTENT_DETECTED',
+      reason: 'El PDF contiene acciones activas o JavaScript embebido.',
+    }
+  }
+
+  if ((ext === 'doc' || ext === 'docx' || ext === 'xls' || ext === 'xlsx') && /vbaProject\.bin|\/macros\//i.test(text)) {
+    return {
+      ok: false,
+      code: 'ACTIVE_CONTENT_DETECTED',
+      reason: 'El documento Office contiene macros embebidas.',
     }
   }
 
@@ -388,6 +433,15 @@ export async function validateUploadWithMagicBytes(
       ok: false,
       error: `Validación de contenido falló: ${magicCheck.reason}`,
       code: 'MAGIC_BYTES_MISMATCH',
+    }
+  }
+
+  const dangerousContent = await scanForDangerousContent(file, baseResult.ext)
+  if (!dangerousContent.ok) {
+    return {
+      ok: false,
+      error: `Validación de seguridad falló: ${dangerousContent.reason}`,
+      code: dangerousContent.code,
     }
   }
 

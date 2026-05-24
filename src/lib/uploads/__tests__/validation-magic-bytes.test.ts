@@ -79,4 +79,26 @@ describe('validateUploadWithMagicBytes', () => {
     const r = await validateUploadWithMagicBytes(f, UPLOAD_PROFILES.spreadsheetImport)
     expect(r.ok).toBe(true)
   })
+
+  it('RECHAZA EICAR aunque tenga cabecera PDF válida', async () => {
+    const f = new File(
+      ['%PDF-1.4\nX5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*\n%%EOF'],
+      'eicar.pdf',
+      { type: 'application/pdf' },
+    )
+    const r = await validateUploadWithMagicBytes(f, UPLOAD_PROFILES.workerDocument)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.code).toBe('MALWARE_DETECTED')
+  })
+
+  it('RECHAZA PDF con JavaScript o OpenAction embebido', async () => {
+    const f = new File(
+      ['%PDF-1.4\n1 0 obj\n<< /OpenAction 2 0 R /JS (app.alert(1)) >>\nendobj\n%%EOF'],
+      'active.pdf',
+      { type: 'application/pdf' },
+    )
+    const r = await validateUploadWithMagicBytes(f, UPLOAD_PROFILES.workerDocument)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.code).toBe('ACTIVE_CONTENT_DETECTED')
+  })
 })
