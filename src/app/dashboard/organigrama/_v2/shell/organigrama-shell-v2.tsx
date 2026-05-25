@@ -21,7 +21,6 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import {
   Network,
   Sparkles,
-  History,
   Loader2,
   Wand2,
   UsersRound,
@@ -233,7 +232,7 @@ export function OrganigramaShellV2() {
               v2 · Compliance Heatmap
             </span>
           </div>
-          <div className="ml-auto flex flex-1 flex-wrap items-center justify-end gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <ViewSwitcher />
             <DisplayModeSwitcher />
             {view === 'committees' && (
@@ -246,19 +245,26 @@ export function OrganigramaShellV2() {
                 <span className="hidden sm:inline">Plantillas</span>
               </button>
             )}
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center">
             <OrgToolbar
               exportHref={exportHref}
               onSnapshot={handleSnapshot}
+              onOpenTimeMachine={() => setTimemachineOpen(true)}
+              onClearSnapshot={() => setCurrentSnapshotId(null)}
               onReorganize={() => useOrgStore.getState().openModal('reorganize')}
               reorganizeLoading={false}
               reorganizeDisabled={
                 Boolean(currentSnapshotId) || treeQuery.isLoading || !tree || tree.positions.length === 0
               }
+              snapshotsCount={snapshotsQuery.data?.length ?? 0}
+              currentSnapshotId={currentSnapshotId}
               onCreateUnit={() => useOrgStore.getState().openModal('create-unit')}
               onCreatePosition={() => useOrgStore.getState().openModal('create-position')}
               onOpenAuditor={() => useOrgStore.getState().openModal('auditor-link')}
             />
-          </div>
         </div>
 
         {view === 'committees' && operationalSummary && (
@@ -288,38 +294,6 @@ export function OrganigramaShellV2() {
                 </button>
               )
             })}
-          </div>
-        )}
-
-        {/* Time machine — botón que abre drawer cinemático */}
-        {(snapshotsQuery.data?.length ?? 0) > 0 && (
-          <div className="mt-3 flex items-center gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setTimemachineOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-              title="Abrir Time Machine (scrubber visual)"
-            >
-              <History className="h-3.5 w-3.5 text-slate-500" />
-              Time Machine
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-600">
-                {snapshotsQuery.data?.length}
-              </span>
-            </button>
-            {currentSnapshotId && (
-              <>
-                <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
-                  Vista histórica · solo lectura
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentSnapshotId(null)}
-                  className="text-emerald-700 hover:underline"
-                >
-                  Volver al actual
-                </button>
-              </>
-            )}
           </div>
         )}
 
