@@ -27,11 +27,25 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prismaContext = prismaContext
 }
 
+function readPoolMax(): number {
+  const parsed = Number.parseInt(process.env.PRISMA_POOL_MAX ?? '', 10)
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed
+  }
+
+  return process.env.NODE_ENV === 'production' ? 1 : 2
+}
+
 function createPrismaClient(connectionString = process.env.DATABASE_URL) {
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is required to initialize Prisma')
+  }
+
   const pool = new pg.Pool({
     connectionString,
-    max: 2, // serverless: keep pool small to avoid exhausting Supabase free-tier limits
-    idleTimeoutMillis: 30000,
+    max: readPoolMax(), // Vercel serverless + Supabase: keep one client per instance.
+    idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 10000 : 30000,
     connectionTimeoutMillis: 30000, // allow longer cold-start connect time
     ssl:
       process.env.NODE_ENV === 'production'

@@ -47,6 +47,24 @@ interface ManualParentInput {
   reportsToPositionId: string | null
 }
 
+type ApiMutationError = Error & { status?: number }
+
+async function buildApiMutationError(res: Response, fallback: string): Promise<ApiMutationError> {
+  const err = await res.json().catch(() => ({}))
+  const message =
+    typeof err.error === 'string' && err.error !== 'Error interno del servidor'
+      ? err.error
+      : fallback
+  const apiError = new Error(message) as ApiMutationError
+  apiError.status = res.status
+  return apiError
+}
+
+function shouldRetryServerError(failureCount: number, error: unknown) {
+  const status = (error as ApiMutationError | undefined)?.status
+  return failureCount < 2 && typeof status === 'number' && status >= 500
+}
+
 export function ReorganizeHierarchyModal() {
   const activeModal = useOrgStore((s) => s.activeModal)
   const closeModal = useOrgStore((s) => s.closeModal)
@@ -69,15 +87,19 @@ export function ReorganizeHierarchyModal() {
         body: JSON.stringify({ reportsToPositionId }),
       })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'No se pudo guardar la línea de mando')
+        throw await buildApiMutationError(
+          res,
+          'La base de datos está ocupada. Intentamos de nuevo, y si persiste prueba en unos segundos.',
+        )
       }
       return res.json()
     },
+    retry: shouldRetryServerError,
+    retryDelay: (attempt) => Math.min(800 * 2 ** attempt, 3000),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: treeKey(currentSnapshotId) })
-      queryClient.invalidateQueries({ queryKey: alertsKey })
-      queryClient.invalidateQueries({ queryKey: doctorKey })
+      queryClient.invalidateQueries({ queryKey: alertsKey, refetchType: 'none' })
+      queryClient.invalidateQueries({ queryKey: doctorKey, refetchType: 'none' })
     },
   })
 
