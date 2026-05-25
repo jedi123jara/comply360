@@ -167,6 +167,50 @@ describe('inferPositionHierarchy', () => {
     expect(positionResult.parentByPosition.get('p-admin')).toBe('p-gg')
   })
 
+  it('crea cadena interna por nivel de cargo dentro del mismo proceso', () => {
+    const units = [
+      unit({ id: 'u-gg', name: 'Dirección General', kind: 'GERENCIA' }),
+      unit({ id: 'u-ops', name: 'Operaciones y Proyectos', parentId: 'u-gg', level: 1 }),
+    ]
+    const positions = [
+      position({
+        id: 'p-gg',
+        orgUnitId: 'u-gg',
+        title: 'Gerente General',
+        isManagerial: true,
+      }),
+      position({
+        id: 'p-gerente',
+        orgUnitId: 'u-ops',
+        title: 'Gerente de Proyectos',
+        isManagerial: true,
+      }),
+      position({
+        id: 'p-lider',
+        orgUnitId: 'u-ops',
+        title: 'Líder de Proyecto',
+        isManagerial: true,
+      }),
+      position({
+        id: 'p-consultor',
+        orgUnitId: 'u-ops',
+        title: 'Consultor',
+      }),
+      position({
+        id: 'p-apoyo',
+        orgUnitId: 'u-ops',
+        title: 'Apoyo operativo SST',
+      }),
+    ]
+
+    const result = inferPositionHierarchy({ units, positions })
+
+    expect(result.parentByPosition.get('p-gerente')).toBe('p-gg')
+    expect(result.parentByPosition.get('p-lider')).toBe('p-gerente')
+    expect(result.parentByPosition.get('p-consultor')).toBe('p-lider')
+    expect(result.parentByPosition.get('p-apoyo')).toBe('p-lider')
+  })
+
   it('permite excluir comisiones del arbol empresarial', () => {
     const units = [
       unit({ id: 'u-gg', name: 'Gerencia General', kind: 'GERENCIA' }),

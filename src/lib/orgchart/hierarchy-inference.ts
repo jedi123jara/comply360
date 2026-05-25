@@ -98,6 +98,44 @@ export function inferPositionHierarchy<P extends PositionLike>({
   const parentByPosition = new Map<string, string | null>()
   const inferredPositionIds = new Set<string>()
 
+  function nearestSameUnitSuperior(position: P) {
+    const unitPositions = positionsByUnit.get(position.orgUnitId) ?? []
+    const currentTier = positionHierarchyTier(position.title)
+    const candidates = unitPositions
+      .filter((candidate) => {
+        if (candidate.id === position.id) return false
+        const candidateTier = positionHierarchyTier(candidate.title)
+        const canManage =
+          candidateTier >= 50 ||
+          candidate.isManagerial ||
+          (explicitReportsByPosition.get(candidate.id) ?? 0) > 0
+        return canManage && candidateTier > currentTier
+      })
+      .sort((a, b) => {
+        const tierDelta =
+          positionHierarchyTier(a.title) - positionHierarchyTier(b.title)
+        if (tierDelta !== 0) return tierDelta
+
+        const leadDelta =
+          Number(leadByUnit.get(position.orgUnitId)?.id === b.id) -
+          Number(leadByUnit.get(position.orgUnitId)?.id === a.id)
+        if (leadDelta !== 0) return leadDelta
+
+        const reportsDelta =
+          (explicitReportsByPosition.get(b.id) ?? 0) -
+          (explicitReportsByPosition.get(a.id) ?? 0)
+        if (reportsDelta !== 0) return reportsDelta
+
+        const occupiedDelta =
+          (occupiedCountByPosition.get(b.id) ?? 0) -
+          (occupiedCountByPosition.get(a.id) ?? 0)
+        if (occupiedDelta !== 0) return occupiedDelta
+
+        return a.title.localeCompare(b.title, 'es')
+      })
+    return candidates[0]?.id ?? null
+  }
+
   function nearestAncestorLead(unitId: string, positionId: string) {
     let parentId = unitHierarchy.parentByUnit.get(unitId) ?? unitsById.get(unitId)?.parentId ?? null
     const seen = new Set<string>()
@@ -128,7 +166,15 @@ export function inferPositionHierarchy<P extends PositionLike>({
 
     if (!parentId) {
       const unitLead = leadByUnit.get(position.orgUnitId)
-      if (unitLead && unitLead.id !== position.id) {
+      const sameUnitSuperiorId = nearestSameUnitSuperior(position)
+      if (sameUnitSuperiorId) {
+        parentId = sameUnitSuperiorId
+      } else if (
+        unitLead &&
+        unitLead.id !== position.id &&
+        (positionHierarchyTier(unitLead.title) > positionHierarchyTier(position.title) ||
+          (unitLead.isManagerial && !position.isManagerial))
+      ) {
         parentId = unitLead.id
       } else {
         parentId = nearestAncestorLead(position.orgUnitId, position.id)
@@ -343,14 +389,23 @@ export function processBucket(name: string) {
 }
 
 export function titleRank(title: string) {
+  return positionHierarchyTier(title)
+}
+
+function positionHierarchyTier(title: string) {
   const value = normalize(title)
   if (/(gerente general|ceo|director ejecutivo|dirección general|direccion general)/i.test(value)) {
     return 100
   }
+  if (/(director|directora|gerente corporativo|gerenta corporativa)/i.test(value)) return 88
+  if (/(gerente|gerenta)/i.test(value)) return 84
   if (/(subgerente|subdirector|subdirectora)/i.test(value)) return 72
-  if (/(gerente|director|directora|jefe de área|jefe de area)/i.test(value)) return 84
-  if (/(jefe|head|supervisor|responsable|líder|lider|coordinador)/i.test(value)) return 60
-  if (/(analista|especialista|asistente|auxiliar|consultor)/i.test(value)) return 20
+  if (/(jefe de área|jefe de area|jefe|head|responsable)/i.test(value)) return 64
+  if (/(supervisor|supervisora|líder|lider|encargado|encargada)/i.test(value)) return 58
+  if (/(coordinador|coordinadora)/i.test(value)) return 52
+  if (/(especialista|analista senior|consultor senior)/i.test(value)) return 42
+  if (/(analista|consultor|tecnico|técnico)/i.test(value)) return 34
+  if (/(asistente|auxiliar|apoyo|operativo|operaria|operario|practicante)/i.test(value)) return 22
   return 40
 }
 
