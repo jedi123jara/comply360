@@ -3,6 +3,7 @@ import {
   getSolicitudesInspeccion,
   evaluarSolicitud,
   generarResultadoSimulacro,
+  calcularMultaInspeccion,
 } from '../simulacro-engine'
 import type {
   SolicitudInspector,
@@ -193,6 +194,15 @@ describe('evaluarSolicitud', () => {
     const result = evaluarSolicitud(solicitud, docsExpired, 5)
     expect(result.estado).toBe('PARCIAL')
     expect(result.mensaje).toMatch(/vencido/i)
+  })
+})
+
+describe('calcularMultaInspeccion', () => {
+  it('uses the SUNAFIL worker bracket for manual inspection overrides', () => {
+    expect(calcularMultaInspeccion(1.57, 'NO_CUMPLE', 10)).toBe(Math.round(1.57 * UIT * 1))
+    expect(calcularMultaInspeccion(1.57, 'NO_CUMPLE', 50)).toBe(Math.round(1.57 * UIT * 5))
+    expect(calcularMultaInspeccion(1.57, 'PARCIAL', 100)).toBe(Math.round(1.57 * UIT * 10 * 0.3))
+    expect(calcularMultaInspeccion(1.57, 'CUMPLE', 500)).toBe(0)
   })
 })
 

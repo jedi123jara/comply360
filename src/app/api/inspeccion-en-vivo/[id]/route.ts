@@ -12,6 +12,7 @@ import { withAuthParams } from '@/lib/api-auth'
 import {
   getSolicitudesInspeccion,
   generarResultadoSimulacro,
+  calcularMultaInspeccion,
   type InspeccionTipo,
   type HallazgoInspeccion,
   type DocumentoEstado,
@@ -90,17 +91,16 @@ export const PATCH = withAuthParams<{ id: string }>(async (req, ctx, params) => 
 
     // Update estado if provided (manual override by user during live inspection)
     if (body.estado) {
-      const UIT = 5500
       const totalWorkers = await prisma.worker.count({
         where: { orgId: ctx.orgId, status: { not: 'TERMINATED' } },
       })
-      const workerFactor = Math.max(1, Math.min(totalWorkers, 10))
 
       hallazgos[idx].estado = body.estado
-      hallazgos[idx].multaPEN =
-        body.estado === 'NO_CUMPLE' ? Math.round(hallazgos[idx].multaUIT * UIT * workerFactor)
-        : body.estado === 'PARCIAL' ? Math.round(hallazgos[idx].multaUIT * UIT * workerFactor * 0.3)
-        : 0
+      hallazgos[idx].multaPEN = calcularMultaInspeccion(
+        hallazgos[idx].multaUIT,
+        body.estado,
+        totalWorkers,
+      )
 
       // Update mensaje based on new estado
       if (body.estado === 'CUMPLE') {

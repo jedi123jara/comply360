@@ -53,12 +53,22 @@ const UIT = 5500
  * Factor multiplicador de multa según cantidad de trabajadores afectados.
  * D.S. 019-2006-TR, Art. 48 (Cuadro de Escala de Multas)
  */
-function getFactorTrabajadores(totalWorkers: number): number {
+export function getFactorTrabajadores(totalWorkers: number): number {
   if (totalWorkers <= 10) return 1
   if (totalWorkers <= 50) return 5
   if (totalWorkers <= 100) return 10
   if (totalWorkers <= 500) return 20
   return 30
+}
+
+export function calcularMultaInspeccion(
+  multaUIT: number,
+  estado: DocumentoEstado,
+  totalWorkers: number,
+): number {
+  if (estado !== 'NO_CUMPLE' && estado !== 'PARCIAL') return 0
+  const base = multaUIT * UIT * getFactorTrabajadores(totalWorkers)
+  return Math.round(estado === 'PARCIAL' ? base * 0.3 : base)
 }
 
 /**
@@ -130,9 +140,6 @@ export function evaluarSolicitud(
   documentosOrg: { documentType: string; status: string; category: string }[],
   totalWorkers: number
 ): HallazgoInspeccion {
-  // D.S. 019-2006-TR Art. 48 — escala correcta de multas por tamaño empresarial
-  const workerFactor = getFactorTrabajadores(totalWorkers)
-
   // Check documents: filter matching + check for expired docs
   const matching = documentosOrg.filter(d => d.documentType === solicitud.documentoRequerido)
   const uploaded = matching.filter(d => d.status === 'UPLOADED' || d.status === 'VERIFIED')
@@ -170,9 +177,7 @@ export function evaluarSolicitud(
     baseLegal: solicitud.baseLegal,
     gravedad: solicitud.gravedad,
     multaUIT: solicitud.multaUIT,
-    multaPEN: estado === 'NO_CUMPLE' ? Math.round(solicitud.multaUIT * UIT * workerFactor)
-      : estado === 'PARCIAL' ? Math.round(solicitud.multaUIT * UIT * workerFactor * 0.3)
-      : 0,
+    multaPEN: calcularMultaInspeccion(solicitud.multaUIT, estado, totalWorkers),
   }
 }
 

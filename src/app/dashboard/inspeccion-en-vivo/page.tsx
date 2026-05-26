@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Siren, Shield, ShieldAlert, ShieldCheck, AlertTriangle, Pause, CheckCircle2, Download, ArrowLeft, Loader2, FileText, History } from 'lucide-react'
+import { Siren, Shield, ShieldAlert, ShieldCheck, AlertTriangle, Pause, CheckCircle2, Download, ArrowLeft, Loader2, FileText, History, Target, ClipboardList, FileWarning, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatSoles } from '@/lib/format/peruvian'
 import { LiveChecklist, type ChecklistItem, type ChecklistItemStatus } from '@/components/ui/live-checklist'
@@ -32,6 +33,47 @@ interface PastSession {
   multaEstimada: number | null
 }
 
+interface InspectionReadiness {
+  score: {
+    overall: number
+    sunafilReady: number
+    sst: number
+    evidenceConfidence: number
+  }
+  exposure: {
+    potentialFineSoles: number
+    estimatedAfterSubsanationSoles: number
+    avoidableAmountSoles: number
+  }
+  defense: {
+    blockers: string[]
+  }
+  inspectionPack: {
+    readinessScore: number
+    incompleteDocs: number
+    missingCriticalDocs: number
+    potentialFineSoles: number
+    urgentDocs: Array<{
+      id: string
+      title: string
+      status: string
+      severity: string
+      baseLegal: string
+      actionHint: string
+      route: string
+    }>
+  }
+  nextActions: Array<{
+    id: string
+    title: string
+    severity: string
+    impactSoles: number
+    dueDate: string
+    ownerRole: string
+    route: string
+  }>
+}
+
 // ─── Page Component ─────────────────────────────────────────────────────────
 
 export default function InspeccionEnVivoPage() {
@@ -59,6 +101,12 @@ export default function InspeccionEnVivoPage() {
   const [pastSessions, setPastSessions] = useState<PastSession[]>([])
   const [loadingHistory, setLoadingHistory] = useState(true)
 
+  // Crisis readiness state
+  const [readiness, setReadiness] = useState<InspectionReadiness | null>(null)
+  const [loadingReadiness, setLoadingReadiness] = useState(true)
+  const [creatingPlan, setCreatingPlan] = useState(false)
+  const [planMessage, setPlanMessage] = useState<string | null>(null)
+
   // Load past sessions
   useEffect(() => {
     fetch('/api/inspeccion-en-vivo?limit=10')
@@ -66,6 +114,23 @@ export default function InspeccionEnVivoPage() {
       .then(d => { if (d?.sessions) setPastSessions(d.sessions) })
       .catch(() => {})
       .finally(() => setLoadingHistory(false))
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    setLoadingReadiness(true)
+    fetch('/api/labor-risk?mode=inspection', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (alive && d?.snapshot) setReadiness(d.snapshot as InspectionReadiness)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setLoadingReadiness(false)
+      })
+    return () => {
+      alive = false
+    }
   }, [])
 
   // ─── Handlers ───────────────────────────────────────────────────────
@@ -114,6 +179,25 @@ export default function InspeccionEnVivoPage() {
       console.error('Start inspection error:', err)
     } finally {
       setStarting(false)
+    }
+  }
+
+  const handleCreateCrisisPlan = async () => {
+    setCreatingPlan(true)
+    setPlanMessage(null)
+    try {
+      const res = await fetch('/api/labor-risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'critical' }),
+      })
+      if (!res.ok) throw new Error('No se pudo crear el plan')
+      const data = await res.json() as { created?: number; updated?: number; skipped?: number; total?: number }
+      setPlanMessage(`Plan actualizado: ${data.created ?? 0} nuevas, ${data.updated ?? 0} actualizadas, ${data.skipped ?? 0} ya cerradas.`)
+    } catch {
+      setPlanMessage('No se pudo crear el plan critico. Reintenta desde Riesgo Laboral.')
+    } finally {
+      setCreatingPlan(false)
     }
   }
 
@@ -273,6 +357,14 @@ export default function InspeccionEnVivoPage() {
             </div>
           </div>
         </div>
+
+        <CrisisBrief
+          snapshot={readiness}
+          loading={loadingReadiness}
+          creatingPlan={creatingPlan}
+          planMessage={planMessage}
+          onCreatePlan={handleCreateCrisisPlan}
+        />
 
         {/* Setup form */}
         <div className="rounded-xl border border-white/[0.08] bg-white shadow-sm">
@@ -614,4 +706,176 @@ export default function InspeccionEnVivoPage() {
   }
 
   return null
+}
+
+function CrisisBrief({
+  snapshot,
+  loading,
+  creatingPlan,
+  planMessage,
+  onCreatePlan,
+}: {
+  snapshot: InspectionReadiness | null
+  loading: boolean
+  creatingPlan: boolean
+  planMessage: string | null
+  onCreatePlan: () => void
+}) {
+  const urgentDocs = snapshot?.inspectionPack.urgentDocs.slice(0, 4) ?? []
+  const actions = snapshot?.nextActions.slice(0, 3) ?? []
+  const readinessScore = snapshot?.inspectionPack.readinessScore ?? 0
+
+  return (
+    <section className="rounded-xl border border-red-500/30 bg-slate-950/80 p-5 shadow-lg shadow-red-950/20">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10">
+            <Target className="h-5 w-5 text-red-300" />
+          </span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-red-200">Ficha de crisis</p>
+            <h2 className="mt-1 text-xl font-black text-white">Lo que debes tener listo antes de abrir la puerta</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">
+              Esta vista toma el motor de Riesgo Laboral y prepara el modo inspeccion con documentos urgentes,
+              exposicion economica y acciones criticas.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/api/sunafil/expediente?format=pdf"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-100 transition hover:border-cyan-300/60 hover:text-cyan-100"
+          >
+            <FileText className="h-4 w-4" /> PDF defensa
+          </Link>
+          <Link
+            href="/api/sunafil/expediente?format=zip"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-100 transition hover:border-cyan-300/60 hover:text-cyan-100"
+          >
+            <ClipboardList className="h-4 w-4" /> ZIP evidencia
+          </Link>
+          <button
+            type="button"
+            onClick={onCreatePlan}
+            disabled={creatingPlan}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-500 px-3 py-2 text-xs font-black text-white transition hover:bg-red-400 disabled:opacity-60"
+          >
+            {creatingPlan ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Blindar ahora
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="mt-5 flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-5 text-sm text-slate-300">
+          <Loader2 className="h-4 w-4 animate-spin text-red-300" />
+          Calculando preparacion SUNAFIL con el motor canonico...
+        </div>
+      ) : snapshot ? (
+        <>
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            <CrisisStat label="SUNAFIL-Ready" value={`${readinessScore}/100`} tone={readinessScore >= 80 ? 'good' : readinessScore >= 55 ? 'warn' : 'bad'} />
+            <CrisisStat label="Docs incompletos" value={snapshot.inspectionPack.incompleteDocs} tone={snapshot.inspectionPack.incompleteDocs === 0 ? 'good' : 'bad'} />
+            <CrisisStat label="Criticos" value={snapshot.inspectionPack.missingCriticalDocs} tone={snapshot.inspectionPack.missingCriticalDocs === 0 ? 'good' : 'bad'} />
+            <CrisisStat label="Exposicion evitable" value={formatSoles(snapshot.exposure.avoidableAmountSoles)} tone="warn" />
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileWarning className="h-4 w-4 text-red-300" />
+                <p className="text-sm font-black text-white">Documentos que SUNAFIL podria pedir primero</p>
+              </div>
+              {urgentDocs.length > 0 ? (
+                <div className="space-y-2">
+                  {urgentDocs.map((doc) => (
+                    <Link
+                      key={doc.id}
+                      href={doc.route}
+                      className="block rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 transition hover:border-cyan-300/50"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-bold text-slate-100">{doc.title}</p>
+                        <span className={cn('shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black', severityPill(doc.severity))}>
+                          {doc.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{doc.actionHint}</p>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-4 text-sm text-emerald-100">
+                  No hay documentos urgentes en el expediente SUNAFIL-Ready.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-amber-300" />
+                <p className="text-sm font-black text-white">Acciones inmediatas</p>
+              </div>
+              <div className="space-y-2">
+                {actions.map((action) => (
+                  <Link
+                    key={action.id}
+                    href={action.route}
+                    className="block rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 transition hover:border-cyan-300/50"
+                  >
+                    <p className="text-sm font-bold text-slate-100">{action.title}</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {action.ownerRole} · impacto {formatSoles(action.impactSoles)}
+                    </p>
+                  </Link>
+                ))}
+                {actions.length === 0 ? (
+                  <p className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-4 text-sm text-emerald-100">
+                    No hay acciones criticas pendientes para este modo.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {snapshot.defense.blockers.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              <span className="font-black">Bloqueadores:</span> {snapshot.defense.blockers.slice(0, 2).join(' ')}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="mt-5 rounded-lg border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-sm text-amber-100">
+          No se pudo calcular la ficha de crisis. Aun puedes iniciar el modo inspeccion y cargar evidencia manualmente.
+        </div>
+      )}
+
+      {planMessage ? (
+        <p className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100">
+          {planMessage}
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
+function CrisisStat({ label, value, tone }: { label: string; value: string | number; tone: 'good' | 'warn' | 'bad' }) {
+  const toneClass = {
+    good: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100',
+    warn: 'border-amber-400/20 bg-amber-500/10 text-amber-100',
+    bad: 'border-red-400/25 bg-red-500/10 text-red-100',
+  }[tone]
+  return (
+    <div className={cn('rounded-lg border px-4 py-3', toneClass)}>
+      <p className="text-[11px] font-black uppercase tracking-wide opacity-75">{label}</p>
+      <p className="mt-1 text-xl font-black tabular-nums">{value}</p>
+    </div>
+  )
+}
+
+function severityPill(severity: string) {
+  if (severity === 'CRITICAL') return 'border-red-400/50 bg-red-500/15 text-red-100'
+  if (severity === 'HIGH') return 'border-amber-400/50 bg-amber-500/15 text-amber-100'
+  return 'border-cyan-400/40 bg-cyan-500/10 text-cyan-100'
 }
