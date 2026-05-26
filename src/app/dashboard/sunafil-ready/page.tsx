@@ -570,9 +570,9 @@ function resolveGeneratorHref(slug: string): string {
 
 function resolveUploadHref(entry: Entry): string {
   if (entry.scope === 'worker' || entry.scope === 'hybrid') {
-    return '/dashboard/trabajadores'
+    return `/dashboard/trabajadores?missingDoc=${encodeURIComponent(entry.id)}`
   }
-  return '/dashboard/documentos'
+  return `/dashboard/documentos?sunafilDoc=${encodeURIComponent(entry.id)}`
 }
 
 /* ── Loading / Error ───────────────────────────────────────────────── */

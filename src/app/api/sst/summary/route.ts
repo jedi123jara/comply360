@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
-import { calculateSstScore } from '@/lib/compliance/sst-score'
+import { calcularScoreSst } from '@/lib/sst/scoring'
+import { loadSstScoreSnapshot } from '@/lib/sst/score-snapshot'
 
 // GET /api/sst/summary
 // Snapshot liviano para el hub SST. Mantiene la UI del dashboard libre de 404s
@@ -16,19 +17,30 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: A
   last12Months.setMonth(last12Months.getMonth() - 12)
 
   const [
-    score,
+    scoreSnapshot,
     workersActivos,
-    politicaVigente,
+    politicaRecordVigente,
+    politicaDocVigente,
     ipercCount,
     ipercPendiente,
-    capacitacionesEsteAnio,
+    capacitacionesRecordsEsteAnio,
+    capacitacionesModernasEsteAnio,
     accidentesUlt30d,
     examenesVencidos,
     eppEntregadosUlt12m,
   ] = await Promise.all([
-    calculateSstScore(orgId),
+    loadSstScoreSnapshot(orgId, now),
     prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } }),
     prisma.sstRecord.count({ where: { orgId, type: 'POLITICA_SST', status: 'COMPLETED' } }),
+    prisma.orgDocument.findFirst({
+      where: {
+        orgId,
+        type: { in: ['POLITICA_SST', 'REGLAMENTO_SST'] },
+        fileUrl: { not: null },
+        OR: [{ validUntil: null }, { validUntil: { gte: now } }],
+      },
+      select: { id: true },
+    }),
     prisma.iPERCBase.count({ where: { orgId } }),
     prisma.iPERCBase.count({ where: { orgId, estado: { not: 'VIGENTE' } } }),
     prisma.sstRecord.count({
@@ -39,6 +51,10 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: A
         completedAt: { gte: yearStart },
       },
     }),
+    prisma.workerCapacitacionSST.findMany({
+      where: { orgId, fechaCapacitacion: { gte: yearStart }, tipo: { not: 'HOSTIGAMIENTO' } },
+      select: { tipo: true, temario: true, fechaCapacitacion: true },
+    }),
     prisma.accidente.count({ where: { orgId, fechaHora: { gte: last30Days } } }),
     prisma.eMO.count({
       where: {
@@ -46,24 +62,31 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: A
         proximoExamenAntes: { lt: now },
       },
     }),
-    prisma.sstRecord.count({
+    prisma.workerEPP.findMany({
       where: {
         orgId,
-        type: 'ENTREGA_EPP',
-        status: 'COMPLETED',
-        completedAt: { gte: last12Months },
+        fechaEntrega: { gte: last12Months },
+        OR: [{ fechaVencimiento: null }, { fechaVencimiento: { gte: now } }],
       },
+      select: { workerId: true },
     }),
   ])
+  const score = calcularScoreSst(scoreSnapshot.snapshot, now)
+  const capacitacionesModernas = new Set(
+    capacitacionesModernasEsteAnio.map((cap) =>
+      `${cap.fechaCapacitacion.toISOString().slice(0, 10)}|${cap.tipo}|${cap.temario}`,
+    ),
+  ).size
+  const eppWorkers = new Set(eppEntregadosUlt12m.map((epp) => epp.workerId)).size
 
   const data = {
-    politicaVigente: politicaVigente > 0,
+    politicaVigente: politicaRecordVigente > 0 || Boolean(politicaDocVigente),
     ipercCount,
     ipercPendiente,
-    capacitacionesEsteAnio,
+    capacitacionesEsteAnio: Math.max(capacitacionesRecordsEsteAnio, capacitacionesModernas),
     accidentesUlt30d,
     examenesVencidos,
-    eppPendientes: Math.max(0, workersActivos - eppEntregadosUlt12m),
+    eppPendientes: Math.max(0, workersActivos - eppWorkers),
     scoreSst: score.scoreGlobal,
   }
 

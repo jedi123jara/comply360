@@ -79,6 +79,7 @@ model Organization {
   complianceTasks          ComplianceTask[]
   complianceTaskEvidences  ComplianceTaskEvidence[]
   sunafilExpedienteExports SunafilExpedienteExport[]
+  laborRiskSnapshots       LaborRiskSnapshot[]
   diagnosticAutoAnswers    DiagnosticAutoAnswer[]
   documentRequirements     DocumentRequirement[]
   workerCapacitacionesSST  WorkerCapacitacionSST[]
@@ -1487,6 +1488,38 @@ model SunafilExpedienteExport {
 
   @@index([orgId, createdAt])
   @@map("sunafil_expediente_exports")
+}
+
+model LaborRiskSnapshot {
+  id                                String   @id @default(cuid())
+  orgId                             String   @map("org_id")
+  mode                              String   @default("full")
+  scoreOverall                      Int      @map("score_overall")
+  scoreSunafilReady                 Int      @map("score_sunafil_ready")
+  scoreSst                          Int      @map("score_sst")
+  scoreEvidence                     Int      @map("score_evidence")
+  scoreClosure                      Int      @map("score_closure")
+  potentialFineSoles                Decimal  @default(0) @map("potential_fine_soles") @db.Decimal(12, 2)
+  potentialFineUit                  Decimal  @default(0) @map("potential_fine_uit") @db.Decimal(10, 2)
+  estimatedAfterSubsanationSoles    Decimal  @default(0) @map("estimated_after_subsanation_soles") @db.Decimal(12, 2)
+  avoidableAmountSoles              Decimal  @default(0) @map("avoidable_amount_soles") @db.Decimal(12, 2)
+  avoidableReductionPercent         Int      @default(0) @map("avoidable_reduction_percent")
+  totalFindings                     Int      @default(0) @map("total_findings")
+  criticalFindings                  Int      @default(0) @map("critical_findings")
+  highFindings                      Int      @default(0) @map("high_findings")
+  evidenceOpenDocs                  Int      @default(0) @map("evidence_open_docs")
+  evidenceCriticalDocs              Int      @default(0) @map("evidence_critical_docs")
+  openTasks                         Int      @default(0) @map("open_tasks")
+  unresolvedAlerts                  Int      @default(0) @map("unresolved_alerts")
+  snapshotJson                      Json     @map("snapshot_json")
+  calculatedAt                      DateTime @default(now()) @map("calculated_at")
+  createdAt                         DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, calculatedAt])
+  @@index([orgId, scoreOverall])
+  @@map("labor_risk_snapshots")
 }
 
 enum ComplianceTaskStatus {
@@ -4294,4 +4327,3 @@ model OrgDelegatedTask {
   @@index([orgId, assigneeWorkerId, status])
   @@map("org_delegated_tasks")
 }
-

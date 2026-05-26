@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Sparkles,
   ArrowRight,
+  Target,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -127,7 +128,7 @@ export default function SstHub() {
             title="Política SST"
             description="Documento obligatorio con los 8 elementos del Art. 22 Ley 29783. Generador con firma del empleador."
             actionLabel="Generar política"
-            actionHref="/dashboard/sst/politica"
+            actionHref="/dashboard/generadores/politica-sst"
           />
         </TabsContent>
         <TabsContent value="iperc">
@@ -172,7 +173,7 @@ export default function SstHub() {
             title="Exámenes médicos ocupacionales"
             description="Control de vencimientos pre-ocupacional, anual y de retiro. Alertas 30/15/7 días antes."
             actionLabel="Ver exámenes"
-            actionHref="/dashboard/sst/examenes"
+            actionHref="/dashboard/sst/emo"
           />
         </TabsContent>
         <TabsContent value="epp">
@@ -287,6 +288,12 @@ function Overview({
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" icon={<Sparkles className="h-3.5 w-3.5" />} onClick={onAskCopilot}>
             Plan IA priorizado
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/dashboard/plan-accion">
+              <Target className="h-3.5 w-3.5" />
+              Plan anti-multas
+            </Link>
           </Button>
           <Button asChild>
             <Link href="/dashboard/diagnostico">
