@@ -96,6 +96,7 @@ export default function InspeccionEnVivoPage() {
 
   // Result state
   const [resultado, setResultado] = useState<ResultadoSimulacro | null>(null)
+  const [tasksCreated, setTasksCreated] = useState<number | null>(null)
 
   // History state
   const [pastSessions, setPastSessions] = useState<PastSession[]>([])
@@ -283,6 +284,7 @@ export default function InspeccionEnVivoPage() {
       if (res.ok) {
         const data = await res.json()
         setResultado(data.resultado as ResultadoSimulacro)
+        setTasksCreated(typeof data.tasksCreated === 'number' ? data.tasksCreated : null)
         setPhase('summary')
       }
     } catch (err) {
@@ -691,11 +693,20 @@ export default function InspeccionEnVivoPage() {
             onClick={() => router.push('/dashboard/diagnostico')}
             className="flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] px-4 py-2 text-sm font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]"
           >
-            <FileText className="h-4 w-4" /> Diagnostico Completo
+            <FileText className="h-4 w-4" /> Diagnóstico Completo
           </button>
+          <Link
+            href="/dashboard/plan-accion"
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            {tasksCreated && tasksCreated > 0
+              ? `Ver plan (${tasksCreated} nuevas)`
+              : 'Ver plan de subsanación'}
+          </Link>
           <button
             type="button"
-            onClick={() => { setPhase('setup'); setSession(null); setResultado(null) }}
+            onClick={() => { setPhase('setup'); setSession(null); setResultado(null); setTasksCreated(null) }}
             className="flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] px-4 py-2 text-sm font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al inicio

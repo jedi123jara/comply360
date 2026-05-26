@@ -17,6 +17,10 @@ import {
   type HallazgoInspeccion,
   type DocumentoEstado,
 } from '@/lib/compliance/simulacro-engine'
+import {
+  simulacroHallazgosToTaskInputs,
+  spawnTasksFromActionPlan,
+} from '@/lib/compliance/task-spawner'
 
 // ─── GET — Load inspection session ──────────────────────────────────────────
 
@@ -198,18 +202,46 @@ export const POST = withAuthParams<{ id: string }>(async (req, ctx, params) => {
       })
 
       // Also save as ComplianceDiagnostic for history
-      await prisma.complianceDiagnostic.create({
-        data: {
-          orgId: ctx.orgId,
-          type: 'SIMULATION',
-          scoreGlobal: resultado.scoreSimulacro,
-          scoreByArea: {},
-          totalMultaRiesgo: resultado.multaTotal,
-          questionsJson: resultado as unknown as object,
-          gapAnalysis: hallazgos.filter(h => h.estado !== 'CUMPLE' && h.estado !== 'NO_APLICA') as unknown as object[],
-          completedAt: new Date(),
-        },
-      }).catch(() => {})
+      let diagnosticId: string | null = null
+      let tasksCreated = 0
+      try {
+        const diagnostic = await prisma.complianceDiagnostic.create({
+          data: {
+            orgId: ctx.orgId,
+            type: 'SIMULATION',
+            scoreGlobal: resultado.scoreSimulacro,
+            scoreByArea: {},
+            totalMultaRiesgo: resultado.multaTotal,
+            questionsJson: resultado as unknown as object,
+            gapAnalysis: hallazgos.filter(h => h.estado !== 'CUMPLE' && h.estado !== 'NO_APLICA') as unknown as object[],
+            actionPlan: hallazgos
+              .filter(h => h.estado === 'NO_CUMPLE' || h.estado === 'PARCIAL')
+              .map((h, i) => ({
+                priority: i + 1,
+                documentoLabel: h.documentoLabel,
+                baseLegal: h.baseLegal,
+                multaEvitable: h.multaPEN,
+                gravedad: h.gravedad,
+              })) as object[],
+            completedAt: new Date(),
+          },
+        })
+        diagnosticId = diagnostic.id
+        const taskInputs = simulacroHallazgosToTaskInputs(
+          hallazgos.map((h) => ({
+            solicitudId: h.solicitudId,
+            estado: h.estado,
+            documentoLabel: h.documentoLabel,
+            baseLegal: h.baseLegal,
+            gravedad: h.gravedad,
+            multaPEN: h.multaPEN,
+            mensaje: h.mensaje,
+          })),
+        )
+        tasksCreated = await spawnTasksFromActionPlan(ctx.orgId, diagnostic.id, taskInputs)
+      } catch (error) {
+        console.error('[InspeccionEnVivo complete] task spawn failed:', error)
+      }
 
       // Log
       await prisma.auditLog.create({
@@ -224,6 +256,7 @@ export const POST = withAuthParams<{ id: string }>(async (req, ctx, params) => {
             multaTotal: resultado.multaTotal,
             cumple: resultado.cumple,
             noCumple: resultado.noCumple,
+            tasksCreated,
           },
         },
       }).catch(() => {})
@@ -232,6 +265,8 @@ export const POST = withAuthParams<{ id: string }>(async (req, ctx, params) => {
         status: 'COMPLETED',
         resultado,
         sessionId: updated.id,
+        diagnosticId,
+        tasksCreated,
       })
     }
 
