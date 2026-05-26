@@ -5,9 +5,12 @@ import { withPlanGate } from '@/lib/plan-gate'
 import {
   getSolicitudesInspeccion,
   evaluarSolicitud,
+  evaluarSolicitudConEvidenciaCanonica,
   generarResultadoSimulacro,
+  sunafilDocIdForSolicitud,
 } from '@/lib/compliance/simulacro-engine'
 import type { InspeccionTipo } from '@/lib/compliance/simulacro-engine'
+import { loadSunafilReadySignal } from '@/lib/compliance/labor-risk-engine'
 import {
   simulacroHallazgosToTaskInputs,
   spawnTasksFromActionPlan,
@@ -46,6 +49,14 @@ export const POST = withPlanGate('simulacro_basico', async (req, ctx) => {
 
     const totalWorkers = workers.length
     const now = new Date()
+    const sunafilReady = await loadSunafilReadySignal(orgId, now).catch((error) => {
+      console.error('[Simulacro] SUNAFIL-Ready canonical evidence failed:', error)
+      return null
+    })
+    const canonicalByDocId = new Map(
+      (sunafilReady?.documents ?? []).map((doc) => [doc.id, doc]),
+    )
+
     // Mark expired documents so the simulacro engine detects them
     const allDocs = workers.flatMap(w =>
       w.documents.map(d => ({
@@ -60,7 +71,13 @@ export const POST = withPlanGate('simulacro_basico', async (req, ctx) => {
     const solicitudes = getSolicitudesInspeccion(tipo)
 
     // Evaluate each solicitud
-    const hallazgos = solicitudes.map(s => evaluarSolicitud(s, allDocs, totalWorkers))
+    const hallazgos = solicitudes.map((s) => {
+      const docId = sunafilDocIdForSolicitud(s)
+      const canonical = docId ? canonicalByDocId.get(docId) : null
+      return canonical
+        ? evaluarSolicitudConEvidenciaCanonica(s, canonical, totalWorkers)
+        : evaluarSolicitud(s, allDocs, totalWorkers)
+    })
 
     // Generate result
     const resultado = generarResultadoSimulacro(tipo, hallazgos)

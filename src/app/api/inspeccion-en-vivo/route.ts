@@ -9,7 +9,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
-import { getSolicitudesInspeccion, evaluarSolicitud, type InspeccionTipo, type HallazgoInspeccion } from '@/lib/compliance/simulacro-engine'
+import {
+  getSolicitudesInspeccion,
+  evaluarSolicitud,
+  evaluarSolicitudConEvidenciaCanonica,
+  sunafilDocIdForSolicitud,
+  type InspeccionTipo,
+  type HallazgoInspeccion,
+} from '@/lib/compliance/simulacro-engine'
+import { loadSunafilReadySignal } from '@/lib/compliance/labor-risk-engine'
 
 // ─── GET — List inspection sessions ─────────────────────────────────────────
 
@@ -93,10 +101,22 @@ export const POST = withPlanGate('simulacro_completo', async (req: NextRequest, 
       select: { documentType: true, status: true, category: true },
     })
 
-    // Evaluate each solicitud to get initial hallazgos
-    const hallazgos: HallazgoInspeccion[] = solicitudes.map(s =>
-      evaluarSolicitud(s, documentos, totalWorkers),
+    const sunafilReady = await loadSunafilReadySignal(ctx.orgId, new Date()).catch((error) => {
+      console.error('[InspeccionEnVivo POST] SUNAFIL-Ready canonical evidence failed:', error)
+      return null
+    })
+    const canonicalByDocId = new Map(
+      (sunafilReady?.documents ?? []).map((doc) => [doc.id, doc]),
     )
+
+    // Evaluate each solicitud to get initial hallazgos
+    const hallazgos: HallazgoInspeccion[] = solicitudes.map((s) => {
+      const docId = sunafilDocIdForSolicitud(s)
+      const canonical = docId ? canonicalByDocId.get(docId) : null
+      return canonical
+        ? evaluarSolicitudConEvidenciaCanonica(s, canonical, totalWorkers)
+        : evaluarSolicitud(s, documentos, totalWorkers)
+    })
 
     // Create the session with initial hallazgos
     const session = await prisma.inspeccionEnVivo.create({
@@ -120,7 +140,12 @@ export const POST = withPlanGate('simulacro_completo', async (req: NextRequest, 
         action: 'INSPECCION_INICIADA',
         entityType: 'InspeccionEnVivo',
         entityId: session.id,
-        metadataJson: { tipo, totalSolicitudes: solicitudes.length, totalWorkers },
+        metadataJson: {
+          tipo,
+          totalSolicitudes: solicitudes.length,
+          totalWorkers,
+          canonicalEvidence: Boolean(sunafilReady),
+        },
       },
     }).catch(() => {})
 

@@ -4,6 +4,7 @@ import {
   evaluarSolicitud,
   generarResultadoSimulacro,
   calcularMultaInspeccion,
+  evaluarSolicitudConEvidenciaCanonica,
 } from '../simulacro-engine'
 import type {
   SolicitudInspector,
@@ -203,6 +204,69 @@ describe('calcularMultaInspeccion', () => {
     expect(calcularMultaInspeccion(1.57, 'NO_CUMPLE', 50)).toBe(Math.round(1.57 * UIT * 5))
     expect(calcularMultaInspeccion(1.57, 'PARCIAL', 100)).toBe(Math.round(1.57 * UIT * 10 * 0.3))
     expect(calcularMultaInspeccion(1.57, 'CUMPLE', 500)).toBe(0)
+  })
+})
+
+describe('evaluarSolicitudConEvidenciaCanonica', () => {
+  const solicitud = getSolicitudesInspeccion('PREVENTIVA')[12]
+
+  it('marks modern SUNAFIL-Ready evidence as CUMPLE even without legacy worker docs', () => {
+    const result = evaluarSolicitudConEvidenciaCanonica(
+      solicitud,
+      {
+        id: 'iperc',
+        title: 'Matriz IPERC',
+        status: 'COMPLETO',
+        coverage: { present: 1, total: 1 },
+        actionHint: 'Genera la matriz IPERC.',
+        evidenceSources: ['IPERCBase'],
+        lastExpiresAt: null,
+      },
+      35,
+    )
+
+    expect(result.estado).toBe('CUMPLE')
+    expect(result.multaPEN).toBe(0)
+    expect(result.mensaje).toContain('IPERCBase')
+  })
+
+  it('converts canonical VENCIDO to PARCIAL with the same worker bracket fine', () => {
+    const result = evaluarSolicitudConEvidenciaCanonica(
+      solicitud,
+      {
+        id: 'iperc',
+        title: 'Matriz IPERC',
+        status: 'VENCIDO',
+        coverage: { present: 1, total: 1 },
+        actionHint: 'Renueva IPERC.',
+        evidenceSources: ['IPERCBase'],
+        lastExpiresAt: '2026-01-01T00:00:00.000Z',
+      },
+      35,
+    )
+
+    expect(result.estado).toBe('PARCIAL')
+    expect(result.multaPEN).toBe(Math.round(solicitud.multaUIT * UIT * factor(35) * 0.3))
+  })
+
+  it('respects NO_APLICA from canonical applicability rules', () => {
+    const rit = getSolicitudesInspeccion('PREVENTIVA')[27]
+    const result = evaluarSolicitudConEvidenciaCanonica(
+      rit,
+      {
+        id: 'reglamento-interno',
+        title: 'Reglamento Interno de Trabajo',
+        status: 'NO_APLICA',
+        coverage: { present: 0, total: 0 },
+        actionHint: 'Solo aplica con 100 o mas trabajadores.',
+        evidenceSources: [],
+        lastExpiresAt: null,
+      },
+      12,
+    )
+
+    expect(result.estado).toBe('NO_APLICA')
+    expect(result.multaPEN).toBe(0)
   })
 })
 

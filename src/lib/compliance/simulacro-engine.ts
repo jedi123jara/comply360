@@ -12,6 +12,7 @@ export interface SolicitudInspector {
   paso: number
   mensaje: string
   documentoRequerido: string // document type key
+  sunafilDocId?: string
   documentoLabel: string
   baseLegal: string
   gravedad: 'LEVE' | 'GRAVE' | 'MUY_GRAVE'
@@ -47,7 +48,55 @@ export interface ResultadoSimulacro {
   infraccionesMuyGraves: number
 }
 
+export type CanonicalSunafilDocStatus =
+  | 'COMPLETO'
+  | 'PARCIAL'
+  | 'FALTANTE'
+  | 'VENCIDO'
+  | 'NO_APLICA'
+
+export interface CanonicalSunafilDocSignal {
+  id: string
+  title: string
+  status: CanonicalSunafilDocStatus
+  coverage: { present: number; total: number }
+  actionHint: string
+  evidenceSources: string[]
+  lastExpiresAt: string | null
+}
+
 const UIT = 5500
+
+const SOLICITUD_TO_SUNAFIL_DOC_ID: Record<string, string> = {
+  'S-01': 'contrato-trabajo',
+  'S-02': 't-registro',
+  'S-03': 'dni-copia',
+  'S-04': 'boletas-pago',
+  'S-05': 'cts-deposito',
+  'S-06': 'gratificacion-pago',
+  'S-07': 'afp-onp-afiliacion',
+  'S-08': 'essalud-registro',
+  'S-09': 'registro-asistencia',
+  'S-10': 'horario-trabajo',
+  'S-11': 'registro-vacaciones',
+  'S-12': 'politica-sst',
+  'S-13': 'iperc',
+  'S-14': 'plan-anual-sst',
+  'S-15': 'comite-sst',
+  'S-16': 'capacitacion-sst',
+  'S-17': 'examen-medico-ingreso',
+  'S-18': 'entrega-epp',
+  'S-19': 'induccion-sst',
+  'S-20': 'mapa-riesgos',
+  'S-21': 'registro-accidentes',
+  'S-22': 'politica-hostigamiento',
+  'S-23': 'cuadro-categorias',
+  'S-24': 'seguro-vida-ley',
+  'S-25': 'sctr-poliza',
+  'S-26': 'declaracion-jurada',
+  'S-27': 'sintesis-legislacion',
+  'S-28': 'reglamento-interno',
+}
 
 /**
  * Factor multiplicador de multa según cantidad de trabajadores afectados.
@@ -125,11 +174,19 @@ export function getSolicitudesInspeccion(tipo: InspeccionTipo): SolicitudInspect
   // For PREVENTIVA, use all 28
   // For POR_DENUNCIA, focus on specific areas (use all but mark as critical)
   // For PROGRAMA_SECTORIAL, focus on SST + contratos
-  if (tipo === 'PROGRAMA_SECTORIAL') {
-    return base.filter(s => s.categoria === 'SST' || s.categoria === 'CONTRATOS' || s.categoria === 'REGISTROS')
-  }
+  const selected = tipo === 'PROGRAMA_SECTORIAL'
+    ? base.filter(s => s.categoria === 'SST' || s.categoria === 'CONTRATOS' || s.categoria === 'REGISTROS')
+    : base
 
-  return base
+  return selected
+    .map((solicitud) => ({
+      ...solicitud,
+      sunafilDocId: SOLICITUD_TO_SUNAFIL_DOC_ID[solicitud.id],
+    }))
+}
+
+export function sunafilDocIdForSolicitud(solicitud: SolicitudInspector): string | null {
+  return solicitud.sunafilDocId ?? SOLICITUD_TO_SUNAFIL_DOC_ID[solicitud.id] ?? null
 }
 
 /**
@@ -179,6 +236,57 @@ export function evaluarSolicitud(
     multaUIT: solicitud.multaUIT,
     multaPEN: calcularMultaInspeccion(solicitud.multaUIT, estado, totalWorkers),
   }
+}
+
+export function evaluarSolicitudConEvidenciaCanonica(
+  solicitud: SolicitudInspector,
+  signal: CanonicalSunafilDocSignal,
+  totalWorkers: number,
+): HallazgoInspeccion {
+  const estado = estadoFromCanonical(signal.status)
+  return {
+    solicitudId: solicitud.id,
+    estado,
+    mensaje: mensajeCanonico(solicitud, signal),
+    documentoLabel: signal.title || solicitud.documentoLabel,
+    baseLegal: solicitud.baseLegal,
+    gravedad: solicitud.gravedad,
+    multaUIT: solicitud.multaUIT,
+    multaPEN: calcularMultaInspeccion(solicitud.multaUIT, estado, totalWorkers),
+  }
+}
+
+function estadoFromCanonical(status: CanonicalSunafilDocStatus): DocumentoEstado {
+  if (status === 'COMPLETO') return 'CUMPLE'
+  if (status === 'NO_APLICA') return 'NO_APLICA'
+  if (status === 'FALTANTE') return 'NO_CUMPLE'
+  return 'PARCIAL'
+}
+
+function mensajeCanonico(
+  solicitud: SolicitudInspector,
+  signal: CanonicalSunafilDocSignal,
+): string {
+  const coverage = signal.coverage.total > 0
+    ? `${signal.coverage.present}/${signal.coverage.total}`
+    : 'documento corporativo'
+  const sources = signal.evidenceSources.length
+    ? ` Fuentes verificadas: ${signal.evidenceSources.join(', ')}.`
+    : ''
+
+  if (signal.status === 'COMPLETO') {
+    return `Evidencia canonica verificada para ${signal.title}. Cobertura: ${coverage}.${sources}`
+  }
+  if (signal.status === 'NO_APLICA') {
+    return `${signal.title} no aplica segun las condiciones actuales de la empresa.`
+  }
+  if (signal.status === 'VENCIDO') {
+    return `${signal.title} existe, pero esta vencido o requiere renovacion antes de la inspeccion. ${signal.actionHint}${sources}`
+  }
+  if (signal.status === 'PARCIAL') {
+    return `Cumplimiento parcial para ${signal.title}. Cobertura: ${coverage}. ${signal.actionHint}${sources}`
+  }
+  return `No se encontro ${signal.title}. ${signal.actionHint || solicitud.mensaje}${sources}`
 }
 
 /**

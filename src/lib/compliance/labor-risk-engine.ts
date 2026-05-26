@@ -103,7 +103,22 @@ export interface SunafilReadySignal {
   potentialFineSoles: number
   estimatedAfterSubsanationSoles: number
   avoidableAmountSoles: number
+  documents: SunafilReadyDocumentSignal[]
   requirements: LaborRiskEvidenceRequirement[]
+}
+
+export interface SunafilReadyDocumentSignal {
+  id: string
+  title: string
+  status: DocStatus
+  gravity: LaborRiskGravity
+  multaUIT: number
+  baseLegal: string
+  coverage: { present: number; total: number }
+  actionHint: string
+  evidenceSources: string[]
+  lastExpiresAt: string | null
+  route: string
 }
 
 export interface LaborRiskSnapshot {
@@ -480,7 +495,7 @@ async function loadTaskSignal(orgId: string, now: Date): Promise<TaskSignal> {
   }
 }
 
-async function loadSunafilReadySignal(orgId: string, now: Date): Promise<SunafilReadySignal> {
+export async function loadSunafilReadySignal(orgId: string, now: Date): Promise<SunafilReadySignal> {
   const [totalWorkers, org] = await Promise.all([
     prisma.worker.count({ where: { orgId, status: { not: 'TERMINATED' } } }),
     prisma.organization.findUnique({
@@ -608,12 +623,22 @@ async function loadSunafilReadySignal(orgId: string, now: Date): Promise<Sunafil
   let missingDocs = 0
   let expiredDocs = 0
   let potentialFineSoles = 0
+  const documents: SunafilReadyDocumentSignal[] = []
   const requirements: LaborRiskEvidenceRequirement[] = []
 
   for (const doc of SUNAFIL_READY_DOCS) {
-    if (!isDocApplicable(doc, applicabilityCtx)) continue
+    if (!isDocApplicable(doc, applicabilityCtx)) {
+      documents.push(documentSignalForDoc(doc, {
+        status: 'NO_APLICA',
+        coverage: { present: 0, total: 0 },
+        lastExpiresAt: null,
+        evidenceSources: [],
+      }))
+      continue
+    }
     applicableDocs += 1
     const resolved = resolveSunafilDocStatus(doc, evidenceSnapshot)
+    documents.push(documentSignalForDoc(doc, resolved))
     if (resolved.status === 'COMPLETO') {
       completedDocs += 1
       continue
@@ -643,7 +668,27 @@ async function loadSunafilReadySignal(orgId: string, now: Date): Promise<Sunafil
     potentialFineSoles: roundMoney(potentialFineSoles),
     estimatedAfterSubsanationSoles,
     avoidableAmountSoles: roundMoney(potentialFineSoles - estimatedAfterSubsanationSoles),
+    documents,
     requirements: requirements.sort((a, b) => b.riskScore - a.riskScore || b.potentialFineSoles - a.potentialFineSoles),
+  }
+}
+
+function documentSignalForDoc(
+  doc: SunafilDocSpec,
+  resolved: Pick<ReturnType<typeof resolveSunafilDocStatus>, 'status' | 'coverage' | 'lastExpiresAt' | 'evidenceSources'>,
+): SunafilReadyDocumentSignal {
+  return {
+    id: doc.id,
+    title: doc.title,
+    status: resolved.status,
+    gravity: doc.gravity,
+    multaUIT: doc.multaUIT,
+    baseLegal: doc.baseLegal,
+    coverage: resolved.coverage,
+    actionHint: doc.actionHint,
+    evidenceSources: resolved.evidenceSources,
+    lastExpiresAt: resolved.lastExpiresAt?.toISOString() ?? null,
+    route: routeForEvidenceDoc(doc),
   }
 }
 
