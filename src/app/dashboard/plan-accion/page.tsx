@@ -9,11 +9,13 @@ import {
   Bell,
   CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   Clock3,
   ExternalLink,
   FileCheck2,
   Filter,
   Flame,
+  Gauge,
   GraduationCap,
   ListChecks,
   Loader2,
@@ -32,6 +34,8 @@ import { formatSoles, formatSolesParts } from '@/lib/format/peruvian'
 type Source = 'task' | 'alert' | 'training'
 type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 type Lane = 'today' | 'week' | 'month' | 'backlog'
+type LaneFilter = Lane | 'all' | 'sprint'
+type ExecutionFilter = 'all' | 'needs_evidence' | 'unassigned' | 'ready_to_close'
 type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DISMISSED'
 
 interface PlanItem {
@@ -72,6 +76,14 @@ interface PlanResponse {
     byCategory: { tasks: number; alerts: number; trainings: number }
     bySeverity: { critical: number; high: number; medium: number; low: number }
     byLane: { today: number; week: number; month: number; backlog: number }
+    sprintActions: number
+    sprintExposure: number
+    sprintReductionPercent: number
+    evidenceMissing: number
+    readyToClose: number
+    unassignedTasks: number
+    completedLast30: number
+    multaReducida30: number
     nextDueDate: string | null
     topExposure: Array<{ id: string; title: string; multaEvitable: number | null; routeHref: string }>
     multaEvitableTotal: number
@@ -100,6 +112,22 @@ const LANE_CONFIG: Record<Lane, { label: string; short: string; tone: string }> 
 
 const SOURCE_FILTERS: Array<Source | 'all'> = ['all', 'task', 'alert', 'training']
 const SEVERITY_FILTERS: Array<Severity | 'all'> = ['all', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+const LANE_FILTERS: LaneFilter[] = ['all', 'sprint', 'today', 'week', 'month', 'backlog']
+const LANE_FILTER_CONFIG: Record<LaneFilter, { label: string }> = {
+  all: { label: 'Todos los plazos' },
+  sprint: { label: 'Sprint crítico' },
+  today: { label: 'Hoy' },
+  week: { label: '7 días' },
+  month: { label: 'Mes' },
+  backlog: { label: 'Backlog' },
+}
+const EXECUTION_FILTERS: ExecutionFilter[] = ['all', 'needs_evidence', 'unassigned', 'ready_to_close']
+const EXECUTION_FILTER_CONFIG: Record<ExecutionFilter, { label: string }> = {
+  all: { label: 'Toda ejecución' },
+  needs_evidence: { label: 'Sin evidencia' },
+  unassigned: { label: 'Sin responsable' },
+  ready_to_close: { label: 'Listas para cerrar' },
+}
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -129,6 +157,31 @@ function severityCount(stats: PlanResponse['stats'] | undefined, severity: Sever
   return stats.bySeverity.low
 }
 
+function laneCount(items: PlanItem[] | undefined, lane: LaneFilter) {
+  if (!items) return 0
+  if (lane === 'all') return items.length
+  if (lane === 'sprint') return items.filter((item) => item.lane === 'today' || item.lane === 'week').length
+  return items.filter((item) => item.lane === lane).length
+}
+
+function matchesLaneFilter(item: PlanItem, lane: LaneFilter) {
+  if (lane === 'all') return true
+  if (lane === 'sprint') return item.lane === 'today' || item.lane === 'week'
+  return item.lane === lane
+}
+
+function matchesExecutionFilter(item: PlanItem, filter: ExecutionFilter) {
+  if (filter === 'all') return true
+  if (filter === 'needs_evidence') return item.source !== 'task' || (item.evidenceCount ?? 0) === 0
+  if (filter === 'unassigned') return item.source === 'task' && !item.assignedTo?.trim()
+  return item.source === 'task' && (item.evidenceCount ?? 0) > 0
+}
+
+function executionCount(items: PlanItem[] | undefined, filter: ExecutionFilter) {
+  if (!items) return 0
+  return items.filter((item) => matchesExecutionFilter(item, filter)).length
+}
+
 async function uploadPlanFile(file: File) {
   const formData = new FormData()
   formData.append('file', file)
@@ -152,6 +205,8 @@ export default function PlanAccionPage() {
   const [error, setError] = useState<string | null>(null)
   const [sourceFilter, setSourceFilter] = useState<Source | 'all'>('all')
   const [severityFilter, setSeverityFilter] = useState<Severity | 'all'>('all')
+  const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
+  const [executionFilter, setExecutionFilter] = useState<ExecutionFilter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -187,9 +242,11 @@ export default function PlanAccionPage() {
     return data.items.filter((item) => {
       if (sourceFilter !== 'all' && item.source !== sourceFilter) return false
       if (severityFilter !== 'all' && item.severity !== severityFilter) return false
+      if (!matchesLaneFilter(item, laneFilter)) return false
+      if (!matchesExecutionFilter(item, executionFilter)) return false
       return true
     })
-  }, [data, sourceFilter, severityFilter])
+  }, [data, sourceFilter, severityFilter, laneFilter, executionFilter])
 
   const selectedItem = useMemo(() => {
     if (filtered.length === 0) return null
@@ -198,7 +255,14 @@ export default function PlanAccionPage() {
 
   const sprintItems = filtered.filter((item) => item.lane === 'today' || item.lane === 'week').slice(0, 5)
   const stats = data?.stats
-  const hasFilters = sourceFilter !== 'all' || severityFilter !== 'all'
+  const hasFilters = sourceFilter !== 'all' || severityFilter !== 'all' || laneFilter !== 'all' || executionFilter !== 'all'
+
+  function resetFilters() {
+    setSourceFilter('all')
+    setSeverityFilter('all')
+    setLaneFilter('all')
+    setExecutionFilter('all')
+  }
 
   async function patchTask(item: PlanItem, patch: {
     status?: TaskStatus
@@ -334,6 +398,29 @@ export default function PlanAccionPage() {
 
         <KpiGrid stats={stats} loading={loading} />
 
+        <ImpactBrief
+          stats={stats}
+          loading={loading}
+          onFocusSprint={() => {
+            setSourceFilter('all')
+            setSeverityFilter('all')
+            setLaneFilter('sprint')
+            setExecutionFilter('all')
+          }}
+          onFocusEvidence={() => {
+            setSourceFilter('all')
+            setSeverityFilter('all')
+            setLaneFilter('all')
+            setExecutionFilter('needs_evidence')
+          }}
+          onFocusUnassigned={() => {
+            setSourceFilter('all')
+            setSeverityFilter('all')
+            setLaneFilter('all')
+            setExecutionFilter('unassigned')
+          }}
+        />
+
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-4">
             <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 shadow-sm">
@@ -361,16 +448,37 @@ export default function PlanAccionPage() {
                 {hasFilters ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSourceFilter('all')
-                      setSeverityFilter('all')
-                    }}
+                    onClick={resetFilters}
                     className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50"
                   >
                     <X className="h-3 w-3" />
                     Limpiar
                   </button>
                 ) : null}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[color:var(--border-default)] pt-3">
+                <CalendarClock className="h-4 w-4 text-[color:var(--text-tertiary)]" />
+                {LANE_FILTERS.map((lane) => (
+                  <FilterChip
+                    key={lane}
+                    active={laneFilter === lane}
+                    onClick={() => setLaneFilter(lane)}
+                    label={LANE_FILTER_CONFIG[lane].label}
+                    count={laneCount(data?.items, lane)}
+                  />
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[color:var(--border-default)] pt-3">
+                <ClipboardCheck className="h-4 w-4 text-[color:var(--text-tertiary)]" />
+                {EXECUTION_FILTERS.map((filter) => (
+                  <FilterChip
+                    key={filter}
+                    active={executionFilter === filter}
+                    onClick={() => setExecutionFilter(filter)}
+                    label={EXECUTION_FILTER_CONFIG[filter].label}
+                    count={executionCount(data?.items, filter)}
+                  />
+                ))}
               </div>
             </div>
 
@@ -414,7 +522,7 @@ export default function PlanAccionPage() {
 function KpiGrid({ stats, loading }: { stats?: PlanResponse['stats']; loading: boolean }) {
   const nextDue = stats?.nextDueDate ? fmtDate(stats.nextDueDate) : 'Sin fecha'
   return (
-    <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       <KpiCard
         icon={Banknote}
         label="Multa evitable"
@@ -435,6 +543,13 @@ function KpiGrid({ stats, loading }: { stats?: PlanResponse['stats']; loading: b
         value={stats?.overdue ?? 0}
         loading={loading}
         tone={stats?.overdue ? 'amber' : 'slate'}
+      />
+      <KpiCard
+        icon={ShieldCheck}
+        label="Reducido 30d"
+        value={<MoneyValue value={stats?.multaReducida30 ?? 0} />}
+        loading={loading}
+        tone="violet"
       />
       <KpiCard
         icon={CalendarClock}
@@ -458,13 +573,14 @@ function KpiCard({
   label: string
   value: ReactNode
   loading: boolean
-  tone: 'emerald' | 'red' | 'amber' | 'blue' | 'slate'
+  tone: 'emerald' | 'red' | 'amber' | 'blue' | 'violet' | 'slate'
 }) {
   const tones = {
     emerald: 'text-emerald-700 bg-emerald-50 border-emerald-200',
     red: 'text-red-700 bg-red-50 border-red-200',
     amber: 'text-amber-700 bg-amber-50 border-amber-200',
     blue: 'text-blue-700 bg-blue-50 border-blue-200',
+    violet: 'text-violet-700 bg-violet-50 border-violet-200',
     slate: 'text-slate-600 bg-slate-50 border-slate-200',
   }
   return (
@@ -491,6 +607,122 @@ function MoneyValue({ value }: { value: number }) {
       <span>{parts.amount}</span>
       <span className="text-sm font-bold text-[color:var(--text-tertiary)]">{parts.currency}</span>
     </span>
+  )
+}
+
+function ImpactBrief({
+  stats,
+  loading,
+  onFocusSprint,
+  onFocusEvidence,
+  onFocusUnassigned,
+}: {
+  stats?: PlanResponse['stats']
+  loading: boolean
+  onFocusSprint: () => void
+  onFocusEvidence: () => void
+  onFocusUnassigned: () => void
+}) {
+  if (loading) {
+    return (
+      <section className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2 text-sm font-bold text-[color:var(--text-secondary)]">
+          <Loader2 className="h-4 w-4 animate-spin text-emerald-700" />
+          Calculando impacto anti-multas...
+        </div>
+      </section>
+    )
+  }
+
+  const hasSprint = (stats?.sprintActions ?? 0) > 0
+
+  return (
+    <section className="grid gap-3 lg:grid-cols-[1.15fr_0.9fr_0.95fr]">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-800">
+              <Gauge className="h-3.5 w-3.5" />
+              Impacto inmediato
+            </div>
+            <h2 className="mt-3 text-lg font-black leading-tight text-emerald-950">
+              {hasSprint
+                ? `Cerrar el sprint puede bajar ${stats?.sprintReductionPercent ?? 0}% de la exposición abierta.`
+                : 'No hay ruta crítica inmediata abierta.'}
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-emerald-900">
+              {hasSprint
+                ? `${stats?.sprintActions ?? 0} acciones concentran ${formatSoles(stats?.sprintExposure ?? 0)} de multa evitable.`
+                : 'Mantén evidencia y responsables al día para sostener el blindaje.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onFocusSprint}
+            disabled={!hasSprint}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-emerald-800 disabled:opacity-50"
+          >
+            Ver sprint crítico
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-5 w-5 text-amber-700" />
+          <h2 className="text-sm font-black">Bloqueos de ejecución</h2>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onFocusUnassigned}
+            className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-left transition-colors hover:bg-amber-100"
+          >
+            <span className="block text-2xl font-black tabular-nums text-amber-800">{stats?.unassignedTasks ?? 0}</span>
+            <span className="text-[11px] font-bold text-amber-900">sin responsable</span>
+          </button>
+          <button
+            type="button"
+            onClick={onFocusEvidence}
+            className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-left transition-colors hover:bg-blue-100"
+          >
+            <span className="block text-2xl font-black tabular-nums text-blue-800">{stats?.evidenceMissing ?? 0}</span>
+            <span className="text-[11px] font-bold text-blue-900">sin evidencia</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-black">Mayor exposición</h2>
+            <p className="text-xs text-[color:var(--text-tertiary)]">Prioriza donde más duele una inspección.</p>
+          </div>
+          <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-black text-violet-700">
+            {stats?.completedLast30 ?? 0} cerradas 30d
+          </span>
+        </div>
+        <div className="mt-3 space-y-2">
+          {(stats?.topExposure ?? []).length > 0 ? (
+            stats?.topExposure.map((item) => (
+              <Link
+                key={item.id}
+                href={item.routeHref}
+                className="flex items-center justify-between gap-3 rounded-lg border border-[color:var(--border-default)] px-3 py-2 text-xs transition-colors hover:border-emerald-300 hover:bg-emerald-50/40"
+              >
+                <span className="line-clamp-1 font-bold text-[color:var(--text-primary)]">{item.title}</span>
+                <span className="shrink-0 font-black text-emerald-700">{formatSoles(item.multaEvitable ?? 0)}</span>
+              </Link>
+            ))
+          ) : (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-900">
+              Sin multas estimadas abiertas.
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -626,6 +858,16 @@ function PlanRow({ item, selected, onSelect }: { item: PlanItem; selected: boole
               {item.workerName ? (
                 <span className="text-[10px] font-medium text-[color:var(--text-tertiary)]">{item.workerName}</span>
               ) : null}
+              {item.source === 'task' && !item.assignedTo?.trim() ? (
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                  Sin responsable
+                </span>
+              ) : null}
+              {item.source === 'task' && (item.evidenceCount ?? 0) > 0 ? (
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">
+                  Evidencia lista
+                </span>
+              ) : null}
             </span>
             <span className="block text-sm font-black leading-snug text-[color:var(--text-primary)]">
               {item.title}
@@ -752,6 +994,8 @@ function ActionPanel({
         </div>
       ) : null}
 
+      <ClosureChecklist item={item} />
+
       {notice ? (
         <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-900">
           {notice}
@@ -769,6 +1013,58 @@ function ActionPanel({
         <ExternalResolutionPanel item={item} saving={saving} onResolveExternal={onResolveExternal} />
       )}
     </aside>
+  )
+}
+
+function ClosureChecklist({ item }: { item: PlanItem }) {
+  const rows = [
+    {
+      label: 'Responsable asignado',
+      done: item.source !== 'task' || Boolean(item.assignedTo?.trim()),
+      hint: item.source !== 'task' ? 'Se cierra en el módulo origen' : item.assignedTo || 'Pendiente',
+    },
+    {
+      label: 'Fecha compromiso',
+      done: Boolean(item.dueDate),
+      hint: item.dueDate ? fmtDate(item.dueDate) : 'Define fecha de cierre',
+    },
+    {
+      label: 'Evidencia documental',
+      done: item.source === 'task' ? (item.evidenceCount ?? 0) > 0 : false,
+      hint: item.source === 'task'
+        ? `${item.evidenceCount ?? 0} archivo(s)`
+        : 'Se exigirá al cerrar',
+    },
+    {
+      label: 'Ruta de subsanación',
+      done: Boolean(item.routeHref),
+      hint: item.routeLabel,
+    },
+  ]
+
+  return (
+    <div className="mt-4 rounded-xl border border-[color:var(--border-default)] bg-white p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <ClipboardCheck className="h-4 w-4 text-emerald-700" />
+        <p className="text-xs font-black uppercase tracking-widest text-[color:var(--text-tertiary)]">Checklist de blindaje</p>
+      </div>
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-start gap-2 text-xs">
+            <span className={cn(
+              'mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
+              row.done ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'
+            )}>
+              {row.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
+            </span>
+            <span className="min-w-0">
+              <span className="block font-bold text-[color:var(--text-primary)]">{row.label}</span>
+              <span className="block truncate text-[color:var(--text-tertiary)]">{row.hint}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

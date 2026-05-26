@@ -98,6 +98,8 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
     const now = new Date()
     const overdueThreshold = new Date(now)
     overdueThreshold.setDate(overdueThreshold.getDate() - TRAINING_OVERDUE_DAYS)
+    const completedSince = new Date(now)
+    completedSince.setDate(completedSince.getDate() - 30)
 
     const enrich = (item: Omit<PlanItem, 'riskScore' | 'daysLeft' | 'lane' | 'evidenceGoal' | 'nextAction'>): PlanItem => {
       const riskScore = computeActionRiskScore({
@@ -247,6 +249,16 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
       filtered = items.filter((i) => i.severity === severityFilter)
     }
 
+    const completedRecent = await prisma.complianceTask.findMany({
+      where: {
+        orgId: ctx.orgId,
+        status: 'COMPLETED',
+        completedAt: { gte: completedSince },
+      },
+      select: { multaEvitable: true },
+      take: 500,
+    })
+
     filtered.sort((a, b) => {
       if (b.riskScore !== a.riskScore) return b.riskScore - a.riskScore
       const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY
@@ -256,6 +268,9 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
     })
 
     // Stats agregadas (sobre el set completo, no sobre el filtrado)
+    const sprintItems = items.filter((i) => i.lane === 'today' || i.lane === 'week')
+    const multaEvitableTotal = items.reduce((acc, i) => acc + (i.multaEvitable ?? 0), 0)
+    const sprintExposure = sprintItems.reduce((acc, i) => acc + (i.multaEvitable ?? 0), 0)
     const nextDue = items
       .filter((i) => i.dueDate)
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())[0]?.dueDate ?? null
@@ -282,6 +297,16 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
         month: items.filter((i) => i.lane === 'month').length,
         backlog: items.filter((i) => i.lane === 'backlog').length,
       },
+      sprintActions: sprintItems.length,
+      sprintExposure,
+      sprintReductionPercent: multaEvitableTotal > 0
+        ? Math.round(Math.min(100, (sprintExposure / multaEvitableTotal) * 100))
+        : 0,
+      evidenceMissing: items.filter((i) => i.source !== 'task' || (i.evidenceCount ?? 0) === 0).length,
+      readyToClose: items.filter((i) => i.source === 'task' && (i.evidenceCount ?? 0) > 0).length,
+      unassignedTasks: items.filter((i) => i.source === 'task' && !i.assignedTo?.trim()).length,
+      completedLast30: completedRecent.length,
+      multaReducida30: completedRecent.reduce((acc, task) => acc + (task.multaEvitable ? Number(task.multaEvitable) : 0), 0),
       nextDueDate: nextDue,
       topExposure: items
         .filter((i) => (i.multaEvitable ?? 0) > 0)
@@ -293,10 +318,7 @@ export const GET = withPlanGate('diagnostico', async (req: NextRequest, ctx: Aut
           multaEvitable: i.multaEvitable,
           routeHref: i.routeHref,
         })),
-      multaEvitableTotal: items.reduce(
-        (acc, i) => acc + (i.multaEvitable ?? 0),
-        0
-      ),
+      multaEvitableTotal,
     }
 
     return NextResponse.json({ items: filtered, stats })
