@@ -5,7 +5,7 @@
  *   - Si RLS_ENFORCED=true, runWithOrgScope ejecuta `SET LOCAL` antes de fn.
  *   - Si RLS_ENFORCED=false, NO ejecuta SET LOCAL (no-op friendly).
  *   - orgId vacío o con caracteres inválidos → throw (defensa contra SQLi).
- *   - runUnsafeBypass deja AuditLog con la razón y NO ejecuta SET LOCAL.
+ *   - runUnsafeBypass deja AuditLog con la razón cuando hay orgId y NO ejecuta SET LOCAL.
  */
 
 const { mockPrisma } = vi.hoisted(() => {
@@ -103,7 +103,7 @@ describe('runUnsafeBypass', () => {
     const { runUnsafeBypass } = await import('../prisma-rls')
 
     const result = await runUnsafeBypass(
-      { reason: 'cron:morning-briefing', orgId: 'system' },
+      { reason: 'cron:morning-briefing', orgId: 'org_abc' },
       (client) => client.organization.findMany(),
     )
 
@@ -111,11 +111,23 @@ describe('runUnsafeBypass', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           action: 'rls.bypass',
-          orgId: 'system',
+          orgId: 'org_abc',
           metadataJson: expect.objectContaining({ reason: 'cron:morning-briefing' }),
         }),
       }),
     )
+    expect(result).toEqual([])
+  })
+
+  test('omite AuditLog cuando el bypass es global del sistema', async () => {
+    const { runUnsafeBypass } = await import('../prisma-rls')
+
+    const result = await runUnsafeBypass(
+      { reason: 'cron:anchor-versions' },
+      (client) => client.organization.findMany(),
+    )
+
+    expect(mockPrisma.auditLog.create).not.toHaveBeenCalled()
     expect(result).toEqual([])
   })
 
@@ -125,7 +137,7 @@ describe('runUnsafeBypass', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const result = await runUnsafeBypass(
-      { reason: 'webhook:culqi-retry' },
+      { reason: 'webhook:culqi-retry', orgId: 'org_abc' },
       (client) => client.organization.findMany(),
     )
 
