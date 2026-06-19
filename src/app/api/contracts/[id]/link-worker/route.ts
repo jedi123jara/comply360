@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
+import { ensureContratoTrabajoDoc } from '@/lib/workers/contrato-doc'
 
 // ==============================================
 // POST /api/contracts/[id]/link-worker
@@ -51,35 +52,9 @@ export const POST = withPlanGateParams<{ id: string }>('contratos',
       update: {},
     })
 
-    // WorkerDocument 'contrato_trabajo' para que el legajo lo cuente. Este modelo
-    // NO tiene @@unique sobre (workerId, documentType), asi que no hay upsert
-    // nativo ni garantia de la BD contra duplicados. Camino idempotente: primero
-    // un updateMany (marca VERIFIED el/los doc existentes en una sola sentencia)
-    // y solo si no existia ninguno lo creamos. Bajo READ COMMITTED esto elimina el
-    // duplicado salvo en la ventana de dos primeras-altas exactamente simultaneas
-    // (doble submit); en ese caso recalculateLegajoScore NO infla el score igual
-    // (deduplica por documentType con un Set). NOTA: no se usa $transaction con
-    // isolationLevel porque el Proxy de prisma (src/lib/prisma.ts) descarta el 2do
-    // arg bajo scope RLS. El enforcement definitivo requiere un @@unique parcial
-    // sobre (workerId, documentType='contrato_trabajo') + migracion + backfill.
-    const verifiedDoc = await prisma.workerDocument.updateMany({
-      where: { workerId, documentType: 'contrato_trabajo' },
-      data: { status: 'VERIFIED', verifiedAt: new Date(), verifiedBy: ctx.userId },
-    })
-    if (verifiedDoc.count === 0) {
-      await prisma.workerDocument.create({
-        data: {
-          workerId,
-          category: 'INGRESO',
-          documentType: 'contrato_trabajo',
-          title: contract.title,
-          isRequired: true,
-          status: 'VERIFIED',
-          verifiedAt: new Date(),
-          verifiedBy: ctx.userId,
-        },
-      })
-    }
+    // WorkerDocument 'contrato_trabajo' (para que el legajo lo cuente), idempotente
+    // y race-safe vía el helper compartido + índice único parcial en la BD.
+    await ensureContratoTrabajoDoc({ workerId, title: contract.title, verifiedBy: ctx.userId })
 
     // Recalculate legajo score
     await recalculateLegajoScore(workerId)
