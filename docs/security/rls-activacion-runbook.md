@@ -5,9 +5,29 @@
 > seguridad a nivel de BD**: aunque una consulta se olvide de filtrar por `orgId`, la
 > base impide ver filas de otra empresa.
 >
-> **Objetivo:** activar `RLS_ENFORCED=true` en prod **sin romper nada**. El riesgo es
-> que una tabla tenant quede sin política → sus queries devuelven 0 filas (la app
-> "pierde" datos visualmente). Por eso primero se audita la cobertura.
+> **Objetivo:** activar `RLS_ENFORCED=true` en prod **sin romper nada**.
+
+## 🚫 BLOQUEANTE — leer antes que nada
+
+Activar el flag **NO es seguro hoy**. Medición a jun-2026: **solo 1 de 331 rutas API**
+usa `runWithOrgScope` (el cliente que setea `app.current_org_id` y respeta RLS). Las otras
+**330 usan el cliente `prisma` directo** con filtro `orgId` en código.
+
+Con RLS habilitado en las tablas + `RLS_ENFORCED=true`:
+- Si el rol de conexión **enforza** RLS → las 330 rutas consultan sin `app.current_org_id`
+  → **0 filas → la app se rompe**.
+- Si el rol **bypassa** RLS → las 330 rutas funcionan pero **RLS no las protege** → falsa
+  seguridad.
+
+**Pre-requisito real:** migrar las rutas org-scoped a `runWithOrgScope` (o setear
+`app.current_org_id` a nivel de conexión por request vía middleware) ANTES de activar.
+Eso es un **proyecto**, no un flag. La cobertura de políticas (100%, abajo) es la base
+necesaria pero NO suficiente.
+
+---
+
+> El riesgo secundario (ya resuelto) era que una tabla tenant quede sin política → 0 filas.
+> La auditoría de cobertura de abajo confirma 85/85 tablas con política.
 
 ---
 
