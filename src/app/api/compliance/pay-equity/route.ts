@@ -7,8 +7,13 @@ import { analyzePayEquity, type PayEquityWorker } from '@/lib/compliance/pay-equ
 export const runtime = 'nodejs'
 
 export const GET = withPlanGate('reportes_pdf', async (_req: NextRequest, ctx: AuthContext) => {
+  // El análisis de equidad salarial necesita TODOS los activos (no se pagina),
+  // pero acotamos con un tope defensivo alto para no cargar sin límite. Ninguna
+  // org del mercado objetivo se acerca; si lo hiciera, el análisis sigue siendo
+  // estadísticamente válido sobre la muestra.
   const rows = await prisma.worker.findMany({
     where: { orgId: ctx.orgId, status: 'ACTIVE' },
+    take: 10000,
     select: {
       id: true,
       firstName: true,

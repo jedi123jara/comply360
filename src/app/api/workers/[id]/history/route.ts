@@ -81,14 +81,22 @@ export const GET = withPlanGateParams<{ id: string }>('workers', async (req: Nex
   const dateFilter = sinceDate ? { createdAt: { gte: sinceDate } } : {}
 
   // ── Queries paralelas ────────────────────────────────────────────────────
-  const [historyEvents, auditEntries, totalHistoryAll, totalHistoryWindow] = await Promise.all([
+  // FIX (perf/memoria): antes se cargaban TODOS los eventos en memoria (sin tope)
+  // para luego paginar con slice — caro en historiales largos (PRO `historial_infinito`).
+  // Como ambas fuentes vienen ordenadas DESC, basta traer las primeras `skip+pageSize`
+  // de cada una: el merge de los top-(skip+pageSize) es exacto para la página pedida.
+  // El `total` se calcula con counts, no con el largo del array cargado.
+  const loadLimit = skip + pageSize
+  const [historyEvents, auditEntries, totalHistoryAll, totalHistoryWindow, totalAuditWindow] = await Promise.all([
     prisma.workerHistoryEvent.findMany({
       where: { workerId, orgId, ...dateFilter },
       orderBy: { createdAt: 'desc' },
+      take: loadLimit,
     }),
     prisma.auditLog.findMany({
       where: { orgId, entityType: 'Worker', entityId: workerId, ...dateFilter },
       orderBy: { createdAt: 'desc' },
+      take: loadLimit,
       select: {
         id: true,
         action: true,
@@ -103,6 +111,7 @@ export const GET = withPlanGateParams<{ id: string }>('workers', async (req: Nex
     // Total absoluto de eventos (para banner "hay X ocultos por plan")
     prisma.workerHistoryEvent.count({ where: { workerId, orgId } }),
     prisma.workerHistoryEvent.count({ where: { workerId, orgId, ...dateFilter } }),
+    prisma.auditLog.count({ where: { orgId, entityType: 'Worker', entityId: workerId, ...dateFilter } }),
   ])
 
   // ── Merge unificado ───────────────────────────────────────────────────────
@@ -134,9 +143,10 @@ export const GET = withPlanGateParams<{ id: string }>('workers', async (req: Nex
     })),
   ]
 
-  // Ordenar por createdAt DESC y paginar
+  // Ordenar por createdAt DESC y paginar. `total` viene de los counts (no del
+  // array cargado, que ahora está acotado a skip+pageSize por fuente).
   unified.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const total = unified.length
+  const total = totalHistoryWindow + totalAuditWindow
   const paged = unified.slice(skip, skip + pageSize)
 
   // ── Response ──────────────────────────────────────────────────────────────
