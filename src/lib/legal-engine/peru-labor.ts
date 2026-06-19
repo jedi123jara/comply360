@@ -325,17 +325,39 @@ export function getDiasVacacionesPorRegimen(regimen: string | null | undefined):
 // HELPER: Calculate working periods
 // =============================================
 
-export function calcularPeriodoLaboral(fechaIngreso: string, fechaCese: string) {
-  const inicio = new Date(fechaIngreso)
-  const fin = new Date(fechaCese)
+/**
+ * Parsea una fecha civil "YYYY-MM-DD" (de Lima) a sus componentes, SIN dejar que
+ * la zona horaria del host la corra un día. El bug previo era `new Date('2024-05-01')`
+ * (= medianoche UTC) leído con getters locales: en Lima (UTC-5) devolvía 30-abr.
+ */
+function parseCivilDate(value: string): { year: number; month: number; day: number } {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) {
+    return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }
+  }
+  // Fallback para otros formatos: leer componentes en UTC (no locales).
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`calcularPeriodoLaboral: fecha inválida "${value}"`)
+  }
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }
+}
 
-  let anos = fin.getFullYear() - inicio.getFullYear()
-  let meses = fin.getMonth() - inicio.getMonth()
-  let dias = fin.getDate() - inicio.getDate()
+export function calcularPeriodoLaboral(fechaIngreso: string, fechaCese: string) {
+  // FIX TZ: antes usaba new Date(date-only) + getters LOCALES, lo que en zonas
+  // negativas (Lima) corría las fechas un día y descuadraba meses/días truncos
+  // (afecta liquidación, vacaciones e indemnización). Ahora se parsea como fecha
+  // civil y se computa todo con aritmética UTC, igual que cts.ts.
+  const inicio = parseCivilDate(fechaIngreso)
+  const fin = parseCivilDate(fechaCese)
+
+  let anos = fin.year - inicio.year
+  let meses = fin.month - inicio.month
+  let dias = fin.day - inicio.day
 
   if (dias < 0) {
     meses--
-    const lastDay = new Date(fin.getFullYear(), fin.getMonth(), 0).getDate()
+    const lastDay = new Date(Date.UTC(fin.year, fin.month - 1, 0)).getUTCDate()
     dias += lastDay
   }
 
@@ -345,7 +367,10 @@ export function calcularPeriodoLaboral(fechaIngreso: string, fechaCese: string) 
   }
 
   const totalMeses = anos * 12 + meses
-  const totalDias = Math.floor((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+  const totalDias = Math.floor(
+    (Date.UTC(fin.year, fin.month - 1, fin.day) - Date.UTC(inicio.year, inicio.month - 1, inicio.day)) /
+      (1000 * 60 * 60 * 24),
+  )
 
   return { anos, meses, dias, totalMeses, totalDias }
 }

@@ -10,9 +10,23 @@ import {
   PERU_LABOR,
   calcularPeriodoLaboral,
   calcularRemuneracionComputable,
+  getDiasVacacionesPorRegimen,
 } from '../peru-labor'
 import { sumMoney } from '../money'
 import { formatSoles as fmt } from '@/lib/format/peruvian'
+
+/** Parsea "YYYY-MM-DD" como fecha civil (Lima) sin que la zona del host la corra
+ *  un día (mismo fix TZ que cts.ts / calcularPeriodoLaboral). */
+function civilParts(value: string): { year: number; month: number; day: number } {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }
+  const d = new Date(value)
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }
+}
+
+function isoDate(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
 
 export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult {
   const periodo = calcularPeriodoLaboral(input.fechaIngreso, input.fechaCese)
@@ -45,8 +59,8 @@ export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult 
 
   const breakdown: LiquidacionBreakdown = {
     cts: ctsItem,
-    vacacionesTruncas: calcularVacacionesTruncas(remComputable, periodo),
-    vacacionesNoGozadas: calcularVacacionesNoGozadas(remComputable, input.vacacionesNoGozadas),
+    vacacionesTruncas: calcularVacacionesTruncas(remComputable, periodo, regimen),
+    vacacionesNoGozadas: calcularVacacionesNoGozadas(remComputable, input.vacacionesNoGozadas, regimen),
     gratificacionTrunca: gratItem,
     indemnizacion: calcularIndemnizacionSiAplica(remComputable, periodo, input),
     horasExtras: calcularHorasExtrasAcumuladas(input.sueldoBruto, input.horasExtrasPendientes),
@@ -83,31 +97,27 @@ function calcularCTSLiquidacion(
   periodo: ReturnType<typeof calcularPeriodoLaboral>,
   input: LiquidacionInput
 ): BreakdownItem {
-  // CTS trunca: del último depósito al cese
-  const fechaCese = new Date(input.fechaCese)
-  const mesCese = fechaCese.getMonth() + 1
-
-  // Determinar último depósito y meses truncos desde ese depósito
-  // FIX #0.6: la rama ene-abr tenía off-by-one. El último depósito antes de
-  // un cese en ene-abr es el de noviembre (semestre nov-abr en curso). De
-  // noviembre a fin de enero son **3 meses completos** (nov, dic, ene), no 2.
-  // Antes: `mesCese + 1` daba 2 para cese en enero. Ahora: `mesCese + 2`.
-  let mesesTruncos: number
+  // CTS trunca: del inicio del semestre de CTS en curso (último depósito) al cese.
+  // FIX TZ + clamp por ingreso: parseamos la fecha civil sin shift de zona horaria
+  // y computamos el periodo desde max(fechaIngreso, inicio del semestre). Antes se
+  // derivaban los meses truncos SOLO del mes calendario del cese (con getMonth()/
+  // getDate() locales), lo que (a) corría un día en zona Lima y (b) sobrecontaba la
+  // CTS de quien ingresó DENTRO del semestre (le pagaba desde el depósito y no desde
+  // su ingreso). El semestre de CTS es nov-abr (depósito 15-may) o may-oct (15-nov).
+  const cese = civilParts(input.fechaCese)
+  const mesCese = cese.month
+  let inicioSemestre: string
   if (mesCese >= 5 && mesCese <= 10) {
-    // Último depósito: 15-may. Trunca desde mayo (mes 5 = 0 truncos).
-    mesesTruncos = mesCese - 5
+    inicioSemestre = isoDate(cese.year, 5, 1) // depósito 15-nov cubre may-oct
   } else if (mesCese >= 11) {
-    // Último depósito: 15-nov. Trunca desde noviembre (mes 11 = 0 truncos).
-    mesesTruncos = mesCese - 11
+    inicioSemestre = isoDate(cese.year, 11, 1)
   } else {
-    // Ene-Abr: último depósito 15-nov del año anterior. Nov+Dic ya pasaron
-    // (2 meses) + meses transcurridos del año actual (mesCese).
-    // Cese fin-ene → 3 meses (nov + dic + ene)
-    // Cese fin-feb → 4 meses, etc.
-    mesesTruncos = mesCese + 2
+    inicioSemestre = isoDate(cese.year - 1, 11, 1) // ene-abr: semestre nov(prev)-abr
   }
-
-  const diasTruncos = fechaCese.getDate()
+  const efectivaInicio = input.fechaIngreso > inicioSemestre ? input.fechaIngreso : inicioSemestre
+  const periodoCts = calcularPeriodoLaboral(efectivaInicio, input.fechaCese)
+  const mesesTruncos = periodoCts.totalMeses
+  const diasTruncos = periodoCts.dias
 
   // Remuneración computable para CTS = sueldo + 1/6 de la ÚLTIMA GRATIFICACIÓN
   // (Art. 9 D.S. 001-97-TR, no asume gratificación = sueldo)
@@ -133,21 +143,26 @@ function calcularCTSLiquidacion(
 // =============================================
 function calcularVacacionesTruncas(
   remComputable: number,
-  periodo: ReturnType<typeof calcularPeriodoLaboral>
+  periodo: ReturnType<typeof calcularPeriodoLaboral>,
+  regimen: string | undefined,
 ): BreakdownItem {
   // Vacaciones truncas = (rem / 12) × meses del último periodo incompleto
   const mesesFraccion = periodo.totalMeses % 12
   const diasFraccion = periodo.dias
 
-  const vacTruncas = (remComputable / 12) * mesesFraccion +
-                     (remComputable / 360) * diasFraccion
+  // FIX: la base asume 30 días/año (régimen general). Para MYPE_MICRO/PEQUENA y
+  // DOMESTICO el derecho vacacional es 15 días/año → la trunca es la mitad. Mismo
+  // escalado ya validado en vacaciones.ts. Antes se sobrepagaba 2x a esos regímenes.
+  const factorRegimen = getDiasVacacionesPorRegimen(regimen) / 30
+  const vacTruncas = ((remComputable / 12) * mesesFraccion +
+                     (remComputable / 360) * diasFraccion) * factorRegimen
 
   return {
     label: 'Vacaciones Truncas',
     amount: Math.round(vacTruncas * 100) / 100,
-    formula: `(${fmt(remComputable)} / 12 × ${mesesFraccion} meses) + (${fmt(remComputable)} / 360 × ${diasFraccion} días)`,
+    formula: `[(${fmt(remComputable)} / 12 × ${mesesFraccion} meses) + (${fmt(remComputable)} / 360 × ${diasFraccion} días)] × ${factorRegimen} (régimen ${regimen})`,
     baseLegal: PERU_LABOR.VACACIONES.BASE_LEGAL,
-    details: `Período incompleto: ${mesesFraccion} meses y ${diasFraccion} días`,
+    details: `Período incompleto: ${mesesFraccion} meses y ${diasFraccion} días. Días/año régimen: ${getDiasVacacionesPorRegimen(regimen)}.`,
   }
 }
 
@@ -156,20 +171,25 @@ function calcularVacacionesTruncas(
 // =============================================
 function calcularVacacionesNoGozadas(
   remComputable: number,
-  diasNoGozados: number
+  diasNoGozados: number,
+  regimen: string | undefined,
 ): BreakdownItem {
-  // Vacaciones no gozadas = (rem / 30) × días + indemnización (1 rem adicional por periodo)
-  const periodosCompletos = Math.floor(diasNoGozados / 30)
-  const vacNoGozadas = (remComputable / 30) * diasNoGozados
-  const indemnizacion = remComputable * periodosCompletos // 1 rem por cada periodo de 30 días no gozado
+  // Vacaciones no gozadas = (rem / díasPorAño) × días + indemnización (1 rem por periodo).
+  // FIX: antes hardcodeaba 30, ignorando que MYPE/doméstico tienen 15 días/año →
+  // contaba mal los periodos y el divisor para esos regímenes. Mismo criterio que
+  // vacaciones.ts (getDiasVacacionesPorRegimen como divisor y conteo de periodos).
+  const diasPorAno = getDiasVacacionesPorRegimen(regimen)
+  const periodosCompletos = diasPorAno > 0 ? Math.floor(diasNoGozados / diasPorAno) : 0
+  const vacNoGozadas = diasPorAno > 0 ? (remComputable / diasPorAno) * diasNoGozados : 0
+  const indemnizacion = remComputable * periodosCompletos // 1 rem por cada periodo no gozado
 
   return {
     label: 'Vacaciones No Gozadas',
     amount: Math.round((vacNoGozadas + indemnizacion) * 100) / 100,
-    formula: `(${fmt(remComputable)} / 30 × ${diasNoGozados} días) + indemnización: ${fmt(indemnizacion)}`,
+    formula: `(${fmt(remComputable)} / ${diasPorAno} × ${diasNoGozados} días) + indemnización: ${fmt(indemnizacion)}`,
     baseLegal: PERU_LABOR.VACACIONES.BASE_LEGAL,
     details: diasNoGozados > 0
-      ? `${diasNoGozados} días no gozados (${periodosCompletos} períodos × indemnización)`
+      ? `${diasNoGozados} días no gozados (${periodosCompletos} períodos × indemnización, ${diasPorAno} días/año)`
       : 'Sin vacaciones pendientes',
   }
 }
@@ -181,16 +201,26 @@ function calcularGratificacionTrunca(
   remComputable: number,
   input: LiquidacionInput
 ): BreakdownItem {
-  const fechaCese = new Date(input.fechaCese)
-  const mes = fechaCese.getMonth() + 1
+  const cese = civilParts(input.fechaCese)
+  const ing = civilParts(input.fechaIngreso)
+  const mes = cese.month
+  const semStartMonth = mes <= 6 ? 1 : 7
+  const ceseSemMonth = mes <= 6 ? mes : mes - 6 // 1..6 meses del semestre
 
-  // Determinar meses del semestre actual
+  // FIX: antes mesesSemestre dependía SOLO del mes calendario del cese, ignorando
+  // fechaIngreso → un ingreso a mitad de semestre pagaba la grati completa (hasta 1
+  // sueldo por <1 mes laborado). Si el trabajador ingresó DENTRO del semestre en
+  // curso, contamos solo los meses calendario completos desde su ingreso. (TZ-safe.)
+  const ingresoAntesDelSemestre =
+    ing.year < cese.year || (ing.year === cese.year && ing.month < semStartMonth)
   let mesesSemestre: number
-  if (mes >= 1 && mes <= 6) {
-    mesesSemestre = mes // Ene=1 ... Jun=6
+  if (ingresoAntesDelSemestre) {
+    mesesSemestre = ceseSemMonth
   } else {
-    mesesSemestre = mes - 6 // Jul=1 ... Dic=6
+    const primerMesCompleto = ing.day === 1 ? ing.month : ing.month + 1
+    mesesSemestre = Math.max(0, mes - primerMesCompleto + 1)
   }
+  mesesSemestre = Math.min(6, mesesSemestre)
 
   const gratTrunca = (remComputable / 6) * mesesSemestre
   const bonificacion = gratTrunca * PERU_LABOR.GRATIFICACION.BONIFICACION_EXTRAORDINARIA
@@ -221,10 +251,16 @@ function calcularIndemnizacionSiAplica(
   const anosCompletos = periodo.anos
   const fraccionMeses = periodo.meses
 
-  // 1.5 sueldos × años + fracción proporcional
+  // 1.5 sueldos × años + fracción proporcional (dozavos y treintavos).
   let indemnizacion = config.FACTOR_POR_ANO * remComputable * anosCompletos
   if (fraccionMeses > 0) {
     indemnizacion += (config.FACTOR_POR_ANO * remComputable / 12) * fraccionMeses
+  }
+  // FIX: agregar los treintavos por días sueltos (Art. 38 D.S. 003-97-TR: las
+  // fracciones de año se pagan por dozavos y treintavos). Antes se ignoraba
+  // periodo.dias, subvaluando la indemnización vs la calculadora dedicada.
+  if (periodo.dias > 0) {
+    indemnizacion += (config.FACTOR_POR_ANO * remComputable / 360) * periodo.dias
   }
 
   // Tope: 12 sueldos

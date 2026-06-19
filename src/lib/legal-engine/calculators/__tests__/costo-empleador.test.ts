@@ -144,7 +144,7 @@ describe('calcularCostoEmpleador — régimen MYPE', () => {
 })
 
 describe('calcularCostoEmpleador — régimen AGRARIO', () => {
-  test('EsSalud Agrario es 4.5% (no 9%)', () => {
+  test('EsSalud Agrario es 6% en 2026 (Ley 31110, escalonado 6%→9% a 2029)', () => {
     const r = calcularCostoEmpleador({
       sueldoBruto: 1500,
       asignacionFamiliar: false,
@@ -153,7 +153,8 @@ describe('calcularCostoEmpleador — régimen AGRARIO', () => {
       sctr: false,
       essaludVida: false,
     })
-    expect(r.essalud).toBeCloseTo(1500 * 0.045, 0) // 67.5
+    // Alineado a COSTOS_LABORALES.AGRARIO.essaludPercent (fuente única de verdad).
+    expect(r.essalud).toBeCloseTo(1500 * 0.06, 0) // 90
   })
 
   test('AGRARIO: CTS y gratificación incluidas en jornal (no se provisionan)', () => {

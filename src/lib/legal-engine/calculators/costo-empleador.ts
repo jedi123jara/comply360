@@ -88,7 +88,10 @@ export function calcularCostoEmpleador(input: CostoEmpleadorInput): CostoEmplead
 
   // EsSalud: 9% en general, 4.5% en agrario, 0% en formativa (sólo seguro
   // contra accidentes ~0.75%)
-  const essaludRate = isAgrario ? 0.045 : isFormativa ? 0 : ESSALUD_RATE
+  // EsSalud agrario: 6% en 2026 (Ley 31110, escalonado 6%→9% a 2029). Alineado a
+  // COSTOS_LABORALES.AGRARIO.essaludPercent (peru-labor.ts). Antes era 0.045 (4.5%),
+  // un valor heredado de la derogada Ley 27360 que contradecía la fuente de verdad.
+  const essaludRate = isAgrario ? 0.06 : isFormativa ? 0 : ESSALUD_RATE
   const essalud = round(remuneracionTotal * essaludRate)
 
   // SCTR: solo si actividad de riesgo
