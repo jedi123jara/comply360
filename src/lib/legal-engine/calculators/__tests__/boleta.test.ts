@@ -155,6 +155,28 @@ describe('calcularBoleta', () => {
   })
 })
 
+describe('split de bonificaciones (habitual vs extraordinaria)', () => {
+  const ALTO: BoletaInput = { ...BASE, sueldoBruto: 9000 } // sueldo alto → hay renta 5ta
+
+  it('los campos nuevos suman al total de ingresos del mes', () => {
+    const r = calcularBoleta({ ...BASE, bonificacionesHabituales: 200, bonificacionesExtraordinarias: 100 })
+    // 3000 + 200 + 100 = 3300
+    expect(r.totalIngresos).toBeCloseTo(3300, 0)
+  })
+
+  it('una bonificación habitual retiene más renta 5ta que una extraordinaria del mismo monto', () => {
+    const habitual = calcularBoleta({ ...ALTO, bonificacionesHabituales: 1000 })
+    const extra = calcularBoleta({ ...ALTO, bonificacionesExtraordinarias: 1000 })
+    expect(habitual.rentaQuintaCat).toBeGreaterThan(extra.rentaQuintaCat)
+  })
+
+  it('el campo legacy `bonificaciones` sigue funcionando (se trata como extraordinario)', () => {
+    const legacy = calcularBoleta({ ...ALTO, bonificaciones: 1000 })
+    const extra = calcularBoleta({ ...ALTO, bonificacionesExtraordinarias: 1000 })
+    expect(legacy.rentaQuintaCat).toBeCloseTo(extra.rentaQuintaCat, 2)
+  })
+})
+
 describe('jornada nocturna — piso RMV + 35% (Art. 8 D.S. 007-2002-TR)', () => {
   it('getRemuneracionMinimaNocturna = RMV × 1.35 (1130 × 1.35 = 1525.5)', () => {
     expect(getRemuneracionMinimaNocturna()).toBeCloseTo(1525.5, 2)

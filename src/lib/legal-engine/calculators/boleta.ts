@@ -33,7 +33,9 @@ export interface BoletaInput {
 
   // Ingresos variables del período
   horasExtras?: number          // monto en soles
-  bonificaciones?: number       // bonificaciones del período
+  bonificaciones?: number       // @deprecated bono del período (se trata como extraordinario / 1 vez). Usar los 2 campos de abajo.
+  bonificacionesHabituales?: number      // bono RECURRENTE del mes → se anualiza ×12 en renta 5ta
+  bonificacionesExtraordinarias?: number // bono de UNA vez → se suma 1 vez en renta 5ta
   incluirGratificacion?: boolean // si este mes hay gratificación (jul/dic)
 
   // Renta 5ta categoría
@@ -122,6 +124,8 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     regimenLaboral = 'GENERAL',
     horasExtras = 0,
     bonificaciones = 0,
+    bonificacionesHabituales = 0,
+    bonificacionesExtraordinarias = 0,
     incluirGratificacion = false,
     mes,
     periodo,
@@ -155,12 +159,15 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     )
   }
 
+  // Total de bonificaciones del mes (legacy `bonificaciones` + los 2 campos nuevos).
+  const bonosMes = round(bonificaciones + bonificacionesHabituales + bonificacionesExtraordinarias)
+
   // ── 3. Total ingresos ───────────────────────────────────────────────────────
   const totalIngresos = round(
     sueldoBruto
     + montoAsigFamiliar
     + horasExtras
-    + bonificaciones
+    + bonosMes
     + gratificacion
     + bonificacionExtraordinaria
   )
@@ -203,7 +210,11 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
   // ya pasó `bonificacionesNoGravables`, lo restamos antes de proyectar.
   // Esta calculadora no tiene visibilidad sobre la composición; documentamos
   // que el caller debe pasar SOLO bonificaciones gravables (no la 9% Ley 30334).
-  const otrosIngresosGravables = bonificaciones
+  // Split habitual/extraordinaria: la bonif. EXTRAORDINARIA (y el legacy
+  // `bonificaciones`) se suma una sola vez; la HABITUAL se anualiza ×12 dentro de
+  // la calculadora de renta. El caller debe pasar SOLO bonificaciones gravables
+  // (no la bonif. 9% Ley 30334, exonerada de renta 5ta).
+  const otrosIngresosGravables = bonificaciones + bonificacionesExtraordinarias
 
   const rentaInput: RentaQuintaInput = {
     remuneracionMensual: remHabitual,
@@ -211,6 +222,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     gratificacionesAnuales: gratifAnual,
     retenidoAcumulado: retencionRentaAcumulada,
     otrosIngresosAnuales: otrosIngresosGravables,
+    bonificacionesHabitualesMensuales: bonificacionesHabituales,
   }
   const rentaResult = calcularRentaQuinta(rentaInput)
   const rentaQuintaCat = rentaResult.retencionMesActual
@@ -244,8 +256,8 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
   if (horasExtras > 0) {
     ingresos.push({ concepto: 'Horas Extras', monto: horasExtras, esVariable: true })
   }
-  if (bonificaciones > 0) {
-    ingresos.push({ concepto: 'Bonificaciones', monto: bonificaciones, esVariable: true })
+  if (bonosMes > 0) {
+    ingresos.push({ concepto: 'Bonificaciones', monto: bonosMes, esVariable: true })
   }
   if (gratificacion > 0) {
     ingresos.push({
@@ -330,7 +342,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     sueldoBruto,
     asignacionFamiliar: montoAsigFamiliar,
     horasExtras,
-    bonificaciones,
+    bonificaciones: bonosMes,
     gratificacion,
     bonificacionExtraordinaria,
     totalIngresos,
@@ -360,7 +372,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     sueldoBruto,
     asignacionFamiliar: montoAsigFamiliar,
     horasExtras,
-    bonificaciones,
+    bonificaciones: bonosMes,
     gratificacion,
     bonificacionExtraordinaria,
     descuentos,
