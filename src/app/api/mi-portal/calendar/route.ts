@@ -146,21 +146,21 @@ export const GET = withWorkerAuth(async (_req, ctx) => {
     })
     .catch(() => [])
 
+  // FIX N+1: en una sola query traemos todos los acuses del worker para los docs
+  // pendientes y los indexamos, en vez de un findUnique por documento.
+  const signedAcks = await prisma.documentAcknowledgment
+    .findMany({
+      where: {
+        workerId: worker.id,
+        documentId: { in: pendingDocs.map((d) => d.id) },
+      },
+      select: { documentId: true, documentVersion: true },
+    })
+    .catch(() => [])
+  const signedSet = new Set(signedAcks.map((a) => `${a.documentId}:${a.documentVersion}`))
+
   for (const doc of pendingDocs) {
-    // ¿Worker ya firmó esta versión?
-    const ack = await prisma.documentAcknowledgment
-      .findUnique({
-        where: {
-          workerId_documentId_documentVersion: {
-            workerId: worker.id,
-            documentId: doc.id,
-            documentVersion: doc.version,
-          },
-        },
-        select: { id: true },
-      })
-      .catch(() => null)
-    if (ack) continue // ya firmado, skip
+    if (signedSet.has(`${doc.id}:${doc.version}`)) continue // ya firmado, skip
 
     if (!doc.lastNotifiedAt || !doc.acknowledgmentDeadlineDays) continue
 
