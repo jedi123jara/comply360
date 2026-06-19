@@ -3,7 +3,7 @@
  * Base legal: D.S. 014-2019-MIMP, Art. 5
  */
 import type { QuestionEvaluator } from '../types'
-import { metricEvidence, hasOrgDocument } from './_helpers'
+import { metricEvidence } from './_helpers'
 
 export const evaluatorDO14: QuestionEvaluator = {
   questionId: 'DO-14',
