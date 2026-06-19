@@ -1,24 +1,20 @@
 /**
- * 🏆 AGENTE MONITOR DE RIESGO PROACTIVO
+ * Agente Monitor de Riesgo Proactivo.
  *
- * Agente que se ejecuta en modo "barrido" (manual o desde cron) sobre los
- * datos de la organización y detecta riesgos de compliance antes de que
- * se materialicen en una multa SUNAFIL.
- *
- * Ejecuta heurísticas determinísticas (sin LLM) sobre la BD:
- *  - Contratos por vencer en <30 días
- *  - Trabajadores con sueldo < RMV
- *  - Trabajadores sin afiliación a un sistema previsional
- *  - Trabajadores con más de 1 año sin vacaciones
- *  - Documentos vencidos (políticas obligatorias)
- *  - Capacitaciones SST atrasadas (Ley 29783)
- *
- * Cada riesgo lleva: severidad, monto de multa potencial, base legal, fix sugerido.
+ * Este agente corre en modo barrido manual o cron y usa `LaborRiskEngine`
+ * como fuente canonica. Asi, Riesgo Laboral, Plan anti-multas y el radar
+ * automatico hablan el mismo idioma: exposicion, evidencia y acciones.
  */
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { formatSoles } from '@/lib/format/peruvian'
+import {
+  evaluateLaborRisk,
+  type LaborRiskArea,
+  type LaborRiskFinding,
+  type LaborRiskSeverity,
+} from '@/lib/compliance/labor-risk-engine'
 import type {
   AgentDefinition,
   AgentInput,
@@ -26,17 +22,6 @@ import type {
   AgentResult,
   AgentAction,
 } from './types'
-
-// =============================================
-// CONSTANTES
-// =============================================
-
-const UIT_2026 = 5500
-const RMV_2026 = 1130
-
-// =============================================
-// SHAPE
-// =============================================
 
 export interface RiskFinding {
   id: string
@@ -64,27 +49,13 @@ export interface RiskMonitorOutput {
   totalContratosEvaluados: number
   findings: RiskFinding[]
   exposicionTotalSoles: number
-  scoreRiesgo: number // 0-100, donde 100 = sin riesgo
+  scoreRiesgo: number
   desglosePorSeveridad: {
     CRITICO: number
     ALTO: number
     MEDIO: number
     BAJO: number
   }
-}
-
-// =============================================
-// HEURÍSTICAS
-// =============================================
-
-interface WorkerLike {
-  id: string
-  firstName: string
-  lastName: string
-  dni: string
-  sueldoBruto: number | null
-  fechaIngreso: Date | null
-  tipoAporte: string | null
 }
 
 interface ContractLike {
@@ -94,239 +65,210 @@ interface ContractLike {
   status: string
 }
 
-function checkSueldoBajoRMV(workers: WorkerLike[]): RiskFinding[] {
-  const out: RiskFinding[] = []
-  for (const w of workers) {
-    if (w.sueldoBruto != null && w.sueldoBruto > 0 && w.sueldoBruto < RMV_2026) {
-      out.push({
-        id: `rmv-${w.id}`,
-        categoria: 'REMUNERACION',
-        severidad: 'CRITICO',
-        titulo: `Sueldo bajo la RMV: ${w.firstName} ${w.lastName}`,
-        descripcion: `Sueldo registrado ${formatSoles(w.sueldoBruto)} < RMV ${formatSoles(RMV_2026)}`,
-        entidadAfectada: `${w.firstName} ${w.lastName} (DNI ${w.dni})`,
-        multaPotencialSoles: Math.round(7.65 * UIT_2026), // muy grave NO_MYPE máx
-        baseLegal: 'D.S. 004-2025-TR (RMV 1,130.00 nuevos soles vigente 2026) — Infracción muy grave Art. 25.6 D.S. 019-2006-TR',
-        fixSugerido: 'Ajustar sueldo a la RMV vigente y pagar reintegro retroactivo',
-        fixUrl: `/dashboard/trabajadores/${w.id}`,
-      })
-    }
-  }
-  return out
-}
-
-function checkContratoPorVencer(contracts: ContractLike[]): RiskFinding[] {
-  const out: RiskFinding[] = []
-  const now = new Date()
-  const en30 = new Date(now.getTime() + 30 * 24 * 3600 * 1000)
-  for (const c of contracts) {
-    if (c.expiresAt && c.expiresAt > now && c.expiresAt <= en30) {
-      const dias = Math.ceil((c.expiresAt.getTime() - now.getTime()) / (24 * 3600 * 1000))
-      out.push({
-        id: `vencer-${c.id}`,
-        categoria: 'CONTRATO',
-        severidad: dias <= 7 ? 'ALTO' : 'MEDIO',
-        titulo: `Contrato vence en ${dias} días`,
-        descripcion: `Contrato ${c.type} (${c.id.slice(0, 8)}) vence el ${c.expiresAt.toISOString().slice(0, 10)}`,
-        multaPotencialSoles: 0,
-        baseLegal: 'Riesgo de continuidad laboral — desnaturalización art. 4 LPCL',
-        fixSugerido: 'Decidir entre renovar, finalizar o convertir a indefinido',
-        fixUrl: `/dashboard/contratos/${c.id}`,
-      })
-    }
-  }
-  return out
-}
-
-function checkSinAporte(workers: WorkerLike[]): RiskFinding[] {
-  const out: RiskFinding[] = []
-  for (const w of workers) {
-    if (!w.tipoAporte || w.tipoAporte === 'SIN_APORTE') {
-      out.push({
-        id: `sin-aporte-${w.id}`,
-        categoria: 'PREVISIONAL',
-        severidad: 'CRITICO',
-        titulo: `Trabajador sin sistema previsional: ${w.firstName} ${w.lastName}`,
-        descripcion: 'No registra AFP ni ONP — incumple art. 6 D.L. 19990 / Ley 25897',
-        entidadAfectada: `${w.firstName} ${w.lastName} (DNI ${w.dni})`,
-        multaPotencialSoles: Math.round(2.25 * UIT_2026),
-        baseLegal: 'Art. 24.2 D.S. 019-2006-TR — Infracción grave',
-        fixSugerido: 'Afiliar inmediatamente a AFP u ONP según elección del trabajador',
-        fixUrl: `/dashboard/trabajadores/${w.id}`,
-      })
-    }
-  }
-  return out
-}
-
-function checkVacacionesPendientes(workers: WorkerLike[]): RiskFinding[] {
-  const out: RiskFinding[] = []
-  const now = new Date()
-  for (const w of workers) {
-    if (!w.fechaIngreso) continue
-    const aniosTrabajados = (now.getTime() - w.fechaIngreso.getTime()) / (365.25 * 24 * 3600 * 1000)
-    if (aniosTrabajados >= 2) {
-      // Heurística: si lleva ≥2 años asumimos posible vacación pendiente vencida
-      out.push({
-        id: `vac-${w.id}`,
-        categoria: 'VACACIONES',
-        severidad: 'MEDIO',
-        titulo: `Posible vacación pendiente: ${w.firstName} ${w.lastName}`,
-        descripcion: `${aniosTrabajados.toFixed(1)} años de servicio — verifica si tiene vacaciones del periodo anterior sin gozar`,
-        entidadAfectada: `${w.firstName} ${w.lastName}`,
-        multaPotencialSoles: Math.round((w.sueldoBruto || RMV_2026) * 2),
-        baseLegal: 'D.Leg. 713 Art. 23 — indemnización vacacional 1 sueldo + reintegro',
-        fixSugerido: 'Programar las vacaciones pendientes o pagar la triple remuneración',
-        fixUrl: `/dashboard/trabajadores/${w.id}`,
-      })
-    }
-  }
-  return out
-}
-
-// =============================================
-// RUN
-// =============================================
-
 async function runRiskMonitor(
   _input: AgentInput,
-  ctx: AgentRunContext
+  ctx: AgentRunContext,
 ): Promise<AgentResult<RiskMonitorOutput>> {
   const start = Date.now()
   const warnings: string[] = []
+  const errors: string[] = []
 
-  // 1. Cargar datos desde Prisma scoped al orgId
-  let workers: WorkerLike[] = []
-  let contracts: ContractLike[] = []
+  const [totalTrabajadores, contracts] = await Promise.all([
+    prisma.worker.count({
+      where: { orgId: ctx.orgId, status: { not: 'TERMINATED' } },
+    }).catch((error: unknown) => {
+      warnings.push(`No se pudieron contar trabajadores: ${errorMessage(error)}`)
+      return 0
+    }),
+    prisma.contract.findMany({
+      where: { orgId: ctx.orgId },
+      select: { id: true, type: true, expiresAt: true, status: true },
+    }).then((rows) =>
+      rows.map((row) => ({
+        id: row.id,
+        type: String(row.type),
+        expiresAt: row.expiresAt ?? null,
+        status: String(row.status),
+      })),
+    ).catch((error: unknown) => {
+      warnings.push(`No se pudieron cargar contratos: ${errorMessage(error)}`)
+      return [] as ContractLike[]
+    }),
+  ])
+
+  let findings: RiskFinding[] = []
+  let scoreRiesgo = 0
+  let exposicionTotalSoles = 0
+  let engineFindings = 0
 
   try {
-    const rows = await prisma.worker.findMany({
-      where: { orgId: ctx.orgId },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        dni: true,
-        sueldoBruto: true,
-        fechaIngreso: true,
-        tipoAporte: true,
-      },
-    })
-    workers = rows.map(r => ({
-      id: r.id,
-      firstName: r.firstName,
-      lastName: r.lastName,
-      dni: r.dni,
-      sueldoBruto: r.sueldoBruto != null ? Number(r.sueldoBruto) : null,
-      fechaIngreso: r.fechaIngreso ?? null,
-      tipoAporte: r.tipoAporte ?? null,
-    }))
-  } catch (e) {
-    warnings.push(`No se pudieron cargar trabajadores: ${e instanceof Error ? e.message : 'error'}`)
+    const snapshot = await evaluateLaborRisk(ctx.orgId, { mode: 'full' })
+    engineFindings = snapshot.findings.length
+    findings = snapshot.findings.map(laborFindingToRiskFinding)
+    scoreRiesgo = snapshot.score.overall
+    exposicionTotalSoles = snapshot.exposure.potentialFineSoles
+  } catch (error) {
+    errors.push(`LaborRiskEngine no pudo calcular el barrido: ${errorMessage(error)}`)
+    warnings.push('Se devolvio un barrido parcial solo con senales preventivas disponibles.')
   }
 
-  try {
-    const rows = await prisma.contract.findMany({
-      where: { orgId: ctx.orgId },
-      select: {
-        id: true,
-        type: true,
-        expiresAt: true,
-        status: true,
-      },
-    })
-    contracts = rows.map(r => ({
-      id: r.id,
-      type: String(r.type),
-      expiresAt: r.expiresAt ?? null,
-      status: String(r.status),
-    }))
-  } catch (e) {
-    warnings.push(`No se pudieron cargar contratos: ${e instanceof Error ? e.message : 'error'}`)
+  const preventiveFindings = checkContratoPorVencer(contracts)
+  findings.push(...preventiveFindings)
+
+  const desglosePorSeveridad = summarizeSeverity(findings)
+  if (scoreRiesgo === 0 && findings.length > 0) {
+    scoreRiesgo = scoreFromSeverity(desglosePorSeveridad)
   }
-
-  // 2. Ejecutar heurísticas
-  const findings: RiskFinding[] = [
-    ...checkSueldoBajoRMV(workers),
-    ...checkContratoPorVencer(contracts),
-    ...checkSinAporte(workers),
-    ...checkVacacionesPendientes(workers),
-  ]
-
-  // 3. Calcular agregados
-  const exposicionTotalSoles = findings.reduce((acc, f) => acc + f.multaPotencialSoles, 0)
-  const desgloseInit = { CRITICO: 0, ALTO: 0, MEDIO: 0, BAJO: 0 }
-  const desglose = findings.reduce(
-    (acc, f) => {
-      acc[f.severidad] = (acc[f.severidad] || 0) + 1
-      return acc
-    },
-    desgloseInit
-  )
-
-  // Score = 100 - penalizaciones
-  const penalizacion =
-    desglose.CRITICO * 15 + desglose.ALTO * 8 + desglose.MEDIO * 3 + desglose.BAJO * 1
-  const scoreRiesgo = Math.max(0, Math.min(100, 100 - penalizacion))
+  exposicionTotalSoles += preventiveFindings.reduce((sum, finding) => sum + finding.multaPotencialSoles, 0)
 
   const data: RiskMonitorOutput = {
     scanFecha: new Date().toISOString(),
-    totalTrabajadoresEvaluados: workers.length,
+    totalTrabajadoresEvaluados: totalTrabajadores,
     totalContratosEvaluados: contracts.length,
     findings,
     exposicionTotalSoles,
     scoreRiesgo,
-    desglosePorSeveridad: desglose,
+    desglosePorSeveridad,
   }
 
-  // 4. Acciones
-  const recommendedActions: AgentAction[] = []
-  if (desglose.CRITICO > 0) {
-    recommendedActions.push({
-      id: 'fix-critical',
-      label: `Corregir ${desglose.CRITICO} riesgos críticos ahora`,
-      description: 'Estos hallazgos generan multa SUNAFIL inmediata si hay inspección',
-      type: 'navigate',
-      payload: { url: '/dashboard/diagnostico' },
-      priority: 'critical',
-    })
-  }
-  recommendedActions.push({
-    id: 'schedule-monthly',
-    label: 'Programar barrido mensual automático',
-    description: 'Activa cron diario/semanal para no perder ningún cambio',
-    type: 'create',
-    payload: { type: 'cron', schedule: '0 6 * * 1' },
-    priority: 'important',
-  })
-  recommendedActions.push({
-    id: 'view-radar',
-    label: 'Abrir Radar SUNAFIL',
-    description: 'Visualiza tu exposición total y score de riesgo en tiempo real',
-    type: 'navigate',
-    payload: { url: '/dashboard/radar' },
-    priority: 'info',
-  })
-
-  const summary = `Barrido completado sobre ${workers.length} trabajadores y ${contracts.length} contratos. Detectados ${findings.length} riesgos (${desglose.CRITICO} críticos, ${desglose.ALTO} altos). Exposición total estimada: ${formatSoles(exposicionTotalSoles)}. Score de riesgo: ${scoreRiesgo}/100.`
+  const recommendedActions = buildRecommendedActions(desglosePorSeveridad, findings)
+  const summary = `Barrido completado con el motor canonico: ${engineFindings} hallazgos LaborRisk y ${preventiveFindings.length} senales preventivas. Se evaluaron ${totalTrabajadores} trabajadores y ${contracts.length} contratos. Exposicion estimada: ${formatSoles(exposicionTotalSoles)}. Score: ${scoreRiesgo}/100.`
 
   return {
     agentSlug: 'risk-monitor',
     runId: ctx.runId,
-    status: 'success',
-    confidence: 90,
+    status: errors.length > 0 ? 'partial' : 'success',
+    confidence: errors.length > 0 ? 65 : 92,
     data,
     summary,
     warnings,
     recommendedActions,
-    model: 'comply360-rules',
+    model: 'labor-risk-engine',
     durationMs: Date.now() - start,
+    errors: errors.length > 0 ? errors : undefined,
   }
 }
 
-// Schema Zod para validar el output del agente. Si en el futuro alguien
-// rompe el contrato (cambia tipos, agrega/quita campos), el runtime lo
-// detecta y degrada a `partial` en lugar de explotar en producción.
+function laborFindingToRiskFinding(finding: LaborRiskFinding): RiskFinding {
+  const affected = finding.affectedEntities.slice(0, 3).map((item) => item.label).join(', ')
+  const remaining = finding.affectedEntities.length > 3
+    ? ` y ${finding.affectedEntities.length - 3} mas`
+    : ''
+
+  return {
+    id: `labor-risk-${finding.id}`,
+    categoria: categoryFromArea(finding.area),
+    severidad: severityFromLabor(finding.severity),
+    titulo: finding.title,
+    descripcion: [
+      finding.action,
+      finding.missingEvidence.length > 0
+        ? `Evidencia faltante: ${finding.missingEvidence.join(' ')}`
+        : null,
+    ].filter(Boolean).join(' '),
+    entidadAfectada: affected ? `${affected}${remaining}` : undefined,
+    multaPotencialSoles: finding.potentialFineSoles,
+    baseLegal: finding.baseLegal,
+    fixSugerido: finding.action,
+    fixUrl: finding.route,
+  }
+}
+
+function categoryFromArea(area: LaborRiskArea): RiskFinding['categoria'] {
+  if (area === 'SST') return 'SST'
+  if (area === 'CONTRATOS' || area === 'TERCEROS') return 'CONTRATO'
+  if (area === 'PLANILLA' || area === 'BENEFICIOS') return 'REMUNERACION'
+  if (area === 'SEGURIDAD_SOCIAL') return 'PREVISIONAL'
+  if (area === 'DOCUMENTOS') return 'DOCUMENTO'
+  if (area === 'JORNADA') return 'VACACIONES'
+  return 'OTRO'
+}
+
+function severityFromLabor(severity: LaborRiskSeverity): RiskFinding['severidad'] {
+  if (severity === 'CRITICAL') return 'CRITICO'
+  if (severity === 'HIGH') return 'ALTO'
+  if (severity === 'MEDIUM') return 'MEDIO'
+  return 'BAJO'
+}
+
+function checkContratoPorVencer(contracts: ContractLike[]): RiskFinding[] {
+  const now = new Date()
+  const en30 = new Date(now.getTime() + 30 * 24 * 3600 * 1000)
+
+  return contracts
+    .filter((contract) => contract.expiresAt && contract.expiresAt > now && contract.expiresAt <= en30)
+    .map((contract) => {
+      const expiresAt = contract.expiresAt!
+      const dias = Math.ceil((expiresAt.getTime() - now.getTime()) / (24 * 3600 * 1000))
+      return {
+        id: `contract-expiring-${contract.id}`,
+        categoria: 'CONTRATO' as const,
+        severidad: dias <= 7 ? 'ALTO' as const : 'MEDIO' as const,
+        titulo: `Contrato vence en ${dias} dias`,
+        descripcion: `Contrato ${contract.type} (${contract.id.slice(0, 8)}) vence el ${expiresAt.toISOString().slice(0, 10)}.`,
+        multaPotencialSoles: 0,
+        baseLegal: 'Riesgo preventivo de desnaturalizacion por continuidad laboral.',
+        fixSugerido: 'Decidir entre renovar, finalizar o convertir antes del vencimiento.',
+        fixUrl: `/dashboard/contratos/${contract.id}`,
+      }
+    })
+}
+
+function summarizeSeverity(findings: RiskFinding[]): RiskMonitorOutput['desglosePorSeveridad'] {
+  return findings.reduce(
+    (acc, finding) => {
+      acc[finding.severidad] += 1
+      return acc
+    },
+    { CRITICO: 0, ALTO: 0, MEDIO: 0, BAJO: 0 },
+  )
+}
+
+function scoreFromSeverity(desglose: RiskMonitorOutput['desglosePorSeveridad']) {
+  const penalty = desglose.CRITICO * 15 + desglose.ALTO * 8 + desglose.MEDIO * 3 + desglose.BAJO
+  return Math.max(0, Math.min(100, 100 - penalty))
+}
+
+function buildRecommendedActions(
+  desglose: RiskMonitorOutput['desglosePorSeveridad'],
+  findings: RiskFinding[],
+): AgentAction[] {
+  const actions: AgentAction[] = []
+  if (desglose.CRITICO > 0 || desglose.ALTO > 0) {
+    actions.push({
+      id: 'create-remediation-plan',
+      label: 'Crear plan anti-multas',
+      description: 'Convierte los hallazgos principales en tareas con responsable, plazo y evidencia.',
+      type: 'navigate',
+      payload: { url: '/dashboard/riesgo-laboral' },
+      priority: 'critical',
+    })
+  }
+  if (findings.some((finding) => finding.categoria === 'SST')) {
+    actions.push({
+      id: 'open-sst',
+      label: 'Revisar SST preventivo',
+      description: 'Atiende IPERC, EMO, EPP, comite y capacitaciones desde el modulo SST.',
+      type: 'navigate',
+      payload: { url: '/dashboard/sst' },
+      priority: 'important',
+    })
+  }
+  actions.push({
+    id: 'open-labor-risk',
+    label: 'Abrir Riesgo Laboral',
+    description: 'Ver exposicion, evidencia y prioridades calculadas por el motor canonico.',
+    type: 'navigate',
+    payload: { url: '/dashboard/riesgo-laboral' },
+    priority: 'info',
+  })
+  return actions
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'error desconocido'
+}
+
 const RiskFindingSchema = z.object({
   id: z.string(),
   categoria: z.enum(['CONTRATO', 'REMUNERACION', 'PREVISIONAL', 'VACACIONES', 'DOCUMENTO', 'SST', 'OTRO']),
@@ -359,12 +301,12 @@ export const riskMonitorAgent: AgentDefinition<AgentInput, RiskMonitorOutput> = 
   slug: 'risk-monitor',
   name: 'Monitor de Riesgo Proactivo',
   description:
-    'Ejecuta un barrido completo sobre todos los trabajadores y contratos de tu organización detectando incumplimientos: sueldos bajo RMV, contratos por vencer, trabajadores sin AFP/ONP, vacaciones acumuladas. Devuelve la exposición total en soles y un score de riesgo.',
+    'Ejecuta un barrido canonico de riesgo laboral, evidencia, SST y exposicion SUNAFIL usando el mismo motor de Riesgo Laboral.',
   category: 'compliance',
   icon: 'Radar',
   status: 'beta',
   acceptedInputs: ['json'],
-  estimatedTokens: 0, // no usa LLM
+  estimatedTokens: 0,
   run: runRiskMonitor,
   outputSchema: RiskMonitorOutputSchema,
 }

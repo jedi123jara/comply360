@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 import { hasMinRole } from '@/lib/api-auth'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
+import { payslipBatchSchema } from '@/lib/workers/schemas'
 
 // =============================================
 // POST /api/payslips/batch — Generate payslips for multiple workers
@@ -15,15 +17,19 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
   }
 
   const orgId = ctx.orgId
-  const body = await req.json()
-  const { periodo, workerIds } = body as {
-    periodo: string
-    workerIds?: string[]
-  }
+  const body = await req.json().catch(() => ({}))
 
-  if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
-    return NextResponse.json({ error: 'El campo "periodo" debe tener formato YYYY-MM' }, { status: 400 })
+  // Validación zod: periodo (YYYY-MM) + workerIds (array de strings, opcional).
+  // Antes workerIds llegaba crudo a `{ id: { in: workerIds } }` y un valor que
+  // no fuera array de strings reventaba Prisma con 500.
+  const parsed = payslipBatchSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Datos inválidos', details: parsed.error.flatten() },
+      { status: 400 },
+    )
   }
+  const { periodo, workerIds } = parsed.data
 
   // Load target workers
   const workers = await prisma.worker.findMany({
@@ -38,7 +44,9 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
       asignacionFamiliar: true,
       tipoAporte: true,
       afpNombre: true,
+      afpComisionTipo: true,
       sctr: true,
+      turnoNocturno: true,
       regimenLaboral: true,
       firstName: true,
       lastName: true,
@@ -50,8 +58,9 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
   }
 
   // Find existing payslips for this period to skip duplicates
+  const loadedWorkerIds = workers.map((w) => w.id)
   const existingPayslips = await prisma.payslip.findMany({
-    where: { orgId, periodo, workerId: { in: workers.map(w => w.id) } },
+    where: { orgId, periodo, workerId: { in: loadedWorkerIds } },
     select: { workerId: true },
   })
   const existingSet = new Set(existingPayslips.map(p => p.workerId))
@@ -60,11 +69,23 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
   const mes = parseInt(mmStr, 10)
   const year = periodo.split('-')[0]
 
-  let created = 0
+  // FIX N+1: precargar TODAS las boletas previas del año (de todos los workers) en
+  // UNA query y agrupar la renta 5ta acumulada por workerId, en vez de hacer una
+  // query por trabajador dentro del bucle.
+  const priorPayslips = await prisma.payslip.findMany({
+    where: { orgId, workerId: { in: loadedWorkerIds }, periodo: { startsWith: year, lt: periodo } },
+    select: { workerId: true, rentaQuintaCat: true },
+  })
+  const retencionByWorker = new Map<string, number>()
+  for (const p of priorPayslips) {
+    retencionByWorker.set(p.workerId, (retencionByWorker.get(p.workerId) ?? 0) + Number(p.rentaQuintaCat ?? 0))
+  }
+
   let skipped = 0
   const errors: { workerId: string; workerName: string; error: string }[] = []
+  const toCreate: Prisma.PayslipCreateManyInput[] = []
 
-  // Process in batch
+  // Process in batch (cómputo en memoria; persistencia en un único createMany).
   for (const worker of workers) {
     if (existingSet.has(worker.id)) {
       skipped++
@@ -72,54 +93,46 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
     }
 
     try {
-      // Sum prior renta 5ta
-      const prevPayslips = await prisma.payslip.findMany({
-        where: { workerId: worker.id, orgId, periodo: { startsWith: year, lt: periodo } },
-        select: { rentaQuintaCat: true },
-      })
-      const retencionAcumulada = prevPayslips.reduce(
-        (sum, p) => sum + Number(p.rentaQuintaCat ?? 0),
-        0,
-      )
+      const retencionAcumulada = retencionByWorker.get(worker.id) ?? 0
 
       const boletaInput: BoletaInput = {
         sueldoBruto: Number(worker.sueldoBruto),
         asignacionFamiliar: worker.asignacionFamiliar,
         tipoAporte: worker.tipoAporte as 'AFP' | 'ONP' | 'SIN_APORTE',
         afpNombre: worker.afpNombre ?? undefined,
+        afpComisionTipo: worker.afpComisionTipo ?? undefined,
         sctr: worker.sctr,
         regimenLaboral: worker.regimenLaboral,
+        jornadaNocturna: worker.turnoNocturno,
         horasExtras: 0,
         bonificaciones: 0,
         incluirGratificacion: mes === 7 || mes === 12,
         mes,
+        periodo,
         retencionRentaAcumulada: retencionAcumulada,
       }
 
       const result = calcularBoleta(boletaInput)
 
-      await prisma.payslip.create({
-        data: {
-          orgId,
-          workerId: worker.id,
-          periodo,
-          fechaEmision: new Date(),
-          sueldoBruto: result.sueldoBruto,
-          asignacionFamiliar: result.asignacionFamiliar || null,
-          horasExtras: null,
-          bonificaciones: null,
-          totalIngresos: result.totalIngresos,
-          aporteAfpOnp: result.aporteAfpOnp || null,
-          rentaQuintaCat: result.rentaQuintaCat || null,
-          otrosDescuentos: null,
-          totalDescuentos: result.totalDescuentos,
-          netoPagar: result.netoPagar,
-          essalud: result.essalud || null,
-          detalleJson: result.detalleJson,
-          status: 'EMITIDA',
-        },
+      toCreate.push({
+        orgId,
+        workerId: worker.id,
+        periodo,
+        fechaEmision: new Date(),
+        sueldoBruto: result.sueldoBruto,
+        asignacionFamiliar: result.asignacionFamiliar || null,
+        horasExtras: null,
+        bonificaciones: null,
+        totalIngresos: result.totalIngresos,
+        aporteAfpOnp: result.aporteAfpOnp || null,
+        rentaQuintaCat: result.rentaQuintaCat || null,
+        otrosDescuentos: null,
+        totalDescuentos: result.totalDescuentos,
+        netoPagar: result.netoPagar,
+        essalud: result.essalud || null,
+        detalleJson: result.detalleJson,
+        status: 'EMITIDA',
       })
-      created++
     } catch (err) {
       errors.push({
         workerId: worker.id,
@@ -127,6 +140,13 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
         error: err instanceof Error ? err.message : 'Error desconocido',
       })
     }
+  }
+
+  // FIX N+1: una sola escritura batch en vez de un create por trabajador.
+  let created = 0
+  if (toCreate.length > 0) {
+    const res = await prisma.payslip.createMany({ data: toCreate })
+    created = res.count
   }
 
   return NextResponse.json({

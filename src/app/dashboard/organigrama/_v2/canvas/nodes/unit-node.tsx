@@ -21,6 +21,7 @@ import {
   BriefcaseBusiness,
   ShieldCheck,
   Landmark,
+  Layers3,
 } from 'lucide-react'
 
 import {
@@ -73,6 +74,8 @@ function UnitNodeInner(props: UnitNodeProps) {
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
   const Icon = KIND_ICON[data.unitKind] ?? Building2
+  const hierarchyLabel =
+    data.hierarchyLevel <= 0 ? 'Nivel ejecutivo' : `Nivel ${data.hierarchyLevel + 1}`
 
   return (
     <m.div
@@ -115,6 +118,20 @@ function UnitNodeInner(props: UnitNodeProps) {
       />
 
       <div className="relative px-3 pt-2 pb-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[10px] font-medium text-slate-500">
+            <Layers3 className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">{hierarchyLabel}</span>
+          </span>
+          {data.unitPath && data.unitPath !== data.name && (
+            <span
+              className="max-w-[126px] truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500"
+              title={data.unitPath}
+            >
+              {data.unitPath}
+            </span>
+          )}
+        </div>
         {/* Header: kind + name */}
         <div className="flex items-center gap-2">
           <span

@@ -50,7 +50,7 @@ async function loadWorkers(orgId: string) {
     where: { orgId, status: { not: 'TERMINATED' } },
     include: {
       documents: {
-        select: { documentType: true, status: true, expiresAt: true },
+        select: { documentType: true, status: true, expiresAt: true, fileUrl: true },
       },
       workerContracts: {
         include: {
@@ -68,7 +68,21 @@ async function loadWorkers(orgId: string) {
 // FUNCIÓN PRINCIPAL
 // ─────────────────────────────────────────────────────────────
 export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
-  const [workers, org, sstRecords, complaints, diagnostics] = await Promise.all([
+  const now = new Date()
+  const yearStart = new Date(now.getFullYear(), 0, 1)
+  const [
+    workers,
+    org,
+    sstRecords,
+    complaints,
+    diagnostics,
+    orgDocuments,
+    ipercBases,
+    comites,
+    emos,
+    workerEpps,
+    workerCapacitaciones,
+  ] = await Promise.all([
     loadWorkers(orgId),
     prisma.organization.findUnique({
       where: { id: orgId },
@@ -76,7 +90,7 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
     }),
     prisma.sstRecord.findMany({
       where: { orgId },
-      select: { type: true, status: true, createdAt: true },
+      select: { type: true, status: true, title: true, createdAt: true, completedAt: true },
     }),
     prisma.complaint.findMany({
       where: { orgId },
@@ -87,13 +101,67 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
       orderBy: { createdAt: 'desc' },
       select: { scoreGlobal: true, scoreByArea: true },
     }),
+    prisma.orgDocument.findMany({
+      where: { orgId },
+      select: { type: true, title: true, description: true, fileUrl: true, validUntil: true, updatedAt: true },
+    }),
+    prisma.iPERCBase.findMany({
+      where: { orgId },
+      select: { estado: true, fechaAprobacion: true },
+    }),
+    prisma.comiteSST.findMany({
+      where: { orgId },
+      select: { estado: true, mandatoFin: true },
+    }),
+    prisma.eMO.findMany({
+      where: { orgId },
+      select: { workerId: true, proximoExamenAntes: true },
+    }),
+    prisma.workerEPP.findMany({
+      where: { orgId },
+      select: { workerId: true, fechaVencimiento: true },
+    }),
+    prisma.workerCapacitacionSST.findMany({
+      where: { orgId, fechaCapacitacion: { gte: yearStart } },
+      select: { workerId: true, tipo: true, temario: true, fechaCapacitacion: true },
+    }),
   ])
 
   const totalTrabajadores = workers.length
   const tipoEmpresa = clasificarEmpresa(totalTrabajadores, org?.sizeRange)
 
   const riesgos: RiesgoDetectado[] = []
-  const now = new Date()
+
+  const hasUsableWorkerDoc = (worker: WorkerWithRelations, ...types: string[]) =>
+    worker.documents.some((doc) => {
+      if (!types.includes(doc.documentType)) return false
+      if (doc.status === 'MISSING' || doc.status === 'EXPIRED') return false
+      if (doc.expiresAt && new Date(doc.expiresAt) < now) return false
+      return true
+    })
+
+  const hasUsableOrgDoc = (...types: string[]) =>
+    orgDocuments.some((doc) => {
+      if (!types.includes(String(doc.type))) return false
+      if (!doc.fileUrl) return false
+      return !doc.validUntil || doc.validUntil >= now
+    })
+
+  const orgDocSearchText = orgDocuments.map((doc) =>
+    `${doc.type} ${doc.title} ${doc.description ?? ''}`.toLowerCase(),
+  )
+
+  const hasOrgDocText = (...tokens: string[]) =>
+    orgDocSearchText.some((text) => tokens.every((token) => text.includes(token)))
+
+  const completedAt = (record: (typeof sstRecords)[number]) => record.completedAt ?? record.createdAt
+  const isFresh = (date: Date | null | undefined, maxDays: number) =>
+    Boolean(date) && now.getTime() - date!.getTime() <= maxDays * 24 * 3600 * 1000
+  const hasCompletedSstRecord = (type: string, maxDays?: number) =>
+    sstRecords.some((record) => {
+      if (record.type !== type || record.status !== 'COMPLETED') return false
+      return maxDays ? isFresh(completedAt(record), maxDays) : true
+    })
 
   // ─── 1. RMV ─────────────────────────────────────────────
   const trabajadoresBajoRMV = workers.filter(w => {
@@ -134,10 +202,8 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
 
   // ─── 3. Sin T-REGISTRO ──────────────────────────────────
   const sinTRegistro = workers.filter(w =>
-    !w.documents.some(d =>
-      (d.documentType === 't_registro' || d.documentType === 't-registro') &&
-      d.status !== 'MISSING'
-    )
+    !w.flagTRegistroPresentado &&
+    !hasUsableWorkerDoc(w, 't_registro', 't-registro', 'T_REGISTRO_CONSTANCIA_ALTA')
   )
   if (sinTRegistro.length > 0) {
     const infraccion = findInfraccion('DS019-25.2')!
@@ -165,14 +231,19 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
   }
 
   // ─── 5. Exámenes médicos vencidos o sin registrar ────────
+  const workersConEmoVigente = new Set(
+    emos
+      .filter((emo) => !emo.proximoExamenAntes || emo.proximoExamenAntes >= now)
+      .map((emo) => emo.workerId),
+  )
+  const workersConEmoVencido = new Set(
+    emos
+      .filter((emo) => emo.proximoExamenAntes && emo.proximoExamenAntes < now)
+      .map((emo) => emo.workerId),
+  )
   const sinExamen = workers.filter(w => {
-    const emo = w.documents.find(d =>
-      d.documentType === 'examen_medico_periodico' ||
-      d.documentType === 'examen_medico_ingreso'
-    )
-    if (!emo || emo.status === 'MISSING') return true
-    if (emo.expiresAt && new Date(emo.expiresAt) < now) return true
-    return false
+    if (workersConEmoVigente.has(w.id)) return false
+    return !hasUsableWorkerDoc(w, 'examen_medico_periodico', 'examen_medico_ingreso')
   })
   if (sinExamen.length > 0) {
     const infraccion = findInfraccion('DS019-28.6')!
@@ -180,13 +251,21 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
     riesgos.push(buildRiesgo(infraccion, sinExamen.map(w => ({
       id: w.id,
       nombre: `${w.firstName} ${w.lastName}`,
-      detalle: 'Sin examen médico ocupacional vigente en legajo',
+      detalle: workersConEmoVencido.has(w.id)
+        ? 'Examen médico ocupacional vencido en el módulo EMO'
+        : 'Sin examen médico ocupacional vigente en legajo ni módulo EMO',
     })), multaSoles, 8))
   }
 
   // ─── 6. Sin EPP documentado ─────────────────────────────
+  const workersConEppVigente = new Set(
+    workerEpps
+      .filter((epp) => !epp.fechaVencimiento || epp.fechaVencimiento >= now)
+      .map((epp) => epp.workerId),
+  )
   const sinEpp = workers.filter(w =>
-    !w.documents.some(d => d.documentType === 'entrega_epp' && d.status !== 'MISSING')
+    !workersConEppVigente.has(w.id) &&
+    !hasUsableWorkerDoc(w, 'entrega_epp')
   )
   if (sinEpp.length > 0) {
     const infraccion = findInfraccion('DS019-28.9')!
@@ -213,11 +292,11 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
   }
 
   // ─── 8. SCTR vencido ────────────────────────────────────
+  const hasSctrPolizaOrg = hasUsableOrgDoc('SCTR_POLIZA')
   const sctrVencidos = workers.filter(w => {
+    if (hasSctrPolizaOrg) return false
     if (!w.sctr) return false
-    const sctrDoc = w.documents.find(d => d.documentType === 'sctr')
-    if (!sctrDoc || sctrDoc.status === 'MISSING') return true
-    return sctrDoc.expiresAt && new Date(sctrDoc.expiresAt) < now
+    return !hasUsableWorkerDoc(w, 'sctr')
   })
   if (sctrVencidos.length > 0) {
     const infraccion = findInfraccion('DS019-26.3')!
@@ -230,7 +309,10 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
   }
 
   // ─── 9. Sin IPERC ───────────────────────────────────────
-  const hasIperc = sstRecords.some(r => r.type === 'IPERC' && r.status === 'COMPLETED')
+  const hasIpercBaseVigente = ipercBases.some((iperc) =>
+    iperc.estado === 'VIGENTE' && (!iperc.fechaAprobacion || isFresh(iperc.fechaAprobacion, 365))
+  )
+  const hasIperc = hasIpercBaseVigente || hasCompletedSstRecord('IPERC', 365)
   if (!hasIperc) {
     const infraccion = findInfraccion('DS019-28.2')!
     const multaSoles = calcularMultaSunafilSoles(tipoEmpresa, 'GRAVE', totalTrabajadores)
@@ -240,7 +322,8 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
   }
 
   // ─── 10. Sin Comité / Supervisor SST ────────────────────
-  const hasComite = sstRecords.some(r => r.type === 'ACTA_COMITE')
+  const hasComite = comites.some((comite) => comite.estado === 'VIGENTE' && comite.mandatoFin >= now) ||
+    hasCompletedSstRecord('ACTA_COMITE')
   if (!hasComite) {
     const infraccion = findInfraccion('DS019-28.3')!
     const multaSoles = calcularMultaSunafilSoles(tipoEmpresa, 'GRAVE', totalTrabajadores)
@@ -253,12 +336,17 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
   }
 
   // ─── 11. Capacitaciones SST < 4 al año ──────────────────
-  const yearStart = new Date(now.getFullYear(), 0, 1)
-  const capsAnio = sstRecords.filter(r =>
+  const legacyCapsAnio = sstRecords.filter(r =>
     r.type === 'CAPACITACION' &&
     r.status === 'COMPLETED' &&
     new Date(r.createdAt) >= yearStart
   ).length
+  const modernCapsAnio = new Set(
+    workerCapacitaciones
+      .filter((cap) => cap.tipo !== 'HOSTIGAMIENTO')
+      .map((cap) => `${cap.fechaCapacitacion.toISOString().slice(0, 10)}|${cap.tipo}|${cap.temario}`),
+  ).size
+  const capsAnio = Math.max(legacyCapsAnio, modernCapsAnio)
   if (capsAnio < 4) {
     const infraccion = findInfraccion('DS019-28.5')!
     const multaSoles = calcularMultaSunafilSoles(tipoEmpresa, 'GRAVE', totalTrabajadores)
@@ -269,7 +357,9 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
 
   // ─── 12. Sin canal de denuncias / política hostigamiento ─
   const hasCanal = complaints.length > 0 ||
-    sstRecords.some(r => r.type === 'POLITICA_SST' && r.status === 'COMPLETED')
+    hasUsableOrgDoc('POLITICA_HOSTIGAMIENTO', 'PROTOCOLO_DENUNCIAS') ||
+    hasOrgDocText('hostigamiento') ||
+    hasOrgDocText('canal', 'denuncia')
   if (!hasCanal) {
     const infraccion = findInfraccion('DS019-24.13')!
     const multaSoles = calcularMultaSunafilSoles(tipoEmpresa, 'MUY_GRAVE', totalTrabajadores)
@@ -329,7 +419,8 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
   const scoreIgualdad = diagnostics
     ? ((diagnostics.scoreByArea as Record<string, number>)?.igualdad_nodiscriminacion ?? null)
     : null
-  const hasCuadro = sstRecords.some(r => r.type === 'POLITICA_SST' && r.status === 'COMPLETED')
+  const hasCuadro = hasUsableOrgDoc('CUADRO_CATEGORIAS_LEY_30709', 'POLITICA_IGUALDAD') ||
+    sstRecords.some(r => r.title.startsWith('CUADRO_CATEGORIA:'))
   if (!hasCuadro && (scoreIgualdad === null || scoreIgualdad < 50)) {
     const infraccion = findInfraccion('DS019-24.16')!
     const multaSoles = calcularMultaSunafilSoles(tipoEmpresa, 'GRAVE', totalTrabajadores)

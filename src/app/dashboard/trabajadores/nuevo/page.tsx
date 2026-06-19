@@ -83,6 +83,7 @@ interface FormData {
   essaludVida: boolean
   sctr: boolean
   sctrRiesgoNivel: string
+  turnoNocturno: boolean
   // Condiciones especiales (peruanas)
   discapacidad: boolean
   discapacidadTipo: string
@@ -109,11 +110,12 @@ const INITIAL: FormData = {
   tiempoCompleto: true,
   tipoAporte: 'AFP',
   afpNombre: '',
-  afpComisionTipo: 'MIXTA',
+  afpComisionTipo: 'FLUJO',
   cuspp: '',
   essaludVida: false,
   sctr: false,
   sctrRiesgoNivel: '',
+  turnoNocturno: false,
   discapacidad: false,
   discapacidadTipo: '',
   tipoJornada: 'DIURNO',
@@ -748,8 +750,9 @@ export default function NuevoTrabajadorPage() {
                       onChange={e => update('afpComisionTipo', e.target.value)}
                       className={inputClass('afpComisionTipo')}
                     >
-                      <option value="MIXTA">Mixta (sobre flujo + saldo)</option>
-                      <option value="FLUJO">Por flujo (solo sobre remuneración)</option>
+                      <option value="FLUJO">Por flujo (se descuenta del sueldo)</option>
+                      <option value="SALDO">Por saldo (0% sobre el sueldo)</option>
+                      <option value="MIXTA">Mixta (antigua, ya no vigente)</option>
                     </select>
                   </div>
                 </>
@@ -772,6 +775,15 @@ export default function NuevoTrabajadorPage() {
                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
                   />
                   <span className="text-sm text-[color:var(--text-secondary)]">SCTR (riesgo)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.turnoNocturno}
+                    onChange={e => update('turnoNocturno', e.target.checked)}
+                    className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
+                  />
+                  <span className="text-sm text-[color:var(--text-secondary)]">Turno nocturno (10pm–6am)</span>
                 </label>
               </div>
               {form.sctr && (

@@ -281,7 +281,7 @@ function IntroCover({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StepIcon
           icon={FileText}
-          title="Respondé"
+          title="Responde"
           description="Sí / Parcial / No. Cada pregunta ponderada por gravedad, peso y multa asociada."
         />
         <StepIcon
@@ -513,7 +513,7 @@ function QuestionStep({
         </div>
         <div className="text-xs text-[color:var(--text-tertiary)] inline-flex items-center gap-1">
           <ArrowRight className="h-3.5 w-3.5" />
-          Elegí una opción
+          Elige una opción
         </div>
       </div>
     </section>

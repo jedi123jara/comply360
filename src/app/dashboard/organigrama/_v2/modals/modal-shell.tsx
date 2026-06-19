@@ -16,7 +16,7 @@ export interface ModalShellProps {
   title: string
   subtitle?: string
   icon?: ReactNode
-  width?: 'sm' | 'md' | 'lg' | 'xl'
+  width?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   children: ReactNode
   /** Footer custom — si se omite, no se muestra. */
   footer?: ReactNode
@@ -27,6 +27,7 @@ const WIDTH_CLASS = {
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
+  '2xl': 'max-w-6xl',
 }
 
 export function ModalShell({

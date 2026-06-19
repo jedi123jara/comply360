@@ -1,6 +1,9 @@
 import {
   PERU_LABOR,
   calcularRemuneracionComputable,
+  getPrimaSeguroSPP,
+  getRemuneracionMaximaAsegurable,
+  getComisionFlujoAFP,
 } from '../peru-labor'
 import { money, sumMoney } from '../money'
 import { formatSoles } from '@/lib/format/peruvian'
@@ -12,13 +15,9 @@ const fmt = formatSoles
 // TUO Ley del SPP (D.S. 054-97-EF), D.Ley 19990, Ley 26790
 // =============================================
 
-// AFP rates by fund (approximate averages 2026)
-const AFP_RATES: Record<string, { aporte: number; seguro: number; comision_flujo: number }> = {
-  HABITAT: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0038 },
-  INTEGRA: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0055 },
-  PRIMA: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0018 },
-  PROFUTURO: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0069 },
-}
+// El aporte obligatorio (10%), la prima del seguro (versionada por periodo) y la
+// comisión por flujo (por AFP) viven centralizados en peru-labor.ts y se leen con
+// sus helpers. Ya no se duplican aquí — antes la comisión estaba ~1 punto baja.
 
 const ONP_RATE = 0.13  // 13% fixed
 const ESSALUD_RATE = PERU_LABOR.APORTES.ESSALUD_TASA  // 9% employer
@@ -35,13 +34,15 @@ export interface AportesInput {
   afpNombre?: string
   sctr: boolean
   horasExtras?: number  // monto horas extras del mes
+  periodo?: string      // 'YYYY-MM' — elige RMA y prima vigentes (default: la más reciente)
+  afpComisionTipo?: string // 'FLUJO' | 'SALDO' | 'MIXTA'(legacy). 'SALDO' → comisión 0 sobre el sueldo.
 }
 
 export interface AportesResult {
   remuneracionComputable: number
   // Worker deductions
   aporteObligatorio: number  // AFP 10% or ONP 13%
-  seguroInvalidez: number    // AFP only ~1.84%
+  seguroInvalidez: number    // AFP only — prima SPP vigente (~1.37%), topada por la RMA
   comisionAfp: number        // AFP only, varies
   totalDescuentoTrabajador: number
   // Employer contributions
@@ -84,11 +85,27 @@ export function calcularAportesPrevisionales(input: AportesInput): AportesResult
 
   if (input.tipoAporte === 'AFP') {
     const afpKey = (input.afpNombre ?? 'PRIMA').toUpperCase()
-    const afpRates = AFP_RATES[afpKey] ?? AFP_RATES.PRIMA
 
-    aporteObligatorio = remM.mul(afpRates.aporte).toNumber()
-    seguroInvalidez = remM.mul(afpRates.seguro).toNumber()
-    comisionAfp = remM.mul(afpRates.comision_flujo).toNumber()
+    // La prima del seguro se cobra SOLO hasta la Remuneración Máxima Asegurable
+    // (RMA) que publica la SBS cada trimestre — antes se aplicaba sobre toda la
+    // remuneración, sobrecargando a sueldos altos. El aporte 10% y la comisión por
+    // flujo NO se topan: van sobre la remuneración completa.
+    const rma = getRemuneracionMaximaAsegurable(input.periodo)
+    const baseSeguro = money(Math.min(remuneracionComputable, rma))
+    const primaTasa = getPrimaSeguroSPP(input.periodo)
+
+    aporteObligatorio = remM.mul(PERU_LABOR.APORTES.AFP_APORTE_OBLIGATORIO).toNumber()
+    seguroInvalidez = baseSeguro.mul(primaTasa).toNumber()
+    // La comisión sobre el sueldo SOLO existe en el esquema "por flujo". En "por
+    // saldo" Y en la "mixta" (cuyo componente de flujo es 0% desde feb-2023) la
+    // comisión se cobra contra el FONDO, no sobre la remuneración → 0 en la boleta.
+    // Default (sin clasificar / null) = flujo, para no alterar las boletas actuales
+    // hasta que se clasifique a cada trabajador. (Validado vs SBS, jun-2026.)
+    const sinComisionSobreSueldo =
+      input.afpComisionTipo === 'SALDO' || input.afpComisionTipo === 'MIXTA'
+    comisionAfp = sinComisionSobreSueldo
+      ? 0
+      : remM.mul(getComisionFlujoAFP(afpKey)).toNumber()
     sistema = `AFP ${capitalize(afpKey)}`
     baseLegal = PERU_LABOR.APORTES.BASE_LEGAL_AFP
   } else if (input.tipoAporte === 'ONP') {
@@ -145,7 +162,7 @@ export function compararAfpVsOnp(input: Omit<AportesInput, 'tipoAporte' | 'afpNo
   onp: AportesResult
 } {
   const afps: Record<string, AportesResult> = {}
-  for (const afpNombre of Object.keys(AFP_RATES)) {
+  for (const afpNombre of Object.keys(PERU_LABOR.APORTES.COMISION_FLUJO_AFP)) {
     afps[afpNombre] = calcularAportesPrevisionales({
       ...input,
       tipoAporte: 'AFP',

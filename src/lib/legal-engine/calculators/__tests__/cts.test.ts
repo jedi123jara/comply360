@@ -33,10 +33,10 @@ describe('calcularCTS', () => {
 
     it('debe calcular CTS para semestre completo', () => {
       const result = calcularCTS(input)
-      // Nov 1 to May 15 = 6 months + 14 days
-      // CTS = (3500 / 12) * 6 + (3500 / 360) * 14 = 1750 + 136.11... ≈ 1876.39 (with days beyond 6m)
-      // Meses are capped at 6, but the period calculation includes extra days
-      expect(result.ctsTotal).toBeCloseTo(1876.39, 2)
+      // Semestre completo (1-nov a 30-abr) = 6 meses exactos, 0 días.
+      // CTS = (3500 / 12) * 6 = 1750 = media remuneración computable (D.S. 001-97-TR).
+      expect(result.diasComputables).toBe(0)
+      expect(result.ctsTotal).toBeCloseTo(1750, 2)
     })
 
     it('debe referenciar D.S. 001-97-TR como base legal', () => {
@@ -68,9 +68,8 @@ describe('calcularCTS', () => {
 
     it('debe calcular CTS correcta con asignacion familiar', () => {
       const result = calcularCTS(input)
-      // Nov 1 to May 15 = 6 months + 14 days
-      // CTS = (3048.50 / 12) * 6 + (3048.50 / 360) * 14 = 1524.25 + 118.55... ≈ 1634.33 (aprox with days)
-      expect(result.ctsTotal).toBeCloseTo(1634.33, 2)
+      // Semestre completo = 6 meses exactos. CTS = (3048.50 / 12) * 6 = 1524.25.
+      expect(result.ctsTotal).toBeCloseTo(1524.25, 2)
     })
   })
 
@@ -131,11 +130,11 @@ describe('calcularCTS', () => {
 
     it('debe calcular CTS correcta para deposito noviembre', () => {
       const result = calcularCTS(input)
-      // remComp = 4000 + 4000/6 = 4000 + 666.67 = 4666.67
-      // May 1 to Nov 15 = 6 months + 14 days
-      // CTS = (4666.67 / 12) * 6 + (4666.67 / 360) * 14 = 2333.33 + 181.48... ≈ 2527.78 (with days)
+      // remComp = 4000 + 4000/6 = 4666.67
+      // Semestre completo (1-may a 31-oct) = 6 meses exactos.
+      // CTS = (4666.67 / 12) * 6 = 2333.33 = media remuneración computable.
       expect(result.remuneracionComputable).toBeCloseTo(4666.67, 1)
-      expect(result.ctsTotal).toBeCloseTo(2527.78, 0)
+      expect(result.ctsTotal).toBeCloseTo(2333.33, 2)
     })
   })
 

@@ -13,7 +13,9 @@
 import { NextResponse } from 'next/server'
 import { withPlanGate } from '@/lib/plan-gate'
 import { prisma } from '@/lib/prisma'
-import { getAcknowledgmentProgress } from '@/lib/documents/acknowledgments'
+import { getAcknowledgmentProgressBatch, type AckProgress } from '@/lib/documents/acknowledgments'
+
+const EMPTY_PROGRESS: AckProgress = { total: 0, signed: 0, pending: 0, signedPct: 100, version: 0 }
 
 export const GET = withPlanGate('contratos', async (_req, ctx) => {
   const docs = await prisma.orgDocument.findMany({
@@ -26,6 +28,7 @@ export const GET = withPlanGate('contratos', async (_req, ctx) => {
       type: true,
       title: true,
       version: true,
+      scopeFilter: true,
       isPublishedToWorkers: true,
       publishedAt: true,
       lastNotifiedAt: true,
@@ -35,16 +38,16 @@ export const GET = withPlanGate('contratos', async (_req, ctx) => {
     orderBy: [{ isPublishedToWorkers: 'desc' }, { updatedAt: 'desc' }],
   })
 
-  // Calcular progreso para cada doc en paralelo
-  const withProgress = await Promise.all(
-    docs.map(async (doc) => {
-      const progress = await getAcknowledgmentProgress(ctx.orgId, doc.id)
-      return {
-        ...doc,
-        progress,
-      }
-    }),
+  // FIX N+1: progreso calculado en batch (2 queries totales) en vez de 3 queries
+  // por documento.
+  const progressMap = await getAcknowledgmentProgressBatch(
+    ctx.orgId,
+    docs.map((d) => ({ id: d.id, version: d.version, scopeFilter: d.scopeFilter })),
   )
+  const withProgress = docs.map((doc) => ({
+    ...doc,
+    progress: progressMap.get(doc.id) ?? { ...EMPTY_PROGRESS, version: doc.version },
+  }))
 
   return NextResponse.json({
     documents: withProgress,

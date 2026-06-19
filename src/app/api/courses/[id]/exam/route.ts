@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@/generated/prisma/client'
 import { withAuthParams } from '@/lib/api-auth'
 import { emit } from '@/lib/events'
 
@@ -79,35 +80,93 @@ export const POST = withAuthParams<{ id: string }>(async (req, ctx, params) => {
 
       // Generate certificate if passed
       if (passed) {
+        // Idempotencia: si el enrollment ya tiene certificado, devolverlo sin
+        // recrear. Cubre el doble submit / retry de red tras aprobar.
+        if (enrollment.certificateId) {
+          const existing = await prisma.certificate.findUnique({
+            where: { id: enrollment.certificateId },
+            select: { code: true, qrData: true },
+          })
+          if (existing) {
+            return NextResponse.json({
+              score,
+              passed,
+              correct,
+              total: questions.length,
+              passingScore: course.passingScore,
+              results,
+              certificate: { code: existing.code, qrData: existing.qrData },
+            })
+          }
+          // Si el id apunta a un certificado inexistente, caemos a re-emitir.
+        }
+
         const worker = await prisma.worker.findUnique({
           where: { id: workerId },
           select: { firstName: true, lastName: true, dni: true },
         })
 
         const year = new Date().getFullYear()
-        const count = await prisma.certificate.count({ where: { orgId } })
-        const code = `CERT-${year}-${String(count + 1).padStart(5, '0')}`
         const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe').replace(/\/$/, '')
 
-        const certificate = await prisma.certificate.create({
-          data: {
-            code,
-            orgId,
-            workerId,
-            workerName: worker ? `${worker.firstName} ${worker.lastName}` : 'Desconocido',
-            workerDni: worker?.dni,
-            courseTitle: course.title,
-            courseCategory: course.category,
-            score,
-            expiresAt: course.category === 'SST' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
-            qrData: `${baseUrl}/verify/${code}`,
-          },
-        })
+        // El código se deriva de count() (no atómico) y `Certificate.code` es
+        // @unique GLOBAL, así que aprobaciones concurrentes colisionan: la 2da
+        // create viola el unique → 500 y el certificado se pierde. Reintentamos
+        // recomputando el secuencial ante P2002 (mismo patrón que complaints).
+        let certificate: Awaited<ReturnType<typeof prisma.certificate.create>> | undefined
+        for (let attempt = 0; attempt < 6 && !certificate; attempt++) {
+          const count = await prisma.certificate.count({ where: { orgId } })
+          const code = `CERT-${year}-${String(count + 1 + attempt).padStart(5, '0')}`
+          try {
+            // Lectura (idempotencia) + escritura del enrollment dentro de una
+            // sola transacción: si el enrollment ya fue certificado por una
+            // ejecución concurrente, reusamos ese certificado y no creamos otro.
+            certificate = await prisma.$transaction(async (tx) => {
+              const current = await tx.enrollment.findUnique({
+                where: { id: enrollment.id },
+                select: { certificateId: true },
+              })
+              if (current?.certificateId) {
+                const already = await tx.certificate.findUnique({
+                  where: { id: current.certificateId },
+                })
+                if (already) return already
+              }
 
-        await prisma.enrollment.update({
-          where: { id: enrollment.id },
-          data: { certificateId: certificate.id },
-        })
+              const created = await tx.certificate.create({
+                data: {
+                  code,
+                  orgId,
+                  workerId,
+                  workerName: worker ? `${worker.firstName} ${worker.lastName}` : 'Desconocido',
+                  workerDni: worker?.dni,
+                  courseTitle: course.title,
+                  courseCategory: course.category,
+                  score,
+                  expiresAt: course.category === 'SST' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
+                  qrData: `${baseUrl}/verify/${code}`,
+                },
+              })
+
+              await tx.enrollment.update({
+                where: { id: enrollment.id },
+                data: { certificateId: created.id },
+              })
+
+              return created
+            })
+          } catch (e) {
+            if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002' && attempt < 5) continue
+            throw e
+          }
+        }
+
+        if (!certificate) {
+          return NextResponse.json(
+            { error: 'No se pudo emitir el certificado. Intenta nuevamente en unos segundos.' },
+            { status: 503 },
+          )
+        }
 
         // Event bus: workflows se enganchan a training.completed
         emit('training.completed', {

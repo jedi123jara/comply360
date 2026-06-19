@@ -65,7 +65,7 @@ export function EnableNotifications({
         activeTitle: 'Notificaciones activas',
         activeBody: 'Recibirás push en el navegador cuando haya alertas críticas.',
         defaultTitle: 'Alertas SUNAFIL en tu celular',
-        defaultBody: 'Activá las notificaciones push y enterate al instante de contratos por vencer, alertas críticas y vencimientos CTS.',
+        defaultBody: 'Activa las notificaciones push y entérate al instante de contratos por vencer, alertas críticas y vencimientos CTS.',
       }
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === 'undefined') return false

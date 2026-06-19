@@ -54,6 +54,7 @@ export default function SimulacroPage() {
   const [tipo, setTipo] = useState<InspeccionTipo>('PREVENTIVA')
   const [resultado, setResultado] = useState<ResultadoSimulacro | null>(null)
   const [diagnosticId, setDiagnosticId] = useState<string | null>(null)
+  const [tasksCreated, setTasksCreated] = useState<number | null>(null)
   const [org, setOrg] = useState<OrgProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,9 +72,13 @@ export default function SimulacroPage() {
         fetch('/api/org/profile', { cache: 'no-store' }),
       ])
       if (!simResp.ok) throw new Error(`Simulacro HTTP ${simResp.status}`)
-      const simData = (await simResp.json()) as ResultadoSimulacro & { diagnosticId: string }
+      const simData = (await simResp.json()) as ResultadoSimulacro & {
+        diagnosticId: string
+        tasksCreated?: number
+      }
       setResultado(simData)
       setDiagnosticId(simData.diagnosticId)
+      setTasksCreated(typeof simData.tasksCreated === 'number' ? simData.tasksCreated : null)
 
       // Org profile is nice-to-have — a failure shouldn't block the simulacro.
       if (orgResp.ok) {
@@ -137,10 +142,12 @@ export default function SimulacroPage() {
           <ResultCover
             resultado={resultado}
             diagnosticId={diagnosticId}
+            tasksCreated={tasksCreated}
             org={org}
             onRestart={() => {
               setResultado(null)
               setDiagnosticId(null)
+              setTasksCreated(null)
               setError(null)
               setPhase('cover')
             }}
@@ -519,11 +526,13 @@ function VerdictMessage({ hallazgo }: { hallazgo: HallazgoInspeccion }) {
 function ResultCover({
   resultado,
   diagnosticId,
+  tasksCreated,
   org,
   onRestart,
 }: {
   resultado: ResultadoSimulacro
   diagnosticId: string | null
+  tasksCreated: number | null
   org: OrgProfile | null
   onRestart: () => void
 }) {
@@ -702,11 +711,24 @@ function ResultCover({
           >
             {downloading ? 'Generando PDF…' : 'Descargar Acta (PDF)'}
           </Button>
-          <Button variant="secondary">Generar plan de subsanación</Button>
+          <Button asChild variant="secondary">
+            <Link href="/dashboard/plan-accion">
+              {tasksCreated && tasksCreated > 0
+                ? `Ver plan de subsanación (${tasksCreated} nuevas)`
+                : 'Ver plan de subsanación'}
+            </Link>
+          </Button>
           <Button variant="ghost" onClick={onRestart}>
             Rehacer simulacro
           </Button>
         </div>
+        {tasksCreated !== null ? (
+          <p className="text-xs text-[color:var(--text-tertiary)]">
+            {tasksCreated > 0
+              ? `Ya dejamos ${tasksCreated} tarea${tasksCreated === 1 ? '' : 's'} en Plan de acción.`
+              : 'El plan ya estaba creado o no hubo nuevos incumplimientos.'}
+          </p>
+        ) : null}
         {downloadError ? (
           <p className="text-xs text-crimson-700">{downloadError}</p>
         ) : null}

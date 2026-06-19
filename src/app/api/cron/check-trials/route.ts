@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
+import { runUnsafeBypass } from '@/lib/prisma-rls'
 
 // =============================================
 // GET /api/cron/check-trials
@@ -31,6 +32,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // runUnsafeBypass: el cron cruza todas las orgs legítimamente; sin esto, bajo
+    // RLS enforced las queries devolverían 0 filas (cron silenciosamente inútil).
+    return await runUnsafeBypass({ reason: 'cron:check-trials' }, async () => {
     const now = new Date()
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://comply360.pe'
@@ -108,9 +112,17 @@ export async function GET(req: NextRequest) {
     let downgraded = 0
 
     for (const org of expiredTrials) {
-      // Only downgrade if subscription is still TRIALING (not paid)
-      const trialSub = org.subscription
-      if (!trialSub || trialSub.status !== 'TRIALING') continue
+      const sub = org.subscription
+
+      // FIX: antes solo se degradaba si la subscription estaba en TRIALING, así que
+      // una org con planExpiresAt vencido pero subscription en otro estado (CANCELLED,
+      // PAST_DUE, o sin subscription) conservaba organization.plan=PRO/EMPRESA stale,
+      // engañando dashboards y métricas (aunque plan-gate ya cierra el acceso en runtime).
+      // Ahora degradamos toda org vencida EXCEPTO las que tienen una suscripción ACTIVE
+      // (pago vigente — su planExpiresAt debería estar en el futuro; guard de seguridad).
+      if (sub && sub.status === 'ACTIVE') continue
+
+      const wasTrial = sub?.status === 'TRIALING'
 
       // Downgrade org to FREE (not STARTER — STARTER has paid features)
       await prisma.organization.update({
@@ -121,17 +133,20 @@ export async function GET(req: NextRequest) {
         },
       })
 
-      // Update subscription status
-      await prisma.subscription.update({
-        where: { id: trialSub.id },
-        data: {
-          status: 'CANCELLED',
-          cancelledAt: now,
-        },
-      })
+      // Cancelar la subscription si existe y no estaba ya cancelada.
+      if (sub && sub.status !== 'CANCELLED') {
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            status: 'CANCELLED',
+            cancelledAt: now,
+          },
+        })
+      }
 
-      // Send email notification
-      if (org.alertEmail) {
+      // Email "tu prueba terminó" SOLO para trials reales (no para past-due u otros,
+      // para no mandar un mensaje confuso a quien no estaba en trial).
+      if (wasTrial && org.alertEmail) {
         const orgName = org.razonSocial || org.name
         const upgradeUrl = `${baseUrl}/dashboard/planes`
         await sendEmail({
@@ -152,6 +167,7 @@ export async function GET(req: NextRequest) {
     }
     await completeCronRun(claim.runId, summary)
     return NextResponse.json(summary)
+    })
   } catch (error) {
     console.error('[check-trials] Error:', error)
     await failCronRun(claim.runId, error)

@@ -12,7 +12,7 @@ export default function HorarioTrabajoCartelPage() {
     <GeneratorShell
       type="horario-trabajo-cartel"
       title="Cartel de Horario de Trabajo"
-      description="Cartel obligatorio para exhibir en el centro de trabajo (Art. 5 D.S. 004-2006-TR). Agregá uno o más turnos; el sistema genera un cartel A3 listo para imprimir."
+      description="Cartel obligatorio para exhibir en el centro de trabajo (Art. 5 D.S. 004-2006-TR). Agrega uno o más turnos; el sistema genera un cartel A3 listo para imprimir."
       baseLegal="D.S. 004-2006-TR, Art. 5"
       gravity="LEVE"
       estimatedMinutes={3}

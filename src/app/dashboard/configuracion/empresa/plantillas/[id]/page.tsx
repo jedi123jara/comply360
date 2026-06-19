@@ -518,7 +518,7 @@ function GenerateModal({
 
   const handlePreview = async () => {
     if (!selectedWorkerId) {
-      toast.error('Seleccioná un trabajador')
+      toast.error('Selecciona un trabajador')
       return
     }
     setGenerating(true)
@@ -548,7 +548,7 @@ function GenerateModal({
 
   const handleDownload = async () => {
     if (!selectedWorkerId) {
-      toast.error('Seleccioná un trabajador')
+      toast.error('Selecciona un trabajador')
       return
     }
     setDownloadingPdf(true)
@@ -594,7 +594,7 @@ function GenerateModal({
       isOpen={open}
       onClose={() => onOpenChange(false)}
       title="Generar documento para un trabajador"
-      description="Elegí al trabajador. El sistema reemplazará los placeholders con sus datos reales."
+      description="Elige al trabajador. El sistema reemplazará los placeholders con sus datos reales."
       size="xl"
     >
       <div className="space-y-4">
@@ -606,7 +606,7 @@ function GenerateModal({
             className="rounded-xl border border-[color:var(--border-default)] bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10"
           >
             <option value="">
-              {loadingWorkers ? 'Cargando trabajadores…' : '— Seleccioná un trabajador —'}
+              {loadingWorkers ? 'Cargando trabajadores…' : '— Selecciona un trabajador —'}
             </option>
             {workers.map((w) => (
               <option key={w.id} value={w.id}>
@@ -666,7 +666,7 @@ function GenerateModal({
             <div>
               <FileText className="mx-auto mb-3 h-8 w-8 text-[color:var(--text-tertiary)]" />
               <p className="text-sm font-medium text-[color:var(--text-primary)]">
-                Seleccioná un trabajador y previsualizá
+                Selecciona un trabajador y previsualiza
               </p>
               <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
                 Antes de descargar el PDF, confirma que los datos estén correctos.

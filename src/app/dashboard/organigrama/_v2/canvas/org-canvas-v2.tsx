@@ -172,7 +172,7 @@ function OrgCanvasV2Inner({
     lastLayoutRef.current = layoutMode
     const raf = requestAnimationFrame(() => {
       try {
-        fitView({ padding: 0.15, duration: 450 })
+        fitView({ padding: 0.18, minZoom: 0.42, maxZoom: 1.05, duration: 450 })
       } catch {
         /* fitView puede fallar si no hay nodos todavía */
       }
@@ -206,8 +206,8 @@ function OrgCanvasV2Inner({
         edgesFocusable={false}
         edgesReconnectable={false}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
-        minZoom={0.2}
+        fitViewOptions={{ padding: 0.18, minZoom: 0.42, maxZoom: 1.05 }}
+        minZoom={0.35}
         maxZoom={2.5}
         connectionLineStyle={{ stroke: '#2563eb', strokeWidth: 2, strokeDasharray: '6 4' }}
         proOptions={{ hideAttribution: true }}

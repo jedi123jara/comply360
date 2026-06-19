@@ -111,7 +111,7 @@ function Form({
     <Card padding="lg" className="space-y-5">
       <div>
         <p className="text-sm text-[color:var(--text-secondary)] leading-relaxed">
-          Agregá cada puesto de tu organización y valorizalo con las 4 dimensiones de Ley 30709.
+          Agrega cada puesto de tu organización y valorízalo con las 4 dimensiones de Ley 30709.
           El sistema calculará automáticamente la categoría (A-E) y agrupará los puestos.
         </p>
       </div>

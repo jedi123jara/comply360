@@ -2,6 +2,7 @@ import { Prisma, type ContractStatus, type ContractType } from '@/generated/pris
 import { logAudit } from '@/lib/audit'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
+import { ensureContratoTrabajoDoc } from '@/lib/workers/contrato-doc'
 import { prisma } from '@/lib/prisma'
 import {
   renderContract,
@@ -230,24 +231,7 @@ async function linkExistingWorkerToContract(input: {
       update: {},
     })
 
-    const existingDoc = await prisma.workerDocument.findFirst({
-      where: { workerId: input.workerId, documentType: 'contrato_trabajo' },
-      select: { id: true },
-    })
-    if (!existingDoc) {
-      await prisma.workerDocument.create({
-        data: {
-          workerId: input.workerId,
-          category: 'INGRESO',
-          documentType: 'contrato_trabajo',
-          title: input.title,
-          isRequired: true,
-          status: 'VERIFIED',
-          verifiedAt: new Date(),
-          verifiedBy: input.userId,
-        },
-      })
-    }
+    await ensureContratoTrabajoDoc({ workerId: input.workerId, title: input.title, verifiedBy: input.userId })
 
     await recalculateLegajoScore(input.workerId)
   } catch (err) {
@@ -354,24 +338,7 @@ async function autoLinkWorkerFromFormData(input: {
       update: {},
     })
 
-    const existingDoc = await prisma.workerDocument.findFirst({
-      where: { workerId: worker.id, documentType: 'contrato_trabajo' },
-      select: { id: true },
-    })
-    if (!existingDoc) {
-      await prisma.workerDocument.create({
-        data: {
-          workerId: worker.id,
-          category: 'INGRESO',
-          documentType: 'contrato_trabajo',
-          title: input.title,
-          isRequired: true,
-          status: 'VERIFIED',
-          verifiedAt: new Date(),
-          verifiedBy: input.userId,
-        },
-      })
-    }
+    await ensureContratoTrabajoDoc({ workerId: worker.id, title: input.title, verifiedBy: input.userId })
 
     await recalculateLegajoScore(worker.id)
   } catch (workerErr) {

@@ -14,11 +14,13 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
 
   const [periodo, setPeriodo] = useState(defaultPeriodo)
   const [horasExtras, setHorasExtras] = useState('')
-  const [bonificaciones, setBonificaciones] = useState('')
+  const [bonificacionesHabituales, setBonificacionesHabituales] = useState('')
+  const [bonificacionesExtraordinarias, setBonificacionesExtraordinarias] = useState('')
   const [incluirGratificacion, setIncluirGratificacion] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [advertencias, setAdvertencias] = useState<string[]>([])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,14 +33,21 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
         body: JSON.stringify({
           periodo,
           horasExtras: horasExtras ? parseFloat(horasExtras) : undefined,
-          bonificaciones: bonificaciones ? parseFloat(bonificaciones) : undefined,
+          bonificacionesHabituales: bonificacionesHabituales ? parseFloat(bonificacionesHabituales) : undefined,
+          bonificacionesExtraordinarias: bonificacionesExtraordinarias ? parseFloat(bonificacionesExtraordinarias) : undefined,
           incluirGratificacion,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al registrar boleta')
+      const warns: string[] = Array.isArray(data.result?.warnings) ? data.result.warnings : []
+      setAdvertencias(warns)
       setSuccess(true)
-      setTimeout(() => router.push(`/dashboard/trabajadores/${id}`), 1500)
+      // Si hay advertencias de cumplimiento (p.ej. piso de jornada nocturna), NO
+      // auto-redirige: el admin debe leerlas antes de salir.
+      if (warns.length === 0) {
+        setTimeout(() => router.push(`/dashboard/trabajadores/${id}`), 1500)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -58,10 +67,27 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
 
   if (success) {
     return (
-      <div className="max-w-lg mx-auto py-16 text-center">
-        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-white mb-2">Boleta registrada</h2>
+      <div className="max-w-lg mx-auto py-16 text-center space-y-4">
+        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-2" />
+        <h2 className="text-xl font-bold text-white mb-1">Boleta registrada</h2>
         <p className="text-gray-400">Periodo: {periodoLabel}</p>
+        {advertencias.length > 0 && (
+          <div className="text-left bg-amber-900/20 border border-amber-800/40 rounded-xl p-4 space-y-2">
+            <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              Advertencias de cumplimiento
+            </div>
+            {advertencias.map((a, i) => (
+              <p key={i} className="text-xs text-amber-300/90">{a}</p>
+            ))}
+          </div>
+        )}
+        <Link
+          href={`/dashboard/trabajadores/${id}`}
+          className="inline-block px-5 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl font-semibold text-sm transition-colors"
+        >
+          Volver al trabajador
+        </Link>
       </div>
     )
   }
@@ -115,16 +141,31 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Bonificaciones (S/)</label>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Bonificación habitual / recurrente (S/)</label>
           <input
             type="number"
             step="0.01"
             min="0"
-            value={bonificaciones}
-            onChange={e => setBonificaciones(e.target.value)}
+            value={bonificacionesHabituales}
+            onChange={e => setBonificacionesHabituales(e.target.value)}
             placeholder="0.00"
             className="w-full px-4 py-2.5 border border-white/[0.08] bg-[color:var(--neutral-100)] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm placeholder-gray-500"
           />
+          <p className="text-xs text-gray-500 mt-1">Bono que se paga todos los meses → se anualiza (×12) para la renta 5ta.</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Bonificación extraordinaria / única (S/)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={bonificacionesExtraordinarias}
+            onChange={e => setBonificacionesExtraordinarias(e.target.value)}
+            placeholder="0.00"
+            className="w-full px-4 py-2.5 border border-white/[0.08] bg-[color:var(--neutral-100)] text-white rounded-xl focus:ring-2 focus:ring-primary/20 text-sm placeholder-gray-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">Bono de una sola vez → se suma 1 vez a la renta 5ta.</p>
         </div>
 
         {showGratToggle && (

@@ -204,6 +204,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Mode 1: Direct workflow execution
     if (body.workflowId) {
+      // SECURITY (aislamiento multi-tenant): solo se puede ejecutar un workflow
+      // que pertenezca a la org autenticada. El store de workflows es global a
+      // nivel de módulo, así que sin este check un usuario de la org A podía
+      // disparar (y leer el resultado de) el workflow de la org B con solo su id.
+      const ownWorkflows = workflowEngine.listWorkflows(orgId)
+      if (!ownWorkflows.some((w) => w.id === body.workflowId)) {
+        return NextResponse.json(
+          { success: false, error: 'Workflow no encontrado.' },
+          { status: 404 },
+        )
+      }
       const execution = await workflowEngine.executeWorkflow(
         body.workflowId,
         body.triggerData ?? {},

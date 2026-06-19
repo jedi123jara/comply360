@@ -82,7 +82,9 @@ export async function runWithOrgScope<T>(
  * Ejecuta `fn` SIN scope de org. Sólo para crons, webhooks, super-admin y
  * operaciones del founder console que legítimamente cruzan orgs.
  *
- * Cada llamada deja un AuditLog (`action='rls.bypass'`) con la razón.
+ * Cuando la llamada pertenece a una org concreta, deja un AuditLog
+ * (`action='rls.bypass'`) con la razón. Los bypass globales de sistema no
+ * escriben AuditLog porque la tabla requiere una Organization válida.
  *
  * El nombre `runUnsafeBypass` es deliberadamente alarmante: si necesitas
  * llamarlo, justifica el uso en code review.
@@ -95,20 +97,22 @@ export async function runUnsafeBypass<T>(
   const auditLog = (client as PrismaClient & { auditLog?: PrismaClient['auditLog'] }).auditLog
 
   // Audit fire-and-forget — no bloquear si falla.
-  auditLog
-    ?.create({
-      data: {
-        orgId: meta.orgId ?? 'system',
-        userId: meta.userId ?? null,
-        action: 'rls.bypass',
-        entityType: 'System',
-        entityId: 'rls',
-        metadataJson: { reason: meta.reason, at: new Date().toISOString() },
-      },
-    })
-    ?.catch((err) => {
-      console.error('[runUnsafeBypass] audit log failed:', err)
-    })
+  if (meta.orgId) {
+    auditLog
+      ?.create({
+        data: {
+          orgId: meta.orgId,
+          userId: meta.userId ?? null,
+          action: 'rls.bypass',
+          entityType: 'System',
+          entityId: 'rls',
+          metadataJson: { reason: meta.reason, at: new Date().toISOString() },
+        },
+      })
+      ?.catch((err) => {
+        console.error('[runUnsafeBypass] audit log failed:', err)
+      })
+  }
 
   if (!RLS_ENFORCED) {
     return fn(client as PrismaClient)

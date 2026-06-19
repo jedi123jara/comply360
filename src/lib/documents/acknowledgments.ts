@@ -115,6 +115,93 @@ export async function getAcknowledgmentProgress(orgId: string, documentId: strin
   }
 }
 
+/** Predicado puro: ¿este worker cae dentro del scopeFilter del doc? */
+function matchesScope(
+  worker: { regimenLaboral: string; department: string | null; position: string | null },
+  scope: ScopeFilter | null,
+): boolean {
+  if (!scope) return true
+  if (scope.regimen && scope.regimen.length > 0 && !scope.regimen.includes(worker.regimenLaboral)) {
+    return false
+  }
+  if (scope.departamento && scope.departamento.length > 0) {
+    if (!worker.department || !scope.departamento.includes(worker.department)) return false
+  }
+  if (scope.position && scope.position.length > 0) {
+    if (!worker.position || !scope.position.includes(worker.position)) return false
+  }
+  return true
+}
+
+export interface AckProgress {
+  total: number
+  signed: number
+  pending: number
+  signedPct: number
+  version: number
+}
+
+/**
+ * Versión BATCH de getAcknowledgmentProgress para listar muchos docs sin N+1.
+ * Antes la pantalla admin hacía 3 queries POR documento (findFirst + workers +
+ * count). Aquí resolvemos los workers ACTIVE UNA vez y todos los acks en UNA
+ * query, y calculamos el progreso por doc en memoria aplicando cada scopeFilter.
+ */
+export async function getAcknowledgmentProgressBatch(
+  orgId: string,
+  docs: { id: string; version: number; scopeFilter: unknown }[],
+): Promise<Map<string, AckProgress>> {
+  const out = new Map<string, AckProgress>()
+  if (docs.length === 0) return out
+
+  const [workers, acks] = await Promise.all([
+    prisma.worker.findMany({
+      where: { orgId, status: 'ACTIVE' },
+      select: { id: true, regimenLaboral: true, department: true, position: true },
+    }),
+    prisma.documentAcknowledgment.findMany({
+      where: { orgId, documentId: { in: docs.map((d) => d.id) } },
+      select: { documentId: true, documentVersion: true, workerId: true },
+    }),
+  ])
+
+  // Index acks por "documentId:version" → set de workerId que firmaron esa versión.
+  const ackByDocVersion = new Map<string, Set<string>>()
+  for (const a of acks) {
+    const key = `${a.documentId}:${a.documentVersion}`
+    let set = ackByDocVersion.get(key)
+    if (!set) {
+      set = new Set<string>()
+      ackByDocVersion.set(key, set)
+    }
+    set.add(a.workerId)
+  }
+
+  for (const doc of docs) {
+    const scope = (doc.scopeFilter as ScopeFilter | null) ?? null
+    const targets = workers.filter((w) => matchesScope(w, scope))
+    const total = targets.length
+    if (total === 0) {
+      out.set(doc.id, { total: 0, signed: 0, pending: 0, signedPct: 100, version: doc.version })
+      continue
+    }
+    const signedSet = ackByDocVersion.get(`${doc.id}:${doc.version}`)
+    let signed = 0
+    if (signedSet) {
+      for (const t of targets) if (signedSet.has(t.id)) signed++
+    }
+    out.set(doc.id, {
+      total,
+      signed,
+      pending: total - signed,
+      signedPct: Math.round((signed / total) * 100),
+      version: doc.version,
+    })
+  }
+
+  return out
+}
+
 /**
  * Devuelve los docs pendientes de firma para un worker dado.
  * Un doc es "pendiente" si:

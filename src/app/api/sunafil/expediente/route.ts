@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import JSZip from 'jszip'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@/generated/prisma/client'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { scanOrgRisks, type OrgRiskReport, type RiesgoDetectado } from '@/lib/compliance/risk-scanner'
+import { evaluateLaborRisk, type LaborRiskSnapshot } from '@/lib/compliance/labor-risk-engine'
 import { formatSoles } from '@/lib/format/peruvian'
 import {
   addHeader,
@@ -39,6 +41,7 @@ type SunafilTask = Awaited<ReturnType<typeof loadSunafilTasks>>[number]
 interface ExpedienteData {
   org: OrgInfo
   report: OrgRiskReport
+  snapshot: LaborRiskSnapshot
   tasks: SunafilTask[]
   taskBySourceId: Map<string, SunafilTask>
   generatedAt: Date
@@ -113,8 +116,15 @@ async function loadSunafilTasks(orgId: string, sourceIds: string[]) {
 }
 
 async function buildExpedienteData(orgId: string): Promise<ExpedienteData> {
-  const report = await scanOrgRisks(orgId)
-  const sourceIds = report.riesgos.map(sourceIdForRisk)
+  const [report, snapshot] = await Promise.all([
+    scanOrgRisks(orgId),
+    evaluateLaborRisk(orgId, { mode: 'inspection' }),
+  ])
+  const sourceIds = uniqueStrings([
+    ...report.riesgos.map(sourceIdForRisk),
+    ...snapshot.findings.map((finding) => `labor-risk:${finding.id}`),
+    ...snapshot.evidenceRequirements.map((requirement) => `labor-risk:evidence:${requirement.id}`),
+  ])
   const [org, tasks] = await Promise.all([
     loadOrganization(orgId),
     loadSunafilTasks(orgId, sourceIds),
@@ -134,6 +144,7 @@ async function buildExpedienteData(orgId: string): Promise<ExpedienteData> {
   return {
     org,
     report,
+    snapshot,
     tasks,
     taskBySourceId,
     generatedAt: new Date(),
@@ -167,7 +178,8 @@ async function buildExpedientePdf(data: ExpedienteData): Promise<{ buffer: Array
   y = sectionTitle(doc, 'Estado documental del expediente', y)
   const status = summarizeTasks(data)
   const statusRows = [
-    ['Brechas detectadas', String(data.report.riesgos.length), 'Hallazgos activos del escaneo SUNAFIL'],
+    ['Brechas detectadas', String(data.snapshot.findings.length), 'Hallazgos activos del motor canonico'],
+    ['Docs SUNAFIL incompletos', String(data.snapshot.inspectionPack.incompleteDocs), 'Evidencia faltante, parcial o vencida'],
     ['Tareas creadas', String(data.tasks.length), 'Brechas que ya tienen responsable o seguimiento'],
     ['En subsanacion', String(status.inProgress), 'Tareas abiertas con avance documentado'],
     ['Cerradas con evidencia', String(status.completed), 'Tareas listas para sustento inspectivo'],
@@ -182,10 +194,39 @@ async function buildExpedientePdf(data: ExpedienteData): Promise<{ buffer: Array
   y += 8
 
   y = checkPageBreak(doc, y, 170, headerArgs)
+  y = sectionTitle(doc, `Evidencia SUNAFIL-Ready priorizada (${Math.min(data.snapshot.evidenceRequirements.length, 18)} de ${data.snapshot.evidenceRequirements.length})`, y)
+  if (data.snapshot.evidenceRequirements.length > 0) {
+    const rows = data.snapshot.evidenceRequirements.slice(0, 18).map((requirement, index) => {
+      const task = data.taskBySourceId.get(`labor-risk:evidence:${requirement.id}`)
+      return [
+        String(index + 1),
+        truncate(requirement.title, 44),
+        requirement.status,
+        requirement.coverage.total > 0 ? `${requirement.coverage.present}/${requirement.coverage.total}` : 'Empresa',
+        formatSolesCompact(requirement.potentialFineSoles),
+        task ? `${taskStatusLabel(task.status)} · ${taskEvidenceCount(task)} ev.` : 'Sin tarea',
+      ]
+    })
+    y = drawTable(doc, [
+      { header: '#', x: 14 },
+      { header: 'Documento', x: 22 },
+      { header: 'Estado', x: 94 },
+      { header: 'Cob.', x: 122 },
+      { header: 'Multa', x: 144 },
+      { header: 'Tarea', x: 170 },
+    ], rows, y, { headerArgs, rowHeight: 6.5, fontSize: 7, zebraFill: true })
+  } else {
+    doc.setFontSize(9)
+    doc.text('No hay documentos SUNAFIL-Ready incompletos segun la evidencia disponible.', 14, y)
+    y += 8
+  }
+  y += 8
+
+  y = checkPageBreak(doc, y, 170, headerArgs)
   y = sectionTitle(doc, `Brechas priorizadas (${Math.min(data.report.riesgos.length, 25)} de ${data.report.riesgos.length})`, y)
   if (data.report.riesgos.length > 0) {
     const rows = data.report.riesgos.slice(0, 25).map((risk, index) => {
-      const task = data.taskBySourceId.get(sourceIdForRisk(risk))
+      const task = taskForRisk(data, risk)
       return [
         String(index + 1),
         truncate(risk.infraccion.codigo, 15),
@@ -213,7 +254,7 @@ async function buildExpedientePdf(data: ExpedienteData): Promise<{ buffer: Array
   y = checkPageBreak(doc, y, 170, headerArgs)
   y = sectionTitle(doc, 'Plan de subsanacion y trazabilidad', y)
   const planRows = data.report.riesgos.slice(0, 18).map((risk, index) => {
-    const task = data.taskBySourceId.get(sourceIdForRisk(risk))
+    const task = taskForRisk(data, risk)
     const dueDate = task?.dueDate ? formatDate(task.dueDate) : suggestedDueDate(risk)
     return [
       String(index + 1),
@@ -307,12 +348,12 @@ async function recordExpedienteExport(
         format,
         filename,
         score: expedienteScore(data),
-        totalRisks: data.report.riesgos.length,
+        totalRisks: data.snapshot.findings.length + data.snapshot.evidenceRequirements.length,
         tasksCount: data.tasks.length,
         evidenceCount: summarizeTasks(data).evidenceCount,
         pdfHashSha256: hashBuffer(pdfBuffer),
         zipHashSha256: zipBuffer ? hashBuffer(zipBuffer) : null,
-        manifest: buildManifest(data),
+        manifest: buildManifest(data) as unknown as Prisma.InputJsonValue,
         createdBy: ctx.userId,
       },
     })
@@ -323,9 +364,9 @@ async function recordExpedienteExport(
 
 function drawExposureBand(doc: JsPDFDoc, data: ExpedienteData, y: number): number {
   const cards = [
-    { label: 'Exposicion estimada', value: formatSoles(data.report.totalMultaSoles), color: [239, 68, 68] as const },
-    { label: 'Ahorro por subsanar', value: formatSoles(data.report.ahorroTotalSoles), color: [34, 197, 94] as const },
-    { label: 'Multa post-subsanacion', value: formatSoles(data.report.totalMultaConSubsanacionSoles), color: [245, 158, 11] as const },
+    { label: 'Exposicion estimada', value: formatSoles(data.snapshot.exposure.potentialFineSoles), color: [239, 68, 68] as const },
+    { label: 'Ahorro por subsanar', value: formatSoles(data.snapshot.exposure.avoidableAmountSoles), color: [34, 197, 94] as const },
+    { label: 'SUNAFIL-Ready', value: `${data.snapshot.inspectionPack.readinessScore}/100`, color: [6, 182, 212] as const },
   ]
 
   const xPositions = [14, 76, 138]
@@ -353,6 +394,7 @@ async function buildExpedienteZip(data: ExpedienteData, pdfBuffer: ArrayBuffer, 
   zip.file(`${filenameBase}-expediente-sunafil.pdf`, Buffer.from(pdfBuffer))
   zip.file('manifest.json', JSON.stringify(buildManifest(data), null, 2))
   zip.file('brechas.csv', rowsToCsv(buildRiskRows(data)))
+  zip.file('evidencia-sunafil-ready.csv', rowsToCsv(buildSunafilReadyRows(data)))
   zip.file('tareas.csv', rowsToCsv(buildTaskRows(data)))
   zip.file('evidencias.csv', rowsToCsv(buildEvidenceRows(data)))
   zip.file('README.txt', buildReadme(data))
@@ -387,6 +429,22 @@ function buildManifest(data: ExpedienteData) {
         areasMasRiesgosas: data.report.resumen.areasMasRiesgosas,
       },
     },
+    laborRisk: {
+      calculatedAt: data.snapshot.calculatedAt,
+      score: data.snapshot.score,
+      exposure: data.snapshot.exposure,
+      defense: data.snapshot.defense,
+      inspectionPack: {
+        readinessScore: data.snapshot.inspectionPack.readinessScore,
+        totalDocs: data.snapshot.inspectionPack.totalDocs,
+        applicableDocs: data.snapshot.inspectionPack.applicableDocs,
+        incompleteDocs: data.snapshot.inspectionPack.incompleteDocs,
+        missingCriticalDocs: data.snapshot.inspectionPack.missingCriticalDocs,
+        potentialFineSoles: data.snapshot.inspectionPack.potentialFineSoles,
+        avoidableAmountSoles: data.snapshot.inspectionPack.avoidableAmountSoles,
+      },
+      topActions: data.snapshot.nextActions,
+    },
     expediente: status,
   }
 }
@@ -395,7 +453,7 @@ function buildRiskRows(data: ExpedienteData): string[][] {
   return [
     ['orden', 'codigo', 'categoria', 'gravedad', 'titulo', 'base_legal', 'multa_estimada_soles', 'multa_post_subsanacion_soles', 'ahorro_subsanacion_soles', 'urgencia', 'estado_tarea', 'evidencias'],
     ...data.report.riesgos.map((risk, index) => {
-      const task = data.taskBySourceId.get(sourceIdForRisk(risk))
+      const task = taskForRisk(data, risk)
       return [
         String(index + 1),
         risk.infraccion.codigo,
@@ -407,6 +465,31 @@ function buildRiskRows(data: ExpedienteData): string[][] {
         String(risk.multaConSubsanacionSoles),
         String(risk.ahorroSubsanacion),
         String(risk.urgencia),
+        task ? taskStatusLabel(task.status) : 'Sin tarea',
+        task ? String(taskEvidenceCount(task)) : '0',
+      ]
+    }),
+  ]
+}
+
+function buildSunafilReadyRows(data: ExpedienteData): string[][] {
+  return [
+    ['orden', 'documento_id', 'documento', 'categoria', 'estado', 'gravedad', 'base_legal', 'cobertura', 'multa_estimada_soles', 'ahorro_subsanacion_soles', 'accion', 'ruta', 'estado_tarea', 'evidencias'],
+    ...data.snapshot.evidenceRequirements.map((requirement, index) => {
+      const task = data.taskBySourceId.get(`labor-risk:evidence:${requirement.id}`)
+      return [
+        String(index + 1),
+        requirement.id,
+        requirement.title,
+        requirement.categoryLabel,
+        requirement.status,
+        requirement.gravity,
+        requirement.baseLegal,
+        requirement.coverage.total > 0 ? `${requirement.coverage.present}/${requirement.coverage.total}` : 'empresa',
+        String(requirement.potentialFineSoles),
+        String(requirement.avoidableAmountSoles),
+        requirement.actionHint,
+        requirement.route,
         task ? taskStatusLabel(task.status) : 'Sin tarea',
         task ? String(taskEvidenceCount(task)) : '0',
       ]
@@ -472,6 +555,7 @@ function buildReadme(data: ExpedienteData) {
     '- PDF: resumen ejecutivo, brechas, plan y bitacora.',
     '- manifest.json: metadatos del escaneo y del expediente.',
     '- brechas.csv: matriz exportable de hallazgos SUNAFIL.',
+    '- evidencia-sunafil-ready.csv: documentos faltantes, parciales o vencidos.',
     '- tareas.csv: tareas de subsanacion vinculadas.',
     '- evidencias.csv: enlaces de evidencia cargada.',
     '- Historial interno: cada export queda versionado con hash SHA-256.',
@@ -492,14 +576,16 @@ function summarizeTasks(data: ExpedienteData) {
     dismissed: tasks.filter((task) => task.status === 'DISMISSED').length,
     withEvidence: tasks.filter(taskHasEvidence).length,
     evidenceCount: tasks.reduce((total, task) => total + taskEvidenceCount(task), 0),
-    withoutTask: data.report.riesgos.filter((risk) => !data.taskBySourceId.has(sourceIdForRisk(risk))).length,
+    withoutTask:
+      data.report.riesgos.filter((risk) => !taskForRisk(data, risk)).length +
+      data.snapshot.evidenceRequirements.filter((requirement) => !data.taskBySourceId.has(`labor-risk:evidence:${requirement.id}`)).length,
   }
 }
 
 function expedienteScore(data: ExpedienteData) {
   if (data.report.riesgos.length === 0) return 100
   const total = data.report.riesgos.reduce((sum, risk) => {
-    const task = data.taskBySourceId.get(sourceIdForRisk(risk))
+    const task = taskForRisk(data, risk)
     if (!task) return sum + 20
     if (task.status === 'COMPLETED') return sum + (taskHasEvidence(task) ? 100 : 75)
     if (task.status === 'DISMISSED') return sum + (taskHasEvidence(task) || task.notes ? 90 : 70)
@@ -553,6 +639,14 @@ function normalizeSourcePart(value: string) {
 
 function sourceIdForRisk(risk: RiesgoDetectado) {
   return `sunafil-gap:${risk.infraccion.codigo}:${normalizeSourcePart(risk.infraccion.titulo)}`
+}
+
+function taskForRisk(data: ExpedienteData, risk: RiesgoDetectado) {
+  return data.taskBySourceId.get(`labor-risk:${risk.infraccion.codigo}`) ?? data.taskBySourceId.get(sourceIdForRisk(risk))
+}
+
+function uniqueStrings(values: string[]) {
+  return [...new Set(values)]
 }
 
 function severityLabel(value: string) {

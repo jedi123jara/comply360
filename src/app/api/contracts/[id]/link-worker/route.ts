@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { recalculateLegajoScore } from '@/lib/compliance/legajo-config'
+import { ensureContratoTrabajoDoc } from '@/lib/workers/contrato-doc'
 
 // ==============================================
 // POST /api/contracts/[id]/link-worker
@@ -42,41 +43,18 @@ export const POST = withPlanGateParams<{ id: string }>('contratos',
       return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 404 })
     }
 
-    // Upsert WorkerContract link (idempotent)
-    const existing = await prisma.workerContract.findFirst({
-      where: { workerId, contractId },
-      select: { id: true },
+    // Vincula WorkerContract de forma idempotente. WorkerContract SI tiene
+    // @@unique([workerId, contractId]), asi que un upsert nativo evita el P2002
+    // ante doble request (mismo patron que src/lib/contracts/create.ts).
+    await prisma.workerContract.upsert({
+      where: { workerId_contractId: { workerId, contractId } },
+      create: { workerId, contractId },
+      update: {},
     })
-    if (!existing) {
-      await prisma.workerContract.create({ data: { workerId, contractId } })
-    }
 
-    // Upsert WorkerDocument type=contrato_trabajo so legajo counts it
-    // We use the contract's title and mark it VERIFIED since it's a digital record
-    const existingDoc = await prisma.workerDocument.findFirst({
-      where: { workerId, documentType: 'contrato_trabajo' },
-      select: { id: true },
-    })
-    if (!existingDoc) {
-      await prisma.workerDocument.create({
-        data: {
-          workerId,
-          category: 'INGRESO',
-          documentType: 'contrato_trabajo',
-          title: contract.title,
-          isRequired: true,
-          status: 'VERIFIED',
-          verifiedAt: new Date(),
-          verifiedBy: ctx.userId,
-        },
-      })
-    } else {
-      // Update existing doc to VERIFIED (in case it was MISSING/PENDING)
-      await prisma.workerDocument.update({
-        where: { id: existingDoc.id },
-        data: { status: 'VERIFIED', verifiedAt: new Date(), verifiedBy: ctx.userId },
-      })
-    }
+    // WorkerDocument 'contrato_trabajo' (para que el legajo lo cuente), idempotente
+    // y race-safe vía el helper compartido + índice único parcial en la BD.
+    await ensureContratoTrabajoDoc({ workerId, title: contract.title, verifiedBy: ctx.userId })
 
     // Recalculate legajo score
     await recalculateLegajoScore(workerId)

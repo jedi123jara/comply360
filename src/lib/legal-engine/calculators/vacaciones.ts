@@ -49,9 +49,16 @@ export function calcularVacaciones(input: VacacionesInput): VacacionesResult {
     )
 
     // FIX #2.A: aritmética decimal precisa.
+    // FIX: la base (rem/12·meses + rem/360·días) asume 30 días/año (régimen GENERAL).
+    // Para MYPE_MICRO/PEQUENA y DOMESTICO el derecho vacacional es 15 días/año, por lo
+    // que el monto trunco es la mitad. Escalamos por (diasPorAnoRegimen / 30): factor 1
+    // para GENERAL (sin cambio) y 0.5 para regímenes de 15 días. Antes se sobrepagaba 2x
+    // a esos trabajadores en toda liquidación/cese.
     const remM = money(remComputable)
+    const factorRegimen = diasPorAnoRegimen / 30
     vacacionesTruncas = remM.div(12).mul(mesesFraccion)
       .add(remM.div(360).mul(diasFraccion))
+      .mul(factorRegimen)
       .toNumber()
   }
 

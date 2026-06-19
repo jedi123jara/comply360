@@ -12,6 +12,11 @@ import type { Node, Edge } from '@xyflow/react'
 import type { OrgChartTree } from '@/lib/orgchart/types'
 import type { CoverageReport, UnitCoverage } from '@/lib/orgchart/coverage-aggregator'
 import type { CopilotPlan } from '@/lib/orgchart/copilot/operations'
+import {
+  buildUnitPath,
+  inferPositionHierarchy,
+  inferUnitHierarchy,
+} from '@/lib/orgchart/hierarchy-inference'
 import { runLayout } from '../layouts/layout-engine'
 import type { LayoutMode } from '../../state/slices/canvas-slice'
 
@@ -20,6 +25,8 @@ export interface UnitNodeData extends Record<string, unknown> {
   unitId: string
   name: string
   unitKind: string
+  hierarchyLevel: number
+  unitPath: string
   positionsCount: number
   occupantsCount: number
   coverage: UnitCoverage | null
@@ -32,11 +39,16 @@ export interface PositionNodeData extends Record<string, unknown> {
   positionId: string
   unitId: string
   unitName: string | null
+  unitKind: string | null
+  unitPath: string
+  hierarchyLevel: number
   title: string
   occupants: Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
   vacant: boolean
   isManagerial: boolean
   isCritical: boolean
+  isUnitLead: boolean
+  inferredReportsTo: boolean
   directReports: number
   coverage: UnitCoverage | null
 }
@@ -151,6 +163,8 @@ function overlayCopilotPreview(
         unitId: `ghost-${op.tempKey}`,
         name: `+ ${op.name}`,
         unitKind: op.kind,
+        hierarchyLevel: 0,
+        unitPath: `+ ${op.name}`,
         positionsCount: 0,
         occupantsCount: 0,
         coverage: null,
@@ -204,17 +218,22 @@ function overlayCopilotPreview(
           positionId: `ghost-${op.tempKey}`,
           unitId: op.unitRef,
           unitName: null,
+          unitKind: null,
+          unitPath: 'Propuesta IA',
+          hierarchyLevel: 0,
           title: `+ ${op.title}`,
           occupants: [],
           vacant: true,
           isManagerial: op.isManagerial ?? false,
           isCritical: op.isCritical ?? false,
+          isUnitLead: false,
+          inferredReportsTo: false,
           directReports: 0,
           coverage: null,
         } satisfies PositionNodeData,
         style: { opacity: 0.7 },
-        width: 200,
-        height: 90,
+        width: 260,
+        height: 126,
       })
 
       if (op.reportsToRef) {
@@ -244,6 +263,7 @@ function buildUnitFlow(
   layoutMode: LayoutMode,
   coverage: CoverageReport | null,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
+  const unitsById = new Map(tree.units.map((unit) => [unit.id, unit]))
   // 1) Indexar posiciones y asignaciones por unidad
   const positionsByUnit = new Map<string, number>()
   for (const p of tree.positions) {
@@ -266,22 +286,35 @@ function buildUnitFlow(
       unitId: u.id,
       name: u.name,
       unitKind: u.kind,
+      hierarchyLevel: u.level,
+      unitPath: buildUnitPath(u.id, unitsById),
       positionsCount: positionsByUnit.get(u.id) ?? 0,
       occupantsCount: occupantsByUnit.get(u.id) ?? 0,
       coverage: coverage?.byUnit.get(u.id) ?? null,
     } satisfies UnitNodeData,
   }))
 
-  // 3) Aristas: padre → hijo
+  const unitHierarchy = inferUnitHierarchy({
+    units: tree.units,
+    positions: tree.positions,
+    assignments: tree.assignments,
+  })
+
+  // 3) Aristas: padre → hijo. Si la estructura viene plana desde planilla,
+  // pintamos la jerarquía sugerida para que el organigrama nazca como árbol.
   const edges: Edge[] = []
   for (const u of tree.units) {
-    if (u.parentId) {
+    const parentId = unitHierarchy.parentByUnit.get(u.id) ?? null
+    if (parentId) {
+      const inferred = unitHierarchy.inferredUnitIds.has(u.id)
       edges.push({
-        id: `e-${u.parentId}-${u.id}`,
-        source: u.parentId,
+        id: `e-${parentId}-${u.id}`,
+        source: parentId,
         target: u.id,
         type: 'smoothstep',
-        style: { stroke: 'rgb(148 163 184 / 0.7)', strokeWidth: 1.5 },
+        style: inferred
+          ? { stroke: 'rgb(56 189 248 / 0.55)', strokeWidth: 1.6, strokeDasharray: '6 5' }
+          : { stroke: 'rgb(148 163 184 / 0.7)', strokeWidth: 1.5 },
       })
     }
   }
@@ -297,20 +330,6 @@ function buildPositionFlow(
   coverage: CoverageReport | null,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
   const unitsById = new Map(tree.units.map((u) => [u.id, u]))
-  const positionIds = new Set(tree.positions.map((p) => p.id))
-
-  // direct reports counter
-  const directReportsByPos = new Map<string, number>()
-  for (const p of tree.positions) {
-    if (p.reportsToPositionId && positionIds.has(p.reportsToPositionId)) {
-      directReportsByPos.set(
-        p.reportsToPositionId,
-        (directReportsByPos.get(p.reportsToPositionId) ?? 0) + 1,
-      )
-    }
-  }
-
-  // occupants by position
   const occupantsByPos = new Map<
     string,
     Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
@@ -326,6 +345,12 @@ function buildPositionFlow(
     occupantsByPos.set(a.positionId, list)
   }
 
+  const hierarchy = inferPositionHierarchy({
+    units: tree.units,
+    positions: tree.positions,
+    assignments: tree.assignments,
+  })
+
   const nodes: OrgFlowNode[] = tree.positions.map((p) => {
     const unit = unitsById.get(p.orgUnitId) ?? null
     const occupants = occupantsByPos.get(p.id) ?? []
@@ -333,17 +358,24 @@ function buildPositionFlow(
       id: p.id,
       type: 'positionNode',
       position: { x: 0, y: 0 },
+      width: 260,
+      height: 126,
       data: {
         kind: 'position',
         positionId: p.id,
         unitId: p.orgUnitId,
         unitName: unit?.name ?? null,
+        unitKind: unit?.kind ?? null,
+        unitPath: buildUnitPath(unit?.id ?? null, unitsById),
+        hierarchyLevel: unit?.level ?? 0,
         title: p.title,
         occupants,
         vacant: occupants.length < p.seats,
         isManagerial: Boolean(p.isManagerial),
         isCritical: Boolean(p.isCritical),
-        directReports: directReportsByPos.get(p.id) ?? 0,
+        isUnitLead: hierarchy.leadByUnit.get(p.orgUnitId)?.id === p.id,
+        inferredReportsTo: hierarchy.inferredPositionIds.has(p.id),
+        directReports: hierarchy.directReportsByPosition.get(p.id) ?? 0,
         coverage: coverage?.byUnit.get(p.orgUnitId) ?? null,
       } satisfies PositionNodeData,
     }
@@ -351,13 +383,18 @@ function buildPositionFlow(
 
   const edges: Edge[] = []
   for (const p of tree.positions) {
-    if (p.reportsToPositionId && positionIds.has(p.reportsToPositionId)) {
+    const parentId = hierarchy.parentByPosition.get(p.id)
+    if (parentId) {
+      const edgeId = `e-${parentId}-${p.id}`
+      const inferred = hierarchy.inferredPositionIds.has(p.id)
       edges.push({
-        id: `e-${p.reportsToPositionId}-${p.id}`,
-        source: p.reportsToPositionId,
+        id: edgeId,
+        source: parentId,
         target: p.id,
         type: 'smoothstep',
-        style: { stroke: 'rgb(148 163 184 / 0.7)', strokeWidth: 1.5 },
+        style: inferred
+          ? { stroke: 'rgb(56 189 248 / 0.55)', strokeWidth: 1.6, strokeDasharray: '6 5' }
+          : { stroke: 'rgb(148 163 184 / 0.76)', strokeWidth: 1.8 },
       })
     }
   }

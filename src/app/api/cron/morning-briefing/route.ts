@@ -20,6 +20,7 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { morningBriefingEmail } from '@/lib/email/templates'
 import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
+import { runUnsafeBypass } from '@/lib/prisma-rls'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -48,6 +49,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // runUnsafeBypass: el cron cruza todas las orgs legítimamente; sin esto, bajo
+    // RLS enforced las queries devolverían 0 filas (cron silenciosamente inútil).
+    return await runUnsafeBypass({ reason: 'cron:morning-briefing' }, async () => {
   const now = new Date()
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
@@ -166,6 +170,7 @@ export async function GET(req: NextRequest) {
     }
     await completeCronRun(claim.runId, summary)
     return NextResponse.json({ ok: true, summary })
+    })
   } catch (err) {
     console.error('[morning-briefing] cron error', err)
     await failCronRun(claim.runId, err)

@@ -30,7 +30,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatSoles } from '@/lib/format/peruvian'
+import { formatSoles, formatSolesParts } from '@/lib/format/peruvian'
 
 type TabKey = 'resumen' | 'diagnostico' | 'brechas' | 'plan' | 'radar' | 'inspecciones'
 type Tone = 'red' | 'amber' | 'emerald' | 'cyan'
@@ -56,7 +56,7 @@ interface RiskReport {
     muyGraves: number
     graves: number
     leves: number
-    totalRiesgos: number
+    totalRiesgos?: number
     areasMasRiesgosas: string[]
   }
   riesgos: Riesgo[]
@@ -278,6 +278,10 @@ const TASK_STATUS_STYLE: Record<TaskStatus, string> = {
   DISMISSED: 'border-slate-400/20 bg-slate-400/10 text-slate-200',
 }
 
+function formatSolesCompact(value: number) {
+  return `S/ ${formatSolesParts(value).amount}`
+}
+
 interface NextMove {
   label: string
   body: string
@@ -425,9 +429,9 @@ export default function CentroSunafilPage() {
             </p>
           </div>
           <div className="grid min-w-[280px] grid-cols-2 gap-3">
-            <Metric label="Exposicion" value={report ? formatSoles(report.totalMultaSoles) : '...'} tone="red" />
-            <Metric label="Ahorro subsanando" value={report ? formatSoles(report.ahorroTotalSoles) : '...'} tone="emerald" />
-            <Metric label="Brechas" value={String(report?.resumen.totalRiesgos ?? '...')} tone="amber" />
+            <Metric label="Exposicion" value={report ? formatSolesCompact(report.totalMultaSoles) : '...'} tone="red" />
+            <Metric label="Ahorro subsanando" value={report ? formatSolesCompact(report.ahorroTotalSoles) : '...'} tone="emerald" />
+            <Metric label="Brechas" value={report ? String(report.riesgos.length) : '...'} tone="amber" />
             <Metric label="Estado" value={exposureLevel} tone={exposureLevel === 'CRITICO' ? 'red' : exposureLevel === 'ALTO' ? 'amber' : 'emerald'} />
           </div>
         </div>
@@ -514,7 +518,7 @@ function Metric({ label, value, tone }: { label: string; value: string; tone: Ex
   return (
     <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
       <p className="text-[10px] font-bold uppercase text-slate-500">{label}</p>
-      <p className={cn('mt-1 truncate text-lg font-black', toneClass)}>{value}</p>
+      <p className={cn('mt-1 break-words text-lg font-black leading-tight', toneClass)}>{value}</p>
     </div>
   )
 }
@@ -763,6 +767,7 @@ function ResumenTab({
         simulationScore={simulationScore}
         onSelectTab={onSelectTab}
       />
+      <ImpactSimulator report={report} loading={loading} onSelectTab={onSelectTab} />
     </div>
   )
 }
@@ -825,6 +830,158 @@ function OperatingFlow({
         />
       </div>
     </Panel>
+  )
+}
+
+function ImpactSimulator({
+  report,
+  loading,
+  onSelectTab,
+}: {
+  report: RiskReport | null
+  loading: boolean
+  onSelectTab: (tab: TabKey) => void
+}) {
+  const [scope, setScope] = useState<'top1' | 'top3' | 'top5' | 'all'>('top3')
+  const sortedRisks = useMemo(
+    () => [...(report?.riesgos ?? [])].sort((a, b) => b.urgencia - a.urgencia || b.multaEstimadaSoles - a.multaEstimadaSoles),
+    [report],
+  )
+  const selectedCount =
+    scope === 'all'
+      ? sortedRisks.length
+      : Math.min(sortedRisks.length, scope === 'top1' ? 1 : scope === 'top3' ? 3 : 5)
+  const selectedRisks = sortedRisks.slice(0, selectedCount)
+  const totalExposure = report?.totalMultaSoles ?? 0
+  const selectedExposure = selectedRisks.reduce((sum, risk) => sum + risk.multaEstimadaSoles, 0)
+  const selectedSavings = selectedRisks.reduce((sum, risk) => sum + risk.ahorroSubsanacion, 0)
+  const remainingExposure = Math.max(0, totalExposure - selectedSavings)
+  const reductionPct = totalExposure > 0 ? Math.round((selectedSavings / totalExposure) * 100) : 0
+  const selectedSharePct = totalExposure > 0 ? Math.round((selectedExposure / totalExposure) * 100) : 0
+  const remainingPct = totalExposure > 0 ? Math.round((remainingExposure / totalExposure) * 100) : 0
+
+  const options: Array<{ key: typeof scope; label: string; helper: string }> = [
+    { key: 'top1', label: '1 brecha', helper: 'primer golpe' },
+    { key: 'top3', label: '3 brechas', helper: '7 dias' },
+    { key: 'top5', label: '5 brechas', helper: '30 dias' },
+    { key: 'all', label: 'todas', helper: 'cierre total' },
+  ]
+
+  return (
+    <Panel
+      title="Simulador anti-multas"
+      icon={TrendingDown}
+      action={
+        <button
+          type="button"
+          onClick={() => onSelectTab('brechas')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/30 px-3 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-400/10"
+        >
+          Abrir brechas
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      }
+    >
+      {loading ? (
+        <LoadingState label="Calculando escenarios de reduccion de multa..." />
+      ) : !report || sortedRisks.length === 0 ? (
+        <EmptyState
+          title="No hay multa evitable pendiente"
+          body="El escaneo actual no detecta brechas con exposicion monetaria. Mantener radar preventivo."
+        />
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {options.map((option) => {
+              const active = scope === option.key
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setScope(option.key)}
+                  className={cn(
+                    'rounded-xl border px-3 py-2 text-left transition',
+                    active
+                      ? 'border-cyan-300 bg-cyan-300 text-slate-950'
+                      : 'border-white/10 bg-slate-950/30 text-slate-300 hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-white',
+                  )}
+                >
+                  <span className="block text-xs font-black uppercase">{option.label}</span>
+                  <span className={cn('mt-0.5 block text-[10px] font-bold', active ? 'text-slate-700' : 'text-slate-500')}>
+                    {option.helper}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <ScenarioKpi label="Exposicion actual" value={formatSolesCompact(totalExposure)} tone="red" />
+            <ScenarioKpi label="Ahorro posible" value={formatSolesCompact(selectedSavings)} tone="emerald" />
+            <ScenarioKpi label="Reduccion" value={`${reductionPct}%`} tone={reductionPct >= 70 ? 'emerald' : reductionPct >= 40 ? 'cyan' : 'amber'} />
+            <ScenarioKpi label="Luego de subsanar" value={formatSolesCompact(remainingExposure)} tone={remainingExposure === 0 ? 'emerald' : 'amber'} />
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-slate-950/35 p-4">
+            <div className="flex items-center justify-between gap-3 text-xs font-black uppercase text-slate-400">
+              <span>Impacto sobre exposicion total</span>
+              <span>{selectedCount} de {sortedRisks.length} brecha(s)</span>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-emerald-300" style={{ width: `${Math.min(100, reductionPct)}%` }} />
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold text-slate-400">
+              <span className="text-emerald-200">{reductionPct}% bajaria por subsanacion voluntaria</span>
+              <span>{selectedSharePct}% de la exposicion esta en el bloque elegido</span>
+              <span>{remainingPct}% quedaria por gestionar</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {selectedRisks.slice(0, 5).map((risk, index) => (
+              <div
+                key={`${risk.codigo}-scenario-${index}`}
+                className="grid gap-3 rounded-xl border border-white/10 bg-slate-950/30 p-3 md:grid-cols-[auto_1fr_auto]"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-300 text-xs font-black text-slate-950">
+                  {index + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-black', SEVERITY_STYLE[risk.severidad])}>
+                      {risk.severidad.replace('_', ' ')}
+                    </span>
+                    <span className="font-mono text-[11px] text-slate-500">{risk.codigo}</span>
+                  </div>
+                  <p className="mt-1 truncate text-sm font-bold text-white">{risk.titulo}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">{risk.accionInmediata}</p>
+                </div>
+                <div className="text-left md:text-right">
+                  <p className="text-xs font-bold uppercase text-slate-500">Ahorro</p>
+                  <p className="text-sm font-black text-emerald-200">{formatSolesCompact(risk.ahorroSubsanacion)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Panel>
+  )
+}
+
+function ScenarioKpi({ label, value, tone }: { label: string; value: string; tone: Tone }) {
+  const toneClass = {
+    red: 'text-red-300',
+    amber: 'text-amber-300',
+    emerald: 'text-emerald-300',
+    cyan: 'text-cyan-300',
+  }[tone]
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-slate-950/35 p-3">
+      <p className="text-[10px] font-black uppercase text-slate-500">{label}</p>
+      <p className={cn('mt-1 truncate text-xl font-black', toneClass)}>{value}</p>
+    </div>
   )
 }
 

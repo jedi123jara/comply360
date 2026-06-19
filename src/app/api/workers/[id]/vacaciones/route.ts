@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
+import { vacacionCreateSchema } from '@/lib/workers/schemas'
 
 const MYPE_REGIMENS = ['MYPE_MICRO', 'MYPE_PEQUENA']
 
@@ -112,22 +113,20 @@ export const POST = withPlanGateParams<{ id: string }>('workers',
       return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 404 })
     }
 
-    const body = await req.json() as {
-      periodoInicio: string
-      periodoFin: string
-      diasCorresponden?: number
-      diasGozados?: number
-      fechaGoce?: string
-    }
+    const rawBody = await req.json().catch(() => ({}))
 
-    const { periodoInicio, periodoFin, diasGozados = 0, fechaGoce } = body
-
-    if (!periodoInicio || !periodoFin) {
+    // Validación zod: días de vacaciones sin validar → balance corrupto.
+    // diasCorresponden/diasGozados deben ser enteros >= 0; fechas parseables.
+    const parsed = vacacionCreateSchema.safeParse(rawBody)
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'periodoInicio y periodoFin son requeridos' },
+        { error: 'Datos inválidos', details: parsed.error.flatten() },
         { status: 400 },
       )
     }
+    const body = parsed.data
+
+    const { periodoInicio, periodoFin, diasGozados = 0, fechaGoce } = body
 
     const diasPorAnio = MYPE_REGIMENS.includes(worker.regimenLaboral) ? 15 : 30
     const dias = body.diasCorresponden ?? diasPorAnio

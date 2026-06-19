@@ -50,7 +50,16 @@ export function calcularCTS(input: CTSInput): CTSResult {
 
   // Si el trabajador ingresó después del inicio del semestre, usar fecha de ingreso
   const fechaEfectivaInicio = input.fechaIngreso > inicioSemestre ? input.fechaIngreso : inicioSemestre
-  const periodo = calcularPeriodoLaboralPeru(fechaEfectivaInicio, input.fechaCorte)
+
+  // FIX: el semestre legal de CTS cierra el último día de abril (depósito de mayo)
+  // u octubre (depósito de noviembre). Antes el cómputo usaba `input.fechaCorte`
+  // (el día 15 del depósito), lo que sumaba ~14 días de treintavos de más y
+  // sobrepagaba la CTS de todo trabajador con semestre completo (devolvía más de
+  // media remuneración). Usamos el PRIMER día del mes de depósito (1-may / 1-nov)
+  // como fin EXCLUSIVO del cómputo, de modo que un semestre completo cuente
+  // exactamente 6 meses y 0 días → CTS = remComputable / 2 (D.S. 001-97-TR).
+  const finComputo = isoDate(fechaCorte.year, mesCorte, 1)
+  const periodo = calcularPeriodoLaboralPeru(fechaEfectivaInicio, finComputo)
 
   // Máximo 6 meses por periodo
   const mesesComputables = Math.min(periodo.totalMeses, PERU_LABOR.CTS.MESES_POR_PERIODO)
@@ -140,14 +149,11 @@ function calcularPeriodoLaboralPeru(fechaIngreso: string, fechaCese: string) {
 }
 
 function toPeruDateParts(value: string): DateParts {
-  const { year, month, day } = parseIsoDate(value)
-  const limaMidnightOffsetMs = 5 * 60 * 60 * 1000
-  const shifted = new Date(Date.UTC(year, month - 1, day) - limaMidnightOffsetMs)
-  return {
-    year: shifted.getUTCFullYear(),
-    month: shifted.getUTCMonth() + 1,
-    day: shifted.getUTCDate(),
-  }
+  // Un "YYYY-MM-DD" es una fecha civil (de Lima), no un instante UTC: debe
+  // tratarse tal cual. La versión anterior restaba 5h al UTC midnight, lo que
+  // empujaba la fecha al día anterior y descuadraba el conteo de meses en los
+  // límites de mes (un semestre completo daba 5m30d o 6m1d en vez de 6m0d).
+  return parseIsoDate(value)
 }
 
 function daysInPreviousMonth(year: number, month: number): number {

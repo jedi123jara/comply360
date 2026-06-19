@@ -58,7 +58,30 @@ export const POST = withAuth(async (req, ctx) => {
         { status: 409 },
       )
     }
-    // Si está en TRIALING o expirada, permitimos cambiar (caso "elegí mal el plan")
+    // Si está en TRIALING permitimos cambiar de plan (caso "elegí mal el plan").
+  }
+
+  // Anti-abuso: un solo período de prueba por organización. Permitimos cambiar de
+  // plan MIENTRAS el trial sigue vigente (TRIALING), pero NO reiniciar un trial nuevo
+  // una vez que expiró/se canceló (el cron check-trials deja la subscription en
+  // CANCELLED). Sin esto, un OWNER renovaba PRO gratis cada 14 días indefinidamente.
+  const alreadyTrialing = existing?.status === 'TRIALING'
+  if (!alreadyTrialing) {
+    const previousTrial = await prisma.auditLog.findFirst({
+      where: { orgId: ctx.orgId, action: 'subscription.trial_started' },
+      select: { id: true, createdAt: true },
+    })
+    if (previousTrial) {
+      return NextResponse.json(
+        {
+          error: 'Ya usaste tu período de prueba. Elige un plan pago para continuar.',
+          code: 'TRIAL_ALREADY_USED',
+          previousTrialAt: previousTrial.createdAt.toISOString(),
+          upgradeUrl: '/dashboard/planes',
+        },
+        { status: 409 },
+      )
+    }
   }
 
   const now = new Date()

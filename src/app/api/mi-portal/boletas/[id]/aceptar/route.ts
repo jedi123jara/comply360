@@ -94,13 +94,21 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (req: NextRequest
     req.headers.get('x-real-ip') ??
     null
 
-  const updated = await prisma.payslip.update({
-    where: { id: payslip.id },
+  // FIX race condition: update atómico-condicional. Solo el primer request (de un
+  // doble-tap / retry de red) matchea acceptedAt:null y dispara audit + evento; los
+  // demás obtienen count=0 → "ya aceptada", sin duplicar el audit trail legal de la
+  // firma (Ley 27269) ni re-emitir el evento.
+  const claim = await prisma.payslip.updateMany({
+    where: { id: payslip.id, acceptedAt: null, status: { not: 'ANULADA' } },
     data: {
       status: 'ACEPTADA',
       acceptedAt: now,
     },
   })
+
+  if (claim.count === 0) {
+    return NextResponse.json({ error: 'Esta boleta ya fue aceptada' }, { status: 400 })
+  }
 
   await prisma.auditLog
     .create({
@@ -109,10 +117,10 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (req: NextRequest
         userId: ctx.userId,
         action: 'payslip.accepted',
         entityType: 'Payslip',
-        entityId: updated.id,
+        entityId: payslip.id,
         ipAddress,
         metadataJson: {
-          periodo: updated.periodo,
+          periodo: payslip.periodo,
           signatureLevel,
           credentialId: body.credentialId ?? null,
           userAgent,
@@ -126,22 +134,22 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (req: NextRequest
   emit('payslip.accepted', {
     orgId: ctx.orgId,
     userId: ctx.userId,
-    payslipId: updated.id,
+    payslipId: payslip.id,
     workerId: ctx.workerId,
-    periodo: updated.periodo,
+    periodo: payslip.periodo,
     signatureLevel,
   })
 
   return NextResponse.json({
-    id: updated.id,
-    periodo: updated.periodo,
-    fechaEmision: updated.fechaEmision.toISOString(),
-    totalIngresos: updated.totalIngresos.toString(),
-    totalDescuentos: updated.totalDescuentos.toString(),
-    netoPagar: updated.netoPagar.toString(),
-    status: updated.status,
-    pdfUrl: updated.pdfUrl,
-    acceptedAt: updated.acceptedAt?.toISOString() ?? null,
+    id: payslip.id,
+    periodo: payslip.periodo,
+    fechaEmision: payslip.fechaEmision.toISOString(),
+    totalIngresos: payslip.totalIngresos.toString(),
+    totalDescuentos: payslip.totalDescuentos.toString(),
+    netoPagar: payslip.netoPagar.toString(),
+    status: 'ACEPTADA',
+    pdfUrl: payslip.pdfUrl,
+    acceptedAt: now.toISOString(),
     signatureLevel,
   })
 })

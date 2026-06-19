@@ -227,19 +227,30 @@ export async function getAckDeadlines(orgId: string): Promise<ExtendedCalendarEv
     const events: ExtendedCalendarEvent[] = []
     const now = new Date()
 
+    // FIX N+1: worker.count es invariante (no depende del doc) → 1 sola query; y los
+    // firmantes por (documento, versión) se traen con un groupBy, en vez de 1 count
+    // por doc dentro del bucle.
+    const targetCount = await prisma.worker.count({
+      where: { orgId, status: 'ACTIVE' },
+    })
+    const signedGroups = await prisma.documentAcknowledgment.groupBy({
+      by: ['documentId', 'documentVersion'],
+      where: { orgId, documentId: { in: docs.map((d) => d.id) } },
+      _count: { _all: true },
+    })
+    const signedByDocVersion = new Map<string, number>()
+    for (const g of signedGroups) {
+      signedByDocVersion.set(`${g.documentId}:${g.documentVersion}`, g._count._all)
+    }
+
     for (const doc of docs) {
       if (!doc.lastNotifiedAt || !doc.acknowledgmentDeadlineDays) continue
 
       const deadline = new Date(doc.lastNotifiedAt)
       deadline.setDate(deadline.getDate() + doc.acknowledgmentDeadlineDays)
 
-      // Contar workers pendientes (que no han firmado la versión actual)
-      const targetCount = await prisma.worker.count({
-        where: { orgId, status: 'ACTIVE' },
-      })
-      const signedCount = await prisma.documentAcknowledgment.count({
-        where: { orgId, documentId: doc.id, documentVersion: doc.version },
-      })
+      // Workers que aún no firman la versión actual del documento
+      const signedCount = signedByDocVersion.get(`${doc.id}:${doc.version}`) ?? 0
       const pending = targetCount - signedCount
 
       if (pending <= 0) continue // todos firmaron, no es un evento relevante

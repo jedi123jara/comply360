@@ -44,6 +44,33 @@ describe('calcularVacaciones', () => {
   })
 
   // -----------------------------------------------
+  // Régimen MYPE (15 días/año): el trunco debe ser la MITAD que en GENERAL.
+  // Regresión de sobrepago 2x: antes la trunca ignoraba el régimen.
+  // Worker MYPE_MICRO: S/ 1,500, exactamente 6 meses de fracción, 0 años completos.
+  // -----------------------------------------------
+  describe('regimen MYPE - 15 dias por ano (trunca = mitad de general)', () => {
+    const input: VacacionesInput = {
+      sueldoBruto: 1500,
+      fechaIngreso: '2025-01-01',
+      fechaCese: '2025-07-01',
+      diasGozados: 0,
+      asignacionFamiliar: false,
+      regimenLaboral: 'MYPE_MICRO',
+    }
+
+    it('vacaciones truncas debe escalar a 15 dias/ano (la mitad de 30)', () => {
+      const result = calcularVacaciones(input)
+      // GENERAL daría (1500/12)*6 = 750; MYPE (15 días) = 750 * (15/30) = 375.
+      expect(result.vacacionesTruncas).toBeCloseTo(375, 2)
+    })
+
+    it('no debe generar vacaciones no gozadas (menos de 1 ano completo)', () => {
+      const result = calcularVacaciones(input)
+      expect(result.vacacionesNoGozadas).toBe(0)
+    })
+  })
+
+  // -----------------------------------------------
   // Worker who gozed ALL vacation days (no pendientes)
   // 2 years, 60 dias debidos, 60 gozados
   // -----------------------------------------------

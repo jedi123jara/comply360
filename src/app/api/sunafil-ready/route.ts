@@ -26,6 +26,11 @@ import {
   type SunafilCategory,
 } from '@/data/legal/sunafil-ready-catalog'
 import { calcularMultaSunafilSoles } from '@/lib/legal-engine/peru-labor'
+import {
+  resolveSunafilDocStatus,
+  type WorkerCoverageBucket,
+  type SunafilEvidenceSnapshot,
+} from '@/lib/compliance/sunafil-evidence'
 
 export const runtime = 'nodejs'
 
@@ -51,69 +56,6 @@ interface DocStatusEntry {
   conditionReason?: string // si NO_APLICA
 }
 
-/* ── Mapeo: WorkerDocument.documentType → SunafilDocSpec worker-scope ──── */
-
-/**
- * Retorna coverage para docs worker-scope:
- * present = trabajadores activos con el documento en estado UPLOADED|VERIFIED
- * total = trabajadores activos totales
- */
-function computeWorkerCoverage(
-  workerCountsByType: Map<string, { uploaded: number; expired: number }>,
-  totalWorkers: number,
-  workerDocType: string,
-): { present: number; total: number; expired: number } {
-  const match = workerCountsByType.get(workerDocType)
-  return {
-    present: match?.uploaded ?? 0,
-    expired: match?.expired ?? 0,
-    total: totalWorkers,
-  }
-}
-
-/* ── Status derivation ──────────────────────────────────────────────── */
-
-function deriveStatus(args: {
-  doc: SunafilDocSpec
-  applicable: boolean
-  workerCoverage?: { present: number; total: number; expired: number }
-  orgDocFound?: boolean
-  orgDocExpired?: boolean
-}): { status: DocStatus; coverage: { present: number; total: number } } {
-  const { doc, applicable, workerCoverage, orgDocFound, orgDocExpired } = args
-
-  if (!applicable) {
-    return { status: 'NO_APLICA', coverage: { present: 0, total: 0 } }
-  }
-
-  if (doc.scope === 'worker') {
-    const c = workerCoverage ?? { present: 0, total: 0, expired: 0 }
-    if (c.total === 0) return { status: 'NO_APLICA', coverage: { present: 0, total: 0 } }
-    if (c.expired > 0) return { status: 'VENCIDO', coverage: { present: c.present, total: c.total } }
-    if (c.present === c.total) return { status: 'COMPLETO', coverage: { present: c.present, total: c.total } }
-    if (c.present === 0) return { status: 'FALTANTE', coverage: { present: 0, total: c.total } }
-    return { status: 'PARCIAL', coverage: { present: c.present, total: c.total } }
-  }
-
-  if (doc.scope === 'org' || doc.scope === 'exhibited') {
-    if (!orgDocFound) return { status: 'FALTANTE', coverage: { present: 0, total: 1 } }
-    if (orgDocExpired) return { status: 'VENCIDO', coverage: { present: 0, total: 1 } }
-    return { status: 'COMPLETO', coverage: { present: 1, total: 1 } }
-  }
-
-  // hybrid: requiere TANTO org-level doc como worker coverage (capacitaciones)
-  if (doc.scope === 'hybrid') {
-    const c = workerCoverage ?? { present: 0, total: 0, expired: 0 }
-    const orgOK = orgDocFound && !orgDocExpired
-    if (c.total === 0 || !orgOK) return { status: 'FALTANTE', coverage: { present: 0, total: c.total } }
-    if (c.expired > 0) return { status: 'VENCIDO', coverage: { present: c.present, total: c.total } }
-    if (c.present === c.total) return { status: 'COMPLETO', coverage: { present: c.present, total: c.total } }
-    return { status: 'PARCIAL', coverage: { present: c.present, total: c.total } }
-  }
-
-  return { status: 'FALTANTE', coverage: { present: 0, total: 1 } }
-}
-
 /* ── Main handler ────────────────────────────────────────────────────── */
 
 export const GET = withPlanGate('diagnostico', async (_req: NextRequest, ctx: AuthContext) => {
@@ -137,43 +79,87 @@ export const GET = withPlanGate('diagnostico', async (_req: NextRequest, ctx: Au
       hasTercerizacion: false, // TODO: detectar desde registros
     }
 
-    // 2. Documentos de trabajadores agregados por tipo (present/expired counts)
-    const workerDocsAgg = await prisma.workerDocument.findMany({
-      where: {
-        worker: { orgId, status: { not: 'TERMINATED' } },
-        status: { in: ['UPLOADED', 'VERIFIED'] },
-      },
-      select: {
-        workerId: true,
-        documentType: true,
-        expiresAt: true,
-      },
-    })
+    // 2. Evidencias: documentos + módulos SST modernos.
+    const yearStart = new Date(now.getFullYear(), 0, 1)
+    const [
+      workerDocsAgg,
+      orgDocs,
+      sstRecords,
+      sedes,
+      ipercBases,
+      comites,
+      emos,
+      workerEpps,
+      capacitaciones,
+      accidentes,
+    ] = await Promise.all([
+      prisma.workerDocument.findMany({
+        where: {
+          worker: { orgId, status: { not: 'TERMINATED' } },
+          status: { in: ['UPLOADED', 'VERIFIED'] },
+        },
+        select: {
+          workerId: true,
+          documentType: true,
+          expiresAt: true,
+        },
+      }),
+      prisma.orgDocument.findMany({
+        where: { orgId },
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          type: true,
+          title: true,
+          description: true,
+          validUntil: true,
+          updatedAt: true,
+          fileUrl: true,
+        },
+      }),
+      prisma.sstRecord.findMany({
+        where: { orgId },
+        select: { type: true, status: true, title: true, createdAt: true, completedAt: true, dueDate: true },
+      }),
+      prisma.sede.findMany({
+        where: { orgId },
+        select: { id: true, activa: true },
+      }),
+      prisma.iPERCBase.findMany({
+        where: { orgId },
+        select: { sedeId: true, estado: true, fechaAprobacion: true },
+      }),
+      prisma.comiteSST.findMany({
+        where: { orgId },
+        select: { estado: true, mandatoFin: true },
+      }),
+      prisma.eMO.findMany({
+        where: { orgId },
+        select: { workerId: true, proximoExamenAntes: true },
+      }),
+      prisma.workerEPP.findMany({
+        where: { orgId },
+        select: { workerId: true, fechaVencimiento: true },
+      }),
+      prisma.workerCapacitacionSST.findMany({
+        where: { orgId, fechaCapacitacion: { gte: yearStart } },
+        select: { workerId: true, tipo: true, fechaCapacitacion: true },
+      }),
+      prisma.accidente.findMany({
+        where: { orgId },
+        select: { id: true, fechaHora: true },
+      }),
+    ])
 
-    // Map<documentType, { uniqueWorkers set, expiredWorkers set }>
-    const byType = new Map<string, { uploaded: Set<string>; expired: Set<string> }>()
+    const workerDocsByType = new Map<string, WorkerCoverageBucket>()
     for (const d of workerDocsAgg) {
-      const bucket = byType.get(d.documentType) ?? { uploaded: new Set(), expired: new Set() }
-      bucket.uploaded.add(d.workerId)
+      const bucket = workerDocsByType.get(d.documentType) ?? { present: new Set(), expired: new Set() }
+      bucket.present.add(d.workerId)
       if (d.expiresAt && d.expiresAt < now) {
         bucket.expired.add(d.workerId)
       }
-      byType.set(d.documentType, bucket)
-    }
-    const workerCountsByType = new Map<string, { uploaded: number; expired: number }>()
-    for (const [type, bucket] of byType) {
-      workerCountsByType.set(type, {
-        uploaded: bucket.uploaded.size,
-        expired: bucket.expired.size,
-      })
+      workerDocsByType.set(d.documentType, bucket)
     }
 
-    // 3. OrgDocuments más recientes por type
-    const orgDocs = await prisma.orgDocument.findMany({
-      where: { orgId },
-      orderBy: { updatedAt: 'desc' },
-      select: { type: true, title: true, validUntil: true, updatedAt: true, fileUrl: true },
-    })
     const orgDocByType = new Map<string, { validUntil: Date | null; hasFile: boolean }>()
     for (const d of orgDocs) {
       if (!orgDocByType.has(d.type)) {
@@ -183,46 +169,36 @@ export const GET = withPlanGate('diagnostico', async (_req: NextRequest, ctx: Au
         })
       }
     }
+    const orgDocSearchText = orgDocs.map((d) =>
+      `${d.type} ${d.title} ${d.description ?? ''}`.toLowerCase(),
+    )
+    const evidenceSnapshot: SunafilEvidenceSnapshot = {
+      now,
+      totalWorkers,
+      workerDocsByType,
+      orgDocByType,
+      orgDocSearchText,
+      sstRecords,
+      sedes,
+      ipercBases,
+      comites,
+      emos,
+      workerEpps,
+      capacitaciones,
+      accidentes,
+    }
 
-    // 4. Para el tipo empresa (size-based): usar el número del cuadro de multas
+    // 3. Para el tipo empresa (size-based): usar el número del cuadro de multas
     const tipoEmpresa =
       totalWorkers <= 10 ? 'MICRO' : totalWorkers <= 100 ? 'PEQUENA' : 'NO_MYPE'
 
-    // 5. Construir el status por cada doc del catálogo
+    // 4. Construir el status por cada doc del catálogo
     const entries: DocStatusEntry[] = SUNAFIL_READY_DOCS.map((doc) => {
       const applicable = isDocApplicable(doc, applicabilityCtx)
-      let workerCoverage: { present: number; total: number; expired: number } | undefined
-      let orgDocFound = false
-      let orgDocExpired = false
-      let lastExpiresAt: Date | null = null
-
-      if (doc.scope === 'worker' || doc.scope === 'hybrid') {
-        if (doc.workerDocType) {
-          workerCoverage = computeWorkerCoverage(
-            workerCountsByType,
-            totalWorkers,
-            doc.workerDocType,
-          )
-        }
-      }
-      if (doc.scope === 'org' || doc.scope === 'hybrid' || doc.scope === 'exhibited') {
-        if (doc.orgDocType) {
-          const org = orgDocByType.get(doc.orgDocType)
-          if (org) {
-            orgDocFound = org.hasFile
-            lastExpiresAt = org.validUntil
-            if (org.validUntil && org.validUntil < now) orgDocExpired = true
-          }
-        }
-      }
-
-      const { status, coverage } = deriveStatus({
-        doc,
-        applicable,
-        workerCoverage,
-        orgDocFound,
-        orgDocExpired,
-      })
+      const resolved = applicable
+        ? resolveSunafilDocStatus(doc, evidenceSnapshot)
+        : { status: 'NO_APLICA' as DocStatus, coverage: { present: 0, total: 0 }, lastExpiresAt: null }
+      const { status, coverage } = resolved
 
       // Multa en soles usando escala granular del motor legal
       const multaSoles =
@@ -231,8 +207,8 @@ export const GET = withPlanGate('diagnostico', async (_req: NextRequest, ctx: Au
               tipoEmpresa,
               doc.gravity,
               status === 'PARCIAL'
-                ? Math.max(1, (workerCoverage?.total ?? 1) - (workerCoverage?.present ?? 0))
-                : Math.max(1, workerCoverage?.total ?? 1),
+                ? Math.max(1, coverage.total - coverage.present)
+                : Math.max(1, coverage.total || 1),
               false,
               null,
             )
@@ -252,7 +228,7 @@ export const GET = withPlanGate('diagnostico', async (_req: NextRequest, ctx: Au
         scope: doc.scope,
         status,
         coverage,
-        lastExpiresAt: lastExpiresAt?.toISOString() ?? null,
+        lastExpiresAt: resolved.lastExpiresAt?.toISOString() ?? null,
         generatorSlug: doc.generatorSlug,
         actionHint: doc.actionHint,
         conditionReason: !applicable ? doc.condition?.description : undefined,

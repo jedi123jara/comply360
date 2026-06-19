@@ -101,3 +101,26 @@ describe('calcularUtilidades', () => {
     expect(detalle).toHaveProperty('totalFinal')
   })
 })
+
+describe('tope de utilidades por remuneración mensual real (fix P3)', () => {
+  it('para año completo (360 días) el tope es 18 × total/12 (sin cambio)', () => {
+    const r = calcularUtilidades({
+      rentaAnualNeta: 100000,
+      sector: 'COMERCIO',
+      trabajadores: [{ nombre: 'Full', diasTrabajados: 360, remuneracionTotal: 36000 }],
+    })
+    // 36000/12 = 3000 mensual; tope = 18 × 3000 = 54000.
+    expect(r.detallePorTrabajador[0].tope).toBeCloseTo(54000, 0)
+  })
+
+  it('para medio año (180 días) usa la mensual real, no total/12', () => {
+    const r = calcularUtilidades({
+      rentaAnualNeta: 100000,
+      sector: 'COMERCIO',
+      trabajadores: [{ nombre: 'Medio', diasTrabajados: 180, remuneracionTotal: 18000 }],
+    })
+    // mensual real = 18000 × 30/180 = 3000; tope = 18 × 3000 = 54000.
+    // (Antes: 18000/12 = 1500 → tope 27000, subestimado a la mitad.)
+    expect(r.detallePorTrabajador[0].tope).toBeCloseTo(54000, 0)
+  })
+})

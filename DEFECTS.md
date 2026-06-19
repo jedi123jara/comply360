@@ -39,10 +39,9 @@
 - **Fix aplicado** (✅): `src/app/api/leads/route.ts` ahora atrapa el error de DB, loguea el payload completo del lead + hint para ops (`Run npx prisma migrate deploy`), y retorna `200 { success: true, persisted: false, message: "Lead recibido (persistencia diferida)" }`. El funnel de conversión marketing NO se rompe.
 - **Deuda**: correr `npx prisma migrate deploy` en el entorno activo para que los leads se persistan en DB. Mientras tanto se pueden recuperar de los logs de producción.
 
-### 🟡 D-002 — `/portal-empleado` doble redirect (308 → 308)
-- **Ubicación**: `/portal-empleado` responde 308 (308 bytes body = 10) redirigiendo a `/portal-empleado/ingresar` que también responde 308 (19 bytes).
-- **Severity**: Baja (el navegador sigue ambos redirects automáticamente, pero es subóptimo).
-- **Hint de fix**: Revisar `src/app/portal-empleado/page.tsx` vs `src/app/portal-empleado/ingresar/page.tsx` — uno redirige al otro que a su vez redirige. Elegir target final directo.
+### ✅ D-002 — `/portal-empleado` doble redirect (308 → 308) — RESUELTO (2026-06-18)
+- Ya no es reproducible: la ruta `portal-empleado/ingresar/` fue eliminada y `page.tsx`
+  renderiza el formulario directamente (sin redirect). Verificado en auditoría 2026-06-18.
 
 ### 🟢 D-003 — `/dashboard/asistente-ia` redirect permanente a `/dashboard/ia-laboral`
 - **Severity**: Nula (es consolidación planeada del plan maestro: `asistente-ia` + `agentes` + `analizar-contrato` → `/dashboard/ia-laboral`).
@@ -54,11 +53,10 @@
 - **Severity**: Docs (no es bug, es convención). Todos los endpoints internos ya usan UPPERCASE.
 - **Action**: Documentar en `ARCHITECTURE.md` + considerar aceptar minúsculas server-side por defensividad.
 
-### 🟢 D-005 — 2 lint errors residuales en 2 dashboard legacy
-- **Ubicación**: `asistencia/page.tsx:117` y `prestadores/page.tsx:79`
-- **Rule**: `react-hooks/set-state-in-effect`
-- **Severity**: Baja (warnings con behavior OK). Pre-existentes, no introducidos por esta sesión.
-- **Fix**: igual que los 10 que ya aplicamos — agregar `// eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: migrar a useApiQuery` al setState dentro del effect.
+### ✅ D-005 — lint `react-hooks/set-state-in-effect` — RESUELTO (2026-06-18)
+- Las 2 ubicaciones originales (`asistencia/page.tsx:117`, `prestadores/page.tsx:79`) ya
+  fueron arregladas. El único warning residual del mismo tipo (`sst/epp/page.tsx:157`)
+  se silenció con el `eslint-disable` estándar en la auditoría 2026-06-18.
 
 ---
 

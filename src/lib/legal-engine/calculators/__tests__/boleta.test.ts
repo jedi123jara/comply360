@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { calcularBoleta, type BoletaInput } from '../boleta'
+import { getRemuneracionMinimaNocturna } from '../../peru-labor'
 
 // UIT 2026 = 5,500 | RMV = 1,130
 const BASE: BoletaInput = {
@@ -73,12 +74,13 @@ describe('calcularBoleta', () => {
     expect(r.gratificacion).toBeCloseTo(1500, 1)
   })
 
-  it('descuenta AFP correctamente (Prima: 10% + 1.84% + 0.18%)', () => {
+  it('descuenta AFP correctamente (Prima: 10% + 1.37% + 1.60%)', () => {
     const r = calcularBoleta(BASE)
     // aporteAfpOnp = 10% de 3000 = 300
     expect(r.aporteAfpOnp).toBeCloseTo(300, 1)
-    // seguro invalidez: 1.84% de 3000 = 55.2
-    expect(r.seguroInvalidez).toBeCloseTo(55.2, 1)
+    // seguro invalidez: prima SPP vigente 1.37% (SISCO VIII) de 3000 = 41.1
+    // (sueldo < RMA, sin tope). Antes el código usaba 1.84% (tasa de 2023).
+    expect(r.seguroInvalidez).toBeCloseTo(41.1, 1)
     expect(r.totalDescuentos).toBeGreaterThan(0)
   })
 
@@ -150,5 +152,48 @@ describe('calcularBoleta', () => {
   it('ctsEstimadoMes es mayor que 0 con sueldo normal', () => {
     const r = calcularBoleta(BASE)
     expect(r.ctsEstimadoMes).toBeGreaterThan(0)
+  })
+})
+
+describe('split de bonificaciones (habitual vs extraordinaria)', () => {
+  const ALTO: BoletaInput = { ...BASE, sueldoBruto: 9000 } // sueldo alto → hay renta 5ta
+
+  it('los campos nuevos suman al total de ingresos del mes', () => {
+    const r = calcularBoleta({ ...BASE, bonificacionesHabituales: 200, bonificacionesExtraordinarias: 100 })
+    // 3000 + 200 + 100 = 3300
+    expect(r.totalIngresos).toBeCloseTo(3300, 0)
+  })
+
+  it('una bonificación habitual retiene más renta 5ta que una extraordinaria del mismo monto', () => {
+    const habitual = calcularBoleta({ ...ALTO, bonificacionesHabituales: 1000 })
+    const extra = calcularBoleta({ ...ALTO, bonificacionesExtraordinarias: 1000 })
+    expect(habitual.rentaQuintaCat).toBeGreaterThan(extra.rentaQuintaCat)
+  })
+
+  it('el campo legacy `bonificaciones` sigue funcionando (se trata como extraordinario)', () => {
+    const legacy = calcularBoleta({ ...ALTO, bonificaciones: 1000 })
+    const extra = calcularBoleta({ ...ALTO, bonificacionesExtraordinarias: 1000 })
+    expect(legacy.rentaQuintaCat).toBeCloseTo(extra.rentaQuintaCat, 2)
+  })
+})
+
+describe('jornada nocturna — piso RMV + 35% (Art. 8 D.S. 007-2002-TR)', () => {
+  it('getRemuneracionMinimaNocturna = RMV × 1.35 (1130 × 1.35 = 1525.5)', () => {
+    expect(getRemuneracionMinimaNocturna()).toBeCloseTo(1525.5, 2)
+  })
+
+  it('advierte si el trabajador nocturno gana menos que el piso', () => {
+    const r = calcularBoleta({ ...BASE, sueldoBruto: 1200, jornadaNocturna: true })
+    expect(r.warnings.some(w => w.toLowerCase().includes('jornada nocturna'))).toBe(true)
+  })
+
+  it('NO advierte si el nocturno gana >= el piso', () => {
+    const r = calcularBoleta({ ...BASE, sueldoBruto: 2000, jornadaNocturna: true })
+    expect(r.warnings.length).toBe(0)
+  })
+
+  it('NO advierte si no es jornada nocturna (aunque gane poco)', () => {
+    const r = calcularBoleta({ ...BASE, sueldoBruto: 1200 })
+    expect(r.warnings.length).toBe(0)
   })
 })

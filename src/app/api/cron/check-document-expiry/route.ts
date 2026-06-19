@@ -11,19 +11,17 @@
  * prefill recompute usando el nuevo estado.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { buildDocumentStatusMap } from '@/lib/compliance/document-status'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
-export async function GET(req: NextRequest) {
-  const cronSecret = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && cronSecret !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// withCronIdempotency aplica: auth fail-closed (CRON_SECRET) + runUnsafeBypass
+// (necesario para escanear todas las orgs cuando RLS está enforced) + idempotencia.
+export const GET = withCronIdempotency('check-document-expiry', 1440, async () => {
   const t0 = Date.now()
   const orgs = await prisma.organization.findMany({
     where: { onboardingCompleted: true },
@@ -88,4 +86,4 @@ export async function GET(req: NextRequest) {
     cacheInvalidados,
     durationMs: Date.now() - t0,
   })
-}
+})

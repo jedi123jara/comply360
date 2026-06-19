@@ -7,6 +7,7 @@ import { verifyRecaptcha } from '@/lib/recaptcha'
 import { sendEmail } from '@/lib/email/client'
 import { complaintNotification } from '@/lib/email/templates'
 import type { ComplaintChannel, ComplaintRegime, ComplaintStage, ComplaintStatus, ComplaintType } from '@/generated/prisma/client'
+import { Prisma } from '@/generated/prisma/client'
 import { emit } from '@/lib/events'
 import { triageComplaint } from '@/lib/ai/complaint-triage'
 import {
@@ -271,11 +272,18 @@ export async function POST(request: NextRequest) {
     // 5. Generate unique code
     const trackingToken = generateComplaintTrackingToken()
     const year = new Date().getFullYear()
-    const count = await prisma.complaint.count({ where: { orgId, regime: resolvedRegime as ComplaintRegime } })
-    const code = `${resolvedRegime}-${year}-${String(count + 1).padStart(3, '0')}`
 
-    // 6. Create complaint
-    const complaint = await prisma.complaint.create({
+    // 6. Create complaint con código secuencial + reintento ante colisión.
+    // FIX: el código se deriva de count() (no atómico) y `code` es @unique GLOBAL,
+    // así que envíos concurrentes —o de orgs distintas con el mismo secuencial—
+    // colisionaban: la 2da create violaba el unique → 500 y la denuncia se perdía.
+    // Reintentamos recomputando el secuencial ante P2002 (en vez de fallar con 500).
+    let complaint: Awaited<ReturnType<typeof prisma.complaint.create>> | undefined
+    for (let attempt = 0; attempt < 6 && !complaint; attempt++) {
+      const count = await prisma.complaint.count({ where: { orgId, regime: resolvedRegime as ComplaintRegime } })
+      const code = `${resolvedRegime}-${year}-${String(count + 1 + attempt).padStart(3, '0')}`
+      try {
+        complaint = await prisma.complaint.create({
       data: {
         orgId,
         code,
@@ -315,8 +323,19 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      include: { timeline: true },
-    })
+          include: { timeline: true },
+        })
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002' && attempt < 5) continue
+        throw e
+      }
+    }
+    if (!complaint) {
+      return NextResponse.json(
+        { error: 'No se pudo registrar la denuncia. Intenta nuevamente en unos segundos.' },
+        { status: 503 },
+      )
+    }
 
     // 7. Send email notification to org's alertEmail (fire-and-forget)
     try {
@@ -325,10 +344,10 @@ export async function POST(request: NextRequest) {
         select: { alertEmail: true },
       })
       if (org?.alertEmail) {
-        const html = complaintNotification(code, type)
+        const html = complaintNotification(complaint.code, type)
         sendEmail({
           to: org.alertEmail,
-          subject: `[COMPLY360] Nueva denuncia recibida: ${code}`,
+          subject: `[COMPLY360] Nueva denuncia recibida: ${complaint.code}`,
           html,
         }).catch((err) => console.error('[email] Complaint notification failed:', err))
       }
@@ -352,9 +371,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       complaint,
-      code,
+      code: complaint.code,
       trackingToken,
-      trackingUrl: `/denuncias/${encodeURIComponent(orgId)}?seguimiento=${encodeURIComponent(code)}&token=${encodeURIComponent(trackingToken)}`,
+      trackingUrl: `/denuncias/${encodeURIComponent(orgId)}?seguimiento=${encodeURIComponent(complaint.code)}&token=${encodeURIComponent(trackingToken)}`,
       triageStatus: 'PENDING',
     })
   } catch (error) {

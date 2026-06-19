@@ -13,7 +13,7 @@
  *  - AGRARIO: remuneración diaria incluye CTS y gratificación prorrateadas
  */
 
-import { PERU_LABOR, calcularRemuneracionComputable } from '../peru-labor'
+import { PERU_LABOR, calcularRemuneracionComputable, getRemuneracionMinimaNocturna } from '../peru-labor'
 import { calcularAportesPrevisionales, type AportesInput } from './aportes-previsionales'
 import { calcularRentaQuinta, type RentaQuintaInput } from './renta-quinta'
 import { money } from '../money'
@@ -26,12 +26,17 @@ export interface BoletaInput {
   asignacionFamiliar: boolean
   tipoAporte: 'AFP' | 'ONP' | 'SIN_APORTE'
   afpNombre?: string
+  afpComisionTipo?: string      // 'FLUJO' | 'SALDO' | 'MIXTA'(legacy) — 'SALDO' = comisión 0 sobre el sueldo
   sctr?: boolean
   regimenLaboral?: string
+  periodo?: string              // 'YYYY-MM' — define la RMA y prima vigentes del periodo
+  jornadaNocturna?: boolean     // horario nocturno → valida el piso RMV + 35% (D.S. 007-2002-TR)
 
   // Ingresos variables del período
   horasExtras?: number          // monto en soles
-  bonificaciones?: number       // bonificaciones del período
+  bonificaciones?: number       // @deprecated bono del período (se trata como extraordinario / 1 vez). Usar los 2 campos de abajo.
+  bonificacionesHabituales?: number      // bono RECURRENTE del mes → se anualiza ×12 en renta 5ta
+  bonificacionesExtraordinarias?: number // bono de UNA vez → se suma 1 vez en renta 5ta
   incluirGratificacion?: boolean // si este mes hay gratificación (jul/dic)
 
   // Renta 5ta categoría
@@ -105,6 +110,7 @@ export interface BoletaResult {
   detalleJson: Record<string, number | string | null>
 
   baseLegal: string[]
+  warnings: string[]
 }
 
 // ── Calculator ───────────────────────────────────────────────────────────────
@@ -115,12 +121,17 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     asignacionFamiliar,
     tipoAporte,
     afpNombre,
+    afpComisionTipo,
     sctr = false,
     regimenLaboral = 'GENERAL',
     horasExtras = 0,
     bonificaciones = 0,
+    bonificacionesHabituales = 0,
+    bonificacionesExtraordinarias = 0,
     incluirGratificacion = false,
     mes,
+    periodo,
+    jornadaNocturna = false,
     retencionRentaAcumulada = 0,
     descuentoTardanzasMonto = 0,
   } = input
@@ -150,12 +161,15 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     )
   }
 
+  // Total de bonificaciones del mes (legacy `bonificaciones` + los 2 campos nuevos).
+  const bonosMes = round(bonificaciones + bonificacionesHabituales + bonificacionesExtraordinarias)
+
   // ── 3. Total ingresos ───────────────────────────────────────────────────────
   const totalIngresos = round(
     sueldoBruto
     + montoAsigFamiliar
     + horasExtras
-    + bonificaciones
+    + bonosMes
     + gratificacion
     + bonificacionExtraordinaria
   )
@@ -166,8 +180,10 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     asignacionFamiliar,
     tipoAporte,
     afpNombre,
+    afpComisionTipo,
     sctr,
     horasExtras,
+    periodo,
   }
   const aportes = calcularAportesPrevisionales(aportesInput)
 
@@ -197,7 +213,11 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
   // ya pasó `bonificacionesNoGravables`, lo restamos antes de proyectar.
   // Esta calculadora no tiene visibilidad sobre la composición; documentamos
   // que el caller debe pasar SOLO bonificaciones gravables (no la 9% Ley 30334).
-  const otrosIngresosGravables = bonificaciones
+  // Split habitual/extraordinaria: la bonif. EXTRAORDINARIA (y el legacy
+  // `bonificaciones`) se suma una sola vez; la HABITUAL se anualiza ×12 dentro de
+  // la calculadora de renta. El caller debe pasar SOLO bonificaciones gravables
+  // (no la bonif. 9% Ley 30334, exonerada de renta 5ta).
+  const otrosIngresosGravables = bonificaciones + bonificacionesExtraordinarias
 
   const rentaInput: RentaQuintaInput = {
     remuneracionMensual: remHabitual,
@@ -205,6 +225,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     gratificacionesAnuales: gratifAnual,
     retenidoAcumulado: retencionRentaAcumulada,
     otrosIngresosAnuales: otrosIngresosGravables,
+    bonificacionesHabitualesMensuales: bonificacionesHabituales,
   }
   const rentaResult = calcularRentaQuinta(rentaInput)
   const rentaQuintaCat = rentaResult.retencionMesActual
@@ -238,8 +259,8 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
   if (horasExtras > 0) {
     ingresos.push({ concepto: 'Horas Extras', monto: horasExtras, esVariable: true })
   }
-  if (bonificaciones > 0) {
-    ingresos.push({ concepto: 'Bonificaciones', monto: bonificaciones, esVariable: true })
+  if (bonosMes > 0) {
+    ingresos.push({ concepto: 'Bonificaciones', monto: bonosMes, esVariable: true })
   }
   if (gratificacion > 0) {
     ingresos.push({
@@ -268,7 +289,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
       descuentos.push({
         concepto: 'AFP — Seguro de Invalidez y Sobrevivencia',
         monto: aportes.seguroInvalidez,
-        porcentaje: '1.84%',
+        porcentaje: `~${(aportes.seguroInvalidez / aportes.remuneracionComputable * 100).toFixed(2)}%`,
       })
     }
     if (aportes.comisionAfp > 0) {
@@ -303,12 +324,28 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     })
   }
 
+  // ── Warnings de cumplimiento ────────────────────────────────────────────────
+  // Jornada nocturna (Art. 8 D.S. 007-2002-TR): la remuneración mensual no puede ser
+  // inferior a RMV + 35%. Es un PISO, no un recargo sobre horas extras; por eso se
+  // reporta como warning y NO se ajusta el pago automáticamente.
+  const warnings: string[] = []
+  if (jornadaNocturna) {
+    const minNocturno = getRemuneracionMinimaNocturna()
+    if (ctsBaseComputable < minNocturno) {
+      warnings.push(
+        `Jornada nocturna: la remuneración (S/ ${ctsBaseComputable.toFixed(2)}) es menor al ` +
+        `mínimo de jornada nocturna RMV + 35% = S/ ${minNocturno.toFixed(2)} ` +
+        `(Art. 8 D.S. 007-2002-TR). Debe ajustarse para evitar infracción SUNAFIL.`,
+      )
+    }
+  }
+
   // ── detalleJson para guardar en DB ──────────────────────────────────────────
   const detalleJson: Record<string, number | string | null> = {
     sueldoBruto,
     asignacionFamiliar: montoAsigFamiliar,
     horasExtras,
-    bonificaciones,
+    bonificaciones: bonosMes,
     gratificacion,
     bonificacionExtraordinaria,
     totalIngresos,
@@ -328,6 +365,9 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     deduccion7UIT: rentaResult.deduccion7UIT,
     rentaNetaAnualImponible: rentaResult.rentaNetaAnualImponible,
     impuestoAnualProyectado: rentaResult.impuestoAnualProyectado,
+    // Advertencias de cumplimiento (p.ej. piso de jornada nocturna) — persistidas
+    // como string para que la vista de la boleta las pueda mostrar.
+    advertencias: warnings.length > 0 ? warnings.join(' · ') : null,
   }
 
   return {
@@ -338,7 +378,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     sueldoBruto,
     asignacionFamiliar: montoAsigFamiliar,
     horasExtras,
-    bonificaciones,
+    bonificaciones: bonosMes,
     gratificacion,
     bonificacionExtraordinaria,
     descuentos,
@@ -365,6 +405,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
       'TUO Ley IR (D.S. 179-2004-EF) Art. 75; Regl. D.S. 122-94-EF Art. 40',
       'Ley 26790 — EsSalud 9%',
     ].filter(Boolean),
+    warnings,
   }
 }
 

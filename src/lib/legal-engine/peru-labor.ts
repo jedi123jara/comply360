@@ -151,13 +151,45 @@ export const PERU_LABOR = {
   // Aportes previsionales
   APORTES: {
     AFP_APORTE_OBLIGATORIO: 0.10,
-    AFP_SEGURO_INVALIDEZ: 0.0184,
+    // @deprecated Usar getPrimaSeguroSPP(periodo). La prima del seguro
+    // previsional cambia por licitación SISCO; este valor es solo un fallback.
+    AFP_SEGURO_INVALIDEZ: 0.0137,
     ONP_TASA: 0.13,
     ESSALUD_TASA: 0.09,
     SCTR_TASA_PROMEDIO: 0.0153,
     BASE_LEGAL_AFP: 'TUO Ley del SPP, D.S. 054-97-EF',
     BASE_LEGAL_ONP: 'D.Ley 19990',
     BASE_LEGAL_ESSALUD: 'Ley 26790',
+    // Prima del seguro de invalidez, sobrevivencia y gastos de sepelio del SPP.
+    // Es una tasa ÚNICA por periodo de licitación SISCO (NO varía por AFP). Cada
+    // entrada vige DESDE su `desde` (YYYY-MM) hasta que aparece una posterior.
+    // SISCO VIII: 1.37% vigente 2025-01 → 2026-12. (2024: 1.70%; 2023: 1.84%.)
+    // Fuente: SBS comisiones/prima + Asociación AFP (licitación SISCO VIII).
+    PRIMA_SEGURO_SPP: [
+      { desde: '2023-01', tasa: 0.0184 },
+      { desde: '2024-01', tasa: 0.0170 },
+      { desde: '2025-01', tasa: 0.0137 },
+    ] as ReadonlyArray<{ desde: string; tasa: number }>,
+    // Remuneración Máxima Asegurable (RMA): tope sobre el que se cobra la PRIMA
+    // del seguro previsional (NO topa el aporte 10% ni la comisión por flujo).
+    // La SBS la publica cada TRIMESTRE — actualizar al inicio de cada trimestre.
+    // Fuente: SBS — https://www.sbs.gob.pe/app/spp/Remun_max_aseg/RemMaxAsg.asp
+    REMUNERACION_MAXIMA_ASEGURABLE: [
+      { desde: '2025-07', monto: 12184.88 }, // Jul–Sep 2025
+      { desde: '2026-01', monto: 12209.11 }, // Q1 2026 (ene–mar)
+      { desde: '2026-04', monto: 12598.91 }, // Q2 2026 (abr–jun)
+    ] as ReadonlyArray<{ desde: string; monto: number }>,
+    // Comisión por FLUJO de cada AFP (% sobre la remuneración bruta). La cobra la
+    // AFP (no la SBS) y varía por administradora; la SBS la publica mensualmente.
+    // Asume el esquema "comisión por flujo" (NO el mixto, que el sistema no modela).
+    // Vigente jun-2026 — actualizar desde SBS cuando cambie.
+    // Fuente: SBS — comisiones SPP.
+    COMISION_FLUJO_AFP: {
+      HABITAT: 0.0147,
+      INTEGRA: 0.0155,
+      PRIMA: 0.0160,
+      PROFUTURO: 0.0169,
+    } as Record<string, number>,
   },
 
   // Seguro Vida Ley
@@ -242,7 +274,8 @@ export const PERU_LABOR = {
       VACACIONES_DIAS: 15,
       CTS: false,
       GRATIFICACIONES: false,
-      INDEMNIZACION_FACTOR_DIARIO: 10, // 10 remuneraciones diarias por año
+      INDEMNIZACION_FACTOR_DIARIO: 10, // 10 remuneraciones diarias por año completo
+      INDEMNIZACION_TOPE_DIARIO: 90,   // tope: 90 remuneraciones diarias (Ley 32353)
       BASE_LEGAL: 'Ley N° 32353 (2024)',
     },
     PEQUENA: {
@@ -252,7 +285,8 @@ export const PERU_LABOR = {
       VACACIONES_DIAS: 15,
       CTS_PORCENTAJE: 0.50,
       GRATIFICACIONES_PORCENTAJE: 0.50,
-      INDEMNIZACION_FACTOR_DIARIO: 20, // 20 remuneraciones diarias por año
+      INDEMNIZACION_FACTOR_DIARIO: 20, // 20 remuneraciones diarias por año completo
+      INDEMNIZACION_TOPE_DIARIO: 120,  // tope: 120 remuneraciones diarias (Ley 32353)
       BASE_LEGAL: 'Ley N° 32353 (2024)',
     },
   },
@@ -325,17 +359,39 @@ export function getDiasVacacionesPorRegimen(regimen: string | null | undefined):
 // HELPER: Calculate working periods
 // =============================================
 
-export function calcularPeriodoLaboral(fechaIngreso: string, fechaCese: string) {
-  const inicio = new Date(fechaIngreso)
-  const fin = new Date(fechaCese)
+/**
+ * Parsea una fecha civil "YYYY-MM-DD" (de Lima) a sus componentes, SIN dejar que
+ * la zona horaria del host la corra un día. El bug previo era `new Date('2024-05-01')`
+ * (= medianoche UTC) leído con getters locales: en Lima (UTC-5) devolvía 30-abr.
+ */
+function parseCivilDate(value: string): { year: number; month: number; day: number } {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) {
+    return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }
+  }
+  // Fallback para otros formatos: leer componentes en UTC (no locales).
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`calcularPeriodoLaboral: fecha inválida "${value}"`)
+  }
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }
+}
 
-  let anos = fin.getFullYear() - inicio.getFullYear()
-  let meses = fin.getMonth() - inicio.getMonth()
-  let dias = fin.getDate() - inicio.getDate()
+export function calcularPeriodoLaboral(fechaIngreso: string, fechaCese: string) {
+  // FIX TZ: antes usaba new Date(date-only) + getters LOCALES, lo que en zonas
+  // negativas (Lima) corría las fechas un día y descuadraba meses/días truncos
+  // (afecta liquidación, vacaciones e indemnización). Ahora se parsea como fecha
+  // civil y se computa todo con aritmética UTC, igual que cts.ts.
+  const inicio = parseCivilDate(fechaIngreso)
+  const fin = parseCivilDate(fechaCese)
+
+  let anos = fin.year - inicio.year
+  let meses = fin.month - inicio.month
+  let dias = fin.day - inicio.day
 
   if (dias < 0) {
     meses--
-    const lastDay = new Date(fin.getFullYear(), fin.getMonth(), 0).getDate()
+    const lastDay = new Date(Date.UTC(fin.year, fin.month - 1, 0)).getUTCDate()
     dias += lastDay
   }
 
@@ -345,7 +401,10 @@ export function calcularPeriodoLaboral(fechaIngreso: string, fechaCese: string) 
   }
 
   const totalMeses = anos * 12 + meses
-  const totalDias = Math.floor((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+  const totalDias = Math.floor(
+    (Date.UTC(fin.year, fin.month - 1, fin.day) - Date.UTC(inicio.year, inicio.month - 1, inicio.day)) /
+      (1000 * 60 * 60 * 24),
+  )
 
   return { anos, meses, dias, totalMeses, totalDias }
 }
@@ -672,4 +731,47 @@ export function calcularRemuneracionComputable(
   }
   rem += comisionesPromedio
   return rem
+}
+
+// ── Lookup versionado de la prima y la RMA por periodo ────────────────────────
+// `periodo` en formato 'YYYY-MM'. Devuelve la entrada vigente: la última cuyo
+// `desde` es <= periodo. Si no se pasa periodo, usa el valor vigente más reciente
+// (correcto para cálculos del periodo en curso). La tabla se asume ordenada
+// ascendentemente por `desde`.
+function vigenteEnPeriodo<T extends { desde: string }>(
+  tabla: ReadonlyArray<T>,
+  periodo?: string,
+): T {
+  const ref = periodo && /^\d{4}-\d{2}/.test(periodo) ? periodo.slice(0, 7) : undefined
+  let elegido = tabla[0]
+  for (const e of tabla) {
+    if (!ref || e.desde <= ref) elegido = e
+  }
+  return elegido
+}
+
+/** Tasa de la prima del seguro previsional (SPP) vigente en el periodo dado. */
+export function getPrimaSeguroSPP(periodo?: string): number {
+  return vigenteEnPeriodo(PERU_LABOR.APORTES.PRIMA_SEGURO_SPP, periodo).tasa
+}
+
+/** Remuneración Máxima Asegurable (tope de la prima) vigente en el periodo. */
+export function getRemuneracionMaximaAsegurable(periodo?: string): number {
+  return vigenteEnPeriodo(PERU_LABOR.APORTES.REMUNERACION_MAXIMA_ASEGURABLE, periodo).monto
+}
+
+/** Comisión por flujo (% sobre remuneración) de la AFP indicada (default PRIMA). */
+export function getComisionFlujoAFP(afpNombre?: string): number {
+  const key = (afpNombre ?? 'PRIMA').toUpperCase()
+  return (
+    PERU_LABOR.APORTES.COMISION_FLUJO_AFP[key] ??
+    PERU_LABOR.APORTES.COMISION_FLUJO_AFP.PRIMA
+  )
+}
+
+/** Remuneración mensual MÍNIMA de la jornada nocturna: RMV + 35% (Art. 8 D.S.
+ *  007-2002-TR). NO es un recargo sobre horas extras: es el PISO de remuneración
+ *  por debajo del cual no puede percibir quien labora en horario nocturno. */
+export function getRemuneracionMinimaNocturna(): number {
+  return PERU_LABOR.RMV * (1 + PERU_LABOR.HORAS_EXTRAS.SOBRETASA_NOCTURNA)
 }

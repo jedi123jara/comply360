@@ -17,7 +17,7 @@
 ### Servicios
 - [x] Clerk Production instance creada (dominio `comply360.pe` pendiente verificación DNS)
 - [x] Supabase proyecto `comply360` creado (region us-east-1, tier NANO)
-- [x] Supabase password reseteada a: `N5B4SDONkrL8zw58`
+- [x] Supabase password reseteada (valor en el gestor de secretos — NO versionar) `[REDACTED]`
 - [x] **Supabase schema aplicado** — 45 tablas + índices + foreign keys ejecutados via SQL Editor
 - [x] Resend domain `comply360.pe` agregado (pending DNS verification)
 - [x] Secrets generados: `CRON_SECRET` + `JWT_SECRET` (en `.env.production.local`)
@@ -137,7 +137,7 @@ curl https://comply360.pe/api/health
 # Esperás: {"ok":true}
 
 # 2. Founder digest (vas a recibir email)
-curl -H "Authorization: Bearer d66e0187801da1c5a7a369de2476ea2c245c625cd8aeacd543e6ef864c5945cf" https://comply360.pe/api/cron/founder-digest
+curl -H "Authorization: Bearer $CRON_SECRET" https://comply360.pe/api/cron/founder-digest
 # Esperás: {"ok":true, "emailSent":true}
 ```
 

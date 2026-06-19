@@ -16,8 +16,8 @@ describe('CTS Calculator', () => {
     // Worker: S/3,000 salary, full semester May-Oct, no family allowance
     // Gratificacion: S/3,000 -> 1/6 = S/500
     // RemComp = 3000 + 500 = 3500
-    // Period May 1 to Nov 15: 6 months + 15 days (Nov 1 -> Nov 15 = 15 days remainder)
-    // CTS = (3500 / 12) x 6 + (3500 / 360) x 15
+    // Semestre completo May 1 -> Oct 31 = 6 meses exactos (el cómputo cierra al
+    // fin del semestre, no en la fecha de depósito del 15). CTS = (3500 / 12) x 6.
     const result = calcularCTS({
       sueldoBruto: 3000,
       fechaIngreso: '2025-05-01',
@@ -28,8 +28,8 @@ describe('CTS Calculator', () => {
 
     expect(result.mesesComputables).toBe(6)
     expect(result.remuneracionComputable).toBe(3500)
-    expect(result.diasComputables).toBe(15)
-    const expectedCts = Math.round(((3500 / 12) * 6 + (3500 / 360) * 15) * 100) / 100
+    expect(result.diasComputables).toBe(0)
+    const expectedCts = Math.round(((3500 / 12) * 6) * 100) / 100 // 1750
     expect(result.ctsTotal).toBe(expectedCts)
     expect(result.baseLegal).toContain('001-97-TR')
   })
@@ -92,8 +92,9 @@ describe('CTS Calculator', () => {
   })
 
   it('should handle worker who started mid-semester (November deposit)', () => {
-    // Worker ingresed Jul 15, 2025 -> corte Nov 15 = 4 months
-    // May-Oct semester, but started in July
+    // Worker ingresó Jul 15, 2025. Semestre May-Oct: su tiempo computable va de
+    // Jul 15 al 31-oct (fin del semestre) = 3 meses completos + días. Los 15 días
+    // de noviembre NO cuentan: pertenecen al siguiente periodo de CTS.
     const result = calcularCTS({
       sueldoBruto: 2500,
       fechaIngreso: '2025-07-15',
@@ -102,7 +103,7 @@ describe('CTS Calculator', () => {
       ultimaGratificacion: 0,
     })
 
-    expect(result.mesesComputables).toBe(4)
+    expect(result.mesesComputables).toBe(3)
     expect(result.ctsTotal).toBeGreaterThan(0)
   })
 

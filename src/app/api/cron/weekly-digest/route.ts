@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/client'
 import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
+import { runUnsafeBypass } from '@/lib/prisma-rls'
 
 // ==============================================
 // GET /api/cron/weekly-digest
@@ -31,6 +32,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // runUnsafeBypass: el cron cruza todas las orgs legítimamente; sin esto, bajo
+    // RLS enforced las queries devolverían 0 filas (cron silenciosamente inútil).
+    return await runUnsafeBypass({ reason: 'cron:weekly-digest' }, async () => {
   const now = new Date()
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
   const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -162,6 +166,7 @@ export async function GET(request: NextRequest) {
     }
     await completeCronRun(claim.runId, summary)
     return NextResponse.json(summary)
+    })
   } catch (err) {
     console.error('[weekly-digest] cron error', err)
     await failCronRun(claim.runId, err)

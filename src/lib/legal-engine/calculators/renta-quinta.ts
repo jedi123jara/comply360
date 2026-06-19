@@ -58,9 +58,16 @@ export interface RentaQuintaInput {
    */
   retenidoAcumulado?: number
   /**
-   * Otros ingresos de 5ta categoría del año (bonificaciones extraordinarias, etc.)
+   * Otros ingresos de 5ta categoría del año (bonificaciones EXTRAORDINARIAS / de
+   * una sola vez). Se suman UNA sola vez a la proyección anual.
    */
   otrosIngresosAnuales?: number
+  /**
+   * Bonificación HABITUAL mensual (recurrente). Se proyecta ×12 en la renta anual,
+   * igual que la remuneración mensual — así no se subdeclara como evento único.
+   * (Art. 40 Reglamento IR: las remuneraciones de carácter habitual se proyectan.)
+   */
+  bonificacionesHabitualesMensuales?: number
 }
 
 export interface DetalleTramo {
@@ -90,10 +97,16 @@ export function calcularRentaQuinta(input: RentaQuintaInput): RentaQuintaResult 
     gratificacionesAnuales = 0,
     retenidoAcumulado = 0,
     otrosIngresosAnuales = 0,
+    bonificacionesHabitualesMensuales = 0,
   } = input
 
   // 1. Proyectar Renta Bruta Anual (RBA) — FIX #2.A.
+  // La bonificación HABITUAL se anualiza (×12) junto con la remuneración; la
+  // EXTRAORDINARIA (otrosIngresosAnuales) se suma una sola vez. Antes una bonif.
+  // recurrente se proyectaba como evento único → subdeclaraba la renta y retenía
+  // de menos.
   const rentaBrutaAnualProyectada = money(remuneracionMensual)
+    .add(bonificacionesHabitualesMensuales)
     .mul(12)
     .add(gratificacionesAnuales)
     .add(otrosIngresosAnuales)

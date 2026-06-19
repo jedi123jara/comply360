@@ -112,3 +112,31 @@ describe('estimarRentaQuintaAnual', () => {
     expect(estimarRentaQuintaAnual(10000)).toBeGreaterThan(0)
   })
 })
+
+describe('bonificaciones habituales vs extraordinarias (fix renta 5ta)', () => {
+  it('la bonificación HABITUAL se anualiza ×12', () => {
+    const sueldo = 5000
+    const sin = calcularRentaQuinta({ remuneracionMensual: sueldo, mes: 1 })
+    const conHabitual = calcularRentaQuinta({
+      remuneracionMensual: sueldo, mes: 1, bonificacionesHabitualesMensuales: 500,
+    })
+    // RBA sube en 500 × 12 = 6000.
+    expect(conHabitual.rentaBrutaAnualProyectada - sin.rentaBrutaAnualProyectada).toBeCloseTo(6000, 0)
+  })
+
+  it('la bonificación EXTRAORDINARIA se suma una sola vez', () => {
+    const sueldo = 5000
+    const sin = calcularRentaQuinta({ remuneracionMensual: sueldo, mes: 1 })
+    const conExtra = calcularRentaQuinta({
+      remuneracionMensual: sueldo, mes: 1, otrosIngresosAnuales: 500,
+    })
+    expect(conExtra.rentaBrutaAnualProyectada - sin.rentaBrutaAnualProyectada).toBeCloseTo(500, 0)
+  })
+
+  it('para el mismo monto, la habitual proyecta más impuesto que la extraordinaria', () => {
+    const sueldo = 8000
+    const habitual = calcularRentaQuinta({ remuneracionMensual: sueldo, mes: 1, bonificacionesHabitualesMensuales: 1000 })
+    const extra = calcularRentaQuinta({ remuneracionMensual: sueldo, mes: 1, otrosIngresosAnuales: 1000 })
+    expect(habitual.impuestoAnualProyectado).toBeGreaterThan(extra.impuestoAnualProyectado)
+  })
+})

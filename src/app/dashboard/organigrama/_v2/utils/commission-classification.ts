@@ -1,4 +1,5 @@
 import type { OrgUnitDTO } from '@/lib/orgchart/types'
+import { isParallelGovernanceUnit } from '@/lib/orgchart/hierarchy-inference'
 
 import type { CommissionFilter } from '../state/slices/canvas-slice'
 
@@ -17,7 +18,7 @@ export const COMMISSION_FILTERS: CommissionTypeMeta[] = [
 ]
 
 export function isCommissionUnit(unit: OrgUnitDTO) {
-  return unit.kind === 'COMITE_LEGAL' || unit.kind === 'BRIGADA' || unit.kind === 'PROYECTO'
+  return isParallelGovernanceUnit(unit)
 }
 
 export function classifyCommissionUnit(unit: OrgUnitDTO): Exclude<CommissionFilter, 'all'> {
