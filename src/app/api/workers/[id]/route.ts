@@ -5,6 +5,7 @@ import type { AuthContext } from '@/lib/auth'
 import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { logWorkerChanges, logWorkerCese } from '@/lib/workers/history'
+import { workerUpdateSchema } from '@/lib/workers/schemas'
 
 // =============================================
 // GET /api/workers/[id] - Get worker detail
@@ -192,7 +193,19 @@ export const GET = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
 export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: AuthContext, params) => {
   const { id } = params
   const orgId = ctx.orgId
-  const body = await req.json()
+  const body = await req.json().catch(() => ({}))
+
+  // Validación zod (update parcial): valida tipo/enum/fecha de los campos que
+  // vengan, sin inyectar defaults — el handler sigue usando `field in body`
+  // para decidir qué actualizar. Antes un enum inválido o un `new Date(basura)`
+  // llegaba a prisma.update y reventaba con 500.
+  const parsed = workerUpdateSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Datos inválidos', details: parsed.error.flatten() },
+      { status: 400 },
+    )
+  }
 
   // Defensivo: select explícito SIN las columnas nuevas (Fase 1.2 schedule)
   // para que el findUnique no truene si la migration no se aplicó.

@@ -5,6 +5,7 @@ import { hasMinRole } from '@/lib/api-auth'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { calcularBoleta, type BoletaInput } from '@/lib/legal-engine/calculators/boleta'
+import { payslipBatchSchema } from '@/lib/workers/schemas'
 
 // =============================================
 // POST /api/payslips/batch — Generate payslips for multiple workers
@@ -16,15 +17,19 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
   }
 
   const orgId = ctx.orgId
-  const body = await req.json()
-  const { periodo, workerIds } = body as {
-    periodo: string
-    workerIds?: string[]
-  }
+  const body = await req.json().catch(() => ({}))
 
-  if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
-    return NextResponse.json({ error: 'El campo "periodo" debe tener formato YYYY-MM' }, { status: 400 })
+  // Validación zod: periodo (YYYY-MM) + workerIds (array de strings, opcional).
+  // Antes workerIds llegaba crudo a `{ id: { in: workerIds } }` y un valor que
+  // no fuera array de strings reventaba Prisma con 500.
+  const parsed = payslipBatchSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Datos inválidos', details: parsed.error.flatten() },
+      { status: 400 },
+    )
   }
+  const { periodo, workerIds } = parsed.data
 
   // Load target workers
   const workers = await prisma.worker.findMany({

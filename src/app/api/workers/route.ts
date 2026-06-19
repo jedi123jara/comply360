@@ -7,6 +7,7 @@ import { runWorkerSstHook } from '@/lib/sst/worker-hooks'
 import { checkWorkerLimit } from '@/lib/plan-gate'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { emit } from '@/lib/events'
+import { workerCreateSchema } from '@/lib/workers/schemas'
 
 // Valid sort columns and their Prisma field names
 const SORT_FIELDS: Record<string, string> = {
@@ -207,7 +208,21 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
   }
   // --- End plan gate ---
 
-  const body = await req.json()
+  const body = await req.json().catch(() => ({}))
+
+  // Validación zod estructurada: enums (regimen/tipoContrato/tipoAporte) y
+  // formato de fecha no se validaban antes → enum inválido o fecha basura
+  // llegaba a prisma.create y reventaba con 500. Es permisivo con campos extra
+  // del form (afpComisionTipo, tipoJornada, etc.). Las validaciones manuales de
+  // abajo (DNI duplicado, rango de sueldo, etc.) se mantienen intactas.
+  const parsed = workerCreateSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Datos inválidos', details: parsed.error.flatten() },
+      { status: 400 },
+    )
+  }
+
   const {
     dni,
     firstName,
