@@ -37,14 +37,22 @@
   },
   "overrides": {
     "@hono/node-server": "^1.19.13",
+    "hono": "^4.12.25",
     "js-cookie": "^3.0.7",
-    "postcss": "^8.5.14"
+    "postcss": "^8.5.14",
+    "tmp": "^0.2.6",
+    "undici": "^7.28.0",
+    "ws": "^8.21.0"
   },
   "pnpm": {
     "overrides": {
       "@hono/node-server": "^1.19.13",
+      "hono": "^4.12.25",
       "js-cookie": "^3.0.7",
-      "postcss": "^8.5.14"
+      "postcss": "^8.5.14",
+      "tmp": "^0.2.6",
+      "undici": "^7.28.0",
+      "ws": "^8.21.0"
     }
   },
   "dependencies": {
