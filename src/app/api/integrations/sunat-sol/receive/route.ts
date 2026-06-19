@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { data, source, extractedAt, orgId: bodyOrgId } = body as {
+    const { data, source, extractedAt } = body as {
       source: string
       orgId?: string
       extractedAt: string
@@ -75,11 +75,13 @@ export async function POST(req: NextRequest) {
       orgId = org?.id ?? null
     }
 
-    if (!orgId && bodyOrgId) {
-      orgId = bodyOrgId
-    }
-
-    // Fallback: find the org that has sunat_sol credentials with this RUC
+    // SECURITY (aislamiento multi-tenant): la org se resuelve SOLO por el RUC de
+    // los datos extraídos, cruzado contra una credencial sunat_sol configurada con
+    // ese RUC. Se eliminaron dos fallbacks peligrosos: (1) confiar en `orgId` del
+    // body (target arbitrario controlado por el cliente) y (2) "última org que
+    // configuró sunat_sol" (escribía datos de trabajadores en una org ajena).
+    // TODO: el token de extensión es compartido; lo ideal es un token por-org
+    // (credencial firmada con orgId) en vez de resolver por RUC. Ver auditoría 2026-06-18.
     if (!orgId && data.companyInfo?.ruc) {
       const cred = await prisma.integrationCredential.findFirst({
         where: {
@@ -92,17 +94,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!orgId) {
-      // Last resort: use the most recent org that configured sunat_sol
-      const cred = await prisma.integrationCredential.findFirst({
-        where: { provider: 'sunat_sol' },
-        orderBy: { createdAt: 'desc' },
-        select: { orgId: true },
-      })
-      orgId = cred?.orgId ?? null
-    }
-
-    if (!orgId) {
-      return json({ error: 'No se encontro organizacion vinculada. Configure SUNAT SOL en Integraciones primero.' }, 404)
+      return json({ error: 'No se encontro organizacion vinculada para ese RUC. Configure SUNAT SOL en Integraciones primero.' }, 404)
     }
 
     // Update org profile

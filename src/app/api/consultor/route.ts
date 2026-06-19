@@ -142,6 +142,14 @@ export const POST = withPlanGate('asistente_ia', async (req: NextRequest, ctx: A
       where: { consultorUserId: ctx.userId, clientOrgId: clientOrg.id },
     })
 
+    // SEGURIDAD (cierre de fuga cross-tenant): la relación se crea SIEMPRE en
+    // estado inactivo (pendiente de consentimiento). El RUC es público en Perú,
+    // así que permitir auto-asignarse + leer la PII de cualquier empresa sin su
+    // aprobación era una fuga. Las lecturas (GET lista y GET [clientOrgId]) exigen
+    // `isActive: true`, por lo que una relación pendiente no expone ningún dato.
+    // TODO: implementar flujo de consentimiento (la empresa cliente aprueba vía
+    // email/dashboard → recién ahí isActive=true). Hasta entonces el portal queda
+    // en pausa por diseño. Ver reporte de auditoría 2026-06-18.
     if (existing) {
       if (existing.isActive) {
         return NextResponse.json(
@@ -149,12 +157,16 @@ export const POST = withPlanGate('asistente_ia', async (req: NextRequest, ctx: A
           { status: 409 }
         )
       }
-      // Reactivate
       const updated = await prisma.consultorClient.update({
         where: { id: existing.id },
-        data: { isActive: true, notes: body.notes || existing.notes },
+        data: { isActive: false, notes: body.notes || existing.notes },
       })
-      return NextResponse.json({ success: true, relation: updated })
+      return NextResponse.json({
+        success: true,
+        pending: true,
+        message: 'Solicitud registrada. La empresa debe aprobar el acceso antes de que puedas ver sus datos.',
+        relation: updated,
+      })
     }
 
     const relation = await prisma.consultorClient.create({
@@ -165,10 +177,16 @@ export const POST = withPlanGate('asistente_ia', async (req: NextRequest, ctx: A
         clientOrgName: clientOrg.razonSocial || clientOrg.name,
         clientRuc: clientOrg.ruc,
         notes: body.notes,
+        isActive: false, // pendiente de consentimiento de la empresa cliente
       },
     })
 
-    return NextResponse.json({ success: true, relation })
+    return NextResponse.json({
+      success: true,
+      pending: true,
+      message: 'Solicitud registrada. La empresa debe aprobar el acceso antes de que puedas ver sus datos.',
+      relation,
+    })
   } catch (error) {
     console.error('[Consultor POST] Error:', error)
     return NextResponse.json({ error: 'Error al agregar cliente' }, { status: 500 })

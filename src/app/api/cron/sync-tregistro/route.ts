@@ -12,19 +12,16 @@
  * como `false` sin evidencia explícita.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withCronIdempotency } from '@/lib/cron/wrap'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 min para procesar todas las orgs
 
-export async function GET(req: NextRequest) {
-  // Verifica que viene del cron de Vercel (auth simple via header)
-  const cronSecret = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && cronSecret !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// withCronIdempotency: auth fail-closed (CRON_SECRET) + runUnsafeBypass (necesario
+// para escanear todas las orgs bajo RLS enforced) + idempotencia.
+export const GET = withCronIdempotency('sync-tregistro', 1440, async () => {
   const t0 = Date.now()
   const orgs = await prisma.organization.findMany({
     where: { onboardingCompleted: true },
@@ -82,4 +79,4 @@ export async function GET(req: NextRequest) {
     durationMs: Date.now() - t0,
     errors: errors.slice(0, 10),
   })
-}
+})

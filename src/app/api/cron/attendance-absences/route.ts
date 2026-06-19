@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateAbsencesForOrg, previousLocalDateKey } from '@/lib/attendance/absence'
 import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
+import { runUnsafeBypass } from '@/lib/prisma-rls'
 
 export const runtime = 'nodejs'
 
@@ -29,27 +30,31 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const orgs = await prisma.organization.findMany({
-      where: { onboardingCompleted: true },
-      select: { id: true },
+    // runUnsafeBypass: el escaneo cruza todas las orgs legítimamente; sin esto,
+    // bajo RLS enforced las queries devolverían 0 filas (cron silenciosamente inútil).
+    return await runUnsafeBypass({ reason: 'cron:attendance-absences' }, async () => {
+      const orgs = await prisma.organization.findMany({
+        where: { onboardingCompleted: true },
+        select: { id: true },
+      })
+
+      const results = []
+      for (const org of orgs) {
+        results.push(await generateAbsencesForOrg({ orgId: org.id, dateKey }))
+      }
+
+      const summary = {
+        date: dateKey,
+        orgsScanned: orgs.length,
+        workersScanned: results.reduce((sum, r) => sum + r.workersScanned, 0),
+        absencesCreated: results.reduce((sum, r) => sum + r.absencesCreated, 0),
+        skippedExisting: results.reduce((sum, r) => sum + r.skippedExisting, 0),
+        skippedNonBusinessDay: results.every((r) => r.skippedNonBusinessDay),
+      }
+
+      await completeCronRun(claim.runId, summary)
+      return NextResponse.json({ ok: true, summary, results })
     })
-
-    const results = []
-    for (const org of orgs) {
-      results.push(await generateAbsencesForOrg({ orgId: org.id, dateKey }))
-    }
-
-    const summary = {
-      date: dateKey,
-      orgsScanned: orgs.length,
-      workersScanned: results.reduce((sum, r) => sum + r.workersScanned, 0),
-      absencesCreated: results.reduce((sum, r) => sum + r.absencesCreated, 0),
-      skippedExisting: results.reduce((sum, r) => sum + r.skippedExisting, 0),
-      skippedNonBusinessDay: results.every((r) => r.skippedNonBusinessDay),
-    }
-
-    await completeCronRun(claim.runId, summary)
-    return NextResponse.json({ ok: true, summary, results })
   } catch (err) {
     await failCronRun(claim.runId, err)
     console.error('[cron/attendance-absences] failed', err)

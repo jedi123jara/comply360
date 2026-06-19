@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email/client'
 import { alertEmail } from '@/lib/email/templates'
 import { sendPushToOrg } from '@/lib/notifications/web-push-server'
 import { claimCronRun, completeCronRun, failCronRun } from '@/lib/cron/idempotency'
+import { runUnsafeBypass } from '@/lib/prisma-rls'
 import { buildComplaintDeadlines, type ComplaintRegimeValue, type ComplaintTypeValue } from '@/lib/complaints/regime-rules'
 
 // ==============================================
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // runUnsafeBypass: el cron cruza todas las orgs legítimamente; sin esto, bajo
+    // RLS enforced las queries devolverían 0 filas (cron silenciosamente inútil).
+    return await runUnsafeBypass({ reason: 'cron:daily-alerts' }, async () => {
     const now = new Date()
     const in7Days = new Date(now)
     in7Days.setDate(in7Days.getDate() + 7)
@@ -426,6 +430,7 @@ export async function GET(request: NextRequest) {
 
     await completeCronRun(claim.runId, summary)
     return NextResponse.json({ ok: true, summary })
+    })
   } catch (error) {
     console.error('Daily alerts cron error:', error)
     await failCronRun(claim.runId, error)
