@@ -36,14 +36,27 @@ valores SBS vigentes (jun-2026):
 
 ---
 
-## ⚠️ El supuesto que necesitamos que confirmes
+## ⚠️ EL PUNTO #1 A RESOLVER — esquema de comisión (flujo vs saldo)
 
-El sistema asume que los trabajadores están en el esquema de **"comisión por flujo"**
-(% sobre la remuneración bruta). **NO** modela la **"comisión mixta"** (un % de flujo más
-bajo + un cargo anual sobre el saldo del fondo).
+La **comisión mixta se extinguió en feb-2023**. Hoy coexisten dos esquemas:
 
-**Pregunta clave:** ¿tus trabajadores están en **comisión por flujo**? Si algunos están en
-**comisión mixta**, sus números de comisión serían distintos y habría que modelarlo aparte.
+- **Comisión por flujo:** % sobre la remuneración bruta mensual → **se descuenta en la
+  boleta** (los valores 1.47%–1.69% de arriba).
+- **Comisión por saldo:** % anual sobre el fondo acumulado → **NO se descuenta del sueldo**
+  (se cobra contra el fondo). Sobre el sueldo mensual es **0%**.
+- **Los afiliados NUEVOS van por defecto a "comisión por saldo".** Pueden pedir pasarse a flujo.
+
+**Cómo lo trata el sistema hoy:** asume que **TODOS** pagan comisión **por flujo** (descuenta
+1.47–1.69% en cada boleta). **Para un trabajador en "por saldo", la boleta SOBRE-DESCUENTA**
+esa comisión — no debería aparecer en el sueldo mensual.
+
+> Nota técnica: el modelo `Worker` ya tiene un campo `afpComisionTipo`, pero la calculadora
+> de boleta todavía no lo usa para decidir si aplica o no la comisión sobre el sueldo.
+
+**Preguntas clave para el asesor / RRHH:**
+- [ ] ¿Tus trabajadores están mayormente en **comisión por flujo** o **por saldo**?
+- [ ] ¿Quieres que el sistema **respete el esquema por trabajador** (comisión sobre el sueldo
+      solo para los de "flujo"; 0% para los de "saldo")? → es un ajuste que podemos hacer.
 
 ---
 
