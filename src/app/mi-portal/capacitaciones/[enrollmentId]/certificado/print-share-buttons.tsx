@@ -19,7 +19,7 @@ export function PrintShareButtons({ verifyUrl, workerName, courseTitle, certific
   }
 
   function handleShareWhatsApp() {
-    const text = `¡Acabo de completar la capacitación "${courseTitle}" en COMPLY360! 🎓\n\nPodés verificar mi certificado acá: ${verifyUrl}`
+    const text = `¡Acabo de completar la capacitación "${courseTitle}" en COMPLY360! 🎓\n\nPuedes verificar mi certificado aquí: ${verifyUrl}`
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }

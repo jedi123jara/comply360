@@ -369,7 +369,7 @@ export default function PortalEmpleadoPage() {
             </div>
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="font-black text-base text-white tracking-tight leading-none">COMPLY</span>
+                <span className="font-black text-base text-slate-900 tracking-tight leading-none">COMPLY</span>
                 <span className="font-black text-base text-blue-600 tracking-tight leading-none">360</span>
               </div>
               <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider leading-none">
@@ -416,7 +416,7 @@ export default function PortalEmpleadoPage() {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 mb-5 shadow-lg shadow-blue-100">
                 <User className="w-10 h-10 text-blue-600" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
                 Portal del Empleado
               </h1>
               <p className="text-gray-500 text-sm sm:text-base leading-relaxed">

@@ -154,6 +154,7 @@ export default function EppPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: migrar a useApiQuery
     void load()
   }, [load])
 

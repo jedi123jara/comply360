@@ -444,7 +444,7 @@ function CreateTemplateModal({
         <Field
           label="Contenido del contrato"
           required
-          hint={`Escribí placeholders así: {{NOMBRE_COMPLETO}}, {{DNI}}, {{SUELDO}}. Solo MAYÚSCULAS, números y guión bajo.`}
+          hint={`Escribe placeholders así: {{NOMBRE_COMPLETO}}, {{DNI}}, {{SUELDO}}. Solo MAYÚSCULAS, números y guión bajo.`}
         >
           <textarea
             value={content}

@@ -63,7 +63,7 @@ export default function GeneradoresHubPage() {
             Generador automático de documentos compliance
           </h1>
           <p className="mt-2 text-sm text-[color:var(--text-secondary)] max-w-2xl leading-relaxed">
-            Elegí el documento, respondé unas preguntas rápidas y COMPLY360 genera la versión
+            Elige el documento, responde unas preguntas rápidas y COMPLY360 genera la versión
             oficial estructurada según normativa peruana. Todo se guarda en tu legajo.
           </p>
           <div className="mt-3 flex items-center gap-4 text-xs">

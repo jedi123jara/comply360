@@ -709,7 +709,7 @@ export default function DiagnosticoGratisPage() {
               <div className="text-center px-4">
                 <ShieldCheck className="h-10 w-10 text-emerald-700 mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Registrate para ver el plan completo
+                  Regístrate para ver el plan completo
                 </h3>
                 <p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
                   Accede al plan de accion detallado, simulacro SUNAFIL interactivo, alertas automaticas y mas.

@@ -350,7 +350,7 @@ export const ARTICLES: BlogArticle[] = [
           'Sección "Operaciones en línea" → "REMYPE"',
           'Llená el formulario con datos de la empresa + trabajadores actuales',
           'La SUNAFIL valida en 5 días hábiles',
-          'Al aprobarse, recibes constancia digital que debés conservar',
+          'Al aprobarse, recibes constancia digital que debes conservar',
         ],
       },
       {
