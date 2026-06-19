@@ -11,6 +11,8 @@ export interface LiquidacionInput {
   gratificacionesPendientes: boolean
   vacacionesNoGozadas: number  // días
   horasExtrasPendientes: number
+  horasExtras25?: number       // horas extras al 25% (primeras 2 h/día) — opcional, cálculo preciso
+  horasExtras35?: number       // horas extras al 35% (siguientes) — opcional, cálculo preciso
   ultimaGratificacion: number  // monto
   comisionesPromedio: number
   /**

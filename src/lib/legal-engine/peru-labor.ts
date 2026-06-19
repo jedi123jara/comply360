@@ -263,7 +263,8 @@ export const PERU_LABOR = {
       VACACIONES_DIAS: 15,
       CTS: false,
       GRATIFICACIONES: false,
-      INDEMNIZACION_FACTOR_DIARIO: 10, // 10 remuneraciones diarias por año
+      INDEMNIZACION_FACTOR_DIARIO: 10, // 10 remuneraciones diarias por año completo
+      INDEMNIZACION_TOPE_DIARIO: 90,   // tope: 90 remuneraciones diarias (Ley 32353)
       BASE_LEGAL: 'Ley N° 32353 (2024)',
     },
     PEQUENA: {
@@ -273,7 +274,8 @@ export const PERU_LABOR = {
       VACACIONES_DIAS: 15,
       CTS_PORCENTAJE: 0.50,
       GRATIFICACIONES_PORCENTAJE: 0.50,
-      INDEMNIZACION_FACTOR_DIARIO: 20, // 20 remuneraciones diarias por año
+      INDEMNIZACION_FACTOR_DIARIO: 20, // 20 remuneraciones diarias por año completo
+      INDEMNIZACION_TOPE_DIARIO: 120,  // tope: 120 remuneraciones diarias (Ley 32353)
       BASE_LEGAL: 'Ley N° 32353 (2024)',
     },
   },

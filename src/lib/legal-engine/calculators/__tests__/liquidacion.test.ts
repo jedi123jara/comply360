@@ -265,4 +265,84 @@ describe('calcularLiquidacion', () => {
       expect(indem).toBeCloseTo(12658.33, 0)
     })
   })
+
+  // -----------------------------------------------
+  // Indemnización MYPE (Ley 32353) — fix #5
+  // -----------------------------------------------
+  describe('indemnización MYPE por régimen (fix #5)', () => {
+    const base = {
+      sueldoBruto: 3000,
+      motivoCese: 'despido_arbitrario' as const,
+      asignacionFamiliar: false,
+      gratificacionesPendientes: false,
+      horasExtrasPendientes: 0,
+      ultimaGratificacion: 0,
+      comisionesPromedio: 0,
+      vacacionesNoGozadas: 0,
+      fechaIngreso: '2022-01-01',
+      fechaCese: '2026-01-01', // 4 años exactos
+    }
+
+    it('MYPE_MICRO usa 10 jornales/año (jornal = sueldo/30), no 1.5 sueldos', () => {
+      // remDiaria = 3000/30 = 100; 10 × 100 × 4 = 4000.
+      const r = calcularLiquidacion({ ...base, regimenLaboral: 'MYPE_MICRO' })
+      expect(r.breakdown.indemnizacion!.amount).toBeCloseTo(4000, 0)
+    })
+
+    it('MYPE_PEQUENA usa 20 jornales/año', () => {
+      // 20 × 100 × 4 = 8000.
+      const r = calcularLiquidacion({ ...base, regimenLaboral: 'MYPE_PEQUENA' })
+      expect(r.breakdown.indemnizacion!.amount).toBeCloseTo(8000, 0)
+    })
+
+    it('MYPE micro es mucho menor que el régimen general (ya no sobrevalúa)', () => {
+      const micro = calcularLiquidacion({ ...base, regimenLaboral: 'MYPE_MICRO' })
+      const general = calcularLiquidacion({ ...base, regimenLaboral: 'GENERAL' })
+      // general = 1.5 × 3000 × 4 = 18000.
+      expect(general.breakdown.indemnizacion!.amount).toBeCloseTo(18000, 0)
+      expect(micro.breakdown.indemnizacion!.amount).toBeLessThan(general.breakdown.indemnizacion!.amount)
+    })
+
+    it('aplica el tope de 90 jornales en MYPE_MICRO con muchos años', () => {
+      // 12 años: 10 × 100 × 12 = 12000 > tope 90 × 100 = 9000 → 9000.
+      const r = calcularLiquidacion({ ...base, fechaIngreso: '2014-01-01', regimenLaboral: 'MYPE_MICRO' })
+      expect(r.breakdown.indemnizacion!.amount).toBeCloseTo(9000, 0)
+    })
+  })
+
+  // -----------------------------------------------
+  // Horas extras 25/35 en liquidación — fix #6
+  // -----------------------------------------------
+  describe('horas extras 25/35 en liquidación (fix #6)', () => {
+    const base = {
+      sueldoBruto: 3000, // valorHora = 3000/240 = 12.5
+      motivoCese: 'renuncia' as const,
+      asignacionFamiliar: false,
+      gratificacionesPendientes: false,
+      ultimaGratificacion: 0,
+      comisionesPromedio: 0,
+      vacacionesNoGozadas: 0,
+      fechaIngreso: '2024-01-01',
+      fechaCese: '2026-01-01',
+      horasExtrasPendientes: 0,
+    }
+
+    it('sin distribución aplica la sobretasa mínima 25%', () => {
+      // 10 h × 1.25 × 12.5 = 156.25.
+      const r = calcularLiquidacion({ ...base, horasExtrasPendientes: 10 })
+      expect(r.breakdown.horasExtras.amount).toBeCloseTo(156.25, 2)
+    })
+
+    it('con distribución 25%/35% calcula con precisión legal', () => {
+      // 12.5 × (1.25×4 + 1.35×6) = 12.5 × 13.1 = 163.75.
+      const r = calcularLiquidacion({ ...base, horasExtras25: 4, horasExtras35: 6 })
+      expect(r.breakdown.horasExtras.amount).toBeCloseTo(163.75, 2)
+    })
+
+    it('la distribución con 35% paga más que asumir todo al 25%', () => {
+      const split = calcularLiquidacion({ ...base, horasExtras25: 4, horasExtras35: 6 })
+      const plano = calcularLiquidacion({ ...base, horasExtrasPendientes: 10 })
+      expect(split.breakdown.horasExtras.amount).toBeGreaterThan(plano.breakdown.horasExtras.amount)
+    })
+  })
 })

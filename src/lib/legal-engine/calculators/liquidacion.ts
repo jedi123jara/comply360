@@ -63,7 +63,7 @@ export function calcularLiquidacion(input: LiquidacionInput): LiquidacionResult 
     vacacionesNoGozadas: calcularVacacionesNoGozadas(remComputable, input.vacacionesNoGozadas, regimen),
     gratificacionTrunca: gratItem,
     indemnizacion: calcularIndemnizacionSiAplica(remComputable, periodo, input),
-    horasExtras: calcularHorasExtrasAcumuladas(input.sueldoBruto, input.horasExtrasPendientes),
+    horasExtras: calcularHorasExtrasAcumuladas(input.sueldoBruto, input.horasExtrasPendientes, input.horasExtras25, input.horasExtras35),
     bonificacionEspecial: calcularBonificacionEspecial(remComputable, input),
   }
 
@@ -247,9 +247,41 @@ function calcularIndemnizacionSiAplica(
     return null
   }
 
-  const config = PERU_LABOR.INDEMNIZACION.INDEFINIDO
   const anosCompletos = periodo.anos
   const fraccionMeses = periodo.meses
+  const regimen = input.regimenLaboral
+
+  // RÉGIMEN MYPE (Ley 32353): la indemnización NO es 1.5 sueldos/año, sino
+  // remuneraciones DIARIAS por año completo (MICRO 10, PEQUEÑA 20) con tope en
+  // remuneraciones diarias (MICRO 90, PEQUEÑA 120). Antes se aplicaba siempre el
+  // 1.5 sueldos/año del régimen general → sobrevaluaba la indemnización MYPE
+  // (hasta ~4.5x en microempresa). Fracciones por dozavos y treintavos.
+  if (regimen === 'MYPE_MICRO' || regimen === 'MYPE_PEQUENA') {
+    const cfg = regimen === 'MYPE_MICRO' ? PERU_LABOR.MYPE.MICRO : PERU_LABOR.MYPE.PEQUENA
+    const factorDiario = cfg.INDEMNIZACION_FACTOR_DIARIO
+    const remDiaria = remComputable / 30
+    let indemMype = factorDiario * remDiaria * anosCompletos
+    if (fraccionMeses > 0) indemMype += (factorDiario * remDiaria / 12) * fraccionMeses
+    if (periodo.dias > 0) indemMype += (factorDiario * remDiaria / 360) * periodo.dias
+
+    const topeMype = cfg.INDEMNIZACION_TOPE_DIARIO * remDiaria
+    const topeMypeAplicado = indemMype > topeMype
+    if (topeMypeAplicado) indemMype = topeMype
+
+    const etiqueta = regimen === 'MYPE_MICRO' ? 'Microempresa' : 'Pequeña Empresa'
+    return {
+      label: `Indemnización por Despido (MYPE ${etiqueta})`,
+      amount: Math.round(indemMype * 100) / 100,
+      formula: `${factorDiario} jornales × (${fmt(remComputable)} / 30) × ${anosCompletos} años${fraccionMeses > 0 ? ` + fracción ${fraccionMeses} meses` : ''}${topeMypeAplicado ? ` (TOPE ${cfg.INDEMNIZACION_TOPE_DIARIO} jornales)` : ''}`,
+      baseLegal: cfg.BASE_LEGAL,
+      details: topeMypeAplicado
+        ? `Tope de ${cfg.INDEMNIZACION_TOPE_DIARIO} remuneraciones diarias aplicado: ${fmt(topeMype)} (jornal ${fmt(remDiaria)})`
+        : `${factorDiario} remuneraciones diarias por año (jornal ${fmt(remDiaria)}). Tiempo: ${anosCompletos} años y ${fraccionMeses} meses`,
+    }
+  }
+
+  // RÉGIMEN GENERAL (indefinido): 1.5 sueldos/año, tope 12 sueldos.
+  const config = PERU_LABOR.INDEMNIZACION.INDEFINIDO
 
   // 1.5 sueldos × años + fracción proporcional (dozavos y treintavos).
   let indemnizacion = config.FACTOR_POR_ANO * remComputable * anosCompletos
@@ -286,8 +318,30 @@ function calcularIndemnizacionSiAplica(
 // =============================================
 function calcularHorasExtrasAcumuladas(
   sueldoBruto: number,
-  horasPendientes: number
+  horasPendientes: number,
+  horas25?: number,
+  horas35?: number,
 ): BreakdownItem {
+  const valorHora = sueldoBruto / PERU_LABOR.HORAS_EXTRAS.HORAS_MENSUALES
+  const tasa25 = PERU_LABOR.HORAS_EXTRAS.SOBRETASA_PRIMERAS_2H // 25%
+  const tasa35 = PERU_LABOR.HORAS_EXTRAS.SOBRETASA_SIGUIENTES  // 35%
+
+  // Si el caller provee la distribución por tramo (horas al 25% y al 35%), se
+  // calcula con precisión legal: primeras 2 h/día al 25%, las siguientes al 35%
+  // (D.S. 007-2002-TR). El input escalar `horasPendientes` no lleva distribución.
+  const h25 = horas25 ?? 0
+  const h35 = horas35 ?? 0
+  if (h25 > 0 || h35 > 0) {
+    const total = valorHora * ((1 + tasa25) * h25 + (1 + tasa35) * h35)
+    return {
+      label: 'Horas Extras Pendientes',
+      amount: Math.round(total * 100) / 100,
+      formula: `(${fmt(sueldoBruto)} / ${PERU_LABOR.HORAS_EXTRAS.HORAS_MENSUALES}) × [1.25 × ${h25}h + 1.35 × ${h35}h]`,
+      baseLegal: PERU_LABOR.HORAS_EXTRAS.BASE_LEGAL,
+      details: `Distribución: ${h25} h al 25% y ${h35} h al 35%. Valor hora base: ${fmt(valorHora)}.`,
+    }
+  }
+
   if (horasPendientes <= 0) {
     return {
       label: 'Horas Extras Pendientes',
@@ -298,19 +352,17 @@ function calcularHorasExtrasAcumuladas(
     }
   }
 
-  const valorHora = sueldoBruto / PERU_LABOR.HORAS_EXTRAS.HORAS_MENSUALES
-
-  // Primeras 2 horas diarias al 25%, resto al 35%
-  // Simplificación: asumimos promedio ponderado
-  const valorHoraExtra = valorHora * (1 + PERU_LABOR.HORAS_EXTRAS.SOBRETASA_PRIMERAS_2H)
-  const total = valorHoraExtra * horasPendientes
+  // Sin distribución diaria no se puede saber cuántas horas superan las 2/día,
+  // así que se aplica la sobretasa MÍNIMA del 25% (D.S. 007-2002-TR). Para el
+  // 35% exacto, el caller debe pasar la distribución por tramo (horas25/horas35).
+  const total = valorHora * (1 + tasa25) * horasPendientes
 
   return {
     label: 'Horas Extras Pendientes',
     amount: Math.round(total * 100) / 100,
     formula: `(${fmt(sueldoBruto)} / ${PERU_LABOR.HORAS_EXTRAS.HORAS_MENSUALES}) × 1.25 × ${horasPendientes} horas`,
     baseLegal: PERU_LABOR.HORAS_EXTRAS.BASE_LEGAL,
-    details: `Valor hora base: ${fmt(valorHora)}. Sobretasa 25% aplicada.`,
+    details: `Valor hora base: ${fmt(valorHora)}. Sobretasa MÍNIMA 25% aplicada (sin distribución diaria; indica horas por tramo para el 35% exacto).`,
   }
 }
 
