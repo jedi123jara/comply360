@@ -41,13 +41,8 @@ export function useKeyboardShortcuts() {
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable)
 
-      // K (sin modifier) — command palette
-      if (!isTyping && event.key.toLowerCase() === 'k' && !event.ctrlKey && !event.metaKey) {
-        event.preventDefault()
-        toggleCommandPalette()
-        return
-      }
-      // Cmd+K / Ctrl+K también abre palette (universal)
+      // Cmd+K / Ctrl+K abre el command palette (estándar universal). Quitamos
+      // la 'k' suelta porque abría el palette por accidente al navegar.
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
         toggleCommandPalette()
@@ -75,8 +70,19 @@ export function useKeyboardShortcuts() {
       }
 
       if (event.key === 'Escape') {
-        closeModal()
-        setCommandPaletteOpen(false)
+        // Cerrar en cascada el panel/overlay de mayor prioridad visible.
+        const s = useOrgStore.getState()
+        if (s.commandPaletteOpen) return setCommandPaletteOpen(false)
+        if (s.activeModal) return closeModal()
+        if (s.copilotOpen) return s.setCopilotOpen(false)
+        if (s.timemachineOpen) return s.setTimemachineOpen(false)
+        if (s.alertsOpen) return s.setAlertsOpen(false)
+        if (s.doctorOpen) return s.setDoctorOpen(false)
+        if (s.inspectorOpen) {
+          s.setInspectorOpen(false)
+          clearSelection()
+          return
+        }
         clearSelection()
       }
     }
