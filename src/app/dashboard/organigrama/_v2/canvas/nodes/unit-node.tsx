@@ -63,13 +63,11 @@ const KIND_ICON: Record<string, typeof Building2> = {
   PROYECTO: BriefcaseBusiness,
 }
 
-interface UnitNodeProps extends NodeProps<Node<UnitNodeData>> {
-  /** Si está en true (focus mode), este nodo debe dimearse. */
-  dimmed?: boolean
-}
+type UnitNodeProps = NodeProps<Node<UnitNodeData>>
 
 function UnitNodeInner(props: UnitNodeProps) {
-  const { data, selected, dimmed } = props
+  const { data, selected } = props
+  const dimmed = Boolean(data.dimmed)
   const lod = useLOD()
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]

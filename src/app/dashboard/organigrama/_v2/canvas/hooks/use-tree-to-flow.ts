@@ -32,6 +32,8 @@ export interface UnitNodeData extends Record<string, unknown> {
   coverage: UnitCoverage | null
   /** Si este nodo viene del plan del Copiloto (no del árbol real). */
   ghost?: boolean
+  /** Focus mode: si true, el nodo se atenúa con un fade suave (framer). */
+  dimmed?: boolean
 }
 
 export interface PositionNodeData extends Record<string, unknown> {
@@ -51,6 +53,8 @@ export interface PositionNodeData extends Record<string, unknown> {
   inferredReportsTo: boolean
   directReports: number
   coverage: UnitCoverage | null
+  /** Focus mode: si true, el nodo se atenúa con un fade suave (framer). */
+  dimmed?: boolean
 }
 
 export type OrgFlowNode = Node<UnitNodeData> | Node<PositionNodeData>

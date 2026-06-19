@@ -105,10 +105,9 @@ function OrgCanvasV2Inner({
       const dimmed = focusSet ? !focusSet.has(n.id) : false
       return {
         ...n,
-        data: { ...(n.data as Record<string, unknown>) },
-        // Atributos custom que pasamos a los nodos via `data` —
-        // dado que nuestros componentes leen `data.dimmed`.
-        ...(dimmed ? { style: { ...n.style, opacity: 0.18 } } : {}),
+        // Pasamos `dimmed` por `data` para que el nodo lo anime con un fade
+        // suave (framer) en vez del cambio brusco de opacity del wrapper.
+        data: { ...(n.data as Record<string, unknown>), dimmed },
         selected:
           (positionMode && selectedPositionId === n.id) ||
           (!positionMode && selectedUnitId === n.id),
@@ -153,6 +152,13 @@ function OrgCanvasV2Inner({
     [positionMode, setSelectedPosition, setSelectedUnit, setInspectorOpen],
   )
 
+  // Clic en el lienzo vacío → deselecciona y cierra el inspector (control directo).
+  const handlePaneClick = useCallback(() => {
+    setSelectedUnit(null)
+    setSelectedPosition(null)
+    setInspectorOpen(false)
+  }, [setSelectedUnit, setSelectedPosition, setInspectorOpen])
+
   const minimapNodeColor = useCallback(
     (n: Node) => {
       const data = n.data as { coverage?: UnitNodeData['coverage'] } | undefined
@@ -166,10 +172,14 @@ function OrgCanvasV2Inner({
   // Usamos useEffect (no checkear-y-mutar-ref durante render) para respetar
   // las reglas de pureza de React.
   const { fitView } = useReactFlow()
-  const lastLayoutRef = useRef<string>(layoutMode)
+  // Re-encuadrar no solo al cambiar de layout, sino también al cambiar de modo
+  // (unidades↔cargos) o al aparecer/desaparecer el preview del Copiloto, que
+  // reemplazan el set de nodos y dejarían al usuario en un viewport viejo.
+  const fitKey = `${layoutMode}|${positionMode ? 'pos' : 'unit'}|${copilotPreviewPlan ? 'plan' : 'none'}`
+  const lastFitRef = useRef<string>(fitKey)
   useEffect(() => {
-    if (lastLayoutRef.current === layoutMode) return
-    lastLayoutRef.current = layoutMode
+    if (lastFitRef.current === fitKey) return
+    lastFitRef.current = fitKey
     const raf = requestAnimationFrame(() => {
       try {
         fitView({ padding: 0.18, minZoom: 0.42, maxZoom: 1.05, duration: 450 })
@@ -178,7 +188,7 @@ function OrgCanvasV2Inner({
       }
     })
     return () => cancelAnimationFrame(raf)
-  }, [layoutMode, fitView])
+  }, [fitKey, fitView])
 
   if (!tree || tree.units.length === 0) {
     return (
@@ -199,6 +209,7 @@ function OrgCanvasV2Inner({
         edges={edges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
         onConnect={handleConnect}
         nodesDraggable={false}
         nodesConnectable={allowReparent}
