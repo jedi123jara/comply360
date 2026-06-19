@@ -362,6 +362,9 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     deduccion7UIT: rentaResult.deduccion7UIT,
     rentaNetaAnualImponible: rentaResult.rentaNetaAnualImponible,
     impuestoAnualProyectado: rentaResult.impuestoAnualProyectado,
+    // Advertencias de cumplimiento (p.ej. piso de jornada nocturna) — persistidas
+    // como string para que la vista de la boleta las pueda mostrar.
+    advertencias: warnings.length > 0 ? warnings.join(' · ') : null,
   }
 
   return {
