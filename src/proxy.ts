@@ -15,7 +15,6 @@ const isPublicRoute = createRouteMatcher([
   '/calculadoras(.*)',       // hub + CTS / grati / multa-sunafil / etc.
   '/planes(.*)',             // pricing page
   '/recursos(.*)',           // blog (+ slugs)
-  '/contadores(.*)',         // landing para estudios contables
   '/legal(.*)',               // landing legal
   '/terminos(.*)',            // ToS
   '/privacidad(.*)',          // privacy

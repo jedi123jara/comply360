@@ -104,8 +104,6 @@ model Organization {
   serviceProviders         ServiceProvider[]
   rhInvoices               RhInvoice[]
   inspecciones             InspeccionEnVivo[]
-  ownedClients             ConsultorClient[]         @relation("ConsultorOwner")
-  managedBy                ConsultorClient[]         @relation("ConsultorManaged")
   integrationCredentials   IntegrationCredential[]
   // Organigrama
   orgUnits                 OrgUnit[]
@@ -2772,35 +2770,6 @@ model RhInvoice {
 // =============================================
 // INSPECCION EN VIVO — "MODO CRISIS" SUNAFIL
 // =============================================
-
-// =============================================
-// PORTAL CONTADOR — Multi-org management
-// A "consultor" (accountant / labor advisor) manages multiple client orgs
-// =============================================
-
-model ConsultorClient {
-  id              String   @id @default(cuid())
-  /// Clerk userId of the consultor (not linked as FK to avoid Clerk coupling)
-  consultorUserId String   @map("consultor_user_id")
-  /// The consultor's own org (the accounting firm or consultancy)
-  consultorOrgId  String   @map("consultor_org_id")
-  /// The client org being managed
-  clientOrgId     String   @map("client_org_id")
-  /// Cached display name — denormalized for fast list rendering
-  clientOrgName   String?  @map("client_org_name")
-  clientRuc       String?  @map("client_ruc")
-  isActive        Boolean  @default(true) @map("is_active")
-  notes           String?
-  addedAt         DateTime @default(now()) @map("added_at")
-
-  consultorOrg Organization @relation("ConsultorOwner", fields: [consultorOrgId], references: [id])
-  clientOrg    Organization @relation("ConsultorManaged", fields: [clientOrgId], references: [id])
-
-  @@unique([consultorUserId, clientOrgId])
-  @@index([consultorUserId, isActive])
-  @@index([consultorOrgId])
-  @@map("consultor_clients")
-}
 
 model InspeccionEnVivo {
   id              String    @id @default(cuid())
