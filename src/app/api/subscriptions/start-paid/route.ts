@@ -66,6 +66,39 @@ export const POST = withAuth(async (req, ctx) => {
     )
   }
 
+  // Idempotencia anti-doble-cobro: si hubo un intento o cobro reciente para esta
+  // org, rechazamos (el primero gana). Cubre doble-click, reintento por timeout y
+  // reenvío del formulario. NOTA: queda una ventana de carrera de pocas decenas de
+  // ms para clicks verdaderamente simultáneos; el fix completo es una tabla
+  // PaymentAttempt con clave de idempotencia única (requiere migración).
+  const recentAttempt = await prisma.auditLog.findFirst({
+    where: {
+      orgId: ctx.orgId,
+      action: { in: ['subscription.charge_attempt', 'subscription.paid_started', 'payment.processed'] },
+      createdAt: { gte: new Date(Date.now() - 90_000) },
+    },
+    select: { id: true },
+  })
+  if (recentAttempt) {
+    return NextResponse.json(
+      { error: 'Ya hay un pago en proceso o recién realizado. Espera unos segundos y revisa tu plan.', code: 'PAYMENT_IN_PROGRESS' },
+      { status: 409 },
+    )
+  }
+  // Marca el intento ANTES de cobrar para acotar la ventana de doble cobro.
+  await prisma.auditLog
+    .create({
+      data: {
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        action: 'subscription.charge_attempt',
+        entityType: 'Subscription',
+        entityId: ctx.orgId,
+        metadataJson: { plan },
+      },
+    })
+    .catch(() => null)
+
   // Calcular monto con descuento (20% off del primer mes)
   const planConfig = CULQI_PLANS[plan as 'STARTER' | 'EMPRESA' | 'PRO']
   const fullPriceCentimos = planConfig.priceInCentimos

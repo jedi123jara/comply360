@@ -35,7 +35,7 @@ export const POST = withRole('OWNER', async (_req, ctx: AuthContext) => {
   if (previousTrial) {
     return NextResponse.json(
       {
-        error: 'Ya usaste tu trial PRO. Actualizá a un plan pago para continuar.',
+        error: 'Ya usaste tu trial PRO. Actualiza a un plan pago para continuar.',
         code: 'TRIAL_ALREADY_USED',
         previousTrialAt: previousTrial.createdAt.toISOString(),
         upgradeUrl: '/dashboard/planes',

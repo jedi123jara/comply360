@@ -33,6 +33,7 @@ const { mockGetAuthContext, mockPrisma, mockCreateCharge } = vi.hoisted(() => {
     },
     auditLog: {
       create: vi.fn(),
+      findFirst: vi.fn(),
     },
     $transaction: vi.fn(),
   }
@@ -153,6 +154,7 @@ describe('POST /api/payments/checkout', () => {
     mockCreateCharge.mockResolvedValue(mockCharge)
     mockPrisma.$transaction.mockResolvedValue([{}, {}])
     mockPrisma.auditLog.create.mockResolvedValue({})
+    mockPrisma.auditLog.findFirst.mockResolvedValue(null) // sin intento de cobro reciente
 
     const req = makeRequest({ planId: 'PRO', token: 'tok_live_xxx' })
     const res = await POST(req)

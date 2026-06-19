@@ -38,9 +38,11 @@ function validateWebhookSignature(
 ): boolean {
   const secret = process.env.CULQI_WEBHOOK_SECRET
   if (!secret) {
-    // En desarrollo sin secret configurado, aceptar todos los webhooks
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[Webhook] Sin CULQI_WEBHOOK_SECRET - aceptando en modo desarrollo')
+    // Fail-closed. El bypass solo se permite fuera de producción Y con opt-in
+    // explícito (ALLOW_UNSIGNED_WEBHOOKS=true), para que un deploy con NODE_ENV
+    // mal configurado nunca abra la puerta a webhooks de pago forjados.
+    if (process.env.NODE_ENV !== 'production' && process.env.ALLOW_UNSIGNED_WEBHOOKS === 'true') {
+      console.warn('[Webhook] Sin CULQI_WEBHOOK_SECRET - aceptando (ALLOW_UNSIGNED_WEBHOOKS=true)')
       return true
     }
     return false

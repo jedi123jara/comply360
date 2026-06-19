@@ -64,9 +64,22 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     'gamificacion',
     'organigrama',
     'organigrama_completo',
+    // FIX (billing): EMPRESA (S/1899) es el tier MÁS caro, por encima de PRO (S/699),
+    // así que debe ser superset estricto de PRO. Antes le faltaban estas 9 features y
+    // un cliente EMPRESA recibía 403 PLAN_UPGRADE_REQUIRED en Copilot IA, AI Review,
+    // SST, denuncias, etc. — features por las que pagaba MÁS que un cliente PRO.
+    'asistente_ia',
+    'review_ia',
+    'simulacro_completo',
+    'denuncias',
+    'sst_completo',
+    'api_access',
+    'attendance_selfie',
     // Ola 1+2 — workers hardening
     't_registro_export',
     'historial_extendido_12m',
+    'historial_infinito',
+    'sync_planilla_externa',
   ],
   PRO: [
     'calculadoras',

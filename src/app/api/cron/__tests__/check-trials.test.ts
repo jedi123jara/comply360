@@ -6,7 +6,8 @@
  *   - 503 if CRON_SECRET env var is not configured
  *   - 401 if authorization header doesn't match Bearer ${CRON_SECRET}
  *   - Finds orgs with planExpiresAt < now AND plan in ['EMPRESA', 'PRO']
- *   - Only downgrades if subscription status is TRIALING (not ACTIVE)
+ *   - Downgrades toda org vencida EXCEPTO las que tienen subscription ACTIVE
+ *     (protege a clientes que pagan; limpia plan stale de trials/cancelados/sin-sub)
  *   - Downgrades to plan 'FREE' (not STARTER)
  *   - Sends email to org.alertEmail if present
  *   - Returns { checked, downgraded, timestamp }
@@ -280,9 +281,12 @@ describe('GET /api/cron/check-trials', () => {
 
     expect(res.status).toBe(200)
     expect(json.checked).toBe(4)
-    // Only org-1 and org-3 have TRIALING status; org-2 is ACTIVE, org-4 has no sub
-    expect(json.downgraded).toBe(2)
-    // Only org-1 has alertEmail, org-3 has null
+    // Se degrada toda org vencida EXCEPTO la que tiene subscription ACTIVE: org-1
+    // (TRIALING), org-3 (TRIALING) y org-4 (sin subscription → plan PRO stale) = 3.
+    // org-2 (ACTIVE, pago vigente) NO se degrada.
+    expect(json.downgraded).toBe(3)
+    // Email "prueba terminó" SOLO a trials reales con email: org-1. (org-3 sin
+    // email; org-4 no era trial → no recibe el correo de fin de prueba.)
     expect(mockSendEmail).toHaveBeenCalledTimes(1)
   })
 })

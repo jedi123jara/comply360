@@ -61,8 +61,9 @@ describe('planHasFeature', () => {
     expect(planHasFeature('EMPRESA', 'ia_contratos')).toBe(true)
   })
 
-  it('EMPRESA does NOT have asistente_ia', () => {
-    expect(planHasFeature('EMPRESA', 'asistente_ia')).toBe(false)
+  it('EMPRESA has asistente_ia (EMPRESA es superset de PRO)', () => {
+    // EMPRESA (S/1899) cuesta más que PRO (S/699) y se vende como "Todo del plan Pro".
+    expect(planHasFeature('EMPRESA', 'asistente_ia')).toBe(true)
   })
 
   it('PRO has ALL features', () => {

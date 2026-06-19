@@ -25,9 +25,9 @@ describe('plan-features / coverage por tier', () => {
     expect(PLAN_FEATURES.EMPRESA).toContain('simulacro_basico')
     expect(PLAN_FEATURES.EMPRESA).toContain('ia_contratos')
     expect(PLAN_FEATURES.EMPRESA).toContain('gamificacion')
-    // No incluye features exclusivas PRO
-    expect(PLAN_FEATURES.EMPRESA).not.toContain('asistente_ia')
-    expect(PLAN_FEATURES.EMPRESA).not.toContain('api_access')
+    // EMPRESA (S/1899) es superset de PRO (S/699): incluye sus features premium.
+    expect(PLAN_FEATURES.EMPRESA).toContain('asistente_ia')
+    expect(PLAN_FEATURES.EMPRESA).toContain('api_access')
   })
 
   it('PRO incluye las features cuyo plan minimo es PRO o menor', () => {
@@ -37,6 +37,12 @@ describe('plan-features / coverage por tier', () => {
 
     for (const feature of proAndBelow) {
       expect(PLAN_FEATURES.PRO).toContain(feature)
+    }
+  })
+
+  it('EMPRESA es superset estricto de PRO (cuesta más → incluye todo lo de PRO)', () => {
+    for (const feature of PLAN_FEATURES.PRO) {
+      expect(PLAN_FEATURES.EMPRESA).toContain(feature)
     }
   })
 
@@ -60,8 +66,8 @@ describe('plan-features / planHasFeature', () => {
     expect(planHasFeature('PRO', 'asistente_ia')).toBe(true)
   })
 
-  it('EMPRESA no tiene asistente_ia (exclusivo PRO)', () => {
-    expect(planHasFeature('EMPRESA', 'asistente_ia')).toBe(false)
+  it('EMPRESA sí tiene asistente_ia (es superset de PRO)', () => {
+    expect(planHasFeature('EMPRESA', 'asistente_ia')).toBe(true)
   })
 
   it('plan desconocido se trata como FREE', () => {

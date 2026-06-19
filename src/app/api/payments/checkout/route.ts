@@ -57,6 +57,37 @@ export const POST = withRole('OWNER', async (req: NextRequest, ctx: AuthContext)
       )
     }
 
+    // ---- Idempotencia anti-doble-cobro ----
+    // Si hubo un intento/cobro reciente para esta org, rechazamos (el primero gana).
+    // Cubre doble-click / reintento / reenvío. El fix completo (contra carreras
+    // sub-50ms) es una tabla PaymentAttempt con clave única (requiere migración).
+    const recentAttempt = await prisma.auditLog.findFirst({
+      where: {
+        orgId: ctx.orgId,
+        action: { in: ['subscription.charge_attempt', 'payment.processed', 'subscription.paid_started'] },
+        createdAt: { gte: new Date(Date.now() - 90_000) },
+      },
+      select: { id: true },
+    })
+    if (recentAttempt) {
+      return NextResponse.json(
+        { error: 'Ya hay un pago en proceso o recién realizado. Espera unos segundos y revisa tu plan.', code: 'PAYMENT_IN_PROGRESS' },
+        { status: 409 }
+      )
+    }
+    await prisma.auditLog
+      .create({
+        data: {
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          action: 'subscription.charge_attempt',
+          entityType: 'Subscription',
+          entityId: ctx.orgId,
+          metadataJson: { plan: planId },
+        },
+      })
+      .catch(() => null)
+
     // ---- Create charge via Culqi ----
     const charge = await createCharge(
       token,
