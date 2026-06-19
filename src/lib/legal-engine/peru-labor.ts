@@ -768,3 +768,10 @@ export function getComisionFlujoAFP(afpNombre?: string): number {
     PERU_LABOR.APORTES.COMISION_FLUJO_AFP.PRIMA
   )
 }
+
+/** Remuneración mensual MÍNIMA de la jornada nocturna: RMV + 35% (Art. 8 D.S.
+ *  007-2002-TR). NO es un recargo sobre horas extras: es el PISO de remuneración
+ *  por debajo del cual no puede percibir quien labora en horario nocturno. */
+export function getRemuneracionMinimaNocturna(): number {
+  return PERU_LABOR.RMV * (1 + PERU_LABOR.HORAS_EXTRAS.SOBRETASA_NOCTURNA)
+}

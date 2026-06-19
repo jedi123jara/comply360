@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { calcularBoleta, type BoletaInput } from '../boleta'
+import { getRemuneracionMinimaNocturna } from '../../peru-labor'
 
 // UIT 2026 = 5,500 | RMV = 1,130
 const BASE: BoletaInput = {
@@ -151,5 +152,26 @@ describe('calcularBoleta', () => {
   it('ctsEstimadoMes es mayor que 0 con sueldo normal', () => {
     const r = calcularBoleta(BASE)
     expect(r.ctsEstimadoMes).toBeGreaterThan(0)
+  })
+})
+
+describe('jornada nocturna — piso RMV + 35% (Art. 8 D.S. 007-2002-TR)', () => {
+  it('getRemuneracionMinimaNocturna = RMV × 1.35 (1130 × 1.35 = 1525.5)', () => {
+    expect(getRemuneracionMinimaNocturna()).toBeCloseTo(1525.5, 2)
+  })
+
+  it('advierte si el trabajador nocturno gana menos que el piso', () => {
+    const r = calcularBoleta({ ...BASE, sueldoBruto: 1200, jornadaNocturna: true })
+    expect(r.warnings.some(w => w.toLowerCase().includes('jornada nocturna'))).toBe(true)
+  })
+
+  it('NO advierte si el nocturno gana >= el piso', () => {
+    const r = calcularBoleta({ ...BASE, sueldoBruto: 2000, jornadaNocturna: true })
+    expect(r.warnings.length).toBe(0)
+  })
+
+  it('NO advierte si no es jornada nocturna (aunque gane poco)', () => {
+    const r = calcularBoleta({ ...BASE, sueldoBruto: 1200 })
+    expect(r.warnings.length).toBe(0)
   })
 })

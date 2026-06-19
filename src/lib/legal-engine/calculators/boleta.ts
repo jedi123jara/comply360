@@ -13,7 +13,7 @@
  *  - AGRARIO: remuneración diaria incluye CTS y gratificación prorrateadas
  */
 
-import { PERU_LABOR, calcularRemuneracionComputable } from '../peru-labor'
+import { PERU_LABOR, calcularRemuneracionComputable, getRemuneracionMinimaNocturna } from '../peru-labor'
 import { calcularAportesPrevisionales, type AportesInput } from './aportes-previsionales'
 import { calcularRentaQuinta, type RentaQuintaInput } from './renta-quinta'
 import { money } from '../money'
@@ -29,6 +29,7 @@ export interface BoletaInput {
   sctr?: boolean
   regimenLaboral?: string
   periodo?: string              // 'YYYY-MM' — define la RMA y prima vigentes del periodo
+  jornadaNocturna?: boolean     // horario nocturno → valida el piso RMV + 35% (D.S. 007-2002-TR)
 
   // Ingresos variables del período
   horasExtras?: number          // monto en soles
@@ -106,6 +107,7 @@ export interface BoletaResult {
   detalleJson: Record<string, number | string | null>
 
   baseLegal: string[]
+  warnings: string[]
 }
 
 // ── Calculator ───────────────────────────────────────────────────────────────
@@ -123,6 +125,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     incluirGratificacion = false,
     mes,
     periodo,
+    jornadaNocturna = false,
     retencionRentaAcumulada = 0,
     descuentoTardanzasMonto = 0,
   } = input
@@ -271,7 +274,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
       descuentos.push({
         concepto: 'AFP — Seguro de Invalidez y Sobrevivencia',
         monto: aportes.seguroInvalidez,
-        porcentaje: '1.84%',
+        porcentaje: `~${(aportes.seguroInvalidez / aportes.remuneracionComputable * 100).toFixed(2)}%`,
       })
     }
     if (aportes.comisionAfp > 0) {
@@ -304,6 +307,22 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
       monto: descuentoTardanzas,
       porcentaje: 'Proporcional a jornada',
     })
+  }
+
+  // ── Warnings de cumplimiento ────────────────────────────────────────────────
+  // Jornada nocturna (Art. 8 D.S. 007-2002-TR): la remuneración mensual no puede ser
+  // inferior a RMV + 35%. Es un PISO, no un recargo sobre horas extras; por eso se
+  // reporta como warning y NO se ajusta el pago automáticamente.
+  const warnings: string[] = []
+  if (jornadaNocturna) {
+    const minNocturno = getRemuneracionMinimaNocturna()
+    if (ctsBaseComputable < minNocturno) {
+      warnings.push(
+        `Jornada nocturna: la remuneración (S/ ${ctsBaseComputable.toFixed(2)}) es menor al ` +
+        `mínimo de jornada nocturna RMV + 35% = S/ ${minNocturno.toFixed(2)} ` +
+        `(Art. 8 D.S. 007-2002-TR). Debe ajustarse para evitar infracción SUNAFIL.`,
+      )
+    }
   }
 
   // ── detalleJson para guardar en DB ──────────────────────────────────────────
@@ -368,6 +387,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
       'TUO Ley IR (D.S. 179-2004-EF) Art. 75; Regl. D.S. 122-94-EF Art. 40',
       'Ley 26790 — EsSalud 9%',
     ].filter(Boolean),
+    warnings,
   }
 }
 
