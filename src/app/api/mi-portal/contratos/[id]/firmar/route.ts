@@ -161,21 +161,28 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (
     _signature: signatureRecord,
   } as Record<string, string | number | boolean | null | object>
 
-  // ── Update + cascade trigger ──────────────────────────────────────────────
-  const updated = await prisma.contract.update({
-    where: { id: contract.id },
+  // ── Update ATÓMICO (anti doble-firma) + cascade trigger ───────────────────
+  // FIX race condition: el update es condicional al estado firmable. Si dos
+  // requests concurrentes (doble-tap / retry de red) pasan el check de estado de
+  // arriba, solo UNO matchea aquí (count=1) y dispara evento + cascada; el otro
+  // obtiene count=0 → 409. Antes el update era por id sin condición de estado, así
+  // que ambos pasaban y se emitía 'contract.signed' + cascada por duplicado.
+  const claim = await prisma.contract.updateMany({
+    where: { id: contract.id, status: { in: ['DRAFT', 'IN_REVIEW', 'APPROVED'] } },
     data: {
       status: 'SIGNED',
       signedAt: now,
       formData: nextFormData,
     },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      signedAt: true,
-    },
   })
+
+  if (claim.count === 0) {
+    // Otro request ganó la carrera (o el estado cambió) — NO re-disparamos nada.
+    return NextResponse.json(
+      { error: 'Este contrato ya fue firmado' },
+      { status: 409 },
+    )
+  }
 
   // Audit log
   await prisma.auditLog
@@ -214,10 +221,10 @@ export const POST = withWorkerAuthParams<{ id: string }>(async (
 
   return NextResponse.json({
     data: {
-      id: updated.id,
-      title: updated.title,
-      status: updated.status,
-      signedAt: updated.signedAt?.toISOString(),
+      id: contract.id,
+      title: contract.title,
+      status: 'SIGNED',
+      signedAt: now.toISOString(),
       signatureLevel,
     },
     message:

@@ -141,15 +141,38 @@ export const POST = withWorkerAuthParams<{ id: string }>(
       credentialId: webauthn.credentialId,
     }
 
-    const updated: EleccionData = {
-      ...data,
-      votos: [...data.votos, nuevoVoto],
-    }
-
-    await prisma.sstRecord.update({
-      where: { id: record.id },
-      data: { data: updated as never },
+    // FIX integridad electoral: el padrón de votos vive en un JSON. Un
+    // read-modify-write directo pierde votos bajo concurrencia (last-write-wins) y
+    // el check de doble-voto de arriba no protege porque dos requests lo pasan antes
+    // de escribir. Bloqueamos la fila (FOR UPDATE) dentro de una transacción y
+    // re-leemos + re-validamos + agregamos: los votos concurrentes se serializan.
+    const txResult = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM sst_records WHERE id = ${record.id} FOR UPDATE`
+      const fresh = await tx.sstRecord.findUnique({
+        where: { id: record.id },
+        select: { data: true },
+      })
+      const freshData = (fresh?.data ?? data) as unknown as EleccionData
+      if (freshData.votos.some((v) => v.electorWorkerId === ctx.workerId)) {
+        return { duplicate: true as const }
+      }
+      const updated: EleccionData = {
+        ...freshData,
+        votos: [...freshData.votos, nuevoVoto],
+      }
+      await tx.sstRecord.update({
+        where: { id: record.id },
+        data: { data: updated as never },
+      })
+      return { duplicate: false as const }
     })
+
+    if (txResult.duplicate) {
+      return NextResponse.json(
+        { error: 'Ya emitiste tu voto en esta elección', code: 'YA_VOTO' },
+        { status: 409 },
+      )
+    }
 
     await prisma.auditLog
       .create({

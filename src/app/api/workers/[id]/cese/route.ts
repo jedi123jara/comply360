@@ -488,14 +488,30 @@ export const PATCH = withPlanGateParams<{ id: string }>('workers',
       }
 
       case 'GUARDAR_LIQUIDACION': {
-        const {
-          ctsMonto = 0,
-          vacacionesMonto = 0,
-          gratificacionMonto = 0,
-          indemnizacionMonto = 0,
-          totalLiquidacion = 0,
-          detalleJson,
-        } = body
+        // FIX: validar que los montos sean números finitos >= 0 antes de persistir
+        // en los campos Decimal. Antes se tomaban crudos del body (el default = 0
+        // solo cubría undefined) → un negativo/NaN/string corrompía el documento
+        // legal de liquidación o tumbaba la operación con 500.
+        const parseMonto = (v: unknown): number | null => {
+          if (v === undefined || v === null) return 0
+          const n = typeof v === 'number' ? v : Number(v)
+          return Number.isFinite(n) && n >= 0 ? n : null
+        }
+        const ctsMonto = parseMonto(body.ctsMonto)
+        const vacacionesMonto = parseMonto(body.vacacionesMonto)
+        const gratificacionMonto = parseMonto(body.gratificacionMonto)
+        const indemnizacionMonto = parseMonto(body.indemnizacionMonto)
+        const totalLiquidacion = parseMonto(body.totalLiquidacion)
+        const detalleJson = body.detalleJson
+        if (
+          ctsMonto === null || vacacionesMonto === null || gratificacionMonto === null ||
+          indemnizacionMonto === null || totalLiquidacion === null
+        ) {
+          return NextResponse.json(
+            { error: 'Montos de liquidación inválidos: deben ser números mayores o iguales a 0.' },
+            { status: 400 },
+          )
+        }
 
         const updated = await prisma.ceseRecord.update({
           where: { id: record.id },

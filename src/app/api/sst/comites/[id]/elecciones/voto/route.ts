@@ -207,15 +207,37 @@ export const POST = withPlanGateParams<{ id: string }>('sst_completo',
       ...(credentialId ? { credentialId } : {}),
     }
 
-    const updated: EleccionData = {
-      ...data,
-      votos: [...data.votos, nuevoVoto],
-    }
-
-    await prisma.sstRecord.update({
-      where: { id: record.id },
-      data: { data: updated as never },
+    // FIX integridad electoral: read-modify-write atómico sobre el JSON de votos.
+    // Bloqueamos la fila (FOR UPDATE) en una transacción y re-leemos + re-validamos
+    // + agregamos, para que la transcripción concurrente de papeletas (dos admins /
+    // dos pestañas) no pierda votos por last-write-wins.
+    const txResult = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM sst_records WHERE id = ${record.id} FOR UPDATE`
+      const fresh = await tx.sstRecord.findUnique({
+        where: { id: record.id },
+        select: { data: true },
+      })
+      const freshData = (fresh?.data ?? data) as unknown as EleccionData
+      if (freshData.votos.some((v) => v.electorWorkerId === electorWorkerId)) {
+        return { duplicate: true as const }
+      }
+      const updated: EleccionData = {
+        ...freshData,
+        votos: [...freshData.votos, nuevoVoto],
+      }
+      await tx.sstRecord.update({
+        where: { id: record.id },
+        data: { data: updated as never },
+      })
+      return { duplicate: false as const, votosTotal: updated.votos.length }
     })
+
+    if (txResult.duplicate) {
+      return NextResponse.json(
+        { error: 'Este elector ya emitió su voto', code: 'YA_VOTO' },
+        { status: 409 },
+      )
+    }
 
     await prisma.auditLog
       .create({
@@ -244,7 +266,7 @@ export const POST = withPlanGateParams<{ id: string }>('sst_completo',
       hashFirma,
       timestamp,
       signatureLevel,
-      votosTotal: updated.votos.length,
+      votosTotal: txResult.votosTotal,
     })
   },
 )
