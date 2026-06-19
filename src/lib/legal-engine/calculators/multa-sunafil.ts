@@ -120,7 +120,9 @@ export function calcularMultaSunafil(input: MultaSunafilInput): MultaSunafilResu
     : input.subsanacionDuranteInspeccion ? 'DURANTE_INSPECCION'
     : null
 
-  // Conversión a soles + tope absoluto (52.53 UIT) — FIX #2.A.
+  // Conversión a soles + tope absoluto de 200 UIT (config.TOPE_MAXIMO_UIT) — FIX #2.A.
+  // (El comentario anterior decía "52.53 UIT", que es el máximo de un tramo, no el
+  // tope absoluto vigente del D.S. 019-2006-TR.)
   const uitM = money(uit)
   const multaMinima = uitM.mul(rangoMin).toNumber()
   const multaMaxima = uitM.mul(rangoMax).toNumber()
