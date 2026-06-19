@@ -247,6 +247,7 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
     cuspp,
     essaludVida = false,
     sctr = false,
+    turnoNocturno = false,
   } = body
 
   // Validations
@@ -329,6 +330,7 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
       cuspp: cuspp || null,
       essaludVida,
       sctr,
+      turnoNocturno,
       status: 'ACTIVE',
       legajoScore: 0,
     },

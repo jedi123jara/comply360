@@ -87,6 +87,7 @@ export const workerCreateSchema = z.object({
   cuspp: z.string().max(40).optional().nullable(),
   essaludVida: z.boolean().optional(),
   sctr: z.boolean().optional(),
+  turnoNocturno: z.boolean().optional(),
 })
 
 // ── PUT /api/workers/[id] — Edición parcial ───────────────────────────────
@@ -118,6 +119,7 @@ export const workerUpdateSchema = z.object({
   tiempoCompleto: z.boolean().optional(),
   essaludVida: z.boolean().optional(),
   sctr: z.boolean().optional(),
+  turnoNocturno: z.boolean().optional(),
   birthDate: fechaFlexible.optional().nullable().or(z.literal('')),
   fechaIngreso: fechaFlexible.optional(),
   fechaCese: fechaFlexible.optional().nullable().or(z.literal('')),

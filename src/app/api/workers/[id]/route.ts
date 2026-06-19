@@ -289,6 +289,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
   if ('tiempoCompleto' in body) updateData.tiempoCompleto = body.tiempoCompleto
   if ('essaludVida' in body) updateData.essaludVida = body.essaludVida
   if ('sctr' in body) updateData.sctr = body.sctr
+  if ('turnoNocturno' in body) updateData.turnoNocturno = body.turnoNocturno
   if ('birthDate' in body) updateData.birthDate = body.birthDate ? new Date(body.birthDate) : null
   if ('fechaIngreso' in body) updateData.fechaIngreso = new Date(body.fechaIngreso)
   if ('fechaCese' in body) updateData.fechaCese = body.fechaCese ? new Date(body.fechaCese) : null

@@ -310,6 +310,8 @@ model Worker {
   asignacionFamiliar      Boolean        @default(false) @map("asignacion_familiar")
   jornadaSemanal          Int            @default(48) @map("jornada_semanal")
   tiempoCompleto          Boolean        @default(true) @map("tiempo_completo")
+  // Jornada nocturna (10pm–6am): activa la validación del piso RMV + 35% (Art. 8 D.S. 007-2002-TR)
+  turnoNocturno           Boolean        @default(false) @map("turno_nocturno")
   // Horario laboral pactado (R.M. 037-2024-TR exige documentar política de
   // entrada/salida y tolerancia). Defaults conservadores: 8:00-17:00 con 15
   // min de tolerancia. Si la org tiene turnos distintos, se editan por worker
