@@ -96,11 +96,14 @@ export function calcularAportesPrevisionales(input: AportesInput): AportesResult
 
     aporteObligatorio = remM.mul(PERU_LABOR.APORTES.AFP_APORTE_OBLIGATORIO).toNumber()
     seguroInvalidez = baseSeguro.mul(primaTasa).toNumber()
-    // La comisión sobre el sueldo SOLO aplica en el esquema "por flujo". En "por
-    // saldo" (default de afiliados nuevos desde 2023) se cobra contra el fondo, no
-    // sobre la remuneración → 0 en la boleta. Default (sin clasificar / legacy
-    // MIXTA) = flujo, para no alterar la data actual.
-    comisionAfp = input.afpComisionTipo === 'SALDO'
+    // La comisión sobre el sueldo SOLO existe en el esquema "por flujo". En "por
+    // saldo" Y en la "mixta" (cuyo componente de flujo es 0% desde feb-2023) la
+    // comisión se cobra contra el FONDO, no sobre la remuneración → 0 en la boleta.
+    // Default (sin clasificar / null) = flujo, para no alterar las boletas actuales
+    // hasta que se clasifique a cada trabajador. (Validado vs SBS, jun-2026.)
+    const sinComisionSobreSueldo =
+      input.afpComisionTipo === 'SALDO' || input.afpComisionTipo === 'MIXTA'
+    comisionAfp = sinComisionSobreSueldo
       ? 0
       : remM.mul(getComisionFlujoAFP(afpKey)).toNumber()
     sistema = `AFP ${capitalize(afpKey)}`

@@ -147,6 +147,11 @@ describe('comisión por esquema (flujo vs saldo)', () => {
     expect(r.comisionAfp).toBe(0)
   })
 
+  it('MIXTA → comisión 0 (su componente de flujo es 0% desde feb-2023)', () => {
+    const r = calcularAportesPrevisionales({ ...BASE_INPUT, afpNombre: 'PRIMA', afpComisionTipo: 'MIXTA' })
+    expect(r.comisionAfp).toBe(0)
+  })
+
   it('FLUJO → aplica la comisión por flujo (1.60% Prima)', () => {
     const r = calcularAportesPrevisionales({ ...BASE_INPUT, afpNombre: 'PRIMA', afpComisionTipo: 'FLUJO' })
     expect(r.comisionAfp).toBeCloseTo(3000 * 0.0160, 2)
