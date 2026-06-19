@@ -107,21 +107,28 @@ export const PATCH = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext
     }
 
     if (request.status !== 'PENDIENTE') {
-      return NextResponse.json({ error: 'La solicitud ya fue procesada' }, { status: 400 })
+      return NextResponse.json({ error: 'La solicitud ya fue procesada' }, { status: 409 })
     }
 
-    // Update request
-    const updated = await prisma.workerRequest.update({
-      where: { id: body.requestId },
+    // Update request — check-and-set atomico: solo procesa si sigue PENDIENTE.
+    // Evita doble aprobacion bajo requests concurrentes (race check-then-act).
+    const reviewedAt = new Date()
+    const result = await prisma.workerRequest.updateMany({
+      where: { id: body.requestId, orgId: ctx.orgId, status: 'PENDIENTE' },
       data: {
         status: body.action,
         reviewNotes: body.reviewNotes || null,
-        reviewedAt: new Date(),
+        reviewedAt,
         reviewedById: ctx.userId,
       },
     })
 
-    // Audit log
+    // Otra request gano la carrera (o ya fue procesada): no disparar efectos.
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'La solicitud ya fue procesada' }, { status: 409 })
+    }
+
+    // Audit log — solo cuando esta request fue la que aplico el cambio
     await prisma.auditLog.create({
       data: {
         orgId: ctx.orgId,
@@ -140,10 +147,10 @@ export const PATCH = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext
     return NextResponse.json({
       success: true,
       request: {
-        id: updated.id,
-        status: updated.status,
-        reviewNotes: updated.reviewNotes,
-        reviewedAt: updated.reviewedAt,
+        id: body.requestId,
+        status: body.action,
+        reviewNotes: body.reviewNotes || null,
+        reviewedAt,
       },
     })
   } catch (error) {

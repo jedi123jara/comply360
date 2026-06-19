@@ -42,22 +42,31 @@ export const POST = withPlanGateParams<{ id: string }>('contratos',
       return NextResponse.json({ error: 'Trabajador no encontrado' }, { status: 404 })
     }
 
-    // Upsert WorkerContract link (idempotent)
-    const existing = await prisma.workerContract.findFirst({
-      where: { workerId, contractId },
-      select: { id: true },
+    // Vincula WorkerContract de forma idempotente. WorkerContract SI tiene
+    // @@unique([workerId, contractId]), asi que un upsert nativo evita el P2002
+    // ante doble request (mismo patron que src/lib/contracts/create.ts).
+    await prisma.workerContract.upsert({
+      where: { workerId_contractId: { workerId, contractId } },
+      create: { workerId, contractId },
+      update: {},
     })
-    if (!existing) {
-      await prisma.workerContract.create({ data: { workerId, contractId } })
-    }
 
-    // Upsert WorkerDocument type=contrato_trabajo so legajo counts it
-    // We use the contract's title and mark it VERIFIED since it's a digital record
-    const existingDoc = await prisma.workerDocument.findFirst({
+    // WorkerDocument 'contrato_trabajo' para que el legajo lo cuente. Este modelo
+    // NO tiene @@unique sobre (workerId, documentType), asi que no hay upsert
+    // nativo ni garantia de la BD contra duplicados. Camino idempotente: primero
+    // un updateMany (marca VERIFIED el/los doc existentes en una sola sentencia)
+    // y solo si no existia ninguno lo creamos. Bajo READ COMMITTED esto elimina el
+    // duplicado salvo en la ventana de dos primeras-altas exactamente simultaneas
+    // (doble submit); en ese caso recalculateLegajoScore NO infla el score igual
+    // (deduplica por documentType con un Set). NOTA: no se usa $transaction con
+    // isolationLevel porque el Proxy de prisma (src/lib/prisma.ts) descarta el 2do
+    // arg bajo scope RLS. El enforcement definitivo requiere un @@unique parcial
+    // sobre (workerId, documentType='contrato_trabajo') + migracion + backfill.
+    const verifiedDoc = await prisma.workerDocument.updateMany({
       where: { workerId, documentType: 'contrato_trabajo' },
-      select: { id: true },
+      data: { status: 'VERIFIED', verifiedAt: new Date(), verifiedBy: ctx.userId },
     })
-    if (!existingDoc) {
+    if (verifiedDoc.count === 0) {
       await prisma.workerDocument.create({
         data: {
           workerId,
@@ -69,12 +78,6 @@ export const POST = withPlanGateParams<{ id: string }>('contratos',
           verifiedAt: new Date(),
           verifiedBy: ctx.userId,
         },
-      })
-    } else {
-      // Update existing doc to VERIFIED (in case it was MISSING/PENDING)
-      await prisma.workerDocument.update({
-        where: { id: existingDoc.id },
-        data: { status: 'VERIFIED', verifiedAt: new Date(), verifiedBy: ctx.userId },
       })
     }
 
