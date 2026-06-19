@@ -3,6 +3,7 @@ import {
   calcularRemuneracionComputable,
   getPrimaSeguroSPP,
   getRemuneracionMaximaAsegurable,
+  getComisionFlujoAFP,
 } from '../peru-labor'
 import { money, sumMoney } from '../money'
 import { formatSoles } from '@/lib/format/peruvian'
@@ -14,15 +15,9 @@ const fmt = formatSoles
 // TUO Ley del SPP (D.S. 054-97-EF), D.Ley 19990, Ley 26790
 // =============================================
 
-// AFP rates by fund. La PRIMA del seguro (invalidez/sobrevivencia/sepelio) es
-// ÚNICA por periodo (licitación SISCO) y vive versionada en peru-labor.ts
-// (getPrimaSeguroSPP); por eso aquí solo quedan el aporte y la comisión por flujo.
-const AFP_RATES: Record<string, { aporte: number; comision_flujo: number }> = {
-  HABITAT: { aporte: 0.10, comision_flujo: 0.0038 },
-  INTEGRA: { aporte: 0.10, comision_flujo: 0.0055 },
-  PRIMA: { aporte: 0.10, comision_flujo: 0.0018 },
-  PROFUTURO: { aporte: 0.10, comision_flujo: 0.0069 },
-}
+// El aporte obligatorio (10%), la prima del seguro (versionada por periodo) y la
+// comisión por flujo (por AFP) viven centralizados en peru-labor.ts y se leen con
+// sus helpers. Ya no se duplican aquí — antes la comisión estaba ~1 punto baja.
 
 const ONP_RATE = 0.13  // 13% fixed
 const ESSALUD_RATE = PERU_LABOR.APORTES.ESSALUD_TASA  // 9% employer
@@ -89,7 +84,6 @@ export function calcularAportesPrevisionales(input: AportesInput): AportesResult
 
   if (input.tipoAporte === 'AFP') {
     const afpKey = (input.afpNombre ?? 'PRIMA').toUpperCase()
-    const afpRates = AFP_RATES[afpKey] ?? AFP_RATES.PRIMA
 
     // La prima del seguro se cobra SOLO hasta la Remuneración Máxima Asegurable
     // (RMA) que publica la SBS cada trimestre — antes se aplicaba sobre toda la
@@ -99,9 +93,9 @@ export function calcularAportesPrevisionales(input: AportesInput): AportesResult
     const baseSeguro = money(Math.min(remuneracionComputable, rma))
     const primaTasa = getPrimaSeguroSPP(input.periodo)
 
-    aporteObligatorio = remM.mul(afpRates.aporte).toNumber()
+    aporteObligatorio = remM.mul(PERU_LABOR.APORTES.AFP_APORTE_OBLIGATORIO).toNumber()
     seguroInvalidez = baseSeguro.mul(primaTasa).toNumber()
-    comisionAfp = remM.mul(afpRates.comision_flujo).toNumber()
+    comisionAfp = remM.mul(getComisionFlujoAFP(afpKey)).toNumber()
     sistema = `AFP ${capitalize(afpKey)}`
     baseLegal = PERU_LABOR.APORTES.BASE_LEGAL_AFP
   } else if (input.tipoAporte === 'ONP') {
@@ -158,7 +152,7 @@ export function compararAfpVsOnp(input: Omit<AportesInput, 'tipoAporte' | 'afpNo
   onp: AportesResult
 } {
   const afps: Record<string, AportesResult> = {}
-  for (const afpNombre of Object.keys(AFP_RATES)) {
+  for (const afpNombre of Object.keys(PERU_LABOR.APORTES.COMISION_FLUJO_AFP)) {
     afps[afpNombre] = calcularAportesPrevisionales({
       ...input,
       tipoAporte: 'AFP',

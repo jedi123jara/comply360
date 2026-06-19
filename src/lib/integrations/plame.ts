@@ -12,7 +12,7 @@
  * - SCTR: varía por actividad economica (tasa promedio 1.53%)
  */
 
-import { getPrimaSeguroSPP, getRemuneracionMaximaAsegurable } from '@/lib/legal-engine/peru-labor'
+import { getComisionFlujoAFP, getPrimaSeguroSPP, getRemuneracionMaximaAsegurable } from '@/lib/legal-engine/peru-labor'
 
 interface WorkerPlame {
   dni: string
@@ -61,13 +61,9 @@ function primaSeguroTopada(remuneracion: number, periodoYYYYMM: string): number 
   return Math.min(remuneracion, getRemuneracionMaximaAsegurable(ym)) * getPrimaSeguroSPP(ym)
 }
 
-// Comision sobre flujo (porcentaje sobre remuneracion asegurable)
-const AFP_COMISION_FLUJO: Record<string, number> = {
-  HABITAT: 0.0138,
-  INTEGRA: 0.0155,
-  PRIMA: 0.0155,
-  PROFUTURO: 0.0169,
-}
+// Comisión por flujo: centralizada en peru-labor.ts (getComisionFlujoAFP), la misma
+// que usa el motor de boletas. Antes este módulo tenía sus propios valores (algunos
+// desactualizados), divergiendo de las boletas para la misma AFP.
 
 // -------------------------------------------------------------------
 // Tasas fijas
@@ -199,7 +195,7 @@ export function generatePlameExport(
       const afpKey = w.afpNombre.toUpperCase()
       afpAporteObligatorio = round2(remuneracionTotal * getAfpRate(afpKey, AFP_APORTE_OBLIGATORIO))
       afpSeguroInvalidez = round2(primaSeguroTopada(remuneracionTotal, periodo))
-      afpComisionFlujo = round2(remuneracionTotal * getAfpRate(afpKey, AFP_COMISION_FLUJO))
+      afpComisionFlujo = round2(remuneracionTotal * getComisionFlujoAFP(afpKey))
     } else if (w.tipoAporte === 'ONP') {
       onpAporte = round2(remuneracionTotal * TASA_ONP)
     }
@@ -405,7 +401,7 @@ export function generatePlameSummaryCSV(
       const key = w.afpNombre.toUpperCase()
       afpOblig = round2(remTotal * getAfpRate(key, AFP_APORTE_OBLIGATORIO))
       afpSeguro = round2(primaSeguroTopada(remTotal, periodo))
-      afpComision = round2(remTotal * getAfpRate(key, AFP_COMISION_FLUJO))
+      afpComision = round2(remTotal * getComisionFlujoAFP(key))
     } else if (w.tipoAporte === 'ONP') {
       onp = round2(remTotal * TASA_ONP)
     }

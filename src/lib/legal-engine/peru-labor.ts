@@ -179,6 +179,17 @@ export const PERU_LABOR = {
       { desde: '2026-01', monto: 12209.11 }, // Q1 2026 (ene–mar)
       { desde: '2026-04', monto: 12598.91 }, // Q2 2026 (abr–jun)
     ] as ReadonlyArray<{ desde: string; monto: number }>,
+    // Comisión por FLUJO de cada AFP (% sobre la remuneración bruta). La cobra la
+    // AFP (no la SBS) y varía por administradora; la SBS la publica mensualmente.
+    // Asume el esquema "comisión por flujo" (NO el mixto, que el sistema no modela).
+    // Vigente jun-2026 — actualizar desde SBS cuando cambie.
+    // Fuente: SBS — comisiones SPP.
+    COMISION_FLUJO_AFP: {
+      HABITAT: 0.0147,
+      INTEGRA: 0.0155,
+      PRIMA: 0.0160,
+      PROFUTURO: 0.0169,
+    } as Record<string, number>,
   },
 
   // Seguro Vida Ley
@@ -747,4 +758,13 @@ export function getPrimaSeguroSPP(periodo?: string): number {
 /** Remuneración Máxima Asegurable (tope de la prima) vigente en el periodo. */
 export function getRemuneracionMaximaAsegurable(periodo?: string): number {
   return vigenteEnPeriodo(PERU_LABOR.APORTES.REMUNERACION_MAXIMA_ASEGURABLE, periodo).monto
+}
+
+/** Comisión por flujo (% sobre remuneración) de la AFP indicada (default PRIMA). */
+export function getComisionFlujoAFP(afpNombre?: string): number {
+  const key = (afpNombre ?? 'PRIMA').toUpperCase()
+  return (
+    PERU_LABOR.APORTES.COMISION_FLUJO_AFP[key] ??
+    PERU_LABOR.APORTES.COMISION_FLUJO_AFP.PRIMA
+  )
 }

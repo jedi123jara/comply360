@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { calcularAportesPrevisionales } from '../aportes-previsionales'
-import { getPrimaSeguroSPP, getRemuneracionMaximaAsegurable } from '../../peru-labor'
+import { getPrimaSeguroSPP, getRemuneracionMaximaAsegurable, getComisionFlujoAFP } from '../../peru-labor'
 
 // UIT 2026 = 5500, RMV = 1130
 const BASE_INPUT = {
@@ -120,5 +120,23 @@ describe('helpers versionados de prima y RMA', () => {
     expect(getRemuneracionMaximaAsegurable('2026-01')).toBeCloseTo(12209.11, 2)
     expect(getRemuneracionMaximaAsegurable('2026-04')).toBeCloseTo(12598.91, 2)
     expect(getRemuneracionMaximaAsegurable()).toBeCloseTo(12598.91, 2)
+  })
+
+  it('getComisionFlujoAFP devuelve la comisión vigente por AFP (default PRIMA)', () => {
+    expect(getComisionFlujoAFP('HABITAT')).toBeCloseTo(0.0147, 4)
+    expect(getComisionFlujoAFP('INTEGRA')).toBeCloseTo(0.0155, 4)
+    expect(getComisionFlujoAFP('PRIMA')).toBeCloseTo(0.0160, 4)
+    expect(getComisionFlujoAFP('PROFUTURO')).toBeCloseTo(0.0169, 4)
+    expect(getComisionFlujoAFP()).toBeCloseTo(0.0160, 4)
+  })
+})
+
+describe('comisión por flujo AFP (fix divergencia motor/PLAME)', () => {
+  it('usa la tasa vigente SBS por AFP (no la ~1 punto baja anterior)', () => {
+    // sueldo 3000: PRIMA 1.60% = 48.0; PROFUTURO 1.69% = 50.7.
+    const prima = calcularAportesPrevisionales({ ...BASE_INPUT, afpNombre: 'PRIMA' })
+    const profuturo = calcularAportesPrevisionales({ ...BASE_INPUT, afpNombre: 'PROFUTURO' })
+    expect(prima.comisionAfp).toBeCloseTo(3000 * 0.0160, 2)
+    expect(profuturo.comisionAfp).toBeCloseTo(3000 * 0.0169, 2)
   })
 })

@@ -73,7 +73,7 @@ describe('calcularBoleta', () => {
     expect(r.gratificacion).toBeCloseTo(1500, 1)
   })
 
-  it('descuenta AFP correctamente (Prima: 10% + 1.37% + 0.18%)', () => {
+  it('descuenta AFP correctamente (Prima: 10% + 1.37% + 1.60%)', () => {
     const r = calcularBoleta(BASE)
     // aporteAfpOnp = 10% de 3000 = 300
     expect(r.aporteAfpOnp).toBeCloseTo(300, 1)
