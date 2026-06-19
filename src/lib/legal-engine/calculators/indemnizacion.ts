@@ -151,7 +151,9 @@ function calcularIndemnizacionPlazoFijo(
       `Las Casaciones Laborales 1724-2013-Lima y 6437-2017-Lima han aplicado factor 1.0× ` +
       `en supuestos similares. Si liquidas con 1.5× y la corte ordena 1.0×, hay sobrepago ` +
       `no reembolsable; si pagas 1.0× y te ordenan 1.5×, hay multa SUNAFIL + intereses. ` +
-      `Consulta criterio del juzgado correspondiente antes de pagar.`,
+      `Además, una fracción de mes restante se redondea a un mes COMPLETO (criterio ` +
+      `pro-trabajador); si tu juzgado prorratea por dozavos, el monto sería menor. ` +
+      `Consulta el criterio del juzgado correspondiente antes de pagar.`,
   }
 }
 

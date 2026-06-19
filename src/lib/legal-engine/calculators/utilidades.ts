@@ -91,8 +91,14 @@ export function calcularUtilidades(input: UtilidadesInput): UtilidadesResult {
 
     const total = money(porDias).add(porRemuneracion).toNumber()
 
-    // Tope: 18 remuneraciones mensuales del trabajador
-    const remuneracionMensual = money(t.remuneracionTotal).div(12)
+    // Tope: 18 remuneraciones MENSUALES del trabajador (D.Leg. 892). El tope se
+    // basa en la remuneración mensual (tasa), no en el promedio anual: dividir el
+    // total entre 12 subestima la mensual de quien trabajó <12 meses y baja el tope
+    // indebidamente. Derivamos la mensual desde la tasa diaria (total × 30 / días);
+    // para un trabajador de año completo (360 días) es idéntico a total/12.
+    const remuneracionMensual = t.diasTrabajados > 0
+      ? money(t.remuneracionTotal).mul(30).div(t.diasTrabajados)
+      : money(t.remuneracionTotal).div(12)
     const tope = remuneracionMensual.mul(PERU_LABOR.UTILIDADES.TOPE_REMUNERACIONES).toNumber()
     const topeAplicado = total > tope
     const totalFinal = topeAplicado ? tope : total
