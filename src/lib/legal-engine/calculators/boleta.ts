@@ -28,6 +28,7 @@ export interface BoletaInput {
   afpNombre?: string
   sctr?: boolean
   regimenLaboral?: string
+  periodo?: string              // 'YYYY-MM' — define la RMA y prima vigentes del periodo
 
   // Ingresos variables del período
   horasExtras?: number          // monto en soles
@@ -121,6 +122,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     bonificaciones = 0,
     incluirGratificacion = false,
     mes,
+    periodo,
     retencionRentaAcumulada = 0,
     descuentoTardanzasMonto = 0,
   } = input
@@ -168,6 +170,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     afpNombre,
     sctr,
     horasExtras,
+    periodo,
   }
   const aportes = calcularAportesPrevisionales(aportesInput)
 

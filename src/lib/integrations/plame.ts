@@ -5,12 +5,14 @@
  *
  * Tasas vigentes 2026 (actualizadas por SBS):
  * - AFP aporte obligatorio: varía por fondo
- * - AFP seguro de invalidez: 1.84%
+ * - AFP seguro de invalidez: 1.37% (SISCO VIII), topado por la RMA (SBS)
  * - AFP comision de flujo: varía por AFP
  * - ONP: 13%
  * - EsSalud: 9% (aporte empleador)
  * - SCTR: varía por actividad economica (tasa promedio 1.53%)
  */
+
+import { getPrimaSeguroSPP, getRemuneracionMaximaAsegurable } from '@/lib/legal-engine/peru-labor'
 
 interface WorkerPlame {
   dni: string
@@ -51,8 +53,13 @@ const AFP_APORTE_OBLIGATORIO: Record<string, number> = {
   PROFUTURO: 0.10,
 }
 
-// Seguro de invalidez, sobrevivencia y gastos de sepelio (prima de seguro)
-const AFP_SEGURO_INVALIDEZ = 0.0184
+// Prima del seguro (invalidez/sobrevivencia/sepelio): tasa ÚNICA por periodo
+// (licitación SISCO) topada por la RMA, ambas versionadas en peru-labor.ts.
+// `periodoYYYYMM` viene como "202604" (formato PLAME) → se normaliza a "YYYY-MM".
+function primaSeguroTopada(remuneracion: number, periodoYYYYMM: string): number {
+  const ym = `${periodoYYYYMM.slice(0, 4)}-${periodoYYYYMM.slice(4, 6)}`
+  return Math.min(remuneracion, getRemuneracionMaximaAsegurable(ym)) * getPrimaSeguroSPP(ym)
+}
 
 // Comision sobre flujo (porcentaje sobre remuneracion asegurable)
 const AFP_COMISION_FLUJO: Record<string, number> = {
@@ -191,7 +198,7 @@ export function generatePlameExport(
     if (w.tipoAporte === 'AFP' && w.afpNombre) {
       const afpKey = w.afpNombre.toUpperCase()
       afpAporteObligatorio = round2(remuneracionTotal * getAfpRate(afpKey, AFP_APORTE_OBLIGATORIO))
-      afpSeguroInvalidez = round2(remuneracionTotal * AFP_SEGURO_INVALIDEZ)
+      afpSeguroInvalidez = round2(primaSeguroTopada(remuneracionTotal, periodo))
       afpComisionFlujo = round2(remuneracionTotal * getAfpRate(afpKey, AFP_COMISION_FLUJO))
     } else if (w.tipoAporte === 'ONP') {
       onpAporte = round2(remuneracionTotal * TASA_ONP)
@@ -397,7 +404,7 @@ export function generatePlameSummaryCSV(
     if (w.tipoAporte === 'AFP' && w.afpNombre) {
       const key = w.afpNombre.toUpperCase()
       afpOblig = round2(remTotal * getAfpRate(key, AFP_APORTE_OBLIGATORIO))
-      afpSeguro = round2(remTotal * AFP_SEGURO_INVALIDEZ)
+      afpSeguro = round2(primaSeguroTopada(remTotal, periodo))
       afpComision = round2(remTotal * getAfpRate(key, AFP_COMISION_FLUJO))
     } else if (w.tipoAporte === 'ONP') {
       onp = round2(remTotal * TASA_ONP)

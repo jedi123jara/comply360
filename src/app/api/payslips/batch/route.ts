@@ -104,6 +104,7 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
         bonificaciones: 0,
         incluirGratificacion: mes === 7 || mes === 12,
         mes,
+        periodo,
         retencionRentaAcumulada: retencionAcumulada,
       }
 

@@ -1,6 +1,8 @@
 import {
   PERU_LABOR,
   calcularRemuneracionComputable,
+  getPrimaSeguroSPP,
+  getRemuneracionMaximaAsegurable,
 } from '../peru-labor'
 import { money, sumMoney } from '../money'
 import { formatSoles } from '@/lib/format/peruvian'
@@ -12,12 +14,14 @@ const fmt = formatSoles
 // TUO Ley del SPP (D.S. 054-97-EF), D.Ley 19990, Ley 26790
 // =============================================
 
-// AFP rates by fund (approximate averages 2026)
-const AFP_RATES: Record<string, { aporte: number; seguro: number; comision_flujo: number }> = {
-  HABITAT: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0038 },
-  INTEGRA: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0055 },
-  PRIMA: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0018 },
-  PROFUTURO: { aporte: 0.10, seguro: 0.0184, comision_flujo: 0.0069 },
+// AFP rates by fund. La PRIMA del seguro (invalidez/sobrevivencia/sepelio) es
+// ÚNICA por periodo (licitación SISCO) y vive versionada en peru-labor.ts
+// (getPrimaSeguroSPP); por eso aquí solo quedan el aporte y la comisión por flujo.
+const AFP_RATES: Record<string, { aporte: number; comision_flujo: number }> = {
+  HABITAT: { aporte: 0.10, comision_flujo: 0.0038 },
+  INTEGRA: { aporte: 0.10, comision_flujo: 0.0055 },
+  PRIMA: { aporte: 0.10, comision_flujo: 0.0018 },
+  PROFUTURO: { aporte: 0.10, comision_flujo: 0.0069 },
 }
 
 const ONP_RATE = 0.13  // 13% fixed
@@ -35,13 +39,14 @@ export interface AportesInput {
   afpNombre?: string
   sctr: boolean
   horasExtras?: number  // monto horas extras del mes
+  periodo?: string      // 'YYYY-MM' — elige RMA y prima vigentes (default: la más reciente)
 }
 
 export interface AportesResult {
   remuneracionComputable: number
   // Worker deductions
   aporteObligatorio: number  // AFP 10% or ONP 13%
-  seguroInvalidez: number    // AFP only ~1.84%
+  seguroInvalidez: number    // AFP only — prima SPP vigente (~1.37%), topada por la RMA
   comisionAfp: number        // AFP only, varies
   totalDescuentoTrabajador: number
   // Employer contributions
@@ -86,8 +91,16 @@ export function calcularAportesPrevisionales(input: AportesInput): AportesResult
     const afpKey = (input.afpNombre ?? 'PRIMA').toUpperCase()
     const afpRates = AFP_RATES[afpKey] ?? AFP_RATES.PRIMA
 
+    // La prima del seguro se cobra SOLO hasta la Remuneración Máxima Asegurable
+    // (RMA) que publica la SBS cada trimestre — antes se aplicaba sobre toda la
+    // remuneración, sobrecargando a sueldos altos. El aporte 10% y la comisión por
+    // flujo NO se topan: van sobre la remuneración completa.
+    const rma = getRemuneracionMaximaAsegurable(input.periodo)
+    const baseSeguro = money(Math.min(remuneracionComputable, rma))
+    const primaTasa = getPrimaSeguroSPP(input.periodo)
+
     aporteObligatorio = remM.mul(afpRates.aporte).toNumber()
-    seguroInvalidez = remM.mul(afpRates.seguro).toNumber()
+    seguroInvalidez = baseSeguro.mul(primaTasa).toNumber()
     comisionAfp = remM.mul(afpRates.comision_flujo).toNumber()
     sistema = `AFP ${capitalize(afpKey)}`
     baseLegal = PERU_LABOR.APORTES.BASE_LEGAL_AFP

@@ -212,6 +212,7 @@ export const POST = withPlanGateParams<{ id: string }>('workers', async (
     bonificaciones: bonificaciones ?? 0,
     incluirGratificacion: incluirGratificacion ?? (mes === 7 || mes === 12),
     mes,
+    periodo,
     retencionRentaAcumulada: retencionAcumulada,
     descuentoTardanzasMonto,
     descuentoTardanzasMinutos,

@@ -73,12 +73,13 @@ describe('calcularBoleta', () => {
     expect(r.gratificacion).toBeCloseTo(1500, 1)
   })
 
-  it('descuenta AFP correctamente (Prima: 10% + 1.84% + 0.18%)', () => {
+  it('descuenta AFP correctamente (Prima: 10% + 1.37% + 0.18%)', () => {
     const r = calcularBoleta(BASE)
     // aporteAfpOnp = 10% de 3000 = 300
     expect(r.aporteAfpOnp).toBeCloseTo(300, 1)
-    // seguro invalidez: 1.84% de 3000 = 55.2
-    expect(r.seguroInvalidez).toBeCloseTo(55.2, 1)
+    // seguro invalidez: prima SPP vigente 1.37% (SISCO VIII) de 3000 = 41.1
+    // (sueldo < RMA, sin tope). Antes el código usaba 1.84% (tasa de 2023).
+    expect(r.seguroInvalidez).toBeCloseTo(41.1, 1)
     expect(r.totalDescuentos).toBeGreaterThan(0)
   })
 

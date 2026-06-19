@@ -151,13 +151,34 @@ export const PERU_LABOR = {
   // Aportes previsionales
   APORTES: {
     AFP_APORTE_OBLIGATORIO: 0.10,
-    AFP_SEGURO_INVALIDEZ: 0.0184,
+    // @deprecated Usar getPrimaSeguroSPP(periodo). La prima del seguro
+    // previsional cambia por licitación SISCO; este valor es solo un fallback.
+    AFP_SEGURO_INVALIDEZ: 0.0137,
     ONP_TASA: 0.13,
     ESSALUD_TASA: 0.09,
     SCTR_TASA_PROMEDIO: 0.0153,
     BASE_LEGAL_AFP: 'TUO Ley del SPP, D.S. 054-97-EF',
     BASE_LEGAL_ONP: 'D.Ley 19990',
     BASE_LEGAL_ESSALUD: 'Ley 26790',
+    // Prima del seguro de invalidez, sobrevivencia y gastos de sepelio del SPP.
+    // Es una tasa ÚNICA por periodo de licitación SISCO (NO varía por AFP). Cada
+    // entrada vige DESDE su `desde` (YYYY-MM) hasta que aparece una posterior.
+    // SISCO VIII: 1.37% vigente 2025-01 → 2026-12. (2024: 1.70%; 2023: 1.84%.)
+    // Fuente: SBS comisiones/prima + Asociación AFP (licitación SISCO VIII).
+    PRIMA_SEGURO_SPP: [
+      { desde: '2023-01', tasa: 0.0184 },
+      { desde: '2024-01', tasa: 0.0170 },
+      { desde: '2025-01', tasa: 0.0137 },
+    ] as ReadonlyArray<{ desde: string; tasa: number }>,
+    // Remuneración Máxima Asegurable (RMA): tope sobre el que se cobra la PRIMA
+    // del seguro previsional (NO topa el aporte 10% ni la comisión por flujo).
+    // La SBS la publica cada TRIMESTRE — actualizar al inicio de cada trimestre.
+    // Fuente: SBS — https://www.sbs.gob.pe/app/spp/Remun_max_aseg/RemMaxAsg.asp
+    REMUNERACION_MAXIMA_ASEGURABLE: [
+      { desde: '2025-07', monto: 12184.88 }, // Jul–Sep 2025
+      { desde: '2026-01', monto: 12209.11 }, // Q1 2026 (ene–mar)
+      { desde: '2026-04', monto: 12598.91 }, // Q2 2026 (abr–jun)
+    ] as ReadonlyArray<{ desde: string; monto: number }>,
   },
 
   // Seguro Vida Ley
@@ -697,4 +718,31 @@ export function calcularRemuneracionComputable(
   }
   rem += comisionesPromedio
   return rem
+}
+
+// ── Lookup versionado de la prima y la RMA por periodo ────────────────────────
+// `periodo` en formato 'YYYY-MM'. Devuelve la entrada vigente: la última cuyo
+// `desde` es <= periodo. Si no se pasa periodo, usa el valor vigente más reciente
+// (correcto para cálculos del periodo en curso). La tabla se asume ordenada
+// ascendentemente por `desde`.
+function vigenteEnPeriodo<T extends { desde: string }>(
+  tabla: ReadonlyArray<T>,
+  periodo?: string,
+): T {
+  const ref = periodo && /^\d{4}-\d{2}/.test(periodo) ? periodo.slice(0, 7) : undefined
+  let elegido = tabla[0]
+  for (const e of tabla) {
+    if (!ref || e.desde <= ref) elegido = e
+  }
+  return elegido
+}
+
+/** Tasa de la prima del seguro previsional (SPP) vigente en el periodo dado. */
+export function getPrimaSeguroSPP(periodo?: string): number {
+  return vigenteEnPeriodo(PERU_LABOR.APORTES.PRIMA_SEGURO_SPP, periodo).tasa
+}
+
+/** Remuneración Máxima Asegurable (tope de la prima) vigente en el periodo. */
+export function getRemuneracionMaximaAsegurable(periodo?: string): number {
+  return vigenteEnPeriodo(PERU_LABOR.APORTES.REMUNERACION_MAXIMA_ASEGURABLE, periodo).monto
 }
