@@ -138,10 +138,12 @@ export const POST = withPlanGateParams<{ id: string }>('workers', async (
   }
 
   const body = await req.json()
-  const { periodo, horasExtras, bonificaciones, incluirGratificacion } = body as {
+  const { periodo, horasExtras, bonificaciones, bonificacionesHabituales, bonificacionesExtraordinarias, incluirGratificacion } = body as {
     periodo: string        // "YYYY-MM"
     horasExtras?: number
     bonificaciones?: number
+    bonificacionesHabituales?: number
+    bonificacionesExtraordinarias?: number
     incluirGratificacion?: boolean
   }
 
@@ -213,6 +215,8 @@ export const POST = withPlanGateParams<{ id: string }>('workers', async (
     jornadaNocturna: worker.turnoNocturno,
     horasExtras: horasExtras ?? 0,
     bonificaciones: bonificaciones ?? 0,
+    bonificacionesHabituales: bonificacionesHabituales ?? 0,
+    bonificacionesExtraordinarias: bonificacionesExtraordinarias ?? 0,
     incluirGratificacion: incluirGratificacion ?? (mes === 7 || mes === 12),
     mes,
     periodo,
