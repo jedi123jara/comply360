@@ -27,6 +27,10 @@ import {
   Camera,
   Wand2,
   Search,
+  Network,
+  Crosshair,
+  PanelRight,
+  Bell,
 } from 'lucide-react'
 
 import { useOrgStore } from '../state/org-store'
@@ -38,7 +42,7 @@ interface CommandItem {
   label: string
   detail?: string
   icon: typeof Building2
-  group: 'units' | 'positions' | 'workers' | 'roles' | 'actions'
+  group: 'units' | 'positions' | 'workers' | 'roles' | 'actions' | 'view'
   onSelect: () => void
 }
 
@@ -52,6 +56,12 @@ export function CommandPaletteV2() {
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
   const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
+  const setLayoutMode = useOrgStore((s) => s.setLayoutMode)
+  const setView = useOrgStore((s) => s.setView)
+  const setDisplayMode = useOrgStore((s) => s.setDisplayMode)
+  const toggleFocus = useOrgStore((s) => s.toggleFocus)
+  const toggleInspector = useOrgStore((s) => s.toggleInspector)
+  const setAlertsOpen = useOrgStore((s) => s.setAlertsOpen)
 
   const treeQuery = useTreeQuery(null)
   const tree = treeQuery.data
@@ -240,6 +250,39 @@ export function CommandPaletteV2() {
     [openModal, setOpen, setCopilotOpen, setDoctorOpen, setTimemachineOpen],
   )
 
+  // Acciones de vista/navegación — convierten el palette en el centro de mando.
+  const viewActions: CommandItem[] = useMemo(() => {
+    const mk = (
+      id: string,
+      label: string,
+      icon: typeof Building2,
+      run: () => void,
+      detail?: string,
+    ): CommandItem => ({
+      id,
+      label,
+      detail,
+      icon,
+      group: 'view',
+      onSelect: () => {
+        run()
+        setOpen(false)
+      },
+    })
+    return [
+      mk('v-layout-td', 'Layout: Vertical', Network, () => setLayoutMode('top-down'), 'Organigrama clásico, de arriba a abajo'),
+      mk('v-layout-lr', 'Layout: Horizontal', Network, () => setLayoutMode('left-right'), 'Ideal para jerarquías profundas'),
+      mk('v-layout-radial', 'Layout: Radial', Network, () => setLayoutMode('radial')),
+      mk('v-view-empresa', 'Ver: Empresa', Building2, () => setView('hierarchy')),
+      mk('v-view-comisiones', 'Ver: Comisiones', ShieldCheck, () => setView('committees')),
+      mk('v-mode-units', 'Modo: Unidades', Building2, () => setDisplayMode('units')),
+      mk('v-mode-positions', 'Modo: Cargos', Briefcase, () => setDisplayMode('positions')),
+      mk('v-focus', 'Resaltar relacionados (Foco)', Crosshair, () => toggleFocus(), 'Atenúa lo no relacionado · tecla F'),
+      mk('v-inspector', 'Mostrar / ocultar panel lateral', PanelRight, () => toggleInspector(), 'Inspector · tecla ['),
+      mk('v-alerts', 'Abrir alertas', Bell, () => setAlertsOpen(true)),
+    ]
+  }, [setOpen, setLayoutMode, setView, setDisplayMode, toggleFocus, toggleInspector, setAlertsOpen])
+
   // (cmdk filtra/rankea internamente sobre `value` de cada item; no necesitamos
   // ranking custom. Si quisiéramos rank semántico, podríamos pre-filtrar con
   // buildOrgCommandResults del backend.)
@@ -300,6 +343,15 @@ export function CommandPaletteV2() {
                   ))}
                 </Command.Group>
 
+                <Command.Group
+                  heading="Vista"
+                  className="mb-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-slate-400"
+                >
+                  {viewActions.map((a) => (
+                    <CommandItemRow key={a.id} item={a} />
+                  ))}
+                </Command.Group>
+
                 {commands.length > 0 && (
                   <>
                     <Command.Group
@@ -349,8 +401,8 @@ export function CommandPaletteV2() {
                   abrir
                 </span>
                 <span className="flex items-center gap-2">
-                  <kbd className="rounded bg-white px-1.5 py-0.5 shadow-sm">K</kbd>
-                  toggle
+                  <kbd className="rounded bg-white px-1.5 py-0.5 shadow-sm">⌘K</kbd>
+                  cerrar
                 </span>
               </div>
             </Command>
