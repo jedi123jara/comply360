@@ -17,7 +17,7 @@
  */
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Network,
   Sparkles,
@@ -79,7 +79,6 @@ export function OrganigramaShellV2() {
   const inspectorOpen = useOrgStore((s) => s.inspectorOpen)
   const copilotOpen = useOrgStore((s) => s.copilotOpen)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
-  const timemachineOpen = useOrgStore((s) => s.timemachineOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
   const alertsOpen = useOrgStore((s) => s.alertsOpen)
   const view = useOrgStore((s) => s.view)
@@ -202,15 +201,6 @@ export function OrganigramaShellV2() {
       toast.error(err instanceof Error ? err.message : 'Error al tomar snapshot')
     }
   }, [createSnapshotMutation])
-
-  // --- Side effects ---
-  // Abrir doctor automáticamente si hay findings críticos
-  useEffect(() => {
-    if (doctorReport && doctorReport.totals.critical > 0 && !doctorOpen) {
-      // No lo abrimos forzosamente; solo lo señalizamos via UI.
-      // Mejor mantener el estado del usuario.
-    }
-  }, [doctorReport, doctorOpen])
 
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col">
@@ -470,10 +460,8 @@ export function OrganigramaShellV2() {
       {/* Copiloto IA panel */}
       <CopilotPanel open={copilotOpen} onClose={() => setCopilotOpen(false)} />
 
-      {/* Time Machine drawer */}
-      <AnimatePresenceWrapper>
-        {timemachineOpen && <TimeMachineDrawer />}
-      </AnimatePresenceWrapper>
+      {/* Time Machine drawer (gestiona su propia animación de entrada/salida) */}
+      <TimeMachineDrawer />
 
       {/* Modales centrales (CreateUnit, CreatePosition, AssignWorker, EditPosition, AssignRole) */}
       <ModalsContainer />
@@ -482,11 +470,6 @@ export function OrganigramaShellV2() {
       <CommandPaletteV2 />
     </div>
   )
-}
-
-// Lightweight wrapper to keep the import side clean
-function AnimatePresenceWrapper({ children }: { children: ReactNode }) {
-  return <>{children}</>
 }
 
 function EmptyOnboarding({ onStart }: { onStart: () => void }) {
