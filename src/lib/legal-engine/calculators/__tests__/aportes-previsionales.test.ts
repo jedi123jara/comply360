@@ -140,3 +140,20 @@ describe('comisión por flujo AFP (fix divergencia motor/PLAME)', () => {
     expect(profuturo.comisionAfp).toBeCloseTo(3000 * 0.0169, 2)
   })
 })
+
+describe('comisión por esquema (flujo vs saldo)', () => {
+  it('SALDO → comisión 0 sobre el sueldo (se cobra contra el fondo)', () => {
+    const r = calcularAportesPrevisionales({ ...BASE_INPUT, afpNombre: 'PRIMA', afpComisionTipo: 'SALDO' })
+    expect(r.comisionAfp).toBe(0)
+  })
+
+  it('FLUJO → aplica la comisión por flujo (1.60% Prima)', () => {
+    const r = calcularAportesPrevisionales({ ...BASE_INPUT, afpNombre: 'PRIMA', afpComisionTipo: 'FLUJO' })
+    expect(r.comisionAfp).toBeCloseTo(3000 * 0.0160, 2)
+  })
+
+  it('default (sin clasificar / legacy) → flujo, no cambia la data actual', () => {
+    const r = calcularAportesPrevisionales({ ...BASE_INPUT, afpNombre: 'PRIMA' })
+    expect(r.comisionAfp).toBeCloseTo(3000 * 0.0160, 2)
+  })
+})

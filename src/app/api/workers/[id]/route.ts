@@ -261,7 +261,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
   const stringFields = [
     'firstName', 'lastName', 'email', 'phone', 'gender',
     'nationality', 'address', 'position', 'department',
-    'motivoCese', 'afpNombre', 'cuspp',
+    'motivoCese', 'afpNombre', 'afpComisionTipo', 'cuspp',
   ]
   for (const field of stringFields) {
     if (field in body) updateData[field] = body[field] || null

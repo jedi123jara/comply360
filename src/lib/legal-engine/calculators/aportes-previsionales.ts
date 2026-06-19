@@ -35,6 +35,7 @@ export interface AportesInput {
   sctr: boolean
   horasExtras?: number  // monto horas extras del mes
   periodo?: string      // 'YYYY-MM' — elige RMA y prima vigentes (default: la más reciente)
+  afpComisionTipo?: string // 'FLUJO' | 'SALDO' | 'MIXTA'(legacy). 'SALDO' → comisión 0 sobre el sueldo.
 }
 
 export interface AportesResult {
@@ -95,7 +96,13 @@ export function calcularAportesPrevisionales(input: AportesInput): AportesResult
 
     aporteObligatorio = remM.mul(PERU_LABOR.APORTES.AFP_APORTE_OBLIGATORIO).toNumber()
     seguroInvalidez = baseSeguro.mul(primaTasa).toNumber()
-    comisionAfp = remM.mul(getComisionFlujoAFP(afpKey)).toNumber()
+    // La comisión sobre el sueldo SOLO aplica en el esquema "por flujo". En "por
+    // saldo" (default de afiliados nuevos desde 2023) se cobra contra el fondo, no
+    // sobre la remuneración → 0 en la boleta. Default (sin clasificar / legacy
+    // MIXTA) = flujo, para no alterar la data actual.
+    comisionAfp = input.afpComisionTipo === 'SALDO'
+      ? 0
+      : remM.mul(getComisionFlujoAFP(afpKey)).toNumber()
     sistema = `AFP ${capitalize(afpKey)}`
     baseLegal = PERU_LABOR.APORTES.BASE_LEGAL_AFP
   } else if (input.tipoAporte === 'ONP') {

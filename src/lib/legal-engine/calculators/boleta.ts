@@ -26,6 +26,7 @@ export interface BoletaInput {
   asignacionFamiliar: boolean
   tipoAporte: 'AFP' | 'ONP' | 'SIN_APORTE'
   afpNombre?: string
+  afpComisionTipo?: string      // 'FLUJO' | 'SALDO' | 'MIXTA'(legacy) — 'SALDO' = comisión 0 sobre el sueldo
   sctr?: boolean
   regimenLaboral?: string
   periodo?: string              // 'YYYY-MM' — define la RMA y prima vigentes del periodo
@@ -120,6 +121,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     asignacionFamiliar,
     tipoAporte,
     afpNombre,
+    afpComisionTipo,
     sctr = false,
     regimenLaboral = 'GENERAL',
     horasExtras = 0,
@@ -178,6 +180,7 @@ export function calcularBoleta(input: BoletaInput): BoletaResult {
     asignacionFamiliar,
     tipoAporte,
     afpNombre,
+    afpComisionTipo,
     sctr,
     horasExtras,
     periodo,

@@ -104,7 +104,7 @@ const INITIAL: FormData = {
   tiempoCompleto: true,
   tipoAporte: 'AFP',
   afpNombre: '',
-  afpComisionTipo: 'MIXTA',
+  afpComisionTipo: 'FLUJO',
   cuspp: '',
   essaludVida: false,
   sctr: false,
@@ -163,7 +163,7 @@ export default function EditarTrabajadorPage() {
             tiempoCompleto: d.tiempoCompleto ?? true,
             tipoAporte: d.tipoAporte || 'AFP',
             afpNombre: d.afpNombre || '',
-            afpComisionTipo: d.afpComisionTipo || 'MIXTA',
+            afpComisionTipo: d.afpComisionTipo || 'FLUJO',
             cuspp: d.cuspp || '',
             essaludVida: d.essaludVida || false,
             sctr: d.sctr || false,
@@ -652,8 +652,9 @@ export default function EditarTrabajadorPage() {
                       onChange={e => update('afpComisionTipo', e.target.value)}
                       className={inputClass('afpComisionTipo')}
                     >
-                      <option value="MIXTA">Mixta (sobre flujo + saldo)</option>
-                      <option value="FLUJO">Por flujo (solo sobre remuneración)</option>
+                      <option value="FLUJO">Por flujo (se descuenta del sueldo)</option>
+                      <option value="SALDO">Por saldo (0% sobre el sueldo)</option>
+                      <option value="MIXTA">Mixta (antigua, ya no vigente)</option>
                     </select>
                   </div>
                 </>
