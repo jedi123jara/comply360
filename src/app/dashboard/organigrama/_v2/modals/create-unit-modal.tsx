@@ -6,7 +6,7 @@
  */
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Building2, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -28,22 +28,41 @@ const KIND_OPTIONS: Array<{ value: string; label: string }> = [
 
 export function CreateUnitModal() {
   const activeModal = useOrgStore((s) => s.activeModal)
+  const modalProps = useOrgStore((s) => s.modalProps)
   const closeModal = useOrgStore((s) => s.closeModal)
+  const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
   const open = activeModal === 'create-unit'
 
   const queryClient = useQueryClient()
   const treeQuery = useTreeQuery(null)
   const units = treeQuery.data?.units ?? []
 
+  // Pre-seleccionar la unidad padre: la del modalProps, si no la del store.
+  const presetParentId =
+    (modalProps.parentId as string | undefined) ??
+    (modalProps.unitId as string | undefined) ??
+    selectedUnitId ??
+    null
+
   const [name, setName] = useState('')
   const [kind, setKind] = useState('AREA')
-  const [parentId, setParentId] = useState<string | null>(null)
+  const [parentId, setParentId] = useState<string | null>(presetParentId)
   const [submitting, setSubmitting] = useState(false)
+
+  // Resincroniza el padre con la unidad preseleccionada cada vez que se abre el
+  // modal (no solo en el primer mount). Sin esto, al reabrir desde otra unidad
+  // se perdia la unidad padre seleccionada.
+  useEffect(() => {
+    if (!open) return
+    setParentId(presetParentId)
+    setName('')
+    setKind('AREA')
+  }, [open, presetParentId])
 
   const reset = () => {
     setName('')
     setKind('AREA')
-    setParentId(null)
+    setParentId(presetParentId)
   }
 
   const submit = async () => {

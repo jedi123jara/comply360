@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  AlertTriangle,
   ArrowRight,
   BriefcaseBusiness,
   CheckCircle2,
@@ -204,8 +205,26 @@ export function ReorganizeHierarchyModal() {
           Preparando plantilla...
         </div>
       ) : treeQuery.error ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          Error al cargar el organigrama: {String(treeQuery.error)}
+        <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 px-6 text-center">
+          <AlertTriangle className="h-8 w-8 text-rose-500" />
+          <div>
+            <p className="text-sm font-medium text-slate-800">
+              No pudimos cargar el organigrama
+            </p>
+            <p className="mt-1 max-w-sm text-xs text-slate-500">
+              {treeQuery.error instanceof Error
+                ? treeQuery.error.message
+                : 'Ocurrió un error al cargar el organigrama'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => treeQuery.refetch()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Reintentar
+          </button>
         </div>
       ) : !model || model.positions.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">

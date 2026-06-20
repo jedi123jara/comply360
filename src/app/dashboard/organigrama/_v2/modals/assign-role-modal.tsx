@@ -15,15 +15,9 @@ import { ModalShell } from './modal-shell'
 import { useOrgStore } from '../state/org-store'
 import { useTreeQuery, treeKey } from '../data/queries/use-tree'
 import { alertsKey } from '../data/queries/use-alerts'
+import { useWorkersRosterQuery } from '../data/queries/use-workers'
 import { COMMITTEE_GROUPS, COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
 import type { ComplianceRoleType } from '@/lib/orgchart/types'
-
-interface WorkerOption {
-  id: string
-  firstName: string
-  lastName: string
-  dni: string
-}
 
 const ALL_ROLE_TYPES = Object.keys(COMPLIANCE_ROLES) as ComplianceRoleType[]
 
@@ -49,8 +43,7 @@ export function AssignRoleModal() {
   const [endsAt, setEndsAt] = useState('')
   const [actaUrl, setActaUrl] = useState('')
 
-  const [workers, setWorkers] = useState<WorkerOption[]>([])
-  const [loadingWorkers, setLoadingWorkers] = useState(false)
+  const { data: workers = [], isLoading: loadingWorkers } = useWorkersRosterQuery(open)
   const [search, setSearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -70,16 +63,6 @@ export function AssignRoleModal() {
       setEndsAt('')
       setActaUrl('')
       setSearch('')
-
-      setLoadingWorkers(true)
-      fetch('/api/workers?limit=500')
-        .then((r) => r.json())
-        .then((data) => {
-          const items = data.workers ?? data.items ?? data.data ?? data
-          setWorkers(Array.isArray(items) ? items : [])
-        })
-        .catch(() => toast.error('No se pudieron cargar trabajadores'))
-        .finally(() => setLoadingWorkers(false))
     })
     return () => {
       cancelled = true

@@ -6,6 +6,7 @@ export interface RosterWorker {
   id: string
   firstName: string
   lastName: string
+  dni: string
   position: string | null
   department: string | null
   status: string

@@ -5,7 +5,7 @@
  */
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Briefcase, Plus, Loader2, Crown, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -39,6 +39,16 @@ export function CreatePositionModal() {
   const [isCritical, setIsCritical] = useState(false)
   const [seats, setSeats] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+
+  // Resincroniza el form con la unidad preseleccionada cada vez que se abre el
+  // modal (no solo en el primer mount). Sin esto, al reabrir desde otra unidad
+  // se conservaba la unidad anterior.
+  useEffect(() => {
+    if (!open) return
+    setUnitId(presetUnitId)
+    setTitle('')
+    setReportsToPositionId(null)
+  }, [open, presetUnitId])
 
   const reset = () => {
     setTitle('')
