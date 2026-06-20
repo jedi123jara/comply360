@@ -26,8 +26,9 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 import type { OrgChartTree, DoctorReport, DoctorFinding } from '@/lib/orgchart/types'
 import {
@@ -48,6 +49,8 @@ import { PositionNode } from './nodes/position-node'
 import { NudgeBadgeList } from './overlays/nudge-badge'
 import { HeatmapLegend } from './overlays/heatmap-legend'
 import { useReparentPositionMutation } from '../data/mutations/use-reparent-position'
+import { treeKey } from '../data/queries/use-tree'
+import { WORKER_DRAG_MIME } from '../roster/constants'
 
 const nodeTypes = {
   unitNode: UnitNode,
@@ -142,7 +145,7 @@ function OrgCanvasV2Inner({
 
   // Reparent mutation
   const reparentMutation = useReparentPositionMutation()
-  const { fitView, getIntersectingNodes } = useReactFlow()
+  const { fitView, getIntersectingNodes, screenToFlowPosition } = useReactFlow()
 
   // --- Drag-to-reparent (modo Cargos): arrastra un cargo sobre otro → reporta a él ---
   const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({})
@@ -204,6 +207,58 @@ function OrgCanvasV2Inner({
       })
     },
     [positionMode, readOnly, getIntersectingNodes, isDescendant, reparentMutation],
+  )
+
+  // --- Drop desde el panel de Trabajadores: soltar un worker sobre un cargo lo asigna ---
+  const queryClient = useQueryClient()
+  const onDragOver = useCallback((e: DragEvent) => {
+    if (e.dataTransfer.types.includes(WORKER_DRAG_MIME)) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+    }
+  }, [])
+  const onDrop = useCallback(
+    async (e: DragEvent) => {
+      const workerId = e.dataTransfer.getData(WORKER_DRAG_MIME)
+      if (!workerId || readOnly) return
+      e.preventDefault()
+      const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const target = finalNodes.find((n) => {
+        if (n.type !== 'positionNode') return false
+        const w = (n.width as number | undefined) ?? 260
+        const h = (n.height as number | undefined) ?? 126
+        return (
+          flowPos.x >= n.position.x &&
+          flowPos.x <= n.position.x + w &&
+          flowPos.y >= n.position.y &&
+          flowPos.y <= n.position.y + h
+        )
+      })
+      if (!target) {
+        if (!positionMode) toast.message('Cambia a "Cargos" y suelta el trabajador sobre un cargo.')
+        return
+      }
+      try {
+        const res = await fetch('/api/orgchart/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workerId,
+            positionId: target.id,
+            isPrimary: true,
+            isInterim: false,
+            capacityPct: 100,
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error ?? 'No se pudo asignar')
+        toast.success('Trabajador asignado al cargo')
+        queryClient.invalidateQueries({ queryKey: treeKey(null) })
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Error al asignar')
+      }
+    },
+    [readOnly, positionMode, finalNodes, screenToFlowPosition, queryClient],
   )
 
   const handleConnect: OnConnect = useCallback(
@@ -291,6 +346,8 @@ function OrgCanvasV2Inner({
 
   return (
     <div
+      onDrop={onDrop}
+      onDragOver={onDragOver}
       className={`relative h-full w-full bg-[color:var(--bg-canvas)] ${
         animateNodes && !draggingId
           ? '[&_.react-flow__node]:transition-transform [&_.react-flow__node]:duration-500 [&_.react-flow__node]:ease-[cubic-bezier(0.22,1,0.36,1)]'

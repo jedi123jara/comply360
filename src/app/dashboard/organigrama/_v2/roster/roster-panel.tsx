@@ -12,8 +12,7 @@ import { Users, Search, X, UserCircle2, GripVertical, Loader2 } from 'lucide-rea
 import { useOrgStore } from '../state/org-store'
 import { useTreeQuery } from '../data'
 import { useWorkersRosterQuery, type RosterWorker } from '../data/queries/use-workers'
-
-export const WORKER_DRAG_MIME = 'application/x-comply-worker'
+import { WORKER_DRAG_MIME } from './constants'
 
 type Filter = 'all' | 'assigned' | 'unassigned'
 
