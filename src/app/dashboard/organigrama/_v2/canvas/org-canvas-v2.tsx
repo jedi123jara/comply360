@@ -48,6 +48,7 @@ import { UnitNode } from './nodes/unit-node'
 import { PositionNode } from './nodes/position-node'
 import { NudgeBadgeList } from './overlays/nudge-badge'
 import { HeatmapLegend } from './overlays/heatmap-legend'
+import { NodeContextMenu, type CtxMenuState } from './overlays/node-context-menu'
 import { useReparentPositionMutation } from '../data/mutations/use-reparent-position'
 import { treeKey } from '../data/queries/use-tree'
 import { WORKER_DRAG_MIME } from '../roster/constants'
@@ -121,6 +122,7 @@ function OrgCanvasV2Inner({
   // Hover: resalta la línea de mando del nodo bajo el cursor (lectura
   // instantánea sin clic). Estado local para no re-renderizar el árbol entero.
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null)
   const hoverSet = useFocusSet(hoveredId, edges, hoveredId != null)
   const displayEdges = useMemo(() => {
     if (!hoverSet) return edges
@@ -300,6 +302,7 @@ function OrgCanvasV2Inner({
     setSelectedUnit(null)
     setSelectedPosition(null)
     setInspectorOpen(false)
+    setCtxMenu(null)
   }, [setSelectedUnit, setSelectedPosition, setInspectorOpen])
 
   const minimapNodeColor = useCallback(
@@ -361,6 +364,10 @@ function OrgCanvasV2Inner({
         onNodeClick={handleNodeClick}
         onNodeMouseEnter={(_, n) => setHoveredId(n.id)}
         onNodeMouseLeave={() => setHoveredId(null)}
+        onNodeContextMenu={(e, node) => {
+          e.preventDefault()
+          setCtxMenu({ x: e.clientX, y: e.clientY, node })
+        }}
         onPaneClick={handlePaneClick}
         onConnect={handleConnect}
         onNodesChange={(changes) => {
@@ -423,6 +430,8 @@ function OrgCanvasV2Inner({
           setInspectorOpen(true)
         }}
       />
+
+      {ctxMenu && <NodeContextMenu state={ctxMenu} onClose={() => setCtxMenu(null)} />}
     </div>
   )
 }
