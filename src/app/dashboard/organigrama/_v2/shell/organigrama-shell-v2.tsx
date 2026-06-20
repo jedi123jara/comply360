@@ -26,6 +26,7 @@ import {
   UsersRound,
   LayoutTemplate,
   AlertTriangle,
+  RefreshCw,
   ShieldAlert,
   Zap,
   ArrowRight,
@@ -378,8 +379,26 @@ export function OrganigramaShellV2() {
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
             </div>
           ) : treeQuery.error ? (
-            <div className="flex h-full items-center justify-center text-sm text-rose-600">
-              Error al cargar: {String(treeQuery.error)}
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <AlertTriangle className="h-8 w-8 text-rose-500" />
+              <div>
+                <p className="text-sm font-medium text-slate-800">
+                  No se pudo cargar el organigrama
+                </p>
+                <p className="mt-1 max-w-sm text-xs text-slate-500">
+                  {treeQuery.error instanceof Error
+                    ? treeQuery.error.message
+                    : 'Ocurrió un error inesperado.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => treeQuery.refetch()}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Reintentar
+              </button>
             </div>
           ) : tree && tree.units.length === 0 ? (
             view === 'committees' ? (
