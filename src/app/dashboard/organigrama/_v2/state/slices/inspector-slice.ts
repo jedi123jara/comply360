@@ -11,7 +11,6 @@ export type InspectorTab =
   | 'costos'
   | 'cumplimiento'
   | 'historial'
-  | 'comments'
 
 export interface InspectorSlice {
   inspectorOpen: boolean

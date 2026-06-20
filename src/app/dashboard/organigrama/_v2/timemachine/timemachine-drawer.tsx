@@ -71,8 +71,6 @@ export function TimeMachineDrawer() {
     return () => clearInterval(timer)
   }, [playing, currentIndex, sorted, totalSlots, setCurrentId])
 
-  if (!open) return null
-
   const handleSelect = (index: number) => {
     if (index >= sorted.length) {
       setCurrentId(null)
@@ -90,6 +88,8 @@ export function TimeMachineDrawer() {
 
   return (
     <>
+      <AnimatePresence>
+        {open && (
       <m.div
         initial={{ y: 240 }}
         animate={{ y: 0 }}
@@ -232,6 +232,8 @@ export function TimeMachineDrawer() {
           </div>
         </div>
       </m.div>
+        )}
+      </AnimatePresence>
 
       {showDiffModal && (
         <SnapshotDiffModal onClose={() => setShowDiffModal(false)} snapshots={sorted} />

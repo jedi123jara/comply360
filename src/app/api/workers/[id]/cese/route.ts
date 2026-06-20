@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withPlanGateParams } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
+import { closeWorkerOrgAssignments } from '@/lib/orgchart/worker-sync'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 type TipoCese =
@@ -593,6 +594,14 @@ export const PATCH = withPlanGateParams<{ id: string }>('workers',
             motivoCese: motivoMap[tipoCese] ?? tipoCese.toLowerCase(),
           },
         })
+
+        // Sincronizar con el organigrama: cerrar el cargo que ocupaba para no
+        // dejar un "asiento fantasma" que bloquee asignar al reemplazo.
+        try {
+          await closeWorkerOrgAssignments(workerId, record.fechaCese ?? now)
+        } catch (err) {
+          console.error('[cese] no se pudo cerrar la asignación de organigrama:', err)
+        }
 
         await prisma.auditLog.create({
           data: {

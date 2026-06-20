@@ -226,7 +226,7 @@ function daysUntil(target: Date, now = new Date()): number {
     if (target > now) {
       diasLaborables(now, target)
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))

@@ -6,7 +6,6 @@ import { calcularBoleta, type BoletaInput } from '../boleta'
 // nocturna, split de renta 5ta). Imprime el desglose para inspección visual.
 
 function resumen(label: string, r: ReturnType<typeof calcularBoleta>) {
-  // eslint-disable-next-line no-console
   console.log(
     `\n── ${label} ──\n` +
     `  Total ingresos:   S/ ${r.totalIngresos.toFixed(2)}\n` +

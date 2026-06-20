@@ -18,9 +18,7 @@ import { useLOD } from '../hooks/use-lod'
 import { PositionNodeToolbar } from '../overlays/node-toolbar'
 import { useOrgStore } from '../../state/org-store'
 
-interface PositionNodeProps extends NodeProps<Node<PositionNodeData>> {
-  dimmed?: boolean
-}
+type PositionNodeProps = NodeProps<Node<PositionNodeData>>
 
 const UNIT_KIND_LABELS: Record<string, string> = {
   GERENCIA: 'Gerencia',
@@ -33,11 +31,18 @@ const UNIT_KIND_LABELS: Record<string, string> = {
 }
 
 function PositionNodeInner(props: PositionNodeProps) {
-  const { data, selected, dimmed } = props
+  const { data, selected } = props
+  const dimmed = Boolean(data.dimmed)
   const lod = useLOD()
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
   const primary = data.occupants[0]
+  const statusLabel =
+    primary?.status === 'SUSPENDED'
+      ? 'Suspendido'
+      : primary?.status === 'ON_LEAVE'
+        ? 'En licencia'
+        : null
   const setSelectedWorker = useOrgStore((s) => s.setSelectedWorker)
   const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
@@ -59,11 +64,6 @@ function PositionNodeInner(props: PositionNodeProps) {
       exit={{ opacity: 0, scale: 0.85 }}
       transition={{ type: 'spring', stiffness: 220, damping: 28 }}
       style={{ width: 260 }}
-      onClick={() => {
-        setSelectedPosition(data.positionId)
-        setSelectedUnit(data.unitId)
-        setInspectorOpen(true)
-      }}
       className={`relative overflow-hidden rounded-lg border bg-slate-950 text-slate-100 shadow-[0_18px_45px_rgba(2,6,23,0.28)] transition-shadow hover:shadow-[0_22px_55px_rgba(2,6,23,0.36)] ${
         data.vacant ? 'border-dashed border-slate-500' : 'border-slate-700'
       } ${selected ? 'shadow-[0_0_0_4px_rgba(56,189,248,0.22),0_22px_55px_rgba(2,6,23,0.42)]' : ''}`}
@@ -141,12 +141,19 @@ function PositionNodeInner(props: PositionNodeProps) {
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <div
-              className={`truncate text-[13px] font-semibold ${
-                data.vacant ? 'text-slate-400 italic' : 'text-white'
-              }`}
-            >
-              {occupantName}
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`truncate text-[13px] font-semibold ${
+                  data.vacant ? 'text-slate-400 italic' : 'text-white'
+                }`}
+              >
+                {occupantName}
+              </span>
+              {statusLabel && (
+                <span className="flex-shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-300 ring-1 ring-amber-500/30">
+                  {statusLabel}
+                </span>
+              )}
             </div>
             <div className="truncate text-[11px] text-slate-300">{data.title}</div>
           </div>

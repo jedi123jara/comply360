@@ -17,7 +17,6 @@ import {
   Send,
   Loader2,
   CheckCircle2,
-  ChevronRight,
   Plus,
   UserPlus,
   Move,
@@ -116,11 +115,13 @@ export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
     }
   }
 
-  if (!open) return null
-
   return (
     <AnimatePresence>
+      {open && (
       <m.aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Copiloto IA del organigrama"
         initial={{ x: 480 }}
         animate={{ x: 0 }}
         exit={{ x: 480 }}
@@ -239,10 +240,14 @@ export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     handleGenerate()
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault()
+                    onClose()
                   }
                 }}
                 placeholder="Describe lo que quieres cambiar…"
                 rows={2}
+                autoFocus
                 className="flex-1 resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 disabled={generating}
               />
@@ -263,6 +268,7 @@ export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
           )}
         </footer>
       </m.aside>
+      )}
     </AnimatePresence>
   )
 }
@@ -428,6 +434,3 @@ function opLabel(op: string): string {
       return op
   }
 }
-
-// Suprimir lint warning de ChevronRight no usado (lo dejé por si se necesita)
-void ChevronRight

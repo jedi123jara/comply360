@@ -22,6 +22,8 @@ import {
   ShieldCheck,
   Landmark,
   Layers3,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 
 import {
@@ -32,6 +34,7 @@ import {
 import type { UnitNodeData } from '../hooks/use-tree-to-flow'
 import { useLOD } from '../hooks/use-lod'
 import { UnitNodeToolbar } from '../overlays/node-toolbar'
+import { useOrgStore } from '../../state/org-store'
 
 const KIND_LABELS: Record<string, string> = {
   GERENCIA: 'Gerencia',
@@ -63,14 +66,13 @@ const KIND_ICON: Record<string, typeof Building2> = {
   PROYECTO: BriefcaseBusiness,
 }
 
-interface UnitNodeProps extends NodeProps<Node<UnitNodeData>> {
-  /** Si está en true (focus mode), este nodo debe dimearse. */
-  dimmed?: boolean
-}
+type UnitNodeProps = NodeProps<Node<UnitNodeData>>
 
 function UnitNodeInner(props: UnitNodeProps) {
-  const { data, selected, dimmed } = props
+  const { data, selected } = props
+  const dimmed = Boolean(data.dimmed)
   const lod = useLOD()
+  const toggleCollapsed = useOrgStore((s) => s.toggleCollapsed)
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
   const Icon = KIND_ICON[data.unitKind] ?? Building2
@@ -95,6 +97,20 @@ function UnitNodeInner(props: UnitNodeProps) {
         unitKind={data.unitKind}
         isVisible={Boolean(selected)}
       />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleCollapsed(data.unitId)
+        }}
+        title={data.collapsed ? 'Desplegar rama' : 'Plegar rama'}
+        className={`nodrag nopan absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-semibold text-slate-500 shadow-sm transition hover:bg-slate-50 ${
+          data.collapsed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}
+      >
+        {data.collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        {data.collapsed && data.hiddenCount ? <span>{data.hiddenCount}</span> : null}
+      </button>
       {/* Borde superior coloreado por compliance tone */}
       <div
         className="h-1.5 rounded-t-xl"

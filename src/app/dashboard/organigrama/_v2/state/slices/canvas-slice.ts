@@ -29,6 +29,10 @@ export interface CanvasSlice {
   focusEnabled: boolean
   toggleFocus: () => void
   setFocusEnabled: (enabled: boolean) => void
+  // Plegado de ramas (oculta descendientes de unidades colapsadas)
+  collapsedIds: Set<string>
+  toggleCollapsed: (id: string) => void
+  expandAll: () => void
   // Modo presentación / time-machine / what-if (transforma el chrome del canvas)
   canvasMode: 'edit' | 'time-machine' | 'what-if' | 'present'
   setCanvasMode: (mode: 'edit' | 'time-machine' | 'what-if' | 'present') => void
@@ -48,6 +52,15 @@ export const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> =
   focusEnabled: false,
   toggleFocus: () => set((s) => ({ focusEnabled: !s.focusEnabled })),
   setFocusEnabled: (focusEnabled) => set({ focusEnabled }),
+  collapsedIds: new Set<string>(),
+  toggleCollapsed: (id) =>
+    set((s) => {
+      const next = new Set(s.collapsedIds)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return { collapsedIds: next }
+    }),
+  expandAll: () => set({ collapsedIds: new Set<string>() }),
   canvasMode: 'edit',
   setCanvasMode: (canvasMode) => set({ canvasMode }),
 })

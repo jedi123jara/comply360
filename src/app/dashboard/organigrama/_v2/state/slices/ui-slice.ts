@@ -11,13 +11,12 @@ export type UiModal =
   | 'assign-worker'
   | 'assign-role'
   | 'role-evidence'
-  | 'import-excel'
   | 'templates'
-  | 'snapshot-diff'
+  | 'snapshot'
+  | 'worker-change'
   | 'what-if'
   | 'drafts'
   | 'auditor-link'
-  | 'seed-wizard'
   | 'bootstrap-from-workers'
   | 'legal-responsibles'
   | 'structure-analytics'
@@ -45,6 +44,10 @@ export interface UiSlice {
   alertsOpen: boolean
   setAlertsOpen: (open: boolean) => void
 
+  rosterOpen: boolean
+  setRosterOpen: (open: boolean) => void
+  toggleRoster: () => void
+
   activeModal: UiModal
   modalProps: Record<string, unknown>
   openModal: (modal: UiModal, props?: Record<string, unknown>) => void
@@ -68,6 +71,10 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
 
   alertsOpen: false,
   setAlertsOpen: (alertsOpen) => set({ alertsOpen }),
+
+  rosterOpen: false,
+  setRosterOpen: (rosterOpen) => set({ rosterOpen }),
+  toggleRoster: () => set((s) => ({ rosterOpen: !s.rosterOpen })),
 
   activeModal: null,
   modalProps: {},

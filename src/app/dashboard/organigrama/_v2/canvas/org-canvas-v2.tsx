@@ -26,8 +26,9 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 import type { OrgChartTree, DoctorReport, DoctorFinding } from '@/lib/orgchart/types'
 import {
@@ -37,6 +38,7 @@ import {
 } from '@/lib/orgchart/coverage-aggregator'
 
 import { useOrgStore } from '../state/org-store'
+import type { OrgLens } from '../state/slices/canvas-slice'
 import {
   useTreeToFlow,
   type UnitNodeData,
@@ -47,11 +49,38 @@ import { UnitNode } from './nodes/unit-node'
 import { PositionNode } from './nodes/position-node'
 import { NudgeBadgeList } from './overlays/nudge-badge'
 import { HeatmapLegend } from './overlays/heatmap-legend'
+import { NodeContextMenu, type CtxMenuState } from './overlays/node-context-menu'
 import { useReparentPositionMutation } from '../data/mutations/use-reparent-position'
+import { treeKey } from '../data/queries/use-tree'
+import { WORKER_DRAG_MIME } from '../roster/constants'
 
 const nodeTypes = {
   unitNode: UnitNode,
   positionNode: PositionNode,
+}
+
+/** Decide si un nodo debe atenuarse según la Lente activa (resalta lo relevante). */
+function isLensDimmed(node: Node, lens: OrgLens): boolean {
+  if (lens === 'general') return false
+  const data = node.data as {
+    vacant?: boolean
+    coverage?: { findingCount: number } | null
+    unitKind?: string | null
+  }
+  switch (lens) {
+    case 'vacancies':
+      // Resalta cargos vacantes; atenúa los ocupados. Las unidades quedan neutras.
+      return node.type === 'positionNode' ? !data.vacant : false
+    case 'compliance':
+      // Resalta lo que tiene hallazgos de cumplimiento.
+      return (data.coverage?.findingCount ?? 0) === 0
+    case 'sst':
+      // Resalta comités legales y brigadas (órganos SST).
+      return data.unitKind !== 'COMITE_LEGAL' && data.unitKind !== 'BRIGADA'
+    default:
+      // mof / contractual: requieren data por-nodo aún no disponible.
+      return false
+  }
 }
 
 export interface OrgCanvasV2Props {
@@ -69,6 +98,8 @@ function OrgCanvasV2Inner({
   readOnly = false,
 }: OrgCanvasV2Props) {
   const layoutMode = useOrgStore((s) => s.layoutMode)
+  const lens = useOrgStore((s) => s.lens)
+  const collapsedIds = useOrgStore((s) => s.collapsedIds)
   const focusEnabled = useOrgStore((s) => s.focusEnabled)
   const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
   const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
@@ -90,6 +121,7 @@ function OrgCanvasV2Inner({
   const { nodes: layoutNodes, edges } = useTreeToFlow(tree, layoutMode, coverage, {
     positionMode,
     copilotPreviewPlan,
+    collapsedIds,
   })
 
   // Foco: set de IDs relacionados al seleccionado (ancestros + descendientes).
@@ -102,22 +134,179 @@ function OrgCanvasV2Inner({
   // Inyectar `dimmed` por nodo según focusSet
   const nodes: Node[] = useMemo(() => {
     return layoutNodes.map((n) => {
-      const dimmed = focusSet ? !focusSet.has(n.id) : false
+      const dimmed = (focusSet ? !focusSet.has(n.id) : false) || isLensDimmed(n, lens)
       return {
         ...n,
-        data: { ...(n.data as Record<string, unknown>) },
-        // Atributos custom que pasamos a los nodos via `data` —
-        // dado que nuestros componentes leen `data.dimmed`.
-        ...(dimmed ? { style: { ...n.style, opacity: 0.18 } } : {}),
+        // Pasamos `dimmed` por `data` para que el nodo lo anime con un fade
+        // suave (framer) en vez del cambio brusco de opacity del wrapper.
+        data: { ...(n.data as Record<string, unknown>), dimmed },
         selected:
           (positionMode && selectedPositionId === n.id) ||
           (!positionMode && selectedUnitId === n.id),
       }
     })
-  }, [layoutNodes, focusSet, positionMode, selectedPositionId, selectedUnitId])
+  }, [layoutNodes, focusSet, lens, positionMode, selectedPositionId, selectedUnitId])
+
+  // Hover: resalta la línea de mando del nodo bajo el cursor (lectura
+  // instantánea sin clic). Estado local para no re-renderizar el árbol entero.
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null)
+  const hoverSet = useFocusSet(hoveredId, edges, hoveredId != null)
+  const displayEdges = useMemo(() => {
+    if (!hoverSet) return edges
+    return edges.map((e) => {
+      const active = hoverSet.has(e.source) && hoverSet.has(e.target)
+      if (!active) return e
+      return {
+        ...e,
+        animated: true,
+        style: { ...e.style, stroke: '#2563eb', strokeWidth: 2.6 },
+      }
+    })
+  }, [edges, hoverSet])
+
+  // Animar el deslizamiento de los nodos al cambiar de layout (se activa tras el
+  // primer mount para que la entrada inicial sea instantánea, no un slide caótico).
+  const [animateNodes, setAnimateNodes] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setAnimateNodes(true), 120)
+    return () => clearTimeout(t)
+  }, [])
 
   // Reparent mutation
   const reparentMutation = useReparentPositionMutation()
+  const { fitView, getIntersectingNodes, screenToFlowPosition } = useReactFlow()
+
+  // --- Drag-to-reparent (modo Cargos): arrastra un cargo sobre otro → reporta a él ---
+  const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({})
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  // ¿candidateId es descendiente de ancestorId? (para prohibir ciclos al reparentar).
+  const isDescendant = useCallback(
+    (ancestorId: string, candidateId: string): boolean => {
+      const childrenOf = new Map<string, string[]>()
+      for (const e of edges) {
+        childrenOf.set(e.source, [...(childrenOf.get(e.source) ?? []), e.target])
+      }
+      const queue = [...(childrenOf.get(ancestorId) ?? [])]
+      const seen = new Set<string>()
+      while (queue.length) {
+        const id = queue.shift()!
+        if (id === candidateId) return true
+        if (seen.has(id)) continue
+        seen.add(id)
+        queue.push(...(childrenOf.get(id) ?? []))
+      }
+      return false
+    },
+    [edges],
+  )
+
+  // Aplica las posiciones arrastradas encima del layout calculado.
+  const finalNodes: Node[] = useMemo(() => {
+    if (Object.keys(posOverrides).length === 0) return nodes
+    return nodes.map((n) => {
+      const o = posOverrides[n.id]
+      return o ? { ...n, position: o } : n
+    })
+  }, [nodes, posOverrides])
+
+  const handleNodeDragStop = useCallback(
+    (node: Node) => {
+      setDraggingId(null)
+      if (positionMode && !readOnly) {
+        // Elegir el cargo MÁS solapado (no el primero arbitrario del array),
+        // excluyendo el propio nodo, ghosts del preview y no-cargos.
+        const dw = node.measured?.width ?? node.width ?? 260
+        const dh = node.measured?.height ?? node.height ?? 126
+        let target: Node | null = null
+        let bestArea = 0
+        for (const n of getIntersectingNodes(node)) {
+          if (n.id === node.id || n.type !== 'positionNode' || n.id.startsWith('ghost-')) continue
+          const w = n.measured?.width ?? n.width ?? 260
+          const h = n.measured?.height ?? n.height ?? 126
+          const ox = Math.max(0, Math.min(node.position.x + dw, n.position.x + w) - Math.max(node.position.x, n.position.x))
+          const oy = Math.max(0, Math.min(node.position.y + dh, n.position.y + h) - Math.max(node.position.y, n.position.y))
+          const area = ox * oy
+          if (area > bestArea) {
+            bestArea = area
+            target = n
+          }
+        }
+        if (target && !isDescendant(node.id, target.id)) {
+          reparentMutation.mutate(
+            { positionId: node.id, newParentId: target.id },
+            {
+              onSuccess: () => toast.success('Línea de mando actualizada'),
+              onError: (err) => toast.error(err instanceof Error ? err.message : 'Error'),
+            },
+          )
+        } else if (target) {
+          toast.error('No puedes mover un cargo bajo uno de sus propios subordinados')
+        }
+      }
+      // Quitar el override → el nodo vuelve a su posición de layout (o el reparent
+      // recalcula y lo recoloca).
+      setPosOverrides((prev) => {
+        const next = { ...prev }
+        delete next[node.id]
+        return next
+      })
+    },
+    [positionMode, readOnly, getIntersectingNodes, isDescendant, reparentMutation],
+  )
+
+  // --- Drop desde el panel de Trabajadores: soltar un worker sobre un cargo lo asigna ---
+  const queryClient = useQueryClient()
+  const onDragOver = useCallback((e: DragEvent) => {
+    if (e.dataTransfer.types.includes(WORKER_DRAG_MIME)) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+    }
+  }, [])
+  const onDrop = useCallback(
+    async (e: DragEvent) => {
+      const workerId = e.dataTransfer.getData(WORKER_DRAG_MIME)
+      if (!workerId || readOnly) return
+      e.preventDefault()
+      const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const target = finalNodes.find((n) => {
+        if (n.type !== 'positionNode') return false
+        const w = (n.width as number | undefined) ?? 260
+        const h = (n.height as number | undefined) ?? 126
+        return (
+          flowPos.x >= n.position.x &&
+          flowPos.x <= n.position.x + w &&
+          flowPos.y >= n.position.y &&
+          flowPos.y <= n.position.y + h
+        )
+      })
+      if (!target) {
+        if (!positionMode) toast.message('Cambia a "Cargos" y suelta el trabajador sobre un cargo.')
+        return
+      }
+      try {
+        const res = await fetch('/api/orgchart/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workerId,
+            positionId: target.id,
+            isPrimary: true,
+            isInterim: false,
+            capacityPct: 100,
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error ?? 'No se pudo asignar')
+        toast.success('Trabajador asignado al cargo')
+        queryClient.invalidateQueries({ queryKey: treeKey(null) })
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Error al asignar')
+      }
+    },
+    [readOnly, positionMode, finalNodes, screenToFlowPosition, queryClient],
+  )
 
   const handleConnect: OnConnect = useCallback(
     (connection: Connection) => {
@@ -153,6 +342,14 @@ function OrgCanvasV2Inner({
     [positionMode, setSelectedPosition, setSelectedUnit, setInspectorOpen],
   )
 
+  // Clic en el lienzo vacío → deselecciona y cierra el inspector (control directo).
+  const handlePaneClick = useCallback(() => {
+    setSelectedUnit(null)
+    setSelectedPosition(null)
+    setInspectorOpen(false)
+    setCtxMenu(null)
+  }, [setSelectedUnit, setSelectedPosition, setInspectorOpen])
+
   const minimapNodeColor = useCallback(
     (n: Node) => {
       const data = n.data as { coverage?: UnitNodeData['coverage'] } | undefined
@@ -165,11 +362,14 @@ function OrgCanvasV2Inner({
   // Hook de la API de @xyflow para fitView en cambios de layout.
   // Usamos useEffect (no checkear-y-mutar-ref durante render) para respetar
   // las reglas de pureza de React.
-  const { fitView } = useReactFlow()
-  const lastLayoutRef = useRef<string>(layoutMode)
+  // Re-encuadrar no solo al cambiar de layout, sino también al cambiar de modo
+  // (unidades↔cargos) o al aparecer/desaparecer el preview del Copiloto, que
+  // reemplazan el set de nodos y dejarían al usuario en un viewport viejo.
+  const fitKey = `${layoutMode}|${positionMode ? 'pos' : 'unit'}|${copilotPreviewPlan ? 'plan' : 'none'}`
+  const lastFitRef = useRef<string>(fitKey)
   useEffect(() => {
-    if (lastLayoutRef.current === layoutMode) return
-    lastLayoutRef.current = layoutMode
+    if (lastFitRef.current === fitKey) return
+    lastFitRef.current = fitKey
     const raf = requestAnimationFrame(() => {
       try {
         fitView({ padding: 0.18, minZoom: 0.42, maxZoom: 1.05, duration: 450 })
@@ -178,7 +378,7 @@ function OrgCanvasV2Inner({
       }
     })
     return () => cancelAnimationFrame(raf)
-  }, [layoutMode, fitView])
+  }, [fitKey, fitView])
 
   if (!tree || tree.units.length === 0) {
     return (
@@ -193,14 +393,43 @@ function OrgCanvasV2Inner({
   const allowReparent = positionMode && !readOnly
 
   return (
-    <div className="relative h-full w-full bg-[color:var(--bg-canvas)]">
+    <div
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+      className={`relative h-full w-full bg-[color:var(--bg-canvas)] ${
+        animateNodes && !draggingId
+          ? '[&_.react-flow__node]:transition-transform [&_.react-flow__node]:duration-500 [&_.react-flow__node]:ease-[cubic-bezier(0.22,1,0.36,1)]'
+          : ''
+      }`}
+    >
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={finalNodes}
+        edges={displayEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onNodeMouseEnter={(_, n) => setHoveredId(n.id)}
+        onNodeMouseLeave={() => setHoveredId(null)}
+        onNodeContextMenu={(e, node) => {
+          e.preventDefault()
+          if (readOnly) return // en snapshot/time-machine no se muta el trabajador real
+          setCtxMenu({ x: e.clientX, y: e.clientY, node })
+        }}
+        onPaneClick={handlePaneClick}
         onConnect={handleConnect}
-        nodesDraggable={false}
+        onNodesChange={(changes) => {
+          setPosOverrides((prev) => {
+            let next = prev
+            for (const c of changes) {
+              if (c.type === 'position' && c.position && c.dragging) {
+                next = { ...next, [c.id]: c.position }
+              }
+            }
+            return next
+          })
+        }}
+        onNodeDragStart={(_, n) => setDraggingId(n.id)}
+        onNodeDragStop={(_, n) => handleNodeDragStop(n)}
+        nodesDraggable={allowReparent}
         nodesConnectable={allowReparent}
         elementsSelectable
         edgesFocusable={false}
@@ -247,6 +476,8 @@ function OrgCanvasV2Inner({
           setInspectorOpen(true)
         }}
       />
+
+      {ctxMenu && <NodeContextMenu state={ctxMenu} onClose={() => setCtxMenu(null)} />}
     </div>
   )
 }

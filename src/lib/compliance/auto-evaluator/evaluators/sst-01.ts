@@ -3,7 +3,7 @@
  * Base legal: Ley 29783, Art. 22
  */
 import type { QuestionEvaluator } from '../types'
-import { metricEvidence, linkEvidence, hasOrgDocument, hasSstRecord } from './_helpers'
+import { metricEvidence, linkEvidence, hasSstRecord } from './_helpers'
 
 export const evaluatorSST01: QuestionEvaluator = {
   questionId: 'SST-01',

@@ -32,6 +32,12 @@ export interface UnitNodeData extends Record<string, unknown> {
   coverage: UnitCoverage | null
   /** Si este nodo viene del plan del Copiloto (no del árbol real). */
   ghost?: boolean
+  /** Focus mode: si true, el nodo se atenúa con un fade suave (framer). */
+  dimmed?: boolean
+  /** Plegado: este nodo está colapsado (oculta sus descendientes). */
+  collapsed?: boolean
+  /** Cuántos descendientes oculta el plegado. */
+  hiddenCount?: number
 }
 
 export interface PositionNodeData extends Record<string, unknown> {
@@ -43,7 +49,7 @@ export interface PositionNodeData extends Record<string, unknown> {
   unitPath: string
   hierarchyLevel: number
   title: string
-  occupants: Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
+  occupants: Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null; status: string }>
   vacant: boolean
   isManagerial: boolean
   isCritical: boolean
@@ -51,6 +57,8 @@ export interface PositionNodeData extends Record<string, unknown> {
   inferredReportsTo: boolean
   directReports: number
   coverage: UnitCoverage | null
+  /** Focus mode: si true, el nodo se atenúa con un fade suave (framer). */
+  dimmed?: boolean
 }
 
 export type OrgFlowNode = Node<UnitNodeData> | Node<PositionNodeData>
@@ -60,6 +68,8 @@ export interface BuildFlowOptions {
   positionMode?: boolean
   /** Plan del Copiloto IA — si está, se inyectan ghost nodes y edges punteadas para preview. */
   copilotPreviewPlan?: CopilotPlan | null
+  /** IDs de unidades colapsadas — se ocultan sus descendientes. */
+  collapsedIds?: Set<string>
 }
 
 /**
@@ -80,12 +90,12 @@ export function useTreeToFlow(
 
     const base = opts.positionMode
       ? buildPositionFlow(tree, layoutMode, coverage)
-      : buildUnitFlow(tree, layoutMode, coverage)
+      : buildUnitFlow(tree, layoutMode, coverage, opts.collapsedIds)
 
     if (!opts.copilotPreviewPlan) return base
     // Aplica overlay de ghost nodes encima del árbol real
     return overlayCopilotPreview(base, opts.copilotPreviewPlan, layoutMode, opts.positionMode ?? false)
-  }, [tree, layoutMode, coverage, opts.positionMode, opts.copilotPreviewPlan])
+  }, [tree, layoutMode, coverage, opts.positionMode, opts.copilotPreviewPlan, opts.collapsedIds])
 }
 
 /**
@@ -258,10 +268,48 @@ function overlayCopilotPreview(
   }
 }
 
+/**
+ * Oculta los descendientes de los nodos colapsados y marca cada nodo colapsado
+ * con `collapsed: true` + `hiddenCount`. `parentOf` devuelve el padre de un id.
+ */
+function applyCollapse(
+  nodes: OrgFlowNode[],
+  edges: Edge[],
+  parentOf: (id: string) => string | null | undefined,
+  collapsed?: Set<string>,
+): { nodes: OrgFlowNode[]; edges: Edge[] } {
+  if (!collapsed || collapsed.size === 0) return { nodes, edges }
+  const hiddenCount = new Map<string, number>()
+  const visible = nodes.filter((n) => {
+    // Contar el nodo en TODOS sus ancestros colapsados (no solo el más cercano):
+    // con colapsos anidados en la misma rama, el badge del ancestro externo debe
+    // reflejar el total real de descendientes ocultos.
+    let cur = parentOf(n.id)
+    let hidden = false
+    while (cur) {
+      if (collapsed.has(cur)) {
+        hidden = true
+        hiddenCount.set(cur, (hiddenCount.get(cur) ?? 0) + 1)
+      }
+      cur = parentOf(cur)
+    }
+    return !hidden
+  })
+  const visibleIds = new Set(visible.map((n) => n.id))
+  const decorated = visible.map((n) =>
+    collapsed.has(n.id)
+      ? ({ ...n, data: { ...n.data, collapsed: true, hiddenCount: hiddenCount.get(n.id) ?? 0 } } as OrgFlowNode)
+      : n,
+  )
+  const visibleEdges = edges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target))
+  return { nodes: decorated, edges: visibleEdges }
+}
+
 function buildUnitFlow(
   tree: OrgChartTree,
   layoutMode: LayoutMode,
   coverage: CoverageReport | null,
+  collapsedIds?: Set<string>,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
   const unitsById = new Map(tree.units.map((unit) => [unit.id, unit]))
   // 1) Indexar posiciones y asignaciones por unidad
@@ -319,9 +367,16 @@ function buildUnitFlow(
     }
   }
 
-  // 4) Aplicar layout
-  const { nodes: laidOut } = runLayout(nodes as Node[], edges, layoutMode)
-  return { nodes: laidOut as OrgFlowNode[], edges }
+  // 4) Plegar ramas: ocultar descendientes de unidades colapsadas
+  const pruned = applyCollapse(
+    nodes,
+    edges,
+    (id) => unitHierarchy.parentByUnit.get(id) ?? null,
+    collapsedIds,
+  )
+  // 5) Aplicar layout
+  const { nodes: laidOut } = runLayout(pruned.nodes as Node[], pruned.edges, layoutMode)
+  return { nodes: laidOut as OrgFlowNode[], edges: pruned.edges }
 }
 
 function buildPositionFlow(
@@ -332,7 +387,7 @@ function buildPositionFlow(
   const unitsById = new Map(tree.units.map((u) => [u.id, u]))
   const occupantsByPos = new Map<
     string,
-    Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
+    Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null; status: string }>
   >()
   for (const a of tree.assignments) {
     const list = occupantsByPos.get(a.positionId) ?? []
@@ -341,6 +396,7 @@ function buildPositionFlow(
       name: `${a.worker.firstName} ${a.worker.lastName}`,
       isInterim: a.isInterim,
       legajoScore: a.worker.legajoScore,
+      status: a.worker.status,
     })
     occupantsByPos.set(a.positionId, list)
   }

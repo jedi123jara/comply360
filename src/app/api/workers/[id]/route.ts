@@ -6,6 +6,7 @@ import { generateWorkerAlerts } from '@/lib/alerts/alert-engine'
 import { syncComplianceScore } from '@/lib/compliance/sync-score'
 import { logWorkerChanges, logWorkerCese } from '@/lib/workers/history'
 import { workerUpdateSchema } from '@/lib/workers/schemas'
+import { closeWorkerOrgAssignments } from '@/lib/orgchart/worker-sync'
 
 // =============================================
 // GET /api/workers/[id] - Get worker detail
@@ -503,6 +504,14 @@ export const DELETE = withRoleParams<{ id: string }>('ADMIN', async (req: NextRe
       deleteReason: reason ?? null,
     },
   })
+
+  // Sincronizar con el organigrama: cerrar las asignaciones vigentes para no
+  // dejar "asientos fantasma" (cargos que figuran ocupados por un cesado).
+  try {
+    await closeWorkerOrgAssignments(id, now)
+  } catch (err) {
+    console.error('[worker-delete] no se pudo cerrar la asignación de organigrama:', err)
+  }
 
   // FIX #6.H: las alertas no se borran (hard delete) — se RESUELVEN con
   // marca de "auto-resuelto por cese del worker" para preservar histórico
