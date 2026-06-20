@@ -45,7 +45,7 @@ export interface PositionNodeData extends Record<string, unknown> {
   unitPath: string
   hierarchyLevel: number
   title: string
-  occupants: Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
+  occupants: Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null; status: string }>
   vacant: boolean
   isManagerial: boolean
   isCritical: boolean
@@ -336,7 +336,7 @@ function buildPositionFlow(
   const unitsById = new Map(tree.units.map((u) => [u.id, u]))
   const occupantsByPos = new Map<
     string,
-    Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null }>
+    Array<{ workerId: string; name: string; isInterim: boolean; legajoScore: number | null; status: string }>
   >()
   for (const a of tree.assignments) {
     const list = occupantsByPos.get(a.positionId) ?? []
@@ -345,6 +345,7 @@ function buildPositionFlow(
       name: `${a.worker.firstName} ${a.worker.lastName}`,
       isInterim: a.isInterim,
       legajoScore: a.worker.legajoScore,
+      status: a.worker.status,
     })
     occupantsByPos.set(a.positionId, list)
   }

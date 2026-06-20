@@ -37,6 +37,12 @@ function PositionNodeInner(props: PositionNodeProps) {
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
   const primary = data.occupants[0]
+  const statusLabel =
+    primary?.status === 'SUSPENDED'
+      ? 'Suspendido'
+      : primary?.status === 'ON_LEAVE'
+        ? 'En licencia'
+        : null
   const setSelectedWorker = useOrgStore((s) => s.setSelectedWorker)
   const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
@@ -135,12 +141,19 @@ function PositionNodeInner(props: PositionNodeProps) {
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <div
-              className={`truncate text-[13px] font-semibold ${
-                data.vacant ? 'text-slate-400 italic' : 'text-white'
-              }`}
-            >
-              {occupantName}
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`truncate text-[13px] font-semibold ${
+                  data.vacant ? 'text-slate-400 italic' : 'text-white'
+                }`}
+              >
+                {occupantName}
+              </span>
+              {statusLabel && (
+                <span className="flex-shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-300 ring-1 ring-amber-500/30">
+                  {statusLabel}
+                </span>
+              )}
             </div>
             <div className="truncate text-[11px] text-slate-300">{data.title}</div>
           </div>
