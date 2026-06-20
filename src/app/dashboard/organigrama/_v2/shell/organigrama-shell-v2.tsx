@@ -80,7 +80,6 @@ export function OrganigramaShellV2() {
   const copilotOpen = useOrgStore((s) => s.copilotOpen)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
-  const alertsOpen = useOrgStore((s) => s.alertsOpen)
   const view = useOrgStore((s) => s.view)
   const commissionFilter = useOrgStore((s) => s.commissionFilter)
   const setCommissionFilter = useOrgStore((s) => s.setCommissionFilter)
@@ -411,8 +410,8 @@ export function OrganigramaShellV2() {
         {/* Inspector mobile — bottom-sheet draggable */}
         {isMobile && tree && <MobileInspectorSheet tree={tree} coverage={coverage} />}
 
-        {/* Alertas drawer */}
-        {alertsOpen && <AlertsDrawer />}
+        {/* Alertas drawer (gestiona su propia animación de entrada/salida) */}
+        <AlertsDrawer />
 
         {/* Doctor de cumplimiento drawer (gestiona su propia animación de entrada/salida) */}
         <DoctorDrawer
