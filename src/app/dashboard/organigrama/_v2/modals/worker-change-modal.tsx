@@ -9,7 +9,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRightLeft, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -17,6 +17,15 @@ import { ModalShell } from './modal-shell'
 import { useOrgStore } from '../state/org-store'
 import { useTreeQuery, treeKey } from '../data/queries/use-tree'
 import { alertsKey } from '../data/queries/use-alerts'
+
+interface AdendaTemplate {
+  id: string
+  title: string
+  documentType: string
+  documentTypeLabel: string
+}
+
+const ADENDA_TYPES = new Set(['ADDENDUM_AUMENTO', 'ADDENDUM_CAMBIO_CARGO', 'AUMENTO_SUELDO'])
 
 export function WorkerChangeModal() {
   const activeModal = useOrgStore((s) => s.activeModal)
@@ -30,6 +39,20 @@ export function WorkerChangeModal() {
   const queryClient = useQueryClient()
   const treeQuery = useTreeQuery(null)
   const tree = treeQuery.data
+
+  // Plantillas de adenda del org (para generar el documento tras el cambio).
+  const adendaQuery = useQuery({
+    queryKey: ['org-templates', 'adenda'],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async (): Promise<AdendaTemplate[]> => {
+      const res = await fetch('/api/org-templates')
+      if (!res.ok) return []
+      const json = await res.json()
+      return ((json.data ?? []) as AdendaTemplate[]).filter((t) => ADENDA_TYPES.has(t.documentType))
+    },
+  })
+  const adendaTemplates = adendaQuery.data ?? []
 
   const unitName = useMemo(() => {
     const m = new Map<string, string>()
@@ -49,11 +72,15 @@ export function WorkerChangeModal() {
 
   const [newPositionId, setNewPositionId] = useState('')
   const [newSalary, setNewSalary] = useState('')
+  const [genAdenda, setGenAdenda] = useState(false)
+  const [adendaTemplateId, setAdendaTemplateId] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const reset = () => {
     setNewPositionId('')
     setNewSalary('')
+    setGenAdenda(false)
+    setAdendaTemplateId('')
   }
 
   const submit = async () => {
@@ -79,6 +106,33 @@ export function WorkerChangeModal() {
         queryClient.invalidateQueries({ queryKey: treeKey(null) }),
         queryClient.invalidateQueries({ queryKey: alertsKey }),
       ])
+
+      // Generar adenda (opcional, best-effort — no revierte el cambio si falla).
+      if (genAdenda && adendaTemplateId && workerId) {
+        try {
+          const r = await fetch(`/api/org-templates/${adendaTemplateId}/generate?format=json`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workerId, persist: true }),
+          })
+          if (r.ok) {
+            toast.success('Adenda generada (borrador en Contratos & Docs)')
+          } else {
+            const e = await r.json().catch(() => ({}))
+            toast.message('No se generó la adenda', {
+              description:
+                e.code === 'PLAN_UPGRADE_REQUIRED'
+                  ? 'Requiere plan EMPRESA+. El cambio de cargo sí se aplicó.'
+                  : 'El cambio de cargo sí se aplicó.',
+            })
+          }
+        } catch {
+          toast.message('No se generó la adenda', {
+            description: 'El cambio de cargo sí se aplicó.',
+          })
+        }
+      }
+
       reset()
       closeModal()
     } catch (err) {
@@ -170,6 +224,38 @@ export function WorkerChangeModal() {
             alertas y score automáticamente.
           </p>
         </div>
+
+        {adendaTemplates.length > 0 && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={genAdenda}
+                onChange={(e) => setGenAdenda(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              Generar la adenda automáticamente
+            </label>
+            {genAdenda && (
+              <select
+                value={adendaTemplateId}
+                onChange={(e) => setAdendaTemplateId(e.target.value)}
+                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                <option value="">— Selecciona la plantilla de adenda —</option>
+                {adendaTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title} ({t.documentTypeLabel})
+                  </option>
+                ))}
+              </select>
+            )}
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              Crea un borrador de adenda en Contratos &amp; Docs con los datos del trabajador.
+              Requiere plan EMPRESA+.
+            </p>
+          </div>
+        )}
       </div>
     </ModalShell>
   )
