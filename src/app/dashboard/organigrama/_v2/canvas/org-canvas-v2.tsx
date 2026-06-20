@@ -38,6 +38,7 @@ import {
 } from '@/lib/orgchart/coverage-aggregator'
 
 import { useOrgStore } from '../state/org-store'
+import type { OrgLens } from '../state/slices/canvas-slice'
 import {
   useTreeToFlow,
   type UnitNodeData,
@@ -58,6 +59,30 @@ const nodeTypes = {
   positionNode: PositionNode,
 }
 
+/** Decide si un nodo debe atenuarse según la Lente activa (resalta lo relevante). */
+function isLensDimmed(node: Node, lens: OrgLens): boolean {
+  if (lens === 'general') return false
+  const data = node.data as {
+    vacant?: boolean
+    coverage?: { findingCount: number } | null
+    unitKind?: string | null
+  }
+  switch (lens) {
+    case 'vacancies':
+      // Resalta cargos vacantes; atenúa los ocupados. Las unidades quedan neutras.
+      return node.type === 'positionNode' ? !data.vacant : false
+    case 'compliance':
+      // Resalta lo que tiene hallazgos de cumplimiento.
+      return (data.coverage?.findingCount ?? 0) === 0
+    case 'sst':
+      // Resalta comités legales y brigadas (órganos SST).
+      return data.unitKind !== 'COMITE_LEGAL' && data.unitKind !== 'BRIGADA'
+    default:
+      // mof / contractual: requieren data por-nodo aún no disponible.
+      return false
+  }
+}
+
 export interface OrgCanvasV2Props {
   tree: OrgChartTree | null
   doctorReport: DoctorReport | null
@@ -73,6 +98,7 @@ function OrgCanvasV2Inner({
   readOnly = false,
 }: OrgCanvasV2Props) {
   const layoutMode = useOrgStore((s) => s.layoutMode)
+  const lens = useOrgStore((s) => s.lens)
   const focusEnabled = useOrgStore((s) => s.focusEnabled)
   const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
   const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
@@ -106,7 +132,7 @@ function OrgCanvasV2Inner({
   // Inyectar `dimmed` por nodo según focusSet
   const nodes: Node[] = useMemo(() => {
     return layoutNodes.map((n) => {
-      const dimmed = focusSet ? !focusSet.has(n.id) : false
+      const dimmed = (focusSet ? !focusSet.has(n.id) : false) || isLensDimmed(n, lens)
       return {
         ...n,
         // Pasamos `dimmed` por `data` para que el nodo lo anime con un fade
@@ -117,7 +143,7 @@ function OrgCanvasV2Inner({
           (!positionMode && selectedUnitId === n.id),
       }
     })
-  }, [layoutNodes, focusSet, positionMode, selectedPositionId, selectedUnitId])
+  }, [layoutNodes, focusSet, lens, positionMode, selectedPositionId, selectedUnitId])
 
   // Hover: resalta la línea de mando del nodo bajo el cursor (lectura
   // instantánea sin clic). Estado local para no re-renderizar el árbol entero.
