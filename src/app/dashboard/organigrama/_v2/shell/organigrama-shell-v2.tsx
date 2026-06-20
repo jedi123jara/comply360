@@ -53,6 +53,7 @@ import { TimeMachineDrawer } from '../timemachine/timemachine-drawer'
 import { ModalsContainer } from '../modals/modals-container'
 import { CommandPaletteV2 } from '../command/command-palette'
 import { AlertsDrawer } from '../drawers/alerts-drawer'
+import { DoctorDrawer } from '../drawers/doctor-drawer'
 import { useIsMobile } from '../mobile/use-is-mobile'
 import { MobileTreeView } from '../mobile/mobile-tree-view'
 import { MobileInspectorSheet } from '../mobile/mobile-inspector-sheet'
@@ -75,8 +76,6 @@ export function OrganigramaShellV2() {
   // --- State ---
   const currentSnapshotId = useOrgStore((s) => s.currentSnapshotId)
   const setCurrentSnapshotId = useOrgStore((s) => s.setCurrentSnapshotId)
-  const doctorOpen = useOrgStore((s) => s.doctorOpen)
-  const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
   const inspectorOpen = useOrgStore((s) => s.inspectorOpen)
   const copilotOpen = useOrgStore((s) => s.copilotOpen)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
@@ -407,60 +406,8 @@ export function OrganigramaShellV2() {
         {/* Alertas drawer */}
         {alertsOpen && <AlertsDrawer />}
 
-        {/* Doctor drawer (placeholder mínimo — la versión completa vive en v1) */}
-        {doctorOpen && (
-          <aside className="w-[380px] border-l border-slate-200 bg-white">
-            <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-600" />
-                <h2 className="text-sm font-semibold text-slate-900">AI Org Doctor</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDoctorOpen(false)}
-                className="rounded p-1 text-slate-400 transition hover:bg-slate-100"
-              >
-                ✕
-              </button>
-            </header>
-            <div className="space-y-3 p-4 text-sm">
-              {doctorQuery.isLoading && <p className="text-slate-500">Diagnosticando…</p>}
-              {doctorReport && (
-                <>
-                  <div className="rounded-lg bg-slate-50 p-3">
-                    <div className="text-[10px] font-medium uppercase text-slate-500">
-                      Salud del organigrama
-                    </div>
-                    <div className="text-2xl font-bold text-slate-900">
-                      {doctorReport.scoreOrgHealth}
-                      <span className="text-sm font-normal text-slate-500"> / 100</span>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-1 text-[11px] text-slate-600">
-                      <div>
-                        Crítico:{' '}
-                        <span className="font-bold">{doctorReport.totals.critical}</span>
-                      </div>
-                      <div>
-                        Alto: <span className="font-bold">{doctorReport.totals.high}</span>
-                      </div>
-                      <div>
-                        Medio: <span className="font-bold">{doctorReport.totals.medium}</span>
-                      </div>
-                      <div>
-                        Bajo: <span className="font-bold">{doctorReport.totals.low}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    {doctorReport.findings.length} hallazgos visibles como nudges flotantes
-                    sobre el canvas. El detalle completo por unidad está en el inspector
-                    lateral, tab Cumplimiento.
-                  </p>
-                </>
-              )}
-            </div>
-          </aside>
-        )}
+        {/* Doctor de cumplimiento drawer (gestiona su propia animación de entrada/salida) */}
+        <DoctorDrawer report={doctorReport} isLoading={doctorQuery.isLoading} />
       </div>
 
       {/* Onboarding wizard modal */}
