@@ -14,6 +14,7 @@ export type UiModal =
   | 'import-excel'
   | 'templates'
   | 'snapshot'
+  | 'worker-change'
   | 'what-if'
   | 'drafts'
   | 'auditor-link'

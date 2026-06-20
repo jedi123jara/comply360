@@ -19,6 +19,7 @@ import {
   Plus,
   PauseCircle,
   PlayCircle,
+  ArrowRightLeft,
   type LucideIcon,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -110,8 +111,17 @@ export function NodeContextMenu({
         },
       })
       items.push({
+        icon: ArrowRightLeft,
+        label: 'Cambiar de cargo / promover',
+        onClick: () =>
+          openModal('worker-change', {
+            workerId: occupant.workerId,
+            currentPositionId: positionId,
+          }),
+      })
+      items.push({
         icon: ArrowUpRight,
-        label: 'Gestionar trabajador (promover · cesar · sueldo)',
+        label: 'Ir al perfil completo (cese · liquidación)',
         onClick: () => router.push(`/dashboard/trabajadores/${occupant.workerId}`),
       })
       if (occupant.status === 'SUSPENDED') {
