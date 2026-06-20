@@ -99,6 +99,7 @@ function OrgCanvasV2Inner({
 }: OrgCanvasV2Props) {
   const layoutMode = useOrgStore((s) => s.layoutMode)
   const lens = useOrgStore((s) => s.lens)
+  const collapsedIds = useOrgStore((s) => s.collapsedIds)
   const focusEnabled = useOrgStore((s) => s.focusEnabled)
   const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
   const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
@@ -120,6 +121,7 @@ function OrgCanvasV2Inner({
   const { nodes: layoutNodes, edges } = useTreeToFlow(tree, layoutMode, coverage, {
     positionMode,
     copilotPreviewPlan,
+    collapsedIds,
   })
 
   // Foco: set de IDs relacionados al seleccionado (ancestros + descendientes).
