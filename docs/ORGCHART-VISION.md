@@ -91,6 +91,15 @@ Drag-to-reparent (anti-ciclo), hover ilumina la línea de mando, nodos se desliz
 de layout, Escape en cascada, command palette como centro de mando, animaciones de paneles,
 ErrorBoundary, limpieza de dead-code.
 
+### 🆕 Pedidos del fundador (jun-2026)
+- ✅ **Pantalla completa**: botón que oculta el chrome del dashboard (sidebar+topbar) para
+  dar más espacio al canvas. *(hecho)*
+- ⏳ **Panel de Trabajadores (roster dockable)**: panel lateral con TODOS los trabajadores,
+  **filtros** (Con puesto · Sin puesto · por Área · búsqueda) y **arrastrar un trabajador al
+  canvas para asignarlo** a un cargo (drop-on-node → POST assignments, que ya espeja a Worker).
+  Es el "modo operativo de RRHH" de la lente #1. *(siguiente build enfocado: panel + filtros,
+  luego HTML5 drag + canvas onDrop con screenToFlowPosition)*
+
 ### 🥇 Fase 1 — Manipulación directa sin miedo (*"tocar = cambiar"*)
 La base de la sensación. Hace que el lienzo se sienta **vivo**.
 - **Undo/redo universal** (`Cmd+Z` / `Cmd+Shift+Z`) + toast "Deshacer" en cada cambio. *(la base: arrastrar deja de dar miedo)*
