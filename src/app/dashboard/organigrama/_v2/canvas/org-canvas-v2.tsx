@@ -411,6 +411,7 @@ function OrgCanvasV2Inner({
         onNodeMouseLeave={() => setHoveredId(null)}
         onNodeContextMenu={(e, node) => {
           e.preventDefault()
+          if (readOnly) return // en snapshot/time-machine no se muta el trabajador real
           setCtxMenu({ x: e.clientX, y: e.clientY, node })
         }}
         onPaneClick={handlePaneClick}

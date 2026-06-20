@@ -27,6 +27,7 @@ import { toast } from 'sonner'
 
 import { useOrgStore } from '../../state/org-store'
 import { treeKey } from '../../data/queries/use-tree'
+import { alertsKey } from '../../data/queries/use-alerts'
 import type { PositionNodeData, UnitNodeData } from '../hooks/use-tree-to-flow'
 
 export interface CtxMenuState {
@@ -84,7 +85,10 @@ export function NodeContextMenu({
         throw new Error(e.error ?? 'No se pudo aplicar el cambio')
       }
       toast.success(change.kind === 'suspend' ? 'Trabajador suspendido' : 'Trabajador reactivado')
-      await queryClient.invalidateQueries({ queryKey: treeKey(null) })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: treeKey(null) }),
+        queryClient.invalidateQueries({ queryKey: alertsKey }),
+      ])
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     }
@@ -112,7 +116,7 @@ export function NodeContextMenu({
       })
       items.push({
         icon: ArrowRightLeft,
-        label: 'Cambiar de cargo / promover',
+        label: `Cambiar de cargo / promover a ${occupant.name}`,
         onClick: () =>
           openModal('worker-change', {
             workerId: occupant.workerId,
@@ -127,13 +131,13 @@ export function NodeContextMenu({
       if (occupant.status === 'SUSPENDED') {
         items.push({
           icon: PlayCircle,
-          label: 'Reactivar al trabajador',
+          label: `Reactivar a ${occupant.name}`,
           onClick: () => applyChange(occupant.workerId, { kind: 'reactivate' }),
         })
       } else {
         items.push({
           icon: PauseCircle,
-          label: 'Suspender al trabajador',
+          label: `Suspender a ${occupant.name}`,
           onClick: () => applyChange(occupant.workerId, { kind: 'suspend' }),
         })
       }

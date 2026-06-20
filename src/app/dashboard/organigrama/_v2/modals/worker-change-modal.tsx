@@ -52,7 +52,7 @@ export function WorkerChangeModal() {
       return ((json.data ?? []) as AdendaTemplate[]).filter((t) => ADENDA_TYPES.has(t.documentType))
     },
   })
-  const adendaTemplates = adendaQuery.data ?? []
+  const adendaTemplates = useMemo(() => adendaQuery.data ?? [], [adendaQuery.data])
 
   const unitName = useMemo(() => {
     const m = new Map<string, string>()
@@ -76,6 +76,15 @@ export function WorkerChangeModal() {
   const [adendaTemplateId, setAdendaTemplateId] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Solo ofrecer plantillas coherentes con el cambio: una transferencia (sin
+  // sueldo) no debe generar una adenda de aumento.
+  const relevantAdendaTemplates = useMemo(() => {
+    const isPromote = !!(newSalary.trim() && Number(newSalary) > 0)
+    return adendaTemplates.filter(
+      (t) => isPromote || t.documentType === 'ADDENDUM_CAMBIO_CARGO',
+    )
+  }, [adendaTemplates, newSalary])
+
   const reset = () => {
     setNewPositionId('')
     setNewSalary('')
@@ -86,10 +95,10 @@ export function WorkerChangeModal() {
   const submit = async () => {
     if (!workerId || !newPositionId) return
     const salaryNum = newSalary.trim() ? Number(newSalary) : undefined
-    const change: Record<string, unknown> =
-      salaryNum && salaryNum > 0
-        ? { kind: 'promote', newPositionId, newSalary: salaryNum }
-        : { kind: 'transfer', newPositionId }
+    const isPromote = !!(salaryNum && salaryNum > 0)
+    const change: Record<string, unknown> = isPromote
+      ? { kind: 'promote', newPositionId, newSalary: salaryNum }
+      : { kind: 'transfer', newPositionId }
     setSubmitting(true)
     try {
       const res = await fetch('/api/orgchart/worker-change', {
@@ -101,7 +110,7 @@ export function WorkerChangeModal() {
         const e = await res.json().catch(() => ({}))
         throw new Error(e.error ?? 'No se pudo aplicar el cambio')
       }
-      toast.success(salaryNum ? 'Promoción aplicada' : 'Cargo actualizado')
+      toast.success(isPromote ? 'Promoción aplicada' : 'Cargo actualizado')
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: treeKey(null) }),
         queryClient.invalidateQueries({ queryKey: alertsKey }),
@@ -115,13 +124,17 @@ export function WorkerChangeModal() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ workerId, persist: true }),
           })
-          if (r.ok) {
+          const j = await r.json().catch(() => ({}))
+          if (r.ok && j?.data?.contractId) {
             toast.success('Adenda generada (borrador en Contratos & Docs)')
+          } else if (r.ok) {
+            toast.message('No se pudo guardar la adenda', {
+              description: 'El cambio de cargo sí se aplicó.',
+            })
           } else {
-            const e = await r.json().catch(() => ({}))
             toast.message('No se generó la adenda', {
               description:
-                e.code === 'PLAN_UPGRADE_REQUIRED'
+                j.code === 'PLAN_UPGRADE_REQUIRED'
                   ? 'Requiere plan EMPRESA+. El cambio de cargo sí se aplicó.'
                   : 'El cambio de cargo sí se aplicó.',
             })
@@ -225,7 +238,7 @@ export function WorkerChangeModal() {
           </p>
         </div>
 
-        {adendaTemplates.length > 0 && (
+        {relevantAdendaTemplates.length > 0 && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
               <input
@@ -243,7 +256,7 @@ export function WorkerChangeModal() {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="">— Selecciona la plantilla de adenda —</option>
-                {adendaTemplates.map((t) => (
+                {relevantAdendaTemplates.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.title} ({t.documentTypeLabel})
                   </option>
