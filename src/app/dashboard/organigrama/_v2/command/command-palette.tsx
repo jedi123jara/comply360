@@ -31,18 +31,22 @@ import {
   Crosshair,
   PanelRight,
   Bell,
+  Eye,
+  Download,
+  ScrollText,
 } from 'lucide-react'
 
 import { useOrgStore } from '../state/org-store'
 import { useTreeQuery } from '../data/queries/use-tree'
 import { COMPLIANCE_ROLES } from '@/lib/orgchart/compliance-rules'
+import type { OrgLens } from '../state/slices/canvas-slice'
 
 interface CommandItem {
   id: string
   label: string
   detail?: string
   icon: typeof Building2
-  group: 'units' | 'positions' | 'workers' | 'roles' | 'actions' | 'view'
+  group: 'units' | 'positions' | 'workers' | 'roles' | 'actions' | 'view' | 'lens'
   onSelect: () => void
 }
 
@@ -63,6 +67,8 @@ export function CommandPaletteV2() {
   const toggleFocus = useOrgStore((s) => s.toggleFocus)
   const toggleInspector = useOrgStore((s) => s.toggleInspector)
   const setAlertsOpen = useOrgStore((s) => s.setAlertsOpen)
+  const setLens = useOrgStore((s) => s.setLens)
+  const currentSnapshotId = useOrgStore((s) => s.currentSnapshotId)
 
   const treeQuery = useTreeQuery(null)
   const tree = treeQuery.data
@@ -147,6 +153,17 @@ export function CommandPaletteV2() {
 
     return items
   }, [tree, setSelectedUnit, setSelectedPosition, setInspectorOpen, setOpen])
+
+  // Reproduce el mismo exportHref del shell/MoreMenu: agrega snapshotId al
+  // query cuando hay una vista histórica activa, sino devuelve la ruta tal cual.
+  const exportHref = (path: string): string => {
+    if (currentSnapshotId) {
+      const u = new URL(path, 'http://internal')
+      u.searchParams.set('snapshotId', currentSnapshotId)
+      return u.pathname + u.search
+    }
+    return path
+  }
 
   const actions: CommandItem[] = useMemo(
     () => [
@@ -238,6 +255,39 @@ export function CommandPaletteV2() {
         },
       },
       {
+        id: 'a-export-pdf',
+        label: 'Descargar gráfico PDF',
+        detail: 'Organigrama en PDF para imprimir',
+        icon: Download,
+        group: 'actions',
+        onSelect: () => {
+          window.open(exportHref('/api/orgchart/export-pdf'), '_blank')
+          setOpen(false)
+        },
+      },
+      {
+        id: 'a-export-mof',
+        label: 'Generar MOF',
+        detail: 'Manual de Organización y Funciones',
+        icon: ScrollText,
+        group: 'actions',
+        onSelect: () => {
+          window.open(exportHref('/api/orgchart/mof'), '_blank')
+          setOpen(false)
+        },
+      },
+      {
+        id: 'a-export-rit',
+        label: 'Generar RIT',
+        detail: 'Reglamento Interno de Trabajo',
+        icon: ScrollText,
+        group: 'actions',
+        onSelect: () => {
+          window.open(exportHref('/api/orgchart/rit'), '_blank')
+          setOpen(false)
+        },
+      },
+      {
         id: 'a-inspeccion',
         label: 'Preparar para inspección SUNAFIL',
         detail: 'Dossier PDF: estructura + responsables legales + exposición en soles',
@@ -259,8 +309,31 @@ export function CommandPaletteV2() {
         },
       },
     ],
-    [openModal, setOpen, setCopilotOpen, setDoctorOpen, setTimemachineOpen],
+    [openModal, setOpen, setCopilotOpen, setDoctorOpen, setTimemachineOpen, currentSnapshotId],
   )
+
+  // Lentes — espejan el LensSelector del header (mismo setLens del store).
+  const lensActions: CommandItem[] = useMemo(() => {
+    const LENS_OPTIONS: { value: OrgLens; label: string }[] = [
+      { value: 'general', label: 'Quitar lente (General)' },
+      { value: 'compliance', label: 'Lente: Cumplimiento' },
+      { value: 'sst', label: 'Lente: SST' },
+      { value: 'mof', label: 'Lente: MOF' },
+      { value: 'contractual', label: 'Lente: Contratos' },
+      { value: 'vacancies', label: 'Lente: Vacantes' },
+    ]
+    return LENS_OPTIONS.map((opt) => ({
+      id: `lens-${opt.value}`,
+      label: opt.label,
+      detail: 'Cambiar la lente activa del organigrama',
+      icon: Eye,
+      group: 'lens' as const,
+      onSelect: () => {
+        setLens(opt.value)
+        setOpen(false)
+      },
+    }))
+  }, [setLens, setOpen])
 
   // Acciones de vista/navegación — convierten el palette en el centro de mando.
   const viewActions: CommandItem[] = useMemo(() => {
@@ -367,6 +440,15 @@ export function CommandPaletteV2() {
                   className="mb-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-slate-400"
                 >
                   {viewActions.map((a) => (
+                    <CommandItemRow key={a.id} item={a} />
+                  ))}
+                </Command.Group>
+
+                <Command.Group
+                  heading="Lente"
+                  className="mb-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-slate-400"
+                >
+                  {lensActions.map((a) => (
                     <CommandItemRow key={a.id} item={a} />
                   ))}
                 </Command.Group>

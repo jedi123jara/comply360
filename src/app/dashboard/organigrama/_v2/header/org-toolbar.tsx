@@ -2,7 +2,7 @@
  * Toolbar v2 — separa lectura y edición.
  *
  * Vista normal: Buscar · Diseñar estructura · Agregar · Vista · Mas
- * Modo diseño: Autoordenar · Agregar nivel · Asignar · Validar · Listo
+ * Modo diseño: Reorganizar · Agregar nivel · Asignar · Validar · Listo
  */
 'use client'
 
@@ -21,7 +21,6 @@ import {
   ListTree,
   MoreHorizontal,
   Plus,
-  RefreshCw,
   Scale,
   ScrollText,
   Search,
@@ -49,7 +48,6 @@ interface OrgToolbarProps {
   onOpenTimeMachine?: () => void
   onClearSnapshot?: () => void
   onReorganize?: () => void
-  reorganizeLoading?: boolean
   reorganizeDisabled?: boolean
   snapshotsCount?: number
   currentSnapshotId?: string | null
@@ -64,7 +62,6 @@ export function OrgToolbar({
   onOpenTimeMachine,
   onClearSnapshot,
   onReorganize,
-  reorganizeLoading = false,
   reorganizeDisabled = false,
   snapshotsCount = 0,
   currentSnapshotId = null,
@@ -182,12 +179,12 @@ export function OrgToolbar({
               e.preventDefault()
               onReorganize?.()
             }}
-            disabled={reorganizeDisabled || reorganizeLoading}
+            disabled={reorganizeDisabled}
             className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-55"
             title="Reorganizar la jerarquía"
           >
-            <RefreshCw className={`h-4 w-4 ${reorganizeLoading ? 'animate-spin' : ''}`} />
-            <span>{reorganizeLoading ? 'Reorganizando' : 'Reorganizar…'}</span>
+            <Wand2 className="h-4 w-4" />
+            <span>Reorganizar…</span>
           </button>
 
           <button

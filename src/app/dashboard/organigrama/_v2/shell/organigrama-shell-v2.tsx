@@ -146,6 +146,13 @@ export function OrganigramaShellV2() {
       seenRoleKeys.add(key)
     }
     const commissionUnits = tree.units.filter(isCommissionUnit)
+    const positionsByUnit = new Map<string, typeof tree.positions>()
+    for (const position of tree.positions) {
+      positionsByUnit.set(position.orgUnitId, [
+        ...(positionsByUnit.get(position.orgUnitId) ?? []),
+        position,
+      ])
+    }
     const rolesByUnit = new Map<string, typeof tree.complianceRoles>()
     for (const role of tree.complianceRoles) {
       if (!role.unitId) continue
@@ -162,7 +169,7 @@ export function OrganigramaShellV2() {
     })
     const temporaryWithoutLeader = commissionUnits.filter((unit) => {
       if (classifyCommissionUnit(unit) !== 'temporary') return false
-      const unitPositions = tree.positions.filter((position) => position.orgUnitId === unit.id)
+      const unitPositions = positionsByUnit.get(unit.id) ?? []
       const leader = unitPositions.find((position) => position.isManagerial || /líder|lider|responsable/i.test(position.title))
       if (!leader) return true
       return (assignmentsByPosition.get(leader.id) ?? 0) === 0
@@ -269,7 +276,6 @@ export function OrganigramaShellV2() {
               onOpenTimeMachine={() => setTimemachineOpen(true)}
               onClearSnapshot={() => setCurrentSnapshotId(null)}
               onReorganize={() => useOrgStore.getState().openModal('reorganize')}
-              reorganizeLoading={false}
               reorganizeDisabled={
                 Boolean(currentSnapshotId) || treeQuery.isLoading || !tree || tree.positions.length === 0
               }
