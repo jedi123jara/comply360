@@ -52,6 +52,7 @@ export function CommandPaletteV2() {
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
   const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
+  const clearSelection = useOrgStore((s) => s.clearSelection)
   const openModal = useOrgStore((s) => s.openModal)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
@@ -269,19 +270,26 @@ export function CommandPaletteV2() {
         setOpen(false)
       },
     })
+    // Cambiar vista/modo invalida la selección (cambia el set de nodos), igual
+    // que hacen los switchers del header → limpiar selección + cerrar inspector.
+    const changeView = (fn: () => void) => {
+      fn()
+      clearSelection()
+      setInspectorOpen(false)
+    }
     return [
       mk('v-layout-td', 'Layout: Vertical', Network, () => setLayoutMode('top-down'), 'Organigrama clásico, de arriba a abajo'),
       mk('v-layout-lr', 'Layout: Horizontal', Network, () => setLayoutMode('left-right'), 'Ideal para jerarquías profundas'),
       mk('v-layout-radial', 'Layout: Radial', Network, () => setLayoutMode('radial')),
-      mk('v-view-empresa', 'Ver: Empresa', Building2, () => setView('hierarchy')),
-      mk('v-view-comisiones', 'Ver: Comisiones', ShieldCheck, () => setView('committees')),
-      mk('v-mode-units', 'Modo: Unidades', Building2, () => setDisplayMode('units')),
-      mk('v-mode-positions', 'Modo: Cargos', Briefcase, () => setDisplayMode('positions')),
+      mk('v-view-empresa', 'Ver: Empresa', Building2, () => changeView(() => setView('hierarchy'))),
+      mk('v-view-comisiones', 'Ver: Comisiones', ShieldCheck, () => changeView(() => setView('committees'))),
+      mk('v-mode-units', 'Modo: Unidades', Building2, () => changeView(() => setDisplayMode('units'))),
+      mk('v-mode-positions', 'Modo: Cargos', Briefcase, () => changeView(() => setDisplayMode('positions'))),
       mk('v-focus', 'Resaltar relacionados (Foco)', Crosshair, () => toggleFocus(), 'Atenúa lo no relacionado · tecla F'),
       mk('v-inspector', 'Mostrar / ocultar panel lateral', PanelRight, () => toggleInspector(), 'Inspector · tecla ['),
       mk('v-alerts', 'Abrir alertas', Bell, () => setAlertsOpen(true)),
     ]
-  }, [setOpen, setLayoutMode, setView, setDisplayMode, toggleFocus, toggleInspector, setAlertsOpen])
+  }, [setOpen, setLayoutMode, setView, setDisplayMode, toggleFocus, toggleInspector, setAlertsOpen, clearSelection, setInspectorOpen])
 
   // (cmdk filtra/rankea internamente sobre `value` de cada item; no necesitamos
   // ranking custom. Si quisiéramos rank semántico, podríamos pre-filtrar con

@@ -281,15 +281,19 @@ function applyCollapse(
   if (!collapsed || collapsed.size === 0) return { nodes, edges }
   const hiddenCount = new Map<string, number>()
   const visible = nodes.filter((n) => {
+    // Contar el nodo en TODOS sus ancestros colapsados (no solo el más cercano):
+    // con colapsos anidados en la misma rama, el badge del ancestro externo debe
+    // reflejar el total real de descendientes ocultos.
     let cur = parentOf(n.id)
+    let hidden = false
     while (cur) {
       if (collapsed.has(cur)) {
+        hidden = true
         hiddenCount.set(cur, (hiddenCount.get(cur) ?? 0) + 1)
-        return false
       }
       cur = parentOf(cur)
     }
-    return true
+    return !hidden
   })
   const visibleIds = new Set(visible.map((n) => n.id))
   const decorated = visible.map((n) =>

@@ -215,7 +215,24 @@ function OrgCanvasV2Inner({
     (node: Node) => {
       setDraggingId(null)
       if (positionMode && !readOnly) {
-        const target = getIntersectingNodes(node).find((n) => n.id !== node.id)
+        // Elegir el cargo MÁS solapado (no el primero arbitrario del array),
+        // excluyendo el propio nodo, ghosts del preview y no-cargos.
+        const dw = node.measured?.width ?? node.width ?? 260
+        const dh = node.measured?.height ?? node.height ?? 126
+        let target: Node | null = null
+        let bestArea = 0
+        for (const n of getIntersectingNodes(node)) {
+          if (n.id === node.id || n.type !== 'positionNode' || n.id.startsWith('ghost-')) continue
+          const w = n.measured?.width ?? n.width ?? 260
+          const h = n.measured?.height ?? n.height ?? 126
+          const ox = Math.max(0, Math.min(node.position.x + dw, n.position.x + w) - Math.max(node.position.x, n.position.x))
+          const oy = Math.max(0, Math.min(node.position.y + dh, n.position.y + h) - Math.max(node.position.y, n.position.y))
+          const area = ox * oy
+          if (area > bestArea) {
+            bestArea = area
+            target = n
+          }
+        }
         if (target && !isDescendant(node.id, target.id)) {
           reparentMutation.mutate(
             { positionId: node.id, newParentId: target.id },
