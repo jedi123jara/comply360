@@ -17,10 +17,15 @@ import {
   Eye,
   ArrowUpRight,
   Plus,
+  PauseCircle,
+  PlayCircle,
   type LucideIcon,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import { useOrgStore } from '../../state/org-store'
+import { treeKey } from '../../data/queries/use-tree'
 import type { PositionNodeData, UnitNodeData } from '../hooks/use-tree-to-flow'
 
 export interface CtxMenuState {
@@ -47,6 +52,7 @@ export function NodeContextMenu({
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
   const setSelectedWorker = useOrgStore((s) => s.setSelectedWorker)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
+  const queryClient = useQueryClient()
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -65,6 +71,24 @@ export function NodeContextMenu({
   }, [onClose])
 
   const { node } = state
+  const applyChange = async (workerId: string, change: { kind: 'suspend' | 'reactivate' }) => {
+    try {
+      const res = await fetch('/api/orgchart/worker-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId, change }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error ?? 'No se pudo aplicar el cambio')
+      }
+      toast.success(change.kind === 'suspend' ? 'Trabajador suspendido' : 'Trabajador reactivado')
+      await queryClient.invalidateQueries({ queryKey: treeKey(null) })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    }
+  }
+
   const items: MenuItem[] = []
 
   if (node.type === 'positionNode') {
@@ -90,6 +114,19 @@ export function NodeContextMenu({
         label: 'Gestionar trabajador (promover · cesar · sueldo)',
         onClick: () => router.push(`/dashboard/trabajadores/${occupant.workerId}`),
       })
+      if (occupant.status === 'SUSPENDED') {
+        items.push({
+          icon: PlayCircle,
+          label: 'Reactivar al trabajador',
+          onClick: () => applyChange(occupant.workerId, { kind: 'reactivate' }),
+        })
+      } else {
+        items.push({
+          icon: PauseCircle,
+          label: 'Suspender al trabajador',
+          onClick: () => applyChange(occupant.workerId, { kind: 'suspend' }),
+        })
+      }
     } else {
       items.push({
         icon: UserPlus,
