@@ -109,6 +109,14 @@ export function OrganigramaShellV2() {
     [commissionFilter, rawTree, view],
   )
   const doctorReport = doctorQuery.data ?? null
+  // Nº de trabajadores activos (distintos) — tramo de la escala de multas SUNAFIL.
+  const numWorkers = useMemo(
+    () =>
+      rawTree
+        ? new Set(rawTree.assignments.filter((a) => !a.endedAt).map((a) => a.workerId)).size
+        : 0,
+    [rawTree],
+  )
 
   // Coverage report consolidado para inspector y heatmap.
   const coverage = useMemo(() => {
@@ -407,7 +415,11 @@ export function OrganigramaShellV2() {
         {alertsOpen && <AlertsDrawer />}
 
         {/* Doctor de cumplimiento drawer (gestiona su propia animación de entrada/salida) */}
-        <DoctorDrawer report={doctorReport} isLoading={doctorQuery.isLoading} />
+        <DoctorDrawer
+          report={doctorReport}
+          isLoading={doctorQuery.isLoading}
+          numWorkers={numWorkers}
+        />
       </div>
 
       {/* Onboarding wizard modal */}

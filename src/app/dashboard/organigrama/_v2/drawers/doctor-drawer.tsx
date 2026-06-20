@@ -15,10 +15,14 @@ import {
   Scale,
   ShieldCheck,
   Loader2,
+  Banknote,
+  TrendingDown,
 } from 'lucide-react'
 
 import { useOrgStore } from '../state/org-store'
 import type { DoctorReport, DoctorSeverity } from '@/lib/orgchart/types'
+import { computeLegalExposure, findingExposure } from '@/lib/orgchart/legal-exposure'
+import { formatSoles } from '@/lib/format/peruvian'
 
 const SEVERITY_ORDER: Record<DoctorSeverity, number> = {
   CRITICAL: 0,
@@ -44,9 +48,11 @@ function scoreColor(score: number): string {
 export function DoctorDrawer({
   report,
   isLoading,
+  numWorkers,
 }: {
   report: DoctorReport | null
   isLoading: boolean
+  numWorkers: number
 }) {
   const open = useOrgStore((s) => s.doctorOpen)
   const setOpen = useOrgStore((s) => s.setDoctorOpen)
@@ -56,6 +62,9 @@ export function DoctorDrawer({
   const findings = report
     ? [...report.findings].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])
     : []
+
+  const exposure =
+    report && report.findings.length > 0 ? computeLegalExposure(report, numWorkers) : null
 
   const goToNode = (unitId: string) => {
     setSelectedUnit(unitId)
@@ -121,6 +130,29 @@ export function DoctorDrawer({
                   </div>
                 </div>
 
+                {/* Exposición legal en soles */}
+                {exposure && exposure.totalSoles > 0 && (
+                  <div className="border-b border-slate-100 bg-rose-50/40 p-4">
+                    <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-rose-500">
+                      <Banknote className="h-3.5 w-3.5" />
+                      Exposición legal estimada
+                    </div>
+                    <div className="mt-0.5 text-2xl font-bold text-rose-700">
+                      {formatSoles(exposure.totalSoles)}
+                    </div>
+                    <p className="mt-1.5 flex items-start gap-1 text-[11px] text-emerald-800">
+                      <TrendingDown className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-600" />
+                      Subsanando a tiempo (-90%, Art. 40 Ley 28806) bajaría a{' '}
+                      {formatSoles(exposure.totalConSubsanacion)} — ahorras{' '}
+                      {formatSoles(exposure.ahorroSubsanacion)}.
+                    </p>
+                    <p className="mt-1 text-[10px] leading-snug text-slate-400">
+                      Estimación de multa SUNAFIL (D.S. 019-2006-TR) sobre {Math.max(1, numWorkers)}{' '}
+                      trabajador(es). Es una referencia de riesgo, no reemplaza una evaluación legal.
+                    </p>
+                  </div>
+                )}
+
                 {/* Hallazgos */}
                 {findings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
@@ -165,16 +197,26 @@ export function DoctorDrawer({
                                 {f.suggestedFix}
                               </p>
                             )}
-                            {unitId && (
-                              <button
-                                type="button"
-                                onClick={() => goToNode(unitId)}
-                                className="mt-2 inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              {unitId ? (
+                                <button
+                                  type="button"
+                                  onClick={() => goToNode(unitId)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
+                                >
+                                  <ArrowUpRight className="h-3 w-3" />
+                                  Ir al nodo
+                                </button>
+                              ) : (
+                                <span />
+                              )}
+                              <span
+                                className="text-[11px] font-semibold text-rose-600"
+                                title="Exposición estimada de multa SUNAFIL para este hallazgo"
                               >
-                                <ArrowUpRight className="h-3 w-3" />
-                                Ir al nodo
-                              </button>
-                            )}
+                                ~{formatSoles(findingExposure(f.severity, numWorkers))}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       )
