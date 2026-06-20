@@ -238,6 +238,17 @@ export function CommandPaletteV2() {
         },
       },
       {
+        id: 'a-inspeccion',
+        label: 'Preparar para inspección SUNAFIL',
+        detail: 'Dossier PDF: estructura + responsables legales + exposición en soles',
+        icon: ShieldCheck,
+        group: 'actions',
+        onSelect: () => {
+          window.open(`/api/orgchart/memoria-anual?year=${new Date().getFullYear()}`, '_blank')
+          setOpen(false)
+        },
+      },
+      {
         id: 'a-templates',
         label: 'Plantillas de organigrama',
         icon: Wand2,
