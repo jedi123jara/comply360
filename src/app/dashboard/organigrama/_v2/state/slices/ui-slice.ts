@@ -13,6 +13,7 @@ export type UiModal =
   | 'role-evidence'
   | 'import-excel'
   | 'templates'
+  | 'snapshot'
   | 'what-if'
   | 'drafts'
   | 'auditor-link'

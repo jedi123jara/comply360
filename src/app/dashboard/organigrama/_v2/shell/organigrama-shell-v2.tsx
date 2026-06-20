@@ -32,13 +32,11 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import {
   useTreeQuery,
   useSnapshotsQuery,
   useDoctorReportQuery,
-  useCreateSnapshotMutation,
   useBootstrapPreviewQuery,
   pendingBootstrapCount,
 } from '../data'
@@ -100,7 +98,6 @@ export function OrganigramaShellV2() {
   const treeQuery = useTreeQuery(currentSnapshotId)
   const snapshotsQuery = useSnapshotsQuery()
   const doctorQuery = useDoctorReportQuery(true) // arranca enabled para tener heatmap/nudges desde el inicio
-  const createSnapshotMutation = useCreateSnapshotMutation()
   // Solo calculamos el preview de bootstrap cuando estamos viendo el organigrama
   // actual (no un snapshot histórico) — no tiene sentido sugerir cambios sobre
   // una vista de solo lectura.
@@ -193,20 +190,9 @@ export function OrganigramaShellV2() {
     [currentSnapshotId],
   )
 
-  const handleSnapshot = useCallback(async () => {
-    const label = window.prompt(
-      'Nombre del snapshot:',
-      `Snapshot ${new Date().toLocaleDateString('es-PE')}`,
-    )
-    if (!label) return
-    const reason = window.prompt('Motivo (opcional):', '') || null
-    try {
-      await createSnapshotMutation.mutateAsync({ label, reason })
-      toast.success('Snapshot tomado y firmado con SHA-256.')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al tomar snapshot')
-    }
-  }, [createSnapshotMutation])
+  const handleSnapshot = useCallback(() => {
+    useOrgStore.getState().openModal('snapshot')
+  }, [])
 
   return (
     <div
