@@ -26,7 +26,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { OrgChartTree, DoctorReport, DoctorFinding } from '@/lib/orgchart/types'
@@ -114,6 +114,31 @@ function OrgCanvasV2Inner({
       }
     })
   }, [layoutNodes, focusSet, positionMode, selectedPositionId, selectedUnitId])
+
+  // Hover: resalta la línea de mando del nodo bajo el cursor (lectura
+  // instantánea sin clic). Estado local para no re-renderizar el árbol entero.
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const hoverSet = useFocusSet(hoveredId, edges, hoveredId != null)
+  const displayEdges = useMemo(() => {
+    if (!hoverSet) return edges
+    return edges.map((e) => {
+      const active = hoverSet.has(e.source) && hoverSet.has(e.target)
+      if (!active) return e
+      return {
+        ...e,
+        animated: true,
+        style: { ...e.style, stroke: '#2563eb', strokeWidth: 2.6 },
+      }
+    })
+  }, [edges, hoverSet])
+
+  // Animar el deslizamiento de los nodos al cambiar de layout (se activa tras el
+  // primer mount para que la entrada inicial sea instantánea, no un slide caótico).
+  const [animateNodes, setAnimateNodes] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setAnimateNodes(true), 120)
+    return () => clearTimeout(t)
+  }, [])
 
   // Reparent mutation
   const reparentMutation = useReparentPositionMutation()
@@ -203,12 +228,20 @@ function OrgCanvasV2Inner({
   const allowReparent = positionMode && !readOnly
 
   return (
-    <div className="relative h-full w-full bg-[color:var(--bg-canvas)]">
+    <div
+      className={`relative h-full w-full bg-[color:var(--bg-canvas)] ${
+        animateNodes
+          ? '[&_.react-flow__node]:transition-transform [&_.react-flow__node]:duration-500 [&_.react-flow__node]:ease-[cubic-bezier(0.22,1,0.36,1)]'
+          : ''
+      }`}
+    >
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={displayEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onNodeMouseEnter={(_, n) => setHoveredId(n.id)}
+        onNodeMouseLeave={() => setHoveredId(null)}
         onPaneClick={handlePaneClick}
         onConnect={handleConnect}
         nodesDraggable={false}
