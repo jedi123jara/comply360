@@ -29,6 +29,8 @@ import {
   ShieldAlert,
   Zap,
   ArrowRight,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -89,6 +91,9 @@ export function OrganigramaShellV2() {
 
   // --- Onboarding wizard ---
   const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // --- Pantalla completa (oculta el chrome del dashboard para dar más espacio) ---
+  const [fullscreen, setFullscreen] = useState(false)
 
   // --- Data ---
   const treeQuery = useTreeQuery(currentSnapshotId)
@@ -203,7 +208,13 @@ export function OrganigramaShellV2() {
   }, [createSnapshotMutation])
 
   return (
-    <div className="flex h-[calc(100vh-64px)] flex-col">
+    <div
+      className={
+        fullscreen
+          ? 'fixed inset-0 z-40 flex h-screen flex-col bg-white'
+          : 'flex h-[calc(100vh-64px)] flex-col'
+      }
+    >
       {/* Banner de auto-bootstrap — visible cuando la planilla tiene workers
           aún no vinculados al organigrama. Tap → abre el modal de preview. */}
       {!currentSnapshotId && bootstrapPending > 0 && bootstrapPreviewQuery.data && (
@@ -223,6 +234,16 @@ export function OrganigramaShellV2() {
             </span>
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setFullscreen((v) => !v)}
+              title={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa · oculta el menú lateral'}
+              aria-label={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              <span className="hidden lg:inline">{fullscreen ? 'Salir' : 'Pantalla completa'}</span>
+            </button>
             <ViewSwitcher />
             <DisplayModeSwitcher />
             {view === 'committees' && (
