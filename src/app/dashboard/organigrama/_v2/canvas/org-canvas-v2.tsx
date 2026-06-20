@@ -142,6 +142,69 @@ function OrgCanvasV2Inner({
 
   // Reparent mutation
   const reparentMutation = useReparentPositionMutation()
+  const { fitView, getIntersectingNodes } = useReactFlow()
+
+  // --- Drag-to-reparent (modo Cargos): arrastra un cargo sobre otro → reporta a él ---
+  const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({})
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  // ¿candidateId es descendiente de ancestorId? (para prohibir ciclos al reparentar).
+  const isDescendant = useCallback(
+    (ancestorId: string, candidateId: string): boolean => {
+      const childrenOf = new Map<string, string[]>()
+      for (const e of edges) {
+        childrenOf.set(e.source, [...(childrenOf.get(e.source) ?? []), e.target])
+      }
+      const queue = [...(childrenOf.get(ancestorId) ?? [])]
+      const seen = new Set<string>()
+      while (queue.length) {
+        const id = queue.shift()!
+        if (id === candidateId) return true
+        if (seen.has(id)) continue
+        seen.add(id)
+        queue.push(...(childrenOf.get(id) ?? []))
+      }
+      return false
+    },
+    [edges],
+  )
+
+  // Aplica las posiciones arrastradas encima del layout calculado.
+  const finalNodes: Node[] = useMemo(() => {
+    if (Object.keys(posOverrides).length === 0) return nodes
+    return nodes.map((n) => {
+      const o = posOverrides[n.id]
+      return o ? { ...n, position: o } : n
+    })
+  }, [nodes, posOverrides])
+
+  const handleNodeDragStop = useCallback(
+    (node: Node) => {
+      setDraggingId(null)
+      if (positionMode && !readOnly) {
+        const target = getIntersectingNodes(node).find((n) => n.id !== node.id)
+        if (target && !isDescendant(node.id, target.id)) {
+          reparentMutation.mutate(
+            { positionId: node.id, newParentId: target.id },
+            {
+              onSuccess: () => toast.success('Línea de mando actualizada'),
+              onError: (err) => toast.error(err instanceof Error ? err.message : 'Error'),
+            },
+          )
+        } else if (target) {
+          toast.error('No puedes mover un cargo bajo uno de sus propios subordinados')
+        }
+      }
+      // Quitar el override → el nodo vuelve a su posición de layout (o el reparent
+      // recalcula y lo recoloca).
+      setPosOverrides((prev) => {
+        const next = { ...prev }
+        delete next[node.id]
+        return next
+      })
+    },
+    [positionMode, readOnly, getIntersectingNodes, isDescendant, reparentMutation],
+  )
 
   const handleConnect: OnConnect = useCallback(
     (connection: Connection) => {
@@ -196,7 +259,6 @@ function OrgCanvasV2Inner({
   // Hook de la API de @xyflow para fitView en cambios de layout.
   // Usamos useEffect (no checkear-y-mutar-ref durante render) para respetar
   // las reglas de pureza de React.
-  const { fitView } = useReactFlow()
   // Re-encuadrar no solo al cambiar de layout, sino también al cambiar de modo
   // (unidades↔cargos) o al aparecer/desaparecer el preview del Copiloto, que
   // reemplazan el set de nodos y dejarían al usuario en un viewport viejo.
@@ -230,13 +292,13 @@ function OrgCanvasV2Inner({
   return (
     <div
       className={`relative h-full w-full bg-[color:var(--bg-canvas)] ${
-        animateNodes
+        animateNodes && !draggingId
           ? '[&_.react-flow__node]:transition-transform [&_.react-flow__node]:duration-500 [&_.react-flow__node]:ease-[cubic-bezier(0.22,1,0.36,1)]'
           : ''
       }`}
     >
       <ReactFlow
-        nodes={nodes}
+        nodes={finalNodes}
         edges={displayEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
@@ -244,7 +306,20 @@ function OrgCanvasV2Inner({
         onNodeMouseLeave={() => setHoveredId(null)}
         onPaneClick={handlePaneClick}
         onConnect={handleConnect}
-        nodesDraggable={false}
+        onNodesChange={(changes) => {
+          setPosOverrides((prev) => {
+            let next = prev
+            for (const c of changes) {
+              if (c.type === 'position' && c.position && c.dragging) {
+                next = { ...next, [c.id]: c.position }
+              }
+            }
+            return next
+          })
+        }}
+        onNodeDragStart={(_, n) => setDraggingId(n.id)}
+        onNodeDragStop={(_, n) => handleNodeDragStop(n)}
+        nodesDraggable={allowReparent}
         nodesConnectable={allowReparent}
         elementsSelectable
         edgesFocusable={false}
