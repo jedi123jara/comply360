@@ -28,7 +28,6 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
-  Upload,
   UserPlus,
   Users,
   Wand2,
@@ -189,10 +188,10 @@ export function OrgToolbar({
             }}
             disabled={reorganizeDisabled || reorganizeLoading}
             className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-55"
-            title="Autoordenar"
+            title="Reorganizar la jerarquía"
           >
             <RefreshCw className={`h-4 w-4 ${reorganizeLoading ? 'animate-spin' : ''}`} />
-            <span>{reorganizeLoading ? 'Ordenando' : 'Autoordenar'}</span>
+            <span>{reorganizeLoading ? 'Reorganizando' : 'Reorganizar…'}</span>
           </button>
 
           <button
@@ -508,14 +507,6 @@ function MoreMenu({
             label="Plantillas"
             onSelect={() => {
               onOpenModal('templates')
-              setOpen(false)
-            }}
-          />
-          <MenuButton
-            icon={Upload}
-            label="Importar Excel"
-            onSelect={() => {
-              onOpenModal('import-excel')
               setOpen(false)
             }}
           />

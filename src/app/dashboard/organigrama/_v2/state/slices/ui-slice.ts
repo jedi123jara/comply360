@@ -11,7 +11,6 @@ export type UiModal =
   | 'assign-worker'
   | 'assign-role'
   | 'role-evidence'
-  | 'import-excel'
   | 'templates'
   | 'snapshot'
   | 'worker-change'
