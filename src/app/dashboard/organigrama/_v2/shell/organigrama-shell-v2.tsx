@@ -58,6 +58,7 @@ import { AlertsDrawer } from '../drawers/alerts-drawer'
 import { useIsMobile } from '../mobile/use-is-mobile'
 import { MobileTreeView } from '../mobile/mobile-tree-view'
 import { MobileInspectorSheet } from '../mobile/mobile-inspector-sheet'
+import { RosterPanel } from '../roster/roster-panel'
 import { buildCoverageReport } from '@/lib/orgchart/coverage-aggregator'
 import type { OrgChartTree } from '@/lib/orgchart/types'
 import {
@@ -236,6 +237,15 @@ export function OrganigramaShellV2() {
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
+              onClick={() => useOrgStore.getState().toggleRoster()}
+              title="Panel de trabajadores · arrastra al canvas para asignar"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              <UsersRound className="h-4 w-4" />
+              <span className="hidden lg:inline">Trabajadores</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setFullscreen((v) => !v)}
               title={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa · oculta el menú lateral'}
               aria-label={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
@@ -367,6 +377,8 @@ export function OrganigramaShellV2() {
 
       {/* Body */}
       <div className="relative flex flex-1 overflow-hidden">
+        {/* Panel de trabajadores (roster) — overlay izquierdo, arrastrable al canvas */}
+        <RosterPanel />
         {/* Canvas principal (desktop) o vista mobile colapsable */}
         <div className="flex-1 overflow-hidden">
           {treeQuery.isLoading ? (
