@@ -30,3 +30,32 @@ export async function closeWorkerOrgAssignments(
   })
   return res.count
 }
+
+/**
+ * Espeja el cargo TITULAR del organigrama al perfil del trabajador: setea
+ * `Worker.position` = título del cargo y `Worker.department` = nombre de su área.
+ * Así el organigrama es la fuente del puesto y el resto de la plataforma (perfil
+ * clásico, planilla, filtros, búsqueda) lo refleja sin doble digitación.
+ * Best-effort.
+ */
+export async function mirrorPrimaryAssignmentToWorker(
+  workerId: string,
+  positionId: string,
+): Promise<void> {
+  const position = await prisma.orgPosition.findUnique({
+    where: { id: positionId },
+    select: { title: true, orgUnitId: true },
+  })
+  if (!position) return
+  const unit = await prisma.orgUnit.findUnique({
+    where: { id: position.orgUnitId },
+    select: { name: true },
+  })
+  await prisma.worker.update({
+    where: { id: workerId },
+    data: {
+      position: position.title,
+      department: unit?.name ?? undefined,
+    },
+  })
+}

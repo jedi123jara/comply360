@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-auth'
 import { createAssignmentSchema } from '@/lib/orgchart/zod-schemas'
 import { recordStructureChange, requestIp } from '@/lib/orgchart/change-log'
+import { mirrorPrimaryAssignmentToWorker } from '@/lib/orgchart/worker-sync'
 import { prisma } from '@/lib/prisma'
 
 class AssignmentInvariantError extends Error {
@@ -113,6 +114,14 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
       metadataJson: { workerId: parsed.data.workerId, positionId: parsed.data.positionId, isPrimary: parsed.data.isPrimary } as object,
     },
   }).catch(() => {})
+
+  // Sincronizar: si es el cargo titular vigente, espejar el puesto y el área al
+  // perfil del trabajador (Worker.position/department) → cero doble digitación.
+  if (parsed.data.isPrimary && !endedAt) {
+    await mirrorPrimaryAssignmentToWorker(parsed.data.workerId, parsed.data.positionId).catch(
+      (err) => console.error('[assignment] no se pudo espejar el cargo al trabajador:', err),
+    )
+  }
 
   return NextResponse.json(result, { status: 201 })
 })
