@@ -8,7 +8,6 @@
 
 import {
   Activity,
-  Bell,
   BookMarked,
   Camera,
   Check,
@@ -35,8 +34,8 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
-import { useAlertsQuery } from '../data/queries/use-alerts'
 import { useOrgStore } from '../state/org-store'
+import { AlertsButton } from './alerts-button'
 import { LayoutSwitcher } from './layout-switcher'
 import { LensSelector } from './lens-selector'
 
@@ -77,13 +76,10 @@ export function OrgToolbar({
   const setCommandPaletteOpen = useOrgStore((s) => s.setCommandPaletteOpen)
   const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
-  const setAlertsOpen = useOrgStore((s) => s.setAlertsOpen)
   const openModal = useOrgStore((s) => s.openModal)
   const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
   const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
 
-  const alertsQuery = useAlertsQuery(true)
-  const alertCount = alertsQuery.data?.totals.open ?? 0
   const hasSelection = Boolean(selectedPositionId || selectedUnitId)
 
   const openContextualAssignment = () => {
@@ -158,13 +154,13 @@ export function OrgToolbar({
 
           <LayoutSwitcher />
 
+          <AlertsButton />
+
           <MoreMenu
             open={moreOpen}
             setOpen={setMoreOpen}
-            alertCount={alertCount}
             snapshotsCount={snapshotsCount}
             exportHref={exportHref}
-            onOpenAlerts={() => setAlertsOpen(true)}
             onOpenCopilot={() => setCopilotOpen(true)}
             onOpenTimeMachine={onOpenTimeMachine}
             onSnapshot={onSnapshot}
@@ -319,10 +315,8 @@ function CreateMenu({
 function MoreMenu({
   open,
   setOpen,
-  alertCount,
   snapshotsCount,
   exportHref,
-  onOpenAlerts,
   onOpenCopilot,
   onOpenTimeMachine,
   onSnapshot,
@@ -332,10 +326,8 @@ function MoreMenu({
 }: {
   open: boolean
   setOpen: (open: boolean | ((open: boolean) => boolean)) => void
-  alertCount: number
   snapshotsCount: number
   exportHref: (path: string) => string
-  onOpenAlerts: () => void
   onOpenCopilot: () => void
   onOpenTimeMachine?: () => void
   onSnapshot?: () => void
@@ -361,15 +353,6 @@ function MoreMenu({
             label="Sugerencias IA"
             onSelect={() => {
               onOpenCopilot()
-              setOpen(false)
-            }}
-          />
-          <MenuButton
-            icon={Bell}
-            label="Alertas"
-            badge={alertCount > 0 ? String(alertCount) : undefined}
-            onSelect={() => {
-              onOpenAlerts()
               setOpen(false)
             }}
           />
