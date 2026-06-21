@@ -79,12 +79,14 @@ export function CreateUnitModal() {
         throw new Error(e.error ?? 'Error al crear')
       }
       toast.success('Unidad creada')
-      await Promise.all([
+      reset()
+      closeModal()
+      // Refrescamos el árbol en segundo plano (E1): no bloqueamos el cierre del
+      // modal esperando el refetch; el nodo nuevo aparece al llegar la query.
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: treeKey(null) }),
         queryClient.invalidateQueries({ queryKey: alertsKey }),
       ])
-      reset()
-      closeModal()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {
