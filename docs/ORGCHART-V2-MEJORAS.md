@@ -32,18 +32,32 @@ Todos `tsc` 0 + `vitest run src/lib/orgchart` 160/160.
   **B4** (MoreMenu agrupado: Inteligencia / Histórico / Exportar / Gestión),
   **F2** (`useIsMobile` con tercer estado `undefined` → sin hydration mismatch
   ni flash canvas→lista en móvil).
+- **Lote 5**: **B8** (tooltips Radix reales en botones icon-only: Search +
+  MoreMenu del toolbar, LayoutSwitcher, DisplayModeSwitcher, AlertsButton —
+  reusan `src/components/ui/tooltip.tsx`, visibles en touch, reemplazan el
+  `title` nativo), **C4** (drag-to-close del bottom-sheet mobile revivido vía
+  `<LazyMotion features={domMax}>` LOCAL al sheet — el provider global sigue en
+  `domAnimation`, sin engordar el bundle), **F8** (el modo "grouped-by-area" era
+  un alias de top-down con más espaciado; el label pasó de "Por proceso"
+  —prometía clusters que no hace— al honesto **"Disperso"** + hint real). Nota:
+  `useIsMobile` quedó con `useSyncExternalStore` (idiomático, sin warning de
+  set-state-in-effect) y `useClickOutside` actualiza su ref en efecto.
 
 **Ya estaba hecho (PR #35):** **B1** (AlertsButton montado, commit `2d8240d`).
 **Deferidos (con razón):** **E3** (persistir viewport — la receta tocaba la
 lógica de cámara/`fitView`, zona crash-prone; se evita), **F9** (auto-abrir
 wizard — chocaría con el empty state nuevo de 3 tarjetas), **C1** (Importar
 Excel — el *bug* original ya no existe: no hay botón roto; el backend
-`import-excel` existe pero armar la UI es feature net-new, no cierre de bug).
+`import-excel` existe pero armar la UI es feature net-new, no cierre de bug),
+**C5** (overlap radial — aun el "safe subset" de subir el radio es un tradeoff
+visual que conviene ver en pantalla), **E1** (optimistic updates en
+crear/asignar/eliminar — el recon lo marca riesgo ALTO en módulo crash-prone:
+invalidaciones separadas tree/alerts + sin rollback visual; mantener bloqueante
+es más seguro), **E2** (memoizar `runLayout` — toca el core del render del
+canvas; riesgo ALTO sin verificación visual).
 
-**Backlog seguro que aún queda:** B8 (tooltips Radix), C4 (drag-close mobile),
-C5 (overlap radial), E1/E2 (optimistic updates, memo de layout), E3 (viewport),
-F8 (grouped-by-area real). + los `risky` D1/D2/D3 (ya cubiertos o opt-in) y los
-`needs-visual` de la sección A.
+**Backlog que aún queda:** D1/D2/D3 (`risky`, ya cubiertos o opt-in), C5/E1/E2
+(necesitan tu visto bueno por riesgo), y los `needs-visual` de la sección A.
 
 ---
 

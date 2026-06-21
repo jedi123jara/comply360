@@ -1,36 +1,41 @@
 /**
  * Hook que detecta si el viewport es mobile (<768px).
  *
- * Usa `matchMedia` con suscripción para responder a cambios de tamaño en
- * vivo (ej. rotación, drawer DevTools).
- *
- * Devuelve `undefined` durante el render del servidor y el primer render del
- * cliente (no conocemos el viewport todavía). Recién en el efecto post-montaje
- * resuelve a `true`/`false`. Así el primer render del cliente coincide con el
- * del servidor y se evita el hydration mismatch + el flash de canvas→lista en
- * móvil. Los consumidores deben tratar `undefined` como "aún no sé".
+ * Implementado con `useSyncExternalStore`: el snapshot del servidor es
+ * `undefined` (no conocemos el viewport en SSR), así que el primer render del
+ * cliente coincide con el del servidor y se evita el hydration mismatch + el
+ * flash de canvas→lista en móvil. Tras hidratar, React vuelve a leer el
+ * snapshot del cliente y resuelve a `true`/`false`. Los consumidores deben
+ * tratar `undefined` como "aún no sé". `matchMedia` se suscribe para responder
+ * a cambios en vivo (rotación, drawer DevTools).
  */
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 const MOBILE_QUERY = '(max-width: 767px)'
 
+function subscribe(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
+  const mq = window.matchMedia(MOBILE_QUERY)
+  if (mq.addEventListener) mq.addEventListener('change', onChange)
+  else mq.addListener(onChange) // Safari < 14
+  return () => {
+    if (mq.removeEventListener) mq.removeEventListener('change', onChange)
+    else mq.removeListener(onChange)
+  }
+}
+
+// getSnapshot solo corre en el cliente (en SSR se usa getServerSnapshot).
+// Devuelve un boolean primitivo → estable bajo Object.is, sin bucles.
+function getSnapshot(): boolean {
+  return window.matchMedia(MOBILE_QUERY).matches
+}
+
+function getServerSnapshot(): boolean | undefined {
+  return undefined
+}
+
 export function useIsMobile(): boolean | undefined {
-  const [isMobile, setIsMobile] = useState<boolean | undefined>(undefined)
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    const mq = window.matchMedia(MOBILE_QUERY)
-    setIsMobile(mq.matches)
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    if (mq.addEventListener) mq.addEventListener('change', handler)
-    else mq.addListener(handler) // Safari < 14
-    return () => {
-      if (mq.removeEventListener) mq.removeEventListener('change', handler)
-      else mq.removeListener(handler)
-    }
-  }, [])
-
-  return isMobile
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

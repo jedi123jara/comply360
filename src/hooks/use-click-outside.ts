@@ -21,8 +21,11 @@ export function useClickOutside<T extends HTMLElement>(
 ) {
   // Guardamos el callback en un ref para no re-suscribir los listeners en cada
   // render (el callback suele ser una arrow inline) ni arrastrar closures viejos.
+  // El ref se actualiza en un efecto, no en render (regla react-hooks/refs).
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
 
   useEffect(() => {
     if (!enabled) return

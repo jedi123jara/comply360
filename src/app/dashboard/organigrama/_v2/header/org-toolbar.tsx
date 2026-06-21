@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { useRef, useState } from 'react'
 
+import { Tooltip } from '@/components/ui/tooltip'
 import { useClickOutside } from '@/hooks/use-click-outside'
 import { useOrgStore } from '../state/org-store'
 import { AlertsButton } from './alerts-button'
@@ -116,18 +117,19 @@ export function OrgToolbar({
 
       {!designMode ? (
         <>
-          <button
-            type="button"
-            onClick={() => setCommandPaletteOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-            title="Buscar"
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden md:inline">Buscar</span>
-            <kbd className="hidden rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500 md:inline">
-              K
-            </kbd>
-          </button>
+          <Tooltip content="Buscar en el organigrama (K)">
+            <button
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden md:inline">Buscar</span>
+              <kbd className="hidden rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500 md:inline">
+                K
+              </kbd>
+            </button>
+          </Tooltip>
 
           <button
             type="button"
@@ -345,15 +347,16 @@ function MoreMenu({
 
   return (
     <div ref={containerRef} className="relative ml-auto">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
-        title="Mas opciones"
-        aria-label="Mas opciones"
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </button>
+      <Tooltip content="Más opciones">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
+          aria-label="Más opciones"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </Tooltip>
       {open && (
         <div className="absolute right-0 top-[calc(100%+4px)] z-30 grid max-h-[70vh] w-[280px] gap-0.5 overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-xl">
           {/* ── Inteligencia ── */}
