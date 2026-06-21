@@ -6,6 +6,7 @@ import {
   type ComiteContext,
 } from '../comites-obligatorios'
 import { listOrgTemplates } from '../templates'
+import { findingExposure } from '../legal-exposure'
 
 function evalById(ctx: ComiteContext) {
   const map = new Map(evaluarComitesObligatorios(ctx).map((r) => [r.obligacion.id, r]))
@@ -125,6 +126,18 @@ describe('catálogo de comités obligatorios', () => {
     })
     it('no matchea unidades no relacionadas', () => {
       expect(obligacionCubierta('sst', ['Gerencia de Operaciones', 'Recursos Humanos'])).toBe(false)
+    })
+  })
+
+  describe('exposición a multa por severidad', () => {
+    it('cada severidad del catálogo es un input válido y da multa positiva', () => {
+      for (const o of COMITES_OBLIGATORIOS) {
+        expect(findingExposure(o.severity, 50), `severidad ${o.severity} de ${o.id}`).toBeGreaterThan(0)
+      }
+    })
+    it('la multa escala con la gravedad: CRITICAL > HIGH > MEDIUM', () => {
+      expect(findingExposure('CRITICAL', 50)).toBeGreaterThan(findingExposure('HIGH', 50))
+      expect(findingExposure('HIGH', 50)).toBeGreaterThan(findingExposure('MEDIUM', 50))
     })
   })
 

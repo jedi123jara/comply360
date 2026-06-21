@@ -8,7 +8,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ShieldCheck,
   Check,
@@ -39,7 +39,21 @@ import {
   type ComiteApplicability,
   type ComiteResolved,
 } from '@/lib/orgchart/comites-obligatorios'
+import { findingExposure } from '@/lib/orgchart/legal-exposure'
 import type { OrgChartTree } from '@/lib/orgchart/types'
+
+interface Demographics {
+  workerCount: number
+  womenCount: number
+  womenFertileCount: number
+  processesPersonalData: boolean
+}
+
+const solesFmt = new Intl.NumberFormat('es-PE', {
+  style: 'currency',
+  currency: 'PEN',
+  maximumFractionDigits: 0,
+})
 
 const APPLICABILITY_STYLE: Record<ComiteApplicability, string> = {
   obligatorio: 'bg-rose-100 text-rose-700',
@@ -56,18 +70,34 @@ export function ComitesCatalogoModal() {
   const queryClient = useQueryClient()
   const treeQuery = useTreeQuery(null)
   const rosterQuery = useWorkersRosterQuery(open)
+  const demographicsQuery = useQuery<Demographics>({
+    queryKey: ['orgchart', 'demographics'],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const res = await fetch('/api/orgchart/demographics')
+      if (!res.ok) throw new Error('No se pudo cargar la demografía de la empresa')
+      return res.json() as Promise<Demographics>
+    },
+  })
   const tree = treeQuery.data ?? null
+  const demo = demographicsQuery.data
 
-  // Contexto: el nº de trabajadores viene del roster (cap 500). El nº de mujeres
-  // / mujeres fértiles / tratamiento de datos no se conocen aún → esas
-  // obligaciones se muestran como "según tu caso".
-  const workerCount = rosterQuery.data?.length ?? 0
+  // El contexto (nº de trabajadores, mujeres, mujeres fértiles, tratamiento de
+  // datos) viene del endpoint agregado, para resolver las obligaciones
+  // condicionales (lactario / asistenta social / DPO) sin dejarlas en "según tu caso".
+  const workerCount = demo?.workerCount ?? 0
   const resolved = useMemo(() => {
-    const list = evaluarComitesObligatorios({ workerCount })
+    const list = evaluarComitesObligatorios({
+      workerCount: demo?.workerCount ?? 0,
+      womenCount: demo?.womenCount,
+      womenFertileCount: demo?.womenFertileCount,
+      processesPersonalData: demo?.processesPersonalData,
+    })
     return [...list].sort(
       (a, b) => APPLICABILITY_ORDER[a.applicability] - APPLICABILITY_ORDER[b.applicability],
     )
-  }, [workerCount])
+  }, [demo])
 
   const [assignUnitId, setAssignUnitId] = useState<string | null>(null)
   const [creatingId, setCreatingId] = useState<string | null>(null)
@@ -147,11 +177,11 @@ export function ComitesCatalogoModal() {
         />
       ) : (
         <div className="space-y-2.5">
-          {treeQuery.isLoading || rosterQuery.isLoading ? (
+          {treeQuery.isLoading || rosterQuery.isLoading || demographicsQuery.isLoading ? (
             <div className="flex justify-center py-10 text-slate-400">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
-          ) : rosterQuery.isError || treeQuery.isError ? (
+          ) : rosterQuery.isError || treeQuery.isError || demographicsQuery.isError ? (
             // Sin estos datos no podemos saber el tamaño de la empresa y los
             // umbrales resolverían mal. Mejor mostrar un error que un catálogo falso.
             <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -165,6 +195,7 @@ export function ComitesCatalogoModal() {
                 onClick={() => {
                   rosterQuery.refetch()
                   treeQuery.refetch()
+                  demographicsQuery.refetch()
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
               >
@@ -174,15 +205,31 @@ export function ComitesCatalogoModal() {
           ) : (
             <>
               <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                Tu empresa tiene <strong className="text-slate-700">{workerCount}</strong>{' '}
-                trabajadores registrados. El umbral clave es <strong>20</strong> (comité paritario
-                vs. responsable único).
+                Tu empresa tiene <strong className="text-slate-700">{workerCount}</strong> trabajadores
+                {demo && demo.womenCount > 0 && (
+                  <>
+                    {' '}
+                    ({demo.womenCount} mujeres
+                    {demo.womenFertileCount > 0
+                      ? `, ${demo.womenFertileCount} en edad fértil`
+                      : ''}
+                    )
+                  </>
+                )}
+                . El umbral clave es <strong>20</strong> (comité paritario vs. responsable único).
               </p>
               {resolved.map((item) => {
                 const unitId = coveredUnitId(item.obligacion.id)
                 const covered = Boolean(unitId)
                 const isDoc = item.obligacion.kind === 'documento'
                 const muted = item.applicability === 'no-aplica'
+                // Exposición a multa SUNAFIL de NO tener la obligación (peor caso),
+                // solo para las que faltan y son obligatorias/recomendadas.
+                const multa =
+                  !covered &&
+                  (item.applicability === 'obligatorio' || item.applicability === 'recomendado')
+                    ? findingExposure(item.obligacion.severity, workerCount)
+                    : null
                 return (
                   <div
                     key={item.obligacion.id}
@@ -211,6 +258,11 @@ export function ComitesCatalogoModal() {
                         <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-400">
                           <Scale className="h-3 w-3" /> {item.obligacion.legalBasis}
                         </p>
+                        {multa != null && multa > 0 && (
+                          <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+                            Exposición a multa: hasta {solesFmt.format(multa)}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
                         {isDoc ? (
