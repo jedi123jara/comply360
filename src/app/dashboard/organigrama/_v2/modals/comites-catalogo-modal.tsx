@@ -146,6 +146,18 @@ export function ComitesCatalogoModal() {
   const coveredUnitId = (obligacionId: string): string | null =>
     tree?.units.find((u) => obligacionCubierta(obligacionId, [u.name]))?.id ?? null
 
+  // Espeja la unidad del comité SST al módulo SST Premium (best-effort) y
+  // refresca el estado para que la tarjeta pase a "Gestionar en SST".
+  const reconcileSst = (orgUnitId: string) => {
+    fetch('/api/orgchart/comite-sst/reconcile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgUnitId }),
+    })
+      .then(() => sstComiteQuery.refetch())
+      .catch(() => {})
+  }
+
   const createTemplate = async (item: ComiteResolved) => {
     if (!item.templateId) return
     setCreatingId(item.obligacion.id)
@@ -176,8 +188,13 @@ export function ComitesCatalogoModal() {
       const unit = appliedUnitName
         ? fresh?.units.find((u) => u.name === appliedUnitName)
         : fresh?.units.find((u) => obligacionCubierta(item.obligacion.id, [u.name]))
-      if (unit) setAssignUnitId(unit.id)
-      else toast.info('Comité creado. Ábrelo desde el catálogo para asignar sus cargos.')
+      if (unit) {
+        setAssignUnitId(unit.id)
+        // Si es el comité SST y la org tiene el módulo, enlaza/crea el ComiteSST.
+        if (item.obligacion.id === 'sst' && sstState.available) reconcileSst(unit.id)
+      } else {
+        toast.info('Comité creado. Ábrelo desde el catálogo para asignar sus cargos.')
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {
@@ -208,6 +225,11 @@ export function ComitesCatalogoModal() {
           roster={rosterQuery.data ?? []}
           onBack={() => setAssignUnitId(null)}
           onDone={handleClose}
+          onAfterAssign={
+            sstState.available && obligacionCubierta('sst', [assignUnit.name])
+              ? () => reconcileSst(assignUnit.id)
+              : undefined
+          }
         />
       ) : (
         <div className="space-y-2.5">
@@ -377,12 +399,15 @@ function AssignWizard({
   roster,
   onBack,
   onDone,
+  onAfterAssign,
 }: {
   tree: OrgChartTree
   unitId: string
   roster: RosterWorker[]
   onBack: () => void
   onDone: () => void
+  /** Hook tras una asignación exitosa (p.ej. espejar al Comité SST). */
+  onAfterAssign?: () => void
 }) {
   const queryClient = useQueryClient()
 
@@ -465,6 +490,7 @@ function AssignWizard({
       // refetchQueries espera el refetch → el árbol (y los ocupantes) quedan
       // frescos antes de re-render, sin mostrar al recién asignado como libre.
       await queryClient.refetchQueries({ queryKey: treeKey(null) })
+      onAfterAssign?.()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {
