@@ -8,7 +8,11 @@
 
 import { m, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
+
+/** Selector de elementos focusables dentro del panel del modal. */
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
 
 export interface ModalShellProps {
   open: boolean
@@ -40,6 +44,13 @@ export function ModalShell({
   children,
   footer,
 }: ModalShellProps) {
+  // Id unico por instancia para enlazar el panel con su titulo (aria-labelledby).
+  const titleId = useId()
+  // Ref al panel del modal: lo usamos para focus inicial y para el focus-trap.
+  const panelRef = useRef<HTMLDivElement>(null)
+  // Guarda el elemento que tenia el foco antes de abrir, para restaurarlo al cerrar.
+  const previouslyFocused = useRef<HTMLElement | null>(null)
+
   // Atajo Escape
   useEffect(() => {
     if (!open) return
@@ -49,6 +60,66 @@ export function ModalShell({
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
+
+  // Focus management: al abrir guardamos el foco previo y enfocamos el panel
+  // (o el primer focusable). Respetamos cualquier autoFocus de los children.
+  // Al cerrar restauramos el foco al elemento que lo tenia.
+  useEffect(() => {
+    if (!open) return
+
+    previouslyFocused.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+
+    const panel = panelRef.current
+    // Si algun child ya tomo el foco (p.ej. input con autoFocus), no se lo robamos.
+    const autoFocused =
+      panel && panel.contains(document.activeElement) && document.activeElement !== panel
+
+    if (panel && !autoFocused) {
+      const firstFocusable = panel.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
+      ;(firstFocusable ?? panel).focus()
+    }
+
+    return () => {
+      previouslyFocused.current?.focus()
+    }
+  }, [open])
+
+  // Focus trap: Tab / Shift+Tab circulan dentro del panel sin escapar.
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const panel = panelRef.current
+      if (!panel) return
+
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement)
+      if (focusables.length === 0) {
+        // Sin focusables: mantenemos el foco en el panel para no escapar del modal.
+        e.preventDefault()
+        panel.focus()
+        return
+      }
+
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement
+
+      if (e.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else if (active === last || !panel.contains(active)) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [open])
 
   return (
     <AnimatePresence>
@@ -62,6 +133,11 @@ export function ModalShell({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm"
         >
           <m.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.95, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -77,7 +153,7 @@ export function ModalShell({
                   </div>
                 )}
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+                  <h2 id={titleId} className="text-base font-semibold text-slate-900">{title}</h2>
                   {subtitle && (
                     <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
                   )}

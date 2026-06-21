@@ -413,7 +413,13 @@ export function OrganigramaShellV2() {
                 filterLabel={commissionTypeLabel(commissionFilter)}
               />
             ) : (
-              <EmptyOnboarding onStart={() => setShowOnboarding(true)} />
+              <EmptyOnboarding
+                onStart={() => setShowOnboarding(true)}
+                onBootstrapFromWorkers={() =>
+                  useOrgStore.getState().openModal('bootstrap-from-workers')
+                }
+                onUseTemplate={() => useOrgStore.getState().openModal('templates')}
+              />
             )
           ) : isMobile && tree ? (
             <MobileTreeView tree={tree} coverage={coverage} />
@@ -474,31 +480,86 @@ export function OrganigramaShellV2() {
   )
 }
 
-function EmptyOnboarding({ onStart }: { onStart: () => void }) {
+function EmptyOnboarding({
+  onStart,
+  onBootstrapFromWorkers,
+  onUseTemplate,
+}: {
+  onStart: () => void
+  onBootstrapFromWorkers: () => void
+  onUseTemplate: () => void
+}) {
+  const cards: Array<{
+    title: string
+    description: string
+    icon: typeof Sparkles
+    onClick: () => void
+    iconWrap: string
+    ring: string
+  }> = [
+    {
+      title: 'Crea tu organigrama con IA',
+      description:
+        'Danos tres datos de tu empresa y la IA te propone toda la estructura, con roles legales según la ley peruana.',
+      icon: Sparkles,
+      onClick: onStart,
+      iconWrap: 'bg-emerald-100 text-emerald-700',
+      ring: 'hover:border-emerald-300 hover:ring-emerald-100',
+    },
+    {
+      title: 'Genera desde tu planilla',
+      description:
+        'Usa a los trabajadores que ya tienes registrados para armar áreas, cargos y asignaciones automáticamente.',
+      icon: UsersRound,
+      onClick: onBootstrapFromWorkers,
+      iconWrap: 'bg-sky-100 text-sky-700',
+      ring: 'hover:border-sky-300 hover:ring-sky-100',
+    },
+    {
+      title: 'Usa una plantilla',
+      description:
+        'Parte de una estructura lista: Comité SST, brigadas o comisiones, y ajústala a tu medida en segundos.',
+      icon: LayoutTemplate,
+      onClick: onUseTemplate,
+      iconWrap: 'bg-violet-100 text-violet-700',
+      ring: 'hover:border-violet-300 hover:ring-violet-100',
+    },
+  ]
+
   return (
     <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 p-8 text-center">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-200">
         <Wand2 className="h-7 w-7 text-white" />
       </div>
       <h2 className="text-xl font-semibold text-slate-900">
-        Tu organigrama en 60 segundos
+        Arma tu organigrama en minutos
       </h2>
       <p className="mt-2 max-w-md text-sm text-slate-600">
-        Cuéntanos tres datos básicos de tu empresa y la IA te propone un organigrama
-        completo, con roles legales sugeridos según la ley peruana. Lo ajustas como
-        quieras antes de aplicar.
+        Empieza por donde quieras. Puedes generar la estructura con IA, partir de tu
+        planilla o usar una plantilla. Siempre la ajustas antes de aplicar.
       </p>
-      <button
-        type="button"
-        onClick={onStart}
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700 hover:shadow-lg"
-      >
-        <Sparkles className="h-4 w-4" />
-        Crear con IA
-      </button>
-      <p className="mt-3 text-[11px] text-slate-400">
-        ¿Ya tienes datos? Importa desde Excel o usa una plantilla del menú.
-      </p>
+
+      <div className="mt-8 grid w-full max-w-3xl grid-cols-1 gap-4 md:grid-cols-3">
+        {cards.map((card) => {
+          const Icon = card.icon
+          return (
+            <button
+              key={card.title}
+              type="button"
+              onClick={card.onClick}
+              className={`group flex h-full flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm ring-1 ring-transparent transition hover:shadow-md ${card.ring}`}
+            >
+              <span
+                className={`flex h-12 w-12 items-center justify-center rounded-full transition group-hover:scale-105 ${card.iconWrap}`}
+              >
+                <Icon className="h-6 w-6" />
+              </span>
+              <span className="text-sm font-semibold text-slate-900">{card.title}</span>
+              <span className="text-xs leading-relaxed text-slate-500">{card.description}</span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

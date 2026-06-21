@@ -793,6 +793,7 @@ function WorkerInspector({
 }) {
   const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
   const worker = assignment.worker
+  const salaryBand = checkSalaryBand(worker.sueldoBruto, position)
 
   return (
     <aside className="flex h-full w-[400px] flex-col border-l border-slate-200 bg-white">
@@ -842,6 +843,21 @@ function WorkerInspector({
                   {assignment.isInterim ? 'Interino' : 'Titular'} · {assignment.capacityPct}%
                 </span>
               </div>
+              {salaryBand && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-slate-500">Sueldo vs banda</span>
+                  {salaryBand.outOfBand ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                      title={`Sueldo ${formatSoles(salaryBand.sueldoBruto)} fuera de la banda del cargo (${salaryBand.bandLabel})`}
+                    >
+                      {salaryBand.position === 'below' ? 'Bajo la banda' : 'Sobre la banda'}
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-emerald-700">Dentro de banda</span>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -1055,6 +1071,50 @@ function daysUntil(value: string) {
   const end = new Date(value).getTime()
   if (!Number.isFinite(end)) return Number.POSITIVE_INFINITY
   return Math.ceil((end - Date.now()) / 86_400_000)
+}
+
+// Reconcilia el sueldo del trabajador contra la banda salarial de su cargo.
+// Devuelve null cuando no hay banda definida o no hay sueldo expuesto (en ese
+// caso el inspector no muestra nada). Solo lectura: no altera planilla.
+interface SalaryBandCheck {
+  sueldoBruto: number
+  outOfBand: boolean
+  position: 'below' | 'within' | 'above'
+  bandLabel: string
+}
+
+function checkSalaryBand(
+  sueldoBruto: number | null | undefined,
+  position: OrgChartTree['positions'][number] | null,
+): SalaryBandCheck | null {
+  if (sueldoBruto == null || !Number.isFinite(sueldoBruto)) return null
+  if (!position) return null
+
+  const minRaw = position.salaryBandMin != null ? Number(position.salaryBandMin) : null
+  const maxRaw = position.salaryBandMax != null ? Number(position.salaryBandMax) : null
+  const min = minRaw != null && Number.isFinite(minRaw) ? minRaw : null
+  const max = maxRaw != null && Number.isFinite(maxRaw) ? maxRaw : null
+
+  // Sin banda definida → no mostramos aviso.
+  if (min == null && max == null) return null
+
+  let bandPosition: 'below' | 'within' | 'above' = 'within'
+  if (min != null && sueldoBruto < min) bandPosition = 'below'
+  else if (max != null && sueldoBruto > max) bandPosition = 'above'
+
+  const bandLabel =
+    min != null && max != null
+      ? `${formatSoles(min)} – ${formatSoles(max)}`
+      : min != null
+        ? `desde ${formatSoles(min)}`
+        : `hasta ${formatSoles(max as number)}`
+
+  return {
+    sueldoBruto,
+    outOfBand: bandPosition !== 'within',
+    position: bandPosition,
+    bandLabel,
+  }
 }
 
 // ─── Tab "Reportes" — descargas relacionadas con la unidad ───────────────────
