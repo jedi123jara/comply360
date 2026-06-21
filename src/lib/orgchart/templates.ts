@@ -573,12 +573,24 @@ function buildRecommendationSignalBag(signals: OrgTemplateRecommendationSignals)
   return normalizeKey(values.join(' '))
 }
 
+/**
+ * Perfil neutro para plantillas sin entrada propia en
+ * TEMPLATE_RECOMMENDATION_PROFILES: evita que una plantilla nueva (ej. comités
+ * obligatorios) rompa la recomendación con un crash de `undefined.sectorKeywords`.
+ */
+const NEUTRAL_RECOMMENDATION_PROFILE = {
+  sectorKeywords: [] as string[],
+  contextKeywords: [] as string[],
+  ciiuPrefixes: [] as string[],
+  minWorkerCount: 1,
+}
+
 function scoreTemplateRecommendation(
   template: OrgTemplate,
   signals: OrgTemplateRecommendationSignals,
   signalBag: string,
 ): OrgTemplateRecommendation {
-  const profile = TEMPLATE_RECOMMENDATION_PROFILES[template.id]
+  const profile = TEMPLATE_RECOMMENDATION_PROFILES[template.id] ?? NEUTRAL_RECOMMENDATION_PROFILE
   let score = 35
   const reasons: string[] = []
   const detectedSignals: string[] = []
@@ -764,6 +776,36 @@ const TEMPLATE_RECOMMENDATION_PROFILES: Record<
     ciiuPrefixes: [],
     minWorkerCount: 1,
     prefersSst: true,
+  },
+  'comite-hostigamiento-sexual': {
+    sectorKeywords: ['hostigamiento', 'cihso', 'intervencion', 'sexual'],
+    contextKeywords: ['hostigamiento', 'cihso', 'denuncia', 'rrhh', 'comite', 'trabajadores'],
+    ciiuPrefixes: [],
+    minWorkerCount: 20,
+  },
+  'gestor-hostigamiento-sexual': {
+    sectorKeywords: ['hostigamiento', 'gestor', 'intervencion', 'sexual'],
+    contextKeywords: ['hostigamiento', 'gestor', 'denuncia', 'rrhh'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+  },
+  'lactario-institucional': {
+    sectorKeywords: ['lactario', 'lactancia', 'maternidad'],
+    contextKeywords: ['lactario', 'lactancia', 'rrhh', 'bienestar'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+  },
+  'asistenta-social': {
+    sectorKeywords: ['social', 'bienestar', 'asistenta'],
+    contextKeywords: ['social', 'bienestar', 'rrhh', 'asistenta'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+  },
+  'responsable-datos-personales': {
+    sectorKeywords: ['datos', 'privacidad', 'proteccion', 'dpo'],
+    contextKeywords: ['datos personales', 'dpo', 'privacidad', 'cumplimiento', 'legal'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
   },
 }
 
