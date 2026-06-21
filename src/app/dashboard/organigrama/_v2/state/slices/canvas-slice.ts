@@ -33,9 +33,6 @@ export interface CanvasSlice {
   collapsedIds: Set<string>
   toggleCollapsed: (id: string) => void
   expandAll: () => void
-  // Modo presentación / time-machine / what-if (transforma el chrome del canvas)
-  canvasMode: 'edit' | 'time-machine' | 'what-if' | 'present'
-  setCanvasMode: (mode: 'edit' | 'time-machine' | 'what-if' | 'present') => void
 }
 
 export const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> = (set) => ({
@@ -61,6 +58,4 @@ export const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> =
       return { collapsedIds: next }
     }),
   expandAll: () => set({ collapsedIds: new Set<string>() }),
-  canvasMode: 'edit',
-  setCanvasMode: (canvasMode) => set({ canvasMode }),
 })

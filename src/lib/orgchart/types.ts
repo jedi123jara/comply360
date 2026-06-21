@@ -77,6 +77,7 @@ export interface OrgAssignmentDTO {
     fechaIngreso: string
     legajoScore: number | null
     status: string
+    sueldoBruto?: number | null
   }
 }
 

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 import { insertClosureForNewUnit, isDescendantOf, moveSubtree } from './closure-maintenance'
 import type { OrgChartTree, OrgUnitDTO, OrgPositionDTO, OrgAssignmentDTO, OrgComplianceRoleDTO } from './types'
 
@@ -57,6 +58,7 @@ export async function getTree(orgId: string, asOf?: Date | null): Promise<OrgCha
             fechaIngreso: true,
             legajoScore: true,
             status: true,
+            sueldoBruto: true,
           },
         },
       },
@@ -275,6 +277,7 @@ type AssignmentRow = Awaited<ReturnType<typeof prisma.orgAssignment.findFirst>> 
     fechaIngreso: Date
     legajoScore: number | null
     status: string
+    sueldoBruto: Prisma.Decimal
   }
 }
 type ComplianceRoleRow = Awaited<ReturnType<typeof prisma.orgComplianceRole.findFirst>> & {
@@ -343,6 +346,7 @@ function toAssignmentDTO(a: AssignmentRow): OrgAssignmentDTO {
     worker: {
       ...a.worker,
       fechaIngreso: a.worker.fechaIngreso.toISOString(),
+      sueldoBruto: a.worker.sueldoBruto != null ? Number(a.worker.sueldoBruto) : null,
     },
   }
 }

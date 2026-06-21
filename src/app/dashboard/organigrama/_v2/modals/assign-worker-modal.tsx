@@ -14,15 +14,7 @@ import { ModalShell } from './modal-shell'
 import { useOrgStore } from '../state/org-store'
 import { useTreeQuery, treeKey } from '../data/queries/use-tree'
 import { alertsKey } from '../data/queries/use-alerts'
-
-interface WorkerOption {
-  id: string
-  firstName: string
-  lastName: string
-  dni: string
-  position: string | null
-  department: string | null
-}
+import { useWorkersRosterQuery } from '../data/queries/use-workers'
 
 export function AssignWorkerModal() {
   const activeModal = useOrgStore((s) => s.activeModal)
@@ -49,8 +41,7 @@ export function AssignWorkerModal() {
     explicitPositionId ?? (!explicitUnitId ? selectedPositionId : undefined) ?? undefined
 
   const [positionId, setPositionId] = useState<string | null>(presetPositionId ?? null)
-  const [workers, setWorkers] = useState<WorkerOption[]>([])
-  const [loading, setLoading] = useState(false)
+  const { data: workers = [], isLoading: loading } = useWorkersRosterQuery(open)
   const [search, setSearch] = useState('')
   const [positionSearch, setPositionSearch] = useState('')
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null)
@@ -128,15 +119,6 @@ export function AssignWorkerModal() {
       if (!open) return
       setPositionId(presetPositionId ?? null)
       setPositionSearch('')
-      setLoading(true)
-      fetch('/api/workers?limit=500')
-        .then((r) => r.json())
-        .then((data) => {
-          const items = data.workers ?? data.items ?? data.data ?? data
-          setWorkers(Array.isArray(items) ? items : [])
-        })
-        .catch(() => toast.error('No se pudieron cargar trabajadores'))
-        .finally(() => setLoading(false))
     })
     return () => {
       cancelled = true

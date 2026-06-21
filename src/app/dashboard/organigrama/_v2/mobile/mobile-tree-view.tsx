@@ -85,6 +85,16 @@ export function MobileTreeView({ tree, coverage }: MobileTreeViewProps) {
     return map
   }, [tree])
 
+  // Índices para evitar .find() repetido al construir el set de resultados de búsqueda.
+  const positionById = useMemo(
+    () => new Map(tree.positions.map((p) => [p.id, p])),
+    [tree],
+  )
+  const unitById = useMemo(
+    () => new Map(tree.units.map((u) => [u.id, u])),
+    [tree],
+  )
+
   // Filtro: si hay búsqueda, recolectamos los unitIds que matchean (por sí mismos
   // o por algún cargo dentro) y todos sus ancestros para mantener jerarquía.
   const visibleUnitIds = useMemo(() => {
@@ -100,7 +110,7 @@ export function MobileTreeView({ tree, coverage }: MobileTreeViewProps) {
     for (const a of tree.assignments) {
       const full = `${a.worker.firstName} ${a.worker.lastName}`.toLowerCase()
       if (full.includes(q)) {
-        const pos = tree.positions.find((p) => p.id === a.positionId)
+        const pos = positionById.get(a.positionId)
         if (pos) matches.add(pos.orgUnitId)
       }
     }
@@ -108,14 +118,14 @@ export function MobileTreeView({ tree, coverage }: MobileTreeViewProps) {
     const result = new Set<string>()
     for (const id of matches) {
       result.add(id)
-      let cursor: string | null | undefined = tree.units.find((u) => u.id === id)?.parentId
+      let cursor: string | null | undefined = unitById.get(id)?.parentId
       while (cursor) {
         result.add(cursor)
-        cursor = tree.units.find((u) => u.id === cursor)?.parentId
+        cursor = unitById.get(cursor)?.parentId
       }
     }
     return result
-  }, [search, tree])
+  }, [search, tree, positionById, unitById])
 
   const roots = childrenByParent.get(null) ?? []
 
@@ -425,7 +435,10 @@ function FabMenu({
   onCopilot: () => void
 }) {
   return (
-    <div className="fixed bottom-4 right-4 z-30 flex flex-col items-end gap-2">
+    <div
+      className="fixed bottom-4 right-4 z-30 flex flex-col items-end gap-2"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <button
         type="button"
         onClick={onSearch}

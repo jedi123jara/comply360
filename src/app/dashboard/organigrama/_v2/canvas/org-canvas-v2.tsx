@@ -106,6 +106,10 @@ function OrgCanvasV2Inner({
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
   const setSelectedPosition = useOrgStore((s) => s.setSelectedPosition)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
+  // Snapshot activo (Time Machine). En edición normal es `null` (árbol vivo);
+  // si en el futuro se habilita edición histórica, las mutaciones e invalidaciones
+  // deben apuntar a la key del snapshot correcto, no asumir `null`.
+  const currentSnapshotId = useOrgStore((s) => s.currentSnapshotId)
 
   // Coverage report — la base del Compliance Heatmap.
   const coverage: CoverageReport | null = useMemo(() => {
@@ -235,7 +239,7 @@ function OrgCanvasV2Inner({
         }
         if (target && !isDescendant(node.id, target.id)) {
           reparentMutation.mutate(
-            { positionId: node.id, newParentId: target.id },
+            { positionId: node.id, newParentId: target.id, snapshotId: currentSnapshotId },
             {
               onSuccess: () => toast.success('Línea de mando actualizada'),
               onError: (err) => toast.error(err instanceof Error ? err.message : 'Error'),
@@ -253,7 +257,7 @@ function OrgCanvasV2Inner({
         return next
       })
     },
-    [positionMode, readOnly, getIntersectingNodes, isDescendant, reparentMutation],
+    [positionMode, readOnly, getIntersectingNodes, isDescendant, reparentMutation, currentSnapshotId],
   )
 
   // --- Drop desde el panel de Trabajadores: soltar un worker sobre un cargo lo asigna ---
@@ -300,12 +304,12 @@ function OrgCanvasV2Inner({
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data?.error ?? 'No se pudo asignar')
         toast.success('Trabajador asignado al cargo')
-        queryClient.invalidateQueries({ queryKey: treeKey(null) })
+        queryClient.invalidateQueries({ queryKey: treeKey(currentSnapshotId) })
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Error al asignar')
       }
     },
-    [readOnly, positionMode, finalNodes, screenToFlowPosition, queryClient],
+    [readOnly, positionMode, finalNodes, screenToFlowPosition, queryClient, currentSnapshotId],
   )
 
   const handleConnect: OnConnect = useCallback(
@@ -318,6 +322,7 @@ function OrgCanvasV2Inner({
         {
           positionId: connection.target,
           newParentId: connection.source,
+          snapshotId: currentSnapshotId,
         },
         {
           onSuccess: () => toast.success('Línea de mando actualizada'),
@@ -325,7 +330,7 @@ function OrgCanvasV2Inner({
         },
       )
     },
-    [positionMode, readOnly, reparentMutation],
+    [positionMode, readOnly, reparentMutation, currentSnapshotId],
   )
 
   const handleNodeClick: NodeMouseHandler = useCallback(

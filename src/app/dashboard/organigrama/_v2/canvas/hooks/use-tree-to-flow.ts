@@ -317,9 +317,10 @@ function buildUnitFlow(
   for (const p of tree.positions) {
     positionsByUnit.set(p.orgUnitId, (positionsByUnit.get(p.orgUnitId) ?? 0) + 1)
   }
+  const positionById = new Map(tree.positions.map((p) => [p.id, p]))
   const occupantsByUnit = new Map<string, number>()
   for (const a of tree.assignments) {
-    const pos = tree.positions.find((p) => p.id === a.positionId)
+    const pos = positionById.get(a.positionId)
     if (!pos) continue
     occupantsByUnit.set(pos.orgUnitId, (occupantsByUnit.get(pos.orgUnitId) ?? 0) + 1)
   }

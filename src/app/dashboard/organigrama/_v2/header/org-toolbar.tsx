@@ -2,7 +2,7 @@
  * Toolbar v2 — separa lectura y edición.
  *
  * Vista normal: Buscar · Diseñar estructura · Agregar · Vista · Mas
- * Modo diseño: Autoordenar · Agregar nivel · Asignar · Validar · Listo
+ * Modo diseño: Reorganizar · Agregar área · Asignar · Validar · Listo
  */
 'use client'
 
@@ -12,6 +12,7 @@ import {
   Camera,
   Check,
   ChevronDown,
+  Crosshair,
   Download,
   Eye,
   FolderClock,
@@ -21,7 +22,6 @@ import {
   ListTree,
   MoreHorizontal,
   Plus,
-  RefreshCw,
   Scale,
   ScrollText,
   Search,
@@ -32,8 +32,10 @@ import {
   Wand2,
   Zap,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
+import { Tooltip } from '@/components/ui/tooltip'
+import { useClickOutside } from '@/hooks/use-click-outside'
 import { useOrgStore } from '../state/org-store'
 import { AlertsButton } from './alerts-button'
 import { LayoutSwitcher } from './layout-switcher'
@@ -49,7 +51,6 @@ interface OrgToolbarProps {
   onOpenTimeMachine?: () => void
   onClearSnapshot?: () => void
   onReorganize?: () => void
-  reorganizeLoading?: boolean
   reorganizeDisabled?: boolean
   snapshotsCount?: number
   currentSnapshotId?: string | null
@@ -64,7 +65,6 @@ export function OrgToolbar({
   onOpenTimeMachine,
   onClearSnapshot,
   onReorganize,
-  reorganizeLoading = false,
   reorganizeDisabled = false,
   snapshotsCount = 0,
   currentSnapshotId = null,
@@ -76,6 +76,7 @@ export function OrgToolbar({
   const setCommandPaletteOpen = useOrgStore((s) => s.setCommandPaletteOpen)
   const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
+  const toggleFocus = useOrgStore((s) => s.toggleFocus)
   const openModal = useOrgStore((s) => s.openModal)
   const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
   const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
@@ -116,18 +117,19 @@ export function OrgToolbar({
 
       {!designMode ? (
         <>
-          <button
-            type="button"
-            onClick={() => setCommandPaletteOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-            title="Buscar"
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden md:inline">Buscar</span>
-            <kbd className="hidden rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500 md:inline">
-              K
-            </kbd>
-          </button>
+          <Tooltip content="Buscar en el organigrama (K)">
+            <button
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden md:inline">Buscar</span>
+              <kbd className="hidden rounded bg-slate-100 px-1 py-0.5 text-[10px] font-medium text-slate-500 md:inline">
+                K
+              </kbd>
+            </button>
+          </Tooltip>
 
           <button
             type="button"
@@ -166,6 +168,7 @@ export function OrgToolbar({
             onSnapshot={onSnapshot}
             onOpenAuditor={onOpenAuditor}
             onOpenDoctor={() => setDoctorOpen(true)}
+            onToggleFocus={toggleFocus}
             onOpenModal={openModal}
           />
         </>
@@ -182,22 +185,22 @@ export function OrgToolbar({
               e.preventDefault()
               onReorganize?.()
             }}
-            disabled={reorganizeDisabled || reorganizeLoading}
+            disabled={reorganizeDisabled}
             className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-55"
             title="Reorganizar la jerarquía"
           >
-            <RefreshCw className={`h-4 w-4 ${reorganizeLoading ? 'animate-spin' : ''}`} />
-            <span>{reorganizeLoading ? 'Reorganizando' : 'Reorganizar…'}</span>
+            <Wand2 className="h-4 w-4" />
+            <span>Reorganizar…</span>
           </button>
 
           <button
             type="button"
             onClick={onCreateUnit}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            title="Agregar nivel"
+            title="Agregar área"
           >
             <Plus className="h-4 w-4" />
-            <span>Agregar nivel</span>
+            <span>Agregar área</span>
           </button>
 
           {hasSelection && (
@@ -257,12 +260,14 @@ function CreateMenu({
   onAssign: () => void
   onBootstrap: () => void
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useClickOutside(containerRef, () => setOpen(false), open)
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        onBlur={() => setTimeout(() => setOpen(false), 120)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         title="Agregar"
       >
@@ -322,6 +327,7 @@ function MoreMenu({
   onSnapshot,
   onOpenAuditor,
   onOpenDoctor,
+  onToggleFocus,
   onOpenModal,
 }: {
   open: boolean
@@ -333,53 +339,33 @@ function MoreMenu({
   onSnapshot?: () => void
   onOpenAuditor?: () => void
   onOpenDoctor: () => void
+  onToggleFocus: () => void
   onOpenModal: ReturnType<typeof useOrgStore.getState>['openModal']
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useClickOutside(containerRef, () => setOpen(false), open)
+
   return (
-    <div className="relative ml-auto">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
-        title="Mas opciones"
-        aria-label="Mas opciones"
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </button>
+    <div ref={containerRef} className="relative ml-auto">
+      <Tooltip content="Más opciones">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
+          aria-label="Más opciones"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </Tooltip>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+4px)] z-30 grid max-h-[70vh] w-[280px] gap-1 overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-xl">
+        <div className="absolute right-0 top-[calc(100%+4px)] z-30 grid max-h-[70vh] w-[280px] gap-0.5 overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-xl">
+          {/* ── Inteligencia ── */}
+          <MenuSectionHeading label="Inteligencia" />
           <MenuButton
             icon={Sparkles}
             label="Sugerencias IA"
             onSelect={() => {
               onOpenCopilot()
-              setOpen(false)
-            }}
-          />
-          <div className="rounded-md px-2 py-1">
-            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-              <Eye className="h-3.5 w-3.5" />
-              Lente
-            </div>
-            <LensSelector />
-          </div>
-          <div className="my-1 border-t border-slate-100" />
-          {snapshotsCount > 0 && (
-            <MenuButton
-              icon={History}
-              label="Time Machine"
-              badge={String(snapshotsCount)}
-              onSelect={() => {
-                onOpenTimeMachine?.()
-                setOpen(false)
-              }}
-            />
-          )}
-          <MenuButton
-            icon={Camera}
-            label="Tomar snapshot"
-            onSelect={() => {
-              onSnapshot?.()
               setOpen(false)
             }}
           />
@@ -400,6 +386,43 @@ function MoreMenu({
             }}
           />
           <MenuButton
+            icon={Crosshair}
+            label="Resaltar relacionados (Foco)"
+            onSelect={() => {
+              onToggleFocus()
+              setOpen(false)
+            }}
+          />
+          <div className="rounded-md px-2 py-1">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
+              <Eye className="h-3.5 w-3.5" />
+              Lente
+            </div>
+            <LensSelector />
+          </div>
+
+          {/* ── Histórico ── */}
+          <MenuSectionHeading label="Histórico" />
+          {snapshotsCount > 0 && (
+            <MenuButton
+              icon={History}
+              label="Time Machine"
+              badge={String(snapshotsCount)}
+              onSelect={() => {
+                onOpenTimeMachine?.()
+                setOpen(false)
+              }}
+            />
+          )}
+          <MenuButton
+            icon={Camera}
+            label="Tomar snapshot"
+            onSelect={() => {
+              onSnapshot?.()
+              setOpen(false)
+            }}
+          />
+          <MenuButton
             icon={FolderClock}
             label="Escenarios guardados"
             onSelect={() => {
@@ -407,7 +430,17 @@ function MoreMenu({
               setOpen(false)
             }}
           />
-          <div className="my-1 border-t border-slate-100" />
+          <MenuButton
+            icon={History}
+            label="Historial"
+            onSelect={() => {
+              onOpenModal('change-history')
+              setOpen(false)
+            }}
+          />
+
+          {/* ── Exportar ── */}
+          <MenuSectionHeading label="Exportar" />
           <MenuLink
             icon={BookMarked}
             label="Memoria Anual"
@@ -428,6 +461,10 @@ function MoreMenu({
             label="Generar RIT"
             href={exportHref('/api/orgchart/rit')}
           />
+          <MenuLink icon={Users} label="Trombinoscopio" href="/dashboard/organigrama/people" />
+
+          {/* ── Gestión ── */}
+          <MenuSectionHeading label="Gestión" />
           <MenuButton
             icon={Link2}
             label="Auditor Link"
@@ -436,7 +473,6 @@ function MoreMenu({
               setOpen(false)
             }}
           />
-          <div className="my-1 border-t border-slate-100" />
           <MenuButton
             icon={ShieldCheck}
             label="Responsables legales"
@@ -470,14 +506,6 @@ function MoreMenu({
             }}
           />
           <MenuButton
-            icon={History}
-            label="Historial"
-            onSelect={() => {
-              onOpenModal('change-history')
-              setOpen(false)
-            }}
-          />
-          <MenuButton
             icon={ListChecks}
             label="Tareas delegadas"
             onSelect={() => {
@@ -493,9 +521,17 @@ function MoreMenu({
               setOpen(false)
             }}
           />
-          <MenuLink icon={Users} label="Trombinoscopio" href="/dashboard/organigrama/people" />
         </div>
       )}
+    </div>
+  )
+}
+
+/** Encabezado de sección dentro del MoreMenu (agrupa los 20+ items). */
+function MenuSectionHeading({ label }: { label: string }) {
+  return (
+    <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:pt-1">
+      {label}
     </div>
   )
 }
