@@ -25,6 +25,7 @@ export type UiModal =
   | 'change-history'
   | 'delegated-tasks'
   | 'reorganize'
+  | 'comites-catalogo'
 
 export interface UiSlice {
   commandPaletteOpen: boolean

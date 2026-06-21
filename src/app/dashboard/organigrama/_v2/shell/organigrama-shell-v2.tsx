@@ -257,14 +257,25 @@ export function OrganigramaShellV2() {
             <ViewSwitcher />
             <DisplayModeSwitcher />
             {view === 'committees' && (
-              <button
-                type="button"
-                onClick={() => useOrgStore.getState().openModal('templates')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100"
-              >
-                <LayoutTemplate className="h-4 w-4" />
-                <span className="hidden sm:inline">Plantillas</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => useOrgStore.getState().openModal('comites-catalogo')}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                  title="Comités que la ley te obliga a tener"
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                  <span className="hidden sm:inline">Comités obligatorios</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => useOrgStore.getState().openModal('templates')}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-800 transition hover:bg-sky-100"
+                >
+                  <LayoutTemplate className="h-4 w-4" />
+                  <span className="hidden sm:inline">Plantillas</span>
+                </button>
+              </>
             )}
           </div>
         </div>

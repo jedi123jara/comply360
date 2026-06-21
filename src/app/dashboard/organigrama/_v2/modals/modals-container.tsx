@@ -27,6 +27,7 @@ import { DelegatedTasksModal } from './delegated-tasks-modal'
 import { ReorganizeHierarchyModal } from './reorganize-hierarchy-modal'
 import { SnapshotModal } from './snapshot-modal'
 import { WorkerChangeModal } from './worker-change-modal'
+import { ComitesCatalogoModal } from './comites-catalogo-modal'
 
 export function ModalsContainer() {
   return (
@@ -51,6 +52,7 @@ export function ModalsContainer() {
       <ReorganizeHierarchyModal />
       <SnapshotModal />
       <WorkerChangeModal />
+      <ComitesCatalogoModal />
     </>
   )
 }

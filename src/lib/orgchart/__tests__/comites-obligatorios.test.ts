@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   COMITES_OBLIGATORIOS,
   evaluarComitesObligatorios,
+  obligacionCubierta,
   type ComiteContext,
 } from '../comites-obligatorios'
 import { listOrgTemplates } from '../templates'
@@ -96,6 +97,30 @@ describe('catálogo de comités obligatorios', () => {
     })
     it('no trata datos → no aplica', () => {
       expect(evalById({ workerCount: 50, processesPersonalData: false }).get('dpo')!.applicability).toBe('no-aplica')
+    })
+  })
+
+  describe('detección de cobertura (obligacionCubierta)', () => {
+    it('detecta el Comité SST por nombre de unidad', () => {
+      expect(obligacionCubierta('sst', ['Comité de Seguridad y Salud en el Trabajo'])).toBe(true)
+      expect(obligacionCubierta('sst', ['Supervisión de Seguridad y Salud en el Trabajo'])).toBe(true)
+    })
+    it('detecta el Comité de Hostigamiento', () => {
+      expect(
+        obligacionCubierta('hostigamiento', ['Comité de Intervención contra el Hostigamiento Sexual']),
+      ).toBe(true)
+    })
+    it('detecta brigada, lactario, asistenta y DPO', () => {
+      expect(obligacionCubierta('brigada-emergencia', ['Brigada de Emergencia'])).toBe(true)
+      expect(obligacionCubierta('lactario', ['Lactario institucional'])).toBe(true)
+      expect(obligacionCubierta('asistenta-social', ['Servicio Social'])).toBe(true)
+      expect(obligacionCubierta('dpo', ['Protección de Datos Personales'])).toBe(true)
+    })
+    it('el cuadro de categorías (documento) nunca matchea una unidad', () => {
+      expect(obligacionCubierta('cuadro-categorias', ['Cuadro de Categorías'])).toBe(false)
+    })
+    it('no matchea unidades no relacionadas', () => {
+      expect(obligacionCubierta('sst', ['Gerencia de Operaciones', 'Recursos Humanos'])).toBe(false)
     })
   })
 

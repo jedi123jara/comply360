@@ -41,7 +41,11 @@ interface TemplatePreview {
 const COMMISSION_TEMPLATE_IDS = new Set([
   'comite-sst-paritario',
   'supervisor-sst',
+  'comite-hostigamiento-sexual',
   'brigada-emergencia',
+  'lactario-institucional',
+  'asistenta-social',
+  'responsable-datos-personales',
   'comision-investigadora',
   'equipo-temporal-auditoria',
   'equipo-auditoria-sunafil',

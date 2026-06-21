@@ -284,3 +284,25 @@ export const APPLICABILITY_LABEL: Record<ComiteApplicability, string> = {
   condicional: 'Según tu caso',
   'no-aplica': 'No aplica',
 }
+
+/**
+ * Palabras clave para detectar si una unidad ya existente del organigrama cubre
+ * una obligación (match por nombre de la unidad). `null` = no vive en el
+ * organigrama (ej. el cuadro de categorías es un documento).
+ */
+const MATCHERS: Record<string, RegExp | null> = {
+  sst: /seguridad y salud|\bsst\b/i,
+  hostigamiento: /hostigamiento|cihso/i,
+  'cuadro-categorias': null,
+  'brigada-emergencia': /brigada/i,
+  lactario: /lactario/i,
+  'asistenta-social': /asistenta social|servicio social|bienestar social/i,
+  dpo: /protecci[oó]n de datos|datos personales|\bdpo\b/i,
+}
+
+/** ¿Alguna de las unidades dadas (por nombre) cubre esta obligación? */
+export function obligacionCubierta(obligacionId: string, unitNames: string[]): boolean {
+  const re = MATCHERS[obligacionId]
+  if (!re) return false
+  return unitNames.some((name) => re.test(name))
+}

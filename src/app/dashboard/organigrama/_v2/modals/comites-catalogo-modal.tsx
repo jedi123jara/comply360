@@ -1,0 +1,456 @@
+/**
+ * Modal "Comités obligatorios" — catálogo de los comités/comisiones que la ley
+ * peruana obliga según el tamaño de la empresa, con su estado (ya lo tienes /
+ * te falta / no aplica) y un wizard paso a paso para asignar sus cargos.
+ *
+ * Fuente de verdad legal: `src/lib/orgchart/comites-obligatorios.ts`.
+ */
+'use client'
+
+import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  ShieldCheck,
+  Check,
+  Plus,
+  Loader2,
+  ChevronRight,
+  ChevronLeft,
+  UserPlus,
+  FileText,
+  ArrowLeft,
+  Search,
+  Scale,
+} from 'lucide-react'
+import { toast } from 'sonner'
+
+import { ModalShell } from './modal-shell'
+import { useOrgStore } from '../state/org-store'
+import { useTreeQuery, treeKey } from '../data/queries/use-tree'
+import { alertsKey } from '../data/queries/use-alerts'
+import { useWorkersRosterQuery, type RosterWorker } from '../data/queries/use-workers'
+import {
+  evaluarComitesObligatorios,
+  obligacionCubierta,
+  APPLICABILITY_ORDER,
+  APPLICABILITY_LABEL,
+  type ComiteApplicability,
+  type ComiteResolved,
+} from '@/lib/orgchart/comites-obligatorios'
+import type { OrgChartTree } from '@/lib/orgchart/types'
+
+const APPLICABILITY_STYLE: Record<ComiteApplicability, string> = {
+  obligatorio: 'bg-rose-100 text-rose-700',
+  recomendado: 'bg-sky-100 text-sky-700',
+  condicional: 'bg-amber-100 text-amber-700',
+  'no-aplica': 'bg-slate-100 text-slate-500',
+}
+
+export function ComitesCatalogoModal() {
+  const activeModal = useOrgStore((s) => s.activeModal)
+  const closeModal = useOrgStore((s) => s.closeModal)
+  const open = activeModal === 'comites-catalogo'
+
+  const queryClient = useQueryClient()
+  const treeQuery = useTreeQuery(null)
+  const rosterQuery = useWorkersRosterQuery(open)
+  const tree = treeQuery.data ?? null
+
+  // Contexto: el nº de trabajadores viene del roster (cap 500). El nº de mujeres
+  // / mujeres fértiles / tratamiento de datos no se conocen aún → esas
+  // obligaciones se muestran como "según tu caso".
+  const workerCount = rosterQuery.data?.length ?? 0
+  const resolved = useMemo(() => {
+    const list = evaluarComitesObligatorios({ workerCount })
+    return [...list].sort(
+      (a, b) => APPLICABILITY_ORDER[a.applicability] - APPLICABILITY_ORDER[b.applicability],
+    )
+  }, [workerCount])
+
+  const [assignUnitId, setAssignUnitId] = useState<string | null>(null)
+  const [creatingId, setCreatingId] = useState<string | null>(null)
+
+  const handleClose = () => {
+    setAssignUnitId(null)
+    setCreatingId(null)
+    closeModal()
+  }
+
+  /** Devuelve el id de la unidad existente que cubre la obligación, o null. */
+  const coveredUnitId = (obligacionId: string): string | null =>
+    tree?.units.find((u) => obligacionCubierta(obligacionId, [u.name]))?.id ?? null
+
+  const createTemplate = async (item: ComiteResolved) => {
+    if (!item.templateId) return
+    setCreatingId(item.obligacion.id)
+    try {
+      const res = await fetch('/api/orgchart/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: item.templateId }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error ?? 'No se pudo crear')
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: treeKey(null) }),
+        queryClient.invalidateQueries({ queryKey: alertsKey }),
+      ])
+      toast.success(`${item.resolvedTitle} creado`)
+      // Entrar directo a asignar los cargos de la unidad recién creada.
+      const fresh = queryClient.getQueryData<OrgChartTree>(treeKey(null))
+      const unit = fresh?.units.find((u) => obligacionCubierta(item.obligacion.id, [u.name]))
+      if (unit) setAssignUnitId(unit.id)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setCreatingId(null)
+    }
+  }
+
+  const assignUnit = assignUnitId ? tree?.units.find((u) => u.id === assignUnitId) ?? null : null
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={handleClose}
+      title={assignUnit ? `Asignar cargos — ${assignUnit.name}` : 'Comités obligatorios'}
+      subtitle={
+        assignUnit
+          ? 'Asigna un trabajador a cada cargo del comité, uno por uno.'
+          : 'Los comités y designaciones que la ley peruana te obliga a tener, según tu tamaño de empresa.'
+      }
+      icon={assignUnit ? <UserPlus className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+      width="xl"
+    >
+      {assignUnit && tree ? (
+        <AssignWizard
+          key={assignUnit.id}
+          tree={tree}
+          unitId={assignUnit.id}
+          roster={rosterQuery.data ?? []}
+          onBack={() => setAssignUnitId(null)}
+          onDone={handleClose}
+        />
+      ) : (
+        <div className="space-y-2.5">
+          {treeQuery.isLoading || rosterQuery.isLoading ? (
+            <div className="flex justify-center py-10 text-slate-400">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : (
+            <>
+              <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                Tu empresa tiene <strong className="text-slate-700">{workerCount}</strong>{' '}
+                trabajadores registrados. El umbral clave es <strong>20</strong> (comité paritario
+                vs. responsable único).
+              </p>
+              {resolved.map((item) => {
+                const unitId = coveredUnitId(item.obligacion.id)
+                const covered = Boolean(unitId)
+                const isDoc = item.obligacion.kind === 'documento'
+                const muted = item.applicability === 'no-aplica'
+                return (
+                  <div
+                    key={item.obligacion.id}
+                    className={`rounded-xl border p-3 transition ${
+                      muted ? 'border-slate-100 bg-slate-50/60 opacity-70' : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-sm font-semibold text-slate-900">
+                            {item.resolvedTitle}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${APPLICABILITY_STYLE[item.applicability]}`}
+                          >
+                            {APPLICABILITY_LABEL[item.applicability]}
+                          </span>
+                          {covered && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              <Check className="h-3 w-3" /> Ya lo tienes
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.detail}</p>
+                        <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-400">
+                          <Scale className="h-3 w-3" /> {item.obligacion.legalBasis}
+                        </p>
+                      </div>
+                      <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
+                        {isDoc ? (
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-500">
+                            <FileText className="h-3.5 w-3.5" /> Documento
+                          </span>
+                        ) : covered ? (
+                          <button
+                            type="button"
+                            onClick={() => unitId && setAssignUnitId(unitId)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                          >
+                            <UserPlus className="h-3.5 w-3.5" /> Asignar cargos
+                          </button>
+                        ) : muted ? null : (
+                          <button
+                            type="button"
+                            onClick={() => createTemplate(item)}
+                            disabled={creatingId === item.obligacion.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {creatingId === item.obligacion.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Plus className="h-3.5 w-3.5" />
+                            )}
+                            Crear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          )}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
+// ─── Wizard de asignación paso a paso ────────────────────────────────────────
+
+function AssignWizard({
+  tree,
+  unitId,
+  roster,
+  onBack,
+  onDone,
+}: {
+  tree: OrgChartTree
+  unitId: string
+  roster: RosterWorker[]
+  onBack: () => void
+  onDone: () => void
+}) {
+  const queryClient = useQueryClient()
+
+  // Cargos del comité, los críticos primero.
+  const positions = useMemo(
+    () =>
+      tree.positions
+        .filter((p) => p.orgUnitId === unitId)
+        .sort((a, b) => (b.isCritical ? 1 : 0) - (a.isCritical ? 1 : 0)),
+    [tree.positions, unitId],
+  )
+
+  const [step, setStep] = useState(0)
+  const [search, setSearch] = useState('')
+  const [assigning, setAssigning] = useState(false)
+
+  const total = positions.length
+  const pos = positions[step]
+
+  // Cobertura global (asientos cubiertos / asientos totales).
+  const { filledSeats, totalSeats } = useMemo(() => {
+    let filled = 0
+    let totalS = 0
+    for (const p of positions) {
+      const seats = p.seats ?? 1
+      totalS += seats
+      const occ = tree.assignments.filter((a) => a.positionId === p.id && !a.endedAt).length
+      filled += Math.min(occ, seats)
+    }
+    return { filledSeats: filled, totalSeats: totalS }
+  }, [positions, tree.assignments])
+
+  if (total === 0 || !pos) {
+    return (
+      <div className="space-y-4 py-6 text-center">
+        <p className="text-sm text-slate-600">Este comité aún no tiene cargos definidos.</p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Volver al catálogo
+        </button>
+      </div>
+    )
+  }
+
+  const seats = pos.seats ?? 1
+  const occupants = tree.assignments.filter((a) => a.positionId === pos.id && !a.endedAt)
+  const isFull = occupants.length >= seats
+  const assignedWorkerIds = new Set(occupants.map((o) => o.workerId))
+
+  const filteredRoster = roster
+    .filter((w) => !assignedWorkerIds.has(w.id))
+    .filter((w) =>
+      `${w.firstName} ${w.lastName} ${w.dni}`.toLowerCase().includes(search.trim().toLowerCase()),
+    )
+    .slice(0, 8)
+
+  const assign = async (workerId: string) => {
+    setAssigning(true)
+    try {
+      const res = await fetch('/api/orgchart/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId, positionId: pos.id, isPrimary: true, isInterim: false }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error ?? 'No se pudo asignar')
+      }
+      toast.success('Cargo asignado')
+      setSearch('')
+      await queryClient.invalidateQueries({ queryKey: treeKey(null) })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  const isLast = step >= total - 1
+
+  return (
+    <div className="space-y-4">
+      {/* Progreso */}
+      <div>
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span>
+            Cargo {step + 1} de {total}
+          </span>
+          <span>
+            {filledSeats}/{totalSeats} asientos cubiertos
+          </span>
+        </div>
+        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all"
+            style={{ width: totalSeats ? `${(filledSeats / totalSeats) * 100}%` : '0%' }}
+          />
+        </div>
+      </div>
+
+      {/* Cargo actual */}
+      <div className="rounded-xl border border-slate-200 bg-white p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <span className="text-sm font-semibold text-slate-900">{pos.title}</span>
+            {pos.isCritical && (
+              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                Crítico
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] font-medium text-slate-500">
+            {occupants.length}/{seats} ocupado{seats > 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* Ocupantes actuales */}
+        {occupants.length > 0 && (
+          <ul className="mt-2 space-y-1">
+            {occupants.map((o) => (
+              <li
+                key={o.id}
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-800"
+              >
+                <Check className="h-3 w-3" /> {o.worker.firstName} {o.worker.lastName}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Buscador + asignación */}
+        {isFull ? (
+          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+            Este cargo ya está completo.
+          </p>
+        ) : (
+          <div className="mt-3">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5">
+              <Search className="h-3.5 w-3.5 text-slate-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Busca un trabajador por nombre o DNI…"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+              />
+            </div>
+            <ul className="mt-2 max-h-44 space-y-1 overflow-y-auto">
+              {filteredRoster.length === 0 ? (
+                <li className="px-2 py-3 text-center text-xs text-slate-400">
+                  {roster.length === 0
+                    ? 'No hay trabajadores registrados.'
+                    : 'Sin coincidencias.'}
+                </li>
+              ) : (
+                filteredRoster.map((w) => (
+                  <li key={w.id}>
+                    <button
+                      type="button"
+                      disabled={assigning}
+                      onClick={() => assign(w.id)}
+                      className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-100 px-2.5 py-1.5 text-left text-sm transition hover:border-emerald-200 hover:bg-emerald-50 disabled:opacity-50"
+                    >
+                      <span className="min-w-0 truncate">
+                        {w.firstName} {w.lastName}
+                        <span className="ml-1 text-[11px] text-slate-400">DNI {w.dni}</span>
+                      </span>
+                      <UserPlus className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Navegación */}
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Catálogo
+        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            disabled={step === 0}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+          </button>
+          {isLast ? (
+            <button
+              type="button"
+              onClick={onDone}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+            >
+              <Check className="h-3.5 w-3.5" /> Listo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setStep((s) => Math.min(total - 1, s + 1))}
+              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+            >
+              Siguiente <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
