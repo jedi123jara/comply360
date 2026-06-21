@@ -148,14 +148,17 @@ export function ComitesCatalogoModal() {
 
   // Espeja la unidad del comité SST al módulo SST Premium (best-effort) y
   // refresca el estado para que la tarjeta pase a "Gestionar en SST".
-  const reconcileSst = (orgUnitId: string) => {
-    fetch('/api/orgchart/comite-sst/reconcile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orgUnitId }),
-    })
-      .then(() => sstComiteQuery.refetch())
-      .catch(() => {})
+  const reconcileSst = async (orgUnitId: string) => {
+    try {
+      const res = await fetch('/api/orgchart/comite-sst/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgUnitId }),
+      })
+      if (res.ok) await sstComiteQuery.refetch()
+    } catch {
+      // best-effort: si falla, el siguiente assign reintenta.
+    }
   }
 
   const createTemplate = async (item: ComiteResolved) => {
@@ -189,9 +192,10 @@ export function ComitesCatalogoModal() {
         ? fresh?.units.find((u) => u.name === appliedUnitName)
         : fresh?.units.find((u) => obligacionCubierta(item.obligacion.id, [u.name]))
       if (unit) {
+        // Si es el comité SST y la org tiene el módulo, enlaza/crea el ComiteSST
+        // ANTES de abrir el wizard para que el estado quede fresco.
+        if (item.obligacion.id === 'sst' && sstState.available) await reconcileSst(unit.id)
         setAssignUnitId(unit.id)
-        // Si es el comité SST y la org tiene el módulo, enlaza/crea el ComiteSST.
-        if (item.obligacion.id === 'sst' && sstState.available) reconcileSst(unit.id)
       } else {
         toast.info('Comité creado. Ábrelo desde el catálogo para asignar sus cargos.')
       }
@@ -227,7 +231,9 @@ export function ComitesCatalogoModal() {
           onDone={handleClose}
           onAfterAssign={
             sstState.available && obligacionCubierta('sst', [assignUnit.name])
-              ? () => reconcileSst(assignUnit.id)
+              ? () => {
+                  void reconcileSst(assignUnit.id)
+                }
               : undefined
           }
         />

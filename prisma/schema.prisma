@@ -3719,6 +3719,7 @@ model ComiteSST {
   miembros     MiembroComite[]
 
   @@index([orgId, estado])
+  @@index([orgId, orgUnitId])
   @@map("comites_sst")
 }
 

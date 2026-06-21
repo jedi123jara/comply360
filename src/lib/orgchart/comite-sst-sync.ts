@@ -9,13 +9,21 @@
  *    (eso se hace deliberadamente en el módulo SST).
  *  - Idempotente: respeta el unique (comité, trabajador) y la unicidad de
  *    PRESIDENTE/SECRETARIO (degrada a MIEMBRO si el cargo ya está tomado).
+ *  - Resistente a carreras: enlace atómico (updateMany compare-and-set), y el
+ *    create tolera P2002 (otra reconcile concurrente) re-consultando.
+ *  - No auto-crea un comité si hay uno EN_ELECCION (no pisamos una elección).
  *  - NO se engancha en `apply-worker-change` (el path frágil); se dispara desde
  *    el flujo controlado del catálogo de comités.
  */
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@/generated/prisma/client'
 import { calcularFinMandato } from '@/lib/sst/comite-rules'
 import { obligacionCubierta } from './comites-obligatorios'
 import type { CargoComite, OrigenMiembro } from '@/generated/prisma/client'
+
+function isUniqueViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002'
+}
 
 /** Mapea el título del cargo del organigrama al cargo/origen del Comité SST. */
 export function mapPositionToComiteRole(title: string): {
@@ -67,41 +75,67 @@ export async function reconcileComiteSstFromOrgUnit(
     return { skipped: true, reason: 'not-sst-committee' }
   }
 
-  // 1) Ubicar (por enlace) o, si no, el VIGENTE; crear si no hay ninguno.
-  let comite = await prisma.comiteSST.findFirst({
-    where: { orgId, orgUnitId },
-    select: { id: true, orgUnitId: true },
-  })
+  // 1) Resolver el comité: por enlace → VIGENTE/EN_ELECCION → crear.
+  let comiteId: string | null = null
   let comiteCreated = false
-  if (!comite) {
-    const vigente = await prisma.comiteSST.findFirst({
-      where: { orgId, estado: 'VIGENTE' },
-      select: { id: true, orgUnitId: true },
+
+  const linked = await prisma.comiteSST.findFirst({
+    where: { orgId, orgUnitId },
+    select: { id: true },
+  })
+  if (linked) {
+    comiteId = linked.id
+  } else {
+    const occupied = await prisma.comiteSST.findFirst({
+      where: { orgId, estado: { in: ['VIGENTE', 'EN_ELECCION'] } },
+      select: { id: true, estado: true, orgUnitId: true },
     })
-    if (vigente) {
-      // Enlazar el vigente a esta unidad solo si no estaba enlazado a otra.
-      if (vigente.orgUnitId != null && vigente.orgUnitId !== orgUnitId) {
-        return { skipped: true, reason: 'comite-linked-to-other-unit', comiteId: vigente.id }
+    if (occupied?.estado === 'EN_ELECCION') {
+      // No pisamos una elección en curso.
+      return { skipped: true, reason: 'comite-en-eleccion', comiteId: occupied.id }
+    }
+    if (occupied) {
+      if (occupied.orgUnitId != null && occupied.orgUnitId !== orgUnitId) {
+        return { skipped: true, reason: 'comite-linked-to-other-unit', comiteId: occupied.id }
       }
-      if (vigente.orgUnitId == null) {
-        await prisma.comiteSST.update({ where: { id: vigente.id }, data: { orgUnitId } })
+      // Enlace ATÓMICO: solo enlaza si sigue sin enlazar (compare-and-set).
+      if (occupied.orgUnitId == null) {
+        await prisma.comiteSST.updateMany({
+          where: { id: occupied.id, orgUnitId: null },
+          data: { orgUnitId },
+        })
       }
-      comite = vigente
+      comiteId = occupied.id
     } else {
-      const inicio = new Date()
-      comite = await prisma.comiteSST.create({
-        data: {
-          orgId,
-          mandatoInicio: inicio,
-          mandatoFin: calcularFinMandato(inicio),
-          estado: 'VIGENTE',
-          orgUnitId,
-        },
-        select: { id: true, orgUnitId: true },
-      })
-      comiteCreated = true
+      // Crear. Si otra reconcile concurrente ya lo creó (mismo orgUnitId único),
+      // el create lanza P2002 → re-consultamos por enlace.
+      try {
+        const inicio = new Date()
+        const created = await prisma.comiteSST.create({
+          data: {
+            orgId,
+            mandatoInicio: inicio,
+            mandatoFin: calcularFinMandato(inicio),
+            estado: 'VIGENTE',
+            orgUnitId,
+          },
+          select: { id: true },
+        })
+        comiteId = created.id
+        comiteCreated = true
+      } catch (e) {
+        if (!isUniqueViolation(e)) throw e
+        const again = await prisma.comiteSST.findFirst({
+          where: { orgId, orgUnitId },
+          select: { id: true },
+        })
+        if (!again) throw e
+        comiteId = again.id
+      }
     }
   }
+
+  if (!comiteId) return { skipped: true, reason: 'no-comite' }
 
   // 2) Cargos de la unidad + asignados activos.
   const positions = await prisma.orgPosition.findMany({
@@ -109,7 +143,7 @@ export async function reconcileComiteSstFromOrgUnit(
     select: { id: true, title: true },
   })
   if (positions.length === 0) {
-    return { skipped: false, comiteId: comite.id, comiteCreated, membersAdded: 0 }
+    return { skipped: false, comiteId, comiteCreated, membersAdded: 0 }
   }
   const titleByPos = new Map(positions.map((p) => [p.id, p.title]))
   const assignments = await prisma.orgAssignment.findMany({
@@ -119,7 +153,7 @@ export async function reconcileComiteSstFromOrgUnit(
 
   // 3) Miembros activos actuales (para idempotencia + cargos tomados).
   const current = await prisma.miembroComite.findMany({
-    where: { comiteId: comite.id, fechaBaja: null },
+    where: { comiteId, fechaBaja: null },
     select: { workerId: true, cargo: true },
   })
   const memberWorkerIds = new Set(current.map((m) => m.workerId))
@@ -132,19 +166,28 @@ export async function reconcileComiteSstFromOrgUnit(
     const mapped = mapPositionToComiteRole(titleByPos.get(a.positionId) ?? '')
     let cargo = mapped.cargo
     if ((cargo === 'PRESIDENTE' || cargo === 'SECRETARIO') && takenCargo.has(cargo)) {
+      console.warn(
+        `[comite-sst-sync] cargo ${cargo} ya ocupado en comité ${comiteId}; el trabajador entra como MIEMBRO`,
+      )
       cargo = 'MIEMBRO'
     }
     try {
       await prisma.miembroComite.create({
-        data: { comiteId: comite.id, workerId: a.workerId, cargo, origen: mapped.origen },
+        data: { comiteId, workerId: a.workerId, cargo, origen: mapped.origen },
       })
       memberWorkerIds.add(a.workerId)
       if (cargo === 'PRESIDENTE' || cargo === 'SECRETARIO') takenCargo.add(cargo)
       membersAdded++
-    } catch {
-      // Idempotente: choque con unique (comité, trabajador) por carrera → ignorar.
+    } catch (e) {
+      // P2002 = unique (comité, trabajador) → idempotente, lo ignoramos.
+      if (isUniqueViolation(e)) continue
+      // Cualquier otro error (FK huérfana, etc.) NO se traga en silencio.
+      console.error(
+        `[comite-sst-sync] no se pudo crear MiembroComite (worker ${a.workerId}, comité ${comiteId}):`,
+        e,
+      )
     }
   }
 
-  return { skipped: false, comiteId: comite.id, comiteCreated, membersAdded }
+  return { skipped: false, comiteId, comiteCreated, membersAdded }
 }
