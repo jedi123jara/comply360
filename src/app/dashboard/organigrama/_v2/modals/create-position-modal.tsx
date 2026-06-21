@@ -80,12 +80,17 @@ export function CreatePositionModal() {
         throw new Error(e.error ?? 'Error al crear cargo')
       }
       toast.success('Cargo creado')
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: treeKey(null) }),
-        queryClient.invalidateQueries({ queryKey: alertsKey }),
-      ])
       reset()
       closeModal()
+      // Refrescamos el árbol en segundo plano (E1): no bloqueamos el cierre del
+      // modal esperando el refetch; el nodo nuevo aparece al llegar la query.
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: treeKey(null) }),
+        queryClient.invalidateQueries({ queryKey: alertsKey }),
+      ]).catch(() => {
+        // Si el refetch en segundo plano falla, react-query lo reintenta en la
+        // próxima interacción; el éxito ya se confirmó al usuario.
+      })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {

@@ -69,8 +69,36 @@ export function applyRadialLayout(
   if (!rootItem) return nodes
   const root = hierarchy(rootItem, (d) => childrenById.get(d.id) ?? [])
 
-  // 4) Aplicar layout circular. d3-tree retorna x ∈ [0, 2π) e y ∈ [0, 1].
-  const layout = d3tree<HierItem>().size([2 * Math.PI, opts.radius])
+  // 4) Radio adaptativo anti-solape (C5): en árboles grandes/desbalanceados las
+  //    tarjetas se encimaban porque el radio era fijo. Calculamos el radio
+  //    mínimo para que el anillo MÁS denso tenga arco suficiente por nodo.
+  //    Anillo a profundidad d: radio_d = R·d/maxDepth, circunferencia 2π·radio_d.
+  //    Arco por nodo = 2π·radio_d / breadth_d ≥ cardSpan  ⇒
+  //    R ≥ breadth_d · cardSpan · maxDepth / (2π · d).
+  const breadthByDepth = new Map<number, number>()
+  let maxDepth = 0
+  root.each((d) => {
+    if (d.data.id === virtualRootId) return
+    breadthByDepth.set(d.depth, (breadthByDepth.get(d.depth) ?? 0) + 1)
+    if (d.depth > maxDepth) maxDepth = d.depth
+  })
+  const cardSpan = Math.max(1, opts.nodeWidth) * 1.3 // ancho de tarjeta + holgura (guard > 0)
+  let layoutRadius = opts.radius
+  if (maxDepth > 0) {
+    for (const [depth, breadth] of breadthByDepth) {
+      if (depth === 0) continue
+      const needed = (breadth * cardSpan * maxDepth) / (2 * Math.PI * depth)
+      if (needed > layoutRadius) layoutRadius = needed
+    }
+  }
+  layoutRadius = Math.min(layoutRadius, 8000) // tope defensivo
+
+  // 5) Aplicar layout circular. d3-tree retorna x ∈ [0, 2π) e y ∈ [0, radius].
+  //    `separation` da más arco entre ramas de distinto padre y compensa por
+  //    profundidad (los anillos externos ya tienen más circunferencia).
+  const layout = d3tree<HierItem>()
+    .size([2 * Math.PI, layoutRadius])
+    .separation((a, b) => (a.parent === b.parent ? 1 : 1.6) / Math.max(1, a.depth))
   layout(root)
 
   // 5) Convertir polar → cartesiano y volcar a nodos.
