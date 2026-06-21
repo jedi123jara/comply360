@@ -86,8 +86,10 @@ export async function reconcileComiteSstFromOrgUnit(
   if (linked) {
     comiteId = linked.id
   } else {
+    // La unidad SST del organigrama mapea al Comité PRINCIPAL del empleador
+    // (sedeId NULL), no a un subcomité de sede.
     const occupied = await prisma.comiteSST.findFirst({
-      where: { orgId, estado: { in: ['VIGENTE', 'EN_ELECCION'] } },
+      where: { orgId, sedeId: null, estado: { in: ['VIGENTE', 'EN_ELECCION'] } },
       select: { id: true, estado: true, orgUnitId: true },
     })
     if (occupied?.estado === 'EN_ELECCION') {
@@ -118,6 +120,7 @@ export async function reconcileComiteSstFromOrgUnit(
             mandatoFin: calcularFinMandato(inicio),
             estado: 'VIGENTE',
             orgUnitId,
+            sedeId: null, // Comité principal del empleador.
           },
           select: { id: true },
         })

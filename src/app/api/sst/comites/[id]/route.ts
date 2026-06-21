@@ -67,21 +67,26 @@ export const PATCH = withPlanGateParams<{ id: string }>('sst_completo',
 
     const existing = await prisma.comiteSST.findFirst({
       where: { id, orgId: ctx.orgId },
-      select: { id: true, estado: true },
+      select: { id: true, estado: true, sedeId: true },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Comité no encontrado' }, { status: 404 })
     }
 
-    // Si pasa a VIGENTE, validar que no haya otro VIGENTE
+    // Si pasa a VIGENTE, validar que no haya otro VIGENTE EN LA MISMA SEDE
+    // (el principal y cada subcomité tienen su propio cupo de "uno vigente").
     if (parsed.data.estado === 'VIGENTE' && existing.estado !== 'VIGENTE') {
       const otroVigente = await prisma.comiteSST.findFirst({
-        where: { orgId: ctx.orgId, estado: 'VIGENTE', id: { not: id } },
+        where: { orgId: ctx.orgId, sedeId: existing.sedeId, estado: 'VIGENTE', id: { not: id } },
         select: { id: true },
       })
       if (otroVigente) {
         return NextResponse.json(
-          { error: 'Ya existe otro Comité SST vigente. Desactívalo primero.' },
+          {
+            error: existing.sedeId
+              ? 'Ya existe otro Subcomité SST vigente para esta sede. Desactívalo primero.'
+              : 'Ya existe otro Comité SST vigente para la empresa. Desactívalo primero.',
+          },
           { status: 409 },
         )
       }
