@@ -1161,6 +1161,71 @@ const ORG_TEMPLATES: OrgTemplate[] = [
       basePosition('responsable-evidencias-risst', 'Responsable de evidencias', 'comision-risst', 'lider-risst', 'Proyecto', false),
     ],
   },
+  {
+    id: 'comite-hostigamiento-sexual',
+    name: 'Comité de Intervención contra el Hostigamiento Sexual (CIHSO)',
+    description: 'Comité paritario obligatorio (≥20 trabajadores) para recibir denuncias, dictar medidas de protección e investigar casos de hostigamiento sexual. En empresas con menos de 20 trabajadores se designa un Gestor único.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 27942', 'D.S. 014-2019-MIMP', 'CIHSO', 'Hostigamiento sexual'],
+    units: [
+      { key: 'comite-hostigamiento', name: 'Comité de Intervención contra el Hostigamiento Sexual', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('presidente-cihso', 'Presidente del Comité (CIHSO)', 'comite-hostigamiento', undefined, 'Comité', true, {
+        isCritical: true,
+      }),
+      basePosition('rep-empleador-cihso', 'Representante del empleador', 'comite-hostigamiento', 'presidente-cihso', 'Comité', false),
+      basePosition('rep-trabajadores-cihso', 'Representante de los trabajadores', 'comite-hostigamiento', 'presidente-cihso', 'Comité', false),
+      basePosition('suplentes-cihso', 'Miembro suplente', 'comite-hostigamiento', 'presidente-cihso', 'Comité', false, {
+        seats: 2,
+      }),
+    ],
+  },
+  {
+    id: 'lactario-institucional',
+    name: 'Lactario institucional',
+    description: 'Implementación de lactario y designación de un responsable, obligatorio para empresas con 20 o más mujeres en edad fértil.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 29896', 'D.S. 001-2016-MIMP', 'Lactario'],
+    units: [
+      { key: 'lactario', name: 'Lactario institucional', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('responsable-lactario', 'Responsable del lactario', 'lactario', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
+    ],
+  },
+  {
+    id: 'asistenta-social',
+    name: 'Servicio de Asistenta Social',
+    description: 'Designación de una asistenta social, obligatoria para empresas con 100 o más mujeres.',
+    sector: 'Comisiones',
+    recommendedFor: ['Bienestar social', 'Asistenta social', '100+ mujeres'],
+    units: [
+      { key: 'servicio-social', name: 'Servicio Social', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('asistenta-social', 'Asistenta social', 'servicio-social', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
+    ],
+  },
+  {
+    id: 'responsable-datos-personales',
+    name: 'Oficial de Protección de Datos (DPO)',
+    description: 'Designación de un responsable de protección de datos personales (Ley 29733) cuando la empresa trata datos personales.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 29733', 'Protección de datos', 'DPO'],
+    units: [
+      { key: 'proteccion-datos', name: 'Protección de Datos Personales', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('dpo', 'Oficial de Protección de Datos (DPO)', 'proteccion-datos', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
+    ],
+  },
 ]
 
 function basePosition(
