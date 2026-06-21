@@ -573,12 +573,24 @@ function buildRecommendationSignalBag(signals: OrgTemplateRecommendationSignals)
   return normalizeKey(values.join(' '))
 }
 
+/**
+ * Perfil neutro para plantillas sin entrada propia en
+ * TEMPLATE_RECOMMENDATION_PROFILES: evita que una plantilla nueva (ej. comités
+ * obligatorios) rompa la recomendación con un crash de `undefined.sectorKeywords`.
+ */
+const NEUTRAL_RECOMMENDATION_PROFILE = {
+  sectorKeywords: [] as string[],
+  contextKeywords: [] as string[],
+  ciiuPrefixes: [] as string[],
+  minWorkerCount: 1,
+}
+
 function scoreTemplateRecommendation(
   template: OrgTemplate,
   signals: OrgTemplateRecommendationSignals,
   signalBag: string,
 ): OrgTemplateRecommendation {
-  const profile = TEMPLATE_RECOMMENDATION_PROFILES[template.id]
+  const profile = TEMPLATE_RECOMMENDATION_PROFILES[template.id] ?? NEUTRAL_RECOMMENDATION_PROFILE
   let score = 35
   const reasons: string[] = []
   const detectedSignals: string[] = []
@@ -764,6 +776,36 @@ const TEMPLATE_RECOMMENDATION_PROFILES: Record<
     ciiuPrefixes: [],
     minWorkerCount: 1,
     prefersSst: true,
+  },
+  'comite-hostigamiento-sexual': {
+    sectorKeywords: ['hostigamiento', 'cihso', 'intervencion', 'sexual'],
+    contextKeywords: ['hostigamiento', 'cihso', 'denuncia', 'rrhh', 'comite', 'trabajadores'],
+    ciiuPrefixes: [],
+    minWorkerCount: 20,
+  },
+  'gestor-hostigamiento-sexual': {
+    sectorKeywords: ['hostigamiento', 'gestor', 'intervencion', 'sexual'],
+    contextKeywords: ['hostigamiento', 'gestor', 'denuncia', 'rrhh'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+  },
+  'lactario-institucional': {
+    sectorKeywords: ['lactario', 'lactancia', 'maternidad'],
+    contextKeywords: ['lactario', 'lactancia', 'rrhh', 'bienestar'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+  },
+  'asistenta-social': {
+    sectorKeywords: ['social', 'bienestar', 'asistenta'],
+    contextKeywords: ['social', 'bienestar', 'rrhh', 'asistenta'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
+  },
+  'responsable-datos-personales': {
+    sectorKeywords: ['datos', 'privacidad', 'proteccion', 'dpo'],
+    contextKeywords: ['datos personales', 'dpo', 'privacidad', 'cumplimiento', 'legal'],
+    ciiuPrefixes: [],
+    minWorkerCount: 1,
   },
 }
 
@@ -1159,6 +1201,86 @@ const ORG_TEMPLATES: OrgTemplate[] = [
       }),
       basePosition('responsable-rrhh-risst', 'Responsable RR.HH. y comunicación', 'comision-risst', 'lider-risst', 'Proyecto', false),
       basePosition('responsable-evidencias-risst', 'Responsable de evidencias', 'comision-risst', 'lider-risst', 'Proyecto', false),
+    ],
+  },
+  {
+    id: 'comite-hostigamiento-sexual',
+    name: 'Comité de Intervención contra el Hostigamiento Sexual (CIHSO)',
+    description: 'Comité paritario obligatorio (≥20 trabajadores) para recibir denuncias, dictar medidas de protección e investigar casos de hostigamiento sexual. En empresas con menos de 20 trabajadores se designa un Gestor único.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 27942', 'D.S. 014-2019-MIMP', 'CIHSO', 'Hostigamiento sexual'],
+    units: [
+      { key: 'comite-hostigamiento', name: 'Comité de Intervención contra el Hostigamiento Sexual', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('presidente-cihso', 'Presidente del Comité (CIHSO)', 'comite-hostigamiento', undefined, 'Comité', true, {
+        isCritical: true,
+      }),
+      basePosition('rep-empleador-cihso', 'Representante del empleador', 'comite-hostigamiento', 'presidente-cihso', 'Comité', false),
+      basePosition('rep-trabajadores-cihso', 'Representante de los trabajadores', 'comite-hostigamiento', 'presidente-cihso', 'Comité', false),
+      basePosition('suplentes-cihso', 'Miembro suplente', 'comite-hostigamiento', 'presidente-cihso', 'Comité', false, {
+        seats: 2,
+      }),
+    ],
+  },
+  {
+    id: 'gestor-hostigamiento-sexual',
+    name: 'Gestor de Intervención contra el Hostigamiento Sexual',
+    description: 'Designación de un responsable único (Gestor) frente al hostigamiento sexual, para empresas con menos de 20 trabajadores (Ley 27942). No es un comité paritario.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 27942', 'D.S. 014-2019-MIMP', 'Gestor', 'Menos de 20 trabajadores'],
+    units: [
+      { key: 'gestor-hostigamiento', name: 'Gestión del Hostigamiento Sexual', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('gestor-hostigamiento', 'Gestor de Intervención (hostigamiento)', 'gestor-hostigamiento', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
+    ],
+  },
+  {
+    id: 'lactario-institucional',
+    name: 'Lactario institucional',
+    description: 'Implementación de lactario y designación de un responsable, obligatorio para empresas con 20 o más mujeres en edad fértil.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 29896', 'D.S. 001-2016-MIMP', 'Lactario'],
+    units: [
+      { key: 'lactario', name: 'Lactario institucional', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('responsable-lactario', 'Responsable del lactario', 'lactario', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
+    ],
+  },
+  {
+    id: 'asistenta-social',
+    name: 'Servicio de Asistenta Social',
+    description: 'Designación de una asistenta social, obligatoria para empresas con 100 o más mujeres.',
+    sector: 'Comisiones',
+    recommendedFor: ['Bienestar social', 'Asistenta social', '100+ mujeres'],
+    units: [
+      { key: 'servicio-social', name: 'Servicio Social', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('asistenta-social', 'Asistenta social', 'servicio-social', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
+    ],
+  },
+  {
+    id: 'responsable-datos-personales',
+    name: 'Oficial de Protección de Datos (DPO)',
+    description: 'Designación de un responsable de protección de datos personales (Ley 29733) cuando la empresa trata datos personales.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 29733', 'Protección de datos', 'DPO'],
+    units: [
+      { key: 'proteccion-datos', name: 'Protección de Datos Personales', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('dpo', 'Oficial de Protección de Datos (DPO)', 'proteccion-datos', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
     ],
   },
 ]

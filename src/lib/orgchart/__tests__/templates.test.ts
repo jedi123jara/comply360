@@ -42,9 +42,16 @@ describe('plantillas organizacionales', () => {
       'equipo-temporal-auditoria',
       'equipo-auditoria-sunafil',
       'comision-risst',
+      'comite-hostigamiento-sexual',
+      'gestor-hostigamiento-sexual',
+      'lactario-institucional',
+      'asistenta-social',
+      'responsable-datos-personales',
     ])
     expect(commissionTemplates.every(template => template.unitCount >= 1)).toBe(true)
-    expect(commissionTemplates.every(template => template.positionCount >= 2)).toBe(true)
+    // Las designaciones de responsable único (Gestor de hostigamiento, lactario,
+    // asistenta social, DPO) tienen 1 solo cargo; los comités colegiados, varios.
+    expect(commissionTemplates.every(template => template.positionCount >= 1)).toBe(true)
   })
 
   it('mantiene el orden base de las plantillas industriales', () => {
