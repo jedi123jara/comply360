@@ -35,7 +35,14 @@ export function useClickOutside<T extends HTMLElement>(
       if (el && !el.contains(event.target as Node)) onCloseRef.current()
     }
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseRef.current()
+      if (event.key === 'Escape') {
+        // El dropdown es el overlay superior: se traga el Escape (stopPropagation)
+        // para que no dispare a la vez la cascada global de use-keyboard-shortcuts
+        // (que además cerraría el inspector/modal de atrás). El listener vive en
+        // `document`, que burbujea antes que el `window` de la cascada.
+        event.stopPropagation()
+        onCloseRef.current()
+      }
     }
 
     document.addEventListener('mousedown', handlePointer)
