@@ -1182,6 +1182,21 @@ const ORG_TEMPLATES: OrgTemplate[] = [
     ],
   },
   {
+    id: 'gestor-hostigamiento-sexual',
+    name: 'Gestor de Intervención contra el Hostigamiento Sexual',
+    description: 'Designación de un responsable único (Gestor) frente al hostigamiento sexual, para empresas con menos de 20 trabajadores (Ley 27942). No es un comité paritario.',
+    sector: 'Comisiones',
+    recommendedFor: ['Ley 27942', 'D.S. 014-2019-MIMP', 'Gestor', 'Menos de 20 trabajadores'],
+    units: [
+      { key: 'gestor-hostigamiento', name: 'Gestión del Hostigamiento Sexual', kind: 'COMITE_LEGAL' },
+    ],
+    positions: [
+      basePosition('gestor-hostigamiento', 'Gestor de Intervención (hostigamiento)', 'gestor-hostigamiento', undefined, 'Compliance', true, {
+        isCritical: true,
+      }),
+    ],
+  },
+  {
     id: 'lactario-institucional',
     name: 'Lactario institucional',
     description: 'Implementación de lactario y designación de un responsable, obligatorio para empresas con 20 o más mujeres en edad fértil.',

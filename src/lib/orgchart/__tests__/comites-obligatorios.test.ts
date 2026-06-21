@@ -41,10 +41,14 @@ describe('catálogo de comités obligatorios', () => {
       expect(h.templateId).toBe('comite-hostigamiento-sexual')
       expect(h.resolvedTitle).toMatch(/CIHSO|Comité/)
     })
-    it('<20 → Gestor (responsable único) pero sigue obligatorio', () => {
+    it('<20 → Gestor (responsable único) con su PROPIA plantilla, no la del comité', () => {
       const h = evalById({ workerCount: 5 }).get('hostigamiento')!
       expect(h.applicability).toBe('obligatorio')
       expect(h.resolvedTitle).toMatch(/Gestor/)
+      // La estructura legal del Gestor (<20) es distinta a la del CIHSO (≥20):
+      // un responsable único, no un comité paritario.
+      expect(h.templateId).toBe('gestor-hostigamiento-sexual')
+      expect(h.templateId).not.toBe('comite-hostigamiento-sexual')
     })
   })
 

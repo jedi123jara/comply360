@@ -42,6 +42,7 @@ const COMMISSION_TEMPLATE_IDS = new Set([
   'comite-sst-paritario',
   'supervisor-sst',
   'comite-hostigamiento-sexual',
+  'gestor-hostigamiento-sexual',
   'brigada-emergencia',
   'lactario-institucional',
   'asistenta-social',

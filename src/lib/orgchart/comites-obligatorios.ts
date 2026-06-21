@@ -130,7 +130,8 @@ export const COMITES_OBLIGATORIOS: ComiteObligacion[] = [
       return {
         applicability: 'obligatorio',
         resolvedTitle: 'Gestor de Intervención (hostigamiento)',
-        templateId: 'comite-hostigamiento-sexual',
+        // Estructura distinta a la del CIHSO: un responsable único, no un comité.
+        templateId: 'gestor-hostigamiento-sexual',
         detail: `Con menos de 20 trabajadores se designa un Gestor de Intervención (responsable único) en lugar del Comité, con las mismas funciones (recepción de denuncias, medidas de protección, investigación).`,
       }
     },

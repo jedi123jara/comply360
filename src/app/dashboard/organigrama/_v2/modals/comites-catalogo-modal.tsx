@@ -21,6 +21,8 @@ import {
   ArrowLeft,
   Search,
   Scale,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -93,15 +95,25 @@ export function ComitesCatalogoModal() {
         const e = await res.json().catch(() => ({}))
         throw new Error(e.error ?? 'No se pudo crear')
       }
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: treeKey(null) }),
-        queryClient.invalidateQueries({ queryKey: alertsKey }),
-      ])
+      // La respuesta del apply trae las unidades creadas/reusadas (con su nombre
+      // exacto), lo que nos deja ubicar la unidad correcta sin depender del regex.
+      const applied = (await res.json().catch(() => null)) as
+        | { units?: Array<{ name: string; status?: string }> }
+        | null
       toast.success(`${item.resolvedTitle} creado`)
-      // Entrar directo a asignar los cargos de la unidad recién creada.
+      // refetchQueries SÍ espera a que el refetch termine (a diferencia de
+      // invalidateQueries), así getQueryData devuelve el árbol ya fresco.
+      await queryClient.refetchQueries({ queryKey: treeKey(null) })
+      queryClient.invalidateQueries({ queryKey: alertsKey }).catch(() => {})
       const fresh = queryClient.getQueryData<OrgChartTree>(treeKey(null))
-      const unit = fresh?.units.find((u) => obligacionCubierta(item.obligacion.id, [u.name]))
+      const appliedUnitName = applied?.units?.find((u) =>
+        obligacionCubierta(item.obligacion.id, [u.name]),
+      )?.name
+      const unit = appliedUnitName
+        ? fresh?.units.find((u) => u.name === appliedUnitName)
+        : fresh?.units.find((u) => obligacionCubierta(item.obligacion.id, [u.name]))
       if (unit) setAssignUnitId(unit.id)
+      else toast.info('Comité creado. Ábrelo desde el catálogo para asignar sus cargos.')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {
@@ -138,6 +150,26 @@ export function ComitesCatalogoModal() {
           {treeQuery.isLoading || rosterQuery.isLoading ? (
             <div className="flex justify-center py-10 text-slate-400">
               <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : rosterQuery.isError || treeQuery.isError ? (
+            // Sin estos datos no podemos saber el tamaño de la empresa y los
+            // umbrales resolverían mal. Mejor mostrar un error que un catálogo falso.
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <AlertTriangle className="h-7 w-7 text-amber-500" />
+              <p className="max-w-sm text-sm text-slate-600">
+                No pudimos cargar los datos de la empresa (trabajadores u organigrama).
+                Sin esto no podemos calcular qué comités te corresponden.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  rosterQuery.refetch()
+                  treeQuery.refetch()
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Reintentar
+              </button>
             </div>
           ) : (
             <>
@@ -300,7 +332,13 @@ function AssignWizard({
       const res = await fetch('/api/orgchart/assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workerId, positionId: pos.id, isPrimary: true, isInterim: false }),
+        body: JSON.stringify({
+          workerId,
+          positionId: pos.id,
+          isPrimary: true,
+          isInterim: false,
+          capacityPct: 100,
+        }),
       })
       if (!res.ok) {
         const e = await res.json().catch(() => ({}))
@@ -308,7 +346,9 @@ function AssignWizard({
       }
       toast.success('Cargo asignado')
       setSearch('')
-      await queryClient.invalidateQueries({ queryKey: treeKey(null) })
+      // refetchQueries espera el refetch → el árbol (y los ocupantes) quedan
+      // frescos antes de re-render, sin mostrar al recién asignado como libre.
+      await queryClient.refetchQueries({ queryKey: treeKey(null) })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {
