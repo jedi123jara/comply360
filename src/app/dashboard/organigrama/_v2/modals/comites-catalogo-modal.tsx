@@ -23,6 +23,7 @@ import {
   Scale,
   AlertTriangle,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -47,6 +48,22 @@ interface Demographics {
   womenCount: number
   womenFertileCount: number
   processesPersonalData: boolean
+}
+
+/** Comité SST autoritativo (módulo SST Premium) — fuente de verdad legal. */
+interface SstComite {
+  id: string
+  estado: string
+  mandatoFin: string
+  diasRestantesMandato: number
+  miembros: Array<{ id: string }>
+  analisis: { cumple: boolean }
+}
+
+/** Resultado del read-back: si el módulo SST está disponible y el comité vigente. */
+interface SstComiteState {
+  available: boolean
+  comite: SstComite | null
 }
 
 const solesFmt = new Intl.NumberFormat('es-PE', {
@@ -80,6 +97,23 @@ export function ComitesCatalogoModal() {
       return res.json() as Promise<Demographics>
     },
   })
+  // Read-back del Comité SST autoritativo (módulo SST Premium). Es un realce
+  // progresivo: si la org no tiene el plan SST (403) o falla, devolvemos
+  // available=false y el catálogo cae al comportamiento basado en el organigrama.
+  const sstComiteQuery = useQuery<SstComiteState>({
+    queryKey: ['orgchart', 'sst-comite-vigente'],
+    enabled: open,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: async () => {
+      const res = await fetch('/api/sst/comites?estado=VIGENTE')
+      if (!res.ok) return { available: false, comite: null }
+      const json = await res.json()
+      return { available: true, comite: (json.comites?.[0] ?? null) as SstComite | null }
+    },
+  })
+  const sstState = sstComiteQuery.data ?? { available: false, comite: null }
+
   const tree = treeQuery.data ?? null
   const demo = demographicsQuery.data
 
@@ -220,7 +254,12 @@ export function ComitesCatalogoModal() {
               </p>
               {resolved.map((item) => {
                 const unitId = coveredUnitId(item.obligacion.id)
-                const covered = Boolean(unitId)
+                const isSst = item.obligacion.id === 'sst'
+                // Para SST, el Comité SST del módulo SST Premium es la fuente de
+                // verdad legal (mandato, elecciones, actas): si existe y está
+                // vigente, prevalece sobre la unidad del organigrama.
+                const sstComite = isSst ? sstState.comite : null
+                const covered = sstComite ? true : Boolean(unitId)
                 const isDoc = item.obligacion.kind === 'documento'
                 const muted = item.applicability === 'no-aplica'
                 // Exposición a multa SUNAFIL de NO tener la obligación (peor caso),
@@ -263,12 +302,37 @@ export function ComitesCatalogoModal() {
                             Exposición a multa: hasta {solesFmt.format(multa)}
                           </p>
                         )}
+                        {sstComite && (
+                          <p
+                            className={`mt-1 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                              sstComite.diasRestantesMandato < 0 || !sstComite.analisis.cumple
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-emerald-50 text-emerald-700'
+                            }`}
+                          >
+                            <ShieldCheck className="h-3 w-3" />
+                            Comité SST {sstComite.estado.toLowerCase()} · {sstComite.miembros.length}{' '}
+                            miembros ·{' '}
+                            {sstComite.diasRestantesMandato < 0
+                              ? 'mandato VENCIDO'
+                              : `vence en ${sstComite.diasRestantesMandato} días`}
+                            {!sstComite.analisis.cumple ? ' · composición incompleta' : ''}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
                         {isDoc ? (
                           <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-500">
                             <FileText className="h-3.5 w-3.5" /> Documento
                           </span>
+                        ) : sstComite ? (
+                          <a
+                            href="/dashboard/sst/comite"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:bg-sky-100"
+                            title="El Comité SST se gestiona en el módulo SST (mandato, miembros, elecciones, actas)"
+                          >
+                            Gestionar en SST <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
                         ) : covered ? (
                           <button
                             type="button"
