@@ -559,7 +559,7 @@ export async function loadSunafilReadySignal(orgId: string, now: Date): Promise<
       select: { sedeId: true, estado: true, fechaAprobacion: true },
     }),
     prisma.comiteSST.findMany({
-      where: { orgId },
+      where: { orgId, sedeId: null }, // Comité principal del empleador.
       select: { estado: true, mandatoFin: true },
     }),
     prisma.eMO.findMany({

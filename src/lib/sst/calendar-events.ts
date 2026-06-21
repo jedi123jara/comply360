@@ -168,6 +168,7 @@ export async function getComiteMandatoEnd(orgId: string): Promise<SstCalendarEve
   const comites = await prisma.comiteSST.findMany({
     where: {
       orgId,
+      sedeId: null, // Comité principal del empleador (subcomités por sede: Fase 2).
       estado: 'VIGENTE',
       mandatoFin: { lte: ninetyDaysFromNow },
     },

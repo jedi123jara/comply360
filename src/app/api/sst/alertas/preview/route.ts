@@ -35,7 +35,7 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: A
       },
     }),
     prisma.comiteSST.findMany({
-      where: { orgId: ctx.orgId, estado: 'VIGENTE' },
+      where: { orgId: ctx.orgId, sedeId: null, estado: 'VIGENTE' }, // Comité principal.
       select: { id: true, estado: true, mandatoFin: true },
     }),
   ])

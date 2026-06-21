@@ -79,12 +79,12 @@ export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: A
   const sedeId = data.sedeId ?? null
   if (sedeId) {
     const sede = await prisma.sede.findFirst({
-      where: { id: sedeId, orgId: ctx.orgId },
+      where: { id: sedeId, orgId: ctx.orgId, activa: true },
       select: { id: true },
     })
     if (!sede) {
       return NextResponse.json(
-        { error: 'La sede indicada no existe o no pertenece a la empresa.' },
+        { error: 'La sede indicada no existe, no pertenece a la empresa o está inactiva.' },
         { status: 400 },
       )
     }
