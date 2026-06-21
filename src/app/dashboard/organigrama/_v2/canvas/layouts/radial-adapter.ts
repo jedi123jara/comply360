@@ -82,7 +82,7 @@ export function applyRadialLayout(
     breadthByDepth.set(d.depth, (breadthByDepth.get(d.depth) ?? 0) + 1)
     if (d.depth > maxDepth) maxDepth = d.depth
   })
-  const cardSpan = opts.nodeWidth * 1.3 // ancho de tarjeta + holgura
+  const cardSpan = Math.max(1, opts.nodeWidth) * 1.3 // ancho de tarjeta + holgura (guard > 0)
   let layoutRadius = opts.radius
   if (maxDepth > 0) {
     for (const [depth, breadth] of breadthByDepth) {
