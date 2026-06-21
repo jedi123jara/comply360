@@ -10,6 +10,43 @@ que ver en pantalla) o **risky** (pueden romper) — por eso se separan.
 
 ---
 
+## 🧹 Cierre de backlog (rama `feat/organigrama-cierre-backlog`, PR #37) — 2026-06-20
+
+Tras mergear a prod el módulo interactivo (#35) y el fix de preview deploys (#36),
+se atacaron los ítems seguros del backlog en 4 lotes (sin schema ni migraciones).
+Todos `tsc` 0 + `vitest run src/lib/orgchart` 160/160.
+
+- **Lote 1** (`4b5e44c`): **C2** (modales crear cargo/área reaplican unidad
+  preseleccionada al reabrir), **E5** (assign-worker/role comparten
+  `useWorkersRosterQuery`), **F7** (mata slices muertos del store), **F5** (error
+  del árbol amigable + Reintentar), **C3** (reparent usa snapshotId real).
+- **Lote 2** (`9142147`): **E4** (indexa con Map O(n²)→O(n)), **B3** (command
+  palette suma Lente + exports PDF/MOF/RIT), **B5** (quita spinner muerto).
+- **Lote 3** (`094afa8`): **F3** (ModalShell a11y: focus-trap + role=dialog +
+  aria-modal + restaurar foco), **A4** (empty state con 3 tarjetas reales),
+  banda salarial en el inspector (chip Dentro/Bajo/Sobre banda, solo lectura).
+- **Lote 4**: **B6** (vocabulario "Agregar nivel" → "Agregar área"), **F1**
+  (safe-area-inset iOS en FAB + bottom-sheet), **B7** (hook `useClickOutside` +
+  CreateMenu/MoreMenu/LensSelector cierran al click-fuera y con Escape; mata el
+  `onBlur+setTimeout` frágil), **B2** (botón de Foco visible en el MoreMenu),
+  **B4** (MoreMenu agrupado: Inteligencia / Histórico / Exportar / Gestión),
+  **F2** (`useIsMobile` con tercer estado `undefined` → sin hydration mismatch
+  ni flash canvas→lista en móvil).
+
+**Ya estaba hecho (PR #35):** **B1** (AlertsButton montado, commit `2d8240d`).
+**Deferidos (con razón):** **E3** (persistir viewport — la receta tocaba la
+lógica de cámara/`fitView`, zona crash-prone; se evita), **F9** (auto-abrir
+wizard — chocaría con el empty state nuevo de 3 tarjetas), **C1** (Importar
+Excel — el *bug* original ya no existe: no hay botón roto; el backend
+`import-excel` existe pero armar la UI es feature net-new, no cierre de bug).
+
+**Backlog seguro que aún queda:** B8 (tooltips Radix), C4 (drag-close mobile),
+C5 (overlap radial), E1/E2 (optimistic updates, memo de layout), E3 (viewport),
+F8 (grouped-by-area real). + los `risky` D1/D2/D3 (ya cubiertos o opt-in) y los
+`needs-visual` de la sección A.
+
+---
+
 ## ✅ Implementado en esta sesión (rama `chore/code-quality-lint-cleanup`)
 
 Todo verificado: `tsc` 0, 2043 tests verde. Commits:

@@ -421,7 +421,7 @@ export function OrganigramaShellV2() {
                 onUseTemplate={() => useOrgStore.getState().openModal('templates')}
               />
             )
-          ) : isMobile && tree ? (
+          ) : isMobile === true && tree ? (
             <MobileTreeView tree={tree} coverage={coverage} />
           ) : (
             <OrgCanvasV2
@@ -433,13 +433,14 @@ export function OrganigramaShellV2() {
           )}
         </div>
 
-        {/* Inspector lateral — desktop. En mobile usamos bottom-sheet aparte. */}
-        {!isMobile && inspectorOpen && tree && (
+        {/* Inspector lateral — desktop. En mobile usamos bottom-sheet aparte.
+            Mientras isMobile es undefined (pre-montaje) no montamos ninguno. */}
+        {isMobile === false && inspectorOpen && tree && (
           <InspectorPanel tree={tree} coverage={coverage} />
         )}
 
         {/* Inspector mobile — bottom-sheet draggable */}
-        {isMobile && tree && <MobileInspectorSheet tree={tree} coverage={coverage} />}
+        {isMobile === true && tree && <MobileInspectorSheet tree={tree} coverage={coverage} />}
 
         {/* Alertas drawer (gestiona su propia animación de entrada/salida) */}
         <AlertsDrawer />

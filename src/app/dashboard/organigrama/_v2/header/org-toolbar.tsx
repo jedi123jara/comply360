@@ -2,7 +2,7 @@
  * Toolbar v2 — separa lectura y edición.
  *
  * Vista normal: Buscar · Diseñar estructura · Agregar · Vista · Mas
- * Modo diseño: Reorganizar · Agregar nivel · Asignar · Validar · Listo
+ * Modo diseño: Reorganizar · Agregar área · Asignar · Validar · Listo
  */
 'use client'
 
@@ -12,6 +12,7 @@ import {
   Camera,
   Check,
   ChevronDown,
+  Crosshair,
   Download,
   Eye,
   FolderClock,
@@ -31,8 +32,9 @@ import {
   Wand2,
   Zap,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
+import { useClickOutside } from '@/hooks/use-click-outside'
 import { useOrgStore } from '../state/org-store'
 import { AlertsButton } from './alerts-button'
 import { LayoutSwitcher } from './layout-switcher'
@@ -73,6 +75,7 @@ export function OrgToolbar({
   const setCommandPaletteOpen = useOrgStore((s) => s.setCommandPaletteOpen)
   const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
+  const toggleFocus = useOrgStore((s) => s.toggleFocus)
   const openModal = useOrgStore((s) => s.openModal)
   const selectedUnitId = useOrgStore((s) => s.selectedUnitId)
   const selectedPositionId = useOrgStore((s) => s.selectedPositionId)
@@ -163,6 +166,7 @@ export function OrgToolbar({
             onSnapshot={onSnapshot}
             onOpenAuditor={onOpenAuditor}
             onOpenDoctor={() => setDoctorOpen(true)}
+            onToggleFocus={toggleFocus}
             onOpenModal={openModal}
           />
         </>
@@ -191,10 +195,10 @@ export function OrgToolbar({
             type="button"
             onClick={onCreateUnit}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            title="Agregar nivel"
+            title="Agregar área"
           >
             <Plus className="h-4 w-4" />
-            <span>Agregar nivel</span>
+            <span>Agregar área</span>
           </button>
 
           {hasSelection && (
@@ -254,12 +258,14 @@ function CreateMenu({
   onAssign: () => void
   onBootstrap: () => void
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useClickOutside(containerRef, () => setOpen(false), open)
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        onBlur={() => setTimeout(() => setOpen(false), 120)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         title="Agregar"
       >
@@ -319,6 +325,7 @@ function MoreMenu({
   onSnapshot,
   onOpenAuditor,
   onOpenDoctor,
+  onToggleFocus,
   onOpenModal,
 }: {
   open: boolean
@@ -330,10 +337,14 @@ function MoreMenu({
   onSnapshot?: () => void
   onOpenAuditor?: () => void
   onOpenDoctor: () => void
+  onToggleFocus: () => void
   onOpenModal: ReturnType<typeof useOrgStore.getState>['openModal']
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useClickOutside(containerRef, () => setOpen(false), open)
+
   return (
-    <div className="relative ml-auto">
+    <div ref={containerRef} className="relative ml-auto">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -344,39 +355,14 @@ function MoreMenu({
         <MoreHorizontal className="h-4 w-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+4px)] z-30 grid max-h-[70vh] w-[280px] gap-1 overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-xl">
+        <div className="absolute right-0 top-[calc(100%+4px)] z-30 grid max-h-[70vh] w-[280px] gap-0.5 overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-xl">
+          {/* ── Inteligencia ── */}
+          <MenuSectionHeading label="Inteligencia" />
           <MenuButton
             icon={Sparkles}
             label="Sugerencias IA"
             onSelect={() => {
               onOpenCopilot()
-              setOpen(false)
-            }}
-          />
-          <div className="rounded-md px-2 py-1">
-            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-              <Eye className="h-3.5 w-3.5" />
-              Lente
-            </div>
-            <LensSelector />
-          </div>
-          <div className="my-1 border-t border-slate-100" />
-          {snapshotsCount > 0 && (
-            <MenuButton
-              icon={History}
-              label="Time Machine"
-              badge={String(snapshotsCount)}
-              onSelect={() => {
-                onOpenTimeMachine?.()
-                setOpen(false)
-              }}
-            />
-          )}
-          <MenuButton
-            icon={Camera}
-            label="Tomar snapshot"
-            onSelect={() => {
-              onSnapshot?.()
               setOpen(false)
             }}
           />
@@ -397,6 +383,43 @@ function MoreMenu({
             }}
           />
           <MenuButton
+            icon={Crosshair}
+            label="Resaltar relacionados (Foco)"
+            onSelect={() => {
+              onToggleFocus()
+              setOpen(false)
+            }}
+          />
+          <div className="rounded-md px-2 py-1">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
+              <Eye className="h-3.5 w-3.5" />
+              Lente
+            </div>
+            <LensSelector />
+          </div>
+
+          {/* ── Histórico ── */}
+          <MenuSectionHeading label="Histórico" />
+          {snapshotsCount > 0 && (
+            <MenuButton
+              icon={History}
+              label="Time Machine"
+              badge={String(snapshotsCount)}
+              onSelect={() => {
+                onOpenTimeMachine?.()
+                setOpen(false)
+              }}
+            />
+          )}
+          <MenuButton
+            icon={Camera}
+            label="Tomar snapshot"
+            onSelect={() => {
+              onSnapshot?.()
+              setOpen(false)
+            }}
+          />
+          <MenuButton
             icon={FolderClock}
             label="Escenarios guardados"
             onSelect={() => {
@@ -404,7 +427,17 @@ function MoreMenu({
               setOpen(false)
             }}
           />
-          <div className="my-1 border-t border-slate-100" />
+          <MenuButton
+            icon={History}
+            label="Historial"
+            onSelect={() => {
+              onOpenModal('change-history')
+              setOpen(false)
+            }}
+          />
+
+          {/* ── Exportar ── */}
+          <MenuSectionHeading label="Exportar" />
           <MenuLink
             icon={BookMarked}
             label="Memoria Anual"
@@ -425,6 +458,10 @@ function MoreMenu({
             label="Generar RIT"
             href={exportHref('/api/orgchart/rit')}
           />
+          <MenuLink icon={Users} label="Trombinoscopio" href="/dashboard/organigrama/people" />
+
+          {/* ── Gestión ── */}
+          <MenuSectionHeading label="Gestión" />
           <MenuButton
             icon={Link2}
             label="Auditor Link"
@@ -433,7 +470,6 @@ function MoreMenu({
               setOpen(false)
             }}
           />
-          <div className="my-1 border-t border-slate-100" />
           <MenuButton
             icon={ShieldCheck}
             label="Responsables legales"
@@ -467,14 +503,6 @@ function MoreMenu({
             }}
           />
           <MenuButton
-            icon={History}
-            label="Historial"
-            onSelect={() => {
-              onOpenModal('change-history')
-              setOpen(false)
-            }}
-          />
-          <MenuButton
             icon={ListChecks}
             label="Tareas delegadas"
             onSelect={() => {
@@ -490,9 +518,17 @@ function MoreMenu({
               setOpen(false)
             }}
           />
-          <MenuLink icon={Users} label="Trombinoscopio" href="/dashboard/organigrama/people" />
         </div>
       )}
+    </div>
+  )
+}
+
+/** Encabezado de sección dentro del MoreMenu (agrupa los 20+ items). */
+function MenuSectionHeading({ label }: { label: string }) {
+  return (
+    <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:pt-1">
+      {label}
     </div>
   )
 }

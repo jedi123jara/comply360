@@ -8,7 +8,8 @@
 'use client'
 
 import { Eye, ChevronDown } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { useClickOutside } from '@/hooks/use-click-outside'
 import { useOrgStore } from '../state/org-store'
 import type { OrgLens } from '../state/slices/canvas-slice'
 
@@ -27,13 +28,14 @@ export function LensSelector() {
   const lens = useOrgStore((s) => s.lens)
   const setLens = useOrgStore((s) => s.setLens)
   const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  useClickOutside(containerRef, () => setOpen(false), open)
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        onBlur={() => setTimeout(() => setOpen(false), 120)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
       >
         <Eye className="h-4 w-4" />

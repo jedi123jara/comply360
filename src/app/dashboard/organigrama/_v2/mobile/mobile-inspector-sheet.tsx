@@ -51,6 +51,7 @@ export function MobileInspectorSheet({ tree, coverage }: MobileInspectorSheetPro
               if (info.offset.y > 120) setOpen(false)
             }}
             className="fixed bottom-0 left-0 right-0 z-50 max-h-[80vh] overflow-hidden rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="flex justify-center pb-1 pt-2">
               <div className="h-1 w-10 rounded-full bg-slate-300" />
