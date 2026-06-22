@@ -271,6 +271,24 @@ export const PUT = withAuthParams<{ id: string }>(async (req: NextRequest, ctx: 
   for (const field of enumFields) {
     if (field in body) updateData[field] = body[field]
   }
+  // Sede del trabajador (Fase 3): valida pertenencia a la org si se asigna;
+  // string vacío = desasignar (null).
+  if ('sedeId' in body) {
+    const sedeId = body.sedeId ? String(body.sedeId) : null
+    if (sedeId) {
+      const sede = await prisma.sede.findFirst({
+        where: { id: sedeId, orgId },
+        select: { id: true },
+      })
+      if (!sede) {
+        return NextResponse.json(
+          { error: 'La sede indicada no existe o no pertenece a tu organización' },
+          { status: 400 },
+        )
+      }
+    }
+    updateData.sedeId = sedeId
+  }
   // SECURITY: Validate numeric fields to prevent negative/absurd values
   if ('sueldoBruto' in body) {
     const sueldo = Number(body.sueldoBruto)

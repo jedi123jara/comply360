@@ -68,6 +68,7 @@ interface FormData {
   // Laboral
   position: string
   department: string
+  sedeId: string
   regimenLaboral: string
   tipoContrato: string
   fechaIngreso: string
@@ -101,6 +102,7 @@ const INITIAL: FormData = {
   address: '',
   position: '',
   department: '',
+  sedeId: '',
   regimenLaboral: 'GENERAL',
   tipoContrato: 'INDEFINIDO',
   fechaIngreso: '',
@@ -130,6 +132,29 @@ export default function NuevoTrabajadorPage() {
   const [submitting, setSubmitting] = useState(false)
   const [apiError, setApiError] = useState('')
   const [section, setSection] = useState<Section>('personal')
+
+  // Sedes activas para asignar al trabajador (Fase 3). Degrada a [] si la org no
+  // tiene el módulo SST (403) o falla; el selector solo aparece si hay sedes.
+  const [sedes, setSedes] = useState<{ id: string; nombre: string }[]>([])
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/sst/sedes?activa=true', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { sedes: [] }))
+      .then((d) => {
+        if (cancelled) return
+        const list = ((d.sedes ?? []) as { id: string; nombre: string }[]).map((s) => ({
+          id: s.id,
+          nombre: s.nombre,
+        }))
+        setSedes(list)
+        // UX: si la empresa tiene una sola sede, preselecciónala.
+        if (list.length === 1) setForm((f) => (f.sedeId ? f : { ...f, sedeId: list[0].id }))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // ─── Contract upload / extract state ──────────────────────────────────────
   const [showExtractModal, setShowExtractModal] = useState(false)
@@ -608,6 +633,15 @@ export default function NuevoTrabajadorPage() {
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Area / Departamento</label>
                 <input type="text" value={form.department} onChange={e => update('department', e.target.value)} placeholder="Recursos Humanos" className={inputClass('department')} />
               </div>
+              {sedes.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Sede</label>
+                  <select value={form.sedeId} onChange={e => update('sedeId', e.target.value)} className={inputClass('sedeId')}>
+                    <option value="">Sin sede asignada</option>
+                    {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Regimen Laboral *</label>
                 <select value={form.regimenLaboral} onChange={e => update('regimenLaboral', e.target.value)} className={inputClass('regimenLaboral')}>

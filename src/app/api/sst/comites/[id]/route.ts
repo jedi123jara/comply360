@@ -39,12 +39,28 @@ export const GET = withPlanGateParams<{ id: string }>('sst_completo',
       where: { orgId: ctx.orgId, status: 'ACTIVE' },
     })
 
-    const analisis = analizarComite(numeroTrabajadores, comite.miembros)
+    // Dotación por sede (Fase 3): un subcomité se dimensiona por los trabajadores
+    // asignados a su sede; si no hay, degrada al total de la empresa.
+    let numeroTrabajadoresAplicado = numeroTrabajadores
+    let dotacionPorSede = false
+    if (comite.sedeId) {
+      const sedeCount = await prisma.worker.count({
+        where: { orgId: ctx.orgId, status: 'ACTIVE', sedeId: comite.sedeId },
+      })
+      if (sedeCount > 0) {
+        numeroTrabajadoresAplicado = sedeCount
+        dotacionPorSede = true
+      }
+    }
+
+    const analisis = analizarComite(numeroTrabajadoresAplicado, comite.miembros)
 
     return NextResponse.json({
       comite,
       analisis,
       numeroTrabajadores,
+      numeroTrabajadoresAplicado,
+      dotacionPorSede,
       diasRestantesMandato: diasRestantesMandato(comite.mandatoFin),
     })
   },

@@ -400,6 +400,10 @@ model Worker {
   epps                    WorkerEPP[]
   cuadroCategoriaId       String?                    @map("cuadro_categoria_id")
   cuadroCategoria         CuadroCategoriaItem?       @relation(fields: [cuadroCategoriaId], references: [id])
+  // Sede/centro de trabajo donde labora — base de la dotación por sede para
+  // dimensionar los subcomités SST por sede (Art. 44 D.S. 005-2012-TR). Nullable.
+  sedeId                  String?                    @map("sede_id")
+  sede                    Sede?                      @relation(fields: [sedeId], references: [id], onDelete: SetNull)
   // Fase 4 — Relaciones Laborales
   disciplinaryActions     DisciplinaryAction[]
   afiliacionesSindicales  WorkerAfiliacionSindical[]
@@ -413,6 +417,8 @@ model Worker {
   @@index([orgId, regimenLaboral])
   @@index([orgId, deletedAt]) // listas activas filtran rápido por deletedAt IS NULL
   @@index([cuadroCategoriaId])
+  @@index([orgId, sedeId]) // dotación por sede: count de workers activos por sede
+  @@index([sedeId])
   @@map("workers")
 }
 
@@ -3560,6 +3566,7 @@ model Sede {
   accidentes   Accidente[]
   visitas      VisitaFieldAudit[]
   comitesSst   ComiteSST[]
+  workers      Worker[]
 
   @@index([orgId])
   @@index([orgId, tipoInstalacion])

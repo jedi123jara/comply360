@@ -82,8 +82,17 @@ interface AnalisisData {
   observaciones: string[]
 }
 
+type ComiteDecorado = ComiteData & {
+  analisis: AnalisisData
+  diasRestantesMandato: number
+  // Dotación usada para el análisis (Fase 3): por sede en subcomités con dotación,
+  // total de la empresa en el principal o en subcomités sin trabajadores asignados.
+  numeroTrabajadoresAplicado: number
+  dotacionPorSede: boolean
+}
+
 interface ListResponse {
-  comites: Array<ComiteData & { analisis: AnalisisData; diasRestantesMandato: number }>
+  comites: ComiteDecorado[]
   total: number
   numeroTrabajadores: number
 }
@@ -358,7 +367,7 @@ function ComiteDetail({
   onChanged,
   onAddMiembro,
 }: {
-  comite: ComiteData & { analisis: AnalisisData; diasRestantesMandato: number }
+  comite: ComiteDecorado
   scopeLabel: string
   esPrincipal: boolean
   onChanged: () => void
@@ -482,13 +491,19 @@ function ComiteDetail({
                 </ul>
               )}
               <p className="mt-2 text-[11px] font-mono text-slate-500">{a.minimo.baseLegal}</p>
-              {!esPrincipal && (
-                <p className="mt-2 rounded-md bg-white/70 px-2 py-1 text-[11px] text-slate-500">
-                  Este análisis (incluido el tipo de órgano: Comité o Supervisor) se calcula sobre
-                  el total de la empresa, no sobre la dotación de esta sede. El dimensionamiento real
-                  por sede llega en una próxima versión.
-                </p>
-              )}
+              {!esPrincipal &&
+                (comite.dotacionPorSede ? (
+                  <p className="mt-2 rounded-md bg-emerald-50/70 px-2 py-1 text-[11px] text-emerald-800">
+                    Dimensionado por los {comite.numeroTrabajadoresAplicado} trabajador
+                    {comite.numeroTrabajadoresAplicado === 1 ? '' : 'es'} asignados a esta sede.
+                  </p>
+                ) : (
+                  <p className="mt-2 rounded-md bg-amber-50/70 px-2 py-1 text-[11px] text-amber-800">
+                    Aún no hay trabajadores asignados a esta sede, así que el análisis usa el total
+                    de la empresa. Asigna su sede en la ficha de cada trabajador (Trabajadores →
+                    editar → Sede) para dimensionar el subcomité por su propia dotación.
+                  </p>
+                ))}
             </div>
             <div className="flex gap-2 text-center">
               <Stat label="Empleador" value={a.actual.representantesEmpleador} target={a.minimo.representantesEmpleador} />
