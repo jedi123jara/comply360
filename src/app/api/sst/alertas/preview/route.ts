@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
 import type { AuthContext } from '@/lib/auth'
 import { evaluarReglasSst, resumirAlertas } from '@/lib/sst/calendar-engine'
+import { pickResponsableComite } from '@/lib/sst/comite-rules'
 
 // =============================================
 // GET /api/sst/alertas/preview
@@ -35,8 +36,18 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: A
       },
     }),
     prisma.comiteSST.findMany({
-      where: { orgId: ctx.orgId, sedeId: null, estado: 'VIGENTE' }, // Comité principal.
-      select: { id: true, estado: true, mandatoFin: true },
+      // Comité principal del empleador + subcomités por sede (Art. 44).
+      where: { orgId: ctx.orgId, estado: 'VIGENTE' },
+      select: {
+        id: true,
+        estado: true,
+        mandatoFin: true,
+        sede: { select: { nombre: true } },
+        miembros: {
+          where: { fechaBaja: null, worker: { status: 'ACTIVE' } },
+          select: { workerId: true, cargo: true },
+        },
+      },
     }),
   ])
 
@@ -64,6 +75,8 @@ export const GET = withPlanGate('sst_completo', async (_req: NextRequest, ctx: A
         id: c.id,
         estado: c.estado,
         mandatoFin: c.mandatoFin,
+        sedeNombre: c.sede?.nombre ?? null,
+        responsableWorkerId: pickResponsableComite(c.miembros),
       })),
     },
     new Date(),

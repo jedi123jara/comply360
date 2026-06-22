@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { evaluarReglasSst, type AlertaProyectada } from '@/lib/sst/calendar-engine'
+import { pickResponsableComite } from '@/lib/sst/comite-rules'
 import { notifySstAlert } from '@/lib/sst/push-notifications'
 import { withCronIdempotency } from '@/lib/cron/wrap'
 
@@ -84,12 +85,21 @@ export const GET = withCronIdempotency('sst-daily', 1440, async () => {
       },
     }),
     prisma.comiteSST.findMany({
-      where: { estado: 'VIGENTE', sedeId: null }, // Comité principal del empleador.
+      // Comité principal del empleador + subcomités por sede (Art. 44): el
+      // mandato de cada uno vence y debe renovarse por elecciones (R.M. 245-2021-TR).
+      where: { estado: 'VIGENTE' },
       select: {
         id: true,
         orgId: true,
         estado: true,
         mandatoFin: true,
+        sede: { select: { nombre: true } },
+        // Solo miembros con empleo ACTIVO: a uno de ellos se asocia la alerta de
+        // mandato; si no hay, el caller cae al fallback (primer worker activo).
+        miembros: {
+          where: { fechaBaja: null, worker: { status: 'ACTIVE' } },
+          select: { workerId: true, cargo: true },
+        },
       },
     }),
   ])
@@ -139,6 +149,8 @@ export const GET = withCronIdempotency('sst-daily', 1440, async () => {
             id: c.id,
             estado: c.estado,
             mandatoFin: c.mandatoFin,
+            sedeNombre: c.sede?.nombre ?? null,
+            responsableWorkerId: pickResponsableComite(c.miembros),
           })),
       }
 

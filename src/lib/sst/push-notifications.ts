@@ -89,7 +89,9 @@ const SST_TEMPLATES: Partial<Record<WorkerAlertType, PushTemplate>> = {
   },
   COMITE_MANDATO_VENCE: {
     title: 'Mandato del Comité por vencer',
-    body: () => 'El mandato del Comité SST vence pronto. Programa elecciones.',
+    // Usa la descripción real de la alerta (nombra la sede si es un subcomité).
+    body: (a) =>
+      a.description || a.title || 'El mandato del Comité SST vence pronto. Programa elecciones.',
     url: '/dashboard/sst/comite',
   },
   SIMULACRO_PENDIENTE: {
@@ -119,6 +121,15 @@ async function resolveRecipients(orgId: string): Promise<string[]> {
 }
 
 /**
+ * Quita el prefijo interno de fingerprint (`[sst-fp:...]`) que el cron antepone
+ * a la descripción para deduplicar. Ese prefijo es de uso interno y nunca debe
+ * verse en una notificación push.
+ */
+function stripFingerprint(text: string | null | undefined): string {
+  return (text ?? '').replace(/^\[sst-fp:[^\]]*\]\s*/, '')
+}
+
+/**
  * Envía push push para una alerta SST recién creada. Solo se ejecuta para
  * severidad CRITICAL o HIGH; las demás se quedan en email + dashboard.
  *
@@ -136,7 +147,9 @@ export async function notifySstAlert(args: NotifyArgs): Promise<void> {
     if (recipients.length === 0) return
 
     const tag = `sst-alert-${args.alertId}`
-    const body = tpl.body(args)
+    // La description del cron llega con el prefijo interno [sst-fp:...]; lo
+    // quitamos para que el body del push sea limpio (aplica a todos los tipos).
+    const body = tpl.body({ ...args, description: stripFingerprint(args.description) })
 
     await Promise.allSettled(
       recipients.map((userId) =>
