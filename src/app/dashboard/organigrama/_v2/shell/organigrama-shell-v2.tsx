@@ -17,7 +17,7 @@
  */
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Network,
   Sparkles,
@@ -47,6 +47,7 @@ import { OrgToolbar } from '../header/org-toolbar'
 import { ViewSwitcher } from '../header/view-switcher'
 import { DisplayModeSwitcher } from '../header/display-mode-switcher'
 import { InspectorPanel } from '../inspector/inspector-panel'
+import { ComitesObligatoriosPanel } from '../comisiones/comites-obligatorios-panel'
 import { useKeyboardShortcuts } from '../canvas/hooks/use-keyboard-shortcuts'
 import { OnboardingWizard } from '../onboarding/onboarding-wizard'
 import { CopilotPanel } from '../copilot/copilot-panel'
@@ -92,6 +93,16 @@ export function OrganigramaShellV2() {
 
   // --- Pantalla completa (oculta el chrome del dashboard para dar más espacio) ---
   const [fullscreen, setFullscreen] = useState(false)
+
+  // En pantalla completa, ocultar el sidebar del dashboard. El sidebar lo monta
+  // DashboardShell (componente hermano superior), así que comunicamos vía una
+  // clase global en <html> que la CSS usa para ocultarlo y quitar el padding.
+  // La limpieza garantiza que el sidebar reaparece al salir o desmontar.
+  useEffect(() => {
+    const el = document.documentElement
+    el.classList.toggle('org-immersive', fullscreen)
+    return () => el.classList.remove('org-immersive')
+  }, [fullscreen])
 
   // --- Data ---
   const treeQuery = useTreeQuery(currentSnapshotId)
@@ -212,7 +223,9 @@ export function OrganigramaShellV2() {
     <div
       className={
         fullscreen
-          ? 'fixed inset-0 z-40 flex h-screen flex-col bg-white'
+          ? // z-[60] cubre el TrialBanner (z-50) y el Topbar (z-40) del dashboard;
+            // el sidebar se oculta vía la clase global org-immersive (ver tokens.css).
+            'fixed inset-0 z-[60] flex h-screen flex-col bg-white'
           : 'flex h-[calc(100vh-64px)] flex-col'
       }
     >
@@ -389,6 +402,8 @@ export function OrganigramaShellV2() {
       <div className="relative flex flex-1 overflow-hidden">
         {/* Panel de trabajadores (roster) — overlay izquierdo, arrastrable al canvas */}
         <RosterPanel />
+        {/* Checklist de comités obligatorios — solo en la vista Comisiones */}
+        {view === 'committees' && <ComitesObligatoriosPanel />}
         {/* Canvas principal (desktop) o vista mobile colapsable */}
         <div className="flex-1 overflow-hidden">
           {treeQuery.isLoading ? (

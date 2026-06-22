@@ -70,6 +70,7 @@ export interface OrgAssignmentDTO {
     firstName: string
     lastName: string
     photoUrl: string | null
+    gender: string | null
     position: string | null
     department: string | null
     regimenLaboral: string

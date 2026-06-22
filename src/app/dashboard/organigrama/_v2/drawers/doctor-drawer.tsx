@@ -6,6 +6,7 @@
  */
 'use client'
 
+import { useState } from 'react'
 import { m, AnimatePresence } from 'framer-motion'
 import {
   Stethoscope,
@@ -17,7 +18,9 @@ import {
   Loader2,
   Banknote,
   TrendingDown,
+  ListChecks,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { useOrgStore } from '../state/org-store'
 import type { DoctorReport, DoctorSeverity } from '@/lib/orgchart/types'
@@ -58,6 +61,36 @@ export function DoctorDrawer({
   const setOpen = useOrgStore((s) => s.setDoctorOpen)
   const setSelectedUnit = useOrgStore((s) => s.setSelectedUnit)
   const setInspectorOpen = useOrgStore((s) => s.setInspectorOpen)
+  const [generando, setGenerando] = useState(false)
+
+  // Convierte los hallazgos críticos/altos en tareas de cumplimiento rastreables
+  // (con responsable y base legal). El backend es idempotente por título.
+  const generarPlan = async () => {
+    if (generando) return
+    setGenerando(true)
+    try {
+      const res = await fetch('/api/orgchart/diagnose', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ createTasks: true }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json?.error || 'No se pudo generar el plan de acción')
+        return
+      }
+      const n: number = json.createdTasks ?? 0
+      toast.success(
+        n > 0
+          ? `Plan de acción generado: ${n} tarea${n === 1 ? '' : 's'} de cumplimiento nueva${n === 1 ? '' : 's'}.`
+          : 'El plan ya estaba al día — no había tareas nuevas por crear.',
+      )
+    } catch {
+      toast.error('Error de conexión al generar el plan')
+    } finally {
+      setGenerando(false)
+    }
+  }
 
   const findings = report
     ? [...report.findings].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])
@@ -230,6 +263,28 @@ export function DoctorDrawer({
               </p>
             )}
           </div>
+
+          {report && findings.length > 0 && (
+            <footer className="border-t border-slate-200 p-3">
+              <button
+                type="button"
+                onClick={generarPlan}
+                disabled={generando}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {generando ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ListChecks className="h-4 w-4" />
+                )}
+                Generar plan de acción
+              </button>
+              <p className="mt-1.5 text-center text-[10px] text-slate-500">
+                Crea una tarea de cumplimiento (con responsable y base legal) por cada hallazgo
+                crítico o alto, para resolverlos uno por uno.
+              </p>
+            </footer>
+          )}
         </m.aside>
       )}
     </AnimatePresence>

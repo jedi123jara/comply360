@@ -16,9 +16,29 @@ import {
   buildUnitPath,
   inferPositionHierarchy,
   inferUnitHierarchy,
+  isParallelGovernanceUnit,
 } from '@/lib/orgchart/hierarchy-inference'
 import { runLayout } from '../layouts/layout-engine'
 import type { LayoutMode } from '../../state/slices/canvas-slice'
+
+/** Responsable (líder) de una unidad, derivado de leadByUnit + su ocupante titular. */
+export interface UnitResponsable {
+  name: string
+  photoUrl: string | null
+  gender: string | null
+  title: string
+  interim: boolean
+}
+
+/** Cargo de una unidad, resumido para la tarjeta rica. */
+export interface UnitCargoLite {
+  positionId: string
+  title: string
+  vacant: boolean
+  occupantName: string | null
+  occupantPhotoUrl: string | null
+  isCritical: boolean
+}
 
 export interface UnitNodeData extends Record<string, unknown> {
   kind: 'unit'
@@ -30,6 +50,10 @@ export interface UnitNodeData extends Record<string, unknown> {
   positionsCount: number
   occupantsCount: number
   coverage: UnitCoverage | null
+  /** Tarjeta rica (Fase 1 v3): responsable + cargos + vacantes. */
+  responsable?: UnitResponsable | null
+  cargos?: UnitCargoLite[]
+  vacantesCount?: number
   /** Si este nodo viene del plan del Copiloto (no del árbol real). */
   ghost?: boolean
   /** Focus mode: si true, el nodo se atenúa con un fade suave (framer). */
@@ -70,6 +94,12 @@ export interface BuildFlowOptions {
   copilotPreviewPlan?: CopilotPlan | null
   /** IDs de unidades colapsadas — se ocultan sus descendientes. */
   collapsedIds?: Set<string>
+  /**
+   * Vista Comisiones: los comités son órganos PARALELOS independientes (no
+   * tienen jerarquía entre sí). Cuando es true, se excluyen de la inferencia de
+   * jerarquía para no pintar aristas padre-hijo falsas → tarjetas independientes.
+   */
+  committeesView?: boolean
 }
 
 /**
@@ -89,13 +119,21 @@ export function useTreeToFlow(
     if (!tree) return { nodes: [], edges: [] }
 
     const base = opts.positionMode
-      ? buildPositionFlow(tree, layoutMode, coverage)
-      : buildUnitFlow(tree, layoutMode, coverage, opts.collapsedIds)
+      ? buildPositionFlow(tree, layoutMode, coverage, opts.committeesView)
+      : buildUnitFlow(tree, layoutMode, coverage, opts.collapsedIds, opts.committeesView)
 
     if (!opts.copilotPreviewPlan) return base
     // Aplica overlay de ghost nodes encima del árbol real
     return overlayCopilotPreview(base, opts.copilotPreviewPlan, layoutMode, opts.positionMode ?? false)
-  }, [tree, layoutMode, coverage, opts.positionMode, opts.copilotPreviewPlan, opts.collapsedIds])
+  }, [
+    tree,
+    layoutMode,
+    coverage,
+    opts.positionMode,
+    opts.copilotPreviewPlan,
+    opts.collapsedIds,
+    opts.committeesView,
+  ])
 }
 
 /**
@@ -310,6 +348,7 @@ function buildUnitFlow(
   layoutMode: LayoutMode,
   coverage: CoverageReport | null,
   collapsedIds?: Set<string>,
+  committeesView?: boolean,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
   const unitsById = new Map(tree.units.map((unit) => [unit.id, unit]))
   // 1) Indexar posiciones y asignaciones por unidad
@@ -325,28 +364,97 @@ function buildUnitFlow(
     occupantsByUnit.set(pos.orgUnitId, (occupantsByUnit.get(pos.orgUnitId) ?? 0) + 1)
   }
 
+  // 1b) Datos de la tarjeta rica (Fase 1 v3): cargos por unidad, ocupantes por
+  // cargo, y el responsable (ocupante titular del cargo líder de la unidad).
+  const positionsListByUnit = new Map<string, OrgChartTree['positions']>()
+  for (const p of tree.positions) {
+    const arr = positionsListByUnit.get(p.orgUnitId) ?? []
+    arr.push(p)
+    positionsListByUnit.set(p.orgUnitId, arr)
+  }
+  const occupantsByPos = new Map<string, OrgChartTree['assignments']>()
+  for (const a of tree.assignments) {
+    const arr = occupantsByPos.get(a.positionId) ?? []
+    arr.push(a)
+    occupantsByPos.set(a.positionId, arr)
+  }
+  const leadByUnit = inferPositionHierarchy({
+    units: tree.units,
+    positions: tree.positions,
+    assignments: tree.assignments,
+  }).leadByUnit
+
+  function buildCargos(unitId: string): { cargos: UnitCargoLite[]; vacantes: number } {
+    let vacantes = 0
+    const cargos = (positionsListByUnit.get(unitId) ?? []).map((p) => {
+      const occ = occupantsByPos.get(p.id) ?? []
+      const seats = p.seats ?? 1
+      if (occ.length < seats) vacantes += seats - occ.length
+      const first = occ[0]
+      return {
+        positionId: p.id,
+        title: p.title,
+        vacant: occ.length === 0,
+        occupantName: first ? `${first.worker.firstName} ${first.worker.lastName}` : null,
+        occupantPhotoUrl: first?.worker.photoUrl ?? null,
+        isCritical: Boolean(p.isCritical),
+      } satisfies UnitCargoLite
+    })
+    return { cargos, vacantes }
+  }
+
+  function buildResponsable(unitId: string): UnitResponsable | null {
+    const lead = leadByUnit.get(unitId)
+    if (!lead) return null
+    const first = (occupantsByPos.get(lead.id) ?? [])[0]
+    if (!first) return null
+    return {
+      name: `${first.worker.firstName} ${first.worker.lastName}`,
+      photoUrl: first.worker.photoUrl,
+      gender: first.worker.gender,
+      title: lead.title,
+      interim: first.isInterim,
+    }
+  }
+
   // 2) Construir nodos
-  const nodes: OrgFlowNode[] = tree.units.map((u) => ({
-    id: u.id,
-    type: 'unitNode',
-    position: { x: 0, y: 0 }, // será reemplazada por el layout
-    data: {
-      kind: 'unit',
-      unitId: u.id,
-      name: u.name,
-      unitKind: u.kind,
-      hierarchyLevel: u.level,
-      unitPath: buildUnitPath(u.id, unitsById),
-      positionsCount: positionsByUnit.get(u.id) ?? 0,
-      occupantsCount: occupantsByUnit.get(u.id) ?? 0,
-      coverage: coverage?.byUnit.get(u.id) ?? null,
-    } satisfies UnitNodeData,
-  }))
+  const nodes: OrgFlowNode[] = tree.units.map((u) => {
+    const { cargos, vacantes } = buildCargos(u.id)
+    return {
+      id: u.id,
+      type: 'unitNode',
+      position: { x: 0, y: 0 }, // será reemplazada por el layout
+      data: {
+        kind: 'unit',
+        unitId: u.id,
+        name: u.name,
+        unitKind: u.kind,
+        hierarchyLevel: u.level,
+        unitPath: buildUnitPath(u.id, unitsById),
+        positionsCount: positionsByUnit.get(u.id) ?? 0,
+        occupantsCount: occupantsByUnit.get(u.id) ?? 0,
+        coverage: coverage?.byUnit.get(u.id) ?? null,
+        responsable: buildResponsable(u.id),
+        cargos,
+        vacantesCount: vacantes,
+      } satisfies UnitNodeData,
+    }
+  })
+
+  // En la vista Comisiones, los comités son órganos PARALELOS independientes
+  // (Art. 44 D.S. 005-2012-TR / comités obligatorios): NO tienen jerarquía entre
+  // sí. Los excluimos de la inferencia (mismo criterio que reorganize/route.ts)
+  // para que no se les invente un padre → se pintan como tarjetas independientes
+  // sin aristas. Si no, la heurística los cuelga de un comité-raíz artificial.
+  const excludedUnitIds = committeesView
+    ? new Set(tree.units.filter(isParallelGovernanceUnit).map((u) => u.id))
+    : undefined
 
   const unitHierarchy = inferUnitHierarchy({
     units: tree.units,
     positions: tree.positions,
     assignments: tree.assignments,
+    excludedUnitIds,
   })
 
   // 3) Aristas: padre → hijo. Si la estructura viene plana desde planilla,
@@ -384,6 +492,7 @@ function buildPositionFlow(
   tree: OrgChartTree,
   layoutMode: LayoutMode,
   coverage: CoverageReport | null,
+  committeesView?: boolean,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
   const unitsById = new Map(tree.units.map((u) => [u.id, u]))
   const occupantsByPos = new Map<
@@ -402,10 +511,18 @@ function buildPositionFlow(
     occupantsByPos.set(a.positionId, list)
   }
 
+  // Vista Comisiones: los comités son órganos paralelos independientes; se
+  // excluyen de la inferencia para no encadenar los cargos de un comité al líder
+  // de otro (aristas cruzadas falsas). Mismo criterio que buildUnitFlow.
+  const excludedUnitIds = committeesView
+    ? new Set(tree.units.filter(isParallelGovernanceUnit).map((u) => u.id))
+    : undefined
+
   const hierarchy = inferPositionHierarchy({
     units: tree.units,
     positions: tree.positions,
     assignments: tree.assignments,
+    excludedUnitIds,
   })
 
   const nodes: OrgFlowNode[] = tree.positions.map((p) => {

@@ -343,6 +343,16 @@
   --content-max: 1280px;
 }
 
+/* Pantalla completa del organigrama: oculta el sidebar del dashboard y anula su
+ * offset para que el organigrama use todo el ancho. La clase la activa el shell
+ * del organigrama en <html> cuando entra en pantalla completa. */
+html.org-immersive [data-dashboard-sidebar] {
+  display: none !important;
+}
+html.org-immersive {
+  --sidebar-width: 0px;
+}
+
 /* =============================================================================
  * Utility surfaces
  * ============================================================================= */

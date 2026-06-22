@@ -51,6 +51,7 @@ export async function getTree(orgId: string, asOf?: Date | null): Promise<OrgCha
             firstName: true,
             lastName: true,
             photoUrl: true,
+            gender: true,
             position: true,
             department: true,
             regimenLaboral: true,
@@ -270,6 +271,7 @@ type AssignmentRow = Awaited<ReturnType<typeof prisma.orgAssignment.findFirst>> 
     firstName: string
     lastName: string
     photoUrl: string | null
+    gender: string | null
     position: string | null
     department: string | null
     regimenLaboral: string

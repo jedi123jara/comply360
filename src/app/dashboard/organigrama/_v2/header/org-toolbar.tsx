@@ -38,7 +38,6 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { useClickOutside } from '@/hooks/use-click-outside'
 import { useOrgStore } from '../state/org-store'
 import { AlertsButton } from './alerts-button'
-import { LayoutSwitcher } from './layout-switcher'
 import { LensSelector } from './lens-selector'
 
 interface OrgToolbarProps {
@@ -154,8 +153,6 @@ export function OrgToolbar({
             onBootstrap={() => openModal('bootstrap-from-workers')}
           />
 
-          <LayoutSwitcher />
-
           <AlertsButton />
 
           <MoreMenu
@@ -227,8 +224,6 @@ export function OrgToolbar({
             <Check className="h-4 w-4" />
             <span>Validar</span>
           </button>
-
-          <LayoutSwitcher />
 
           <button
             type="button"

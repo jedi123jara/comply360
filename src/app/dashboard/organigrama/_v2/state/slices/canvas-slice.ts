@@ -4,7 +4,9 @@
  */
 import type { StateCreator } from 'zustand'
 
-export type LayoutMode = 'top-down' | 'left-right' | 'radial' | 'grouped-by-area'
+// El organigrama usa una única vista: top-down (organigrama clásico). Se
+// eliminaron Horizontal/Radial/Disperso por decisión de producto (simplicidad).
+export type LayoutMode = 'top-down'
 export type OrgLens = 'general' | 'mof' | 'compliance' | 'contractual' | 'sst' | 'vacancies'
 export type View = 'hierarchy' | 'committees'
 export type DisplayMode = 'units' | 'positions'
