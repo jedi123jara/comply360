@@ -13,6 +13,8 @@ import {
   UserMinus,
   ScrollText,
   Download,
+  Building2,
+  MapPin,
 } from 'lucide-react'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { Button } from '@/components/ui/button'
@@ -49,6 +51,9 @@ interface ComiteData {
   mandatoFin: string
   libroActasUrl: string | null
   miembros: Miembro[]
+  // NULL = Comité principal del empleador; con sede = Subcomité de esa sede (Art. 44).
+  sedeId: string | null
+  sede: { id: string; nombre: string } | null
 }
 
 interface AnalisisData {
@@ -90,6 +95,12 @@ interface WorkerLite {
   dni: string
 }
 
+interface SedeLite {
+  id: string
+  nombre: string
+  activa: boolean
+}
+
 const CARGO_LABEL: Record<Cargo, string> = {
   PRESIDENTE: 'Presidente',
   SECRETARIO: 'Secretario',
@@ -115,6 +126,7 @@ const ESTADO_LABEL: Record<EstadoComite, string> = {
 
 export default function ComitePage() {
   const [data, setData] = useState<ListResponse | null>(null)
+  const [sedes, setSedes] = useState<SedeLite[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showInstalacion, setShowInstalacion] = useState(false)
@@ -149,8 +161,50 @@ export default function ComitePage() {
     }
   }, [])
 
-  const vigente = data?.comites.find((c) => c.estado === 'VIGENTE')
-  const historicos = data?.comites.filter((c) => c.estado !== 'VIGENTE') ?? []
+  // Sedes activas para el selector de subcomités (Art. 44). El módulo SST está
+  // tras el mismo plan gate que los comités; si falla (403/sin plan), el
+  // selector queda solo con el Comité principal.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/sst/sedes?activa=true', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { sedes: [] }))
+      .then((j) => {
+        if (cancelled) return
+        const list = (j.sedes ?? []) as SedeLite[]
+        setSedes(
+          list
+            .filter((s) => s.activa)
+            .map((s) => ({ id: s.id, nombre: s.nombre, activa: s.activa })),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setSedes([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const comites = data?.comites ?? []
+  // EN_ELECCION es un comité ACTIVO en proceso electoral (el flujo de elecciones
+  // marca el comité EN_ELECCION al iniciar y lo regresa a VIGENTE al cerrar), por
+  // eso cuenta como activo: si no, al iniciar una elección el comité "desaparece"
+  // y caería en históricos. Solo INACTIVO es histórico.
+  const activos = comites.filter((c) => c.estado === 'VIGENTE' || c.estado === 'EN_ELECCION')
+  const principal = activos.find((c) => c.sedeId == null) ?? null
+  const subcomites = activos
+    .filter((c) => c.sedeId != null)
+    .sort((a, b) => (a.sede?.nombre ?? '').localeCompare(b.sede?.nombre ?? '', 'es'))
+  const historicos = comites.filter((c) => c.estado === 'INACTIVO')
+
+  // Sedes que ya tienen un comité activo (vigente o en elección): no se ofrece
+  // crear otro para esa sede. El filtro de `subcomites` garantiza sedeId no-nulo.
+  const sedesConSubcomite = new Set(
+    subcomites.map((c) => c.sedeId).filter((id): id is string => id != null),
+  )
+  const sedesDisponibles = sedes.filter((s) => !sedesConSubcomite.has(s.id))
+  const puedeCrearPrincipal = !principal
+  const puedeCrearAlgo = puedeCrearPrincipal || sedesDisponibles.length > 0
 
   return (
     <div className="space-y-6">
@@ -159,10 +213,10 @@ export default function ComitePage() {
         title="Comité de Seguridad y Salud en el Trabajo"
         subtitle="R.M. 245-2021-TR · Mandato 2 años · Composición paritaria entre empleador y trabajadores"
         actions={
-          !vigente && (
+          puedeCrearAlgo && (
             <Button onClick={() => setShowInstalacion(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Instalar comité
+              {puedeCrearPrincipal ? 'Instalar comité' : 'Crear subcomité de sede'}
             </Button>
           )
         }
@@ -182,30 +236,60 @@ export default function ComitePage() {
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Cargando comité...
         </div>
-      ) : !vigente ? (
+      ) : !principal ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <Users2 className="h-10 w-10 text-slate-400" />
             <div>
-              <p className="font-medium text-slate-700">No hay un comité SST vigente</p>
-              <p className="mx-auto mt-1 max-w-xl text-sm text-slate-500">
-                {data && data.numeroTrabajadores >= 20
-                  ? `Tu empresa tiene ${data.numeroTrabajadores} trabajadores activos — la Ley 29783 obliga a tener un Comité paritario.`
-                  : `Tu empresa tiene ${data?.numeroTrabajadores ?? 0} trabajadores activos — basta con designar un Supervisor SST. Igual puedes registrarlo aquí.`}
-              </p>
+              <p className="font-medium text-slate-700">No hay un Comité SST principal vigente</p>
+              {/* El régimen (Comité vs Supervisor) depende del nº de trabajadores.
+                  Solo lo afirmamos si la carga trajo el dato; nunca con data nula
+                  (mostraría "0 trabajadores", un dato legal falso sobre el error). */}
+              {data && (
+                <p className="mx-auto mt-1 max-w-xl text-sm text-slate-500">
+                  {data.numeroTrabajadores >= 20
+                    ? `Tu empresa tiene ${data.numeroTrabajadores} trabajadores activos — la Ley 29783 obliga a tener un Comité paritario.`
+                    : `Tu empresa tiene ${data.numeroTrabajadores} trabajadores activos — basta con designar un Supervisor SST. De todos modos puedes registrarlo aquí.`}
+                </p>
+              )}
             </div>
             <Button onClick={() => setShowInstalacion(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Instalar
+              Instalar comité
             </Button>
           </CardContent>
         </Card>
       ) : (
         <ComiteDetail
-          comite={vigente}
+          comite={principal}
+          scopeLabel="Comité principal del empleador"
+          esPrincipal
           onChanged={reload}
-          onAddMiembro={() => setShowAddMiembro(vigente.id)}
+          onAddMiembro={() => setShowAddMiembro(principal.id)}
         />
+      )}
+
+      {/* Subcomités por sede (Art. 44 — facultativos) */}
+      {subcomites.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-slate-500" />
+            <h2 className="text-base font-semibold text-slate-900">Subcomités por sede</h2>
+            <Badge variant="neutral" size="xs">
+              Art. 44 · facultativo
+            </Badge>
+          </div>
+          {subcomites.map((c) => (
+            <ComiteDetail
+              key={c.id}
+              comite={c}
+              scopeLabel={`Subcomité — ${c.sede?.nombre ?? 'sede sin nombre'}`}
+              esPrincipal={false}
+              onChanged={reload}
+              onAddMiembro={() => setShowAddMiembro(c.id)}
+            />
+          ))}
+        </div>
       )}
 
       {historicos.length > 0 && (
@@ -221,6 +305,11 @@ export default function ComitePage() {
                     <Badge variant={ESTADO_VARIANT[c.estado]} size="xs" className="mr-2">
                       {ESTADO_LABEL[c.estado]}
                     </Badge>
+                    <span className="mr-2 text-xs font-medium text-slate-600">
+                      {c.sedeId == null
+                        ? 'Principal'
+                        : `Subcomité · ${c.sede?.nombre ?? 'sede sin nombre'}`}
+                    </span>
                     Mandato {new Date(c.mandatoInicio).toLocaleDateString('es-PE')} →{' '}
                     {new Date(c.mandatoFin).toLocaleDateString('es-PE')}
                   </div>
@@ -236,6 +325,8 @@ export default function ComitePage() {
 
       {showInstalacion && (
         <InstalacionModal
+          sedes={sedesDisponibles}
+          principalExists={!!principal}
           onClose={() => setShowInstalacion(false)}
           onCreated={() => {
             setShowInstalacion(false)
@@ -262,10 +353,14 @@ export default function ComitePage() {
 
 function ComiteDetail({
   comite,
+  scopeLabel,
+  esPrincipal,
   onChanged,
   onAddMiembro,
 }: {
   comite: ComiteData & { analisis: AnalisisData; diasRestantesMandato: number }
+  scopeLabel: string
+  esPrincipal: boolean
   onChanged: () => void
   onAddMiembro: () => void
 }) {
@@ -293,11 +388,27 @@ function ComiteDetail({
   const baja = comite.miembros.filter((m) => m.fechaBaja)
   const a = comite.analisis
   const dias = comite.diasRestantesMandato
-  const mandatoVencePronto = dias > 0 && dias <= 60
+  // dias === 0 (vence hoy) entra en "vence pronto" para ofrecer ya las elecciones.
+  const mandatoVencePronto = dias >= 0 && dias <= 60
   const mandatoVencido = dias < 0
 
   return (
     <div className="space-y-4">
+      {/* Ámbito del comité (principal / subcomité de sede) */}
+      <div className="flex items-center gap-2">
+        {esPrincipal ? (
+          <Building2 className="h-4 w-4 text-emerald-600" />
+        ) : (
+          <MapPin className="h-4 w-4 text-slate-500" />
+        )}
+        <h3 className="text-sm font-semibold text-slate-900">{scopeLabel}</h3>
+        {comite.estado === 'EN_ELECCION' && (
+          <Badge variant="info" size="xs">
+            En elección
+          </Badge>
+        )}
+      </div>
+
       {/* Banner mandato */}
       <Card
         className={
@@ -331,7 +442,7 @@ function ComiteDetail({
                 <>
                   {' · '}
                   <Link
-                    href="/dashboard/sst/comite/elecciones"
+                    href={`/dashboard/sst/comite/elecciones?comiteId=${comite.id}`}
                     className="font-medium text-amber-700 underline hover:text-amber-800"
                   >
                     programar elecciones
@@ -371,6 +482,13 @@ function ComiteDetail({
                 </ul>
               )}
               <p className="mt-2 text-[11px] font-mono text-slate-500">{a.minimo.baseLegal}</p>
+              {!esPrincipal && (
+                <p className="mt-2 rounded-md bg-white/70 px-2 py-1 text-[11px] text-slate-500">
+                  Este análisis (incluido el tipo de órgano: Comité o Supervisor) se calcula sobre
+                  el total de la empresa, no sobre la dotación de esta sede. El dimensionamiento real
+                  por sede llega en una próxima versión.
+                </p>
+              )}
             </div>
             <div className="flex gap-2 text-center">
               <Stat label="Empleador" value={a.actual.representantesEmpleador} target={a.minimo.representantesEmpleador} />
@@ -543,18 +661,44 @@ function Stat({ label, value, target }: { label: string; value: number; target: 
 
 // ── Modal de instalación ──────────────────────────────────────────────────
 
-function InstalacionModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function InstalacionModal({
+  sedes,
+  principalExists,
+  onClose,
+  onCreated,
+}: {
+  /** Sedes activas que aún NO tienen un comité activo (vigente o en elección). */
+  sedes: SedeLite[]
+  principalExists: boolean
+  onClose: () => void
+  onCreated: () => void
+}) {
+  // scope: '' = Comité principal del empleador; cualquier otro valor = sedeId del
+  // subcomité. Si ya existe el principal, arrancamos en la primera sede libre.
+  // El initializer ya deja un scope válido: el botón que abre este modal en modo
+  // subcomité solo aparece cuando hay sedes disponibles (ver puedeCrearAlgo), así
+  // que con principal existente `sedes` ya está poblado al montar.
+  const [scope, setScope] = useState<string>(() => (principalExists ? (sedes[0]?.id ?? '') : ''))
   const [mandatoInicio, setMandatoInicio] = useState(new Date().toISOString().slice(0, 10))
   const [libroUrl, setLibroUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const esSubcomite = scope !== ''
+  // No hay nada válido que crear: el principal ya existe y no se eligió una sede.
+  const sinAmbitoValido = principalExists && !esSubcomite
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (submitting) return
+    if (sinAmbitoValido) {
+      toast.error('Elige una sede para el subcomité (el Comité principal ya existe).')
+      return
+    }
     setSubmitting(true)
     try {
       const payload: Record<string, unknown> = { mandatoInicio }
       if (libroUrl.trim()) payload.libroActasUrl = libroUrl.trim()
+      if (esSubcomite) payload.sedeId = scope
 
       const res = await fetch('/api/sst/comites', {
         method: 'POST',
@@ -566,7 +710,7 @@ function InstalacionModal({ onClose, onCreated }: { onClose: () => void; onCreat
         toast.error(json?.error || 'No se pudo crear el comité')
         return
       }
-      toast.success('Comité instalado')
+      toast.success(esSubcomite ? 'Subcomité instalado' : 'Comité instalado')
       onCreated()
     } finally {
       setSubmitting(false)
@@ -574,12 +718,50 @@ function InstalacionModal({ onClose, onCreated }: { onClose: () => void; onCreat
   }
 
   return (
-    <Modal isOpen onClose={onClose} title="Instalar Comité SST">
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={esSubcomite ? 'Crear subcomité SST de sede' : 'Instalar Comité SST principal'}
+    >
       <form onSubmit={onSubmit} className="space-y-4">
         <p className="text-xs text-slate-600">
           El mandato dura 2 años (R.M. 245-2021-TR). Después de crearlo, agrega los miembros uno
           a uno respetando la paridad entre representantes del empleador y de los trabajadores.
         </p>
+
+        {principalExists && sedes.length === 0 ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs text-amber-900">
+            No hay sedes activas sin comité para crear un subcomité. Registra una sede en SST ·
+            Sedes, o desactiva un subcomité vigente, para poder crear otro.
+          </p>
+        ) : (
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-slate-700">
+              Ámbito del comité <span className="text-rose-500">*</span>
+            </span>
+            <select
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+            >
+              <option value="" disabled={principalExists}>
+                Comité principal del empleador{principalExists ? ' (ya existe)' : ''}
+              </option>
+              {sedes.map((s) => (
+                <option key={s.id} value={s.id}>
+                  Subcomité — {s.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {esSubcomite && (
+          <p className="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2 text-xs text-slate-600">
+            Los subcomités por sede son <strong>facultativos</strong> (Art. 44 D.S. 005-2012-TR).
+            El Comité principal del empleador sigue siendo el órgano obligatorio.
+          </p>
+        )}
 
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-slate-700">
@@ -611,9 +793,9 @@ function InstalacionModal({ onClose, onCreated }: { onClose: () => void; onCreat
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting || sinAmbitoValido}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Crear comité
+            {esSubcomite ? 'Crear subcomité' : 'Crear comité'}
           </Button>
         </div>
       </form>

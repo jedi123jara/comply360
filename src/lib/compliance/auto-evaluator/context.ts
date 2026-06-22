@@ -255,7 +255,9 @@ export async function buildEvaluatorContext(orgId: string): Promise<EvaluatorCon
       },
     }),
     prisma.comiteSST.findFirst({
-      where: { orgId, estado: 'VIGENTE' },
+      // Comité principal del empleador (sedeId NULL); el evaluador no se confunde
+      // con subcomités por sede.
+      where: { orgId, sedeId: null, estado: 'VIGENTE' },
       select: {
         id: true,
         estado: true,

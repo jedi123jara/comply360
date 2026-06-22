@@ -3341,6 +3341,7 @@ model OrgUnit {
   ancestorClosures   OrgUnitClosure[]    @relation("ClosureDescendant")
   descendantClosures OrgUnitClosure[]    @relation("ClosureAncestor")
   complianceRoles    OrgComplianceRole[]
+  comiteSst          ComiteSST?          @relation("ComiteOrgUnit")
 
   @@unique([orgId, slug])
   @@index([orgId, parentId])
@@ -3558,6 +3559,7 @@ model Sede {
   iperBases    IPERCBase[]
   accidentes   Accidente[]
   visitas      VisitaFieldAudit[]
+  comitesSst   ComiteSST[]
 
   @@index([orgId])
   @@index([orgId, tipoInstalacion])
@@ -3707,13 +3709,23 @@ model ComiteSST {
   mandatoFin    DateTime     @map("mandato_fin") // 2 años por R.M. 245-2021-TR
   estado        EstadoComite @default(VIGENTE)
   libroActasUrl String?      @map("libro_actas_url")
+  // Vínculo opcional con la unidad del organigrama que representa este comité
+  // (puente organigrama ↔ SST Premium). Nullable/único → aditivo y reversible.
+  orgUnitId     String?      @unique @map("org_unit_id")
+  // Sede del subcomité (Art. 44 D.S. 005-2012-TR): NULL = Comité principal del
+  // empleador; con sedeId = Subcomité de SST de esa sede (facultativo).
+  sedeId        String?      @map("sede_id")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 
   organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgUnit      OrgUnit?        @relation("ComiteOrgUnit", fields: [orgUnitId], references: [id], onDelete: SetNull)
+  sede         Sede?           @relation(fields: [sedeId], references: [id], onDelete: SetNull)
   miembros     MiembroComite[]
 
   @@index([orgId, estado])
+  @@index([orgId, orgUnitId])
+  @@index([orgId, sedeId])
   @@map("comites_sst")
 }
 

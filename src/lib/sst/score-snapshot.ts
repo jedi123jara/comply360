@@ -45,7 +45,9 @@ export async function loadSstScoreSnapshot(orgId: string, now: Date = new Date()
       },
     }),
     prisma.comiteSST.findFirst({
-      where: { orgId, estado: 'VIGENTE' },
+      // Comité principal del empleador (sedeId NULL); los subcomités por sede no
+      // alteran el score en esta fase.
+      where: { orgId, sedeId: null, estado: 'VIGENTE' },
       include: {
         miembros: {
           where: { fechaBaja: null },

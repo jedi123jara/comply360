@@ -390,6 +390,8 @@ export const comiteCreateSchema = z.object({
     .optional()
     .nullable(),
   libroActasUrl: z.string().url().optional().nullable(),
+  /** Sede del subcomité (Art. 44). Sin sedeId = Comité principal del empleador. */
+  sedeId: z.string().min(1).optional().nullable(),
 })
 
 export const comiteUpdateSchema = z.object({

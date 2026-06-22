@@ -84,7 +84,7 @@ export const GET = withCronIdempotency('sst-daily', 1440, async () => {
       },
     }),
     prisma.comiteSST.findMany({
-      where: { estado: 'VIGENTE' },
+      where: { estado: 'VIGENTE', sedeId: null }, // Comité principal del empleador.
       select: {
         id: true,
         orgId: true,

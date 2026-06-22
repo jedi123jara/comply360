@@ -110,7 +110,7 @@ export async function scanOrgRisks(orgId: string): Promise<OrgRiskReport> {
       select: { estado: true, fechaAprobacion: true },
     }),
     prisma.comiteSST.findMany({
-      where: { orgId },
+      where: { orgId, sedeId: null }, // Comité principal del empleador.
       select: { estado: true, mandatoFin: true },
     }),
     prisma.eMO.findMany({

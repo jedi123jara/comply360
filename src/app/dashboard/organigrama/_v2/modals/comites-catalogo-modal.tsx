@@ -8,7 +8,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ShieldCheck,
   Check,
@@ -23,6 +23,7 @@ import {
   Scale,
   AlertTriangle,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,7 +40,39 @@ import {
   type ComiteApplicability,
   type ComiteResolved,
 } from '@/lib/orgchart/comites-obligatorios'
+import { findingExposure } from '@/lib/orgchart/legal-exposure'
 import type { OrgChartTree } from '@/lib/orgchart/types'
+
+interface Demographics {
+  workerCount: number
+  womenCount: number
+  womenFertileCount: number
+  processesPersonalData: boolean
+}
+
+/** Comité SST autoritativo (módulo SST Premium) — fuente de verdad legal. */
+interface SstComite {
+  id: string
+  estado: string
+  // NULL = Comité principal del empleador; con sedeId = Subcomité de sede (Art. 44).
+  sedeId: string | null
+  mandatoFin: string
+  diasRestantesMandato: number
+  miembros: Array<{ id: string }>
+  analisis: { cumple: boolean }
+}
+
+/** Resultado del read-back: si el módulo SST está disponible y el comité vigente. */
+interface SstComiteState {
+  available: boolean
+  comite: SstComite | null
+}
+
+const solesFmt = new Intl.NumberFormat('es-PE', {
+  style: 'currency',
+  currency: 'PEN',
+  maximumFractionDigits: 0,
+})
 
 const APPLICABILITY_STYLE: Record<ComiteApplicability, string> = {
   obligatorio: 'bg-rose-100 text-rose-700',
@@ -56,18 +89,58 @@ export function ComitesCatalogoModal() {
   const queryClient = useQueryClient()
   const treeQuery = useTreeQuery(null)
   const rosterQuery = useWorkersRosterQuery(open)
-  const tree = treeQuery.data ?? null
+  const demographicsQuery = useQuery<Demographics>({
+    queryKey: ['orgchart', 'demographics'],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const res = await fetch('/api/orgchart/demographics')
+      if (!res.ok) throw new Error('No se pudo cargar la demografía de la empresa')
+      return res.json() as Promise<Demographics>
+    },
+  })
+  // Read-back del Comité SST autoritativo (módulo SST Premium). Es un realce
+  // progresivo: si la org no tiene el plan SST (403) o falla, devolvemos
+  // available=false y el catálogo cae al comportamiento basado en el organigrama.
+  const sstComiteQuery = useQuery<SstComiteState>({
+    queryKey: ['orgchart', 'sst-comite-vigente'],
+    enabled: open,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: async () => {
+      const res = await fetch('/api/sst/comites?estado=VIGENTE')
+      if (!res.ok) return { available: false, comite: null }
+      const json = await res.json()
+      // La obligación legal "sst" del catálogo es el Comité PRINCIPAL del
+      // empleador (sedeId NULL), no un subcomité de sede (Art. 44). Lo elegimos
+      // explícitamente y SIN fallback a subcomité: si solo hay subcomités
+      // vigentes (sin principal), la obligación principal NO está cubierta
+      // (covered=false) — pintar un subcomité como "el del empleador" engañaría.
+      const comites = (json.comites ?? []) as SstComite[]
+      const principal = comites.find((c) => c.sedeId == null) ?? null
+      return { available: true, comite: principal }
+    },
+  })
+  const sstState = sstComiteQuery.data ?? { available: false, comite: null }
 
-  // Contexto: el nº de trabajadores viene del roster (cap 500). El nº de mujeres
-  // / mujeres fértiles / tratamiento de datos no se conocen aún → esas
-  // obligaciones se muestran como "según tu caso".
-  const workerCount = rosterQuery.data?.length ?? 0
+  const tree = treeQuery.data ?? null
+  const demo = demographicsQuery.data
+
+  // El contexto (nº de trabajadores, mujeres, mujeres fértiles, tratamiento de
+  // datos) viene del endpoint agregado, para resolver las obligaciones
+  // condicionales (lactario / asistenta social / DPO) sin dejarlas en "según tu caso".
+  const workerCount = demo?.workerCount ?? 0
   const resolved = useMemo(() => {
-    const list = evaluarComitesObligatorios({ workerCount })
+    const list = evaluarComitesObligatorios({
+      workerCount: demo?.workerCount ?? 0,
+      womenCount: demo?.womenCount,
+      womenFertileCount: demo?.womenFertileCount,
+      processesPersonalData: demo?.processesPersonalData,
+    })
     return [...list].sort(
       (a, b) => APPLICABILITY_ORDER[a.applicability] - APPLICABILITY_ORDER[b.applicability],
     )
-  }, [workerCount])
+  }, [demo])
 
   const [assignUnitId, setAssignUnitId] = useState<string | null>(null)
   const [creatingId, setCreatingId] = useState<string | null>(null)
@@ -81,6 +154,21 @@ export function ComitesCatalogoModal() {
   /** Devuelve el id de la unidad existente que cubre la obligación, o null. */
   const coveredUnitId = (obligacionId: string): string | null =>
     tree?.units.find((u) => obligacionCubierta(obligacionId, [u.name]))?.id ?? null
+
+  // Espeja la unidad del comité SST al módulo SST Premium (best-effort) y
+  // refresca el estado para que la tarjeta pase a "Gestionar en SST".
+  const reconcileSst = async (orgUnitId: string) => {
+    try {
+      const res = await fetch('/api/orgchart/comite-sst/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgUnitId }),
+      })
+      if (res.ok) await sstComiteQuery.refetch()
+    } catch {
+      // best-effort: si falla, el siguiente assign reintenta.
+    }
+  }
 
   const createTemplate = async (item: ComiteResolved) => {
     if (!item.templateId) return
@@ -112,8 +200,14 @@ export function ComitesCatalogoModal() {
       const unit = appliedUnitName
         ? fresh?.units.find((u) => u.name === appliedUnitName)
         : fresh?.units.find((u) => obligacionCubierta(item.obligacion.id, [u.name]))
-      if (unit) setAssignUnitId(unit.id)
-      else toast.info('Comité creado. Ábrelo desde el catálogo para asignar sus cargos.')
+      if (unit) {
+        // Si es el comité SST y la org tiene el módulo, enlaza/crea el ComiteSST
+        // ANTES de abrir el wizard para que el estado quede fresco.
+        if (item.obligacion.id === 'sst' && sstState.available) await reconcileSst(unit.id)
+        setAssignUnitId(unit.id)
+      } else {
+        toast.info('Comité creado. Ábrelo desde el catálogo para asignar sus cargos.')
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {
@@ -144,14 +238,21 @@ export function ComitesCatalogoModal() {
           roster={rosterQuery.data ?? []}
           onBack={() => setAssignUnitId(null)}
           onDone={handleClose}
+          onAfterAssign={
+            sstState.available && obligacionCubierta('sst', [assignUnit.name])
+              ? () => {
+                  void reconcileSst(assignUnit.id)
+                }
+              : undefined
+          }
         />
       ) : (
         <div className="space-y-2.5">
-          {treeQuery.isLoading || rosterQuery.isLoading ? (
+          {treeQuery.isLoading || rosterQuery.isLoading || demographicsQuery.isLoading ? (
             <div className="flex justify-center py-10 text-slate-400">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
-          ) : rosterQuery.isError || treeQuery.isError ? (
+          ) : rosterQuery.isError || treeQuery.isError || demographicsQuery.isError ? (
             // Sin estos datos no podemos saber el tamaño de la empresa y los
             // umbrales resolverían mal. Mejor mostrar un error que un catálogo falso.
             <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -165,6 +266,7 @@ export function ComitesCatalogoModal() {
                 onClick={() => {
                   rosterQuery.refetch()
                   treeQuery.refetch()
+                  demographicsQuery.refetch()
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
               >
@@ -174,15 +276,36 @@ export function ComitesCatalogoModal() {
           ) : (
             <>
               <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                Tu empresa tiene <strong className="text-slate-700">{workerCount}</strong>{' '}
-                trabajadores registrados. El umbral clave es <strong>20</strong> (comité paritario
-                vs. responsable único).
+                Tu empresa tiene <strong className="text-slate-700">{workerCount}</strong> trabajadores
+                {demo && demo.womenCount > 0 && (
+                  <>
+                    {' '}
+                    ({demo.womenCount} mujeres
+                    {demo.womenFertileCount > 0
+                      ? `, ${demo.womenFertileCount} en edad fértil`
+                      : ''}
+                    )
+                  </>
+                )}
+                . El umbral clave es <strong>20</strong> (comité paritario vs. responsable único).
               </p>
               {resolved.map((item) => {
                 const unitId = coveredUnitId(item.obligacion.id)
-                const covered = Boolean(unitId)
+                const isSst = item.obligacion.id === 'sst'
+                // Para SST, el Comité SST del módulo SST Premium es la fuente de
+                // verdad legal (mandato, elecciones, actas): si existe y está
+                // vigente, prevalece sobre la unidad del organigrama.
+                const sstComite = isSst ? sstState.comite : null
+                const covered = sstComite ? true : Boolean(unitId)
                 const isDoc = item.obligacion.kind === 'documento'
                 const muted = item.applicability === 'no-aplica'
+                // Exposición a multa SUNAFIL de NO tener la obligación (peor caso),
+                // solo para las que faltan y son obligatorias/recomendadas.
+                const multa =
+                  !covered &&
+                  (item.applicability === 'obligatorio' || item.applicability === 'recomendado')
+                    ? findingExposure(item.obligacion.severity, workerCount)
+                    : null
                 return (
                   <div
                     key={item.obligacion.id}
@@ -211,12 +334,42 @@ export function ComitesCatalogoModal() {
                         <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-400">
                           <Scale className="h-3 w-3" /> {item.obligacion.legalBasis}
                         </p>
+                        {multa != null && multa > 0 && (
+                          <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+                            Exposición a multa: hasta {solesFmt.format(multa)}
+                          </p>
+                        )}
+                        {sstComite && (
+                          <p
+                            className={`mt-1 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                              sstComite.diasRestantesMandato < 0 || !sstComite.analisis.cumple
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-emerald-50 text-emerald-700'
+                            }`}
+                          >
+                            <ShieldCheck className="h-3 w-3" />
+                            Comité SST {sstComite.estado.toLowerCase()} · {sstComite.miembros.length}{' '}
+                            miembros ·{' '}
+                            {sstComite.diasRestantesMandato < 0
+                              ? 'mandato VENCIDO'
+                              : `vence en ${sstComite.diasRestantesMandato} días`}
+                            {!sstComite.analisis.cumple ? ' · composición incompleta' : ''}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
                         {isDoc ? (
                           <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-500">
                             <FileText className="h-3.5 w-3.5" /> Documento
                           </span>
+                        ) : sstComite ? (
+                          <a
+                            href="/dashboard/sst/comite"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:bg-sky-100"
+                            title="El Comité SST se gestiona en el módulo SST (mandato, miembros, elecciones, actas)"
+                          >
+                            Gestionar en SST <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
                         ) : covered ? (
                           <button
                             type="button"
@@ -261,12 +414,15 @@ function AssignWizard({
   roster,
   onBack,
   onDone,
+  onAfterAssign,
 }: {
   tree: OrgChartTree
   unitId: string
   roster: RosterWorker[]
   onBack: () => void
   onDone: () => void
+  /** Hook tras una asignación exitosa (p.ej. espejar al Comité SST). */
+  onAfterAssign?: () => void
 }) {
   const queryClient = useQueryClient()
 
@@ -349,6 +505,7 @@ function AssignWizard({
       // refetchQueries espera el refetch → el árbol (y los ocupantes) quedan
       // frescos antes de re-render, sin mostrar al recién asignado como libre.
       await queryClient.refetchQueries({ queryKey: treeKey(null) })
+      onAfterAssign?.()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {

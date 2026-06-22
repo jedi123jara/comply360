@@ -25,6 +25,9 @@ export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: Au
     where,
     orderBy: [{ estado: 'asc' }, { mandatoInicio: 'desc' }],
     include: {
+      // Sede del subcomité (Art. 44): NULL = Comité principal del empleador. El
+      // cliente usa esto para separar/etiquetar el principal de los subcomités.
+      sede: { select: { id: true, nombre: true } },
       miembros: {
         orderBy: [{ cargo: 'asc' }, { fechaAlta: 'asc' }],
         include: {
@@ -74,16 +77,34 @@ export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: A
   }
   const data = parsed.data
 
-  // Solo un comité VIGENTE por org
+  // sedeId NULL = Comité principal del empleador; con sedeId = Subcomité de esa
+  // sede (Art. 44 D.S. 005-2012-TR).
+  const sedeId = data.sedeId ?? null
+  if (sedeId) {
+    const sede = await prisma.sede.findFirst({
+      where: { id: sedeId, orgId: ctx.orgId, activa: true },
+      select: { id: true },
+    })
+    if (!sede) {
+      return NextResponse.json(
+        { error: 'La sede indicada no existe, no pertenece a la empresa o está inactiva.' },
+        { status: 400 },
+      )
+    }
+  }
+
+  // Un comité VIGENTE por (empresa, sede): el principal (sede NULL) y, a lo sumo,
+  // un subcomité vigente por sede.
   const vigente = await prisma.comiteSST.findFirst({
-    where: { orgId: ctx.orgId, estado: 'VIGENTE' },
-    select: { id: true, mandatoFin: true },
+    where: { orgId: ctx.orgId, sedeId, estado: 'VIGENTE' },
+    select: { id: true },
   })
   if (vigente) {
     return NextResponse.json(
       {
-        error:
-          'Ya existe un Comité SST vigente para esta empresa. Primero declara su mandato como INACTIVO antes de crear uno nuevo.',
+        error: sedeId
+          ? 'Ya existe un Subcomité SST vigente para esta sede. Declara su mandato como INACTIVO antes de crear uno nuevo.'
+          : 'Ya existe un Comité SST vigente para esta empresa. Declara su mandato como INACTIVO antes de crear uno nuevo.',
         code: 'COMITE_VIGENTE_EXISTENTE',
         comiteVigenteId: vigente.id,
       },
@@ -101,6 +122,7 @@ export const POST = withPlanGate('sst_completo', async (req: NextRequest, ctx: A
       mandatoFin: fin,
       estado: 'VIGENTE',
       libroActasUrl: data.libroActasUrl ?? null,
+      sedeId,
     },
   })
 

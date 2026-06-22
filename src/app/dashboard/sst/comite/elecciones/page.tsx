@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import {
   ChevronLeft,
@@ -64,54 +64,115 @@ interface ComiteInfo {
   estado: string
 }
 
+interface ComiteOption {
+  id: string
+  estado: string
+  esPrincipal: boolean
+  sedeNombre: string | null
+}
+
+interface RawComite {
+  id: string
+  estado: string
+  sedeId: string | null
+  sede: { id: string; nombre: string } | null
+}
+
 export default function EleccionesPage() {
+  const [comites, setComites] = useState<ComiteOption[]>([])
   const [comite, setComite] = useState<ComiteInfo | null>(null)
   const [data, setData] = useState<EleccionState | null>(null)
   const [workers, setWorkers] = useState<WorkerLite[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Token de secuencia: descarta respuestas de loadEleccion fuera de orden (al
+  // cambiar rápido de comité) para no mostrar la elección de un comité bajo otro.
+  const latestReq = useRef(0)
+
+  // Mantiene ?comiteId= en la URL para que un reload (o el refresh tras votar /
+  // cerrar) conserve el comité activo en vez de saltar al principal.
+  function syncUrl(id: string) {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    url.searchParams.set('comiteId', id)
+    window.history.replaceState(null, '', url)
+  }
+
+  // Carga la elección (+ padrón de electores) de un comité concreto. Descarta la
+  // respuesta si entretanto se pidió otra (token de secuencia).
+  async function loadEleccion(comiteId: string) {
+    const req = ++latestReq.current
+    const [eRes, wRes] = await Promise.all([
+      fetch(`/api/sst/comites/${comiteId}/elecciones`, { cache: 'no-store' }),
+      fetch('/api/workers?limit=200', { cache: 'no-store' }),
+    ])
+    const eJson = eRes.ok ? ((await eRes.json()) as ApiResponse) : null
+    const wJson = wRes.ok ? await wRes.json() : {}
+    if (req !== latestReq.current) return // respuesta obsoleta: la descartamos
+    setData(eJson?.eleccion ?? null)
+    setWorkers(
+      ((wJson.workers ?? wJson.data?.workers ?? []) as WorkerLite[]).map((w) => ({
+        id: w.id,
+        firstName: w.firstName,
+        lastName: w.lastName,
+        dni: w.dni,
+      })),
+    )
+  }
 
   async function reload() {
     setLoading(true)
     setError(null)
     try {
-      // Obtener comité vigente
-      const cRes = await fetch('/api/sst/comites?estado=VIGENTE', { cache: 'no-store' })
-      const cJson = await cRes.json()
-      const c = (cJson.comites ?? [])[0]
-      if (!c) {
-        // Buscar EN_ELECCION
-        const c2Res = await fetch('/api/sst/comites?estado=EN_ELECCION', { cache: 'no-store' })
-        const c2Json = await c2Res.json()
-        const c2 = (c2Json.comites ?? [])[0]
-        if (!c2) {
-          setError('No hay un Comité SST activo. Instala el comité antes de configurar la elección.')
-          setLoading(false)
-          return
-        }
-        setComite({ id: c2.id, estado: c2.estado })
-      } else {
-        setComite({ id: c.id, estado: c.estado })
-      }
-
-      const comiteId = c?.id ?? (await (await fetch('/api/sst/comites?estado=EN_ELECCION', { cache: 'no-store' })).json()).comites?.[0]?.id
-      if (!comiteId) return
-
-      const [eRes, wRes] = await Promise.all([
-        fetch(`/api/sst/comites/${comiteId}/elecciones`, { cache: 'no-store' }),
-        fetch('/api/workers?limit=200', { cache: 'no-store' }),
-      ])
-      const eJson = (await eRes.json()) as ApiResponse
-      const wJson = await wRes.json()
-      setData(eJson.eleccion)
-      setWorkers(
-        ((wJson.workers ?? wJson.data?.workers ?? []) as WorkerLite[]).map((w) => ({
-          id: w.id,
-          firstName: w.firstName,
-          lastName: w.lastName,
-          dni: w.dni,
+      // Con subcomités por sede puede haber varios comités activos: resolvemos el
+      // de la sede pedida (?comiteId=…) y, si no, preferimos el PRINCIPAL —
+      // nunca un [0] arbitrario (que podría ser un subcomité de sede).
+      const res = await fetch('/api/sst/comites', { cache: 'no-store' })
+      const json = await res.json()
+      const all = (json.comites ?? []) as RawComite[]
+      const activos = all.filter((c) => c.estado === 'VIGENTE' || c.estado === 'EN_ELECCION')
+      setComites(
+        activos.map((c) => ({
+          id: c.id,
+          estado: c.estado,
+          esPrincipal: c.sedeId == null,
+          sedeNombre: c.sede?.nombre ?? null,
         })),
       )
+      if (activos.length === 0) {
+        setError('No hay un Comité SST activo. Instala el comité antes de configurar la elección.')
+        return
+      }
+      const param =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('comiteId')
+          : null
+      const target =
+        (param ? activos.find((c) => c.id === param) : undefined) ??
+        activos.find((c) => c.sedeId == null) ?? // principal, en cualquier estado activo
+        activos[0]
+      setComite({ id: target.id, estado: target.estado })
+      syncUrl(target.id)
+      await loadEleccion(target.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Cambia el comité activo (selector cuando hay varios) sin recargar la lista.
+  async function selectComite(id: string) {
+    const opt = comites.find((c) => c.id === id)
+    if (!opt || opt.id === comite?.id) return
+    setComite({ id: opt.id, estado: opt.estado })
+    setData(null) // no mostrar la elección del comité anterior mientras carga
+    setWorkers([])
+    setLoading(true)
+    setError(null)
+    syncUrl(id)
+    try {
+      await loadEleccion(id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -139,7 +200,10 @@ export default function EleccionesPage() {
     )
   }
 
-  if (error) {
+  // Solo el error inicial (sin comité resuelto) reemplaza la página completa.
+  // Con un comité ya resuelto, el error se muestra como banner no destructivo
+  // (más abajo) para no perder el selector ni el contexto.
+  if (error && !comite) {
     return (
       <div className="space-y-4">
         <Link
@@ -177,15 +241,49 @@ export default function EleccionesPage() {
         subtitle="Proceso electoral con paridad obligatoria entre empleador y trabajadores. Cada voto se registra con hash SHA-256 firmado para audit trail."
       />
 
-      {!data ? (
+      {error && (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardContent className="flex items-center gap-2 py-4 text-sm text-amber-900">
+            <AlertCircle className="h-4 w-4" />
+            {error}
+          </CardContent>
+        </Card>
+      )}
+
+      {comites.length > 1 && comite && (
+        <Card>
+          <CardContent className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p id="comite-select-help" className="text-xs text-slate-600">
+              Tu empresa tiene varios comités SST activos. Elige sobre cuál gestionar la elección.
+            </p>
+            <select
+              aria-labelledby="comite-select-help"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+              value={comite.id}
+              onChange={(e) => selectComite(e.target.value)}
+            >
+              {comites.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.esPrincipal
+                    ? 'Comité principal del empleador'
+                    : `Subcomité — ${c.sedeNombre ?? 'sede sin nombre'}`}
+                  {c.estado === 'EN_ELECCION' ? ' · en elección' : ''}
+                </option>
+              ))}
+            </select>
+          </CardContent>
+        </Card>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-slate-500">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Cargando elección...
+        </div>
+      ) : !data ? (
         <ConfigEleccion comiteId={comite.id} workers={workers} onCreated={reload} />
       ) : data.estado === 'EN_VOTACION' ? (
-        <Votacion
-          comiteId={comite.id}
-          eleccion={data}
-          workers={workers}
-          onChanged={reload}
-        />
+        <Votacion comiteId={comite.id} eleccion={data} workers={workers} onChanged={reload} />
       ) : (
         <Resultados eleccion={data} />
       )}
