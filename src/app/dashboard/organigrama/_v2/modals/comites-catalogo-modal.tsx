@@ -54,6 +54,8 @@ interface Demographics {
 interface SstComite {
   id: string
   estado: string
+  // NULL = Comité principal del empleador; con sedeId = Subcomité de sede (Art. 44).
+  sedeId: string | null
   mandatoFin: string
   diasRestantesMandato: number
   miembros: Array<{ id: string }>
@@ -109,7 +111,14 @@ export function ComitesCatalogoModal() {
       const res = await fetch('/api/sst/comites?estado=VIGENTE')
       if (!res.ok) return { available: false, comite: null }
       const json = await res.json()
-      return { available: true, comite: (json.comites?.[0] ?? null) as SstComite | null }
+      // La obligación legal "sst" del catálogo es el Comité PRINCIPAL del
+      // empleador (sedeId NULL), no un subcomité de sede (Art. 44). Lo elegimos
+      // explícitamente y SIN fallback a subcomité: si solo hay subcomités
+      // vigentes (sin principal), la obligación principal NO está cubierta
+      // (covered=false) — pintar un subcomité como "el del empleador" engañaría.
+      const comites = (json.comites ?? []) as SstComite[]
+      const principal = comites.find((c) => c.sedeId == null) ?? null
+      return { available: true, comite: principal }
     },
   })
   const sstState = sstComiteQuery.data ?? { available: false, comite: null }

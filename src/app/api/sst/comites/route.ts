@@ -25,6 +25,9 @@ export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: Au
     where,
     orderBy: [{ estado: 'asc' }, { mandatoInicio: 'desc' }],
     include: {
+      // Sede del subcomité (Art. 44): NULL = Comité principal del empleador. El
+      // cliente usa esto para separar/etiquetar el principal de los subcomités.
+      sede: { select: { id: true, nombre: true } },
       miembros: {
         orderBy: [{ cargo: 'asc' }, { fechaAlta: 'asc' }],
         include: {
