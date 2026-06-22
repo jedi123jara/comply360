@@ -5,7 +5,6 @@
  *   F       → toggle focus mode
  *   [       → toggle inspector lateral
  *   Escape  → cerrar selección / modales / palette
- *   1-4     → cambiar layout (top-down, LR, radial, grouped)
  *
  * Se monta una sola vez en el shell v2.
  */
@@ -13,20 +12,11 @@
 
 import { useEffect } from 'react'
 import { useOrgStore } from '../../state/org-store'
-import type { LayoutMode } from '../../state/slices/canvas-slice'
-
-const LAYOUT_BY_KEY: Record<string, LayoutMode> = {
-  '1': 'top-down',
-  '2': 'left-right',
-  '3': 'radial',
-  '4': 'grouped-by-area',
-}
 
 export function useKeyboardShortcuts() {
   const toggleCommandPalette = useOrgStore((s) => s.toggleCommandPalette)
   const toggleFocus = useOrgStore((s) => s.toggleFocus)
   const toggleInspector = useOrgStore((s) => s.toggleInspector)
-  const setLayoutMode = useOrgStore((s) => s.setLayoutMode)
   const closeModal = useOrgStore((s) => s.closeModal)
   const setCommandPaletteOpen = useOrgStore((s) => s.setCommandPaletteOpen)
   const clearSelection = useOrgStore((s) => s.clearSelection)
@@ -63,12 +53,6 @@ export function useKeyboardShortcuts() {
         return
       }
 
-      if (event.key in LAYOUT_BY_KEY) {
-        event.preventDefault()
-        setLayoutMode(LAYOUT_BY_KEY[event.key])
-        return
-      }
-
       if (event.key === 'Escape') {
         // Cerrar en cascada el panel/overlay de mayor prioridad visible.
         const s = useOrgStore.getState()
@@ -92,7 +76,6 @@ export function useKeyboardShortcuts() {
     toggleCommandPalette,
     toggleFocus,
     toggleInspector,
-    setLayoutMode,
     closeModal,
     setCommandPaletteOpen,
     clearSelection,

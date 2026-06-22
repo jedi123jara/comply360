@@ -1,17 +1,12 @@
 /**
- * Layout engine — orquesta los 4 modos disponibles.
- *
- *   - top-down       : Dagre TB, el clásico de organigrama
- *   - left-right     : Dagre LR, ideal para árboles muy profundos
- *   - radial         : d3-hierarchy.tree() en coordenadas polares
- *   - grouped-by-area: Dagre TB pero con nodos hermanos clusterizados visualmente
- *                      (por ahora reusamos top-down; se sofisticará después)
+ * Layout engine — el organigrama usa una única vista: top-down (Dagre TB), el
+ * clásico de organigrama. Las vistas Horizontal/Radial/Disperso se eliminaron
+ * por decisión de producto (simplicidad).
  */
 import type { Node, Edge } from '@xyflow/react'
 import type { LayoutMode } from '../../state/slices/canvas-slice'
 
 import { applyDagreLayout } from './dagre-adapter'
-import { applyRadialLayout } from './radial-adapter'
 
 export interface LayoutResult {
   nodes: Node[]
@@ -36,8 +31,9 @@ function resolvedSize(node: Node) {
 export function runLayout(
   nodes: Node[],
   edges: Edge[],
-  mode: LayoutMode,
+  mode: LayoutMode = 'top-down',
 ): LayoutResult {
+  void mode // única vista soportada: top-down (parámetro conservado por firma)
   // Pre-computar dimensiones de cada nodo si no las tienen para que dagre
   // no las trate como 0.
   const sizedNodes = nodes.map((n) => {
@@ -46,52 +42,14 @@ export function runLayout(
     return { ...n, width: n.width ?? size.w, height: n.height ?? size.h }
   })
 
-  switch (mode) {
-    case 'top-down':
-      return {
-        nodes: applyDagreLayout(sizedNodes, edges, {
-          direction: 'TB',
-          nodeWidth: 260,
-          nodeHeight: 126,
-          rankSep: 126,
-          nodeSep: 54,
-        }),
-      }
-    case 'left-right':
-      return {
-        nodes: applyDagreLayout(sizedNodes, edges, {
-          direction: 'LR',
-          nodeWidth: 260,
-          nodeHeight: 126,
-          rankSep: 150,
-          nodeSep: 38,
-        }),
-      }
-    case 'radial':
-      return {
-        nodes: applyRadialLayout(sizedNodes, edges, {
-          radius: Math.max(420, sizedNodes.length * 18),
-          nodeWidth: 260,
-          nodeHeight: 126,
-        }),
-      }
-    case 'grouped-by-area':
-      // Por ahora reuso top-down con más rankSep para diferenciar áreas
-      // visualmente. La versión avanzada (clusters compuestos con d3-cluster)
-      // queda para una iteración posterior.
-      return {
-        nodes: applyDagreLayout(sizedNodes, edges, {
-          direction: 'TB',
-          nodeWidth: 260,
-          nodeHeight: 126,
-          rankSep: 150,
-          nodeSep: 72,
-        }),
-      }
-    default: {
-      const _exhaustive: never = mode
-      void _exhaustive
-      return { nodes: sizedNodes }
-    }
+  // Única vista: top-down (Dagre TB), el organigrama clásico.
+  return {
+    nodes: applyDagreLayout(sizedNodes, edges, {
+      direction: 'TB',
+      nodeWidth: 260,
+      nodeHeight: 126,
+      rankSep: 126,
+      nodeSep: 54,
+    }),
   }
 }

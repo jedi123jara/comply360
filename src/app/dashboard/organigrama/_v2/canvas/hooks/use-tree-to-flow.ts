@@ -16,6 +16,7 @@ import {
   buildUnitPath,
   inferPositionHierarchy,
   inferUnitHierarchy,
+  isParallelGovernanceUnit,
 } from '@/lib/orgchart/hierarchy-inference'
 import { runLayout } from '../layouts/layout-engine'
 import type { LayoutMode } from '../../state/slices/canvas-slice'
@@ -70,6 +71,12 @@ export interface BuildFlowOptions {
   copilotPreviewPlan?: CopilotPlan | null
   /** IDs de unidades colapsadas — se ocultan sus descendientes. */
   collapsedIds?: Set<string>
+  /**
+   * Vista Comisiones: los comités son órganos PARALELOS independientes (no
+   * tienen jerarquía entre sí). Cuando es true, se excluyen de la inferencia de
+   * jerarquía para no pintar aristas padre-hijo falsas → tarjetas independientes.
+   */
+  committeesView?: boolean
 }
 
 /**
@@ -89,13 +96,21 @@ export function useTreeToFlow(
     if (!tree) return { nodes: [], edges: [] }
 
     const base = opts.positionMode
-      ? buildPositionFlow(tree, layoutMode, coverage)
-      : buildUnitFlow(tree, layoutMode, coverage, opts.collapsedIds)
+      ? buildPositionFlow(tree, layoutMode, coverage, opts.committeesView)
+      : buildUnitFlow(tree, layoutMode, coverage, opts.collapsedIds, opts.committeesView)
 
     if (!opts.copilotPreviewPlan) return base
     // Aplica overlay de ghost nodes encima del árbol real
     return overlayCopilotPreview(base, opts.copilotPreviewPlan, layoutMode, opts.positionMode ?? false)
-  }, [tree, layoutMode, coverage, opts.positionMode, opts.copilotPreviewPlan, opts.collapsedIds])
+  }, [
+    tree,
+    layoutMode,
+    coverage,
+    opts.positionMode,
+    opts.copilotPreviewPlan,
+    opts.collapsedIds,
+    opts.committeesView,
+  ])
 }
 
 /**
@@ -310,6 +325,7 @@ function buildUnitFlow(
   layoutMode: LayoutMode,
   coverage: CoverageReport | null,
   collapsedIds?: Set<string>,
+  committeesView?: boolean,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
   const unitsById = new Map(tree.units.map((unit) => [unit.id, unit]))
   // 1) Indexar posiciones y asignaciones por unidad
@@ -343,10 +359,20 @@ function buildUnitFlow(
     } satisfies UnitNodeData,
   }))
 
+  // En la vista Comisiones, los comités son órganos PARALELOS independientes
+  // (Art. 44 D.S. 005-2012-TR / comités obligatorios): NO tienen jerarquía entre
+  // sí. Los excluimos de la inferencia (mismo criterio que reorganize/route.ts)
+  // para que no se les invente un padre → se pintan como tarjetas independientes
+  // sin aristas. Si no, la heurística los cuelga de un comité-raíz artificial.
+  const excludedUnitIds = committeesView
+    ? new Set(tree.units.filter(isParallelGovernanceUnit).map((u) => u.id))
+    : undefined
+
   const unitHierarchy = inferUnitHierarchy({
     units: tree.units,
     positions: tree.positions,
     assignments: tree.assignments,
+    excludedUnitIds,
   })
 
   // 3) Aristas: padre → hijo. Si la estructura viene plana desde planilla,
@@ -384,6 +410,7 @@ function buildPositionFlow(
   tree: OrgChartTree,
   layoutMode: LayoutMode,
   coverage: CoverageReport | null,
+  committeesView?: boolean,
 ): { nodes: OrgFlowNode[]; edges: Edge[] } {
   const unitsById = new Map(tree.units.map((u) => [u.id, u]))
   const occupantsByPos = new Map<
@@ -402,10 +429,18 @@ function buildPositionFlow(
     occupantsByPos.set(a.positionId, list)
   }
 
+  // Vista Comisiones: los comités son órganos paralelos independientes; se
+  // excluyen de la inferencia para no encadenar los cargos de un comité al líder
+  // de otro (aristas cruzadas falsas). Mismo criterio que buildUnitFlow.
+  const excludedUnitIds = committeesView
+    ? new Set(tree.units.filter(isParallelGovernanceUnit).map((u) => u.id))
+    : undefined
+
   const hierarchy = inferPositionHierarchy({
     units: tree.units,
     positions: tree.positions,
     assignments: tree.assignments,
+    excludedUnitIds,
   })
 
   const nodes: OrgFlowNode[] = tree.positions.map((p) => {

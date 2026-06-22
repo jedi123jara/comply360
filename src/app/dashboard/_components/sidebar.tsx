@@ -354,6 +354,7 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
     <>
       {/* Desktop — fixed aside */}
       <aside
+        data-dashboard-sidebar
         className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-[var(--sidebar-width)] lg:flex-col"
         aria-label="Barra lateral"
       >

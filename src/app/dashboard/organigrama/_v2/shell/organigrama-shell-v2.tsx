@@ -17,7 +17,7 @@
  */
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Network,
   Sparkles,
@@ -92,6 +92,16 @@ export function OrganigramaShellV2() {
 
   // --- Pantalla completa (oculta el chrome del dashboard para dar más espacio) ---
   const [fullscreen, setFullscreen] = useState(false)
+
+  // En pantalla completa, ocultar el sidebar del dashboard. El sidebar lo monta
+  // DashboardShell (componente hermano superior), así que comunicamos vía una
+  // clase global en <html> que la CSS usa para ocultarlo y quitar el padding.
+  // La limpieza garantiza que el sidebar reaparece al salir o desmontar.
+  useEffect(() => {
+    const el = document.documentElement
+    el.classList.toggle('org-immersive', fullscreen)
+    return () => el.classList.remove('org-immersive')
+  }, [fullscreen])
 
   // --- Data ---
   const treeQuery = useTreeQuery(currentSnapshotId)
@@ -212,7 +222,9 @@ export function OrganigramaShellV2() {
     <div
       className={
         fullscreen
-          ? 'fixed inset-0 z-40 flex h-screen flex-col bg-white'
+          ? // z-[60] cubre el TrialBanner (z-50) y el Topbar (z-40) del dashboard;
+            // el sidebar se oculta vía la clase global org-immersive (ver tokens.css).
+            'fixed inset-0 z-[60] flex h-screen flex-col bg-white'
           : 'flex h-[calc(100vh-64px)] flex-col'
       }
     >

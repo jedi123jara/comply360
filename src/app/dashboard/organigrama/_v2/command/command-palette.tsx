@@ -27,7 +27,6 @@ import {
   Camera,
   Wand2,
   Search,
-  Network,
   Crosshair,
   PanelRight,
   Bell,
@@ -61,7 +60,6 @@ export function CommandPaletteV2() {
   const setCopilotOpen = useOrgStore((s) => s.setCopilotOpen)
   const setTimemachineOpen = useOrgStore((s) => s.setTimemachineOpen)
   const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
-  const setLayoutMode = useOrgStore((s) => s.setLayoutMode)
   const setView = useOrgStore((s) => s.setView)
   const setDisplayMode = useOrgStore((s) => s.setDisplayMode)
   const toggleFocus = useOrgStore((s) => s.toggleFocus)
@@ -362,9 +360,6 @@ export function CommandPaletteV2() {
       setInspectorOpen(false)
     }
     return [
-      mk('v-layout-td', 'Layout: Vertical', Network, () => setLayoutMode('top-down'), 'Organigrama clásico, de arriba a abajo'),
-      mk('v-layout-lr', 'Layout: Horizontal', Network, () => setLayoutMode('left-right'), 'Ideal para jerarquías profundas'),
-      mk('v-layout-radial', 'Layout: Radial', Network, () => setLayoutMode('radial')),
       mk('v-view-empresa', 'Ver: Empresa', Building2, () => changeView(() => setView('hierarchy'))),
       mk('v-view-comisiones', 'Ver: Comisiones', ShieldCheck, () => changeView(() => setView('committees'))),
       mk('v-mode-units', 'Modo: Unidades', Building2, () => changeView(() => setDisplayMode('units'))),
@@ -373,7 +368,7 @@ export function CommandPaletteV2() {
       mk('v-inspector', 'Mostrar / ocultar panel lateral', PanelRight, () => toggleInspector(), 'Inspector · tecla ['),
       mk('v-alerts', 'Abrir alertas', Bell, () => setAlertsOpen(true)),
     ]
-  }, [setOpen, setLayoutMode, setView, setDisplayMode, toggleFocus, toggleInspector, setAlertsOpen, clearSelection, setInspectorOpen])
+  }, [setOpen, setView, setDisplayMode, toggleFocus, toggleInspector, setAlertsOpen, clearSelection, setInspectorOpen])
 
   // (cmdk filtra/rankea internamente sobre `value` de cada item; no necesitamos
   // ranking custom. Si quisiéramos rank semántico, podríamos pre-filtrar con

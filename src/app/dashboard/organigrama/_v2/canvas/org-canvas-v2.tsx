@@ -2,7 +2,7 @@
  * Canvas v2 — orquesta @xyflow/react con:
  *   - Nodos custom (UnitNode, PositionNode) con LOD
  *   - Edges suaves
- *   - Layout switch animado (top-down, LR, radial, grouped)
+ *   - Layout top-down (Dagre TB), el organigrama clásico
  *   - Compliance Heatmap (color por tone del coverage)
  *   - Smart Nudges flotantes
  *   - Focus mode (dimea no-relacionados al seleccionado)
@@ -98,6 +98,7 @@ function OrgCanvasV2Inner({
   readOnly = false,
 }: OrgCanvasV2Props) {
   const layoutMode = useOrgStore((s) => s.layoutMode)
+  const view = useOrgStore((s) => s.view)
   const lens = useOrgStore((s) => s.lens)
   const collapsedIds = useOrgStore((s) => s.collapsedIds)
   const focusEnabled = useOrgStore((s) => s.focusEnabled)
@@ -126,6 +127,7 @@ function OrgCanvasV2Inner({
     positionMode,
     copilotPreviewPlan,
     collapsedIds,
+    committeesView: view === 'committees',
   })
 
   // Foco: set de IDs relacionados al seleccionado (ancestros + descendientes).

@@ -24,6 +24,7 @@ import {
   Archive,
   FileCheck2,
   ExternalLink,
+  Stethoscope,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -72,6 +73,7 @@ export function InspectorPanel({ tree, coverage }: InspectorPanelProps) {
   const selectedWorkerId = useOrgStore((s) => s.selectedWorkerId)
   const setSelectedWorker = useOrgStore((s) => s.setSelectedWorker)
   const openModal = useOrgStore((s) => s.openModal)
+  const setDoctorOpen = useOrgStore((s) => s.setDoctorOpen)
   const queryClient = useQueryClient()
   const [retiringRoleId, setRetiringRoleId] = useState<string | null>(null)
   const [retiringAssignmentId, setRetiringAssignmentId] = useState<string | null>(null)
@@ -511,6 +513,18 @@ export function InspectorPanel({ tree, coverage }: InspectorPanelProps) {
 
         {tab === 'cumplimiento' && (
           <div className="space-y-3">
+            {/* Acceso al diagnóstico completo de la organización: hay hallazgos
+                críticos a nivel empresa (Comité SST sin presidente, DPO, etc.)
+                que no cuelgan de una unidad y solo se ven aquí. Desde el Doctor
+                se puede "Ir al nodo" y "Generar plan de acción" (tareas). */}
+            <button
+              type="button"
+              onClick={() => setDoctorOpen(true)}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+            >
+              <Stethoscope className="h-3.5 w-3.5" />
+              Ver diagnóstico completo y resolver
+            </button>
             {!unitCoverage && (
               <p className="text-sm text-slate-500">
                 Corre el Org Doctor para ver el detalle de cumplimiento de esta unidad.
@@ -1182,6 +1196,7 @@ interface CostsTabProps {
 }
 
 function CostsTab({ tree, unitId, positions, occupants }: CostsTabProps) {
+  const openModal = useOrgStore((s) => s.openModal)
   // Mapa unitId → todos los descendientes (incluyéndose a sí mismo)
   const descendantUnitIds = useMemo(() => {
     const result = new Set<string>([unitId])
@@ -1257,12 +1272,21 @@ function CostsTab({ tree, unitId, positions, occupants }: CostsTabProps) {
           </p>
         </>
       )}
-      {totalMinAnnual === 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
-          Esta unidad no tiene bandas salariales registradas. Asígnalas en cada cargo
-          para ver costos estimados.
-        </div>
-      )}
+      {totalMinAnnual === 0 &&
+        (positions.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => openModal('edit-position', { positionId: positions[0].id })}
+            className="w-full rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-[11px] text-amber-800 transition hover:bg-amber-100"
+          >
+            Esta unidad no tiene bandas salariales registradas. <span className="font-semibold underline">Asígnalas en cada cargo</span> para ver los costos estimados.
+          </button>
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
+            Esta unidad no tiene bandas salariales registradas. Agrega cargos y asígnales una
+            banda para ver los costos estimados.
+          </div>
+        ))}
     </div>
   )
 }
