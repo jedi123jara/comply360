@@ -21,6 +21,25 @@ import {
 import { runLayout } from '../layouts/layout-engine'
 import type { LayoutMode } from '../../state/slices/canvas-slice'
 
+/** Responsable (líder) de una unidad, derivado de leadByUnit + su ocupante titular. */
+export interface UnitResponsable {
+  name: string
+  photoUrl: string | null
+  gender: string | null
+  title: string
+  interim: boolean
+}
+
+/** Cargo de una unidad, resumido para la tarjeta rica. */
+export interface UnitCargoLite {
+  positionId: string
+  title: string
+  vacant: boolean
+  occupantName: string | null
+  occupantPhotoUrl: string | null
+  isCritical: boolean
+}
+
 export interface UnitNodeData extends Record<string, unknown> {
   kind: 'unit'
   unitId: string
@@ -31,6 +50,10 @@ export interface UnitNodeData extends Record<string, unknown> {
   positionsCount: number
   occupantsCount: number
   coverage: UnitCoverage | null
+  /** Tarjeta rica (Fase 1 v3): responsable + cargos + vacantes. */
+  responsable?: UnitResponsable | null
+  cargos?: UnitCargoLite[]
+  vacantesCount?: number
   /** Si este nodo viene del plan del Copiloto (no del árbol real). */
   ghost?: boolean
   /** Focus mode: si true, el nodo se atenúa con un fade suave (framer). */
@@ -341,23 +364,82 @@ function buildUnitFlow(
     occupantsByUnit.set(pos.orgUnitId, (occupantsByUnit.get(pos.orgUnitId) ?? 0) + 1)
   }
 
+  // 1b) Datos de la tarjeta rica (Fase 1 v3): cargos por unidad, ocupantes por
+  // cargo, y el responsable (ocupante titular del cargo líder de la unidad).
+  const positionsListByUnit = new Map<string, OrgChartTree['positions']>()
+  for (const p of tree.positions) {
+    const arr = positionsListByUnit.get(p.orgUnitId) ?? []
+    arr.push(p)
+    positionsListByUnit.set(p.orgUnitId, arr)
+  }
+  const occupantsByPos = new Map<string, OrgChartTree['assignments']>()
+  for (const a of tree.assignments) {
+    const arr = occupantsByPos.get(a.positionId) ?? []
+    arr.push(a)
+    occupantsByPos.set(a.positionId, arr)
+  }
+  const leadByUnit = inferPositionHierarchy({
+    units: tree.units,
+    positions: tree.positions,
+    assignments: tree.assignments,
+  }).leadByUnit
+
+  function buildCargos(unitId: string): { cargos: UnitCargoLite[]; vacantes: number } {
+    let vacantes = 0
+    const cargos = (positionsListByUnit.get(unitId) ?? []).map((p) => {
+      const occ = occupantsByPos.get(p.id) ?? []
+      const seats = p.seats ?? 1
+      if (occ.length < seats) vacantes += seats - occ.length
+      const first = occ[0]
+      return {
+        positionId: p.id,
+        title: p.title,
+        vacant: occ.length === 0,
+        occupantName: first ? `${first.worker.firstName} ${first.worker.lastName}` : null,
+        occupantPhotoUrl: first?.worker.photoUrl ?? null,
+        isCritical: Boolean(p.isCritical),
+      } satisfies UnitCargoLite
+    })
+    return { cargos, vacantes }
+  }
+
+  function buildResponsable(unitId: string): UnitResponsable | null {
+    const lead = leadByUnit.get(unitId)
+    if (!lead) return null
+    const first = (occupantsByPos.get(lead.id) ?? [])[0]
+    if (!first) return null
+    return {
+      name: `${first.worker.firstName} ${first.worker.lastName}`,
+      photoUrl: first.worker.photoUrl,
+      gender: first.worker.gender,
+      title: lead.title,
+      interim: first.isInterim,
+    }
+  }
+
   // 2) Construir nodos
-  const nodes: OrgFlowNode[] = tree.units.map((u) => ({
-    id: u.id,
-    type: 'unitNode',
-    position: { x: 0, y: 0 }, // será reemplazada por el layout
-    data: {
-      kind: 'unit',
-      unitId: u.id,
-      name: u.name,
-      unitKind: u.kind,
-      hierarchyLevel: u.level,
-      unitPath: buildUnitPath(u.id, unitsById),
-      positionsCount: positionsByUnit.get(u.id) ?? 0,
-      occupantsCount: occupantsByUnit.get(u.id) ?? 0,
-      coverage: coverage?.byUnit.get(u.id) ?? null,
-    } satisfies UnitNodeData,
-  }))
+  const nodes: OrgFlowNode[] = tree.units.map((u) => {
+    const { cargos, vacantes } = buildCargos(u.id)
+    return {
+      id: u.id,
+      type: 'unitNode',
+      position: { x: 0, y: 0 }, // será reemplazada por el layout
+      data: {
+        kind: 'unit',
+        unitId: u.id,
+        name: u.name,
+        unitKind: u.kind,
+        hierarchyLevel: u.level,
+        unitPath: buildUnitPath(u.id, unitsById),
+        positionsCount: positionsByUnit.get(u.id) ?? 0,
+        occupantsCount: occupantsByUnit.get(u.id) ?? 0,
+        coverage: coverage?.byUnit.get(u.id) ?? null,
+        responsable: buildResponsable(u.id),
+        cargos,
+        vacantesCount: vacantes,
+      } satisfies UnitNodeData,
+    }
+  })
 
   // En la vista Comisiones, los comités son órganos PARALELOS independientes
   // (Art. 44 D.S. 005-2012-TR / comités obligatorios): NO tienen jerarquía entre

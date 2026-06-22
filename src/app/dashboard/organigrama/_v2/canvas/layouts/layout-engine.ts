@@ -18,7 +18,8 @@ export interface LayoutResult {
  * algoritmo según el `data.kind` de cada nodo.
  */
 const NODE_SIZE_BY_KIND: Record<string, { w: number; h: number }> = {
-  unit: { w: 240, h: 120 },
+  // La tarjeta rica de unidad (responsable + cargos) es más ancha y alta.
+  unit: { w: 280, h: 220 },
   position: { w: 260, h: 126 },
 }
 
@@ -46,10 +47,10 @@ export function runLayout(
   return {
     nodes: applyDagreLayout(sizedNodes, edges, {
       direction: 'TB',
-      nodeWidth: 260,
-      nodeHeight: 126,
-      rankSep: 126,
-      nodeSep: 54,
+      nodeWidth: 280,
+      nodeHeight: 220,
+      rankSep: 88,
+      nodeSep: 48,
     }),
   }
 }

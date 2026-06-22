@@ -47,6 +47,7 @@ import { OrgToolbar } from '../header/org-toolbar'
 import { ViewSwitcher } from '../header/view-switcher'
 import { DisplayModeSwitcher } from '../header/display-mode-switcher'
 import { InspectorPanel } from '../inspector/inspector-panel'
+import { ComitesObligatoriosPanel } from '../comisiones/comites-obligatorios-panel'
 import { useKeyboardShortcuts } from '../canvas/hooks/use-keyboard-shortcuts'
 import { OnboardingWizard } from '../onboarding/onboarding-wizard'
 import { CopilotPanel } from '../copilot/copilot-panel'
@@ -401,6 +402,8 @@ export function OrganigramaShellV2() {
       <div className="relative flex flex-1 overflow-hidden">
         {/* Panel de trabajadores (roster) — overlay izquierdo, arrastrable al canvas */}
         <RosterPanel />
+        {/* Checklist de comités obligatorios — solo en la vista Comisiones */}
+        {view === 'committees' && <ComitesObligatoriosPanel />}
         {/* Canvas principal (desktop) o vista mobile colapsable */}
         <div className="flex-1 overflow-hidden">
           {treeQuery.isLoading ? (
