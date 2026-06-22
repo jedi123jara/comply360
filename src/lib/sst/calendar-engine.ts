@@ -54,6 +54,10 @@ export interface SstSnapshot {
     id: string
     estado: 'VIGENTE' | 'EN_ELECCION' | 'INACTIVO'
     mandatoFin: Date
+    /** Sede del subcomité (Art. 44); null/undefined = Comité principal del empleador. */
+    sedeNombre?: string | null
+    /** Miembro al que asociar la alerta; null/undefined = fallback del caller. */
+    responsableWorkerId?: string | null
   }>
 }
 
@@ -159,17 +163,22 @@ export function evaluarReglasSst(snapshot: SstSnapshot, now: Date = new Date()):
     }
   }
 
-  // ── Comité SST ─────────────────────────────────────────────────────────
+  // ── Comité SST (principal + subcomités por sede, Art. 44) ──────────────
   for (const c of snapshot.comites) {
     if (c.estado !== 'VIGENTE') continue
     const dias = (c.mandatoFin.getTime() - now.getTime()) / MS_DAY
     if (dias <= COMITE_DIAS_AVISO && dias >= 0) {
+      const esSubcomite = c.sedeNombre != null
+      const venceStr = c.mandatoFin.toLocaleDateString('es-PE')
+      const organo = esSubcomite ? `Subcomité SST de ${c.sedeNombre}` : 'Comité SST'
       alertas.push({
         type: 'COMITE_MANDATO_VENCE',
         severity: dias <= 14 ? 'HIGH' : 'MEDIUM',
-        workerId: null,
-        title: 'Mandato del Comité SST por vencer',
-        description: `El mandato del Comité SST vence el ${c.mandatoFin.toLocaleDateString('es-PE')} (en ${Math.floor(dias)} días). Programa elecciones del próximo periodo (R.M. 245-2021-TR).`,
+        workerId: c.responsableWorkerId ?? null,
+        title: esSubcomite
+          ? `Mandato del Subcomité SST (${c.sedeNombre}) por vencer`
+          : 'Mandato del Comité SST por vencer',
+        description: `El mandato del ${organo} vence el ${venceStr} (en ${Math.floor(dias)} días). Programa elecciones del próximo periodo (R.M. 245-2021-TR).`,
         dueDate: c.mandatoFin,
         fingerprint: `COMITE_MANDATO_VENCE:${c.id}`,
       })

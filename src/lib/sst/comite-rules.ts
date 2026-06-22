@@ -193,3 +193,19 @@ export function calcularFinMandato(inicio: Date): Date {
 export function diasRestantesMandato(fin: Date, now: Date = new Date()): number {
   return Math.floor((fin.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
 }
+
+/**
+ * Elige el trabajador "responsable" de un comité para asociarle alertas (p.ej.
+ * vencimiento de mandato): Presidente > Secretario > primer miembro activo.
+ * Devuelve null si el comité no tiene miembros (el caller decide el fallback).
+ */
+export function pickResponsableComite(
+  miembros: Array<{ workerId: string; cargo: 'PRESIDENTE' | 'SECRETARIO' | 'MIEMBRO' }>,
+): string | null {
+  if (miembros.length === 0) return null
+  return (
+    miembros.find((m) => m.cargo === 'PRESIDENTE')?.workerId ??
+    miembros.find((m) => m.cargo === 'SECRETARIO')?.workerId ??
+    miembros[0].workerId
+  )
+}

@@ -168,27 +168,33 @@ export async function getComiteMandatoEnd(orgId: string): Promise<SstCalendarEve
   const comites = await prisma.comiteSST.findMany({
     where: {
       orgId,
-      sedeId: null, // Comité principal del empleador (subcomités por sede: Fase 2).
+      // Comité principal del empleador + subcomités por sede (Art. 44): cada
+      // mandato vence y debe renovarse por elecciones (R.M. 245-2021-TR).
       estado: 'VIGENTE',
       mandatoFin: { lte: ninetyDaysFromNow },
     },
     select: {
       id: true,
       mandatoFin: true,
+      sede: { select: { nombre: true } },
     },
-    take: 5,
+    orderBy: { mandatoFin: 'asc' },
+    take: 12,
   })
 
   return comites
     .map((c) => {
       const daysLeft = Math.ceil((c.mandatoFin.getTime() - today.getTime()) / 86400_000)
+      const sedeNombre = c.sede?.nombre ?? null
       return {
         id: `sst-comite-mandato-${c.id}`,
-        title: 'Mandato del Comité SST por vencer',
+        title: sedeNombre
+          ? `Mandato del Subcomité SST (${sedeNombre}) por vencer`
+          : 'Mandato del Comité SST por vencer',
         date: toIsoDate(c.mandatoFin),
         type: 'SST',
         priority: priorityForDays(daysLeft),
-        description: `Programa elecciones nuevas. R.M. 245-2021-TR exige periodicidad bianual.`,
+        description: `Programa elecciones nuevas. R.M. 245-2021-TR exige renovar el mandato cada 2 años.`,
       }
     })
 }

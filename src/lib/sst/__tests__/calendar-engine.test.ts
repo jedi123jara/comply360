@@ -259,6 +259,55 @@ describe('evaluarReglasSst — Comité SST', () => {
     )
     expect(r.filter((a) => a.type === 'COMITE_MANDATO_VENCE')).toHaveLength(0)
   })
+
+  it('Comité principal (sin sede) → título genérico y sin responsable', () => {
+    const r = evaluarReglasSst(
+      { ...empty, comites: [{ id: 'c1', estado: 'VIGENTE', mandatoFin: days(20) }] },
+      NOW,
+    )
+    expect(r[0].title).toBe('Mandato del Comité SST por vencer')
+    expect(r[0].description).toContain('El mandato del Comité SST vence')
+    expect(r[0].workerId).toBeNull()
+  })
+
+  it('Subcomité por sede → título nombra la sede y asocia al responsable', () => {
+    const r = evaluarReglasSst(
+      {
+        ...empty,
+        comites: [
+          {
+            id: 'sub1',
+            estado: 'VIGENTE',
+            mandatoFin: days(20),
+            sedeNombre: 'Planta Norte',
+            responsableWorkerId: 'w-pres',
+          },
+        ],
+      },
+      NOW,
+    )
+    expect(r[0].title).toBe('Mandato del Subcomité SST (Planta Norte) por vencer')
+    expect(r[0].description).toContain('Subcomité SST de Planta Norte')
+    expect(r[0].workerId).toBe('w-pres')
+    expect(r[0].fingerprint).toBe('COMITE_MANDATO_VENCE:sub1')
+  })
+
+  it('Principal + subcomités → una alerta por comité, fingerprints distintos', () => {
+    const r = evaluarReglasSst(
+      {
+        ...empty,
+        comites: [
+          { id: 'main', estado: 'VIGENTE', mandatoFin: days(20) },
+          { id: 'sub1', estado: 'VIGENTE', mandatoFin: days(15), sedeNombre: 'Sede A' },
+          { id: 'sub2', estado: 'VIGENTE', mandatoFin: days(40), sedeNombre: 'Sede B' },
+        ],
+      },
+      NOW,
+    )
+    const mandato = r.filter((a) => a.type === 'COMITE_MANDATO_VENCE')
+    expect(mandato).toHaveLength(3)
+    expect(new Set(mandato.map((a) => a.fingerprint)).size).toBe(3)
+  })
 })
 
 describe('evaluarReglasSst — composición', () => {

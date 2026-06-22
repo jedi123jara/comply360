@@ -4,6 +4,7 @@ import {
   analizarComite,
   calcularFinMandato,
   diasRestantesMandato,
+  pickResponsableComite,
   type MiembroLite,
 } from '../comite-rules'
 
@@ -187,5 +188,36 @@ describe('calcularFinMandato + diasRestantesMandato', () => {
     const fin = new Date('2026-01-01T00:00:00.000Z')
     const now = new Date('2026-05-01T00:00:00.000Z')
     expect(diasRestantesMandato(fin, now)).toBeLessThan(0)
+  })
+})
+
+describe('pickResponsableComite', () => {
+  it('sin miembros → null', () => {
+    expect(pickResponsableComite([])).toBeNull()
+  })
+
+  it('prefiere al Presidente', () => {
+    const r = pickResponsableComite([
+      { workerId: 'w1', cargo: 'MIEMBRO' },
+      { workerId: 'w2', cargo: 'SECRETARIO' },
+      { workerId: 'w3', cargo: 'PRESIDENTE' },
+    ])
+    expect(r).toBe('w3')
+  })
+
+  it('sin Presidente, prefiere al Secretario', () => {
+    const r = pickResponsableComite([
+      { workerId: 'w1', cargo: 'MIEMBRO' },
+      { workerId: 'w2', cargo: 'SECRETARIO' },
+    ])
+    expect(r).toBe('w2')
+  })
+
+  it('sin Presidente ni Secretario → primer miembro', () => {
+    const r = pickResponsableComite([
+      { workerId: 'w1', cargo: 'MIEMBRO' },
+      { workerId: 'w2', cargo: 'MIEMBRO' },
+    ])
+    expect(r).toBe('w1')
   })
 })
