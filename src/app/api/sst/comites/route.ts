@@ -39,17 +39,33 @@ export const GET = withPlanGate('sst_completo', async (req: NextRequest, ctx: Au
     },
   })
 
-  // Conteo de trabajadores activos para análisis de composición
+  // Conteo de trabajadores activos org-wide (para el Comité principal y el total).
   const numeroTrabajadores = await prisma.worker.count({
     where: { orgId: ctx.orgId, status: 'ACTIVE' },
   })
 
-  // Decoramos cada comité con su análisis y días restantes del mandato
+  // Dotación POR SEDE (Fase 3): cada subcomité se dimensiona por los trabajadores
+  // asignados a su sede (Worker.sedeId). Si una sede no tiene dotación asignada,
+  // el subcomité degrada al total de la empresa (con aviso en la UI).
+  const porSede = await prisma.worker.groupBy({
+    by: ['sedeId'],
+    where: { orgId: ctx.orgId, status: 'ACTIVE', sedeId: { not: null } },
+    _count: { _all: true },
+  })
+  const countPorSede = new Map<string, number>(
+    porSede.map((r) => [r.sedeId as string, r._count._all]),
+  )
+
+  // Decoramos cada comité con su análisis y días restantes del mandato.
   const decorated = comites.map((c) => {
-    const analisis = analizarComite(numeroTrabajadores, c.miembros)
+    const sedeCount = c.sedeId ? countPorSede.get(c.sedeId) ?? 0 : 0
+    const usaDotacionSede = c.sedeId != null && sedeCount > 0
+    const n = usaDotacionSede ? sedeCount : numeroTrabajadores
     return {
       ...c,
-      analisis,
+      analisis: analizarComite(n, c.miembros),
+      numeroTrabajadoresAplicado: n,
+      dotacionPorSede: usaDotacionSede,
       diasRestantesMandato: diasRestantesMandato(c.mandatoFin),
     }
   })

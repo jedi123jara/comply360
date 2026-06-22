@@ -62,6 +62,7 @@ interface FormData {
   // Laboral
   position: string
   department: string
+  sedeId: string
   regimenLaboral: string
   tipoContrato: string
   fechaIngreso: string
@@ -95,6 +96,7 @@ const INITIAL: FormData = {
   address: '',
   position: '',
   department: '',
+  sedeId: '',
   regimenLaboral: 'GENERAL',
   tipoContrato: 'INDEFINIDO',
   fechaIngreso: '',
@@ -128,6 +130,32 @@ export default function EditarTrabajadorPage() {
   const [apiError, setApiError] = useState('')
   const [section, setSection] = useState<Section>('personal')
   const [loadingData, setLoadingData] = useState(true)
+  const [sedes, setSedes] = useState<{ id: string; nombre: string }[]>([])
+  // ¿el GET trajo sedeId de forma autoritativa? Si el GET cayó al fallback
+  // SAFE_WORKER_SELECT (alguna columna nueva faltante en la DB), sedeId no llega
+  // y NO debemos enviarlo en el PUT (si no, desasignaríamos la sede en silencio).
+  const [sedeLoaded, setSedeLoaded] = useState(false)
+
+  // Sedes activas para el selector de Sede (Fase 3). Degrada a [] si la org no
+  // tiene el módulo SST (403) o falla; el selector solo aparece si hay sedes.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/sst/sedes?activa=true', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { sedes: [] }))
+      .then((d) => {
+        if (cancelled) return
+        setSedes(
+          ((d.sedes ?? []) as { id: string; nombre: string }[]).map((s) => ({
+            id: s.id,
+            nombre: s.nombre,
+          })),
+        )
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Fetch initial data
   useEffect(() => {
@@ -141,6 +169,7 @@ export default function EditarTrabajadorPage() {
       .then(json => {
         if (!mounted) return
         const d = json.data
+        setSedeLoaded(!!d && 'sedeId' in d)
         if (d) {
           setForm(prev => ({
             ...prev,
@@ -154,6 +183,7 @@ export default function EditarTrabajadorPage() {
             address: d.address || '',
             position: d.position || '',
             department: d.department || '',
+            sedeId: d.sedeId || '',
             regimenLaboral: d.regimenLaboral || 'GENERAL',
             tipoContrato: d.tipoContrato || 'INDEFINIDO',
             fechaIngreso: d.fechaIngreso ? d.fechaIngreso.split('T')[0] : '',
@@ -325,6 +355,9 @@ export default function EditarTrabajadorPage() {
           birthDate: form.birthDate || null,
           afpNombre: form.tipoAporte === 'AFP' ? form.afpNombre : null,
           cuspp: form.tipoAporte === 'AFP' ? form.cuspp : null,
+          // Solo enviamos sedeId si el GET lo trajo (si no, undefined → omitido
+          // por JSON.stringify → el PUT no toca la sede y no la desasigna).
+          sedeId: sedeLoaded ? form.sedeId : undefined,
         }),
       })
 
@@ -510,6 +543,15 @@ export default function EditarTrabajadorPage() {
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Area / Departamento</label>
                 <input type="text" value={form.department} onChange={e => update('department', e.target.value)} placeholder="Recursos Humanos" className={inputClass('department')} />
               </div>
+              {sedes.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Sede</label>
+                  <select value={form.sedeId} onChange={e => update('sedeId', e.target.value)} className={inputClass('sedeId')}>
+                    <option value="">Sin sede asignada</option>
+                    {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Regimen Laboral *</label>
                 <select value={form.regimenLaboral} onChange={e => update('regimenLaboral', e.target.value)} className={inputClass('regimenLaboral')}>

@@ -235,6 +235,7 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
     address,
     position,
     department,
+    sedeId,
     regimenLaboral = 'GENERAL',
     tipoContrato = 'INDEFINIDO',
     fechaIngreso,
@@ -294,6 +295,17 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
     )
   }
 
+  // Si se asigna una sede, debe pertenecer a la org (multi-tenant).
+  if (sedeId) {
+    const sede = await prisma.sede.findFirst({ where: { id: sedeId, orgId }, select: { id: true } })
+    if (!sede) {
+      return NextResponse.json(
+        { error: 'La sede indicada no existe o no pertenece a tu organización' },
+        { status: 400 }
+      )
+    }
+  }
+
   // Check duplicate DNI within org
   const existing = await prisma.worker.findUnique({
     where: { orgId_dni: { orgId, dni } },
@@ -319,6 +331,7 @@ export const POST = withPlanGate('workers', async (req: NextRequest, ctx: AuthCo
       address: address || null,
       position: position || null,
       department: department || null,
+      sedeId: sedeId || null,
       regimenLaboral: regimenLaboral as 'GENERAL',
       tipoContrato: tipoContrato as 'INDEFINIDO',
       fechaIngreso: new Date(fechaIngreso),
