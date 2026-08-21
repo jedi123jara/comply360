@@ -74,6 +74,9 @@ export function BulkCTSCalculadora() {
             fechaCorte,
             asignacionFamiliar: w.asignacionFamiliar ?? false,
             ultimaGratificacion: 0, // No stored yet; field editable per-row
+            // FIX auditoría P0 (JUR-01): MYPE_PEQUENA recibe 50% de CTS (Ley 32353),
+            // antes se pagaba el 100% del régimen general.
+            regimenLaboral: w.regimenLaboral,
           }
           if (input.sueldoBruto <= 0 || !input.fechaIngreso) {
             return { ...w, ctsResult: null, error: 'Datos incompletos' }
@@ -121,6 +124,8 @@ export function BulkCTSCalculadora() {
           fechaCorte,
           asignacionFamiliar: w.asignacionFamiliar ?? false,
           ultimaGratificacion: value,
+          // FIX auditoría P0 (JUR-01): factor de régimen (MYPE_PEQUENA 50%).
+          regimenLaboral: w.regimenLaboral,
         }
         return { ...w, ctsResult: calcularCTS(input), error: null }
       } catch {

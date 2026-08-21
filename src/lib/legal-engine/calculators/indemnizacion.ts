@@ -38,6 +38,42 @@ function calcularIndemnizacionIndefinido(
   const anosServicio = periodo.anos
   const mesesFraccion = periodo.meses
 
+  // FIX auditoría P0 (JUR-01): régimen MYPE (Ley 32353). La indemnización NO es
+  // 1.5 sueldos/año sino remuneraciones DIARIAS por año (MICRO 10, PEQUEÑA 20)
+  // con tope diario (MICRO 90, PEQUEÑA 120). Lógica idéntica a liquidacion.ts.
+  // Antes se aplicaba siempre el régimen general, sobrevaluando hasta ~4.5x.
+  if (input.regimenLaboral === 'MYPE_MICRO' || input.regimenLaboral === 'MYPE_PEQUENA') {
+    const cfg = input.regimenLaboral === 'MYPE_MICRO' ? PERU_LABOR.MYPE.MICRO : PERU_LABOR.MYPE.PEQUENA
+    const remDiaria = remComputable / 30
+    let indemMype = money(cfg.INDEMNIZACION_FACTOR_DIARIO).mul(remDiaria).mul(anosServicio)
+    if (mesesFraccion >= config.FRACCION_MINIMA_MESES) {
+      indemMype = indemMype.add(money(cfg.INDEMNIZACION_FACTOR_DIARIO).mul(remDiaria).div(12).mul(mesesFraccion))
+    }
+    if (periodo.dias > 0) {
+      indemMype = indemMype.add(money(cfg.INDEMNIZACION_FACTOR_DIARIO).mul(remDiaria).div(360).mul(periodo.dias))
+    }
+    let indemMypeNum = indemMype.toNumber()
+    const topeMype = money(cfg.INDEMNIZACION_TOPE_DIARIO).mul(remDiaria).toNumber()
+    const topeMypeAplicado = indemMypeNum > topeMype
+    if (topeMypeAplicado) indemMypeNum = topeMype
+    const etiqueta = input.regimenLaboral === 'MYPE_MICRO' ? 'Microempresa' : 'Pequeña Empresa'
+
+    return {
+      anosServicio,
+      mesesFraccion,
+      indemnizacion: Math.round(indemMypeNum * 100) / 100,
+      topeAplicado: topeMypeAplicado,
+      topeMaximo: Math.round(topeMype * 100) / 100,
+      formula:
+        `Indemnización MYPE ${etiqueta}: ${cfg.INDEMNIZACION_FACTOR_DIARIO} jornales × ` +
+        `(${fmt(remComputable)} / 30) × ${anosServicio} año(s)` +
+        `${mesesFraccion >= config.FRACCION_MINIMA_MESES ? ` + fracción ${mesesFraccion} mes(es)` : ''} = ` +
+        `${fmt(indemMypeNum)}` +
+        `${topeMypeAplicado ? `. TOPE ${cfg.INDEMNIZACION_TOPE_DIARIO} jornales = ${fmt(topeMype)}` : ''}`,
+      baseLegal: cfg.BASE_LEGAL,
+    }
+  }
+
   // Indemnización — FIX #2.A aritmética decimal precisa.
   const factorBase = money(config.FACTOR_POR_ANO).mul(remComputable)
   let indemnizacionM = factorBase.mul(anosServicio)

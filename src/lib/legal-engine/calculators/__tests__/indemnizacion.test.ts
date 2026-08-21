@@ -228,3 +228,41 @@ describe('calcularIndemnizacion', () => {
     })
   })
 })
+
+// -----------------------------------------------
+// FIX auditoría P0 (JUR-01): indemnización MYPE en jornales (Ley 32353)
+// Worker S/ 3,000, exactamente 3 años (2023-03-15 a 2026-03-15).
+// remDiaria = 3000 / 30 = 100.
+// -----------------------------------------------
+describe('calcularIndemnizacion — régimen MYPE (JUR-01)', () => {
+  const base: IndemnizacionInput = {
+    sueldoBruto: 3000,
+    fechaIngreso: '2023-03-15',
+    fechaDespido: '2026-03-15',
+    tipoContrato: 'indefinido',
+  }
+
+  it('MYPE_MICRO = 10 jornales/año (no 1.5 sueldos/año)', () => {
+    const r = calcularIndemnizacion({ ...base, regimenLaboral: 'MYPE_MICRO' })
+    // 10 × 100 × 3 = 3,000 (vs 13,500 del régimen general → fin del sobrepago ~4.5x)
+    expect(r.indemnizacion).toBeCloseTo(3000, 2)
+    expect(r.topeAplicado).toBe(false)
+  })
+
+  it('MYPE_PEQUENA = 20 jornales/año', () => {
+    const r = calcularIndemnizacion({ ...base, regimenLaboral: 'MYPE_PEQUENA' })
+    // 20 × 100 × 3 = 6,000
+    expect(r.indemnizacion).toBeCloseTo(6000, 2)
+  })
+
+  it('MYPE_MICRO aplica el tope de 90 jornales en antigüedad alta', () => {
+    // ~21 años → 10 × 21 = 210 jornales > tope 90 → se topa en 90 × 100 = 9,000.
+    const r = calcularIndemnizacion({
+      ...base,
+      fechaIngreso: '2005-03-15',
+      regimenLaboral: 'MYPE_MICRO',
+    })
+    expect(r.indemnizacion).toBeCloseTo(9000, 2)
+    expect(r.topeAplicado).toBe(true)
+  })
+})

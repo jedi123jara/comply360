@@ -193,3 +193,30 @@ describe('calcularGratificacion', () => {
     })
   })
 })
+
+// -----------------------------------------------
+// FIX auditoría P0 (JUR-01): factor por régimen MYPE (Ley 32353)
+// -----------------------------------------------
+describe('calcularGratificacion — factor por régimen (JUR-01)', () => {
+  const base = {
+    sueldoBruto: 3000,
+    fechaIngreso: '2020-01-15',
+    periodo: 'julio' as const,
+    mesesTrabajados: 6,
+    asignacionFamiliar: false,
+  }
+
+  it('MYPE_PEQUENA = 50% de la gratificación general', () => {
+    const general = calcularGratificacion(base)
+    const pequena = calcularGratificacion({ ...base, regimenLaboral: 'MYPE_PEQUENA' })
+    expect(pequena.gratificacionBruta).toBeCloseTo(general.gratificacionBruta / 2, 2)
+    expect(pequena.totalNeto).toBeCloseTo(general.totalNeto / 2, 2)
+  })
+
+  it('MYPE_MICRO = 0 (microempresa sin gratificación)', () => {
+    const micro = calcularGratificacion({ ...base, regimenLaboral: 'MYPE_MICRO' })
+    expect(micro.gratificacionBruta).toBe(0)
+    expect(micro.bonificacionExtraordinaria).toBe(0)
+    expect(micro.totalNeto).toBe(0)
+  })
+})

@@ -68,16 +68,31 @@ export function calcularCTS(input: CTSInput): CTSResult {
   // 3. Cálculo de CTS — FIX #2.A usa Money para precisión decimal exacta.
   // CTS = (remComp / 12) × meses + (remComp / 360) × días
   const remM = money(remuneracionComputable)
-  const ctsTotal = remM.div(12).mul(mesesComputables)
+  const ctsGeneral = remM.div(12).mul(mesesComputables)
     .add(remM.div(360).mul(diasComputables))
     .toNumber()
 
+  // FIX auditoría P0 (JUR-01): factor MYPE por régimen (Ley 32353), idéntico al
+  // usado en liquidacion.ts. MYPE_MICRO no tiene CTS; MYPE_PEQUENA 50%; resto 100%.
+  const mypeFactor =
+    input.regimenLaboral === 'MYPE_MICRO' ? 0 :
+    input.regimenLaboral === 'MYPE_PEQUENA' ? 0.5 :
+    1
+  const ctsTotal = mypeFactor === 1
+    ? ctsGeneral
+    : Math.round(ctsGeneral * mypeFactor * 100) / 100
+
   // 4. Construir fórmula descriptiva
+  const notaRegimen = mypeFactor === 1
+    ? ''
+    : ` [Régimen ${input.regimenLaboral}: factor ${mypeFactor} aplicado — Ley 32353` +
+      `${mypeFactor === 0 ? ' (microempresa sin CTS)' : ''}. CTS régimen general: ${fmt(ctsGeneral)}]`
   const formula =
     `CTS = (${fmt(remuneracionComputable)} / 12 × ${mesesComputables} meses) + ` +
-    `(${fmt(remuneracionComputable)} / 360 × ${diasComputables} días) = ${fmt(ctsTotal)}. ` +
+    `(${fmt(remuneracionComputable)} / 360 × ${diasComputables} días)` +
+    `${mypeFactor === 1 ? '' : ` × ${mypeFactor}`} = ${fmt(ctsTotal)}. ` +
     `Rem. computable: ${fmt(remBase)} (sueldo${input.asignacionFamiliar ? ' + asig. familiar' : ''}) + ` +
-    `1/6 gratificación: ${fmt(sextoGratificacion)}`
+    `1/6 gratificación: ${fmt(sextoGratificacion)}${notaRegimen}`
 
   return {
     remuneracionComputable,

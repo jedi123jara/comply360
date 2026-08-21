@@ -163,3 +163,30 @@ describe('calcularCTS', () => {
     })
   })
 })
+
+// -----------------------------------------------
+// FIX auditoría P0 (JUR-01): factor por régimen MYPE (Ley 32353)
+// -----------------------------------------------
+describe('calcularCTS — factor por régimen (JUR-01)', () => {
+  const base: CTSInput = {
+    sueldoBruto: 3000,
+    fechaIngreso: '2020-01-15',
+    fechaCorte: '2026-05-15',
+    asignacionFamiliar: false,
+    ultimaGratificacion: 3000,
+  }
+
+  it('GENERAL (default) = media remuneración computable', () => {
+    expect(calcularCTS(base).ctsTotal).toBeCloseTo(1750, 2)
+  })
+
+  it('MYPE_PEQUENA = 50% de la CTS general', () => {
+    const r = calcularCTS({ ...base, regimenLaboral: 'MYPE_PEQUENA' })
+    expect(r.ctsTotal).toBeCloseTo(875, 2)
+  })
+
+  it('MYPE_MICRO = 0 (microempresa sin CTS)', () => {
+    const r = calcularCTS({ ...base, regimenLaboral: 'MYPE_MICRO' })
+    expect(r.ctsTotal).toBe(0)
+  })
+})
