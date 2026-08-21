@@ -11,16 +11,23 @@
  * codifica una URL pública que ya es accesible — no expone datos nuevos.
  */
 
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import QRCode from 'qrcode'
 import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
+
+// FIX auditoría (SEG-08): rate limit anti-enumeración de códigos secuenciales.
+const certQrLimiter = rateLimit({ interval: 60_000, limit: 5 })
 
 const CODE_RE = /^CERT-\d{4}-\d{5}$/
 
 export const GET = async (
-  _req: Request,
+  req: NextRequest,
   ctx: { params: Promise<{ code: string }> },
 ) => {
+  const rl = await certQrLimiter.check(req)
+  if (!rl.success) return rl.response!
+
   const { code } = await ctx.params
 
   if (!CODE_RE.test(code)) {

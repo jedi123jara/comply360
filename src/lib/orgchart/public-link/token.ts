@@ -57,7 +57,12 @@ export function signAuditorToken(input: {
 
 export function verifyAuditorToken(token: string): AuditorTokenPayload | null {
   try {
-    const decoded = jwt.verify(token, getSecret(), { issuer: 'comply360-orgchart' }) as unknown as AuditorTokenPayload
+    // FIX auditoría (SEG-11): fijar el algoritmo evita el ataque `alg:none` y
+    // la confusión de algoritmo. El token se firma con HS256 (secreto simétrico).
+    const decoded = jwt.verify(token, getSecret(), {
+      issuer: 'comply360-orgchart',
+      algorithms: ['HS256'],
+    }) as unknown as AuditorTokenPayload
     return decoded
   } catch {
     return null

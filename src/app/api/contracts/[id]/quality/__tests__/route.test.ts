@@ -40,7 +40,10 @@ const {
   }
 })
 
-vi.mock('@/lib/api-auth', () => ({
+vi.mock('@/lib/api-auth', async (importOriginal) => ({
+  // Conservamos los exports reales (hasMinRole, ROLE_HIERARCHY, etc. que usa
+  // el read-only gate de plan-gate) y solo sustituimos withAuthParams.
+  ...(await importOriginal<typeof import('@/lib/api-auth')>()),
   withAuthParams:
     (handler: (req: NextRequest, ctx: typeof AUTH_CTX, params: { id: string }) => Promise<Response>) =>
       (req: NextRequest, routeCtx: { params: { id: string } }) =>

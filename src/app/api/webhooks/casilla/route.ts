@@ -24,7 +24,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ingestNotification, type CasillaNotificationType } from '@/lib/integrations/casilla-sunafil'
 import { dispatchWebhookEvent } from '@/lib/webhooks/dispatcher'
-import { randomUUID } from 'crypto'
+import { randomUUID, timingSafeEqual } from 'crypto'
+
+/** Comparación de strings en tiempo constante (evita fuga por timing del secreto). */
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB)
+}
 
 export const runtime = 'nodejs'
 
@@ -32,10 +39,12 @@ export const runtime = 'nodejs'
 let _webhookCounts: Map<string, number> | null = null
 
 export async function POST(req: NextRequest) {
-  // SECURITY: Validate webhook secret + HMAC signature
+  // SECURITY: Validate webhook secret con comparación de tiempo constante.
+  // FIX auditoría (SEG-10): `auth !== expected` filtraba el secreto por timing;
+  // ahora se usa timingSafeEqual (fail-closed si no hay secreto configurado).
   const auth = req.headers.get('authorization') || ''
-  const expected = `Bearer ${process.env.CASILLA_WEBHOOK_SECRET || ''}`
-  if (!process.env.CASILLA_WEBHOOK_SECRET || auth !== expected) {
+  const secret = process.env.CASILLA_WEBHOOK_SECRET
+  if (!secret || !timingSafeEqualStr(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

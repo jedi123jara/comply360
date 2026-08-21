@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { track } from '@/lib/analytics'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
   tryBiometricCeremony,
   tryStrongBiometricCeremony,
@@ -326,7 +327,9 @@ export default function ContratoDetailPage() {
             lineHeight: 1.7,
           }}
           dangerouslySetInnerHTML={{
-            __html: contract.contentHtml || '<p><em>Sin contenido disponible.</em></p>',
+            __html: contract.contentHtml
+              ? sanitizeHtml(contract.contentHtml)
+              : '<p><em>Sin contenido disponible.</em></p>',
           }}
         />
       </section>

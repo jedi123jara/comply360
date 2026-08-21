@@ -12,10 +12,14 @@
  * evidencia con SUNAFIL en una inspección.
  */
 
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import jsPDF from 'jspdf'
 import QRCode from 'qrcode'
 import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
+
+// FIX auditoría (SEG-08): rate limit anti-enumeración de códigos secuenciales.
+const certPdfLimiter = rateLimit({ interval: 60_000, limit: 5 })
 
 const CODE_RE = /^CERT-\d{4}-\d{5}$/
 
@@ -29,9 +33,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 export const GET = async (
-  _req: Request,
+  req: NextRequest,
   ctx: { params: Promise<{ code: string }> },
 ) => {
+  const rl = await certPdfLimiter.check(req)
+  if (!rl.success) return rl.response!
+
   const { code } = await ctx.params
 
   if (!CODE_RE.test(code)) {

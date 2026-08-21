@@ -149,6 +149,12 @@ export async function POST(req: NextRequest) {
         orgId: trimmedCompanyCode,
         status: { not: 'TERMINATED' },
       },
+      // FIX auditoría P0 (PDP-01, Ley 29733): este es un lookup PÚBLICO sin
+      // autenticación. NO devolvemos datos sensibles: se eliminaron sueldoBruto,
+      // asignacionFamiliar (de donde se reconstruía el sueldo exacto), la lista
+      // de documentos y las vacaciones. Solo queda la confirmación mínima de
+      // identidad para que el trabajador verifique que su ficha existe antes de
+      // iniciar sesión en /mi-portal, donde sí ve sus beneficios ya autenticado.
       select: {
         id: true,
         firstName: true,
@@ -160,35 +166,6 @@ export async function POST(req: NextRequest) {
         regimenLaboral: true,
         tipoContrato: true,
         status: true,
-        sueldoBruto: true,
-        asignacionFamiliar: true,
-        tipoAporte: true,
-        afpNombre: true,
-        jornadaSemanal: true,
-        documents: {
-          select: {
-            id: true,
-            title: true,
-            documentType: true,
-            category: true,
-            status: true,
-            expiresAt: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-        vacations: {
-          select: {
-            id: true,
-            periodoInicio: true,
-            periodoFin: true,
-            diasCorresponden: true,
-            diasGozados: true,
-            diasPendientes: true,
-          },
-          orderBy: { periodoInicio: 'desc' },
-          take: 3,
-        },
       },
     })
 
@@ -209,11 +186,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Sanitize — don't expose raw salary, just benefits estimates
-    const sueldoBruto = worker.sueldoBruto ? Number(worker.sueldoBruto) : 0
-    const remuneracionComputable = sueldoBruto +
-      (worker.asignacionFamiliar ? 113.0 : 0)
-
+    // FIX auditoría P0 (PDP-01): respuesta mínima sin datos financieros ni
+    // documentos. El detalle de beneficios se ve autenticado en /mi-portal.
     return withRateLimitHeaders(
       NextResponse.json({
         profile: {
@@ -226,16 +200,7 @@ export async function POST(req: NextRequest) {
           regimenLaboral: worker.regimenLaboral,
           tipoContrato: worker.tipoContrato,
           status: worker.status,
-          tipoAporte: worker.tipoAporte,
-          afpNombre: worker.afpNombre,
-          jornadaSemanal: worker.jornadaSemanal,
         },
-        benefits: {
-          remuneracionComputable,
-          asignacionFamiliar: worker.asignacionFamiliar,
-        },
-        documents: worker.documents,
-        vacations: worker.vacations,
       }),
       rateLimitResult
     )

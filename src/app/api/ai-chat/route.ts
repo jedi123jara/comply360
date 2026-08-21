@@ -20,6 +20,17 @@ export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
       return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
     }
 
+    // FIX auditoría (IA-05): el system prompt lo inyecta el motor (chat-engine).
+    // Descartamos cualquier mensaje con role 'system' (u otro) enviado por el
+    // cliente para evitar prompt-injection que sobreescriba las instrucciones.
+    const safeMessages = messages.filter(
+      (m): m is ChatMessage =>
+        !!m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string',
+    )
+    if (safeMessages.length === 0) {
+      return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
+    }
+
     // Build org context
     const [org, totalWorkers, openAlerts] = await Promise.all([
       prisma.organization.findUnique({
@@ -69,7 +80,7 @@ export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
     }
 
     const { content, citations, ragChunksUsed, simulated } = await generateChatResponse(
-      messages,
+      safeMessages,
       orgContext,
       { orgId, userId: ctx.userId, feature: 'chat' },
     )
@@ -99,27 +110,26 @@ export const POST = withPlanGate('asistente_ia', async (req, ctx) => {
       console.error('AI chat stack:', error.stack)
     }
 
-    // Retornamos detalle del error para debugging — antes era opaco
-    // ("Failed to generate response") y eso impedía diagnosticar problemas
-    // de auth/key/quota desde el cliente. En producción sigue siendo un 500
-    // pero con info útil. Si en el futuro quieres ocultar detalles, cambia
-    // a process.env.NODE_ENV === 'production' ? generic : detail.
+    // FIX auditoría (IA-06): en producción NO se filtra al cliente el detalle
+    // del provider ni los nombres de env vars (DEEPSEEK_API_KEY, etc.). El stack
+    // completo ya quedó en los logs del server. En dev sí devolvemos el detalle
+    // para diagnosticar.
     const errorMessage = error instanceof Error ? error.message : String(error)
     const errorName = error instanceof Error ? error.name : 'UnknownError'
+
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'No se pudo generar la respuesta. Intenta de nuevo en unos momentos.' },
+        { status: 500 },
+      )
+    }
 
     return NextResponse.json(
       {
         error: 'Failed to generate response',
-        detail: errorMessage.slice(0, 500), // truncado para no leak demasiado
+        detail: errorMessage.slice(0, 500),
         errorType: errorName,
         provider: detectProvider(),
-        hint: errorMessage.toLowerCase().includes('api key') || errorMessage.toLowerCase().includes('unauthorized')
-          ? 'Probablemente la API key de DeepSeek u OpenAI es inválida o falta. Verifica DEEPSEEK_API_KEY y OPENAI_API_KEY en Vercel.'
-          : errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate limit')
-            ? 'Cuota o rate limit excedido en el provider de IA.'
-            : errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('econnreset')
-              ? 'Timeout o problema de red con el provider de IA.'
-              : 'Error inesperado del provider de IA. Revisa los logs de Vercel.',
       },
       { status: 500 },
     )

@@ -21,7 +21,9 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('@/lib/api-auth', () => ({
+vi.mock('@/lib/api-auth', async (importOriginal) => ({
+  // Conservamos hasMinRole real (lo usa el read-only gate) y sustituimos withAuth.
+  ...(await importOriginal<typeof import('@/lib/api-auth')>()),
   withAuth: (handler: (...args: unknown[]) => unknown) => handler,
 }))
 

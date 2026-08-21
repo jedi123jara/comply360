@@ -12,6 +12,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
+
+// FIX auditoría (SEG-08): rate limit anti-enumeración. Los códigos son
+// secuenciales (CERT-2026-00001…) y el endpoint es público; sin límite se
+// podía barrer todo el espacio y cosechar los datos de cada certificado.
+const certVerifyLimiter = rateLimit({ interval: 60_000, limit: 5 })
 
 const CODE_RE = /^CERT-\d{4}-\d{5}$/
 
@@ -21,6 +27,9 @@ function maskDni(dni: string): string {
 }
 
 export const GET = async (req: NextRequest) => {
+  const rl = await certVerifyLimiter.check(req)
+  if (!rl.success) return rl.response!
+
   const code = new URL(req.url).searchParams.get('code')?.trim() ?? ''
 
   if (!code || !CODE_RE.test(code)) {
