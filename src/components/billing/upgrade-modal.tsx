@@ -6,6 +6,7 @@ import { PLANS, type PlanKey } from '@/lib/constants'
 import { FEATURE_MIN_PLAN, type PlanFeature } from '@/lib/plan-features'
 import { track } from '@/lib/analytics'
 import { formatSoles, formatSolesMarketing } from '@/lib/format/peruvian'
+import { AREAS } from '@/lib/compliance/questions/types'
 
 /**
  * UpgradeModal — panel editorial de upgrade con comparativa de planes.
@@ -47,12 +48,12 @@ const PLAN_COLORS: Record<string, { bg: string; ring: string; text: string }> = 
  * redondeados al escenario "empresa mediana" — el admin verá "hasta S/".
  */
 const FEATURE_SAVINGS: Partial<Record<PlanFeature, { max: number; label: string }>> = {
-  diagnostico: { max: 48000, label: 'Multas por infracciones laborales detectables (diagnóstico 135 preguntas)' },
+  diagnostico: { max: 48000, label: 'Multas por infracciones laborales que el diagnóstico detecta a tiempo' },
   simulacro_basico: { max: 77000, label: 'Multa grave por no tener documentación lista ante inspección (14 UIT)' },
   simulacro_completo: { max: 289000, label: 'Multa muy grave acumulada (52.53 UIT — tope)' },
   ia_contratos: { max: 28000, label: 'Multa por contratos con cláusulas inválidas (5 UIT por trabajador)' },
   review_ia: { max: 44000, label: 'Multa por cláusulas abusivas detectadas en revisión IA' },
-  denuncias: { max: 288915, label: 'Riesgo por canal interno deficiente: HSL/SST hasta 52.53 UIT' },
+  denuncias: { max: 288915, label: 'Riesgo por canal interno deficiente en hostigamiento o SST: hasta 52.53 UIT' },
   sst_completo: { max: 208000, label: 'Multa muy grave SST (Ley 29783 — hasta 38 UIT)' },
   reportes_pdf: { max: 16500, label: 'Multa por no mantener registros (3 UIT)' },
   asistente_ia: { max: 55000, label: 'Multas derivadas de consultas mal respondidas (10 UIT promedio)' },
@@ -62,19 +63,19 @@ const FEATURE_SAVINGS: Partial<Record<PlanFeature, { max: number; label: string 
 const FEATURE_COPY: Partial<Record<PlanFeature, { title: string; pitch: string }>> = {
   diagnostico: {
     title: 'Diagnóstico SUNAFIL completo',
-    pitch: '135 preguntas cubriendo 8 áreas. Calculamos multa potencial y generamos plan de acción priorizado.',
+    pitch: `Preguntas guiadas sobre las ${AREAS.length} áreas que revisa SUNAFIL. Calculamos la multa potencial y te damos un plan de acción priorizado.`,
   },
   simulacro_basico: {
     title: 'Simulacro SUNAFIL',
-    pitch: 'Viví una inspección antes de que llegue de verdad. Genera Acta de Requerimiento formato R.M. 199-2016-TR.',
+    pitch: 'Vive una inspección antes de que llegue la de verdad. Genera un Acta de Requerimiento en formato R.M. 199-2016-TR.',
   },
   simulacro_completo: {
     title: 'Simulacro SUNAFIL completo',
-    pitch: 'Inspector virtual conversacional + checklist por sector + 90% descuento calculado si subsanás a tiempo.',
+    pitch: 'Inspector virtual que conversa contigo, revisión por sector y el descuento de 90% calculado si corriges a tiempo.',
   },
   reportes_pdf: {
     title: 'Reportes ejecutivos en PDF',
-    pitch: 'Exporta reportes de compliance, nómina, SST y auditoría con tu logo corporativo.',
+    pitch: 'Exporta reportes de cumplimiento, planilla, SST y auditoría con el logo de tu empresa.',
   },
   ia_contratos: {
     title: 'Generación de contratos con IA',
@@ -82,23 +83,23 @@ const FEATURE_COPY: Partial<Record<PlanFeature, { title: string; pitch: string }
   },
   asistente_ia: {
     title: 'Asistente IA laboral peruano',
-    pitch: 'RAG sobre +75 normas peruanas + 500 resoluciones TFL. Cita base legal exacta en cada respuesta.',
+    pitch: 'Responde con base en más de 75 normas peruanas y 500 resoluciones del Tribunal de Fiscalización Laboral. Cita la base legal exacta en cada respuesta.',
   },
   review_ia: {
     title: 'Revisión IA de contratos',
-    pitch: 'Sube un PDF y obtén análisis cláusula por cláusula con score de riesgo 0-100 y recomendaciones.',
+    pitch: 'Sube un PDF y obtén un análisis cláusula por cláusula, con un puntaje de riesgo de 0 a 100 y recomendaciones.',
   },
   denuncias: {
     title: 'Canal de denuncias',
-    pitch: 'URL publica para reportes anonimos: Hostigamiento Sexual, SST y Compliance Penal/MPD con triaje IA.',
+    pitch: 'Enlace público para denuncias anónimas: hostigamiento sexual, SST y prevención de delitos, con clasificación automática por IA.',
   },
   sst_completo: {
     title: 'SST integral',
     pitch: 'Política, IPERC digital, capacitaciones, comité, accidentes, EMO, EPP y mapa de riesgos.',
   },
   api_access: {
-    title: 'API access + integraciones',
-    pitch: 'Webhook API para integración con tu ERP. Exportación PLAME directa.',
+    title: 'Acceso por API e integraciones',
+    pitch: 'Conecta tu ERP mediante API y webhooks. Exportación PLAME directa.',
   },
 }
 
@@ -199,7 +200,7 @@ export function UpgradeModal({
             </div>
             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-100">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
-              Upgrade requerido
+              Disponible en un plan superior
             </div>
           </div>
 
@@ -236,7 +237,7 @@ export function UpgradeModal({
               <div className="flex items-start gap-4 flex-wrap">
                 <div className="flex-1 min-w-[240px]">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-1">
-                    Multa que evitás
+                    Multa que evitas
                   </p>
                   <p
                     style={{
@@ -260,7 +261,7 @@ export function UpgradeModal({
                 {roiMultiplier && roiMultiplier >= 5 ? (
                   <div className="text-right shrink-0">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-                      ROI
+                      Retorno
                     </p>
                     <p
                       style={{
@@ -274,7 +275,7 @@ export function UpgradeModal({
                       {roiMultiplier}×
                     </p>
                     <p className="text-[10px] text-emerald-700 mt-0.5">
-                      vs {formatSolesMarketing(yearlyPlanCost)}/año
+                      frente a {formatSolesMarketing(yearlyPlanCost)} al año
                     </p>
                   </div>
                 ) : null}

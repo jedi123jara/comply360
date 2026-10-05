@@ -4,14 +4,24 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import {
   ShieldCheck, AlertTriangle, TrendingUp, TrendingDown, ChevronDown, ChevronUp,
-  ArrowLeft, CheckCircle2, XCircle, MinusCircle,
+  ArrowLeft, ArrowRight, CheckCircle2, XCircle, MinusCircle,
   BarChart3, Target, Loader2, Search, Zap, FlaskConical, History,
-  Download,
+  Download, ListChecks,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import BenchmarkSectorial from '@/components/dashboard/benchmark-sectorial'
 import { AIActionPlanCard } from '@/components/dashboard/ai-action-plan-card'
 import { formatSoles } from '@/lib/format/peruvian'
+import { resolveTaskRoute, type ResolvedTaskRoute } from '@/lib/compliance/task-route-resolver'
+import { SIMULACRO_ESTIMATE } from '@/app/dashboard/simulacro/_lib/simulacro-meta'
+import {
+  QUESTION_COUNT,
+  areaLabel,
+  areaWeight,
+  formatEstimate,
+  formatPlazo,
+  formatQuestionText,
+} from '../../_lib/diagnostic-meta'
 
 interface GapItem {
   questionId: string
@@ -56,7 +66,29 @@ interface PastDiagnostic {
   createdAt: string
 }
 
-// ─── Trend chart (SVG) ───────────────────────────────────────────────────────
+const PLAN_ACCION_ROUTE: ResolvedTaskRoute = {
+  href: '/dashboard/plan-accion',
+  label: 'Ir al Centro de acción',
+}
+
+/** Ruta donde se corrige la brecha (módulo específico) o, si no hay, el Centro de acción. */
+function routeForQuestion(questionId: string, area?: string): ResolvedTaskRoute {
+  return resolveTaskRoute({ sourceId: questionId, area: area ?? '' }) ?? PLAN_ACCION_ROUTE
+}
+
+const GRAVEDAD_LABEL: Record<string, string> = {
+  LEVE: 'Leve',
+  GRAVE: 'Grave',
+  MUY_GRAVE: 'Muy grave',
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  FULL: 'Diagnóstico completo',
+  EXPRESS: 'Diagnóstico express',
+  SIMULATION: 'Simulacro SUNAFIL',
+}
+
+// ─── Gráfico de evolución (SVG) ─────────────────────────────────────────────
 function TrendChart({ data, currentId }: { data: { id: string; date: string; score: number; type: string }[]; currentId: string }) {
   if (data.length < 2) return null
 
@@ -87,25 +119,23 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
 
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
           <History className="h-5 w-5 text-primary" />
-          Tendencia Historica
+          Evolución de tu puntaje
         </h2>
         <span className={cn(
           'flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
-          isUp
-            ? 'bg-green-100 text-green-700 bg-green-900/30 text-green-400'
-            : 'bg-red-100 text-red-700 bg-red-900/30 text-red-400'
+          isUp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
         )}>
           {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-          {isUp ? '+' : ''}{delta} puntos vs diagnostico anterior
+          {isUp ? '+' : ''}{delta} {Math.abs(delta) === 1 ? 'punto' : 'puntos'} frente al diagnóstico anterior
         </span>
       </div>
 
       <div className="overflow-x-auto">
         <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="min-w-[320px]">
-          {/* Grid lines */}
+          {/* Líneas guía */}
           {gridLines.map(v => (
             <g key={v}>
               <line
@@ -120,13 +150,13 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
             </g>
           ))}
 
-          {/* Zone bands */}
+          {/* Bandas de zona */}
           <rect x={PAD.left} y={PAD.top} width={chartW} height={yScale(60) - PAD.top}
             fill="#22c55e" opacity="0.04" />
           <rect x={PAD.left} y={yScale(60)} width={chartW} height={yScale(40) - yScale(60)}
             fill="#f59e0b" opacity="0.04" />
 
-          {/* Gradient fill */}
+          {/* Relleno degradado */}
           <defs>
             <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#6366f1" stopOpacity="0.2" />
@@ -138,10 +168,10 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
             fill="url(#trendGrad)"
           />
 
-          {/* Line */}
+          {/* Línea */}
           <path d={pathD} fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Points + labels */}
+          {/* Puntos + etiquetas */}
           {data.map((d, i) => {
             const cx = xScale(i)
             const cy = yScale(d.score)
@@ -161,7 +191,7 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
           })}
         </svg>
       </div>
-      <p className="text-xs text-slate-500">El punto resaltado corresponde al diagnostico actual</p>
+      <p className="text-xs text-slate-500">El punto resaltado es este diagnóstico.</p>
     </div>
   )
 }
@@ -190,18 +220,38 @@ function ScoreRing({ score, size = 120 }: { score: number; size?: number }) {
   )
 }
 
-function AreaBar({ label, score, weight }: { label: string; score: number; weight: number }) {
+function AreaBar({ label, score, weight }: { label: string; score: number; weight: number | null }) {
   const color = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between gap-3 text-sm">
         <span className="font-medium text-[color:var(--text-secondary)]">{label}</span>
-        <span className="text-gray-400">{score}% <span className="text-xs text-slate-500">(peso {weight}%)</span></span>
+        <span className="shrink-0 text-gray-400">
+          {score}%
+          {weight !== null ? (
+            <span className="text-xs text-slate-500"> (pesa {weight}% del total)</span>
+          ) : null}
+        </span>
       </div>
       <div className="h-2.5 rounded-full bg-[color:var(--neutral-100)]">
         <div className={cn('h-2.5 rounded-full transition-all duration-700', color)} style={{ width: `${score}%` }} />
       </div>
     </div>
+  )
+}
+
+/** Botón "Resolver": lleva al módulo donde se corrige la brecha. */
+function ResolveLink({ route }: { route: ResolvedTaskRoute }) {
+  return (
+    <Link
+      href={route.href}
+      title={route.label}
+      aria-label={`Resolver: ${route.label}`}
+      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+    >
+      Resolver
+      <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+    </Link>
   )
 }
 
@@ -211,7 +261,6 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true)
   const [showAllGaps, setShowAllGaps] = useState(false)
   const [pastDiags, setPastDiags] = useState<PastDiagnostic[]>([])
-  const [completedActions, setCompletedActions] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch(`/api/diagnostics/${id}`)
@@ -228,15 +277,6 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       .catch(() => {})
   }, [])
 
-  function toggleAction(questionId: string) {
-    setCompletedActions(prev => {
-      const next = new Set(prev)
-      if (next.has(questionId)) next.delete(questionId)
-      else next.add(questionId)
-      return next
-    })
-  }
-
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -247,10 +287,12 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
   if (!data || !data.id) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <XCircle className="h-12 w-12 text-red-400" />
-        <p className="mt-2 text-gray-500">Diagnostico no encontrado</p>
-        <Link href="/dashboard/diagnostico" className="mt-4 text-sm text-primary hover:underline">Volver</Link>
+        <p className="mt-2 text-gray-500">No encontramos este diagnóstico.</p>
+        <Link href="/dashboard/diagnostico" className="mt-4 text-sm text-primary hover:underline">
+          Hacer un diagnóstico nuevo
+        </Link>
       </div>
     )
   }
@@ -260,7 +302,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
   const scoreByArea = data.scoreByArea || {}
   const visibleGaps = showAllGaps ? gapAnalysis : gapAnalysis.slice(0, 10)
 
-  // Build trend data: include current + past diagnostics sorted chronologically (last 6)
+  // Datos de evolución: diagnóstico actual + anteriores en orden cronológico (últimos 6)
   const trendData = [...pastDiags, {
     id: data.id,
     type: data.type,
@@ -269,7 +311,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
     completedAt: data.completedAt,
     createdAt: data.createdAt,
   }]
-    .filter((d, i, arr) => arr.findIndex(x => x.id === d.id) === i) // deduplicate
+    .filter((d, i, arr) => arr.findIndex(x => x.id === d.id) === i) // sin duplicados
     .sort((a, b) => new Date(a.completedAt || a.createdAt).getTime() - new Date(b.completedAt || b.createdAt).getTime())
     .slice(-6)
     .map(d => ({
@@ -279,36 +321,19 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       type: d.type,
     }))
 
-  // Reconstruct area labels from scoreByArea
-  const areaLabels: Record<string, string> = {
-    contratos_registro: 'Contratos y Registro',
-    remuneraciones_beneficios: 'Remuneraciones y Beneficios',
-    jornada_descansos: 'Jornada y Descansos',
-    sst: 'Seguridad y Salud en el Trabajo',
-    documentos_obligatorios: 'Documentos Obligatorios',
-    relaciones_laborales: 'Relaciones Laborales',
-    igualdad_nodiscriminacion: 'Igualdad y No Discriminacion',
-    trabajadores_especiales: 'Trabajadores Especiales',
-  }
-  const areaWeights: Record<string, number> = {
-    contratos_registro: 15, remuneraciones_beneficios: 20, jornada_descansos: 10,
-    sst: 20, documentos_obligatorios: 15, relaciones_laborales: 5,
-    igualdad_nodiscriminacion: 10, trabajadores_especiales: 5,
-  }
-
   const subsanacion90 = Math.round(data.totalMultaRiesgo * 0.1)
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+      {/* Encabezado */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link href="/dashboard/diagnostico" className="mb-2 flex items-center gap-1 text-sm text-gray-500 hover:text-primary">
-            <ArrowLeft className="h-4 w-4" /> Diagnosticos
+          <Link href="/dashboard/centro-sunafil?tab=diagnostico" className="mb-2 flex items-center gap-1 text-sm text-gray-500 hover:text-primary">
+            <ArrowLeft className="h-4 w-4" /> Centro SUNAFIL
           </Link>
-          <h1 className="text-2xl font-bold text-white">Resultado del Diagnostico</h1>
+          <h1 className="text-2xl font-bold text-white">Resultado del diagnóstico</h1>
           <p className="text-sm text-gray-400">
-            {data.type === 'FULL' ? 'Completo' : 'Express'} — {new Date(data.completedAt || data.createdAt).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })}
+            {TYPE_LABEL[data.type] ?? 'Diagnóstico'} · {new Date(data.completedAt || data.createdAt).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
         <button
@@ -326,37 +351,37 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
         </button>
       </div>
 
-      {/* Score overview */}
+      {/* Resumen */}
       <div className="grid gap-6 md:grid-cols-3">
-        <div className="flex flex-col items-center rounded-xl border border-white/[0.08] bg-white p-6">
+        <div className="flex flex-col items-center rounded-xl border border-white/[0.08] bg-white p-6 text-center">
           <ScoreRing score={data.scoreGlobal} />
-          <h3 className="mt-3 text-sm font-semibold text-[color:var(--text-secondary)]">Score de Compliance</h3>
+          <h3 className="mt-3 text-sm font-semibold text-[color:var(--text-secondary)]">Nivel de cumplimiento</h3>
           <p className="text-xs text-slate-500">
-            {data.scoreGlobal >= 80 ? 'Buen nivel de cumplimiento' : data.scoreGlobal >= 60 ? 'Cumplimiento parcial — corregir' : 'Alto riesgo — accion inmediata'}
+            {data.scoreGlobal >= 80 ? 'Buen nivel de cumplimiento' : data.scoreGlobal >= 60 ? 'Cumplimiento parcial: hay que corregir' : 'Riesgo alto: actúa de inmediato'}
           </p>
         </div>
 
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6 text-center">
           <AlertTriangle className={cn('h-10 w-10', data.totalMultaRiesgo > 50000 ? 'text-red-500' : 'text-yellow-500')} />
           <p className="mt-2 text-2xl font-bold text-white">{formatSoles(data.totalMultaRiesgo)}</p>
-          <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Multa Potencial Total</h3>
-          <p className="mt-1 text-xs text-slate-500">Riesgo estimado ante inspeccion SUNAFIL</p>
+          <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Multa potencial total</h3>
+          <p className="mt-1 text-xs text-slate-500">Lo que podrías pagar si SUNAFIL te inspecciona hoy</p>
         </div>
 
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6 text-center">
           <ShieldCheck className="h-10 w-10 text-green-500" />
           <p className="mt-2 text-2xl font-bold text-green-600">{formatSoles(subsanacion90)}</p>
-          <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Si Subsana al 90%</h3>
-          <p className="mt-1 text-xs text-slate-500">Descuento Art. 40 Ley 28806 por subsanacion voluntaria</p>
+          <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Si corriges antes de la inspección</h3>
+          <p className="mt-1 text-xs text-slate-500">Descuento de hasta 90% por subsanación voluntaria (Art. 40, Ley 28806)</p>
         </div>
       </div>
 
-      {/* Historical Trend Chart */}
+      {/* Evolución histórica */}
       {trendData.length >= 2 && (
         <TrendChart data={trendData} currentId={data.id} />
       )}
 
-      {/* Benchmark Sectorial */}
+      {/* Comparación con el sector */}
       <BenchmarkSectorial
         companyScore={data.scoreGlobal}
         sector="SERVICIOS"
@@ -366,10 +391,10 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
         }))}
       />
 
-      {/* Score by area */}
+      {/* Resultado por área */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-          <BarChart3 className="h-5 w-5" /> Desglose por Area
+          <BarChart3 className="h-5 w-5" /> Resultado por área
         </h2>
         <div className="space-y-4">
           {Object.entries(scoreByArea)
@@ -377,152 +402,145 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
             .map(([area, score]) => (
               <AreaBar
                 key={area}
-                label={areaLabels[area] || area}
+                label={areaLabel(area)}
                 score={score as number}
-                weight={areaWeights[area] || 10}
+                weight={areaWeight(area)}
               />
             ))}
         </div>
       </div>
 
-      {/* Gap Analysis */}
+      {/* Brechas */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-          <Target className="h-5 w-5 text-red-500" /> Brechas Prioritarias
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-white">
+          <Target className="h-5 w-5 text-red-500" /> Brechas prioritarias
         </h2>
-        <p className="mb-4 text-sm text-gray-400">Items ordenados por riesgo (multa x gravedad). Los primeros requieren atencion inmediata.</p>
+        <p className="mb-4 text-sm text-gray-400">
+          Ordenadas por riesgo (multa y gravedad). Empieza por las primeras: son las más urgentes.
+        </p>
+
+        {gapAnalysis.length === 0 ? (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            No encontramos brechas en este diagnóstico. ¡Buen trabajo! Vuelve a medir cada cierto tiempo para mantenerlo así.
+          </p>
+        ) : null}
 
         <div className="space-y-3">
           {visibleGaps.map((gap, i) => (
-            <div key={gap.questionId} className="flex items-start gap-3 rounded-lg border border-white/[0.08] p-3">
-              <span className={cn(
-                'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
-                i < 3 ? 'bg-red-500' : i < 7 ? 'bg-orange-500' : 'bg-yellow-500'
-              )}>
-                {i + 1}
-              </span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">{gap.text}</p>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  <span className={cn(
-                    'rounded px-1.5 py-0.5 text-xs font-medium',
-                    gap.gravedad === 'MUY_GRAVE' ? 'bg-red-100 text-red-700' : gap.gravedad === 'GRAVE' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
-                  )}>
-                    {gap.gravedad.replace('_', ' ')}
-                  </span>
-                  <span className="text-xs text-gray-500">{gap.baseLegal}</span>
-                  <span className="text-xs font-medium text-red-600">{formatSoles(gap.multaPEN)}</span>
+            <div key={gap.questionId} className="flex flex-col gap-3 rounded-lg border border-white/[0.08] p-3 sm:flex-row sm:items-start">
+              <div className="flex flex-1 items-start gap-3">
+                <span className={cn(
+                  'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
+                  i < 3 ? 'bg-red-500' : i < 7 ? 'bg-orange-500' : 'bg-yellow-500'
+                )}>
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">{formatQuestionText(gap.text)}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className={cn(
+                      'rounded px-1.5 py-0.5 text-xs font-medium',
+                      gap.gravedad === 'MUY_GRAVE' ? 'bg-red-100 text-red-700' : gap.gravedad === 'GRAVE' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
+                    )}>
+                      {GRAVEDAD_LABEL[gap.gravedad] ?? gap.gravedad}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                      {gap.answer === 'PARCIAL' ? (
+                        <MinusCircle className="h-3.5 w-3.5 text-yellow-500" aria-hidden="true" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 text-red-400" aria-hidden="true" />
+                      )}
+                      {gap.answer === 'PARCIAL' ? 'Cumple en parte' : 'No cumple'}
+                    </span>
+                    <span className="text-xs text-gray-500">{gap.baseLegal}</span>
+                    <span className="text-xs font-medium text-red-600">{formatSoles(gap.multaPEN)}</span>
+                  </div>
                 </div>
               </div>
-              {gap.answer === 'NO' ? (
-                <XCircle className="h-5 w-5 shrink-0 text-red-400" />
-              ) : (
-                <MinusCircle className="h-5 w-5 shrink-0 text-yellow-400" />
-              )}
+              <div className="flex justify-end sm:pt-0.5">
+                <ResolveLink route={routeForQuestion(gap.questionId)} />
+              </div>
             </div>
           ))}
         </div>
 
         {gapAnalysis.length > 10 && (
           <button
+            type="button"
             onClick={() => setShowAllGaps(!showAllGaps)}
             className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline"
           >
-            {showAllGaps ? 'Ver menos' : `Ver todas las ${gapAnalysis.length} brechas`}
+            {showAllGaps ? 'Ver menos' : `Ver las ${gapAnalysis.length} brechas`}
             {showAllGaps ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         )}
       </div>
 
-      {/* Action Plan — with checkboxes and fine reduction */}
+      {/* Plan de acción — el avance se guarda en el Centro de acción (con evidencia) */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">
-        <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
-              <CheckCircle2 className="h-5 w-5 text-green-500" /> Plan de Accion
+              <CheckCircle2 className="h-5 w-5 text-green-500" /> Plan de acción
             </h2>
             <p className="mt-1 text-sm text-gray-400">
-              Marca las acciones completadas para rastrear tu progreso. Cada accion reduce tu riesgo de multa.
+              Estas acciones se agregan como tareas a tu Centro de acción. Ahí asignas responsables,
+              adjuntas evidencia y marcas tu avance, que queda guardado.
             </p>
           </div>
-          {completedActions.size > 0 && (
-            <div className="shrink-0 rounded-lg bg-green-900/20 border border-green-800 px-3 py-2 text-center">
-              <p className="text-xs text-green-400 font-medium">Completadas</p>
-              <p className="text-xl font-bold text-green-300">{completedActions.size}/{actionPlan.length}</p>
-              <p className="text-xs text-green-400">
-                {formatSoles(
-                  actionPlan
-                    .filter(a => completedActions.has(a.questionId))
-                    .reduce((sum, a) => sum + a.multaEvitable, 0),
-                )} evitados
-              </p>
-            </div>
-          )}
+          <Link
+            href="/dashboard/plan-accion"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+          >
+            <ListChecks className="h-4 w-4" />
+            Abrir Centro de acción
+          </Link>
         </div>
 
         <div className="space-y-3">
           {actionPlan.map(item => {
-            const done = completedActions.has(item.questionId)
             const priorityColor = item.priority <= 3 ? 'bg-red-500' : item.priority <= 7 ? 'bg-orange-500' : 'bg-yellow-500'
             const plazoColor = item.plazoSugerido.includes('Inmediato')
-              ? 'bg-red-100 text-red-700 bg-red-900/30 text-red-400'
+              ? 'bg-red-100 text-red-700'
               : item.plazoSugerido.includes('Corto')
-                ? 'bg-orange-100 text-orange-700 bg-orange-900/30 text-orange-400'
-                : 'bg-blue-100 text-blue-700 bg-blue-900/30 text-emerald-600'
+                ? 'bg-orange-100 text-orange-700'
+                : 'bg-blue-100 text-blue-700'
 
             return (
               <div
                 key={item.questionId}
-                className={cn(
-                  'flex items-start gap-3 rounded-lg border p-4 transition-all',
-                  done
-                    ? 'border-green-800 bg-green-900/10 opacity-75'
-                    : 'border-white/[0.08] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50'
-                )}
+                className="flex flex-col gap-3 rounded-lg border border-white/[0.08] p-4 transition-colors hover:bg-[color:var(--neutral-50)] sm:flex-row sm:items-start"
               >
-                {/* Checkbox */}
-                <button
-                  onClick={() => toggleAction(item.questionId)}
-                  className={cn(
-                    'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors',
-                    done
-                      ? 'border-green-500 bg-green-500 text-white'
-                      : 'border-white/10 border-[color:var(--border-default)] hover:border-green-400'
-                  )}
-                  aria-label={done ? 'Marcar como pendiente' : 'Marcar como completado'}
-                >
-                  {done && <CheckCircle2 className="h-3.5 w-3.5" />}
-                </button>
+                <div className="flex flex-1 items-start gap-3">
+                  {/* Prioridad */}
+                  <span className={cn(
+                    'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
+                    priorityColor
+                  )}>
+                    {item.priority}
+                  </span>
 
-                {/* Priority badge */}
-                <span className={cn(
-                  'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
-                  priorityColor
-                )}>
-                  {item.priority}
-                </span>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm font-medium', done ? 'line-through text-slate-500' : 'text-white')}>
-                    {item.action}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-gray-400">{item.areaLabel}</span>
-                    <span className="text-xs text-slate-500">·</span>
-                    <span className="text-xs text-slate-500">{item.baseLegal}</span>
-                    <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', plazoColor)}>
-                      {item.plazoSugerido}
-                    </span>
+                  {/* Contenido */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white">{item.action}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-gray-400">{areaLabel(item.area)}</span>
+                      <span className="text-xs text-slate-500">·</span>
+                      <span className="text-xs text-slate-500">{item.baseLegal}</span>
+                      <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', plazoColor)}>
+                        {formatPlazo(item.plazoSugerido)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Fine reduction */}
-                <div className="shrink-0 text-right">
-                  <p className={cn('text-sm font-semibold', done ? 'text-green-400' : 'text-red-400')}>
-                    {done ? '✓ ' : ''}{formatSoles(item.multaEvitable)}
-                  </p>
-                  <p className="text-xs text-slate-500">multa evitable</p>
+                {/* Multa evitable + acción */}
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
+                  <div className="text-left sm:text-right">
+                    <p className="text-sm font-semibold text-red-500">{formatSoles(item.multaEvitable)}</p>
+                    <p className="text-xs text-slate-500">multa evitable</p>
+                  </div>
+                  <ResolveLink route={routeForQuestion(item.questionId, item.area)} />
                 </div>
               </div>
             )
@@ -530,81 +548,86 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
         </div>
 
         {actionPlan.length > 0 && (
-          <div className="mt-4 rounded-lg bg-blue-900/20 border border-blue-800 p-3 text-sm text-emerald-600">
-            <span className="font-semibold">Subsanacion voluntaria:</span> Si corriges estas brechas antes de una inspeccion,
-            puedes reducir la multa hasta un 90% segun el Art. 40 de la Ley 28806.
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <span className="font-semibold">Subsanación voluntaria:</span> si corriges estas brechas antes de una inspección,
+            puedes reducir la multa hasta en 90% según el Art. 40 de la Ley 28806.
           </div>
         )}
       </div>
 
-      {/* ─── AI Action Plan ─── */}
+      {/* ─── Plan de acción con IA ─── */}
       <AIActionPlanCard diagnosticId={data.id} />
 
-      {/* ─── NEW DIAGNOSTIC CTA ─── */}
-      <div className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-indigo-50 from-primary/10 to-slate-800/60 border-primary/30 p-6">
-        <h2 className="mb-1 text-lg font-bold text-white">Iniciar Nuevo Diagnostico</h2>
-        <p className="mb-5 text-sm text-gray-400">Realiza un nuevo diagnostico para medir tu progreso</p>
+      {/* ─── Volver a medir ─── */}
+      <div className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-indigo-50 p-6">
+        <h2 className="mb-1 text-lg font-bold text-white">Mide tu avance</h2>
+        <p className="mb-5 text-sm text-gray-400">
+          Cuando corrijas brechas, vuelve a medir para ver cómo sube tu puntaje.
+        </p>
         <div className="grid gap-4 sm:grid-cols-3">
-          {/* Full */}
+          {/* Completo */}
           <Link
-            href="/dashboard/diagnostico"
-            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-primary hover:shadow-lg hover:border-primary"
+            href="/dashboard/diagnostico?modo=completo"
+            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-primary hover:shadow-lg"
           >
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
               <Search className="h-5 w-5 text-primary" />
             </div>
-            <h3 className="font-semibold text-white">Diagnostico Completo</h3>
-            <p className="mt-1 text-xs text-gray-400">120 preguntas · ~45 min</p>
-            <p className="mt-auto pt-3 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-              Iniciar →
+            <h3 className="font-semibold text-white">Diagnóstico completo</h3>
+            <p className="mt-1 text-xs text-gray-400">
+              {QUESTION_COUNT.FULL} preguntas · {formatEstimate(QUESTION_COUNT.FULL)}
+            </p>
+            <p className="mt-auto pt-3 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100">
+              Empezar →
             </p>
           </Link>
 
           {/* Express */}
           <Link
-            href="/dashboard/diagnostico"
-            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-amber-400 hover:shadow-lg hover:border-amber-400"
+            href="/dashboard/diagnostico?modo=express"
+            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-amber-400 hover:shadow-lg"
           >
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-amber-900/20">
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50">
               <Zap className="h-5 w-5 text-amber-500" />
             </div>
-            <h3 className="font-semibold text-white">Diagnostico Express</h3>
-            <p className="mt-1 text-xs text-gray-400">20 preguntas · ~10 min</p>
-            <p className="mt-auto pt-3 text-xs font-medium text-amber-500 opacity-0 transition-opacity group-hover:opacity-100">
-              Iniciar →
+            <h3 className="font-semibold text-white">Diagnóstico express</h3>
+            <p className="mt-1 text-xs text-gray-400">
+              {QUESTION_COUNT.EXPRESS} preguntas · {formatEstimate(QUESTION_COUNT.EXPRESS)}
+            </p>
+            <p className="mt-auto pt-3 text-xs font-medium text-amber-500 opacity-70 transition-opacity group-hover:opacity-100">
+              Empezar →
             </p>
           </Link>
 
           {/* Simulacro */}
           <Link
-            href="/dashboard/diagnostico"
-            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-red-400 hover:shadow-lg hover:border-red-400"
+            href="/dashboard/simulacro"
+            className="group flex flex-col rounded-xl border-2 border-white/[0.08] bg-white p-5 text-left transition-all hover:border-red-400 hover:shadow-lg"
           >
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-red-900/20">
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-red-50">
               <FlaskConical className="h-5 w-5 text-red-500" />
             </div>
             <h3 className="font-semibold text-white">Simulacro SUNAFIL</h3>
-            <p className="mt-1 text-xs text-gray-400">Simular inspeccion real · ~45 min</p>
-            <p className="mt-auto pt-3 text-xs font-medium text-red-500 opacity-0 transition-opacity group-hover:opacity-100">
-              Iniciar →
+            <p className="mt-1 text-xs text-gray-400">Simula una inspección con tu legajo real · {SIMULACRO_ESTIMATE}</p>
+            <p className="mt-auto pt-3 text-xs font-medium text-red-500 opacity-70 transition-opacity group-hover:opacity-100">
+              Empezar →
             </p>
           </Link>
         </div>
       </div>
 
-      {/* Footer actions */}
-      <div className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[color:var(--neutral-50)] bg-white p-4">
+      {/* Siguiente paso */}
+      <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-[color:var(--text-secondary)]">
+          <span className="font-semibold text-[color:var(--text-primary)]">Siguiente paso:</span>{' '}
+          resuelve tus brechas una por una, empezando por las más urgentes.
+        </p>
         <Link
-          href="/dashboard/trabajadores"
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+          href="/dashboard/plan-accion"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
         >
-          Ir a Trabajadores
-        </Link>
-        <Link
-          href="/dashboard/diagnostico"
-          className="rounded-lg border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] px-4 py-2 text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-200)]"
-        >
-          Ver Historial
+          Ver mi plan de acción
+          <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </div>
