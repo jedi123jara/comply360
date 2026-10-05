@@ -10,6 +10,11 @@
  *   (`@/data/legal/sunafil-ready-catalog`, D.S. 019-2006-TR) y se convierte a
  *   soles con la UIT vigente de `peru-labor.ts`.
  *
+ * - `terms` enlaza palabras del nombre o de la explicación con el glosario
+ *   (`@/lib/glossary`). La UI las muestra con `<Term>`: subrayado punteado y
+ *   tarjeta "¿Qué es?". El test verifica que cada id exista y que cada texto
+ *   aparezca tal cual.
+ *
  * Módulo puro (sin React ni Prisma): se puede usar en cliente, servidor y tests.
  */
 
@@ -17,6 +22,14 @@ import { SUNAFIL_READY_DOCS, type SunafilGravity } from '@/data/legal/sunafil-re
 import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
 
 export type LegajoCategory = 'INGRESO' | 'VIGENTE' | 'SST' | 'PREVISIONAL' | 'CESE'
+
+/** Palabra que se enlaza con una entrada del glosario. */
+export interface LegajoTermLink {
+  /** Id del glosario (`src/lib/glossary.ts`). */
+  id: string
+  /** Texto exacto, tal como aparece en `title` o en `why`. */
+  text: string
+}
 
 export interface LegajoDocDefinition {
   category: LegajoCategory
@@ -28,6 +41,11 @@ export interface LegajoDocDefinition {
   why: string
   /** Norma que lo sustenta, si aplica. */
   baseLegal?: string
+  /**
+   * Términos del glosario que se enlazan en el nombre o en la explicación.
+   * Máximo dos por documento, para no recargar la fila.
+   */
+  terms?: readonly LegajoTermLink[]
 }
 
 export const LEGAJO_CATEGORY_LABELS: Record<LegajoCategory, string> = {
@@ -36,6 +54,11 @@ export const LEGAJO_CATEGORY_LABELS: Record<LegajoCategory, string> = {
   SST: 'Seguridad y salud en el trabajo (SST)',
   PREVISIONAL: 'Pensiones y seguro de salud',
   CESE: 'Al terminar la relación laboral',
+}
+
+/** Término del glosario que explica toda una categoría (ícono "?" junto al título). */
+export const LEGAJO_CATEGORY_TERMS: Partial<Record<LegajoCategory, string>> = {
+  SST: 'sst',
 }
 
 export const LEGAJO_CATEGORY_ORDER: LegajoCategory[] = ['INGRESO', 'VIGENTE', 'SST', 'PREVISIONAL', 'CESE']
@@ -49,6 +72,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba la relación laboral: cargo, sueldo, jornada y fecha de inicio. Si es a plazo fijo, debe indicar la causa que lo justifica.',
     baseLegal: 'D.S. 003-97-TR, Art. 4 y 72',
+    terms: [{ id: 'contrato-plazo-fijo', text: 'a plazo fijo' }],
   },
   {
     category: 'INGRESO',
@@ -64,6 +88,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Identifica al trabajador y permite registrarlo bien en la planilla electrónica.',
     baseLegal: 'D.S. 001-98-TR',
+    terms: [{ id: 'planilla-electronica', text: 'planilla electrónica' }],
   },
   {
     category: 'INGRESO',
@@ -72,6 +97,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Confirma dónde vive y quiénes son sus derechohabientes (hijos, cónyuge). Con esto pagas bien la asignación familiar y lo aseguras en EsSalud.',
     baseLegal: 'D.S. 001-98-TR',
+    terms: [{ id: 'asignacion-familiar', text: 'asignación familiar' }, { id: 'essalud', text: 'EsSalud' }],
   },
   {
     category: 'INGRESO',
@@ -103,6 +129,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba que pagaste el sueldo completo y a tiempo. Debes entregarla dentro de los 3 días hábiles siguientes al pago.',
     baseLegal: 'D.S. 001-98-TR, Art. 18-19',
+    terms: [{ id: 'boleta-de-pago', text: 'boleta de pago' }],
   },
   {
     category: 'VIGENTE',
@@ -111,6 +138,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba que diste de alta al trabajador en la planilla electrónica de SUNAT el mismo día hábil en que empezó a trabajar.',
     baseLegal: 'D.S. 018-2007-TR, Art. 4-A',
+    terms: [{ id: 't-registro', text: 'T-REGISTRO' }, { id: 'planilla-electronica', text: 'planilla electrónica' }],
   },
   {
     category: 'VIGENTE',
@@ -119,6 +147,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba que el trabajador descansó sus vacaciones. Si acumula dos períodos sin gozarlas, te toca pagarle una indemnización.',
     baseLegal: 'D.Leg. 713, Art. 10-14',
+    terms: [{ id: 'vacaciones', text: 'vacaciones' }, { id: 'indemnizacion-vacacional', text: 'una indemnización' }],
   },
   {
     category: 'VIGENTE',
@@ -127,6 +156,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Deja constancia de las capacitaciones que recibió (incluidas las de seguridad). SUNAFIL lo revisa en una inspección.',
     baseLegal: 'R.M. 050-2013-TR',
+    terms: [{ id: 'inspeccion', text: 'una inspección' }],
   },
   {
     category: 'VIGENTE',
@@ -151,6 +181,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Certifica que el trabajador está apto para su puesto antes de empezar. Lo paga la empresa.',
     baseLegal: 'Ley 29783, Art. 49-d',
+    terms: [{ id: 'emo', text: 'Examen médico ocupacional' }],
   },
   {
     category: 'SST',
@@ -159,6 +190,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Vigila su salud mientras trabaja contigo. Es obligatorio al menos cada 2 años y lo paga la empresa.',
     baseLegal: 'Ley 29783, Art. 49-d',
+    terms: [{ id: 'emo', text: 'Examen médico periódico' }],
   },
   {
     category: 'SST',
@@ -175,6 +207,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba, con su firma, que le entregaste su equipo de protección (casco, guantes, lentes, etc.).',
     baseLegal: 'Ley 29783, Art. 60',
+    terms: [{ id: 'epp', text: 'EPP' }],
   },
   {
     category: 'SST',
@@ -183,6 +216,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Identifica los peligros de su puesto y las medidas para controlarlos. Debe estar al día y ser conocido por el trabajador.',
     baseLegal: 'Ley 29783, Art. 57; R.M. 050-2013-TR',
+    terms: [{ id: 'iperc', text: 'IPERC' }],
   },
   {
     category: 'SST',
@@ -192,6 +226,8 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     why: 'La ley exige al menos 4 capacitaciones de seguridad y salud al año para cada trabajador.',
     baseLegal: 'Ley 29783, Art. 35-b',
   },
+  // OJO: el Reglamento Interno de SST no es el RIT (Reglamento Interno de
+  // Trabajo, obligatorio desde 100 trabajadores). No enlazar con 'rit'.
   {
     category: 'SST',
     type: 'reglamento_interno',
@@ -209,6 +245,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba a qué sistema de pensiones aporta. Sin esto, los descuentos de su boleta pueden estar mal.',
     baseLegal: 'D.S. 054-97-EF',
+    terms: [{ id: 'afp', text: 'AFP' }, { id: 'onp', text: 'ONP' }],
   },
   {
     category: 'PREVISIONAL',
@@ -217,6 +254,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba que el trabajador está asegurado en EsSalud y que pagas el aporte del 9 % de su sueldo.',
     baseLegal: 'Ley 26790, Art. 6',
+    terms: [{ id: 'essalud', text: 'EsSalud' }],
   },
   {
     category: 'PREVISIONAL',
@@ -225,6 +263,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: true,
     why: 'Prueba que depositaste su CTS en mayo y noviembre en el banco que eligió. No aplica a la microempresa.',
     baseLegal: 'D.S. 001-97-TR, Art. 21-22',
+    terms: [{ id: 'cts', text: 'CTS' }, { id: 'regimen-mype', text: 'microempresa' }],
   },
   {
     category: 'PREVISIONAL',
@@ -233,6 +272,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     required: false,
     why: 'Solo si el puesto es de alto riesgo (construcción, minería, manufactura, etc.): seguro obligatorio de salud y pensión.',
     baseLegal: 'Ley 26790, Art. 19',
+    terms: [{ id: 'sctr', text: 'SCTR' }],
   },
 
   // ── Cese ─────────────────────────────────────────────────────────────────
@@ -257,6 +297,7 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
     title: 'Liquidación de beneficios sociales',
     required: false,
     why: 'Prueba que pagaste CTS, vacaciones y gratificación truncas al terminar el vínculo.',
+    terms: [{ id: 'liquidacion', text: 'Liquidación de beneficios sociales' }],
   },
   {
     category: 'CESE',
@@ -268,6 +309,60 @@ export const LEGAJO_DOCS: LegajoDocDefinition[] = [
 ]
 
 export const REQUIRED_LEGAJO_DOCS: LegajoDocDefinition[] = LEGAJO_DOCS.filter((d) => d.required)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enlaces al glosario
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Tramo de texto; si tiene `termId`, la UI lo muestra como término del glosario. */
+export interface TextSegment {
+  text: string
+  termId?: string
+}
+
+/**
+ * Parte un texto en tramos y marca la primera aparición de cada término.
+ * Los términos que no aparecen se ignoran; si dos se pisan, gana el que
+ * aparece primero.
+ *
+ *   splitByTerms('Póliza SCTR', [{ id: 'sctr', text: 'SCTR' }])
+ *   → [{ text: 'Póliza ' }, { text: 'SCTR', termId: 'sctr' }]
+ */
+export function splitByTerms(text: string, links: readonly LegajoTermLink[] = []): TextSegment[] {
+  const matches = links
+    .map((link) => ({ link, start: link.text ? text.indexOf(link.text) : -1 }))
+    .filter((m) => m.start >= 0)
+    .sort((a, b) => a.start - b.start)
+
+  const segments: TextSegment[] = []
+  let cursor = 0
+  for (const { link, start } of matches) {
+    if (start < cursor) continue
+    if (start > cursor) segments.push({ text: text.slice(cursor, start) })
+    segments.push({ text: link.text, termId: link.id })
+    cursor = start + link.text.length
+  }
+  if (cursor < text.length) segments.push({ text: text.slice(cursor) })
+  return segments
+}
+
+/**
+ * Tramos del nombre y de la explicación de un documento. Cada término se
+ * enlaza una sola vez: en el nombre si aparece ahí; si no, en la explicación.
+ */
+export function legajoDocSegments(def: Pick<LegajoDocDefinition, 'title' | 'why' | 'terms'>): {
+  title: TextSegment[]
+  why: TextSegment[]
+} {
+  const links = def.terms ?? []
+  const title = splitByTerms(def.title, links)
+  const usedInTitle = new Set(title.map((s) => s.termId).filter(Boolean))
+  const why = splitByTerms(
+    def.why,
+    links.filter((link) => !usedInTitle.has(link.id)),
+  )
+  return { title, why }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Multa referencial (catálogo SUNAFIL-Ready)

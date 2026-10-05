@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import { formatSoles, formatSolesParts } from '@/lib/format/peruvian'
 import { cleanAlertDescription, describeDaysLeft } from '@/lib/alerts/alert-actions'
 import { PendingFilters } from './_components/pending-filters'
+import { PlanAreaLabel } from './_components/area-label'
 import {
   DEFAULT_PLAN_FILTERS,
   LANE_LABELS,
@@ -955,7 +956,7 @@ function ActionPanel({
             <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest', SEVERITY_STYLE[item.severity].tone)}>
               {SEVERITY_LABELS[item.severity]}
             </span>
-            <span className="text-[11px] font-semibold text-[color:var(--text-tertiary)]">{view.areaLabel}</span>
+            <PlanAreaLabel label={view.areaLabel} className="text-[11px] font-semibold text-[color:var(--text-tertiary)]" />
           </div>
           <h2 className="mt-3 text-lg font-black leading-tight">{item.title}</h2>
           {view.workerName ? (

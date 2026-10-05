@@ -256,6 +256,28 @@ export function planAreaLabel(item: Pick<PlanItemRef, 'source' | 'area'>): strin
   return TASK_AREA_LABELS[area.toLowerCase()] ?? (humanizeKey(area) || 'General')
 }
 
+/**
+ * Término del glosario (`src/lib/glossary.ts`) que explica cada área, si lo
+ * hay. Solo áreas que equivalen a un concepto: "Contratos" o "Remuneraciones y
+ * beneficios" son demasiado amplias y no llevan "?".
+ */
+const AREA_TERM_IDS: Record<string, string> = {
+  'Seguridad y salud en el trabajo': 'sst',
+  'Prevención del hostigamiento sexual': 'hostigamiento-sexual',
+  'Registro en planilla electrónica': 't-registro',
+  'Planilla y T-Registro': 'planilla-electronica',
+  'Inspecciones de SUNAFIL': 'inspeccion',
+  'Legajo del trabajador': 'legajo',
+  Vacaciones: 'vacaciones',
+  // Solo lo generan las alertas de SCTR (ver ALERT_AREA_RULES).
+  'Seguros obligatorios': 'sctr',
+}
+
+/** Id del glosario para el "?" junto al nombre del área, o `null` si no aplica. */
+export function planAreaTermId(areaLabel: string): string | null {
+  return AREA_TERM_IDS[areaLabel] ?? null
+}
+
 // ─── Por qué importa ─────────────────────────────────────────────────────────
 
 export interface PlanWhy {

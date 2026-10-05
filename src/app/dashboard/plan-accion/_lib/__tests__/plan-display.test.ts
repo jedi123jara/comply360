@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ROUTES } from '@/lib/alerts/alert-actions'
+import { GLOSSARY_BY_ID } from '@/lib/glossary'
 import {
   DEFAULT_PLAN_FILTERS,
   SEVERITY_LABELS,
@@ -11,6 +12,7 @@ import {
   matchesTimeFilter,
   normalizeSearch,
   planAreaLabel,
+  planAreaTermId,
   planWhyItMatters,
   planWorkerName,
   resolvePlanAction,
@@ -93,6 +95,42 @@ describe('planAreaLabel', () => {
   })
   it('capacitaciones: categoría del curso', () => {
     expect(planAreaLabel({ source: 'training', area: 'HOSTIGAMIENTO' })).toBe('Prevención del hostigamiento sexual')
+  })
+})
+
+describe('planAreaTermId', () => {
+  it('las áreas que son un concepto legal llevan su término del glosario', () => {
+    expect(planAreaTermId(planAreaLabel({ source: 'task', area: 'sst' }))).toBe('sst')
+    expect(planAreaTermId(planAreaLabel({ source: 'task', area: 'hostigamiento_sexual_detallado' }))).toBe(
+      'hostigamiento-sexual',
+    )
+    expect(planAreaTermId(planAreaLabel({ source: 'alert', area: 'T_REGISTRO_PENDIENTE' }))).toBe('t-registro')
+    expect(planAreaTermId(planAreaLabel({ source: 'alert', area: 'DOCUMENTO_FALTANTE' }))).toBe('legajo')
+    expect(planAreaTermId(planAreaLabel({ source: 'alert', area: 'SCTR_VENCIDO' }))).toBe('sctr')
+    expect(planAreaTermId(planAreaLabel({ source: 'training', area: 'INSPECCIONES' }))).toBe('inspeccion')
+  })
+
+  it('las áreas amplias no llevan término', () => {
+    expect(planAreaTermId(planAreaLabel({ source: 'task', area: 'contratos_registro' }))).toBeNull()
+    expect(planAreaTermId('General')).toBeNull()
+  })
+
+  it('todos los ids existen en el glosario', () => {
+    const labels = [
+      'Seguridad y salud en el trabajo',
+      'Prevención del hostigamiento sexual',
+      'Registro en planilla electrónica',
+      'Planilla y T-Registro',
+      'Inspecciones de SUNAFIL',
+      'Legajo del trabajador',
+      'Vacaciones',
+      'Seguros obligatorios',
+    ]
+    for (const label of labels) {
+      const id = planAreaTermId(label)
+      expect(id, label).not.toBeNull()
+      expect(GLOSSARY_BY_ID.has(id as string), label).toBe(true)
+    }
   })
 })
 

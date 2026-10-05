@@ -3,6 +3,7 @@
 import { useId } from 'react'
 import { AlertTriangle, Info, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Term, TermHint } from '@/components/ui/term'
 import {
   AVISO_REFERENCIAL,
   REGIMENES,
@@ -41,7 +42,8 @@ export function RegimenSelector({ calc, value, onChange, origenTrabajador }: Reg
         Régimen laboral
       </legend>
       <p className="text-xs text-[color:var(--text-tertiary)] -mt-1">
-        ¿No sabes cuál es? Si tu empresa no está inscrita en el REMYPE, es el régimen general.
+        ¿No sabes cuál es? Si tu empresa no está inscrita en el <Term id="remype">REMYPE</Term>, es el{' '}
+        <Term id="regimen-general">régimen general</Term>.
       </p>
 
       {origenTrabajador ? (
@@ -56,28 +58,33 @@ export function RegimenSelector({ calc, value, onChange, origenTrabajador }: Reg
           const r = REGIMENES[key]
           const checked = actual === key
           return (
-            <label
-              key={key}
-              className={cn(
-                'flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors',
-                checked
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                  : 'border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] hover:bg-[color:var(--bg-surface-hover)]',
-              )}
-            >
-              <input
-                type="radio"
-                name={`${groupId}-regimen`}
-                value={key}
-                checked={checked}
-                onChange={() => onChange(key)}
-                className="mt-1 h-4 w-4 flex-shrink-0 accent-primary"
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-[color:var(--text-primary)]">{r.label}</span>
-                <span className="block text-xs leading-snug text-[color:var(--text-tertiary)]">{r.descripcion}</span>
-              </span>
-            </label>
+            // El "?" del glosario va fuera del <label> para que tocarlo no
+            // cambie la opción elegida.
+            <div key={key} className="relative">
+              <label
+                className={cn(
+                  'flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors',
+                  r.glosarioId && 'pr-10',
+                  checked
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                    : 'border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] hover:bg-[color:var(--bg-surface-hover)]',
+                )}
+              >
+                <input
+                  type="radio"
+                  name={`${groupId}-regimen`}
+                  value={key}
+                  checked={checked}
+                  onChange={() => onChange(key)}
+                  className="mt-1 h-4 w-4 flex-shrink-0 accent-primary"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-[color:var(--text-primary)]">{r.label}</span>
+                  <span className="block text-xs leading-snug text-[color:var(--text-tertiary)]">{r.descripcion}</span>
+                </span>
+              </label>
+              {r.glosarioId ? <TermHint id={r.glosarioId} className="absolute right-3.5 top-3.5" /> : null}
+            </div>
           )
         })}
       </div>
@@ -105,7 +112,17 @@ export function RegimenSelector({ calc, value, onChange, origenTrabajador }: Reg
           ))}
         </select>
         {esOtro ? (
-          <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">{info.descripcion}</p>
+          <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">
+            {info.descripcion}
+            {info.glosarioId ? (
+              <>
+                {' '}
+                <Term id={info.glosarioId} className="font-medium text-[color:var(--text-secondary)]">
+                  ¿Qué es?
+                </Term>
+              </>
+            ) : null}
+          </p>
         ) : null}
       </div>
 

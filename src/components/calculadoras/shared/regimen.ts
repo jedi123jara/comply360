@@ -56,6 +56,8 @@ export interface RegimenInfo {
   tratamiento: TratamientoRegimen
   /** Solo para `especial`: por qué el resultado general no aplica tal cual. */
   motivoEspecial?: string
+  /** Id del término en el glosario (src/lib/glossary.ts), si existe. */
+  glosarioId?: string
 }
 
 const MICRO_UIT = PERU_LABOR.MYPE.MICRO.VENTAS_MAX_UIT_ANUALES
@@ -67,18 +69,21 @@ export const REGIMENES: Record<RegimenKey, RegimenInfo> = {
     label: 'Régimen general',
     descripcion: 'El régimen por defecto. Aplica si tu empresa no está inscrita en el REMYPE.',
     tratamiento: 'soportado',
+    glosarioId: 'regimen-general',
   },
   MYPE_MICRO: {
     key: 'MYPE_MICRO',
     label: 'Microempresa (REMYPE)',
     descripcion: `Empresa inscrita en el REMYPE como microempresa: ventas de hasta ${MICRO_UIT} UIT al año.`,
     tratamiento: 'soportado',
+    glosarioId: 'regimen-mype',
   },
   MYPE_PEQUENA: {
     key: 'MYPE_PEQUENA',
     label: 'Pequeña empresa (REMYPE)',
     descripcion: `Empresa inscrita en el REMYPE como pequeña empresa: ventas de hasta ${PEQUENA_UIT} UIT al año.`,
     tratamiento: 'soportado',
+    glosarioId: 'regimen-mype',
   },
   AGRARIO: {
     key: 'AGRARIO',
@@ -87,6 +92,7 @@ export const REGIMENES: Record<RegimenKey, RegimenInfo> = {
     tratamiento: 'especial',
     motivoEspecial:
       'En el régimen agrario la CTS y la gratificación pueden pagarse dentro del jornal diario.',
+    glosarioId: 'regimen-agrario',
   },
   CONSTRUCCION_CIVIL: {
     key: 'CONSTRUCCION_CIVIL',
@@ -95,6 +101,7 @@ export const REGIMENES: Record<RegimenKey, RegimenInfo> = {
     tratamiento: 'especial',
     motivoEspecial:
       'En construcción civil los beneficios se pagan como porcentajes de los jornales, según el convenio colectivo.',
+    glosarioId: 'construccion-civil',
   },
   PESQUERO: {
     key: 'PESQUERO',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CheckCircle2,
@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ProgressRing } from '@/components/ui/progress-ring'
 import { Tooltip } from '@/components/ui/tooltip'
+import { Term, TermHint } from '@/components/ui/term'
 import { cn } from '@/lib/utils'
 import { formatSolesMarketing } from '@/lib/format/peruvian'
 import { toast } from 'sonner'
@@ -29,14 +30,17 @@ import {
   LEGAJO_DOCS,
   LEGAJO_CATEGORY_LABELS,
   LEGAJO_CATEGORY_ORDER,
+  LEGAJO_CATEGORY_TERMS,
   GRAVITY_LABELS,
   getMultaReferencial,
   isRowComplete,
+  legajoDocSegments,
   pickDocsByType,
   resolveDocStatus,
   summarizeLegajo,
   type LegajoDocDefinition,
   type LegajoRowStatus,
+  type TextSegment,
 } from '../../legajo-docs'
 import type { ProfileTab } from '../profile-tabs'
 
@@ -103,6 +107,23 @@ function lowerFirst(text: string): string {
   if (text.length < 2) return text.toLowerCase()
   const second = text.charAt(1)
   return second === second.toLowerCase() ? text.charAt(0).toLowerCase() + text.slice(1) : text
+}
+
+/** Texto con los términos del glosario enlazados (subrayado punteado + tarjeta "¿Qué es?"). */
+function WithTerms({ segments }: { segments: TextSegment[] }) {
+  return (
+    <>
+      {segments.map((segment, i) =>
+        segment.termId ? (
+          <Term key={i} id={segment.termId}>
+            {segment.text}
+          </Term>
+        ) : (
+          <Fragment key={i}>{segment.text}</Fragment>
+        ),
+      )}
+    </>
+  )
 }
 
 function fmtDate(iso: string): string {
@@ -302,7 +323,10 @@ export function TabLegajo({
           </div>
         </ProgressRing>
         <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-widest text-[color:var(--text-tertiary)]">Legajo digital</p>
+          <p className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[color:var(--text-tertiary)]">
+            Legajo digital
+            <TermHint id="legajo" />
+          </p>
           <p className="mt-0.5 text-xl font-bold tracking-tight">
             {summary.completeCount} de {summary.total} documentos obligatorios
           </p>
@@ -353,11 +377,15 @@ export function TabLegajo({
         if (defs.length === 0) return null
         const ready = defs.filter((d) => isRowComplete(resolveDocStatus(byType.get(d.type)))).length
         const pendingCount = defs.length - ready
+        const categoryTerm = LEGAJO_CATEGORY_TERMS[cat]
         return (
           <Card key={cat} padding="none">
             <CardHeader>
               <div>
-                <CardTitle>{LEGAJO_CATEGORY_LABELS[cat]}</CardTitle>
+                <CardTitle className="flex items-center gap-1.5">
+                  {LEGAJO_CATEGORY_LABELS[cat]}
+                  {categoryTerm ? <TermHint id={categoryTerm} /> : null}
+                </CardTitle>
                 <CardDescription>
                   {ready} de {defs.length} listos
                 </CardDescription>
@@ -378,8 +406,8 @@ export function TabLegajo({
       })}
 
       <p className="px-1 text-[11px] text-[color:var(--text-tertiary)]">
-        Las multas son referenciales: valor base del D.S. 019-2006-TR para una empresa de hasta 10
-        trabajadores. El monto real depende del tamaño y del régimen de tu empresa.
+        Las <Term id="multa-sunafil">multas</Term> son referenciales: valor base del D.S. 019-2006-TR para una
+        empresa de hasta 10 trabajadores. El monto real depende del tamaño y del régimen de tu empresa.
       </p>
 
       {/* Opcionales y de cese */}
@@ -479,6 +507,7 @@ function ChecklistRow({
   const actionLabel = status === 'vencido' ? 'Subir nuevo' : doc && !rejected ? 'Reemplazar' : 'Subir'
   const meta: RowMeta = optionalMissing ? { label: 'No subido', variant: 'neutral' } : STATUS_META[status]
   const multa = !isRowComplete(status) && def.required ? getMultaReferencial(def.type) : null
+  const segments = legajoDocSegments(def)
 
   return (
     <li className="flex flex-col gap-3 px-6 py-4 hover:bg-[color:var(--neutral-50)] sm:flex-row sm:items-start">
@@ -514,11 +543,13 @@ function ChecklistRow({
 
       <div className="min-w-0 flex-1 space-y-1">
         <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-[color:var(--text-primary)]">
-          {def.title}
+          <span>
+            <WithTerms segments={segments.title} />
+          </span>
           {doc ? <AiBadges doc={doc} /> : null}
         </p>
         <p className="text-xs text-[color:var(--text-secondary)]">
-          <span className="font-semibold">¿Por qué lo pide la ley?</span> {def.why}
+          <span className="font-semibold">¿Por qué lo pide la ley?</span> <WithTerms segments={segments.why} />
           {def.baseLegal ? (
             <span className="text-[color:var(--text-tertiary)]"> ({def.baseLegal})</span>
           ) : null}

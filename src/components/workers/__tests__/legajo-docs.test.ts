@@ -4,12 +4,16 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('@/lib/prisma', () => ({ prisma: {} }))
 
 import { REQUIRED_DOC_TYPES } from '@/lib/compliance/legajo-config'
+import { GLOSSARY_BY_ID } from '@/lib/glossary'
 import {
+  LEGAJO_CATEGORY_TERMS,
   LEGAJO_DOCS,
   REQUIRED_LEGAJO_DOCS,
   getMultaReferencial,
+  legajoDocSegments,
   pickDocsByType,
   resolveDocStatus,
+  splitByTerms,
   summarizeLegajo,
 } from '../legajo-docs'
 
@@ -31,6 +35,59 @@ describe('LEGAJO_DOCS', () => {
       expect(def.why.trim().length).toBeGreaterThan(10)
       expect(def.title.trim().length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('enlaces al glosario', () => {
+  it('cada término existe en el glosario y su texto aparece en el nombre o la explicación', () => {
+    for (const def of LEGAJO_DOCS) {
+      for (const link of def.terms ?? []) {
+        expect(GLOSSARY_BY_ID.has(link.id), `${def.type} → ${link.id}`).toBe(true)
+        expect(def.title.includes(link.text) || def.why.includes(link.text), `${def.type}: "${link.text}"`).toBe(
+          true,
+        )
+      }
+      expect((def.terms ?? []).length, def.type).toBeLessThanOrEqual(2)
+    }
+    for (const id of Object.values(LEGAJO_CATEGORY_TERMS)) {
+      expect(GLOSSARY_BY_ID.has(id as string)).toBe(true)
+    }
+  })
+
+  it('cada término se enlaza una sola vez y el texto no cambia', () => {
+    for (const def of LEGAJO_DOCS) {
+      const { title, why } = legajoDocSegments(def)
+      expect(title.map((s) => s.text).join('')).toBe(def.title)
+      expect(why.map((s) => s.text).join('')).toBe(def.why)
+      const linked = [...title, ...why].filter((s) => s.termId).map((s) => s.termId)
+      expect(linked).toHaveLength((def.terms ?? []).length)
+      expect(new Set(linked).size).toBe(linked.length)
+    }
+  })
+
+  it('el Reglamento Interno de SST no se confunde con el RIT', () => {
+    const reglamento = LEGAJO_DOCS.find((d) => d.type === 'reglamento_interno')
+    expect(reglamento?.terms?.some((t) => t.id === 'rit') ?? false).toBe(false)
+  })
+
+  it('splitByTerms marca la primera aparición y conserva el resto del texto', () => {
+    expect(splitByTerms('Póliza SCTR', [{ id: 'sctr', text: 'SCTR' }])).toEqual([
+      { text: 'Póliza ' },
+      { text: 'SCTR', termId: 'sctr' },
+    ])
+    expect(
+      splitByTerms('Constancia de afiliación AFP u ONP', [
+        { id: 'onp', text: 'ONP' },
+        { id: 'afp', text: 'AFP' },
+      ]),
+    ).toEqual([
+      { text: 'Constancia de afiliación ' },
+      { text: 'AFP', termId: 'afp' },
+      { text: ' u ' },
+      { text: 'ONP', termId: 'onp' },
+    ])
+    expect(splitByTerms('Currículum vitae', [{ id: 'cts', text: 'CTS' }])).toEqual([{ text: 'Currículum vitae' }])
+    expect(splitByTerms('Sin enlaces')).toEqual([{ text: 'Sin enlaces' }])
   })
 })
 

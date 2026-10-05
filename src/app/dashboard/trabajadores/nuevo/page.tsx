@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { validateWorkerLegality } from '@/lib/legal-engine/validators/worker'
 import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
 import { formatSolesMarketing } from '@/lib/format/peruvian'
+import { Term } from '@/components/ui/term'
 
 const REGIMENES = [
   { value: 'GENERAL', label: 'General (D.Leg. 728)' },
@@ -147,11 +148,18 @@ const SECTION_FIELDS: Record<Section, string[]> = {
 
 const ASIGNACION_FAMILIAR_MONTO = PERU_LABOR.RMV * PERU_LABOR.ASIGNACION_FAMILIAR_PORCENTAJE
 
-/** Ayuda corta "¿Qué es?" visible bajo un campo (enlazada con aria-describedby). */
-function FieldHelp({ id, children }: { id: string; children: React.ReactNode }) {
+/**
+ * Ayuda corta visible bajo un campo (enlazada con aria-describedby). El
+ * "¿Qué es?" abre la tarjeta del glosario con el detalle: por qué importa,
+ * ejemplo, plazos y base legal.
+ */
+function FieldHelp({ id, termId, children }: { id: string; termId: string; children: React.ReactNode }) {
   return (
     <p id={id} className="mt-1 text-[11px] leading-snug text-[color:var(--text-tertiary)]">
-      <span className="font-semibold text-[color:var(--text-secondary)]">¿Qué es?</span> {children}
+      <Term id={termId} className="font-semibold text-[color:var(--text-secondary)]">
+        ¿Qué es?
+      </Term>{' '}
+      {children}
     </p>
   )
 }
@@ -852,7 +860,7 @@ export default function NuevoTrabajadorPage() {
                     />
                     <span className="text-sm text-[color:var(--text-secondary)]">Asignación familiar</span>
                   </label>
-                  <FieldHelp id="help-asignacion-familiar">
+                  <FieldHelp id="help-asignacion-familiar" termId="asignacion-familiar">
                     Pago mensual de {formatSolesMarketing(ASIGNACION_FAMILIAR_MONTO)} (10 % de la remuneración mínima)
                     para quien tiene hijos menores de 18 años, o hasta 24 si siguen estudios superiores. Márcalo si le corresponde.
                   </FieldHelp>
@@ -942,7 +950,7 @@ export default function NuevoTrabajadorPage() {
                       aria-describedby="help-cuspp"
                       className={inputClass('cuspp')}
                     />
-                    <FieldHelp id="help-cuspp">
+                    <FieldHelp id="help-cuspp" termId="cuspp">
                       Código único de 12 caracteres que identifica al trabajador en su AFP. Está en su constancia de
                       afiliación o en la web de la AFP. Si no lo tienes ahora, puedes completarlo después.
                     </FieldHelp>
@@ -975,8 +983,9 @@ export default function NuevoTrabajadorPage() {
                     />
                     <span className="text-sm text-[color:var(--text-secondary)]">EsSalud +Vida</span>
                   </label>
-                  <FieldHelp id="help-essalud-vida">
-                    Seguro opcional de EsSalud contra accidentes personales. No es obligatorio: márcalo solo si lo contrataste.
+                  <FieldHelp id="help-essalud-vida" termId="essalud-vida">
+                    Seguro voluntario de EsSalud contra accidentes personales. No es obligatorio: márcalo solo si el
+                    trabajador está afiliado.
                   </FieldHelp>
                 </div>
                 <div>
@@ -990,7 +999,7 @@ export default function NuevoTrabajadorPage() {
                     />
                     <span className="text-sm text-[color:var(--text-secondary)]">SCTR (trabajo de riesgo)</span>
                   </label>
-                  <FieldHelp id="help-sctr">
+                  <FieldHelp id="help-sctr" termId="sctr">
                     Seguro Complementario de Trabajo de Riesgo. Es obligatorio si su puesto es de riesgo (construcción,
                     minería, manufactura, etc.) y cubre salud y pensión ante accidentes de trabajo.
                   </FieldHelp>

@@ -4,6 +4,7 @@ import { useId, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowRight, CircleHelp, Scale, ShieldCheck, Target, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Term } from '@/components/ui/term'
 import {
   NIVEL_LABEL,
   formatFechaLima,
@@ -185,10 +186,16 @@ function EstadoBloque({
   }
 
   const fecha = formatFechaLima(diagnosticDate)
-  const help =
-    scoreSource === 'datos'
-      ? 'Revisamos los datos de tus trabajadores: contratos, legajos, vencimientos, documentos obligatorios, seguridad y salud, vacaciones y capacitaciones. Cada tema pesa distinto.'
-      : `Sale de tus respuestas en el diagnóstico${fecha ? ` del ${fecha}` : ''}. Cuando registres a tus trabajadores lo calcularemos con sus datos reales.`
+  const help: ReactNode =
+    scoreSource === 'datos' ? (
+      <>
+        Revisamos los datos de tus trabajadores: contratos, <Term id="legajo">legajos</Term>, vencimientos,
+        documentos obligatorios, <Term id="sst">seguridad y salud</Term>, vacaciones y capacitaciones. Cada tema
+        pesa distinto.
+      </>
+    ) : (
+      `Sale de tus respuestas en el diagnóstico${fecha ? ` del ${fecha}` : ''}. Cuando registres a tus trabajadores lo calcularemos con sus datos reales.`
+    )
 
   return (
     <>
@@ -238,7 +245,7 @@ function MultaBloque({
       <>
         <p className="text-2xl font-bold tracking-tight text-[color:var(--text-tertiary)]">Por calcular</p>
         <p className="mt-2 text-sm leading-6 text-[color:var(--text-secondary)]">
-          Lo calculamos con tu diagnóstico y la tabla de multas SUNAFIL 2026.
+          Lo calculamos con tu diagnóstico y la tabla de <Term id="multa-sunafil">multas SUNAFIL</Term> 2026.
         </p>
         {multaAlertas > 0 ? (
           <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
@@ -257,14 +264,23 @@ function MultaBloque({
         {formatSolesRedondeado(multaPendiente)}
       </p>
       <p className="mt-2 text-sm leading-6 text-[color:var(--text-secondary)]">
-        {hayMulta
-          ? 'Según tu diagnóstico, las alertas de tus trabajadores y la tabla de multas SUNAFIL 2026.'
-          : 'No tienes multas pendientes según tu diagnóstico y las alertas de tus trabajadores.'}
+        {hayMulta ? (
+          <>
+            Según tu diagnóstico, las alertas de tus trabajadores y la tabla de{' '}
+            <Term id="multa-sunafil">multas SUNAFIL</Term> 2026.
+          </>
+        ) : (
+          <>
+            No tienes <Term id="multa-sunafil">multas</Term> pendientes según tu diagnóstico y las alertas de tus
+            trabajadores.
+          </>
+        )}
       </p>
       {hayMulta ? (
         <>
           <p className="mt-1 text-xs leading-5 text-[color:var(--text-tertiary)]">
-            Es un estimado: baja cada vez que resuelves un pendiente.
+            Es un estimado (las multas se calculan en <Term id="uit">UIT</Term>). Baja cada vez que{' '}
+            <Term id="subsanacion">corriges</Term> un pendiente.
           </p>
           <Link
             href="/dashboard/plan-accion"
