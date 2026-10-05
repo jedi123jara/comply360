@@ -4,23 +4,26 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import {
   ShieldCheck, AlertTriangle, TrendingUp, TrendingDown, ChevronDown, ChevronUp,
-  ArrowLeft, ArrowRight, CheckCircle2, XCircle, MinusCircle,
+  ArrowLeft, ArrowRight, CheckCircle2, XCircle, MinusCircle, HelpCircle,
   BarChart3, Target, Loader2, Search, Zap, FlaskConical, History,
   Download, ListChecks,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import BenchmarkSectorial from '@/components/dashboard/benchmark-sectorial'
 import { AIActionPlanCard } from '@/components/dashboard/ai-action-plan-card'
 import { formatSoles } from '@/lib/format/peruvian'
 import { resolveTaskRoute, type ResolvedTaskRoute } from '@/lib/compliance/task-route-resolver'
+import { comoVerificar, infraccionEnPalabras } from '@/lib/compliance/diagnostic-guidance'
+import { getQuestionById } from '@/lib/compliance/questions'
 import { SIMULACRO_ESTIMATE } from '@/app/dashboard/simulacro/_lib/simulacro-meta'
 import {
   QUESTION_COUNT,
   areaLabel,
   areaWeight,
+  displayQuestionText,
   formatEstimate,
   formatPlazo,
-  formatQuestionText,
+  respuestasPorArea,
+  type RespuestasDelArea,
 } from '../../_lib/diagnostic-meta'
 
 interface GapItem {
@@ -30,8 +33,11 @@ interface GapItem {
   gravedad: string
   multaUIT: number
   multaPEN: number
+  /** NO, PARCIAL o NO_SE («Por verificar»). */
   answer: string
   priority: number
+  /** Solo en «No sé» (diagnósticos nuevos): cómo salir de la duda. */
+  comoVerificar?: string
 }
 
 interface ActionItem {
@@ -51,8 +57,10 @@ interface DiagnosticData {
   scoreGlobal: number
   scoreByArea: Record<string, number>
   totalMultaRiesgo: number
-  gapAnalysis: GapItem[]
-  actionPlan: ActionItem[]
+  /** Se guardan como JSON: se validan antes de usarlos. */
+  gapAnalysis: unknown
+  actionPlan: unknown
+  questionsJson?: unknown
   completedAt: string
   createdAt: string
 }
@@ -76,10 +84,33 @@ function routeForQuestion(questionId: string, area?: string): ResolvedTaskRoute 
   return resolveTaskRoute({ sourceId: questionId, area: area ?? '' }) ?? PLAN_ACCION_ROUTE
 }
 
-const GRAVEDAD_LABEL: Record<string, string> = {
-  LEVE: 'Leve',
-  GRAVE: 'Grave',
-  MUY_GRAVE: 'Muy grave',
+/** Pista para un «No sé»: la guardada o, en diagnósticos antiguos, la derivada de la pregunta. */
+function pistaVerificacion(gap: GapItem): string | null {
+  if (gap.comoVerificar) return gap.comoVerificar
+  const q = getQuestionById(gap.questionId)
+  return q ? comoVerificar(q) : null
+}
+
+/** Gravedad y multa juntas, en palabras: no depende del color. */
+function GravedadYMulta({ gap }: { gap: GapItem }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium',
+        gap.gravedad === 'MUY_GRAVE'
+          ? 'bg-red-100 text-red-800'
+          : gap.gravedad === 'GRAVE'
+            ? 'bg-orange-100 text-orange-800'
+            : 'bg-yellow-100 text-yellow-800'
+      )}
+    >
+      {infraccionEnPalabras(gap.gravedad)} · multa estimada {formatSoles(gap.multaPEN)}
+    </span>
+  )
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : []
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -220,14 +251,42 @@ function ScoreRing({ score, size = 120 }: { score: number; size?: number }) {
   )
 }
 
-function AreaBar({ label, score, weight }: { label: string; score: number; weight: number | null }) {
+function AreaBar({
+  label,
+  score,
+  weight,
+  respuestas,
+}: {
+  label: string
+  score: number
+  weight: number | null
+  respuestas?: RespuestasDelArea
+}) {
+  const noAplica = respuestas?.noAplica ?? 0
+  const todoNoAplica = !!respuestas && respuestas.respondidas > 0 && noAplica === respuestas.respondidas
+
+  if (todoNoAplica) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="font-medium text-[color:var(--text-secondary)]">{label}</span>
+          <span className="shrink-0 text-xs font-medium text-[color:var(--text-tertiary)]">
+            No aplica a tu empresa · no cuenta en el puntaje
+          </span>
+        </div>
+        <div className="h-2.5 rounded-full bg-[color:var(--neutral-100)]" />
+      </div>
+    )
+  }
+
   const color = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+  const estado = score >= 80 ? 'Bien' : score >= 60 ? 'A mejorar' : 'En riesgo'
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="font-medium text-[color:var(--text-secondary)]">{label}</span>
         <span className="shrink-0 text-gray-400">
-          {score}%
+          <span className="font-semibold text-[color:var(--text-primary)]">{score}%</span> · {estado}
           {weight !== null ? (
             <span className="text-xs text-slate-500"> (pesa {weight}% del total)</span>
           ) : null}
@@ -236,20 +295,27 @@ function AreaBar({ label, score, weight }: { label: string; score: number; weigh
       <div className="h-2.5 rounded-full bg-[color:var(--neutral-100)]">
         <div className={cn('h-2.5 rounded-full transition-all duration-700', color)} style={{ width: `${score}%` }} />
       </div>
+      {noAplica > 0 ? (
+        <p className="text-xs text-[color:var(--text-tertiary)]">
+          {noAplica === 1
+            ? '1 pregunta no aplica a tu empresa y no cuenta en este puntaje.'
+            : `${noAplica} preguntas no aplican a tu empresa y no cuentan en este puntaje.`}
+        </p>
+      ) : null}
     </div>
   )
 }
 
-/** Botón "Resolver": lleva al módulo donde se corrige la brecha. */
-function ResolveLink({ route }: { route: ResolvedTaskRoute }) {
+/** Botón que lleva al módulo donde se corrige (o se verifica) la brecha. */
+function ResolveLink({ route, label = 'Resolver' }: { route: ResolvedTaskRoute; label?: string }) {
   return (
     <Link
       href={route.href}
       title={route.label}
-      aria-label={`Resolver: ${route.label}`}
+      aria-label={`${label}: ${route.label}`}
       className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
     >
-      Resolver
+      {label}
       <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
     </Link>
   )
@@ -297,9 +363,19 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
     )
   }
 
-  const gapAnalysis: GapItem[] = (data.gapAnalysis as GapItem[]) || []
-  const actionPlan: ActionItem[] = (data.actionPlan as ActionItem[]) || []
-  const scoreByArea = data.scoreByArea || {}
+  const allGaps = asArray<GapItem>(data.gapAnalysis).filter(g => g && typeof g.questionId === 'string')
+  // «No sé» va aparte («Por verificar»); el resto son brechas confirmadas.
+  const gapAnalysis = allGaps.filter(g => g.answer !== 'NO_SE')
+  const porVerificar = allGaps.filter(g => g.answer === 'NO_SE')
+  const actionPlan = asArray<ActionItem>(data.actionPlan).filter(a => a && typeof a.questionId === 'string')
+  const scoreByArea: Record<string, number> =
+    data.scoreByArea && typeof data.scoreByArea === 'object' ? data.scoreByArea : {}
+  // Con respuestas guardadas se ocultan las áreas que no se evaluaron (sin
+  // preguntas en este diagnóstico) y se marcan las que no aplican.
+  const porArea = respuestasPorArea(data.questionsJson)
+  const areasVisibles = Object.entries(scoreByArea).filter(
+    ([area, score]) => typeof score === 'number' && (!porArea || (porArea[area]?.respondidas ?? 0) > 0)
+  )
   const visibleGaps = showAllGaps ? gapAnalysis : gapAnalysis.slice(0, 10)
 
   // Datos de evolución: diagnóstico actual + anteriores en orden cronológico (últimos 6)
@@ -366,6 +442,12 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
           <p className="mt-2 text-2xl font-bold text-white">{formatSoles(data.totalMultaRiesgo)}</p>
           <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Multa potencial total</h3>
           <p className="mt-1 text-xs text-slate-500">Lo que podrías pagar si SUNAFIL te inspecciona hoy</p>
+          {porVerificar.length > 0 ? (
+            <p className="mt-1 text-xs text-sky-700">
+              Incluye {porVerificar.length === 1 ? '1 pregunta' : `${porVerificar.length} preguntas`} por verificar
+              (respondiste «No sé»).
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6 text-center">
@@ -381,30 +463,21 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
         <TrendChart data={trendData} currentId={data.id} />
       )}
 
-      {/* Comparación con el sector */}
-      <BenchmarkSectorial
-        companyScore={data.scoreGlobal}
-        sector="SERVICIOS"
-        areaScores={Object.entries(scoreByArea).map(([area, score]) => ({
-          area,
-          score: score as number,
-        }))}
-      />
-
       {/* Resultado por área */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
           <BarChart3 className="h-5 w-5" /> Resultado por área
         </h2>
         <div className="space-y-4">
-          {Object.entries(scoreByArea)
-            .sort(([, a], [, b]) => (a as number) - (b as number))
+          {[...areasVisibles]
+            .sort(([, a], [, b]) => a - b)
             .map(([area, score]) => (
               <AreaBar
                 key={area}
                 label={areaLabel(area)}
-                score={score as number}
+                score={score}
                 weight={areaWeight(area)}
+                respuestas={porArea?.[area]}
               />
             ))}
         </div>
@@ -421,7 +494,9 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
         {gapAnalysis.length === 0 ? (
           <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            No encontramos brechas en este diagnóstico. ¡Buen trabajo! Vuelve a medir cada cierto tiempo para mantenerlo así.
+            {porVerificar.length > 0
+              ? 'No encontramos brechas confirmadas. Revisa abajo las preguntas que quedaron por verificar.'
+              : 'No encontramos brechas en este diagnóstico. ¡Buen trabajo! Vuelve a medir cada cierto tiempo para mantenerlo así.'}
           </p>
         ) : null}
 
@@ -436,14 +511,9 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{formatQuestionText(gap.text)}</p>
+                  <p className="text-sm font-medium text-white">{displayQuestionText(gap.questionId, gap.text)}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className={cn(
-                      'rounded px-1.5 py-0.5 text-xs font-medium',
-                      gap.gravedad === 'MUY_GRAVE' ? 'bg-red-100 text-red-700' : gap.gravedad === 'GRAVE' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
-                    )}>
-                      {GRAVEDAD_LABEL[gap.gravedad] ?? gap.gravedad}
-                    </span>
+                    <GravedadYMulta gap={gap} />
                     <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                       {gap.answer === 'PARCIAL' ? (
                         <MinusCircle className="h-3.5 w-3.5 text-yellow-500" aria-hidden="true" />
@@ -453,7 +523,6 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                       {gap.answer === 'PARCIAL' ? 'Cumple en parte' : 'No cumple'}
                     </span>
                     <span className="text-xs text-gray-500">{gap.baseLegal}</span>
-                    <span className="text-xs font-medium text-red-600">{formatSoles(gap.multaPEN)}</span>
                   </div>
                 </div>
               </div>
@@ -475,6 +544,49 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
           </button>
         )}
       </div>
+
+      {/* Por verificar: respuestas «No sé» */}
+      {porVerificar.length > 0 ? (
+        <div className="rounded-xl border border-sky-200 bg-white p-6">
+          <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-white">
+            <HelpCircle className="h-5 w-5 text-sky-600" aria-hidden="true" /> Por verificar ({porVerificar.length})
+          </h2>
+          <p className="mb-4 text-sm text-gray-400">
+            Respondiste «No sé» en estas preguntas. Mientras no lo confirmes, las contamos como brecha (con su
+            multa) para no darte una falsa tranquilidad. Averígualo con la pista de cada una y vuelve a medir.
+          </p>
+          <div className="space-y-3">
+            {porVerificar.map(gap => {
+              const pista = pistaVerificacion(gap)
+              return (
+                <div
+                  key={gap.questionId}
+                  className="flex flex-col gap-3 rounded-lg border border-sky-100 bg-sky-50/40 p-3 sm:flex-row sm:items-start"
+                >
+                  <div className="flex flex-1 items-start gap-3">
+                    <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-white">{displayQuestionText(gap.questionId, gap.text)}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <GravedadYMulta gap={gap} />
+                        <span className="text-xs text-gray-500">{gap.baseLegal}</span>
+                      </div>
+                      {pista ? (
+                        <p className="mt-2 text-xs text-[color:var(--text-secondary)]">
+                          <span className="font-semibold text-[color:var(--text-primary)]">Cómo averiguarlo:</span> {pista}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex justify-end sm:pt-0.5">
+                    <ResolveLink route={routeForQuestion(gap.questionId)} label="Verificar" />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {/* Plan de acción — el avance se guarda en el Centro de acción (con evidencia) */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">

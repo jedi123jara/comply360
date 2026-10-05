@@ -1,5 +1,5 @@
 /**
- * Cifras del diagnóstico SUNAFIL derivadas del banco de preguntas real.
+ * Cifras y textos del diagnóstico SUNAFIL derivados del banco de preguntas real.
  *
  * Fuente de verdad: `src/lib/compliance/questions`. No escribas números a mano en
  * el copy (intro, resultado, etc.): importa estas constantes para que todas las
@@ -9,12 +9,13 @@
  * empresa, y otras se responden solas con los datos ya cargados. Por eso estos
  * totales son el máximo ("hasta N preguntas").
  */
-import { AREAS, EXPRESS_QUESTIONS, FULL_QUESTIONS } from '@/lib/compliance/questions'
-import type { AreaKey } from '@/lib/compliance/questions'
+import { AREAS, EXPRESS_QUESTIONS, FULL_QUESTIONS, getQuestionById } from '@/lib/compliance/questions'
+import type { AnswerOption } from '@/lib/compliance/questions'
+import { leerRespuestasGuardadas } from '@/lib/compliance/diagnostic-guidance'
 
 export type DiagnosticMode = 'EXPRESS' | 'FULL'
 
-/** Regla simple de tiempo: ~10 segundos por pregunta (leer y elegir Sí / Parcial / No). */
+/** Regla simple de tiempo: ~10 segundos por pregunta (leer y elegir una respuesta). */
 export const SECONDS_PER_QUESTION = 10
 
 export const QUESTION_COUNT: Record<DiagnosticMode, number> = {
@@ -34,25 +35,9 @@ export function formatEstimate(questionCount: number): string {
   return `~${estimateMinutes(questionCount)} min`
 }
 
-/**
- * Nombres de área con tildes. El catálogo base (`AREAS`) aún los guarda sin
- * tildes; aquí se corrigen solo para mostrarlos. El tipo obliga a cubrir las 10.
- */
-const AREA_LABELS: Record<AreaKey, string> = {
-  contratos_registro: 'Contratos y registro',
-  remuneraciones_beneficios: 'Remuneraciones y beneficios',
-  jornada_descansos: 'Jornada y descansos',
-  sst: 'Seguridad y salud en el trabajo',
-  documentos_obligatorios: 'Documentos obligatorios',
-  relaciones_laborales: 'Relaciones laborales',
-  igualdad_nodiscriminacion: 'Igualdad y no discriminación',
-  trabajadores_especiales: 'Trabajadores especiales',
-  tercerizacion_intermediacion: 'Tercerización e intermediación',
-  hostigamiento_sexual_detallado: 'Hostigamiento sexual: procedimiento',
-}
-
+/** Nombre visible del área (el catálogo `AREAS` ya lo guarda con tildes). */
 export function areaLabel(key: string): string {
-  return AREA_LABELS[key as AreaKey] ?? AREAS.find((a) => a.key === key)?.label ?? key
+  return AREAS.find((a) => a.key === key)?.label ?? key
 }
 
 /** Peso real del área en el puntaje global (mismo dato que usa el motor). */
@@ -60,14 +45,64 @@ export function areaWeight(key: string): number | null {
   return AREAS.find((a) => a.key === key)?.weight ?? null
 }
 
-/** El motor guarda plazos sin tildes ("Inmediato (7 dias)"); los corregimos al mostrarlos. */
+/**
+ * El motor guarda los plazos sin tilde ("Inmediato (7 dias)") porque
+ * `task-spawner` los interpreta; se corrigen solo al mostrarlos.
+ */
 export function formatPlazo(plazo: string): string {
   return plazo.replace(/\bdias\b/g, 'días')
 }
 
-/** Las preguntas del banco terminan en "?" pero no abren con "¿"; lo agregamos al mostrarlas. */
+/**
+ * Agrega «¿» a una pregunta guardada sin él. El banco actual ya trae los signos;
+ * esto queda para los diagnósticos guardados antes de la corrección.
+ */
 export function formatQuestionText(text: string): string {
   const trimmed = text.trim()
   if (trimmed.endsWith('?') && !trimmed.startsWith('¿')) return `¿${trimmed}`
   return trimmed
+}
+
+/**
+ * Texto de una pregunta para mostrar en el resultado: el del banco actual (con
+ * tildes) si la pregunta existe; si no, el guardado en el diagnóstico.
+ */
+export function displayQuestionText(questionId: string, storedText: string): string {
+  return getQuestionById(questionId)?.text ?? formatQuestionText(storedText)
+}
+
+/** Etiqueta corta de cada respuesta, igual en el cuestionario, el resumen y el resultado. */
+export const ANSWER_LABEL: Record<AnswerOption, string> = {
+  SI: 'Sí',
+  PARCIAL: 'Parcial',
+  NO: 'No',
+  NO_SE: 'No sé',
+  NO_APLICA: 'No aplica',
+}
+
+export interface RespuestasDelArea {
+  /** Preguntas del área que tienen respuesta guardada (incluye «No aplica»). */
+  respondidas: number
+  /** Cuántas se marcaron «No aplica» (no cuentan en el puntaje). */
+  noAplica: number
+}
+
+/**
+ * Cuenta, por área, las respuestas guardadas y cuántas son «No aplica». Sirve
+ * para que el resultado no muestre «100 %» en un área que en realidad no aplica
+ * a la empresa o que no se evaluó. Devuelve `null` si el diagnóstico no guardó
+ * respuestas legibles (por ejemplo, un simulacro): en ese caso se muestra todo.
+ */
+export function respuestasPorArea(questionsJson: unknown): Record<string, RespuestasDelArea> | null {
+  const respuestas = leerRespuestasGuardadas(questionsJson)
+  if (respuestas.length === 0) return null
+  const porArea: Record<string, RespuestasDelArea> = {}
+  for (const { questionId, answer } of respuestas) {
+    const area = getQuestionById(questionId)?.area
+    if (!area) continue
+    const resumen = (porArea[area] ??= { respondidas: 0, noAplica: 0 })
+    resumen.respondidas++
+    if (answer === 'NO_APLICA') resumen.noAplica++
+  }
+  return Object.keys(porArea).length > 0 ? porArea : null
 }

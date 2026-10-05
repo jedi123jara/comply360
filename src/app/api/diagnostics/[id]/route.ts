@@ -15,12 +15,12 @@ export const GET = withPlanGateParams<{ id: string }>('diagnostico', async (_req
     })
 
     if (!diagnostic) {
-      return NextResponse.json({ error: 'Diagnostic not found' }, { status: 404 })
+      return NextResponse.json({ error: 'No encontramos este diagnóstico.' }, { status: 404 })
     }
 
     // Ensure the diagnostic belongs to the authenticated org
     if (diagnostic.orgId !== orgId) {
-      return NextResponse.json({ error: 'Diagnostic not found' }, { status: 404 })
+      return NextResponse.json({ error: 'No encontramos este diagnóstico.' }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -29,6 +29,6 @@ export const GET = withPlanGateParams<{ id: string }>('diagnostico', async (_req
     })
   } catch (error) {
     console.error('Diagnostic GET error:', error)
-    return NextResponse.json({ error: 'Failed to load diagnostic' }, { status: 500 })
+    return NextResponse.json({ error: 'No se pudo cargar el diagnóstico.' }, { status: 500 })
   }
 })

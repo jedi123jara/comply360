@@ -60,23 +60,23 @@ export function evidenceGoalForAction(input: {
   area: string
   title: string
 }): string {
-  if (input.source === 'training') return 'Registro de asistencia, evaluacion o certificado emitido.'
+  if (input.source === 'training') return 'Registro de asistencia, evaluación o certificado emitido.'
   if (input.source === 'alert') return 'Alerta cerrada con sustento, fecha y responsable.'
 
   const text = `${input.area} ${input.title}`.toLowerCase()
   if (text.includes('sst') || text.includes('seguridad') || text.includes('salud') || text.includes('epp')) {
-    return 'Documento SST firmado, evidencia de entrega/capacitacion y registro actualizado.'
+    return 'Documento SST firmado, evidencia de entrega o capacitación y registro actualizado.'
   }
   if (text.includes('contrato') || text.includes('registro') || text.includes('t-registro')) {
-    return 'Contrato/adenda o constancia T-Registro con cargo de comunicacion.'
+    return 'Contrato o adenda, o constancia del T-Registro, con cargo de comunicación.'
   }
   if (text.includes('planilla') || text.includes('remuner') || text.includes('boleta')) {
-    return 'Calculo, boleta/planilla corregida y constancia de pago si aplica.'
+    return 'Cálculo, boleta o planilla corregida y constancia de pago, si aplica.'
   }
   if (text.includes('hostig') || text.includes('igualdad') || text.includes('discrimin')) {
-    return 'Politica/protocolo, acta de comunicacion y capacitacion interna.'
+    return 'Política o protocolo, acta de comunicación y capacitación interna.'
   }
-  return 'Documento de subsanacion, sustento legal y evidencia lista para inspeccion.'
+  return 'Documento de subsanación, sustento legal y evidencia lista para la inspección.'
 }
 
 export function nextActionForAction(input: {
@@ -85,13 +85,13 @@ export function nextActionForAction(input: {
   area: string
   title: string
 }): string {
-  if (input.source === 'training') return 'Cerrar capacitacion obligatoria con asistencia verificable.'
-  if (input.source === 'alert') return 'Resolver alerta y registrar el sustento de cierre.'
+  if (input.source === 'training') return 'Cerrar la capacitación obligatoria con asistencia verificable.'
+  if (input.source === 'alert') return 'Resolver la alerta y registrar el sustento de cierre.'
 
   const text = `${input.area} ${input.title}`.toLowerCase()
-  if (text.includes('sst') || text.includes('epp')) return 'Subsanar en SST y cargar evidencia firmada.'
-  if (text.includes('contrato') || text.includes('registro')) return 'Regularizar documento laboral y dejar cargo.'
-  if (text.includes('planilla') || text.includes('remuner')) return 'Corregir calculo/planilla y sustentar pago.'
-  if (input.severity === 'CRITICAL') return 'Asignar responsable hoy y cerrar evidencia critica.'
-  return 'Asignar responsable, fecha de cierre y evidencia esperada.'
+  if (text.includes('sst') || text.includes('epp')) return 'Subsanar en SST y cargar la evidencia firmada.'
+  if (text.includes('contrato') || text.includes('registro')) return 'Regularizar el documento laboral y dejar el cargo de entrega.'
+  if (text.includes('planilla') || text.includes('remuner')) return 'Corregir el cálculo o la planilla y sustentar el pago.'
+  if (input.severity === 'CRITICAL') return 'Asignar un responsable hoy y cerrar la evidencia crítica.'
+  return 'Asignar un responsable, una fecha de cierre y la evidencia esperada.'
 }

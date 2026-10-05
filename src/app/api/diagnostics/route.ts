@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { withPlanGate } from '@/lib/plan-gate'
 import { ALL_QUESTIONS, EXPRESS_QUESTIONS, getFilteredQuestions } from '@/lib/compliance/questions'
 import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
-import type { QuestionAnswer } from '@/lib/compliance/diagnostic-scorer'
+import { parseDiagnosticSubmission } from '@/lib/compliance/diagnostic-submission'
 import type { DiagnosticType } from '@/generated/prisma/client'
 import { actionPlanToTaskInputs, spawnTasksFromActionPlan } from '@/lib/compliance/task-spawner'
 import { emit } from '@/lib/events'
@@ -22,7 +22,7 @@ export const GET = withPlanGate('diagnostico', async (req, ctx) => {
       const rawType = searchParams.get('type') || 'FULL'
       if (rawType !== 'FULL' && rawType !== 'EXPRESS') {
         return NextResponse.json(
-          { error: "type must be 'FULL' or 'EXPRESS'" },
+          { error: "El tipo de diagnóstico debe ser 'FULL' o 'EXPRESS'." },
           { status: 400 }
         )
       }
@@ -73,7 +73,7 @@ export const GET = withPlanGate('diagnostico', async (req, ctx) => {
     })
   } catch (error) {
     console.error('Diagnostics GET error:', error)
-    return NextResponse.json({ error: 'Failed to load diagnostics' }, { status: 500 })
+    return NextResponse.json({ error: 'No se pudieron cargar los diagnósticos.' }, { status: 500 })
   }
 })
 
@@ -82,24 +82,15 @@ export const GET = withPlanGate('diagnostico', async (req, ctx) => {
 // =============================================
 export const POST = withPlanGate('diagnostico', async (req, ctx) => {
   try {
-    const body = await req.json()
-    const { type = 'FULL', answers } = body as {
-      type?: DiagnosticType
-      answers: QuestionAnswer[]
+    const body = await req.json().catch(() => null)
+    // Valida tipo y respuestas: SI / PARCIAL / NO / NO_SE / NO_APLICA (o null).
+    // Los envíos antiguos con solo SI / PARCIAL / NO siguen siendo válidos.
+    const parsed = parseDiagnosticSubmission(body)
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
+    const { type, answers } = parsed.data
     const orgId = ctx.orgId
-
-    const VALID_TYPES: DiagnosticType[] = ['FULL', 'EXPRESS', 'SIMULATION']
-    if (!VALID_TYPES.includes(type as DiagnosticType)) {
-      return NextResponse.json(
-        { error: "type must be 'FULL', 'EXPRESS' or 'SIMULATION'" },
-        { status: 400 }
-      )
-    }
-
-    if (!answers || !Array.isArray(answers) || answers.length === 0) {
-      return NextResponse.json({ error: 'No answers provided' }, { status: 400 })
-    }
 
     // Get org context
     const org = await prisma.organization.findUnique({
@@ -158,6 +149,7 @@ export const POST = withPlanGate('diagnostico', async (req, ctx) => {
           questionId: g.questionId,
           gravedad: g.gravedad,
           text: g.text,
+          answer: g.answer,
         })),
       )
       tasksCreated = await spawnTasksFromActionPlan(orgId, diagnostic.id, taskInputs)
@@ -181,6 +173,6 @@ export const POST = withPlanGate('diagnostico', async (req, ctx) => {
     })
   } catch (error) {
     console.error('Diagnostics POST error:', error)
-    return NextResponse.json({ error: 'Failed to save diagnostic' }, { status: 500 })
+    return NextResponse.json({ error: 'No se pudo guardar el diagnóstico.' }, { status: 500 })
   }
 })

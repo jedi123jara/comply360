@@ -35,4 +35,34 @@ describe('action-plan helpers', () => {
     expect(nextActionForAction({ source: 'task', severity: 'HIGH', area: 'sst', title: 'Sin EPP documentado' })).toContain('SST')
     expect(evidenceGoalForAction({ source: 'training', area: 'SST', title: 'Induccion' })).toContain('asistencia')
   })
+
+  it('muestra los textos con tildes', () => {
+    const areas = ['sst', 'contrato', 'planilla', 'hostigamiento', 'otro']
+    const textos = [
+      ...(['task', 'alert', 'training'] as const).flatMap((source) =>
+        areas.flatMap((area) => [
+          evidenceGoalForAction({ source, area, title: '' }),
+          nextActionForAction({ source, severity: 'CRITICAL', area, title: '' }),
+          nextActionForAction({ source, severity: 'LOW', area, title: '' }),
+        ]),
+      ),
+    ].join(' ')
+
+    for (const sinTilde of [
+      /\bevaluacion\b/i,
+      /\bcalculo\b/i,
+      /\bsubsanacion\b/i,
+      /\binspeccion\b/i,
+      /\bcapacitacion\b/i,
+      /\bcomunicacion\b/i,
+      /\bpolitica\b/i,
+      /\bcritica\b/i,
+    ]) {
+      expect(textos).not.toMatch(sinTilde)
+    }
+    expect(textos).toContain('evaluación')
+    expect(textos).toContain('Cálculo')
+    expect(textos).toContain('subsanación')
+    expect(textos).toContain('inspección')
+  })
 })

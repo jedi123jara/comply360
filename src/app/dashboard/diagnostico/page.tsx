@@ -17,14 +17,26 @@ import {
   Calculator,
   ListChecks,
   Send,
+  Lightbulb,
+  HelpCircle,
+  BookOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Term } from '@/components/ui/term'
 import { PageHeader } from '@/components/comply360/editorial-title'
 import { cn } from '@/lib/utils'
-import type { AnswerValue, ComplianceQuestion } from '@/lib/compliance/questions/types'
+import { formatSoles } from '@/lib/format/peruvian'
+import type { AnswerOption, AnswerValue, ComplianceQuestion } from '@/lib/compliance/questions/types'
+import { estimarMultaPregunta } from '@/lib/compliance/diagnostic-scorer'
 import {
+  explicarPregunta,
+  infraccionEnPalabras,
+  terminosDeLaPregunta,
+} from '@/lib/compliance/diagnostic-guidance'
+import {
+  ANSWER_LABEL,
   AREA_COUNT,
   QUESTION_COUNT,
   areaLabel,
@@ -42,6 +54,10 @@ import {
  *    según régimen y tamaño de la empresa). Se piden UNA sola vez al empezar.
  *  - Auto-respuestas vía `POST /api/diagnostico/auto-prefill` (se saltan las
  *    preguntas que ya podemos verificar con los datos cargados).
+ *  - Respuestas: Sí / Parcial / No / No sé / No aplica (atajos A-E). «No sé»
+ *    cuenta como brecha y queda «Por verificar»; «No aplica» sale del puntaje.
+ *  - Cada pregunta explica «¿Por qué te lo preguntamos?», su multa estimada con la
+ *    gravedad en palabras y los términos del glosario que usa.
  *  - Antes de enviar se muestra un resumen con opción de revisar.
  *  - Envío vía `POST /api/diagnostics` (`scoreDiagnostic()` en el servidor, guarda
  *    `ComplianceDiagnostic` + `ComplianceScore` y crea tareas en el Centro de acción).
@@ -79,27 +95,37 @@ interface AutoAnswerRecord {
 /** Confianza mínima para que una auto-respuesta se aplique sin pasar por el wizard manual. */
 const MIN_CONFIDENCE = 70
 
-const ANSWER_OPTIONS: {
-  label: string
-  value: NonNullable<AnswerValue>
-  key: string
-  tone: 'good' | 'warn' | 'bad'
-}[] = [
-  { label: 'Sí', value: 'SI', key: 'A', tone: 'good' },
-  { label: 'Parcial', value: 'PARCIAL', key: 'B', tone: 'warn' },
-  { label: 'No', value: 'NO', key: 'C', tone: 'bad' },
-]
+type AnswerTone = 'good' | 'warn' | 'bad' | 'unknown' | 'na'
 
-const ANSWER_LABEL: Record<NonNullable<AnswerValue>, string> = {
-  SI: 'Sí',
-  PARCIAL: 'Parcial',
-  NO: 'No',
+interface AnswerOptionDef {
+  value: AnswerOption
+  key: string
+  tone: AnswerTone
+  /** Aclaración corta bajo la etiqueta (solo en las respuestas secundarias). */
+  hint?: string
 }
 
-const GRAVITY_LABEL: Record<ComplianceQuestion['infraccionGravedad'], string> = {
-  LEVE: 'Infracción leve',
-  GRAVE: 'Infracción grave',
-  MUY_GRAVE: 'Infracción muy grave',
+/** Sí / Parcial / No: lo que el usuario sabe de su empresa. */
+const PRIMARY_OPTIONS: AnswerOptionDef[] = [
+  { value: 'SI', key: 'A', tone: 'good' },
+  { value: 'PARCIAL', key: 'B', tone: 'warn' },
+  { value: 'NO', key: 'C', tone: 'bad' },
+]
+
+/** No sé / No aplica: para no obligar a adivinar. */
+const SECONDARY_OPTIONS: AnswerOptionDef[] = [
+  { value: 'NO_SE', key: 'D', tone: 'unknown', hint: 'Queda «Por verificar» y te decimos cómo averiguarlo' },
+  { value: 'NO_APLICA', key: 'E', tone: 'na', hint: 'Tu empresa no tiene esta situación: no cuenta en el puntaje' },
+]
+
+const ALL_OPTIONS = [...PRIMARY_OPTIONS, ...SECONDARY_OPTIONS]
+
+const KEY_TONE: Record<AnswerTone, string> = {
+  good: 'bg-emerald-50 text-emerald-700',
+  warn: 'bg-amber-50 text-amber-700',
+  bad: 'bg-crimson-50 text-crimson-700',
+  unknown: 'bg-sky-50 text-sky-700',
+  na: 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]',
 }
 
 /** Mensaje claro para el usuario según el código HTTP del guardado (nunca "HTTP 500"). */
@@ -147,12 +173,15 @@ export default function DiagnosticoPage({
   const [mode, setMode] = useState<Mode>(modo === 'completo' ? 'FULL' : 'EXPRESS')
   const [answers, setAnswers] = useState<AnswerMap>({})
   const [allQuestions, setAllQuestions] = useState<ComplianceQuestion[] | null>(null)
+  const [totalWorkers, setTotalWorkers] = useState<number | null>(null)
   const [autoMap, setAutoMap] = useState<Map<string, AutoAnswerRecord>>(new Map())
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  /** Si el usuario abre «¿Por qué te lo preguntamos?», se mantiene abierto en las siguientes. */
+  const [explainOpen, setExplainOpen] = useState(false)
 
   const started = step > 0
 
@@ -189,6 +218,9 @@ export default function DiagnosticoPage({
         const qData = (await qRes.json()) as QuestionsResponse
         if (cancelled) return
         setAllQuestions(qData.questions)
+        setTotalWorkers(
+          typeof qData.context?.totalWorkers === 'number' ? qData.context.totalWorkers : null
+        )
 
         if (autoRes && autoRes.ok) {
           const autoData = (await autoRes.json()) as {
@@ -284,7 +316,7 @@ export default function DiagnosticoPage({
             <PageHeader
               eyebrow="Diagnóstico SUNAFIL"
               title="Descubre cómo está tu empresa <em>ante SUNAFIL</em>."
-              subtitle={`Responde Sí, Parcial o No sobre las ${AREA_COUNT} áreas que revisa un inspector. Al final verás tu nivel de cumplimiento por área, la multa que podrías recibir y qué corregir primero.`}
+              subtitle={`Responde Sí, Parcial o No sobre las ${AREA_COUNT} áreas que revisa un inspector; si no estás seguro, marca «No sé» y te diremos cómo averiguarlo. Al final verás tu nivel de cumplimiento por área, la multa que podrías recibir y qué corregir primero.`}
             />
             <IntroCover
               mode={mode}
@@ -319,6 +351,9 @@ export default function DiagnosticoPage({
               step={step}
               question={questions[step - 1]}
               selected={answers[questions[step - 1]?.id ?? ''] ?? null}
+              totalWorkers={totalWorkers}
+              explainOpen={explainOpen}
+              onExplainToggle={setExplainOpen}
               canJumpToReview={allManualAnswered}
               onAnswer={(a) => answer(questions[step - 1], a)}
               onBack={() => setStep((s) => Math.max(1, s - 1))}
@@ -361,7 +396,7 @@ function IntroCover({
         <StepIcon
           icon={FileText}
           title="1. Responde"
-          description="Sí, Parcial o No. Las preguntas que ya podemos verificar con tus datos se responden solas."
+          description="Sí, Parcial o No. Si no sabes, marca «No sé»; si no te corresponde, «No aplica». Las preguntas que ya podemos verificar con tus datos se responden solas."
         />
         <StepIcon
           icon={Calculator}
@@ -482,11 +517,22 @@ function ErrorPanel({
 
 /* ── Pregunta (una por pantalla) ───────────────────────────────────── */
 
+function gravityToneClass(gravedad: ComplianceQuestion['infraccionGravedad']): string {
+  return gravedad === 'MUY_GRAVE'
+    ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
+    : gravedad === 'GRAVE'
+      ? 'bg-amber-50 text-amber-700 border-amber-200'
+      : 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] border-[color:var(--border-default)]'
+}
+
 function QuestionStep({
   total,
   step,
   question,
   selected,
+  totalWorkers,
+  explainOpen,
+  onExplainToggle,
   canJumpToReview,
   onAnswer,
   onBack,
@@ -496,12 +542,15 @@ function QuestionStep({
   step: number
   question: ComplianceQuestion | undefined
   selected: AnswerValue
+  totalWorkers: number | null
+  explainOpen: boolean
+  onExplainToggle: (open: boolean) => void
   canJumpToReview: boolean
   onAnswer: (a: AnswerValue) => void
   onBack: () => void
   onJumpToReview: () => void
 }) {
-  // Atajo de teclado: A = Sí, B = Parcial, C = No.
+  // Atajos de teclado: A = Sí, B = Parcial, C = No, D = No sé, E = No aplica.
   useEffect(() => {
     if (!question) return
     function onKeyDown(e: KeyboardEvent) {
@@ -513,7 +562,7 @@ function QuestionStep({
       ) {
         return
       }
-      const option = ANSWER_OPTIONS.find((o) => o.key === e.key.toUpperCase())
+      const option = ALL_OPTIONS.find((o) => o.key === e.key.toUpperCase())
       if (!option) return
       e.preventDefault()
       onAnswer(option.value)
@@ -526,12 +575,10 @@ function QuestionStep({
 
   const progress = ((step - 1) / total) * 100
   const isLast = step === total
-  const gravityTone =
-    question.infraccionGravedad === 'MUY_GRAVE'
-      ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
-      : question.infraccionGravedad === 'GRAVE'
-        ? 'bg-amber-50 text-amber-700 border-amber-200'
-        : 'bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] border-[color:var(--border-default)]'
+  const explicacion = explicarPregunta(question)
+  const terminos = terminosDeLaPregunta(question.text)
+  const multa = totalWorkers !== null ? estimarMultaPregunta(question, totalWorkers) : null
+  const infraccion = infraccionEnPalabras(question.infraccionGravedad)
 
   return (
     <section className="space-y-8 motion-fade-in-up">
@@ -572,9 +619,12 @@ function QuestionStep({
               {areaLabel(question.area)}
             </span>
             <span
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${gravityTone}`}
+              className={cn(
+                'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+                gravityToneClass(question.infraccionGravedad)
+              )}
             >
-              {GRAVITY_LABEL[question.infraccionGravedad]}
+              {infraccion}
             </span>
             <span className="text-[11px] text-[color:var(--text-tertiary)]">
               {question.baseLegal}
@@ -583,51 +633,91 @@ function QuestionStep({
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight leading-snug">
             {formatQuestionText(question.text)}
           </h2>
-          {question.helpText ? (
-            <p className="mt-3 text-sm text-[color:var(--text-tertiary)] leading-relaxed">
-              {question.helpText}
+
+          {multa !== null ? (
+            <p className="mt-3 inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-[color:var(--text-secondary)]">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden="true" />
+              <span>
+                Multa estimada si no cumples:{' '}
+                <strong className="text-[color:var(--text-primary)]">{formatSoles(multa)}</strong>
+              </span>
+              <span aria-hidden="true">·</span>
+              <span className="font-semibold">{infraccion}</span>
             </p>
+          ) : null}
+
+          <details
+            open={explainOpen}
+            onToggle={(e) => onExplainToggle(e.currentTarget.open)}
+            className="group mt-4 rounded-xl border border-emerald-100 bg-emerald-50/40"
+          >
+            <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 [&::-webkit-details-marker]:hidden">
+              <Lightbulb className="h-4 w-4 shrink-0" aria-hidden="true" />
+              ¿Por qué te lo preguntamos?
+              <ChevronDown
+                className="ml-auto h-4 w-4 shrink-0 transition-transform group-open:rotate-180"
+                aria-hidden="true"
+              />
+            </summary>
+            <div className="space-y-2 px-4 pb-4 text-sm leading-relaxed text-[color:var(--text-secondary)]">
+              <p>{explicacion.texto}</p>
+              {explicacion.origen === 'pregunta' && explicacion.normaEnSimple ? (
+                <p className="text-xs text-[color:var(--text-tertiary)]">
+                  <span className="font-semibold">Norma:</span> {explicacion.normaEnSimple}.
+                </p>
+              ) : null}
+              <p className="text-xs text-[color:var(--text-tertiary)]">
+                Es información referencial: ante un caso concreto, consulta con tu asesor laboral.
+              </p>
+            </div>
+          </details>
+
+          {terminos.length > 0 ? (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 text-xs text-[color:var(--text-tertiary)]">
+                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                Qué significa:
+              </span>
+              {terminos.map((t) => (
+                <Term
+                  key={t.id}
+                  id={t.id}
+                  className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-white px-2.5 py-0.5 text-xs font-medium no-underline transition-colors hover:border-emerald-300 hover:text-emerald-700"
+                >
+                  {t.etiqueta}
+                  <HelpCircle className="h-3 w-3 text-[color:var(--text-tertiary)]" aria-hidden="true" />
+                </Term>
+              ))}
+            </div>
           ) : null}
         </div>
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-2" role="group" aria-label="Tu respuesta">
-          {ANSWER_OPTIONS.map((opt) => {
-            const isSelected = selected === opt.value
-            return (
-              <button
+        <div className="mt-8 space-y-2" role="group" aria-label="Tu respuesta">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {PRIMARY_OPTIONS.map((opt) => (
+              <AnswerButton
                 key={opt.value}
-                type="button"
-                onClick={() => onAnswer(opt.value)}
-                aria-pressed={isSelected}
-                aria-keyshortcuts={opt.key}
-                className={cn(
-                  'rounded-xl border bg-white px-4 py-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60',
-                  isSelected
-                    ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/40'
-                    : 'border-[color:var(--border-default)] hover:border-emerald-300 hover:bg-emerald-50/50'
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'inline-flex h-6 w-6 items-center justify-center rounded-md font-mono text-xs font-bold',
-                      opt.tone === 'good'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : opt.tone === 'warn'
-                          ? 'bg-amber-50 text-amber-700'
-                          : 'bg-crimson-50 text-crimson-700'
-                    )}
-                  >
-                    {opt.key}
-                  </span>
-                  <span className="text-sm font-semibold">{opt.label}</span>
-                  {isSelected ? (
-                    <CheckCircle2 className="ml-auto h-4 w-4 text-emerald-600" aria-hidden="true" />
-                  ) : null}
-                </div>
-              </button>
-            )
-          })}
+                option={opt}
+                selected={selected === opt.value}
+                onSelect={() => onAnswer(opt.value)}
+              />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {SECONDARY_OPTIONS.map((opt) => (
+              <AnswerButton
+                key={opt.value}
+                option={opt}
+                selected={selected === opt.value}
+                onSelect={() => onAnswer(opt.value)}
+              />
+            ))}
+          </div>
+          <p className="pt-1 text-xs leading-relaxed text-[color:var(--text-tertiary)]">
+            «No sé» cuenta como brecha hasta que lo confirmes, para no darte una falsa tranquilidad.
+            Usa «No aplica» solo si tu empresa no tiene esta situación (por ejemplo, no tienes
+            trabajadoras gestantes).
+          </p>
         </div>
       </Card>
 
@@ -649,7 +739,7 @@ function QuestionStep({
               Última pregunta: luego verás un resumen antes de enviar
             </span>
           ) : (
-            <span className="hidden sm:inline">Presiona A, B o C para responder rápido</span>
+            <span className="hidden sm:inline">Presiona A, B, C, D o E para responder rápido</span>
           )}
         </p>
         {canJumpToReview ? (
@@ -669,7 +759,62 @@ function QuestionStep({
   )
 }
 
+function AnswerButton({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: AnswerOptionDef
+  selected: boolean
+  onSelect: () => void
+}) {
+  const secondary = option.hint !== undefined
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      aria-keyshortcuts={option.key}
+      className={cn(
+        'rounded-xl border bg-white px-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60',
+        secondary ? 'py-2.5' : 'py-4',
+        selected
+          ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/40'
+          : 'border-[color:var(--border-default)] hover:border-emerald-300 hover:bg-emerald-50/50'
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-xs font-bold',
+            KEY_TONE[option.tone]
+          )}
+        >
+          {option.key}
+        </span>
+        <span className="text-sm font-semibold">{ANSWER_LABEL[option.value]}</span>
+        {selected ? (
+          <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+        ) : null}
+      </div>
+      {option.hint ? (
+        <p className="mt-1 pl-8 text-xs leading-snug text-[color:var(--text-tertiary)]">
+          {option.hint}
+        </p>
+      ) : null}
+    </button>
+  )
+}
+
 /* ── Resumen antes de enviar ───────────────────────────────────────── */
+
+function countAnswers(qs: ComplianceQuestion[], answers: AnswerMap, value: AnswerOption): number {
+  return qs.filter((q) => answers[q.id] === value).length
+}
+
+function plural(n: number, singular: string, pluralForm: string): string {
+  return `${n} ${n === 1 ? singular : pluralForm}`
+}
 
 function ReviewPanel({
   mode,
@@ -695,10 +840,18 @@ function ReviewPanel({
   const [showList, setShowList] = useState(false)
 
   const manualAnswered = questions.filter((q) => answers[q.id] != null)
-  const noCount = manualAnswered.filter((q) => answers[q.id] === 'NO').length
-  const partialCount = manualAnswered.filter((q) => answers[q.id] === 'PARCIAL').length
+  const noCount = countAnswers(manualAnswered, answers, 'NO')
+  const partialCount = countAnswers(manualAnswered, answers, 'PARCIAL')
+  const noSeCount = countAnswers(manualAnswered, answers, 'NO_SE')
+  const noAplicaCount = countAnswers(manualAnswered, answers, 'NO_APLICA')
   const manualIds = new Set(questions.map((q) => q.id))
   const autoQuestions = allQuestions.filter((q) => !manualIds.has(q.id) && answers[q.id] != null)
+
+  const summaryChips: { value: AnswerOption; count: number }[] = (
+    ['SI', 'PARCIAL', 'NO', 'NO_SE', 'NO_APLICA'] as const
+  )
+    .map((value) => ({ value, count: countAnswers(manualAnswered, answers, value) }))
+    .filter((c) => c.count > 0)
 
   return (
     <section className="mx-auto max-w-3xl space-y-6 motion-fade-in-up">
@@ -712,19 +865,50 @@ function ReviewPanel({
           </p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
             {manualAnswered.length > 0
-              ? `Respondiste ${manualAnswered.length} ${manualAnswered.length === 1 ? 'pregunta' : 'preguntas'} · ${noCount} ${noCount === 1 ? 'marcada' : 'marcadas'} como No`
+              ? `Respondiste ${plural(manualAnswered.length, 'pregunta', 'preguntas')} · ${noCount} ${noCount === 1 ? 'marcada' : 'marcadas'} como No`
               : 'Todas las preguntas se respondieron con tus datos'}
           </h2>
-          <p className="max-w-xl text-sm text-[color:var(--text-secondary)] leading-relaxed">
-            {partialCount > 0
-              ? `También marcaste ${partialCount} como Parcial. `
-              : ''}
-            {autoQuestions.length > 0
-              ? `Otras ${autoQuestions.length} se respondieron con los datos que ya tienes en la plataforma. `
-              : ''}
-            Las respuestas No y Parcial se convierten en brechas, y las más urgentes pasan a tu
-            plan de acción como tareas.
-          </p>
+
+          {summaryChips.length > 0 ? (
+            <ul className="flex flex-wrap justify-center gap-1.5" aria-label="Tus respuestas">
+              {summaryChips.map((c) => (
+                <li key={c.value} className="inline-flex items-center gap-1.5">
+                  <AnswerChip value={c.value} />
+                  <span className="text-xs font-semibold text-[color:var(--text-secondary)]">
+                    {c.count}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="max-w-xl space-y-2 text-sm text-[color:var(--text-secondary)] leading-relaxed">
+            <p>
+              {partialCount > 0 ? `También marcaste ${partialCount} como Parcial. ` : ''}
+              {autoQuestions.length > 0
+                ? `Otras ${autoQuestions.length} se respondieron con los datos que ya tienes en la plataforma. `
+                : ''}
+              Las respuestas No y Parcial se convierten en brechas, y las más urgentes pasan a tu
+              plan de acción como tareas.
+            </p>
+            {noSeCount > 0 ? (
+              <p className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-left text-sky-900">
+                <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" aria-hidden="true" />
+                <span>
+                  Marcaste {plural(noSeCount, 'pregunta', 'preguntas')} como «No sé». Las verás aparte como
+                  «Por verificar», con lo que debes revisar para salir de la duda. Mientras no lo
+                  confirmes, cuentan como brecha.
+                </span>
+              </p>
+            ) : null}
+            {noAplicaCount > 0 ? (
+              <p className="text-xs text-[color:var(--text-tertiary)]">
+                {plural(noAplicaCount, 'pregunta marcada', 'preguntas marcadas')} como «No aplica» no
+                {noAplicaCount === 1 ? ' cuenta' : ' cuentan'} en tu puntaje. Revísalas con «Revisar» si
+                no estás seguro de que tu empresa no tenga esa situación.
+              </p>
+            ) : null}
+          </div>
 
           {error ? (
             <div
@@ -826,6 +1010,14 @@ function ReviewPanel({
   )
 }
 
+const CHIP_TONE: Record<AnswerOption, string> = {
+  SI: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  PARCIAL: 'border-amber-200 bg-amber-50 text-amber-700',
+  NO: 'border-crimson-200 bg-crimson-50 text-crimson-700',
+  NO_SE: 'border-sky-200 bg-sky-50 text-sky-700',
+  NO_APLICA: 'border-[color:var(--border-default)] bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)]',
+}
+
 function AnswerChip({ value }: { value: AnswerValue }) {
   if (!value) {
     return (
@@ -838,11 +1030,7 @@ function AnswerChip({ value }: { value: AnswerValue }) {
     <span
       className={cn(
         'shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-        value === 'SI'
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-          : value === 'PARCIAL'
-            ? 'border-amber-200 bg-amber-50 text-amber-700'
-            : 'border-crimson-200 bg-crimson-50 text-crimson-700'
+        CHIP_TONE[value]
       )}
     >
       {ANSWER_LABEL[value]}

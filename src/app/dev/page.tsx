@@ -3,6 +3,7 @@ import Link from 'next/link'
 import {
   ArrowRight,
   FlaskConical,
+  ClipboardCheck,
   LayoutDashboard,
   Palette,
   PanelsTopLeft,
@@ -54,6 +55,12 @@ const SHELL_PREVIEWS: readonly PreviewLink[] = [
     title: 'Perfil del trabajador',
     description: 'Cabecera y pestañas del perfil con un trabajador ficticio y su legajo de ejemplo.',
     icon: UserRound,
+  },
+  {
+    href: '/dev/diagnostico-resultado',
+    title: 'Resultado del diagnóstico',
+    description: 'Brechas, preguntas «Por verificar» (No sé) y un área que no aplica, con el motor real.',
+    icon: ClipboardCheck,
   },
 ]
 

@@ -21,6 +21,12 @@
  * no queda con datos falsos.
  */
 
+import {
+  buildPreviewDiagnostic,
+  buildPreviewDiagnosticHistory,
+  buildPreviewQuestions,
+} from './diagnostic-mock-data'
+
 export type PreviewPlan = 'FREE' | 'STARTER' | 'EMPRESA' | 'PRO'
 
 export interface PreviewScenario {
@@ -270,6 +276,24 @@ const ROUTES: MockRoute[] = [
         ],
       },
     }),
+  },
+  {
+    method: 'GET',
+    path: '/api/diagnostics',
+    respond: (url) =>
+      url.searchParams.get('action') === 'questions'
+        ? { body: buildPreviewQuestions(url.searchParams.get('type')) }
+        : { body: { diagnostics: buildPreviewDiagnosticHistory() } },
+  },
+  {
+    method: 'GET',
+    path: /^\/api\/diagnostics\/[^/]+$/,
+    respond: () => ({ body: buildPreviewDiagnostic() }),
+  },
+  {
+    method: 'POST',
+    path: '/api/diagnostico/auto-prefill',
+    respond: () => ({ body: { answers: [] } }),
   },
   {
     method: 'GET',
