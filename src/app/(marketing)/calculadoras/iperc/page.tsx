@@ -139,7 +139,7 @@ function IndiceSelector({
   return (
     <div>
       <div className="flex items-baseline justify-between mb-2">
-        <label htmlFor={id} className="text-sm font-semibold text-slate-800">
+        <label id={id} className="text-sm font-semibold text-slate-800">
           <span className="inline-block w-7 h-7 mr-2 rounded-md bg-slate-900 text-white text-xs font-bold leading-7 text-center">
             {letter}
           </span>

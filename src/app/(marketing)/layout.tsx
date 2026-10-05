@@ -11,5 +11,9 @@ export default function MarketingLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  // Las páginas de marketing son claras: forzamos color-scheme light en su
+  // subárbol para que los controles nativos (date/number/select) no hereden el
+  // "dark only" global del RootLayout y queden ilegibles. `display: contents`
+  // evita crear una caja que altere el layout.
+  return <div style={{ colorScheme: 'light', display: 'contents' }}>{children}</div>
 }

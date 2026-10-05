@@ -508,7 +508,10 @@ function Hero({
               <Sparkles aria-hidden size={15} />
               Command center laboral para empresas peruanas
             </div>
-            <h1>Convierte el caos laboral en evidencia lista para SUNAFIL.</h1>
+            <h1>
+              Convierte el caos laboral en{' '}
+              <span className="lp-hl">evidencia lista para SUNAFIL</span>.
+            </h1>
             <p>
               Comply360 une RRHH, SST, legal, jefes de sede y trabajadores en una operación
               trazable: riesgos priorizados, documentos vivos, alertas accionables y portal
@@ -1348,14 +1351,14 @@ function BrandMark() {
       <svg viewBox="0 0 64 64">
         <defs>
           <linearGradient id="lpBrandTile" x1="8" y1="4" x2="56" y2="60">
-            <stop offset="0%" stopColor="#22d3ee" />
-            <stop offset="42%" stopColor="#14b8a6" />
+            <stop offset="0%" stopColor="#1e3a6e" />
+            <stop offset="42%" stopColor="#1f5eff" />
             <stop offset="100%" stopColor="#1d4ed8" />
           </linearGradient>
           <linearGradient id="lpBrandShield" x1="18" y1="11" x2="48" y2="54">
-            <stop offset="0%" stopColor="#ecfeff" stopOpacity="0.96" />
-            <stop offset="45%" stopColor="#a7f3d0" stopOpacity="0.88" />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.82" />
+            <stop offset="0%" stopColor="#eff6ff" stopOpacity="0.96" />
+            <stop offset="45%" stopColor="#bfdbfe" stopOpacity="0.88" />
+            <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.82" />
           </linearGradient>
           <clipPath id="lpBrandClip">
             <path d="M32 10.5 48.5 16.5v12.2c0 11-6.9 19.2-16.5 24.6-9.6-5.4-16.5-13.6-16.5-24.6V16.5Z" />
@@ -1365,7 +1368,7 @@ function BrandMark() {
         <g clipPath="url(#lpBrandClip)">
           <path d="M32 10.5 48.5 16.5v12.2c0 11-6.9 19.2-16.5 24.6-9.6-5.4-16.5-13.6-16.5-24.6V16.5Z" fill="url(#lpBrandShield)" />
         </g>
-        <path d="M32 10.5 48.5 16.5v12.2c0 11-6.9 19.2-16.5 24.6-9.6-5.4-16.5-13.6-16.5-24.6V16.5Z" fill="none" stroke="#ecfeff" strokeOpacity="0.5" strokeWidth="0.9" />
+        <path d="M32 10.5 48.5 16.5v12.2c0 11-6.9 19.2-16.5 24.6-9.6-5.4-16.5-13.6-16.5-24.6V16.5Z" fill="none" stroke="#eff6ff" strokeOpacity="0.5" strokeWidth="0.9" />
         <path d="M23.5 32.2 29.6 38.1 41.2 25.3" fill="none" stroke="#06111f" strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
@@ -1377,9 +1380,11 @@ function LandingStyles() {
     <style jsx global>{`
       .c360-landing {
         min-height: 100vh;
-        overflow: hidden;
+        overflow-x: clip;
         background:
-          linear-gradient(180deg, #050914 0%, #08101c 42%, #060a12 100%);
+          radial-gradient(circle at 15% -5%, rgba(31, 94, 255, 0.1), transparent 36%),
+          radial-gradient(circle at 88% 6%, rgba(214, 168, 79, 0.06), transparent 32%),
+          linear-gradient(180deg, #081225 0%, #0a1628 45%, #070e1c 100%);
         color: #f8fafc;
         font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
       }
@@ -1423,7 +1428,7 @@ function LandingStyles() {
       }
 
       .lp-brand span span {
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-brand-mark {
@@ -1493,13 +1498,13 @@ function LandingStyles() {
       }
 
       .lp-button-primary {
-        border-color: rgba(45, 212, 191, 0.56);
-        background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
-        box-shadow: 0 18px 46px rgba(20, 184, 166, 0.18);
+        border-color: rgba(59, 130, 246, 0.56);
+        background: linear-gradient(135deg, #1f5eff 0%, #2563eb 100%);
+        box-shadow: 0 18px 46px rgba(31, 94, 255, 0.18);
       }
 
       .lp-button-primary:hover {
-        box-shadow: 0 24px 58px rgba(20, 184, 166, 0.26);
+        box-shadow: 0 24px 58px rgba(31, 94, 255, 0.26);
       }
 
       .lp-button-ghost {
@@ -1507,7 +1512,7 @@ function LandingStyles() {
       }
 
       .lp-button-ghost:hover {
-        border-color: rgba(94, 234, 212, 0.48);
+        border-color: rgba(96, 165, 250, 0.48);
         background: rgba(30, 41, 59, 0.9);
       }
 
@@ -1535,7 +1540,7 @@ function LandingStyles() {
 
       .lp-hero {
         position: relative;
-        padding: 54px 0 28px;
+        padding: 72px 0 44px;
         background:
           repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.045) 0, rgba(148, 163, 184, 0.045) 1px, transparent 1px, transparent 72px),
           repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.035) 0, rgba(148, 163, 184, 0.035) 1px, transparent 1px, transparent 72px),
@@ -1547,8 +1552,8 @@ function LandingStyles() {
         inset: 0;
         pointer-events: none;
         background:
-          linear-gradient(120deg, transparent 0%, rgba(34, 211, 238, 0.09) 36%, transparent 38%),
-          linear-gradient(60deg, transparent 0%, rgba(250, 204, 21, 0.08) 54%, transparent 56%);
+          linear-gradient(120deg, transparent 0%, rgba(59, 130, 246, 0.09) 36%, transparent 38%),
+          linear-gradient(60deg, transparent 0%, rgba(214, 168, 79, 0.08) 54%, transparent 56%);
       }
 
       .lp-hero-content {
@@ -1572,23 +1577,31 @@ function LandingStyles() {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        border: 1px solid rgba(94, 234, 212, 0.28);
+        border: 1px solid rgba(96, 165, 250, 0.28);
         border-radius: 999px;
-        background: rgba(20, 184, 166, 0.1);
-        color: #99f6e4;
+        background: rgba(31, 94, 255, 0.1);
+        color: #bfdbfe;
         padding: 8px 12px;
         font-size: 0.78rem;
         font-weight: 780;
       }
 
       .lp-hero h1 {
-        margin: 24px 0 0;
+        margin: 22px 0 0;
         color: #f8fafc;
         font-family: var(--font-serif), ui-serif, Georgia, serif;
-        font-size: 3.25rem;
-        font-weight: 520;
-        line-height: 0.98;
-        letter-spacing: 0;
+        font-size: clamp(2.5rem, 4.6vw, 4rem);
+        font-weight: 500;
+        line-height: 1.02;
+        letter-spacing: -0.015em;
+        text-wrap: balance;
+      }
+
+      .lp-hl {
+        background: linear-gradient(118deg, #1e3a6e 0%, #1f5eff 96%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
       }
 
       .lp-hero-copy > p {
@@ -1624,7 +1637,7 @@ function LandingStyles() {
       }
 
       .lp-signal-row svg {
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-hero-metrics {
@@ -1638,10 +1651,15 @@ function LandingStyles() {
       .lp-hero-metrics div {
         min-height: 92px;
         border: 1px solid rgba(148, 163, 184, 0.16);
-        border-radius: 8px;
-        padding: 14px;
+        border-radius: 12px;
+        padding: 16px;
         background: rgba(15, 23, 42, 0.58);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      }
+
+      .lp-hero-metrics div:hover {
+        transform: translateY(-3px);
       }
 
       .lp-hero-metrics strong,
@@ -1691,10 +1709,10 @@ function LandingStyles() {
         width: 100%;
         margin: 0;
         padding: 22px;
-        border: 1px solid rgba(94, 234, 212, 0.24);
+        border: 1px solid rgba(96, 165, 250, 0.24);
         border-radius: 8px;
         background:
-          linear-gradient(180deg, rgba(20, 184, 166, 0.14), rgba(15, 23, 42, 0.92)),
+          linear-gradient(180deg, rgba(31, 94, 255, 0.14), rgba(15, 23, 42, 0.92)),
           rgba(15, 23, 42, 0.86);
         box-shadow:
           0 26px 70px rgba(0, 0, 0, 0.32),
@@ -1706,7 +1724,7 @@ function LandingStyles() {
         position: absolute;
         inset: 0 0 auto;
         height: 3px;
-        background: linear-gradient(90deg, #14b8a6, #38bdf8, #facc15);
+        background: linear-gradient(90deg, #1f5eff, #38bdf8, #d6a84f);
       }
 
       .lp-lead-panel > * {
@@ -1717,14 +1735,14 @@ function LandingStyles() {
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        color: #99f6e4;
+        color: #bfdbfe;
         font-size: 0.78rem;
         font-weight: 820;
         text-transform: uppercase;
       }
 
       .lp-lead-kicker svg {
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-lead-panel h2 {
@@ -1790,9 +1808,9 @@ function LandingStyles() {
 
       .lp-field input:focus,
       .lp-field select:focus {
-        border-color: rgba(94, 234, 212, 0.6);
+        border-color: rgba(96, 165, 250, 0.6);
         background: rgba(2, 6, 23, 0.68);
-        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+        box-shadow: 0 0 0 3px rgba(31, 94, 255, 0.14);
       }
 
       .lp-field option {
@@ -1818,7 +1836,7 @@ function LandingStyles() {
       .lp-lead-trust svg {
         flex: none;
         margin-top: 2px;
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-command {
@@ -1876,7 +1894,7 @@ function LandingStyles() {
       }
 
       .lp-window-dots span:nth-child(2) {
-        background: #fbbf24;
+        background: #e7c16e;
       }
 
       .lp-window-dots span:nth-child(3) {
@@ -1893,7 +1911,7 @@ function LandingStyles() {
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        color: #99f6e4;
+        color: #bfdbfe;
         font-size: 0.78rem;
         font-weight: 720;
       }
@@ -1902,8 +1920,8 @@ function LandingStyles() {
         width: 7px;
         height: 7px;
         border-radius: 999px;
-        background: #14b8a6;
-        box-shadow: 0 0 0 5px rgba(20, 184, 166, 0.14);
+        background: #1f5eff;
+        box-shadow: 0 0 0 5px rgba(31, 94, 255, 0.14);
       }
 
       .lp-command-grid {
@@ -1938,7 +1956,7 @@ function LandingStyles() {
       .lp-price-head > span,
       .lp-step small,
       .lp-module-top span {
-        color: #5eead4;
+        color: #60a5fa;
         font-size: 0.74rem;
         font-weight: 820;
         text-transform: uppercase;
@@ -1970,9 +1988,9 @@ function LandingStyles() {
       }
 
       .lp-score-ring circle:nth-child(2) {
-        stroke: #14b8a6;
+        stroke: #1f5eff;
         stroke-dasharray: 88 100;
-        filter: drop-shadow(0 0 8px rgba(20, 184, 166, 0.5));
+        filter: drop-shadow(0 0 8px rgba(31, 94, 255, 0.5));
       }
 
       .lp-score-ring div {
@@ -2037,7 +2055,7 @@ function LandingStyles() {
       }
 
       .lp-score-meta strong {
-        color: #99f6e4;
+        color: #bfdbfe;
         font-family: var(--font-mono), ui-monospace, monospace;
         font-size: 0.9rem;
       }
@@ -2063,7 +2081,7 @@ function LandingStyles() {
       }
 
       .lp-panel-header svg {
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-action-list {
@@ -2093,7 +2111,7 @@ function LandingStyles() {
       }
 
       .lp-action-warning > span {
-        background: #fbbf24;
+        background: #e7c16e;
       }
 
       .lp-action-ok > span {
@@ -2159,12 +2177,12 @@ function LandingStyles() {
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, #14b8a6, #38bdf8);
+        background: linear-gradient(90deg, #1f5eff, #38bdf8);
       }
 
       .lp-inspection-panel {
         background:
-          linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.78));
+          linear-gradient(180deg, rgba(214, 168, 79, 0.12), rgba(15, 23, 42, 0.78));
       }
 
       .lp-inspection-panel h3 {
@@ -2207,8 +2225,8 @@ function LandingStyles() {
         place-items: center;
         flex: none;
         border-radius: 8px;
-        background: rgba(94, 234, 212, 0.12);
-        color: #5eead4;
+        background: rgba(96, 165, 250, 0.12);
+        color: #60a5fa;
       }
 
       .lp-ai-status {
@@ -2217,7 +2235,7 @@ function LandingStyles() {
         gap: 7px;
         margin-left: auto;
         white-space: nowrap;
-        color: #99f6e4;
+        color: #bfdbfe;
         font-size: 0.75rem;
         font-weight: 760;
       }
@@ -2261,7 +2279,7 @@ function LandingStyles() {
         }
         45% {
           transform: translateX(6px);
-          border-color: rgba(94, 234, 212, 0.5);
+          border-color: rgba(96, 165, 250, 0.5);
         }
       }
 
@@ -2318,13 +2336,13 @@ function LandingStyles() {
 
       @keyframes lp-tour-chapter {
         0%, 22% {
-          border-color: rgba(94, 234, 212, 0.48);
+          border-color: rgba(96, 165, 250, 0.48);
           background:
-            linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(37, 99, 235, 0.14)),
+            linear-gradient(135deg, rgba(31, 94, 255, 0.2), rgba(37, 99, 235, 0.14)),
             rgba(15, 23, 42, 0.92);
           box-shadow:
-            0 16px 42px rgba(20, 184, 166, 0.14),
-            inset 3px 0 0 #5eead4;
+            0 16px 42px rgba(31, 94, 255, 0.14),
+            inset 3px 0 0 #60a5fa;
           opacity: 1;
           transform: translateX(0);
         }
@@ -2417,7 +2435,7 @@ function LandingStyles() {
         display: inline-flex;
         align-items: center;
         gap: 9px;
-        color: #99f6e4;
+        color: #bfdbfe;
         font-weight: 850;
       }
 
@@ -2437,7 +2455,7 @@ function LandingStyles() {
         overflow: hidden;
         padding: 18px;
         background:
-          radial-gradient(circle at 62% 22%, rgba(20, 184, 166, 0.18), transparent 34%),
+          radial-gradient(circle at 62% 22%, rgba(31, 94, 255, 0.18), transparent 34%),
           repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.05) 0, rgba(148, 163, 184, 0.05) 1px, transparent 1px, transparent 44px),
           repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.04) 0, rgba(148, 163, 184, 0.04) 1px, transparent 1px, transparent 44px);
       }
@@ -2474,8 +2492,8 @@ function LandingStyles() {
       }
 
       .lp-demo-sidebar .is-active {
-        color: #99f6e4;
-        background: rgba(20, 184, 166, 0.14);
+        color: #bfdbfe;
+        background: rgba(31, 94, 255, 0.14);
       }
 
       .lp-demo-main {
@@ -2494,7 +2512,7 @@ function LandingStyles() {
 
       .lp-demo-main-head span {
         display: block;
-        color: #5eead4;
+        color: #60a5fa;
         font-size: 0.76rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -2589,7 +2607,7 @@ function LandingStyles() {
       }
 
       .lp-demo-warning i {
-        background: #fbbf24;
+        background: #e7c16e;
       }
 
       .lp-demo-feed-row strong,
@@ -2609,14 +2627,14 @@ function LandingStyles() {
       }
 
       .lp-demo-feed-row svg {
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-demo-phone {
         align-self: stretch;
         padding: 16px;
         background:
-          linear-gradient(180deg, rgba(20, 184, 166, 0.16), rgba(15, 23, 42, 0.78));
+          linear-gradient(180deg, rgba(31, 94, 255, 0.16), rgba(15, 23, 42, 0.78));
       }
 
       .lp-demo-phone-bar {
@@ -2628,7 +2646,7 @@ function LandingStyles() {
       }
 
       .lp-demo-phone > span {
-        color: #5eead4;
+        color: #60a5fa;
         font-size: 0.74rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -2656,7 +2674,7 @@ function LandingStyles() {
         border-radius: 8px;
         padding: 12px;
         color: #082f49;
-        background: #ccfbf1;
+        background: #dbeafe;
         font-size: 0.84rem;
         font-weight: 900;
       }
@@ -2669,9 +2687,9 @@ function LandingStyles() {
         height: 18px;
         border: 3px solid #ffffff;
         border-radius: 999px;
-        background: #14b8a6;
+        background: #1f5eff;
         box-shadow:
-          0 0 0 8px rgba(20, 184, 166, 0.18),
+          0 0 0 8px rgba(31, 94, 255, 0.18),
           0 16px 36px rgba(2, 6, 23, 0.42);
         animation: lp-demo-cursor 7.2s ease-in-out infinite;
       }
@@ -2692,7 +2710,7 @@ function LandingStyles() {
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, #14b8a6, #2563eb, #f59e0b);
+        background: linear-gradient(90deg, #1f5eff, #2563eb, #d6a84f);
         animation: lp-demo-progress 7.2s linear infinite;
       }
 
@@ -2709,7 +2727,7 @@ function LandingStyles() {
       }
 
       .lp-demo-steps article > span {
-        color: #99f6e4;
+        color: #bfdbfe;
         font-family: var(--font-mono), ui-monospace, monospace;
         font-size: 0.72rem;
         font-weight: 900;
@@ -2718,7 +2736,7 @@ function LandingStyles() {
       .lp-demo-steps strong {
         display: block;
         margin-top: 8px;
-        color: #5eead4;
+        color: #60a5fa;
         font-size: 0.74rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -2744,7 +2762,7 @@ function LandingStyles() {
         gap: 14px;
         padding: 18px;
         background:
-          radial-gradient(circle at 62% 22%, rgba(20, 184, 166, 0.18), transparent 34%),
+          radial-gradient(circle at 62% 22%, rgba(31, 94, 255, 0.18), transparent 34%),
           repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.05) 0, rgba(148, 163, 184, 0.05) 1px, transparent 1px, transparent 44px),
           repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.04) 0, rgba(148, 163, 184, 0.04) 1px, transparent 1px, transparent 44px);
       }
@@ -2797,7 +2815,7 @@ function LandingStyles() {
       .lp-real-demo-caption span,
       .lp-real-demo-thumb span {
         display: block;
-        color: #5eead4;
+        color: #60a5fa;
         font-size: 0.72rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -2849,12 +2867,12 @@ function LandingStyles() {
         flex-direction: column;
         justify-content: center;
         gap: 10px;
-        border: 1px solid rgba(94, 234, 212, 0.24);
+        border: 1px solid rgba(96, 165, 250, 0.24);
         border-radius: 8px;
         padding: 14px;
         color: #dbeafe;
         background:
-          linear-gradient(180deg, rgba(20, 184, 166, 0.12), rgba(37, 99, 235, 0.08)),
+          linear-gradient(180deg, rgba(31, 94, 255, 0.12), rgba(37, 99, 235, 0.08)),
           rgba(15, 23, 42, 0.74);
         font-size: 0.88rem;
         font-weight: 800;
@@ -2862,7 +2880,7 @@ function LandingStyles() {
       }
 
       .lp-real-demo-proof svg {
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-tour-player {
@@ -2908,7 +2926,7 @@ function LandingStyles() {
         grid-template-columns: minmax(0, 1fr) 330px;
         gap: 0;
         background:
-          radial-gradient(circle at 28% 16%, rgba(20, 184, 166, 0.18), transparent 34%),
+          radial-gradient(circle at 28% 16%, rgba(31, 94, 255, 0.18), transparent 34%),
           linear-gradient(135deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.96));
       }
 
@@ -2943,7 +2961,7 @@ function LandingStyles() {
       }
 
       .lp-tour-browser-bar span:nth-child(2) {
-        background: #fbbf24;
+        background: #e7c16e;
       }
 
       .lp-tour-browser-bar span:nth-child(3) {
@@ -3026,13 +3044,13 @@ function LandingStyles() {
         top: var(--hotspot-top);
         width: var(--hotspot-width);
         height: var(--hotspot-height);
-        border: 2px solid rgba(94, 234, 212, 0.92);
+        border: 2px solid rgba(96, 165, 250, 0.92);
         border-radius: 8px;
-        background: rgba(20, 184, 166, 0.08);
+        background: rgba(31, 94, 255, 0.08);
         box-shadow:
           0 0 0 999px rgba(2, 6, 23, 0.18),
-          0 0 0 8px rgba(20, 184, 166, 0.12),
-          0 22px 60px rgba(20, 184, 166, 0.24);
+          0 0 0 8px rgba(31, 94, 255, 0.12),
+          0 22px 60px rgba(31, 94, 255, 0.24);
         opacity: 0;
         pointer-events: none;
         animation: lp-tour-hotspot 28s ease-in-out infinite;
@@ -3045,7 +3063,7 @@ function LandingStyles() {
         top: var(--callout-top);
         z-index: 2;
         width: min(390px, calc(100% - 32px));
-        border: 1px solid rgba(94, 234, 212, 0.32);
+        border: 1px solid rgba(96, 165, 250, 0.32);
         border-radius: 8px;
         padding: 16px;
         color: #e5eef9;
@@ -3063,7 +3081,7 @@ function LandingStyles() {
 
       .lp-tour-callout span {
         display: block;
-        color: #5eead4;
+        color: #60a5fa;
         font-family: var(--font-mono), ui-monospace, monospace;
         font-size: 0.72rem;
         font-weight: 900;
@@ -3090,7 +3108,7 @@ function LandingStyles() {
         border-radius: 999px;
         padding: 7px 10px;
         color: #082f49;
-        background: #ccfbf1;
+        background: #dbeafe;
         font-size: 0.74rem;
         font-weight: 900;
       }
@@ -3123,7 +3141,7 @@ function LandingStyles() {
         top: -3px;
         width: 24px;
         height: 24px;
-        border: 2px solid rgba(94, 234, 212, 0.8);
+        border: 2px solid rgba(96, 165, 250, 0.8);
         border-radius: 999px;
         opacity: 0;
         animation: lp-tour-click 7s ease-out infinite;
@@ -3153,7 +3171,7 @@ function LandingStyles() {
       }
 
       .lp-tour-director-head span {
-        color: #5eead4;
+        color: #60a5fa;
         font-size: 0.72rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -3197,7 +3215,7 @@ function LandingStyles() {
       }
 
       .lp-tour-chapter span {
-        color: #99f6e4;
+        color: #bfdbfe;
         font-family: var(--font-mono), ui-monospace, monospace;
         font-size: 0.72rem;
         font-weight: 900;
@@ -3224,7 +3242,7 @@ function LandingStyles() {
         border-radius: 999px;
         padding: 6px 9px;
         color: #082f49;
-        background: #ccfbf1;
+        background: #dbeafe;
         font-size: 0.7rem;
         font-weight: 900;
       }
@@ -3252,7 +3270,7 @@ function LandingStyles() {
       }
 
       .lp-tour-takeaways span {
-        color: #99f6e4;
+        color: #bfdbfe;
         font-size: 0.72rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -3359,7 +3377,7 @@ function LandingStyles() {
         position: absolute;
         inset: 0 0 auto;
         height: 3px;
-        background: linear-gradient(90deg, #14b8a6, #2563eb, #f59e0b);
+        background: linear-gradient(90deg, #1f5eff, #2563eb, #d6a84f);
       }
 
       .lp-control-card-top {
@@ -3370,7 +3388,7 @@ function LandingStyles() {
       }
 
       .lp-control-card-top span {
-        color: #5eead4;
+        color: #60a5fa;
         font-size: 0.72rem;
         font-weight: 860;
         text-transform: uppercase;
@@ -3455,7 +3473,7 @@ function LandingStyles() {
       .lp-system-node:hover,
       .lp-price-card:hover {
         transform: translateY(-2px);
-        border-color: rgba(94, 234, 212, 0.42);
+        border-color: rgba(96, 165, 250, 0.42);
       }
 
       .lp-info-card-danger {
@@ -3468,10 +3486,10 @@ function LandingStyles() {
         width: 42px;
         height: 42px;
         place-items: center;
-        border: 1px solid rgba(94, 234, 212, 0.22);
+        border: 1px solid rgba(96, 165, 250, 0.22);
         border-radius: 8px;
-        background: rgba(94, 234, 212, 0.08);
-        color: #5eead4;
+        background: rgba(96, 165, 250, 0.08);
+        color: #60a5fa;
       }
 
       .lp-info-card h3,
@@ -3524,7 +3542,7 @@ function LandingStyles() {
       }
 
       .lp-narrative-lines div {
-        border-top: 1px solid rgba(94, 234, 212, 0.24);
+        border-top: 1px solid rgba(96, 165, 250, 0.24);
         padding-top: 18px;
       }
 
@@ -3576,7 +3594,7 @@ function LandingStyles() {
       }
 
       .lp-shift-lines span {
-        color: #5eead4;
+        color: #60a5fa;
         font-family: var(--font-mono), ui-monospace, monospace;
         font-size: 0.82rem;
         font-weight: 800;
@@ -3623,7 +3641,7 @@ function LandingStyles() {
         position: absolute;
         inset: 50% 20px auto;
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(94, 234, 212, 0.5), transparent);
+        background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.5), transparent);
       }
 
       .lp-system-node {
@@ -3640,7 +3658,7 @@ function LandingStyles() {
 
       .lp-risk-section {
         background:
-          linear-gradient(135deg, rgba(244, 63, 94, 0.1), rgba(8, 16, 28, 0.42) 40%, rgba(245, 158, 11, 0.08));
+          linear-gradient(135deg, rgba(244, 63, 94, 0.1), rgba(8, 16, 28, 0.42) 40%, rgba(214, 168, 79, 0.08));
       }
 
       .lp-risk-board {
@@ -3725,7 +3743,7 @@ function LandingStyles() {
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, #fb7185, #fbbf24);
+        background: linear-gradient(90deg, #fb7185, #e7c16e);
       }
 
       .lp-module-top {
@@ -3758,8 +3776,8 @@ function LandingStyles() {
         width: 42px;
         height: 42px;
         border-radius: 8px;
-        background: rgba(94, 234, 212, 0.1);
-        color: #99f6e4;
+        background: rgba(96, 165, 250, 0.1);
+        color: #bfdbfe;
         font-family: var(--font-mono), ui-monospace, monospace;
         font-weight: 800;
       }
@@ -3794,10 +3812,10 @@ function LandingStyles() {
       }
 
       .lp-price-card-featured {
-        border-color: rgba(94, 234, 212, 0.55);
+        border-color: rgba(96, 165, 250, 0.55);
         background:
-          linear-gradient(180deg, rgba(20, 184, 166, 0.16), rgba(15, 23, 42, 0.86));
-        box-shadow: 0 26px 80px rgba(20, 184, 166, 0.16);
+          linear-gradient(180deg, rgba(31, 94, 255, 0.16), rgba(15, 23, 42, 0.86));
+        box-shadow: 0 26px 80px rgba(31, 94, 255, 0.16);
       }
 
       .lp-featured-label {
@@ -3805,8 +3823,8 @@ function LandingStyles() {
         top: 14px;
         right: 14px;
         border-radius: 999px;
-        background: rgba(250, 204, 21, 0.14);
-        color: #fde68a;
+        background: rgba(214, 168, 79, 0.14);
+        color: #e7c16e;
         padding: 6px 10px;
         font-size: 0.72rem;
         font-weight: 820;
@@ -3867,7 +3885,7 @@ function LandingStyles() {
       .lp-price-card li svg {
         flex: none;
         margin-top: 3px;
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-price-card .lp-button {
@@ -3910,7 +3928,7 @@ function LandingStyles() {
 
       .lp-faq-item button svg {
         flex: none;
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       .lp-faq-item p {
@@ -3927,7 +3945,7 @@ function LandingStyles() {
         text-align: center;
         background:
           repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.045) 0, rgba(148, 163, 184, 0.045) 1px, transparent 1px, transparent 56px),
-          linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(37, 99, 235, 0.18) 42%, rgba(15, 23, 42, 0.86));
+          linear-gradient(135deg, rgba(31, 94, 255, 0.18), rgba(37, 99, 235, 0.18) 42%, rgba(15, 23, 42, 0.86));
       }
 
       .lp-final-box h2 {
@@ -3979,7 +3997,7 @@ function LandingStyles() {
       }
 
       .lp-footer a:hover {
-        color: #5eead4;
+        color: #60a5fa;
       }
 
       @media (min-width: 900px) {
@@ -4031,13 +4049,13 @@ function LandingStyles() {
         }
 
         .lp-tour-chapter:first-child {
-          border-color: rgba(94, 234, 212, 0.48);
+          border-color: rgba(96, 165, 250, 0.48);
           background:
-            linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(37, 99, 235, 0.14)),
+            linear-gradient(135deg, rgba(31, 94, 255, 0.2), rgba(37, 99, 235, 0.14)),
             rgba(15, 23, 42, 0.92);
           box-shadow:
-            0 16px 42px rgba(20, 184, 166, 0.14),
-            inset 3px 0 0 #5eead4;
+            0 16px 42px rgba(31, 94, 255, 0.14),
+            inset 3px 0 0 #60a5fa;
           opacity: 1;
         }
       }
@@ -4496,443 +4514,161 @@ function LandingStyles() {
         }
       }
 
-      /* Clarity OS light theme */
-      .c360-landing {
+      /* ════════════ OVERHAUL NAVY PREMIUM (Comply360) ════════════ */
+
+      /* — HERO: banda navy profunda (estilo Trust & Authority) — */
+      .c360-landing .lp-hero {
         background:
-          radial-gradient(circle at 16% 12%, rgba(45, 212, 191, 0.18), transparent 30%),
-          radial-gradient(circle at 86% 6%, rgba(59, 130, 246, 0.14), transparent 28%),
-          linear-gradient(180deg, #f7fcfc 0%, #ffffff 42%, #f4faf9 100%);
-        color: #0f172a;
+          radial-gradient(circle at 82% -10%, rgba(214, 168, 79, 0.12), transparent 42%),
+          radial-gradient(circle at 8% 120%, rgba(31, 94, 255, 0.18), transparent 46%),
+          linear-gradient(158deg, #0a1628 0%, #0f2847 52%, #14305c 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       }
-
-      .lp-nav {
-        border-bottom-color: rgba(203, 213, 225, 0.78);
-        background: rgba(255, 255, 255, 0.88);
-        box-shadow: 0 12px 38px rgba(15, 23, 42, 0.05);
+      .c360-landing .lp-hero .lp-hero-lines {
+        opacity: 0.7;
+        background:
+          linear-gradient(120deg, transparent 0%, rgba(214, 168, 79, 0.1) 36%, transparent 38%),
+          linear-gradient(60deg, transparent 0%, rgba(31, 94, 255, 0.14) 54%, transparent 56%);
       }
-
-      .lp-brand,
-      .lp-nav-links a:hover,
-      .lp-link-button:hover,
-      .lp-mobile-menu a:hover {
-        color: #0f172a;
+      .c360-landing .lp-hero .lp-eyebrow {
+        border-color: rgba(214, 168, 79, 0.36);
+        background: rgba(214, 168, 79, 0.1);
+        color: #e7c16e;
       }
-
-      .lp-nav-links a,
-      .lp-link-button,
-      .lp-mobile-menu a {
-        color: #475569;
+      .c360-landing .lp-hero .lp-eyebrow svg {
+        color: #e7c16e;
       }
-
-      .lp-menu-button {
-        border-color: rgba(203, 213, 225, 0.9);
-        background: #ffffff;
-        color: #0f172a;
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      .c360-landing .lp-hero h1 {
+        color: #f8fafc;
       }
-
-      .lp-mobile-menu {
-        background: rgba(255, 255, 255, 0.94);
+      .c360-landing .lp-hero .lp-hl {
+        background: linear-gradient(118deg, #f0cd82 0%, #d6a84f 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
       }
-
-      .lp-button-primary {
-        border-color: rgba(20, 184, 166, 0.44);
-        background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
+      .c360-landing .lp-hero .lp-hero-copy > p {
+        color: #cbd5e1;
+      }
+      .c360-landing .lp-hero .lp-signal-row span {
+        color: #cbd5e1;
+      }
+      .c360-landing .lp-hero .lp-signal-row svg {
+        color: #e7c16e;
+      }
+      .c360-landing .lp-hero .lp-hero-metrics div {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      }
+      .c360-landing .lp-hero .lp-hero-metrics div:hover {
+        border-color: rgba(214, 168, 79, 0.45);
+        box-shadow: 0 24px 60px rgba(2, 8, 23, 0.5);
+      }
+      .c360-landing .lp-hero .lp-hero-metrics strong {
         color: #ffffff;
-        box-shadow: 0 18px 46px rgba(20, 184, 166, 0.22);
       }
-
-      .lp-button-ghost {
-        border-color: rgba(203, 213, 225, 0.95);
-        background: #ffffff;
-        color: #0f172a;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
-      }
-
-      .lp-button-ghost:hover {
-        border-color: rgba(20, 184, 166, 0.34);
-        background: #ecfdf5;
-      }
-
-      .lp-hero {
-        background:
-          repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.035) 0, rgba(15, 23, 42, 0.035) 1px, transparent 1px, transparent 72px),
-          repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.028) 0, rgba(15, 23, 42, 0.028) 1px, transparent 1px, transparent 72px),
-          linear-gradient(180deg, #f8fdfd 0%, #ffffff 62%, #f4faf9 100%);
-      }
-
-      .lp-hero-lines {
-        background:
-          linear-gradient(120deg, transparent 0%, rgba(45, 212, 191, 0.16) 36%, transparent 38%),
-          linear-gradient(60deg, transparent 0%, rgba(59, 130, 246, 0.1) 54%, transparent 56%);
-      }
-
-      .lp-eyebrow,
-      .lp-lead-kicker {
-        border-color: rgba(20, 184, 166, 0.22);
-        background: #ecfdf5;
-        color: #0f766e;
-      }
-
-      .lp-hero h1,
-      .lp-section-head h2,
-      .lp-final-box h2,
-      .lp-shift-layout h2,
-      .lp-risk-amount strong,
-      .lp-info-card h3,
-      .lp-module-card h3,
-      .lp-step h3,
-      .lp-faq-item button,
-      .lp-footer strong {
-        color: #0f172a;
-      }
-
-      .lp-hero-copy > p,
-      .lp-section-head p,
-      .lp-info-card p,
-      .lp-module-card p,
-      .lp-step p,
-      .lp-faq-item p,
-      .lp-final-box p,
-      .lp-footer p,
-      .lp-system-list li,
-      .lp-proof-item span,
-      .lp-command-list li {
-        color: #475569;
-      }
-
-      .lp-signal-row span {
-        color: #475569;
-      }
-
-      .lp-hero-metrics div {
-        border-color: rgba(203, 213, 225, 0.82);
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.78)),
-          #ffffff;
-        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
-      }
-
-      .lp-hero-metrics strong {
-        color: #0f172a;
-      }
-
-      .lp-hero-metrics span {
-        color: #64748b;
-      }
-
-      .lp-lead-panel {
-        border-color: rgba(20, 184, 166, 0.22);
-        background:
-          linear-gradient(135deg, rgba(236, 253, 245, 0.96), rgba(239, 246, 255, 0.88)),
-          #ffffff;
-        box-shadow:
-          0 24px 72px rgba(15, 23, 42, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.8);
-      }
-
-      .lp-lead-panel h2 {
-        color: #0f172a;
-      }
-
-      .lp-lead-panel p,
-      .lp-lead-trust {
-        color: #64748b;
-      }
-
-      .lp-field span {
-        color: #334155;
-      }
-
-      .lp-field input,
-      .lp-field select {
-        border-color: rgba(203, 213, 225, 0.95);
-        background: #ffffff;
-        color: #0f172a;
-      }
-
-      .c360-landing .lp-field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-      .c360-landing .lp-field select {
-        border-color: rgba(203, 213, 225, 0.95);
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        color-scheme: light;
-        color: #0f172a;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
-      }
-
-      .c360-landing .lp-field input::placeholder {
+      .c360-landing .lp-hero .lp-hero-metrics span {
         color: #94a3b8;
       }
-
-      .lp-field option {
-        background: #ffffff;
-        color: #0f172a;
+      .c360-landing .lp-hero .lp-button-primary {
+        border-color: rgba(31, 94, 255, 0.5);
+        background: linear-gradient(135deg, #1f5eff 0%, #3b82f6 100%);
+        box-shadow: 0 18px 46px rgba(31, 94, 255, 0.35);
       }
-
-      .lp-command {
-        border-color: rgba(203, 213, 225, 0.92);
-        background: #ffffff;
+      .c360-landing .lp-hero .lp-button-ghost {
+        border-color: rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.06);
+        color: #f8fafc;
+      }
+      .c360-landing .lp-hero .lp-button-ghost:hover {
+        border-color: rgba(214, 168, 79, 0.5);
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .c360-landing .lp-hero .lp-lead-panel {
         box-shadow:
-          0 30px 100px rgba(15, 23, 42, 0.12),
+          0 30px 80px rgba(2, 8, 23, 0.45),
           inset 0 1px 0 rgba(255, 255, 255, 0.9);
       }
 
-      .lp-command::before {
+      /* — FINAL CTA: banda navy (bookend del hero) — */
+      .c360-landing .lp-final-cta {
+        background: transparent;
+      }
+      .c360-landing .lp-final-box {
+        border-color: rgba(255, 255, 255, 0.08);
         background:
-          repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.035) 0, rgba(15, 23, 42, 0.035) 1px, transparent 1px, transparent 46px),
-          repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.028) 0, rgba(15, 23, 42, 0.028) 1px, transparent 1px, transparent 46px);
+          radial-gradient(circle at 88% 0%, rgba(214, 168, 79, 0.12), transparent 45%),
+          linear-gradient(150deg, #0a1628 0%, #12345f 100%);
+        box-shadow: 0 40px 90px rgba(2, 8, 23, 0.4);
+      }
+      .c360-landing .lp-final-box h2 {
+        color: #f8fafc;
+      }
+      .c360-landing .lp-final-box p {
+        color: #cbd5e1;
+      }
+      .c360-landing .lp-final-box .lp-eyebrow {
+        border-color: rgba(214, 168, 79, 0.36);
+        background: rgba(214, 168, 79, 0.1);
+        color: #e7c16e;
+      }
+      .c360-landing .lp-final-box .lp-eyebrow svg {
+        color: #e7c16e;
+      }
+      .c360-landing .lp-final-box .lp-button-primary {
+        border-color: rgba(31, 94, 255, 0.5);
+        background: linear-gradient(135deg, #1f5eff 0%, #3b82f6 100%);
+        box-shadow: 0 18px 46px rgba(31, 94, 255, 0.35);
+      }
+      .c360-landing .lp-final-box .lp-button-ghost {
+        border-color: rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.06);
+        color: #f8fafc;
       }
 
-      .lp-command-topbar {
-        border-bottom-color: rgba(203, 213, 225, 0.78);
+      /* — Limpieza navy global (acentos que quedaban teal/amber) — */
+      .c360-landing .lp-risk-board::before,
+      .c360-landing .lp-final-box::before,
+      .c360-landing .lp-info-card::before,
+      .c360-landing .lp-module-card::before,
+      .c360-landing .lp-step::before {
+        background: linear-gradient(90deg, #1e3a6e, #1f5eff, #d6a84f);
+      }
+      .c360-landing .lp-footer a:hover,
+      .c360-landing .lp-nav-links a:hover,
+      .c360-landing .lp-link-button:hover {
+        color: #1f5eff;
       }
 
-      .lp-command-title {
-        color: #334155;
+      /* ── PULIDO: hovers/transiciones + acentos (tema oscuro) ── */
+      .c360-landing .lp-icon-box {
+        color: #60a5fa;
+      }
+      .c360-landing .lp-control-card,
+      .c360-landing .lp-system-node {
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      }
+      .c360-landing .lp-control-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(96, 165, 250, 0.42);
+        box-shadow: 0 22px 50px rgba(15, 23, 42, 0.1);
+      }
+      .c360-landing .lp-control-card::before {
+        background: linear-gradient(90deg, #1e3a6e, #1f5eff, #d6a84f);
+      }
+      .c360-landing .lp-hero-metrics div {
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
       }
 
-      .lp-command-panel,
-      .lp-info-card,
-      .lp-module-card,
-      .lp-step,
-      .lp-risk-board,
-      .lp-final-box {
-        border-color: rgba(203, 213, 225, 0.9);
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
-          #ffffff;
-        box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
-      }
-
-      .lp-command-panel strong,
-      .lp-command-panel h3,
-      .lp-command-panel h4,
-      .lp-command-panel p,
-      .lp-action-row strong,
-      .lp-action-row span,
-      .lp-ai-message strong,
-      .lp-ai-message span {
-        color: #0f172a;
-      }
-
-      .lp-command-panel p,
-      .lp-command-panel small,
-      .lp-command-metric span,
-      .lp-action-row span,
-      .lp-ai-message span {
-        color: #64748b;
-      }
-
-      .lp-action-item,
-      .lp-document-stack span {
-        background: #f8fafc;
-      }
-
-      .lp-action-item strong,
-      .lp-site-row strong,
-      .lp-document-stack span {
-        color: #0f172a;
-      }
-
-      .lp-action-item small,
-      .lp-site-row small,
-      .lp-score-meta span {
-        color: #64748b;
-      }
-
-      .lp-score-meta {
-        border-top-color: rgba(203, 213, 225, 0.78);
-      }
-
-      .lp-score-meta strong,
-      .lp-ai-status {
-        color: #0f766e;
-      }
-
-      .lp-site-panel {
-        background:
-          linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.94)),
-          #ffffff;
-      }
-
-      .lp-site-row > span {
-        background: #e2e8f0;
-      }
-
-      .lp-score-ring {
-        background:
-          radial-gradient(circle, #ffffff 52%, transparent 53%),
-          conic-gradient(#14b8a6 0 88%, #e2e8f0 88% 100%);
-        color: #0f172a;
-      }
-
-      .lp-narrative-section,
-      .lp-product-section,
-      .lp-sector-section,
-      .lp-pricing-section {
-        background:
-          linear-gradient(180deg, rgba(236, 253, 245, 0.46), rgba(255, 255, 255, 0));
-      }
-
-      .lp-shift-section,
-      .lp-risk-section {
-        background:
-          linear-gradient(180deg, rgba(239, 246, 255, 0.62), rgba(255, 255, 255, 0));
-      }
-
-      .lp-proof {
-        border-color: rgba(203, 213, 225, 0.72);
-        background: rgba(255, 255, 255, 0.76);
-      }
-
-      .lp-proof-item {
-        border-right-color: rgba(203, 213, 225, 0.68);
-      }
-
-      .lp-proof-item strong {
-        color: #0f172a;
-      }
-
-      .lp-info-card-danger {
-        border-color: rgba(251, 146, 60, 0.38);
-        background:
-          linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(255, 255, 255, 0.96)),
-          #ffffff;
-      }
-
-      .lp-risk-line span {
-        color: #9f1239;
-      }
-
-      .lp-risk-line strong {
-        color: #92400e;
-      }
-
-      .lp-risk-line i {
-        background: rgba(251, 207, 232, 0.52);
-      }
-
-      .lp-control-section {
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(236, 253, 245, 0.62) 44%, rgba(255, 255, 255, 0));
-      }
-
-      .lp-control-copy h2 {
-        color: #0f172a;
-      }
-
-      .lp-control-copy p,
-      .lp-narrative-shell > p,
-      .lp-shift-layout > div > p,
-      .lp-shift-lines p {
-        color: #334155;
-      }
-
-      .lp-control-card {
-        border-color: rgba(203, 213, 225, 0.86);
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92)),
-          #ffffff;
-        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
-      }
-
-      .lp-control-card h3,
-      .lp-narrative-lines strong {
-        color: #0f172a;
-      }
-
-      .lp-control-card p,
-      .lp-narrative-lines span {
-        color: #334155;
-      }
-
-      .lp-panel-label,
-      .lp-section-head > span,
-      .lp-module-top span,
-      .lp-step small,
-      .lp-control-card-top span,
-      .lp-risk-header span {
-        color: #0f766e;
-        font-weight: 900;
-      }
-
-      .lp-live-pill,
-      .lp-ai-status,
-      .lp-score-meta strong {
-        color: #0f766e;
-        font-weight: 850;
-      }
-
-      .lp-hero-copy > p,
-      .lp-section-head p,
-      .lp-info-card p,
-      .lp-module-card p,
-      .lp-step p,
-      .lp-faq-item p,
-      .lp-final-box p,
-      .lp-footer p,
-      .lp-proof-item span,
-      .lp-hero-metrics span,
-      .lp-command-panel p,
-      .lp-command-panel small,
-      .lp-action-item small,
-      .lp-site-row small,
-      .lp-lead-panel p,
-      .lp-lead-trust {
-        color: #334155;
-      }
-
-      .lp-field span,
-      .lp-price-head > span,
-      .lp-footer a,
-      .lp-footer span {
-        color: #334155;
-      }
-
-      .lp-info-card,
-      .lp-module-card,
-      .lp-step {
-        box-shadow:
-          0 22px 64px rgba(15, 23, 42, 0.08),
-          inset 0 1px 0 rgba(255, 255, 255, 0.92);
-      }
-
-      .lp-risk-board::before,
-      .lp-final-box::before,
-      .lp-info-card::before,
-      .lp-module-card::before,
-      .lp-step::before {
-        background: linear-gradient(90deg, #14b8a6, #2563eb, #f59e0b);
-      }
-
-      .lp-faq-list,
-      .lp-faq-item {
-        border-color: rgba(203, 213, 225, 0.78);
-      }
-
-      .lp-final-cta {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(236, 253, 245, 0.68));
-      }
-
-      .lp-final-box {
-        background:
-          repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.035) 0, rgba(15, 23, 42, 0.035) 1px, transparent 1px, transparent 56px),
-          linear-gradient(135deg, rgba(236, 253, 245, 0.92), rgba(239, 246, 255, 0.82));
-      }
-
-      .lp-footer {
-        border-top-color: rgba(203, 213, 225, 0.78);
-        background: rgba(255, 255, 255, 0.72);
-      }
-
-      .lp-footer a,
-      .lp-footer span {
-        color: #64748b;
-      }
-
-      .lp-footer a:hover {
-        color: #0f766e;
+      /* Jerarquía tipográfica: H2 de sección unificados (eran 2.7/2.85/2.9rem) */
+      .c360-landing .lp-section-head h2,
+      .c360-landing .lp-final-box h2,
+      .c360-landing .lp-control-copy h2,
+      .c360-landing .lp-narrative-shell h2,
+      .c360-landing .lp-shift-layout h2 {
+        font-size: clamp(2rem, 3.4vw, 2.8rem);
+        line-height: 1.05;
       }
     `}</style>
   )

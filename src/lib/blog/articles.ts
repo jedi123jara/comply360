@@ -141,7 +141,7 @@ export const ARTICLES: BlogArticle[] = [
         text: 'Prueba la calculadora CTS de Comply360 sin registrarte. Ingresas los datos del trabajador y te da el monto exacto + la memoria de cálculo para auditoría. Link abajo.',
       },
     ],
-    cta: { label: 'Calcular mi CTS gratis', href: '/dashboard/calculadoras' },
+    cta: { label: 'Calcular mi CTS gratis', href: '/calculadoras' },
   },
 
   {
@@ -384,7 +384,7 @@ export const ARTICLES: BlogArticle[] = [
         text: 'Comply360 tiene una calculadora que compara el costo total anual de tener tu planilla en MYPE Micro, MYPE Pequeña o Régimen General. Te dice qué régimen te conviene y por qué.',
       },
     ],
-    cta: { label: 'Comparar regímenes gratis', href: '/dashboard/calculadoras' },
+    cta: { label: 'Comparar regímenes gratis', href: '/calculadoras' },
   },
 ]
 

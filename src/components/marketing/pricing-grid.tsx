@@ -38,19 +38,19 @@ const PLAN_ICONS: Record<MarketingPlanKey, LucideIcon> = {
 }
 
 const PLAN_ACCENTS: Record<MarketingPlanKey, string> = {
-  FREE: 'from-slate-100 via-white to-slate-50',
-  STARTER: 'from-cyan-50 via-white to-sky-50',
-  PRO: 'from-teal-50 via-white to-blue-50',
-  EMPRESA: 'from-amber-50 via-white to-teal-50',
-  ENTERPRISE: 'from-slate-100 via-white to-amber-50',
+  FREE: 'from-slate-500/10 via-transparent to-transparent',
+  STARTER: 'from-sky-500/12 via-transparent to-transparent',
+  PRO: 'from-blue-500/16 via-transparent to-transparent',
+  EMPRESA: 'from-blue-500/12 via-transparent to-amber-500/10',
+  ENTERPRISE: 'from-amber-500/12 via-transparent to-transparent',
 }
 
 const PLAN_ICON_STYLES: Record<MarketingPlanKey, string> = {
-  FREE: 'bg-slate-100 text-slate-700 ring-slate-200',
-  STARTER: 'bg-cyan-50 text-cyan-700 ring-cyan-200/80',
-  PRO: 'bg-teal-50 text-teal-700 ring-teal-200/80',
-  EMPRESA: 'bg-amber-50 text-amber-700 ring-amber-200/80',
-  ENTERPRISE: 'bg-amber-100 text-amber-800 ring-amber-300/80',
+  FREE: 'bg-white/5 text-slate-300 ring-white/10',
+  STARTER: 'bg-sky-500/10 text-sky-300 ring-sky-400/25',
+  PRO: 'bg-blue-500/12 text-blue-300 ring-blue-400/30',
+  EMPRESA: 'bg-blue-500/10 text-blue-200 ring-blue-400/25',
+  ENTERPRISE: 'bg-amber-500/12 text-amber-300 ring-amber-400/30',
 }
 
 export function MarketingPricingGrid({
@@ -138,10 +138,10 @@ function MarketingPricingCard({
     <article
       className={cn(
         'group relative flex min-h-[560px] flex-col overflow-hidden rounded-lg border p-5 transition duration-200',
-        'bg-white text-slate-950 shadow-[0_24px_70px_rgba(15,23,42,0.09)]',
+        'bg-white/[0.04] text-slate-100 shadow-[0_28px_80px_rgba(2,8,23,0.5)] backdrop-blur-sm',
         featured
-          ? 'border-teal-400 ring-1 ring-teal-300'
-          : 'border-slate-300 hover:border-teal-300',
+          ? 'border-blue-400/60 ring-1 ring-blue-400/40'
+          : 'border-white/10 hover:border-blue-400/40',
       )}
     >
       <div
@@ -150,9 +150,9 @@ function MarketingPricingCard({
           PLAN_ACCENTS[planKey],
         )}
       />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-400 via-blue-500 to-amber-300 opacity-70" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-amber-300 opacity-70" />
       {featured ? (
-        <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-700 shadow-[0_10px_28px_rgba(20,184,166,0.14)]">
+        <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full border border-blue-400/40 bg-blue-500/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-200 shadow-[0_10px_28px_rgba(31,94,255,0.25)]">
           <Sparkles className="h-3 w-3" />
           Más elegido
         </div>
@@ -169,33 +169,33 @@ function MarketingPricingCard({
         </div>
 
         <div className="pr-24">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-800">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-300">
             {getMarketingPlanLimit(planKey)}
           </p>
-          <h3 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{plan.name}</h3>
-          <p className="mt-2 min-h-[44px] text-sm font-medium leading-6 text-slate-700">
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-white">{plan.name}</h3>
+          <p className="mt-2 min-h-[44px] text-sm font-medium leading-6 text-slate-300">
             {PLAN_POSITIONING[planKey].tagline}
           </p>
         </div>
 
         <div className="mt-6">
           <div className="flex items-end gap-2">
-            <span className={cn('font-serif font-medium leading-none text-slate-950', isEnterprise ? 'text-3xl' : 'text-4xl')}>
+            <span className={cn('font-serif font-medium leading-none text-white', isEnterprise ? 'text-3xl' : 'text-4xl')}>
               {price}
             </span>
             {plan.price !== 0 || isEnterprise ? (
-              <span className="pb-1 text-sm font-semibold text-slate-600">/mes</span>
+              <span className="pb-1 text-sm font-semibold text-slate-400">/mes</span>
             ) : null}
           </div>
-          <p className="mt-3 min-h-[48px] text-sm font-medium leading-6 text-slate-700">
+          <p className="mt-3 min-h-[48px] text-sm font-medium leading-6 text-slate-300">
             {getMarketingPlanOutcome(planKey)}
           </p>
         </div>
 
-        <ul className="mt-6 grid flex-1 gap-3 border-t border-slate-200 pt-6">
+        <ul className="mt-6 grid flex-1 gap-3 border-t border-white/10 pt-6">
           {plan.features.slice(0, featureLimit).map((feature) => (
-            <li key={feature} className="flex items-start gap-2 text-sm font-medium leading-5 text-slate-800">
-              <Check className="mt-0.5 h-4 w-4 flex-none text-teal-700" />
+            <li key={feature} className="flex items-start gap-2 text-sm font-medium leading-5 text-slate-300">
+              <Check className="mt-0.5 h-4 w-4 flex-none text-blue-400" />
               <span>{cleanPlanFeature(feature)}</span>
             </li>
           ))}
@@ -207,8 +207,8 @@ function MarketingPricingCard({
           className={cn(
             'mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition',
             featured
-              ? 'bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow-[0_18px_48px_rgba(20,184,166,0.22)] hover:shadow-[0_24px_60px_rgba(20,184,166,0.28)]'
-              : 'border border-slate-200 bg-white text-slate-900 shadow-sm hover:border-teal-200 hover:bg-teal-50',
+              ? 'bg-gradient-to-r from-[#1f5eff] to-[#3b82f6] text-white shadow-[0_18px_48px_rgba(31,94,255,0.35)] hover:shadow-[0_24px_60px_rgba(31,94,255,0.45)]'
+              : 'border border-white/15 bg-white/5 text-slate-100 shadow-sm hover:border-blue-400/40 hover:bg-white/10',
           )}
         >
           {cta}

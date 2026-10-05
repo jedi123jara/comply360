@@ -86,6 +86,7 @@ export default function MultaSunafilPage() {
               <select
                 value={regimen}
                 onChange={(e) => setRegimen(e.target.value as RegimenMype)}
+                aria-label="Régimen laboral"
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               >
                 <option value="GENERAL">Régimen General / Mediana–Gran Empresa</option>
