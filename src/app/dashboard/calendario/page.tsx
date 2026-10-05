@@ -1,42 +1,47 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import Link from 'next/link'
 import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
   Clock,
-  BadgeDollarSign,
   Shield,
-  Gift,
-  FileText,
-  Users,
   Info,
+  ArrowRight,
+  Landmark,
+  PiggyBank,
+  Gift,
+  Banknote,
+  UserCheck,
+  FileSignature,
+  HardHat,
+  Cake,
+  TriangleAlert,
+  Award,
+  Hourglass,
+  Palmtree,
+  PenLine,
+  GraduationCap,
+  RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getFeriadosForYear } from '@/lib/legal-engine/feriados-peru'
 import { PageHeader } from '@/components/comply360/editorial-title'
+import { Button } from '@/components/ui/button'
+import {
+  resolveCalendarEventAction,
+  type AlertLookupEntry,
+  type CalendarEventAction,
+  type EventCategory,
+} from './_lib/event-actions'
 
 // =============================================
 // Types
 // =============================================
 
-type EventCategory =
-  | 'feriado'
-  | 'cts'
-  | 'gratificacion'
-  | 'afp'
-  | 'tregistro'
-  | 'contrato'
-  | 'sst'
-  | 'cumpleanos'
-  | 'alerta'
-  // Idea 2 Sprint 9 — categorías nuevas
-  | 'aniversario'
-  | 'prueba'
-  | 'vacaciones'
-  | 'firma'
-  | 'capacitacion'
+// `EventCategory` vive en ./_lib/event-actions (junto al mapeo de enlaces).
 
 interface CalendarEvent {
   id: string
@@ -45,6 +50,8 @@ interface CalendarEvent {
   category: EventCategory
   description: string
   law?: string
+  /** `id` original de /api/calendar (permite enlazar a la entidad concreta). */
+  sourceId?: string
 }
 
 // =============================================
@@ -170,21 +177,54 @@ const CATEGORY_LABELS: Record<EventCategory, string> = {
   capacitacion: 'Capacitaciones',
 }
 
+/**
+ * Un ícono distinto por categoría: el tipo de evento se reconoce por forma
+ * (y por texto en el detalle), no solo por color.
+ */
 const CATEGORY_ICONS: Record<EventCategory, typeof CalendarIcon> = {
-  feriado: CalendarIcon,
-  cts: BadgeDollarSign,
+  feriado: Landmark,
+  cts: PiggyBank,
   gratificacion: Gift,
-  afp: FileText,
-  tregistro: Users,
-  contrato: Clock,
-  sst: Shield,
-  cumpleanos: Gift,
-  alerta: Info,
-  aniversario: Gift,
-  prueba: Clock,
-  vacaciones: CalendarIcon,
-  firma: FileText,
-  capacitacion: Shield,
+  afp: Banknote,
+  tregistro: UserCheck,
+  contrato: FileSignature,
+  sst: HardHat,
+  cumpleanos: Cake,
+  alerta: TriangleAlert,
+  aniversario: Award,
+  prueba: Hourglass,
+  vacaciones: Palmtree,
+  firma: PenLine,
+  capacitacion: GraduationCap,
+}
+
+/** Orden en que se muestran los íconos dentro de cada día (lo accionable primero). */
+const CATEGORY_PRIORITY: EventCategory[] = [
+  'alerta', 'contrato', 'cts', 'gratificacion', 'afp', 'tregistro', 'sst', 'firma',
+  'prueba', 'capacitacion', 'vacaciones', 'feriado', 'aniversario', 'cumpleanos',
+]
+
+/** Máximo de íconos visibles por día en la grilla (el resto se resume en "+N"). */
+const MAX_DAY_ICONS = 3
+
+/** Tarjeta "Fechas clave": cada fecha con su enlace para actuar. */
+const KEY_DATES: Array<{ category: EventCategory; title: string; when: string }> = [
+  { category: 'cts', title: 'CTS', when: '15 de mayo y 15 de noviembre' },
+  { category: 'gratificacion', title: 'Gratificaciones', when: 'Primera quincena de julio y de diciembre' },
+  { category: 'afp', title: 'AFP/ONP', when: 'Declaración mensual (día 13)' },
+  { category: 'tregistro', title: 'T-Registro', when: 'Dentro de las 24 horas de cada cambio' },
+]
+
+// Algunas fuentes de la API anteponen emojis al título; el ícono de categoría
+// ya cumple ese rol. Se construye con RegExp para no depender del target de TS.
+const LEADING_EMOJI = new RegExp('^[\\p{Extended_Pictographic}\\uFE0F\\u200D\\s]+', 'u')
+
+function cleanTitle(title: string): string {
+  return title.replace(LEADING_EMOJI, '').trim() || title
+}
+
+function formatDayLabel(dateStr: string): string {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'long' })
 }
 
 const DAYS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -310,12 +350,40 @@ export default function CalendarioPage() {
   // Dynamic events from real API (contracts, SST, birthdays, alerts)
   const [apiEvents, setApiEvents] = useState<CalendarEvent[]>([])
   const [loadingApi, setLoadingApi] = useState(false)
+  const [apiError, setApiError] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  // Índice de alertas de trabajador (id → trabajador + tipo) para que los
+  // eventos de alerta enlacen a la acción exacta (legajo, contratos…). Si no
+  // carga, esos eventos enlazan a /dashboard/alertas: degradación aceptable.
+  const [alertLookup, setAlertLookup] = useState<ReadonlyMap<string, AlertLookupEntry>>(() => new Map())
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/workers/alerts')
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((json: { data?: Array<{ id: string; workerId: string; type: string; title: string }> }) => {
+        if (cancelled) return
+        setAlertLookup(new Map((json.data ?? []).map((a) => [a.id, { workerId: a.workerId, type: a.type, title: a.title }])))
+      })
+      .catch(() => {
+        /* sin índice: los eventos de alerta usan el enlace genérico */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch pattern estándar; migrar a useApiQuery en refactor futuro.
     setLoadingApi(true)
     fetch(`/api/calendar?year=${currentYear}&month=${currentMonth}`)
-      .then((r) => r.json())
+      .then((r) => {
+        // 401/403 = el plan o el rol no incluye estos eventos: no es una falla.
+        if (r.status === 401 || r.status === 403) return { data: [] }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then((data: { data?: Array<{ id: string; title: string; date: string; type: string; description: string }> }) => {
         const API_TYPE_MAP: Record<string, EventCategory> = {
           CONTRACT: 'contrato',
@@ -334,16 +402,24 @@ export default function CalendarioPage() {
           .filter((e) => e.type !== 'LEGAL') // skip legal — already in static events
           .map((e) => ({
             id: `api-${e.id}`,
-            title: e.title,
+            sourceId: e.id,
+            title: cleanTitle(e.title),
             date: e.date,
             category: (API_TYPE_MAP[e.type] ?? 'alerta') as EventCategory,
             description: e.description,
           }))
         setApiEvents(mapped)
+        setApiError(false)
       })
-      .catch(() => setApiEvents([]))
+      .catch(() => {
+        setApiEvents([])
+        setApiError(true)
+      })
       .finally(() => setLoadingApi(false))
-  }, [currentYear, currentMonth])
+  }, [currentYear, currentMonth, reloadKey])
+
+  const getEventAction = (e: CalendarEvent): CalendarEventAction | null =>
+    resolveCalendarEventAction({ category: e.category, sourceId: e.sourceId }, alertLookup)
 
   // Build events for current year and adjacent years
   const allEvents = useMemo(() => {
@@ -482,19 +558,21 @@ export default function CalendarioPage() {
         eyebrow="Calendario laboral"
         eyebrowIcon={<CalendarIcon className="w-3.5 h-3.5" />}
         title="Tu <em>calendario fiscal y laboral</em> peruano completo."
-        subtitle="Feriados nacionales, vencimientos CTS/Gratificaciones, AFP, T-Registro, contratos y capacitaciones SST. Todas las fechas críticas en una vista."
+        subtitle="Feriados, depósitos de CTS, gratificaciones, AFP, T-Registro, contratos y SST en una sola vista. Toca un día para ver qué vence y ir directo a resolverlo."
       />
 
       {/* Category filters + Export iCal */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Mostrar u ocultar tipos de evento">
           {(Object.keys(CATEGORY_LABELS) as EventCategory[]).map((cat) => {
             const Icon = CATEGORY_ICONS[cat]
             const isActive = activeFilters.has(cat)
             return (
               <button
                 key={cat}
+                type="button"
                 onClick={() => toggleFilter(cat)}
+                aria-pressed={isActive}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200',
                   isActive
@@ -502,7 +580,7 @@ export default function CalendarioPage() {
                     : 'bg-[color:var(--neutral-50)] text-[color:var(--text-tertiary)] border-[color:var(--border-default)] hover:bg-[color:var(--neutral-100)]'
                 )}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3.5 h-3.5" aria-hidden />
                 {CATEGORY_LABELS[cat]}
               </button>
             )
@@ -514,10 +592,32 @@ export default function CalendarioPage() {
           className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2"
           title="Descarga el calendario en formato iCal — importable a Google Calendar, Outlook, Apple Calendar"
         >
-          <CalendarIcon className="w-3.5 h-3.5" />
+          <CalendarIcon className="w-3.5 h-3.5" aria-hidden />
           Sincronizar con Google/Outlook
         </a>
       </div>
+
+      {apiError && (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-2xl border border-[color:var(--border-amber)] bg-[color:var(--color-warning-bg)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="flex items-start gap-2 text-sm text-[color:var(--color-warning-text)]">
+            <TriangleAlert className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
+            No pudimos cargar los eventos de tu empresa (contratos, alertas, SST). Por ahora solo ves las fechas legales generales.
+          </p>
+          <Button
+            variant="secondary"
+            size="xs"
+            loading={loadingApi}
+            icon={<RefreshCw className="w-3.5 h-3.5" />}
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="shrink-0"
+          >
+            Reintentar
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* ── Calendar Grid ─────────────────────── */}
@@ -581,20 +681,27 @@ export default function CalendarioPage() {
               const dayEvents = eventsByDate.get(cell.dateStr) || []
               const hasFeriado = dayEvents.some((e) => e.category === 'feriado')
               const hasCTS = dayEvents.some((e) => e.category === 'cts' || e.category === 'gratificacion')
-              const hasAFP = dayEvents.some((e) => e.category === 'afp')
-              const hasTReg = dayEvents.some((e) => e.category === 'tregistro')
+              const dayCategories = CATEGORY_PRIORITY.filter((cat) => dayEvents.some((e) => e.category === cat))
               const isToday = cell.dateStr === todayStr
               const isSelected = cell.dateStr === selectedDate
               const sunday = isSunday(cell.dateStr)
               const isHovered = cell.dateStr === hoveredDate
               const dayOfWeek = i % 7 // 0=Mon, 5=Sat, 6=Sun
+              const showEvents = cell.inMonth && dayEvents.length > 0
+              const dayLabel = formatDayLabel(cell.dateStr)
+              const ariaLabel = showEvents
+                ? `${dayLabel}: ${dayEvents.map((e) => `${CATEGORY_LABELS[e.category]}, ${e.title}`).join('; ')}`
+                : dayLabel
 
               return (
                 <div key={i} className="relative group">
                   <button
+                    type="button"
                     onClick={() => setSelectedDate(cell.dateStr === selectedDate ? null : cell.dateStr)}
                     onMouseEnter={() => setHoveredDate(cell.dateStr)}
                     onMouseLeave={() => setHoveredDate(null)}
+                    aria-label={ariaLabel}
+                    aria-pressed={isSelected}
                     className={cn(
                       'relative w-full aspect-square flex flex-col items-center justify-start pt-2 rounded-xl text-sm transition-all duration-150',
                       // Base styles
@@ -624,32 +731,46 @@ export default function CalendarioPage() {
                       {cell.day}
                     </span>
 
-                    {/* Event dots */}
-                    {dayEvents.length > 0 && cell.inMonth && (
-                      <div className="flex items-center gap-0.5 mt-1.5 flex-wrap justify-center">
-                        {hasFeriado && <div className="w-1.5 h-1.5 rounded-full bg-red-500" />}
-                        {hasCTS && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                        {hasAFP && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                        {hasTReg && <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+                    {/* Un ícono por tipo de evento: se distingue por forma, no solo por color */}
+                    {showEvents && (
+                      <div className="flex items-center gap-0.5 mt-1.5 flex-wrap justify-center" aria-hidden>
+                        {dayCategories.slice(0, MAX_DAY_ICONS).map((cat) => {
+                          const Icon = CATEGORY_ICONS[cat]
+                          return <Icon key={cat} className={cn('w-3 h-3', CATEGORY_STYLES[cat].text)} />
+                        })}
+                        {dayCategories.length > MAX_DAY_ICONS && (
+                          <span className="text-[9px] font-semibold leading-none text-[color:var(--text-tertiary)]">
+                            +{dayCategories.length - MAX_DAY_ICONS}
+                          </span>
+                        )}
                       </div>
                     )}
                   </button>
 
                   {/* Tooltip on hover */}
-                  {isHovered && dayEvents.length > 0 && cell.inMonth && (
-                    <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[200px] max-w-[260px] bg-white border border-[color:var(--border-default)] rounded-xl shadow-2xl p-3 pointer-events-none">
-                      <div className="text-xs font-semibold text-[color:var(--text-secondary)] mb-1.5">
-                        {cell.day} {MONTHS_ES[currentMonth]}
+                  {isHovered && showEvents && (
+                    <div
+                      aria-hidden
+                      className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[200px] max-w-[260px] bg-white border border-[color:var(--border-default)] rounded-xl shadow-2xl p-3 pointer-events-none"
+                    >
+                      <div className="text-xs font-semibold text-[color:var(--text-secondary)] mb-1.5 first-letter:uppercase">
+                        {dayLabel}
                       </div>
-                      <div className="space-y-1">
-                        {dayEvents.map((e, j) => (
-                          <div key={j} className="flex items-center gap-2">
-                            <div className={cn('w-2 h-2 rounded-full shrink-0', CATEGORY_STYLES[e.category].dot)} />
-                            <span className={cn('text-xs', CATEGORY_STYLES[e.category].text)}>
-                              {e.title}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="space-y-1.5">
+                        {dayEvents.map((e, j) => {
+                          const Icon = CATEGORY_ICONS[e.category]
+                          return (
+                            <div key={`${e.id}-${j}`} className="flex items-start gap-2">
+                              <Icon className={cn('w-3.5 h-3.5 mt-px shrink-0', CATEGORY_STYLES[e.category].text)} />
+                              <span className="text-xs text-[color:var(--text-secondary)]">
+                                <span className={cn('font-semibold', CATEGORY_STYLES[e.category].text)}>
+                                  {CATEGORY_LABELS[e.category]}:
+                                </span>{' '}
+                                {e.title}
+                              </span>
+                            </div>
+                          )
+                        })}
                       </div>
                       {/* Arrow */}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-600" />
@@ -659,12 +780,15 @@ export default function CalendarioPage() {
               )
             })}
           </div>
+          <p className="mt-3 text-xs text-[color:var(--text-tertiary)]">
+            Toca un día para ver qué vence y el enlace para resolverlo.
+          </p>
 
           {/* Selected date detail */}
           {selectedDate && (
             <div className="mt-5 border-t border-[color:var(--border-default)] pt-5">
-              <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3 flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4 text-amber-500" />
+              <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3 flex items-center gap-2 first-letter:uppercase">
+                <CalendarIcon className="w-4 h-4 text-amber-500" aria-hidden />
                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-PE', {
                   weekday: 'long',
                   day: 'numeric',
@@ -674,15 +798,16 @@ export default function CalendarioPage() {
               </h3>
               {selectedEvents.length === 0 ? (
                 <div className="flex flex-col items-center py-6 text-[color:var(--text-tertiary)]">
-                  <CalendarIcon className="w-8 h-8 mb-2 opacity-40" />
+                  <CalendarIcon className="w-8 h-8 mb-2 opacity-40" aria-hidden />
                   <p className="text-sm">Sin eventos para esta fecha</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <ul className="space-y-2">
                   {selectedEvents.map((e) => {
                     const Icon = CATEGORY_ICONS[e.category]
+                    const action = getEventAction(e)
                     return (
-                      <div
+                      <li
                         key={e.id}
                         className={cn(
                           'flex items-start gap-3 p-3 rounded-xl border',
@@ -690,28 +815,36 @@ export default function CalendarioPage() {
                           CATEGORY_STYLES[e.category].border,
                         )}
                       >
-                        <Icon className={cn('w-5 h-5 mt-0.5 shrink-0', CATEGORY_STYLES[e.category].text)} />
+                        <Icon className={cn('w-5 h-5 mt-0.5 shrink-0', CATEGORY_STYLES[e.category].text)} aria-hidden />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
+                            <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-semibold', CATEGORY_STYLES[e.category].badge)}>
+                              {CATEGORY_LABELS[e.category]}
+                            </span>
                             <p className={cn('text-sm font-semibold', CATEGORY_STYLES[e.category].text)}>
                               {e.title}
                             </p>
-                            <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', CATEGORY_STYLES[e.category].badge)}>
-                              {CATEGORY_LABELS[e.category]}
-                            </span>
                           </div>
                           <p className="text-xs text-[color:var(--text-tertiary)] mt-1">{e.description}</p>
                           {e.law && (
                             <p className="text-[10px] text-[color:var(--text-tertiary)] mt-1 flex items-center gap-1">
-                              <Shield className="w-3 h-3" />
+                              <Shield className="w-3 h-3" aria-hidden />
                               {e.law}
                             </p>
                           )}
+                          {action && (
+                            <Button asChild size="xs" variant="emerald-soft" className="mt-2.5">
+                              <Link href={action.href}>
+                                {action.label}
+                                <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+                              </Link>
+                            </Button>
+                          )}
                         </div>
-                      </div>
+                      </li>
                     )
                   })}
-                </div>
+                </ul>
               )}
             </div>
           )}
@@ -722,7 +855,7 @@ export default function CalendarioPage() {
           {/* Upcoming events */}
           <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
             <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-500" />
+              <Clock className="w-4 h-4 text-amber-500" aria-hidden />
               Próximos 30 días
               {upcomingEvents.length > 0 && (
                 <span className="ml-auto text-xs font-normal text-slate-500">
@@ -732,118 +865,132 @@ export default function CalendarioPage() {
             </h3>
             {upcomingEvents.length === 0 ? (
               <div className="flex flex-col items-center py-6 text-[color:var(--text-tertiary)]">
-                <CalendarIcon className="w-6 h-6 mb-2 opacity-40" />
+                <CalendarIcon className="w-6 h-6 mb-2 opacity-40" aria-hidden />
                 <p className="text-xs">Sin eventos próximos</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <ul className="space-y-3">
                 {upcomingEvents.map((e) => {
                   const Icon = CATEGORY_ICONS[e.category]
+                  const action = getEventAction(e)
                   const eventDate = new Date(e.date + 'T12:00:00')
                   const diffMs = eventDate.getTime() - new Date(todayStr + 'T12:00:00').getTime()
                   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
 
                   return (
-                    <button
+                    <li
                       key={e.id}
-                      onClick={() => {
-                        const d = new Date(e.date + 'T12:00:00')
-                        setCurrentMonth(d.getMonth())
-                        setCurrentYear(d.getFullYear())
-                        setSelectedDate(e.date)
-                      }}
-                      className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-[color:var(--border-default)]/40 hover:border-[color:var(--border-default)] hover:bg-[color:var(--neutral-100)]/30 transition-all duration-200"
+                      className="rounded-xl border border-[color:var(--border-default)]/40 hover:border-[color:var(--border-default)] hover:bg-[color:var(--neutral-100)]/30 transition-all duration-200"
                     >
-                      <div className={cn('p-1.5 rounded-lg', CATEGORY_STYLES[e.category].bg)}>
-                        <Icon className={cn('w-4 h-4', CATEGORY_STYLES[e.category].text)} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[color:var(--text-emerald-700)] truncate">{e.title}</p>
-                        <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">
-                          {eventDate.toLocaleDateString('es-PE', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                          {' · '}
-                          <span className={cn(
-                            diffDays === 0 && 'text-amber-400 font-semibold',
-                            diffDays === 1 && 'text-amber-400',
-                            diffDays <= 7 && diffDays > 1 && 'text-orange-400',
-                          )}>
-                            {diffDays === 0
-                              ? 'Hoy'
-                              : diffDays === 1
-                                ? 'Mañana'
-                                : `En ${diffDays} días`}
-                          </span>
-                        </p>
-                      </div>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date(e.date + 'T12:00:00')
+                          setCurrentMonth(d.getMonth())
+                          setCurrentYear(d.getFullYear())
+                          setSelectedDate(e.date)
+                        }}
+                        className={cn('w-full text-left flex items-start gap-3 p-3 rounded-xl', action && 'pb-1.5')}
+                      >
+                        <div className={cn('p-1.5 rounded-lg', CATEGORY_STYLES[e.category].bg)}>
+                          <Icon className={cn('w-4 h-4', CATEGORY_STYLES[e.category].text)} aria-hidden />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[color:var(--text-emerald-700)] truncate">{e.title}</p>
+                          <p className="text-xs text-[color:var(--text-tertiary)] mt-0.5">
+                            <span className={cn('font-medium', CATEGORY_STYLES[e.category].text)}>
+                              {CATEGORY_LABELS[e.category]}
+                            </span>
+                            {' · '}
+                            {eventDate.toLocaleDateString('es-PE', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                            {' · '}
+                            <span className={cn(
+                              diffDays === 0 && 'text-amber-400 font-semibold',
+                              diffDays === 1 && 'text-amber-400',
+                              diffDays <= 7 && diffDays > 1 && 'text-orange-400',
+                            )}>
+                              {diffDays === 0
+                                ? 'Hoy'
+                                : diffDays === 1
+                                  ? 'Mañana'
+                                  : `En ${diffDays} días`}
+                            </span>
+                          </p>
+                        </div>
+                      </button>
+                      {action && (
+                        <Link
+                          href={action.href}
+                          className="ml-[3.25rem] mb-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline"
+                        >
+                          {action.label}
+                          <ArrowRight className="w-3 h-3" aria-hidden />
+                        </Link>
+                      )}
+                    </li>
                   )
                 })}
-              </div>
+              </ul>
             )}
           </div>
 
           {/* RRHH Key dates info card */}
           <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
             <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3 flex items-center gap-2">
-              <Info className="w-4 h-4 text-emerald-600" />
-              Fechas Clave RRHH
+              <Info className="w-4 h-4 text-emerald-600" aria-hidden />
+              Fechas clave de RRHH
             </h3>
-            <div className="space-y-3 text-xs">
-              <div className="flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-[color:var(--text-secondary)]">CTS</p>
-                  <p className="text-[color:var(--text-tertiary)]">15 May y 15 Nov</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-[color:var(--text-secondary)]">Gratificaciones</p>
-                  <p className="text-[color:var(--text-tertiary)]">Primera quincena Jul y Dic</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-[color:var(--text-secondary)]">AFP/ONP</p>
-                  <p className="text-[color:var(--text-tertiary)]">Declaración mensual (día 13)</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-[color:var(--text-secondary)]">T-Registro</p>
-                  <p className="text-[color:var(--text-tertiary)]">Dentro de 24h de cada cambio</p>
-                </div>
-              </div>
-            </div>
+            <ul className="space-y-3 text-xs">
+              {KEY_DATES.map((k) => {
+                const Icon = CATEGORY_ICONS[k.category]
+                const action = resolveCalendarEventAction({ category: k.category })
+                return (
+                  <li key={k.category} className="flex items-start gap-2.5">
+                    <Icon className={cn('w-4 h-4 mt-0.5 shrink-0', CATEGORY_STYLES[k.category].text)} aria-hidden />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[color:var(--text-secondary)]">{k.title}</p>
+                      <p className="text-[color:var(--text-tertiary)]">{k.when}</p>
+                      {action && (
+                        <Link
+                          href={action.href}
+                          className="mt-1 inline-flex items-center gap-1 font-semibold text-emerald-700 underline-offset-4 hover:underline"
+                        >
+                          {action.label}
+                          <ArrowRight className="w-3 h-3" aria-hidden />
+                        </Link>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
 
           {/* Legend */}
           <div className="bg-white backdrop-blur-sm rounded-2xl border border-[color:var(--border-default)] shadow-xl p-5">
-            <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3">Leyenda</h3>
-            <div className="space-y-2.5">
+            <h3 className="text-sm font-semibold text-[color:var(--text-emerald-700)] mb-3">Qué significa cada ícono</h3>
+            <ul className="space-y-2.5">
               {(Object.keys(CATEGORY_LABELS) as EventCategory[]).map((cat) => {
                 const Icon = CATEGORY_ICONS[cat]
                 return (
-                  <div key={cat} className="flex items-center gap-2.5">
-                    <div className={cn('w-2.5 h-2.5 rounded-full', CATEGORY_STYLES[cat].dot)} />
-                    <Icon className={cn('w-3.5 h-3.5', CATEGORY_STYLES[cat].text)} />
+                  <li key={cat} className="flex items-center gap-2.5">
+                    <span className={cn('flex h-6 w-6 items-center justify-center rounded-md', CATEGORY_STYLES[cat].bg)}>
+                      <Icon className={cn('w-3.5 h-3.5', CATEGORY_STYLES[cat].text)} aria-hidden />
+                    </span>
                     <span className="text-xs text-[color:var(--text-tertiary)]">{CATEGORY_LABELS[cat]}</span>
-                  </div>
+                  </li>
                 )
               })}
-              <div className="border-t border-[color:var(--border-default)] pt-2 mt-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-500 bg-transparent" />
-                  <span className="text-xs text-[color:var(--text-tertiary)]">Día actual</span>
-                </div>
-              </div>
-            </div>
+              <li className="border-t border-[color:var(--border-default)] pt-2 mt-2 flex items-center gap-2.5">
+                <span className="flex h-6 w-6 items-center justify-center">
+                  <span className="w-3 h-3 rounded-full ring-2 ring-amber-500 bg-transparent" aria-hidden />
+                </span>
+                <span className="text-xs text-[color:var(--text-tertiary)]">Día actual</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
