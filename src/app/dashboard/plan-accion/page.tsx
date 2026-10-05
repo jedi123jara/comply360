@@ -1408,18 +1408,116 @@ function ErrorPanel({ error, onRetry }: { error: string; onRetry: () => void }) 
   )
 }
 
+/**
+ * Qué hay detrás de un plan sin acciones:
+ *  - checking: aún estamos consultando si hay diagnóstico y trabajadores.
+ *  - ready: hay diagnóstico → sí es "todo al día".
+ *  - no-diagnostic: hay trabajadores pero nunca se hizo el diagnóstico.
+ *  - no-data: ni diagnóstico ni trabajadores → no hay nada que evaluar todavía.
+ *  - unknown: no se pudo verificar; no celebramos.
+ */
+type EmptyPlanStatus = 'checking' | 'ready' | 'no-diagnostic' | 'no-data' | 'unknown'
+
 function EmptyState({ total }: { total: number }) {
+  const [status, setStatus] = useState<EmptyPlanStatus>('checking')
+
+  useEffect(() => {
+    if (total !== 0) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const [diagnosticsRes, workersRes] = await Promise.all([
+          fetch('/api/diagnostics', { cache: 'no-store' }),
+          fetch('/api/workers?limit=1&status=ACTIVE,ON_LEAVE,SUSPENDED', { cache: 'no-store' }).catch(() => null),
+        ])
+        if (!diagnosticsRes.ok) throw new Error(`HTTP ${diagnosticsRes.status}`)
+        const diagnosticsBody = (await diagnosticsRes.json()) as {
+          diagnostics?: Array<{ completedAt: string | null }>
+        }
+        const hasDiagnostic = (diagnosticsBody.diagnostics ?? []).some((d) => Boolean(d.completedAt))
+        let hasWorkers = false
+        if (workersRes?.ok) {
+          const workersBody = (await workersRes.json()) as { pagination?: { total?: number } }
+          hasWorkers = (workersBody.pagination?.total ?? 0) > 0
+        }
+        if (!cancelled) setStatus(hasDiagnostic ? 'ready' : hasWorkers ? 'no-diagnostic' : 'no-data')
+      } catch {
+        if (!cancelled) setStatus('unknown')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [total])
+
+  if (total > 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-[color:var(--border-default)] bg-white p-12 text-center">
+        <Filter className="mx-auto h-9 w-9 text-[color:var(--text-tertiary)]" />
+        <p className="mt-3 text-base font-black text-[color:var(--text-primary)]">Sin coincidencias</p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-[color:var(--text-secondary)]">
+          Ajusta los filtros para ver otras acciones pendientes.
+        </p>
+      </div>
+    )
+  }
+
+  if (status === 'checking') {
+    return (
+      <div className="rounded-xl border border-dashed border-[color:var(--border-default)] bg-white p-12 text-center" aria-live="polite">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-[color:var(--text-tertiary)]" />
+        <p className="mt-3 text-sm font-bold text-[color:var(--text-secondary)]">Revisando tu información...</p>
+      </div>
+    )
+  }
+
+  if (status === 'ready') {
+    return (
+      <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 p-12 text-center">
+        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
+        <p className="mt-3 text-base font-black text-emerald-950">Todo al día</p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-emerald-800">
+          No hay tareas abiertas, alertas activas ni capacitaciones obligatorias atrasadas.
+        </p>
+      </div>
+    )
+  }
+
+  const title =
+    status === 'no-data'
+      ? 'Todavía no tenemos datos para armar tu plan'
+      : status === 'no-diagnostic'
+        ? 'Tu plan se arma con el diagnóstico'
+        : 'No hay acciones pendientes en este momento'
+  const description =
+    status === 'no-data'
+      ? 'Haz el diagnóstico o registra a tus trabajadores. Con eso te diremos qué corregir y en qué orden.'
+      : status === 'no-diagnostic'
+        ? 'Tus trabajadores no tienen alertas abiertas, pero aún no haces el diagnóstico. Con él sabremos qué corregir y en qué orden.'
+        : 'Si todavía no haces el diagnóstico, empieza por ahí: con él armamos tu plan de acción.'
+
   return (
-    <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 p-12 text-center">
-      <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-      <p className="mt-3 text-base font-black text-emerald-950">
-        {total === 0 ? 'Plan limpio' : 'Sin coincidencias'}
-      </p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-emerald-800">
-        {total === 0
-          ? 'No hay tareas abiertas, alertas activas ni capacitaciones obligatorias atrasadas.'
-          : 'Ajusta los filtros para ver otras acciones pendientes.'}
-      </p>
+    <div className="rounded-xl border border-dashed border-[color:var(--border-default)] bg-white p-10 text-center">
+      <ListChecks className="mx-auto h-10 w-10 text-[color:var(--text-tertiary)]" />
+      <p className="mt-3 text-base font-black text-[color:var(--text-primary)]">{title}</p>
+      <p className="mx-auto mt-1 max-w-md text-sm text-[color:var(--text-secondary)]">{description}</p>
+      <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row">
+        <Link
+          href="/dashboard/diagnostico"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+        >
+          Hacer el diagnóstico express
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+        {status === 'no-data' ? (
+          <Link
+            href="/dashboard/trabajadores/nuevo"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white px-4 py-2.5 text-sm font-bold text-[color:var(--text-primary)] transition-colors hover:bg-[color:var(--neutral-50)]"
+          >
+            Agregar trabajadores
+          </Link>
+        ) : null}
+      </div>
     </div>
   )
 }
