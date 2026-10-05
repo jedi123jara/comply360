@@ -180,7 +180,7 @@ export function WorkerProfileHeader({ worker }: { worker: WorkerSummary }) {
                 )
               }
             >
-              Consultar Asistente IA
+              Preguntar al asistente
             </Button>
             <Link
               href={`/dashboard/trabajadores/${worker.id}/cese`}

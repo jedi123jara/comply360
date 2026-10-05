@@ -183,7 +183,7 @@ export function ScoreNarrative({
             icon={<Sparkles className="h-4 w-4" />}
             onClick={onAskCopilot}
           >
-            Preguntar al Asistente IA
+            Preguntar al asistente
           </Button>
         </div>
       </div>

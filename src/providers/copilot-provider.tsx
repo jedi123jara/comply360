@@ -6,9 +6,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
+import { PLANS, type PlanKey } from '@/lib/constants'
 
 /**
  * Copilot global state.
@@ -30,6 +32,8 @@ export interface CopilotMessage {
   pageContextLabel?: string
   /** True while streaming partial content. */
   streaming?: boolean
+  /** Aviso de error (plan, límite del mes, falla): no se reenvía como historial. */
+  isError?: boolean
 }
 
 interface CopilotContextValue {
@@ -66,10 +70,102 @@ function nextId(): string {
   return `msg_${Date.now().toString(36)}_${msgCounter}`
 }
 
+/**
+ * Historial que se reenvía al asistente para que entienda preguntas de
+ * seguimiento ("¿y si gana S/ 2,000?"). Acotado para no disparar el consumo:
+ * últimos 6 mensajes, cada uno recortado a 1,500 caracteres.
+ */
+const HISTORY_MAX_MESSAGES = 6
+const HISTORY_MAX_CHARS = 1500
+
+/** Aviso esperado (plan, límite, permisos): se muestra tal cual al usuario. */
+class AssistantNotice extends Error {}
+
+const ALTERNATIVES_TEXT =
+  '**Mientras tanto puedes** usar las calculadoras (CTS, gratificación, vacaciones y más), revisar las normas laborales y crear tus documentos.'
+
+const GENERIC_ERROR_TEXT = [
+  '**No pude responder en este momento**',
+  'Intenta de nuevo en unos minutos. Si el problema sigue, puede que tu plan no incluya el asistente o que ya se haya alcanzado el límite de uso del mes.',
+  ALTERNATIVES_TEXT,
+  '[Escríbenos a soporte →](/dashboard/configuracion/soporte)',
+].join('\n\n')
+
+interface ErrorBody {
+  error?: string
+  message?: string
+  code?: string
+  upgradeUrl?: string
+  requiredPlan?: string
+}
+
+/** Lee el cuerpo de un error, venga como JSON o como evento SSE (`data: {...}`). */
+async function readErrorBody(res: Response): Promise<ErrorBody | null> {
+  const raw = await res.text().catch(() => '')
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as ErrorBody
+  } catch {
+    const dataLine = raw.split(/\r?\n/).find((l) => l.startsWith('data:'))
+    if (!dataLine) return null
+    try {
+      return JSON.parse(dataLine.slice(5).trim()) as ErrorBody
+    } catch {
+      return null
+    }
+  }
+}
+
+function safeUpgradeUrl(url?: string): string {
+  return url && url.startsWith('/') && !url.startsWith('//') ? url : '/dashboard/planes'
+}
+
+function quotaNotice(upgradeUrl?: string): AssistantNotice {
+  return new AssistantNotice(
+    [
+      '**Ya se usó el límite del asistente de este mes**',
+      'Tu plan incluye un límite mensual de uso del asistente. Se renueva al empezar el próximo mes.',
+      ALTERNATIVES_TEXT,
+      `[Ver planes y precios →](${safeUpgradeUrl(upgradeUrl)})`,
+    ].join('\n\n'),
+  )
+}
+
+/** Convierte una respuesta de error del servidor en un aviso claro, si aplica. */
+function noticeFromError(status: number, body: ErrorBody | null): AssistantNotice | null {
+  if (body?.error === 'AI_QUOTA_EXCEEDED' || body?.code === 'AI_QUOTA_EXCEEDED') {
+    return quotaNotice(body.upgradeUrl)
+  }
+  if (body?.code === 'READ_ONLY_ROLE') {
+    return new AssistantNotice(
+      '**Tu usuario es de solo lectura**\n\nPor eso no puede hacer preguntas al asistente. Pide a un administrador de tu empresa que cambie tu permiso en Ajustes › Usuarios y equipo.',
+    )
+  }
+  if (status === 402 || status === 403 || body?.requiredPlan) {
+    const planName = body?.requiredPlan
+      ? (PLANS[body.requiredPlan as PlanKey]?.name ?? body.requiredPlan)
+      : 'Pro'
+    return new AssistantNotice(
+      [
+        `**El asistente está disponible desde el plan ${planName}**`,
+        'Tu plan actual no incluye preguntas al asistente.',
+        ALTERNATIVES_TEXT,
+        `[Ver planes y precios →](${safeUpgradeUrl(body?.upgradeUrl)})`,
+      ].join('\n\n'),
+    )
+  }
+  return null
+}
+
 export function CopilotProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<CopilotMessage[]>([])
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
+  // Copia de los mensajes para armar el historial sin recrear `send`.
+  const messagesRef = useRef<CopilotMessage[]>([])
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   // Restore persisted open state (non-critical — fails silently on SSR)
   useEffect(() => {
@@ -129,6 +225,18 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         content: content.trim(),
         createdAt: new Date().toISOString(),
       }
+      // Solo roles user/assistant, sin avisos de error ni respuestas a medias.
+      // Una pregunta que terminó en error tampoco se reenvía.
+      const prior = messagesRef.current
+      const history = prior
+        .filter((m, i) => {
+          if (m.streaming || m.isError || !m.content.trim()) return false
+          const reply = prior[i + 1]
+          if (m.role === 'user' && reply?.role === 'assistant' && (reply.isError || reply.streaming)) return false
+          return true
+        })
+        .slice(-HISTORY_MAX_MESSAGES)
+        .map((m) => ({ role: m.role, content: m.content.slice(0, HISTORY_MAX_CHARS) }))
       const assistantId = nextId()
       setMessages((prev) => [
         ...prev,
@@ -147,48 +255,26 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            messages: [{ role: 'user', content: userMsg.content }],
+            messages: [...history, { role: 'user', content: userMsg.content }],
             stream: true,
           }),
         })
 
-        // Si el server retorna error con JSON (plan gate, quota, etc),
-        // mostrar el mensaje específico en lugar del genérico "modo offline".
+        // Si el servidor responde con error (plan, límite del mes, permisos),
+        // se muestra un aviso específico en lugar del mensaje genérico.
         if (!res.ok) {
-          let bodyMsg = ''
-          let upgradeUrl = ''
-          try {
-            const errBody = (await res.json()) as {
-              error?: string
-              message?: string
-              code?: string
-              upgradeUrl?: string
-              requiredPlan?: string
-            }
-            bodyMsg = errBody.message ?? errBody.error ?? ''
-            upgradeUrl = errBody.upgradeUrl ?? ''
-            if (errBody.code === 'AI_QUOTA_EXCEEDED') {
-              throw new Error(
-                `📊 **Cuota IA del mes agotada**\n\n${bodyMsg}\n\n${upgradeUrl ? `[Mejora tu plan →](${upgradeUrl})` : ''}`,
-              )
-            }
-            if (res.status === 402 || res.status === 403 || errBody.requiredPlan) {
-              throw new Error(
-                `🔒 **El Asistente IA requiere plan ${errBody.requiredPlan ?? 'PRO'}**\n\nTu plan actual no incluye consultas al Asistente IA.\n\n**Mientras tanto puedes**: usar las 13 calculadoras laborales, las 75+ normas peruanas indexadas, y todos los generadores de documentos.\n\n${upgradeUrl ? `[Ver planes y precios →](${upgradeUrl})` : '[Ver planes →](/dashboard/planes)'}`,
-              )
-            }
-          } catch (innerErr) {
-            if (innerErr instanceof Error && innerErr.message.startsWith('🔒') || (innerErr instanceof Error && innerErr.message.startsWith('📊'))) {
-              throw innerErr
-            }
-            // Si no se pudo parsear JSON, caer al genérico
-          }
-          throw new Error(`HTTP ${res.status}${bodyMsg ? ` — ${bodyMsg}` : ''}`)
+          const errBody = await readErrorBody(res)
+          const notice = noticeFromError(res.status, errBody)
+          if (notice) throw notice
+          const detail = errBody?.message ?? errBody?.error ?? ''
+          throw new Error(`HTTP ${res.status}${detail ? ` — ${detail}` : ''}`)
         }
 
         const contentType = res.headers.get('content-type') ?? ''
+        let receivedText = false
         const appendToLast = (chunk: string) => {
           if (!chunk) return
+          receivedText = true
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId ? { ...m, content: m.content + chunk } : m
@@ -201,7 +287,9 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
           const reader = res.body.getReader()
           const decoder = new TextDecoder()
           let buffer = ''
-          while (true) {
+          let currentEvent = 'message'
+          let streamError: Error | null = null
+          while (!streamError) {
             const { done, value } = await reader.read()
             if (done) break
             buffer += decoder.decode(value, { stream: true })
@@ -209,17 +297,29 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
             buffer = lines.pop() ?? '' // El último elemento puede estar incompleto
 
             for (const line of lines) {
-              if (!line.trim()) continue
-              if (line.startsWith('event:')) continue
+              if (!line.trim()) {
+                currentEvent = 'message' // fin del evento SSE
+                continue
+              }
+              if (line.startsWith('event:')) {
+                currentEvent = line.slice(6).trim()
+                continue
+              }
               if (line.startsWith(':')) continue // heartbeat
               if (!line.startsWith('data:')) continue
 
               const payload = line.slice(5).trim()
               if (payload === '[DONE]') continue
               try {
-                const json = JSON.parse(payload) as {
+                const json = JSON.parse(payload) as ErrorBody & {
                   content?: string
                   delta?: string
+                }
+                if (currentEvent === 'error') {
+                  streamError =
+                    noticeFromError(200, json) ??
+                    new Error(json.message ?? json.error ?? 'Error del asistente')
+                  break
                 }
                 appendToLast(json.content ?? json.delta ?? '')
               } catch {
@@ -227,33 +327,33 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
               }
             }
           }
+          if (streamError) {
+            void reader.cancel().catch(() => {})
+            throw streamError
+          }
         } else {
           // Non-streaming fallback
           const data = (await res.json()) as { content?: string; reply?: string; message?: { content: string } }
           appendToLast(data.message?.content ?? data.content ?? data.reply ?? '')
         }
 
+        // Sin texto no hay respuesta útil: se muestra el aviso genérico.
+        if (!receivedText) throw new Error('Respuesta vacía del asistente')
+
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m))
         )
       } catch (err) {
-        // Si el error es uno de los esperados (plan gate, quota), mostrar
-        // su mensaje específico. Si no, mensaje genérico actualizado.
-        const errMsg = err instanceof Error ? err.message : String(err)
-        const isSpecific = errMsg.startsWith('🔒') || errMsg.startsWith('📊')
+        // Avisos esperados (plan, límite, permisos): se muestran tal cual.
+        // Si ya llegó parte de la respuesta, se conserva.
+        const text = err instanceof AssistantNotice ? err.message : GENERIC_ERROR_TEXT
 
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? {
-                  ...m,
-                  streaming: false,
-                  content:
-                    m.content ||
-                    (isSpecific
-                      ? errMsg
-                      : '🟡 **Asistente IA temporalmente no disponible**\n\nNo pude conectar con el motor de IA. Posibles causas:\n\n• Tu cuota IA mensual del plan se agotó\n• Hubo un error temporal del proveedor\n• Tu plan no incluye Asistente IA\n\n**Mientras tanto puedes seguir usando**: las 13 calculadoras laborales, las 75+ normas peruanas indexadas, los generadores de documentos y plantillas.\n\n[Diagnosticar IA →](/dashboard/configuracion/diagnostico)'),
-                }
+              ? m.content
+                ? { ...m, streaming: false }
+                : { ...m, streaming: false, isError: true, content: text }
               : m
           )
         )
