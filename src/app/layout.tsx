@@ -13,6 +13,7 @@ import Script from "next/script";
 import { BRAND } from "@/lib/brand";
 
 const faviconVersion = "20260511-2";
+const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,9 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND.name}`,
   },
   description: BRAND.description,
+  alternates: {
+    canonical: "/",
+  },
   keywords: [
     "derecho laboral",
     "contratos laborales peru",
@@ -83,6 +87,20 @@ export const metadata: Metadata = {
     title: `${BRAND.name} — Compliance Laboral Inteligente`,
     description: "Plataforma SaaS de compliance laboral para empresas peruanas.",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  ...(googleSiteVerification
+    ? { verification: { google: googleSiteVerification } }
+    : {}),
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -104,7 +122,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#060a12",
+  themeColor: "#f4f8ff",
   width: "device-width",
   initialScale: 1,
 };
@@ -118,10 +136,10 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${firaCode.variable} ${instrumentSerif.variable} h-full antialiased`}
-      style={{ colorScheme: 'dark' }}
+      style={{ colorScheme: 'light' }}
     >
       <head>
-        <meta name="color-scheme" content="dark only" />
+        <meta name="color-scheme" content="light" />
         {/* Plausible analytics — GDPR-friendly, sin cookies. Condicional:
             solo se carga si NEXT_PUBLIC_PLAUSIBLE_DOMAIN está configurado. */}
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ? (

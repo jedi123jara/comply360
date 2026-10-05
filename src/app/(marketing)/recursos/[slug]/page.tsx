@@ -21,9 +21,13 @@ export async function generateMetadata({
     title: `${article.title} · COMPLY360`,
     description: article.metaDescription,
     keywords: [article.keyword, 'Perú', 'laboral', 'SUNAFIL'],
+    alternates: {
+      canonical: `/recursos/${article.slug}`,
+    },
     openGraph: {
       title: article.title,
       description: article.metaDescription,
+      url: `/recursos/${article.slug}`,
       type: 'article',
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt,
