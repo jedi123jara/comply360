@@ -1,25 +1,54 @@
-import { forwardRef } from 'react'
+import { forwardRef, type ReactNode } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 /**
- * Badge v5 — legible en tema claro y oscuro.
+ * Badge v6 — legible en tema claro y oscuro.
  *
- * Variantes tintadas: fondo `-500/12` + borde `-500/30` + tinta 600/700 de la
- * rampa. Las rampas cambian de orden según el tema (dashboard-light.css las
+ * Estados (success/warning/danger/info/neutral + critical/high/low): usan los
+ * colores por función `--status-*` (ver `statusToneClasses`), la misma fuente
+ * que StatusBadge, Field, ConfirmDialog y los avisos.
+ *
+ * Resto de variantes tintadas: fondo `-500/12` + borde `-500/30` + tinta 600/700
+ * de la rampa. Las rampas cambian de orden según el tema (dashboard-light.css las
  * redefine para fondo claro), así que la misma clase da tinta oscura sobre
- * blanco y tinta clara sobre fondo oscuro. Las tintadas dan ≥ 4,5:1 en ambos temas.
+ * blanco y tinta clara sobre fondo oscuro.
  *
- * - `text-crimson-700` usa la rampa vía @theme; amber/gold/success-green van
- *   con `var(--…)` porque su 700 en Tailwind no sigue la rampa del tema.
- * - `success` es VERDE (success-green). `emerald`/`default` es el acento de
- *   marca (azul en el dashboard claro). `info`/`low` es cian/azul.
+ * - `success` es VERDE. `emerald`/`default` es el acento de marca (azul en el
+ *   dashboard claro). `info`/`low` es azul en claro y cian en oscuro.
  * - Sólidos con texto blanco usan tonos que no cambian con el tema
  *   (rose-700) o tinta oscura sobre ámbar, para no depender del orden de la rampa.
  *
  * Canonical severity (AlertSeverity enum):
  *   critical (rojo) · high (ámbar) · medium (dorado) · low (cian/azul)
+ *
+ * Para estados (Cumple / Por vencer / Vencido…) usa `StatusBadge`
+ * (`@/components/ui/status-badge`): siempre muestra ícono + texto, así el
+ * color nunca es la única señal.
  */
+
+/**
+ * Colores por tono de estado (fondo + borde + tinta). Fuente única para Badge
+ * (success/warning/danger/info/neutral y las severidades critical/high/low),
+ * StatusBadge y cualquier pieza que pinte un estado (p. ej. ConfirmDialog).
+ *
+ * Usan los colores por función `--status-{tono}-{fg,bg,border}` de tokens.css,
+ * que cada tema redefine (oscuro en :root y en la isla navy del sidebar, claro
+ * en dashboard-light.css) con fg ≥ 4,5:1 sobre su bg. El valor tras la coma es
+ * el respaldo del tema claro por si la variable no existiera.
+ */
+export const statusToneClasses = {
+  success:
+    'bg-[color:var(--status-success-bg,#ecfdf3)] text-[color:var(--status-success-fg,#166534)] border-[color:var(--status-success-border,#bbf7d0)]',
+  warning:
+    'bg-[color:var(--status-warning-bg,#fff8e7)] text-[color:var(--status-warning-fg,#92400e)] border-[color:var(--status-warning-border,#fde68a)]',
+  danger:
+    'bg-[color:var(--status-danger-bg,#fff1f2)] text-[color:var(--status-danger-fg,#9f1239)] border-[color:var(--status-danger-border,#fecdd3)]',
+  info: 'bg-[color:var(--status-info-bg,#eff6ff)] text-[color:var(--status-info-fg,#1d4ed8)] border-[color:var(--status-info-border,#bfdbfe)]',
+  neutral:
+    'bg-[color:var(--status-neutral-bg,#f1f5f9)] text-[color:var(--status-neutral-fg,#405576)] border-[color:var(--status-neutral-border,#d8e2f0)]',
+} as const
+
 const badgeVariants = cva(
   [
     'inline-flex items-center gap-1.5 font-medium',
@@ -30,18 +59,17 @@ const badgeVariants = cva(
     variants: {
       variant: {
         // Severity
-        critical: 'bg-crimson-500/12 text-crimson-700 border-crimson-500/30',
-        high: 'bg-amber-500/12 text-[color:var(--amber-700)] border-amber-500/30',
+        critical: statusToneClasses.danger,
+        high: statusToneClasses.warning,
         medium: 'bg-gold-500/12 text-[color:var(--gold-700)] border-gold-500/30',
-        low: 'bg-cyan-500/12 text-cyan-200 border-cyan-400/25',
+        low: statusToneClasses.info,
 
         // Semantic
-        success:
-          'bg-[color:var(--success-green-500)]/12 text-[color:var(--success-green-700)] border-[color:var(--success-green-500)]/30',
-        warning: 'bg-amber-500/12 text-[color:var(--amber-700)] border-amber-500/30',
-        danger: 'bg-crimson-500/12 text-crimson-700 border-crimson-500/30',
-        info: 'bg-cyan-500/12 text-cyan-200 border-cyan-400/25',
-        neutral: 'bg-[color:var(--bg-inset)] text-[color:var(--text-secondary)] border-[color:var(--border-default)]',
+        success: statusToneClasses.success,
+        warning: statusToneClasses.warning,
+        danger: statusToneClasses.danger,
+        info: statusToneClasses.info,
+        neutral: statusToneClasses.neutral,
         emerald: 'bg-emerald-500/12 text-emerald-700 border-emerald-500/30',
         gold: 'bg-gold-500/15 text-[color:var(--gold-700)] border-gold-500/40',
 
@@ -77,16 +105,22 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {
   dot?: boolean
+  /** Ícono decorativo antes del texto (se oculta a lectores de pantalla). Reemplaza al `dot`. */
+  icon?: ReactNode
 }
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ className, variant, size, pulse, dot, children, ...props }, ref) => (
+  ({ className, variant, size, pulse, dot, icon, children, ...props }, ref) => (
     <span
       ref={ref}
       className={cn(badgeVariants({ variant, size, pulse }), className)}
       {...props}
     >
-      {dot ? (
+      {icon ? (
+        <span className="inline-flex shrink-0" aria-hidden="true">
+          {icon}
+        </span>
+      ) : dot ? (
         <span
           className="inline-block h-1.5 w-1.5 rounded-full bg-current"
           aria-hidden="true"

@@ -1,17 +1,39 @@
 'use client'
 
-import { forwardRef } from 'react'
+import { forwardRef, useContext } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  DialogReturnFocusContext,
+  dialogLayerClassName,
+  dialogOverlayClassName,
+  returnFocusOnClose,
+  useDialogReturnFocus,
+} from '@/components/ui/modal'
 
 /**
  * Sheet — side drawer built on Radix Dialog.
  * Used by: AI Copilot drawer, calculator drawer, filters panel, worker quick-view.
+ *
+ * Comparte con Modal la capa de fondo (overlay en `--z-modal-backdrop`,
+ * contenido en `--z-modal`), `aria-modal`, cierre con Escape y la devolución
+ * del foco al botón que lo abrió, aunque se controle con `open` sin `SheetTrigger`.
+ * El título se enlaza solo si usas `SheetTitle` dentro de `SheetContent`.
  */
 
-export const Sheet = Dialog.Root
+export type SheetProps = React.ComponentProps<typeof Dialog.Root>
+
+export function Sheet(props: SheetProps) {
+  const returnFocus = useDialogReturnFocus(props.open)
+  return (
+    <DialogReturnFocusContext.Provider value={returnFocus}>
+      <Dialog.Root {...props} />
+    </DialogReturnFocusContext.Provider>
+  )
+}
 export const SheetTrigger = Dialog.Trigger
 export const SheetClose = Dialog.Close
 export const SheetPortal = Dialog.Portal
@@ -22,22 +44,14 @@ export const SheetOverlay = forwardRef<
   React.ElementRef<typeof Dialog.Overlay>,
   React.ComponentPropsWithoutRef<typeof Dialog.Overlay>
 >(({ className, ...props }, ref) => (
-  <Dialog.Overlay
-    ref={ref}
-    className={cn(
-      'fixed inset-0 z-[var(--z-drawer)]',
-      'bg-neutral-900/40 backdrop-blur-sm',
-      'data-[state=open]:motion-fade-in',
-      className
-    )}
-    {...props}
-  />
+  <Dialog.Overlay ref={ref} className={cn(dialogOverlayClassName, className)} {...props} />
 ))
 SheetOverlay.displayName = 'SheetOverlay'
 
 const sheetVariants = cva(
   [
-    'fixed z-[var(--z-drawer)]',
+    'fixed',
+    dialogLayerClassName,
     'bg-[color:var(--bg-elevated)]',
     'border-[color:var(--border-strong)]',
     'shadow-[var(--elevation-4)]',
@@ -98,29 +112,36 @@ export interface SheetContentProps
 export const SheetContent = forwardRef<
   React.ElementRef<typeof Dialog.Content>,
   SheetContentProps
->(({ side, size, className, children, hideClose, ...props }, ref) => (
-  <Dialog.Portal>
-    <SheetOverlay />
-    <Dialog.Content
-      ref={ref}
-      className={cn(sheetVariants({ side, size }), className)}
-      {...props}
-    >
-      {hideClose ? null : (
-        <Dialog.Close asChild>
-          <button
-            type="button"
-            aria-label="Cerrar"
-            className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-[color:var(--text-tertiary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </Dialog.Close>
-      )}
-      {children}
-    </Dialog.Content>
-  </Dialog.Portal>
-))
+>(({ side, size, className, children, hideClose, onCloseAutoFocus, ...props }, ref) => {
+  const returnFocus = useContext(DialogReturnFocusContext)
+  return (
+    <Dialog.Portal>
+      <SheetOverlay />
+      <Dialog.Content
+        ref={ref}
+        aria-modal="true"
+        className={cn(sheetVariants({ side, size }), className)}
+        onCloseAutoFocus={returnFocusOnClose(returnFocus, onCloseAutoFocus)}
+        {...props}
+      >
+        {hideClose ? null : (
+          <Dialog.Close asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Cerrar"
+              className="absolute right-3 top-3 z-10 text-[color:var(--text-tertiary)]"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </Dialog.Close>
+        )}
+        {children}
+      </Dialog.Content>
+    </Dialog.Portal>
+  )
+})
 SheetContent.displayName = 'SheetContent'
 
 export function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { complianceScoreColor } from '@/lib/brand'
+import { complianceScoreColor, complianceScoreLabel } from '@/lib/brand'
 
 /**
  * ProgressRing — the hero component of the Cockpit.
@@ -81,7 +81,7 @@ export function ProgressRing({
       className={cn('relative inline-flex items-center justify-center', className)}
       style={{ width: size, height: size }}
       role="img"
-      aria-label={label ?? `Score ${clamped} de 100`}
+      aria-label={label ?? `Puntaje ${clamped} de 100: ${complianceScoreLabel(clamped)}`}
     >
       <svg
         width={size}

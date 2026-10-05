@@ -28,24 +28,30 @@
  *        tone="danger"
  *      />
  *
- * Internamente monta Radix Dialog reutilizando el estilado de `Modal`.
+ * Internamente monta Radix Dialog reutilizando el estilado de `Modal`
+ * (misma capa de fondo y z-index) y los botones de `Button`.
  * Soporta:
  *  - tone: 'default' | 'danger' | 'warn'
  *  - loading state durante onConfirm
  *  - onConfirm puede ser async — el dialog queda abierto hasta que resuelve
  *  - Enter confirma, Esc cancela
+ *  - `role="alertdialog"` + `aria-modal`, título y descripción enlazados, y el
+ *    foco vuelve al botón que lo abrió (también en la forma imperativa)
  */
 
-import {
-  useEffect,
-  useId,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import * as Dialog from '@radix-ui/react-dialog'
-import { AlertTriangle, Trash2, HelpCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Trash2, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { statusToneClasses } from '@/components/ui/badge'
+import {
+  dialogLayerClassName,
+  dialogOverlayClassName,
+  returnFocusOnClose,
+  useDialogReturnFocus,
+} from '@/components/ui/modal'
 
 export type ConfirmTone = 'default' | 'danger' | 'warn'
 
@@ -65,32 +71,36 @@ export interface ConfirmDialogProps {
   autoCloseOnConfirm?: boolean
 }
 
+/**
+ * Colores por tono: el ícono usa los tonos de estado de Badge (AA en tema
+ * claro y oscuro) y el botón de confirmar reutiliza las variantes de Button.
+ * `warn` usa tinta oscura sobre ámbar: con texto blanco no llega a 4,5:1.
+ */
 const TONE_STYLES: Record<
   ConfirmTone,
   {
-    iconBg: string
-    iconColor: string
+    iconTile: string
     Icon: typeof AlertTriangle
-    confirmBtn: string
+    confirmVariant: 'primary' | 'danger'
+    confirmClassName?: string
   }
 > = {
   default: {
-    iconBg: 'bg-blue-500/12 ring-1 ring-blue-400/25',
-    iconColor: 'text-blue-300',
+    iconTile: statusToneClasses.info,
     Icon: HelpCircle,
-    confirmBtn: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
+    confirmVariant: 'primary',
   },
   danger: {
-    iconBg: 'bg-red-500/12 ring-1 ring-red-400/25',
-    iconColor: 'text-red-300',
+    iconTile: statusToneClasses.danger,
     Icon: Trash2,
-    confirmBtn: 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
+    confirmVariant: 'danger',
   },
   warn: {
-    iconBg: 'bg-amber-500/12 ring-1 ring-amber-400/25',
-    iconColor: 'text-amber-300',
+    iconTile: statusToneClasses.warning,
     Icon: AlertTriangle,
-    confirmBtn: 'bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500',
+    confirmVariant: 'primary',
+    confirmClassName:
+      'bg-amber-500 text-amber-950 hover:bg-amber-400 shadow-none hover:shadow-none',
   },
 }
 
@@ -108,7 +118,7 @@ export function ConfirmDialog({
   const tokens = TONE_STYLES[tone]
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const descriptionId = useId()
+  const returnFocus = useDialogReturnFocus(open)
 
   useEffect(() => {
     if (!open) {
@@ -136,20 +146,19 @@ export function ConfirmDialog({
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && !loading && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay
-          className={cn(
-            'fixed inset-0 z-[var(--z-modal-backdrop)]',
-            'bg-black/50 backdrop-blur-sm',
-            'data-[state=open]:animate-fade-in',
-          )}
-        />
+        <Dialog.Overlay className={dialogOverlayClassName} />
         <Dialog.Content
-          aria-describedby={description ? descriptionId : undefined}
+          role="alertdialog"
+          aria-modal="true"
+          // Radix enlaza la descripción solo; sin descripción no deja aria-describedby colgando.
+          {...(description ? {} : { 'aria-describedby': undefined })}
           onEscapeKeyDown={(e) => loading && e.preventDefault()}
           onPointerDownOutside={(e) => loading && e.preventDefault()}
+          onCloseAutoFocus={returnFocusOnClose(returnFocus)}
           className={cn(
             'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
-            'z-[var(--z-modal)] w-[calc(100vw-2rem)] max-w-md',
+            dialogLayerClassName,
+            'w-[calc(100vw-2rem)] max-w-md',
             'rounded-2xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]',
             'shadow-[var(--elevation-4)]',
             'data-[state=open]:animate-scale-in data-[state=open]:motion-fade-in',
@@ -160,64 +169,49 @@ export function ConfirmDialog({
           <div className="flex gap-4">
             <div
               className={cn(
-                'w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center',
-                tokens.iconBg,
+                'w-11 h-11 rounded-xl border flex-shrink-0 flex items-center justify-center',
+                tokens.iconTile,
               )}
             >
-              <tokens.Icon className={cn('w-5 h-5', tokens.iconColor)} aria-hidden />
+              <tokens.Icon className="w-5 h-5" aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-0">
               <Dialog.Title className="text-base font-semibold text-[color:var(--text-primary)]">
                 {title}
               </Dialog.Title>
               {description && (
-                <Dialog.Description
-                  id={descriptionId}
-                  className="mt-1.5 text-sm text-[color:var(--text-secondary)]"
-                >
+                <Dialog.Description className="mt-1.5 text-sm text-[color:var(--text-secondary)]">
                   {description}
                 </Dialog.Description>
               )}
               {error && (
                 <p
                   role="alert"
-                  className="mt-3 text-sm text-red-200 bg-red-500/12 ring-1 ring-red-400/25 rounded-lg px-3 py-2"
+                  className={cn(
+                    'mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm',
+                    statusToneClasses.danger,
+                  )}
                 >
-                  {error}
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{error}</span>
                 </p>
               )}
             </div>
           </div>
           <div className="mt-6 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className={cn(
-                'px-4 py-2 rounded-xl text-sm font-medium ring-1 ring-slate-300',
-                'bg-[color:var(--bg-surface)] hover:bg-[color:var(--bg-surface-hover)] text-[color:var(--text-secondary)]',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--bg-canvas)]',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-              )}
-            >
+            <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
               {cancelLabel}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant={tokens.confirmVariant}
               onClick={handleConfirm}
-              disabled={loading}
+              loading={loading}
               autoFocus
-              className={cn(
-                'inline-flex items-center justify-center gap-1.5',
-                'px-4 py-2 rounded-xl text-sm font-medium text-white',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                'disabled:opacity-60 disabled:cursor-not-allowed',
-                tokens.confirmBtn,
-              )}
+              className={tokens.confirmClassName}
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? 'Procesando…' : confirmLabel}
-            </button>
+            </Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

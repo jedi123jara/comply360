@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef } from 'react'
+import { forwardRef, useCallback, useEffect, useRef, type Ref, type RefObject } from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { Loader2 } from 'lucide-react'
@@ -20,6 +20,11 @@ import { cn } from '@/lib/utils'
  *   tinta oscura (amber-950); con texto blanco no llegaba a 2,2:1.
  * - `emerald-soft`: tinte emerald /12 + tinta emerald-700, muy sutil
  * - `link`: underline, emerald
+ *
+ * Botones solo-ícono (`size="icon"` / `"icon-sm"` o sin texto): necesitan
+ * `aria-label` (o `aria-labelledby` / `title`) para que el lector de pantalla
+ * diga qué hacen. En desarrollo se avisa por consola una vez por botón si falta.
+ *   <Button size="icon" aria-label="Cerrar"><X className="h-4 w-4" /></Button>
  */
 const buttonVariants = cva(
   [
@@ -99,6 +104,49 @@ export interface ButtonProps
   asChild?: boolean
 }
 
+// ─── Aviso de desarrollo: botón sin nombre accesible ─────────────────────
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === 'function') ref(value)
+  else if (ref) (ref as RefObject<T | null>).current = value
+}
+
+/** Texto que llega al lector de pantalla (ignora lo que está bajo aria-hidden). */
+function hasReadableText(el: Element): boolean {
+  const walker = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent?.trim()) continue
+    const hidden = node.parentElement?.closest('[aria-hidden="true"]')
+    if (!hidden || !el.contains(hidden)) return true
+  }
+  return false
+}
+
+function hasAccessibleName(el: Element): boolean {
+  if (el.getAttribute('aria-label')?.trim()) return true
+  if (el.getAttribute('aria-labelledby')?.trim()) return true
+  if (el.getAttribute('title')?.trim()) return true
+  if (hasReadableText(el)) return true
+  // Un ícono o imagen con nombre propio también nombra al botón.
+  return el.querySelector('[aria-label]:not([aria-label=""]), img[alt]:not([alt=""])') !== null
+}
+
+/** Avisa (solo fuera de producción y una vez por botón) si el botón no tiene nombre. */
+function useAccessibleNameWarning(elementRef: RefObject<HTMLElement | null>) {
+  const warnedRef = useRef(false)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production' || warnedRef.current) return
+    const el = elementRef.current
+    if (!el || hasAccessibleName(el)) return
+    warnedRef.current = true
+    console.warn(
+      '[Button] Botón solo-ícono sin nombre accesible. Agrega `aria-label` (o `aria-labelledby` / `title`) ' +
+        'para que los lectores de pantalla digan qué hace.',
+      el
+    )
+  })
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -118,6 +166,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const Comp = asChild ? Slot : 'button'
     const isDisabled = disabled || loading
+
+    const elementRef = useRef<HTMLButtonElement | null>(null)
+    const setRefs = useCallback(
+      (node: HTMLButtonElement | null) => {
+        elementRef.current = node
+        assignRef(ref, node)
+      },
+      [ref]
+    )
+    useAccessibleNameWarning(elementRef)
 
     const decorated = (
       <>
@@ -139,7 +197,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <Comp
-        ref={ref as never}
+        ref={setRefs as never}
         aria-busy={loading || undefined}
         data-loading={loading || undefined}
         className={cn(buttonVariants({ variant, size, fullWidth }), className)}
