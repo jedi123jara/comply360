@@ -35,7 +35,7 @@ export const POST = withRole('OWNER', async (_req, ctx: AuthContext) => {
   if (previousTrial) {
     return NextResponse.json(
       {
-        error: 'Ya usaste tu trial PRO. Actualiza a un plan pago para continuar.',
+        error: 'Ya usaste tu prueba gratis del plan PRO. Elige un plan de pago para continuar.',
         code: 'TRIAL_ALREADY_USED',
         previousTrialAt: previousTrial.createdAt.toISOString(),
         upgradeUrl: '/dashboard/planes',
@@ -57,7 +57,7 @@ export const POST = withRole('OWNER', async (_req, ctx: AuthContext) => {
   if (!['FREE', 'STARTER'].includes(org.plan)) {
     return NextResponse.json(
       {
-        error: `Ya tienes plan ${org.plan}. El trial está disponible solo para cuentas nuevas o FREE/STARTER.`,
+        error: `Ya tienes el plan ${org.plan}. La prueba gratis solo está disponible para cuentas nuevas o en los planes FREE y STARTER.`,
         code: 'PLAN_NOT_ELIGIBLE',
         currentPlan: org.plan,
       },
@@ -114,12 +114,12 @@ export const POST = withRole('OWNER', async (_req, ctx: AuthContext) => {
       plan: 'PRO',
       trialEnd: trialEnd.toISOString(),
       trialDays: TRIAL_DAYS,
-      message: `Trial PRO activado por ${TRIAL_DAYS} días. Termina el ${trialEnd.toLocaleDateString('es-PE')}.`,
+      message: `Prueba gratis del plan PRO activada por ${TRIAL_DAYS} días. Termina el ${trialEnd.toLocaleDateString('es-PE')}.`,
     })
   } catch (err) {
     console.error('[trial/start] failed', err)
     return NextResponse.json(
-      { error: 'No se pudo activar el trial. Intenta de nuevo o contáctanos.' },
+      { error: 'No se pudo activar la prueba gratis. Inténtalo de nuevo o escríbenos.' },
       { status: 500 },
     )
   }

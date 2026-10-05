@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { listAgents } from '@/lib/agents/registry'
+import type { AgentDefinition } from '@/lib/agents/types'
 import { ShieldAlert, Sparkles, ArrowRight, Scale, Receipt, Radar } from 'lucide-react'
 import type { ComponentType } from 'react'
 
@@ -14,6 +15,29 @@ const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   Radar,
 }
 
+/**
+ * Dónde se usa hoy cada agente desde la plataforma. Si un agente no está aquí,
+ * es porque no tiene pantalla todavía (solo existe el motor) y se muestra como
+ * "No disponible" en lugar de prometer una fecha.
+ */
+const AGENT_ENTRY_POINTS: Record<string, { href: string; cta: string; where?: string }> = {
+  'sunafil-analyzer': {
+    href: '/dashboard/configuracion/automatizaciones/agentes/sunafil',
+    cta: 'Abrir',
+  },
+  'risk-monitor': {
+    href: '/dashboard/centro-sunafil?tab=radar',
+    cta: 'Abrir en Centro SUNAFIL',
+    where: 'Lo encuentras en Centro SUNAFIL, pestaña Radar.',
+  },
+}
+
+const STATUS_LABEL: Record<AgentDefinition['status'], string> = {
+  stable: 'Disponible',
+  beta: 'En prueba',
+  experimental: 'Experimental',
+}
+
 export default function AgentesPage() {
   const agents = listAgents()
 
@@ -26,9 +50,9 @@ export default function AgentesPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Agentes IA</h1>
           <p className="text-sm text-slate-400">
-            Agentes especializados en legislación laboral peruana. Las invocaciones
-            contextuales (revisar contrato, auditar boleta) viven en cada módulo
-            de dominio. Esta vista es para administrar y probar los agentes.
+            Asistentes con inteligencia artificial que revisan documentos y riesgos laborales. Aquí
+            ves cuáles puedes usar hoy y dónde encontrarlos. Sus resultados son una guía: revísalos
+            antes de presentarlos ante SUNAFIL.
           </p>
         </div>
       </div>
@@ -36,7 +60,8 @@ export default function AgentesPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {agents.map(agent => {
           const Icon = ICON_MAP[agent.icon] ?? Sparkles
-          const isAvailable = agent.slug === 'sunafil-analyzer'
+          const entry = AGENT_ENTRY_POINTS[agent.slug]
+          const isAvailable = Boolean(entry)
           const cardClass =
             'group relative overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--bg-elevated)] p-5 transition hover:border-gold-500/60'
           const content = (
@@ -45,22 +70,32 @@ export default function AgentesPage() {
                 <div className="rounded-lg bg-gold-500/10 p-2.5">
                   <Icon className="h-5 w-5 text-gold-500" />
                 </div>
-                <span className="rounded-full bg-gold-500/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gold-400">
-                  {isAvailable ? agent.status : 'Próximo'}
+                <span
+                  className={
+                    isAvailable
+                      ? 'rounded-full bg-gold-500/15 px-2 py-0.5 text-xs font-semibold text-gold-400'
+                      : 'rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600'
+                  }
+                >
+                  {isAvailable ? STATUS_LABEL[agent.status] : 'No disponible'}
                 </span>
               </div>
               <h2 className="text-base font-semibold text-white">{agent.name}</h2>
               <p className="mt-1 line-clamp-3 text-sm text-slate-400">{agent.description}</p>
-              <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                <span>~{agent.estimatedTokens.toLocaleString('es-PE')} tokens</span>
-                <span className="flex items-center gap-1 text-gold-400 group-hover:gap-2 transition-all">
-                  {isAvailable ? 'Abrir' : 'En cola'} {isAvailable && <ArrowRight className="h-3 w-3" />}
-                </span>
+              {entry?.where && <p className="mt-2 text-xs text-slate-500">{entry.where}</p>}
+              <div className="mt-4 flex items-center justify-end text-xs">
+                {isAvailable ? (
+                  <span className="flex items-center gap-1 font-semibold text-gold-400 transition-all group-hover:gap-2">
+                    {entry.cta} <ArrowRight className="h-3 w-3" />
+                  </span>
+                ) : (
+                  <span className="text-slate-500">Aún no se puede usar desde la plataforma.</span>
+                )}
               </div>
             </>
           )
 
-          if (!isAvailable) {
+          if (!entry) {
             return (
               <div
                 key={agent.slug}
@@ -75,7 +110,7 @@ export default function AgentesPage() {
           return (
             <Link
               key={agent.slug}
-              href="/dashboard/configuracion/automatizaciones/agentes/sunafil"
+              href={entry.href}
               prefetch={false}
               className={cardClass}
             >
@@ -83,12 +118,6 @@ export default function AgentesPage() {
             </Link>
           )
         })}
-      </div>
-
-      <div className="rounded-xl border border-dashed border-slate-700 bg-white/30 p-6 text-center">
-        <p className="text-sm text-slate-400">
-          Próximamente: Generador de descargos, Auditor de boletas, Monitor de riesgo proactivo.
-        </p>
       </div>
     </div>
   )

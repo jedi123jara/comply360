@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Building2, Save, Loader2, CheckCircle2, AlertCircle, XCircle, Upload, X, Crown, Sparkles, Users, ChevronLeft, User, Phone, Mail, MapPin, FileText, Search, Landmark, ShieldAlert, Briefcase, MapPinned } from 'lucide-react'
+import { Building2, Save, Loader2, CheckCircle2, AlertCircle, XCircle, X, Crown, Sparkles, Users, ChevronLeft, User, Phone, Mail, MapPin, FileText, Search, Landmark, ShieldAlert, Briefcase, MapPinned } from 'lucide-react'
 import Link from 'next/link'
 import { PLANS as PLANS_SOURCE } from '@/lib/constants'
 import { formatSoles, formatSolesMarketing } from '@/lib/format/peruvian'
@@ -310,12 +310,12 @@ function PlanCard({ plan, currentPlan, workersUsed, workersLimit }: {
           Plan actual
         </button>
       ) : (
-        <button className="mt-4 w-full py-2 rounded-xl border border-white/10 border-[color:var(--border-default)] text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] text-sm font-semibold transition-colors flex items-center justify-center gap-1">
-          Actualizar plan
-          <span className="text-[10px] ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full border border-amber-200 font-bold">
-            Próximamente
-          </span>
-        </button>
+        <Link
+          href="/dashboard/planes"
+          className="mt-4 w-full py-2 rounded-xl border border-[color:var(--border-default)] text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-100)] text-sm font-semibold transition-colors flex items-center justify-center gap-1"
+        >
+          Ver planes
+        </Link>
       )}
     </div>
   )
@@ -335,9 +335,9 @@ export default function EmpresaPage() {
   const rucTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastLookedUpRuc = useRef('')
 
-  // Logo
+  // Logo: solo se muestra el que ya tenga la organización. Subirlo desde aquí
+  // no se guardaba (el formulario no lo enviaba), así que se retiró el botón.
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const logoInputRef = useRef<HTMLInputElement>(null)
 
   // Form state
   const [form, setForm] = useState<CompanyForm>({
@@ -533,22 +533,6 @@ export default function EmpresaPage() {
   }
 
   // =============================================
-  // Logo upload
-  // =============================================
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 2 * 1024 * 1024) {
-      setFeedback({ type: 'error', message: 'El logo no puede superar 2 MB.' })
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = ev => setLogoPreview(ev.target?.result as string)
-    reader.readAsDataURL(file)
-  }
-
-  // =============================================
   // Save
   // =============================================
 
@@ -661,19 +645,13 @@ export default function EmpresaPage() {
           Información General
         </h2>
 
-        {/* Logo Upload */}
+        {/* Logo (solo lectura) */}
         <div className="flex items-start gap-5 mb-6 pb-6 border-b border-white/[0.06] border-white/[0.08]">
           <div className="flex-shrink-0">
             {logoPreview ? (
               <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/[0.08] border-[color:var(--border-default)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={logoPreview} alt="Logo empresa" className="w-full h-full object-contain bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]" />
-                <button
-                  onClick={() => { setLogoPreview(null); if (logoInputRef.current) logoInputRef.current.value = '' }}
-                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                >
-                  <X className="w-3 h-3" />
-                </button>
               </div>
             ) : (
               <div className="w-20 h-20 rounded-xl bg-[color:var(--neutral-100)] border border-white/[0.08] border-[color:var(--border-default)] flex items-center justify-center">
@@ -683,23 +661,10 @@ export default function EmpresaPage() {
           </div>
           <div>
             <p className="text-sm font-semibold text-[color:var(--text-secondary)] mb-1">Logo de la empresa</p>
-            <p className="text-xs text-gray-400 mb-3">
-              PNG, JPG o SVG. Máximo 2 MB. Recomendado: 200×200px.
+            <p className="text-xs text-gray-400">
+              Todavía no puedes subir ni cambiar el logo desde esta pantalla. Tus documentos y
+              reportes se identifican con la razón social y el RUC que registras abajo.
             </p>
-            <button
-              onClick={() => logoInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-3 py-2 border border-white/10 border-[color:var(--border-default)] rounded-xl text-xs font-medium text-slate-300 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Subir logo
-            </button>
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleLogoChange}
-            />
           </div>
         </div>
 

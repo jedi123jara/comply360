@@ -47,7 +47,7 @@ interface Violation {
 }
 
 /* ================================================================== */
-/*  Mock Data                                                          */
+/*  Datos (todos vienen de la API, no hay datos de ejemplo)            */
 /* ================================================================== */
 
 // Data is loaded from API — see useEffect in DrillDownPage component

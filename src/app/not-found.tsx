@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Home, ArrowLeft, Search, ArrowRight } from 'lucide-react'
 import { BRAND } from '@/lib/brand'
 import { BackButton } from '@/components/ui/back-button'
+import { PUBLIC_QUESTION_COUNT, PUBLIC_ESTIMATE } from '@/app/diagnostico-gratis/_lib/public-questions'
 
 export const metadata = {
   title: 'Página no encontrada',
@@ -80,7 +81,7 @@ export default function NotFound() {
                 {
                   href: '/diagnostico-gratis',
                   title: 'Diagnóstico gratis',
-                  desc: '2 min · 20 preguntas',
+                  desc: `${PUBLIC_ESTIMATE} · ${PUBLIC_QUESTION_COUNT} preguntas`,
                 },
                 {
                   href: '/planes',

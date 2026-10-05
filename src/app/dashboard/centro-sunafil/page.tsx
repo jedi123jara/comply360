@@ -211,7 +211,7 @@ interface ExpeditionReadiness {
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof ShieldCheck }> = [
   { key: 'resumen', label: 'Resumen', icon: ShieldCheck },
-  { key: 'diagnostico', label: 'Diagnostico', icon: ClipboardList },
+  { key: 'diagnostico', label: 'Diagnóstico', icon: ClipboardList },
   { key: 'brechas', label: 'Brechas', icon: ShieldAlert },
   { key: 'plan', label: 'Plan', icon: Target },
   { key: 'radar', label: 'Radar', icon: Radar },
@@ -220,20 +220,20 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof ShieldCheck }> = [
 
 const PRIMARY_ACTIONS = [
   {
-    title: 'Ejecutar diagnostico',
-    description: 'Actualiza el score SUNAFIL y detecta brechas por area.',
+    title: 'Ejecutar diagnóstico',
+    description: 'Actualiza el score SUNAFIL y detecta brechas por área.',
     href: '/dashboard/diagnostico',
     icon: ClipboardList,
   },
   {
-    title: 'Simular inspeccion',
+    title: 'Simular inspección',
     description: 'Ensayo preventivo con preguntas y acta orientativa.',
     href: '/dashboard/simulacro',
     icon: ShieldAlert,
   },
   {
-    title: 'Activar inspeccion real',
-    description: 'War room solo cuando ya hay carta, requerimiento o visita.',
+    title: 'Activar inspección real',
+    description: 'Úsalo solo cuando ya hay carta, requerimiento o visita.',
     href: '/dashboard/inspeccion-en-vivo',
     icon: Siren,
   },
@@ -243,11 +243,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   RELACIONES_LABORALES: 'Relaciones laborales',
   SST: 'Seguridad y salud',
   SEGURIDAD_SOCIAL: 'Seguridad social',
-  EMPLEO_COLOCACION: 'Empleo y colocacion',
+  EMPLEO_COLOCACION: 'Empleo y colocación',
   REMUNERACIONES: 'Remuneraciones',
   JORNADA_DESCANSO: 'Jornada y descanso',
   DOCUMENTOS_REGISTROS: 'Documentos y registros',
-  IGUALDAD: 'Igualdad y no discriminacion',
+  IGUALDAD: 'Igualdad y no discriminación',
   MODALIDADES_FORMATIVAS: 'Modalidades formativas',
 }
 
@@ -266,7 +266,7 @@ const RADAR_SEVERITY_STYLE: Record<RadarFinding['severidad'], string> = {
 
 const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   PENDING: 'Pendiente',
-  IN_PROGRESS: 'En subsanacion',
+  IN_PROGRESS: 'En subsanación',
   COMPLETED: 'Cerrada con evidencia',
   DISMISSED: 'Descartada',
 }
@@ -367,7 +367,7 @@ export default function CentroSunafilPage() {
 
   const exposureLevel = report
     ? report.resumen.muyGraves > 0 || report.totalMultaSoles > 100_000
-      ? 'CRITICO'
+      ? 'CRÍTICO'
       : report.resumen.graves > 0
         ? 'ALTO'
         : 'CONTROLADO'
@@ -377,14 +377,14 @@ export default function CentroSunafilPage() {
     if (loadingRisk) {
       return {
         label: 'Actualizando radar',
-        body: 'Se esta recalculando exposicion, brechas y ahorro por subsanacion.',
+        body: 'Se está recalculando exposición, brechas y ahorro por subsanación.',
         tab: 'resumen',
         tone: 'cyan',
       }
     }
     if (!report) {
       return {
-        label: 'Ejecutar diagnostico',
+        label: 'Ejecutar diagnóstico',
         body: 'Hace falta una foto legal completa para ordenar el riesgo.',
         tab: 'diagnostico',
         tone: 'amber',
@@ -392,7 +392,7 @@ export default function CentroSunafilPage() {
     }
     if (topRisks.length > 0) {
       return {
-        label: 'Cerrar brechas criticas',
+        label: 'Cerrar brechas críticas',
         body: `${topRisks.length} frentes deben pasar a tarea, responsable y evidencia.`,
         tab: 'brechas',
         tone: report.resumen.muyGraves > 0 ? 'red' : 'amber',
@@ -401,14 +401,14 @@ export default function CentroSunafilPage() {
     if (simulationScore === null) {
       return {
         label: 'Validar con simulacro',
-        body: 'El riesgo esta controlado; toca probar el expediente como lo miraria SUNAFIL.',
+        body: 'El riesgo está controlado; toca probar el expediente como lo miraría SUNAFIL.',
         tab: 'inspecciones',
         tone: 'cyan',
       }
     }
     return {
       label: 'Mantener radar activo',
-      body: `Ultima simulacion: ${simulationScore}/100. Sigue el monitoreo preventivo.`,
+      body: `Última simulación: ${simulationScore}/100. Sigue el monitoreo preventivo.`,
       tab: 'radar',
       tone: simulationScore >= 80 ? 'emerald' : 'amber',
     }
@@ -423,16 +423,16 @@ export default function CentroSunafilPage() {
               <ShieldCheck className="h-3.5 w-3.5" />
               Centro SUNAFIL
             </div>
-            <h1 className="mt-4 text-3xl font-black text-white">Una cabina unica para riesgo, brechas e inspecciones.</h1>
+            <h1 className="mt-4 text-3xl font-black text-white">Una cabina única para riesgo, brechas e inspecciones.</h1>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              Diagnostico, riesgo monetario, radar preventivo, simulacion e inspecciones reales reunidos en un solo flujo operativo.
+              Diagnóstico, riesgo monetario, radar preventivo, simulación e inspecciones reales reunidos en un solo flujo operativo.
             </p>
           </div>
           <div className="grid min-w-[280px] grid-cols-2 gap-3">
-            <Metric label="Exposicion" value={report ? formatSolesCompact(report.totalMultaSoles) : '...'} tone="red" />
+            <Metric label="Exposición" value={report ? formatSolesCompact(report.totalMultaSoles) : '...'} tone="red" />
             <Metric label="Ahorro subsanando" value={report ? formatSolesCompact(report.ahorroTotalSoles) : '...'} tone="emerald" />
             <Metric label="Brechas" value={report ? String(report.riesgos.length) : '...'} tone="amber" />
-            <Metric label="Estado" value={exposureLevel} tone={exposureLevel === 'CRITICO' ? 'red' : exposureLevel === 'ALTO' ? 'amber' : 'emerald'} />
+            <Metric label="Estado" value={exposureLevel} tone={exposureLevel === 'CRÍTICO' ? 'red' : exposureLevel === 'ALTO' ? 'amber' : 'emerald'} />
           </div>
         </div>
 
@@ -543,7 +543,7 @@ function NextMoveCard({ move, onSelectTab }: { move: NextMove; onSelectTab: (tab
         onClick={() => onSelectTab(move.tab)}
         className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
       >
-        Ver accion
+        Ver acción
         <ArrowRight className="h-4 w-4" />
       </button>
     </div>
@@ -592,7 +592,7 @@ function ExportStrip() {
             Expediente SUNAFIL exportable
           </p>
           <p className="mt-1 text-xs leading-5 text-slate-400">
-            Consolida resumen, brechas, tareas, bitacoras y evidencias para revision legal o defensa inspectiva.
+            Consolida resumen, brechas, tareas, bitácoras y evidencias para revisión legal o defensa inspectiva.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -664,7 +664,7 @@ function ExpedienteHistoryMini({
 
       {!loading && history.length === 0 && !error ? (
         <p className="mt-3 rounded-lg border border-dashed border-white/10 p-2 text-xs leading-5 text-slate-500">
-          Aun no hay versiones registradas. Descarga un PDF o ZIP para crear la primera version auditada.
+          Aún no hay versiones registradas. Descarga un PDF o ZIP para crear la primera versión auditada.
         </p>
       ) : null}
 
@@ -734,7 +734,7 @@ function ResumenTab({
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <Panel title="Resumen ejecutivo" icon={ShieldCheck} action={<RefreshButton loading={loading} onClick={onRefresh} />}>
-          {loading ? <LoadingState label="Calculando exposicion SUNAFIL..." /> : (
+          {loading ? <LoadingState label="Calculando exposición SUNAFIL..." /> : (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-3">
                 <SeverityBox label="Muy graves" value={report?.resumen.muyGraves ?? 0} className="border-red-500/30 bg-red-500/10 text-red-200" />
@@ -745,8 +745,8 @@ function ResumenTab({
                 <p className="text-xs font-bold uppercase text-slate-500">Lectura gerencial</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
                   {topRisks.length > 0
-                    ? 'La prioridad es reducir exposicion monetaria documentando subsanaciones, responsables y evidencia antes de cualquier fiscalizacion.'
-                    : 'No se detectaron brechas criticas en el ultimo escaneo automatico. Mantener monitoreo semanal y evidencias actualizadas.'}
+                    ? 'La prioridad es reducir exposición monetaria documentando subsanaciones, responsables y evidencia antes de cualquier fiscalización.'
+                    : 'No se detectaron brechas críticas en el último escaneo automático. Mantener monitoreo semanal y evidencias actualizadas.'}
                 </p>
               </div>
             </div>
@@ -790,7 +790,7 @@ function OperatingFlow({
       <div className="grid gap-3 md:grid-cols-5">
         <FlowStep
           step="01"
-          title="Diagnostico"
+          title="Diagnóstico"
           status={loading ? 'Calculando' : report ? 'Vigente' : 'Pendiente'}
           tone={report ? 'emerald' : 'amber'}
           icon={ClipboardList}
@@ -807,7 +807,7 @@ function OperatingFlow({
         <FlowStep
           step="03"
           title="Plan"
-          status={topRisks.length > 0 ? 'Accion requerida' : 'Sin urgencia'}
+          status={topRisks.length > 0 ? 'Acción requerida' : 'Sin urgencia'}
           tone={topRisks.length > 0 ? 'amber' : 'emerald'}
           icon={Target}
           onClick={() => onSelectTab('plan')}
@@ -822,7 +822,7 @@ function OperatingFlow({
         />
         <FlowStep
           step="05"
-          title="Inspeccion real"
+          title="Inspección real"
           status="Solo con carta"
           tone="cyan"
           icon={Siren}
@@ -862,8 +862,8 @@ function ImpactSimulator({
 
   const options: Array<{ key: typeof scope; label: string; helper: string }> = [
     { key: 'top1', label: '1 brecha', helper: 'primer golpe' },
-    { key: 'top3', label: '3 brechas', helper: '7 dias' },
-    { key: 'top5', label: '5 brechas', helper: '30 dias' },
+    { key: 'top3', label: '3 brechas', helper: '7 días' },
+    { key: 'top5', label: '5 brechas', helper: '30 días' },
     { key: 'all', label: 'todas', helper: 'cierre total' },
   ]
 
@@ -883,11 +883,11 @@ function ImpactSimulator({
       }
     >
       {loading ? (
-        <LoadingState label="Calculando escenarios de reduccion de multa..." />
+        <LoadingState label="Calculando escenarios de reducción de multa..." />
       ) : !report || sortedRisks.length === 0 ? (
         <EmptyState
           title="No hay multa evitable pendiente"
-          body="El escaneo actual no detecta brechas con exposicion monetaria. Mantener radar preventivo."
+          body="El escaneo actual no detecta brechas con exposición monetaria. Mantener radar preventivo."
         />
       ) : (
         <div className="space-y-4">
@@ -916,24 +916,24 @@ function ImpactSimulator({
           </div>
 
           <div className="grid gap-3 md:grid-cols-4">
-            <ScenarioKpi label="Exposicion actual" value={formatSolesCompact(totalExposure)} tone="red" />
+            <ScenarioKpi label="Exposición actual" value={formatSolesCompact(totalExposure)} tone="red" />
             <ScenarioKpi label="Ahorro posible" value={formatSolesCompact(selectedSavings)} tone="emerald" />
-            <ScenarioKpi label="Reduccion" value={`${reductionPct}%`} tone={reductionPct >= 70 ? 'emerald' : reductionPct >= 40 ? 'cyan' : 'amber'} />
+            <ScenarioKpi label="Reducción" value={`${reductionPct}%`} tone={reductionPct >= 70 ? 'emerald' : reductionPct >= 40 ? 'cyan' : 'amber'} />
             <ScenarioKpi label="Luego de subsanar" value={formatSolesCompact(remainingExposure)} tone={remainingExposure === 0 ? 'emerald' : 'amber'} />
           </div>
 
           <div className="rounded-xl border border-white/10 bg-slate-950/35 p-4">
             <div className="flex items-center justify-between gap-3 text-xs font-black uppercase text-slate-400">
-              <span>Impacto sobre exposicion total</span>
+              <span>Impacto sobre exposición total</span>
               <span>{selectedCount} de {sortedRisks.length} brecha(s)</span>
             </div>
             <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
               <div className="h-full rounded-full bg-emerald-300" style={{ width: `${Math.min(100, reductionPct)}%` }} />
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold text-slate-400">
-              <span className="text-emerald-200">{reductionPct}% bajaria por subsanacion voluntaria</span>
-              <span>{selectedSharePct}% de la exposicion esta en el bloque elegido</span>
-              <span>{remainingPct}% quedaria por gestionar</span>
+              <span className="text-emerald-200">{reductionPct}% bajaría por subsanación voluntaria</span>
+              <span>{selectedSharePct}% de la exposición está en el bloque elegido</span>
+              <span>{remainingPct}% quedaría por gestionar</span>
             </div>
           </div>
 
@@ -1027,21 +1027,21 @@ function FlowStep({
 function DiagnosticoTab() {
   return (
     <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-      <Panel title="Diagnostico SUNAFIL" icon={ClipboardList}>
+      <Panel title="Diagnóstico SUNAFIL" icon={ClipboardList}>
         <p className="text-sm leading-6 text-slate-300">
-          El diagnostico es la foto legal de la empresa. Desde aqui se actualiza el score, se detectan brechas y se alimentan el plan de accion, el radar y la simulacion.
+          El diagnóstico es la foto legal de la empresa. Desde aquí se actualiza el score, se detectan brechas y se alimentan el plan de acción, el radar y la simulación.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <PrimaryLink href="/dashboard/diagnostico">Iniciar diagnostico</PrimaryLink>
+          <PrimaryLink href="/dashboard/diagnostico">Iniciar diagnóstico</PrimaryLink>
           <SecondaryLink href="/dashboard/configuracion/diagnostico">Configurar criterio</SecondaryLink>
         </div>
       </Panel>
-      <Panel title="Que debe producir" icon={FileText}>
+      <Panel title="Qué debe producir" icon={FileText}>
         <Checklist items={[
-          'Score por area y peso de riesgo.',
+          'Score por área y peso de riesgo.',
           'Brechas con norma, gravedad y multa estimada.',
           'Evidencia requerida para subsanar.',
-          'Plan de accion priorizado y trazable.',
+          'Plan de acción priorizado y trazable.',
         ]} />
       </Panel>
     </div>
@@ -1110,7 +1110,7 @@ function BrechasTab({ report, loading, topRisks, onRefresh }: { report: RiskRepo
           title: risk.titulo,
           area: risk.categoria.toLowerCase(),
           description: [
-            `Accion inmediata: ${risk.accionInmediata}`,
+            `Acción inmediata: ${risk.accionInmediata}`,
             `Responsable sugerido: ${owner}`,
             `Evidencia requerida: ${evidence.join('; ')}`,
             `Riesgo SUNAFIL: ${risk.severidad.replace('_', ' ')} (${risk.codigo}).`,
@@ -1232,9 +1232,9 @@ function BrechasTab({ report, loading, topRisks, onRefresh }: { report: RiskRepo
         <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-black text-white">Expediente de subsanacion</p>
+              <p className="text-sm font-black text-white">Expediente de subsanación</p>
               <p className="mt-1 text-xs leading-5 text-cyan-100/80">
-                Cada brecha puede convertirse en tarea con plazo, responsable sugerido, evidencia y trazabilidad para auditoria.
+                Cada brecha puede convertirse en tarea con plazo, responsable sugerido, evidencia y trazabilidad para auditoría.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1275,7 +1275,7 @@ function BrechasTab({ report, loading, topRisks, onRefresh }: { report: RiskRepo
           </div>
         ) : null}
         {loading ? <LoadingState label="Escaneando trabajadores, contratos y documentos..." /> : topRisks.length === 0 ? (
-          <EmptyState title="Sin brechas criticas detectadas" body="Mantener radar activo y evidencias actualizadas." />
+          <EmptyState title="Sin brechas críticas detectadas" body="Mantener radar activo y evidencias actualizadas." />
         ) : (
           <>
           {visibleRisks.map((risk, index) => {
@@ -1352,7 +1352,7 @@ function ReadinessPanel({ readiness }: { readiness: ExpeditionReadiness }) {
           <ReadinessKpi label="Con archivos" value={readiness.withEvidence} />
           <ReadinessKpi label="Evid. cubiertas" value={`${readiness.coveredEvidence}/${readiness.requiredEvidence}`} />
           <ReadinessKpi label="Cobertura evid." value={`${readiness.evidenceCoverage}%`} />
-          <ReadinessKpi label="En subsanacion" value={readiness.inProgress} />
+          <ReadinessKpi label="En subsanación" value={readiness.inProgress} />
           <ReadinessKpi label="Cerradas" value={readiness.completed} />
           <ReadinessKpi label="Sin tarea" value={readiness.withoutTask} />
         </div>
@@ -1360,7 +1360,7 @@ function ReadinessPanel({ readiness }: { readiness: ExpeditionReadiness }) {
 
       {readiness.blockers.length > 0 ? (
         <div className="mt-4 rounded-lg border border-white/10 bg-slate-950/35 p-3">
-          <p className="text-xs font-black uppercase text-white">Prioridades antes de enfrentar una inspeccion</p>
+          <p className="text-xs font-black uppercase text-white">Prioridades antes de enfrentar una inspección</p>
           <div className="mt-3 space-y-2">
             {readiness.blockers.map((item) => (
               <div key={item.id} className="flex flex-col gap-2 rounded-lg border border-white/10 bg-black/15 p-3 md:flex-row md:items-center md:justify-between">
@@ -1380,7 +1380,7 @@ function ReadinessPanel({ readiness }: { readiness: ExpeditionReadiness }) {
         </div>
       ) : (
         <div className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-400/10 p-3 text-xs font-bold text-emerald-100">
-          Todas las brechas detectadas tienen tratamiento documental suficiente para revision interna.
+          Todas las brechas detectadas tienen tratamiento documental suficiente para revisión interna.
         </div>
       )}
     </div>
@@ -1399,7 +1399,7 @@ function ReadinessKpi({ label, value }: { label: string; value: number | string 
 function PlanTab({ topRisks }: { topRisks: Riesgo[] }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
-      <Panel title="Plan de accion" icon={Target}>
+      <Panel title="Plan de acción" icon={Target}>
         <div className="space-y-3">
           {(topRisks.length > 0 ? topRisks.slice(0, 4) : []).map((risk, index) => (
             <div key={`${risk.codigo}-plan`} className="rounded-xl border border-white/10 bg-slate-950/30 p-3">
@@ -1408,16 +1408,16 @@ function PlanTab({ topRisks }: { topRisks: Riesgo[] }) {
               <p className="mt-1 text-xs text-slate-500">{risk.baseLegal}</p>
             </div>
           ))}
-          {topRisks.length === 0 ? <EmptyState title="Plan sin urgencias criticas" body="Puedes usar Tareas de compliance para mantener controles recurrentes." /> : null}
+          {topRisks.length === 0 ? <EmptyState title="Plan sin urgencias críticas" body="Puedes usar Tareas de compliance para mantener controles recurrentes." /> : null}
           <PrimaryLink href="/dashboard/tareas">Abrir tareas de compliance</PrimaryLink>
         </div>
       </Panel>
-      <Panel title="Evidencia minima" icon={FileCheck2}>
+      <Panel title="Evidencia mínima" icon={FileCheck2}>
         <Checklist items={[
           'Documento firmado o registro oficial.',
           'Responsable asignado y fecha de cierre.',
           'Sustento normativo y trazabilidad.',
-          'Archivo listo para inspeccion o requerimiento.',
+          'Archivo listo para inspección o requerimiento.',
         ]} />
       </Panel>
     </div>
@@ -1454,15 +1454,15 @@ function RadarTab({ onRefresh, loading }: { onRefresh: () => void; loading: bool
     <Panel title="Radar preventivo" icon={Radar} action={<RefreshButton loading={loading} onClick={onRefresh} />}>
       <div className="grid gap-3 md:grid-cols-3">
         <RadarSignal title="Vencimientos" body="Contratos, vacaciones, documentos y plazos cercanos." icon={Bell} />
-        <RadarSignal title="Brechas nuevas" body="Cambios en trabajadores o legajos que elevan exposicion." icon={AlertTriangle} />
-        <RadarSignal title="Fiscalizacion probable" body="Areas con historial de alto impacto o multa mayor." icon={ShieldAlert} />
+        <RadarSignal title="Brechas nuevas" body="Cambios en trabajadores o legajos que elevan exposición." icon={AlertTriangle} />
+        <RadarSignal title="Fiscalización probable" body="Áreas con historial de alto impacto o multa mayor." icon={ShieldAlert} />
       </div>
       <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/35 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-bold text-white">Barrido inteligente</p>
             <p className="mt-1 text-sm leading-6 text-slate-400">
-              Revisa trabajadores, contratos, vacaciones, documentos y alertas que pueden convertirse en fiscalizacion.
+              Revisa trabajadores, contratos, vacaciones, documentos y alertas que pueden convertirse en fiscalización.
             </p>
           </div>
           <button
@@ -1503,7 +1503,7 @@ function RadarTab({ onRefresh, loading }: { onRefresh: () => void; loading: bool
               </div>
             </div>
             <div className="rounded-xl border border-white/10 bg-slate-950/35 p-4 lg:col-span-2">
-              <p className="text-xs font-bold uppercase text-slate-500">Exposicion preventiva</p>
+              <p className="text-xs font-bold uppercase text-slate-500">Exposición preventiva</p>
               <p className="mt-2 text-3xl font-black text-red-300">{formatSoles(data.exposicionTotalSoles)}</p>
               <p className="mt-1 text-xs text-slate-500">
                 {data.totalTrabajadoresEvaluados} trabajadores y {data.totalContratosEvaluados} contratos evaluados.
@@ -1511,21 +1511,21 @@ function RadarTab({ onRefresh, loading }: { onRefresh: () => void; loading: bool
             </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-4">
-            <SeverityBox label="Criticos" value={data.desglosePorSeveridad.CRITICO} className={RADAR_SEVERITY_STYLE.CRITICO} />
+            <SeverityBox label="Críticos" value={data.desglosePorSeveridad.CRITICO} className={RADAR_SEVERITY_STYLE.CRITICO} />
             <SeverityBox label="Altos" value={data.desglosePorSeveridad.ALTO} className={RADAR_SEVERITY_STYLE.ALTO} />
             <SeverityBox label="Medios" value={data.desglosePorSeveridad.MEDIO} className={RADAR_SEVERITY_STYLE.MEDIO} />
             <SeverityBox label="Bajos" value={data.desglosePorSeveridad.BAJO} className={RADAR_SEVERITY_STYLE.BAJO} />
           </div>
           <div className="space-y-2">
             {data.findings.length === 0 ? (
-              <EmptyState title="Radar sin hallazgos" body="El barrido no encontro riesgos preventivos nuevos." />
+              <EmptyState title="Radar sin hallazgos" body="El barrido no encontró riesgos preventivos nuevos." />
             ) : (
               data.findings.map((finding) => <RadarFindingRow key={finding.id} finding={finding} />)
             )}
           </div>
           {radarResult.recommendedActions.length > 0 ? (
             <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 p-4">
-              <p className="text-sm font-black text-white">Proximos pasos sugeridos</p>
+              <p className="text-sm font-black text-white">Próximos pasos sugeridos</p>
               <div className="mt-3 space-y-2">
                 {radarResult.recommendedActions.map((action) => (
                   <div key={action.id} className="rounded-lg border border-white/10 bg-slate-950/30 p-3">
@@ -1537,7 +1537,7 @@ function RadarTab({ onRefresh, loading }: { onRefresh: () => void; loading: bool
             </div>
           ) : null}
           <p className="text-center text-xs text-slate-500">
-            Ultimo radar: {new Date(data.scanFecha).toLocaleString('es-PE')} · Duracion: {radarResult.durationMs}ms
+            Último radar: {new Date(data.scanFecha).toLocaleString('es-PE')} · Duración: {radarResult.durationMs}ms
           </p>
         </div>
       ) : null}
@@ -1576,9 +1576,9 @@ function RadarFindingRow({ finding }: { finding: RadarFinding }) {
 function InspeccionesTab({ onSimulate, simulating, simulationScore }: { onSimulate: () => void; simulating: boolean; simulationScore: number | null }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Panel title="Simular inspeccion" icon={ShieldAlert}>
+      <Panel title="Simular inspección" icon={ShieldAlert}>
         <p className="text-sm leading-6 text-slate-300">
-          Usa simulacion como prueba preventiva. El valor es saber que observaria SUNAFIL si revisara hoy.
+          Usa simulación como prueba preventiva. El valor es saber qué observaría SUNAFIL si revisara hoy.
         </p>
         <button
           type="button"
@@ -1599,9 +1599,9 @@ function InspeccionesTab({ onSimulate, simulating, simulationScore }: { onSimula
           </div>
         ) : null}
       </Panel>
-      <Panel title="Inspeccion real" icon={Siren}>
+      <Panel title="Inspección real" icon={Siren}>
         <p className="text-sm leading-6 text-slate-300">
-          Activalo solo cuando ya exista carta inductiva, requerimiento, orden inspectiva o visita. En ese caso se trabaja con expediente, plazos, respuestas y evidencia.
+          Actívalo solo cuando ya exista carta inductiva, requerimiento, orden inspectiva o visita. En ese caso se trabaja con expediente, plazos, respuestas y evidencia.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <PrimaryLink href="/dashboard/inspeccion-en-vivo">Activar caso inspectivo</PrimaryLink>
@@ -1657,7 +1657,7 @@ function buildExpedienteReadiness(
   if (risks.length === 0) {
     return {
       score: 100,
-      label: 'Sin brechas criticas',
+      label: 'Sin brechas críticas',
       tone: 'emerald',
       totalRisks: 0,
       requiredEvidence: 0,
@@ -1737,12 +1737,12 @@ function buildExpedienteReadiness(
   const evidenceCoverage = requiredEvidence > 0 ? Math.round((coveredEvidence / requiredEvidence) * 100) : 100
   const tone: Tone = score >= 90 ? 'emerald' : score >= 70 ? 'cyan' : score >= 50 ? 'amber' : 'red'
   const label = score >= 90
-    ? 'Listo para revision'
+    ? 'Listo para revisión'
     : score >= 70
-      ? 'En preparacion'
+      ? 'En preparación'
       : score >= 50
-        ? 'Subsanacion activa'
-        : 'Expediente critico'
+        ? 'Subsanación activa'
+        : 'Expediente crítico'
 
   return {
     score,
@@ -1832,9 +1832,9 @@ function deadlineLabel(date: Date, status?: TaskStatus) {
   if (status === 'DISMISSED') return 'Descartada'
   const diffMs = date.getTime() - Date.now()
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-  if (diffDays < 0) return `Vencida hace ${Math.abs(diffDays)} dia(s)`
+  if (diffDays < 0) return `Vencida hace ${Math.abs(diffDays)} día(s)`
   if (diffDays === 0) return 'Vence hoy'
-  return `${diffDays} dia(s) restantes`
+  return `${diffDays} día(s) restantes`
 }
 
 function dossierProgress(task: ComplianceTaskSummary | undefined, coverage: EvidenceCoverage) {
@@ -1844,7 +1844,7 @@ function dossierProgress(task: ComplianceTaskSummary | undefined, coverage: Evid
   if (task.status === 'COMPLETED') return { value: 86, label: `Cerrado con ${coverage.covered}/${coverage.total} evidencias requeridas` }
   if (coverage.percent === 100) return { value: 88, label: 'Checklist documental completo' }
   if (coverage.covered > 0) return { value: 72, label: `${coverage.covered}/${coverage.total} evidencias requeridas cubiertas` }
-  if (task.status === 'IN_PROGRESS') return { value: 65, label: 'Subsanacion en curso' }
+  if (task.status === 'IN_PROGRESS') return { value: 65, label: 'Subsanación en curso' }
   return { value: 40, label: 'Tarea creada' }
 }
 
@@ -1888,10 +1888,10 @@ function primaryEvidenceUrl(task?: ComplianceTaskSummary) {
 function ownerForRisk(risk: Riesgo) {
   const text = `${risk.categoria} ${risk.titulo}`.toLowerCase()
   if (text.includes('seguridad_social') || text.includes('essalud') || text.includes('seguro social')) return 'Planillas + RRHH'
-  if (text.includes('sst') || text.includes('seguridad') || text.includes('salud')) return 'Comite/Supervisor SST'
+  if (text.includes('sst') || text.includes('seguridad') || text.includes('salud')) return 'Comité/Supervisor SST'
   if (text.includes('remuner') || text.includes('beneficio') || text.includes('planilla')) return 'Planillas + RRHH'
   if (text.includes('contrato') || text.includes('registro') || text.includes('tercer')) return 'RRHH + Legal laboral'
-  if (text.includes('hostig') || text.includes('igualdad') || text.includes('discrimin')) return 'RRHH + Comite/Delegado'
+  if (text.includes('hostig') || text.includes('igualdad') || text.includes('discrimin')) return 'RRHH + Comité/Delegado'
   if (text.includes('jornada') || text.includes('descanso')) return 'RRHH operativo'
   return 'Responsable de compliance'
 }
@@ -1906,17 +1906,17 @@ function evidenceRequirementsForRisk(risk: Riesgo): EvidenceRequirement[] {
     return [
       {
         id: 'essalud-afiliacion',
-        label: 'Constancia de afiliacion a EsSalud',
+        label: 'Constancia de afiliación a EsSalud',
         keywords: ['essalud', 'afiliacion', 'seguro social'],
       },
       {
         id: 'tregistro-actualizacion',
-        label: 'Alta o actualizacion en T-Registro',
+        label: 'Alta o actualización en T-Registro',
         keywords: ['t-registro', 't registro', 'alta', 'actualizacion'],
       },
       {
         id: 'aportes-planilla',
-        label: 'Sustento de aportes y regularizacion en planilla',
+        label: 'Sustento de aportes y regularización en planilla',
         keywords: ['aporte', 'planilla', 'regularizacion', 'pago'],
       },
     ]
@@ -1930,12 +1930,12 @@ function evidenceRequirementsForRisk(risk: Riesgo): EvidenceRequirement[] {
       },
       {
         id: 'sst-acta-comite',
-        label: 'Acta del Comite o Supervisor SST',
+        label: 'Acta del Comité o Supervisor SST',
         keywords: ['acta', 'comite', 'supervisor', 'sst'],
       },
       {
         id: 'sst-capacitacion-medidas',
-        label: 'Constancias de capacitacion y medidas correctivas',
+        label: 'Constancias de capacitación y medidas correctivas',
         keywords: ['capacitacion', 'constancia', 'medida correctiva', 'medidas correctivas'],
       },
     ]
@@ -1949,12 +1949,12 @@ function evidenceRequirementsForRisk(risk: Riesgo): EvidenceRequirement[] {
       },
       {
         id: 'remu-calculo-reintegro',
-        label: 'Calculo de reintegro o beneficio',
+        label: 'Cálculo de reintegro o beneficio',
         keywords: ['calculo', 'reintegro', 'beneficio', 'liquidacion'],
       },
       {
         id: 'remu-constancia-pago',
-        label: 'Constancia de pago o regularizacion',
+        label: 'Constancia de pago o regularización',
         keywords: ['constancia', 'pago', 'regularizacion', 'deposito'],
       },
     ]
@@ -1968,12 +1968,12 @@ function evidenceRequirementsForRisk(risk: Riesgo): EvidenceRequirement[] {
       },
       {
         id: 'contrato-tregistro',
-        label: 'Alta/actualizacion en T-Registro',
+        label: 'Alta/actualización en T-Registro',
         keywords: ['t-registro', 't registro', 'alta', 'actualizacion'],
       },
       {
         id: 'contrato-cargo-comunicacion',
-        label: 'Cargo de entrega o comunicacion al trabajador',
+        label: 'Cargo de entrega o comunicación al trabajador',
         keywords: ['cargo', 'entrega', 'comunicacion', 'trabajador'],
       },
     ]
@@ -1982,17 +1982,17 @@ function evidenceRequirementsForRisk(risk: Riesgo): EvidenceRequirement[] {
     return [
       {
         id: 'igualdad-politica-protocolo',
-        label: 'Politica o protocolo vigente',
+        label: 'Política o protocolo vigente',
         keywords: ['politica', 'protocolo', 'hostigamiento', 'igualdad'],
       },
       {
         id: 'igualdad-actas-comite',
-        label: 'Actas del Comite/Delegado',
+        label: 'Actas del Comité/Delegado',
         keywords: ['acta', 'comite', 'delegado', 'delegada'],
       },
       {
         id: 'igualdad-capacitacion-comunicaciones',
-        label: 'Capacitacion y comunicaciones internas',
+        label: 'Capacitación y comunicaciones internas',
         keywords: ['capacitacion', 'comunicacion', 'difusion', 'charla'],
       },
     ]
@@ -2019,7 +2019,7 @@ function evidenceRequirementsForRisk(risk: Riesgo): EvidenceRequirement[] {
   return [
     {
       id: 'generico-documento-subsanacion',
-      label: 'Documento de subsanacion firmado',
+      label: 'Documento de subsanación firmado',
       keywords: ['documento', 'subsanacion', 'firmado', 'firmada'],
     },
     {
@@ -2029,7 +2029,7 @@ function evidenceRequirementsForRisk(risk: Riesgo): EvidenceRequirement[] {
     },
     {
       id: 'generico-evidencia-inspeccion',
-      label: 'Evidencia cargada lista para inspeccion',
+      label: 'Evidencia cargada lista para inspección',
       keywords: ['evidencia', 'inspeccion', 'sunafil', 'expediente'],
     },
   ]
@@ -2247,7 +2247,7 @@ function RiskCard({
         />
       ) : (
         <div className="mt-3 rounded-lg border border-dashed border-white/15 bg-slate-950/30 p-3 text-xs leading-5 text-slate-400">
-          Crea la tarea para habilitar bitacora, carga de informes y cierre con evidencia.
+          Crea la tarea para habilitar bitácora, carga de informes y cierre con evidencia.
         </div>
       )}
     </div>
@@ -2317,12 +2317,12 @@ function EvidenceWorkspace({
     <div className="mt-3 rounded-lg border border-white/10 bg-slate-950/45 p-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
-          <label className="text-xs font-black uppercase text-slate-200">Bitacora de avance</label>
+          <label className="text-xs font-black uppercase text-slate-200">Bitácora de avance</label>
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={3}
-            placeholder="Registra la actuacion: documento emitido, responsable, fecha, sustento y pendiente."
+            placeholder="Registra la actuación: documento emitido, responsable, fecha, sustento y pendiente."
             className="mt-2 w-full resize-none rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60"
           />
           {localError ? (
@@ -2362,7 +2362,7 @@ function EvidenceWorkspace({
             </div>
           ) : (
             <p className="mt-2 rounded-lg border border-dashed border-white/10 p-2 text-xs leading-5 text-slate-500">
-              Aun no hay archivos cargados para esta brecha.
+              Aún no hay archivos cargados para esta brecha.
             </p>
           )}
           {suggestedTitle ? (
@@ -2373,7 +2373,7 @@ function EvidenceWorkspace({
           <input
             value={evidenceTitle}
             onChange={(event) => setEvidenceTitle(event.target.value)}
-            placeholder={suggestedTitle ? `Titulo recomendado: ${suggestedTitle}` : 'Titulo opcional: Acta, informe, constancia...'}
+            placeholder={suggestedTitle ? `Título recomendado: ${suggestedTitle}` : 'Título opcional: Acta, informe, constancia...'}
             className="mt-3 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60"
           />
           <input

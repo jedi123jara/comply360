@@ -8,7 +8,6 @@ import {
   Link2,
   CreditCard,
   Lock,
-  Palette,
   Smartphone,
   ChevronRight,
 } from 'lucide-react'
@@ -61,10 +60,10 @@ const CATEGORIES: SettingsCategory[] = [
   {
     key: 'integraciones',
     label: 'Integraciones',
-    description: 'SUNAT, T-Registro, PLAME y otras conexiones externas',
+    description: 'Archivos para T-Registro y PLAME, y avisos automáticos a otros sistemas',
     emoji: '🔗',
     icon: Link2,
-    href: '/dashboard/configuracion/integraciones',
+    href: '/dashboard/integraciones',
   },
   {
     key: 'facturacion',
@@ -83,24 +82,13 @@ const CATEGORIES: SettingsCategory[] = [
     href: '/dashboard/configuracion/seguridad',
   },
   {
-    key: 'personalizacion',
-    label: 'Personalización',
-    description: 'Tema, idioma, moneda y preferencias de la interfaz',
-    emoji: '🎨',
-    icon: Palette,
-    href: '/dashboard/configuracion/personalizacion',
-    disabled: true,
-    badge: 'Q3 2026',
-  },
-  {
     key: 'marca-blanca',
-    label: 'Marca Blanca',
-    description: 'Personaliza la plataforma con tu propio branding',
+    label: 'Marca blanca',
+    description: 'Usar la plataforma con el nombre y los colores de tu consultora',
     emoji: '📱',
     icon: Smartphone,
-    href: '/dashboard/configuracion/marca-blanca',
     disabled: true,
-    badge: 'Plan Pro',
+    badge: 'No disponible',
   },
 ]
 
@@ -170,15 +158,7 @@ export default function ConfiguracionPage() {
                     {category.label}
                   </span>
                   {category.badge && (
-                    <span
-                      className={`
-                        text-[10px] font-bold px-2 py-0.5 rounded-full
-                        ${category.badge === 'Plan Pro'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        }
-                      `}
-                    >
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                       {category.badge}
                     </span>
                   )}
@@ -207,8 +187,8 @@ export default function ConfiguracionPage() {
 
       {/* Info note */}
       <p className="text-xs text-slate-500">
-        Las secciones con etiqueta de fecha llegan en esa fecha estimada. Las marcadas como Plan Pro
-        se desbloquean al hacer upgrade. Contacta a soporte si necesitas acceso anticipado.
+        Las secciones marcadas como «No disponible» todavía no funcionan en Comply360: no se activan
+        al cambiar de plan. Si las necesitas, escríbenos a soporte.
       </p>
     </div>
   )

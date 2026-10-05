@@ -263,13 +263,21 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
 
   // Check required fields are mapped
   const requiredFields = ['dni', 'firstName', 'lastName', 'fechaIngreso', 'sueldoBruto']
+  // Nombre de la columna tal como aparece en la plantilla (para el mensaje al usuario)
+  const REQUIRED_FIELD_LABELS: Record<string, string> = {
+    dni: 'DNI',
+    firstName: 'Nombres',
+    lastName: 'Apellidos',
+    fechaIngreso: 'Fecha Ingreso',
+    sueldoBruto: 'Sueldo Bruto',
+  }
   for (const field of requiredFields) {
     const isMapped = Object.values(mapping).includes(field)
     if (!isMapped) {
       errors.push({
         row: 0,
         field,
-        message: `Columna requerida no encontrada: ${field}. Verifique los encabezados del archivo.`,
+        message: `No encontramos la columna obligatoria «${REQUIRED_FIELD_LABELS[field] ?? field}». Revisa los encabezados del archivo.`,
       })
     }
   }
@@ -305,9 +313,9 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
     // --- DNI ---
     const dni = getValue('dni')
     if (!dni) {
-      rowErrors.push({ row: rowNumber, field: 'DNI', message: 'DNI es obligatorio' })
+      rowErrors.push({ row: rowNumber, field: 'DNI', message: 'El DNI es obligatorio' })
     } else if (!/^\d{8}$/.test(dni)) {
-      rowErrors.push({ row: rowNumber, field: 'DNI', message: 'DNI debe tener exactamente 8 digitos' })
+      rowErrors.push({ row: rowNumber, field: 'DNI', message: 'El DNI debe tener exactamente 8 dígitos' })
     } else {
       const prevRow = seenDnis.get(dni)
       if (prevRow !== undefined) {
@@ -324,27 +332,27 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
     // --- Nombres ---
     const firstName = getValue('firstName')
     if (!firstName) {
-      rowErrors.push({ row: rowNumber, field: 'Nombres', message: 'Nombres es obligatorio' })
+      rowErrors.push({ row: rowNumber, field: 'Nombres', message: 'Los nombres son obligatorios' })
     }
 
     // --- Apellidos ---
     const lastName = getValue('lastName')
     if (!lastName) {
-      rowErrors.push({ row: rowNumber, field: 'Apellidos', message: 'Apellidos es obligatorio' })
+      rowErrors.push({ row: rowNumber, field: 'Apellidos', message: 'Los apellidos son obligatorios' })
     }
 
     // --- Fecha Ingreso ---
     const fechaIngresoRaw = getValue('fechaIngreso')
     let fechaIngreso = ''
     if (!fechaIngresoRaw) {
-      rowErrors.push({ row: rowNumber, field: 'Fecha Ingreso', message: 'Fecha de ingreso es obligatoria' })
+      rowErrors.push({ row: rowNumber, field: 'Fecha de ingreso', message: 'La fecha de ingreso es obligatoria' })
     } else {
       const parsed = parseDateDMY(fechaIngresoRaw)
       if (!parsed) {
         rowErrors.push({
           row: rowNumber,
-          field: 'Fecha Ingreso',
-          message: 'Formato de fecha invalido. Use DD/MM/YYYY',
+          field: 'Fecha de ingreso',
+          message: 'Formato de fecha inválido. Usa DD/MM/AAAA (por ejemplo, 15/03/2024)',
         })
       } else {
         fechaIngreso = parsed
@@ -355,14 +363,14 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
     const sueldoRaw = getValue('sueldoBruto').replace(/[,\s]/g, '').replace(/S\/\.?\s*/i, '')
     let sueldoBruto = 0
     if (!sueldoRaw) {
-      rowErrors.push({ row: rowNumber, field: 'Sueldo Bruto', message: 'Sueldo bruto es obligatorio' })
+      rowErrors.push({ row: rowNumber, field: 'Sueldo Bruto', message: 'El sueldo bruto es obligatorio' })
     } else {
       const parsed = parseFloat(sueldoRaw)
       if (isNaN(parsed) || parsed < 0) {
         rowErrors.push({
           row: rowNumber,
           field: 'Sueldo Bruto',
-          message: 'Sueldo bruto debe ser un numero positivo',
+          message: 'El sueldo bruto debe ser un número positivo',
         })
       } else {
         sueldoBruto = parsed
@@ -383,8 +391,8 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
       } else {
         rowErrors.push({
           row: rowNumber,
-          field: 'Regimen Laboral',
-          message: `Valor invalido: "${regimenRaw}". Valores validos: ${Object.keys(VALID_REGIMEN).join(', ')}`,
+          field: 'Régimen laboral',
+          message: `Valor inválido: "${regimenRaw}". Valores válidos: ${Object.keys(VALID_REGIMEN).join(', ')}`,
         })
       }
     }
@@ -400,7 +408,7 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
         rowErrors.push({
           row: rowNumber,
           field: 'Tipo Contrato',
-          message: `Valor invalido: "${contratoRaw}". Valores validos: ${Object.keys(VALID_CONTRATO).join(', ')}`,
+          message: `Valor inválido: "${contratoRaw}". Valores válidos: ${Object.keys(VALID_CONTRATO).join(', ')}`,
         })
       }
     }
@@ -416,7 +424,7 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
         rowErrors.push({
           row: rowNumber,
           field: 'Tipo Aporte',
-          message: `Valor invalido: "${aporteRaw}". Valores validos: ${Object.keys(VALID_APORTE).join(', ')}`,
+          message: `Valor inválido: "${aporteRaw}". Valores válidos: ${Object.keys(VALID_APORTE).join(', ')}`,
         })
       }
     }
@@ -432,7 +440,7 @@ export function parseWorkerCSV(csvContent: string, customMapping?: ColumnMapping
         rowErrors.push({
           row: rowNumber,
           field: 'Jornada Semanal',
-          message: 'Jornada semanal debe ser un numero entre 1 y 48',
+          message: 'La jornada semanal debe ser un número entre 1 y 48',
         })
       } else {
         jornadaSemanal = parsed

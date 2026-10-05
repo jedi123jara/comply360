@@ -14,6 +14,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuthParams } from '@/lib/api-auth'
 import { formatSoles } from '@/lib/format/peruvian'
+import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
+import { QUESTION_COUNT, areaLabel, areaWeight, formatPlazo } from '@/app/dashboard/diagnostico/_lib/diagnostic-meta'
 import {
   createPDFDoc,
   addHeader,
@@ -64,7 +66,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     })
 
     if (!diagnostic || diagnostic.orgId !== ctx.orgId) {
-      return NextResponse.json({ error: 'Diagnostico no encontrado' }, { status: 404 })
+      return NextResponse.json({ error: 'Diagnóstico no encontrado' }, { status: 404 })
     }
 
     // Parse JSON fields (Prisma JsonValue → known types via unknown)
@@ -75,13 +77,24 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     const org = diagnostic.organization
     const score = diagnostic.scoreGlobal
     const multa = Number(diagnostic.totalMultaRiesgo)
-    const type = diagnostic.type === 'EXPRESS' ? 'Express (20 preguntas)' : 'Completo (135 preguntas)'
+
+    // Cifras reales: cuántas preguntas respondió esta empresa (el servidor filtra
+    // según régimen y tamaño), con el total del banco como respaldo.
+    const answeredCount = Array.isArray(diagnostic.questionsJson) ? diagnostic.questionsJson.length : 0
+    const fallbackCount = diagnostic.type === 'EXPRESS' ? QUESTION_COUNT.EXPRESS : QUESTION_COUNT.FULL
+    const questionCount = answeredCount > 0 ? answeredCount : fallbackCount
+    const typeName = diagnostic.type === 'EXPRESS'
+      ? 'Express'
+      : diagnostic.type === 'SIMULATION'
+        ? 'Simulacro de inspección'
+        : 'Completo'
+    const type = `${typeName} (${questionCount} preguntas evaluadas)`
 
     // ─── Build PDF ────────────────────────────────────────────────────────
 
     const doc = await createPDFDoc()
     const headerArgs = {
-      title: 'Informe de Diagnostico de Compliance',
+      title: 'Informe de Diagnóstico de Compliance',
       org: { name: org.name, razonSocial: org.razonSocial, ruc: org.ruc },
       subtitle: type,
     }
@@ -104,7 +117,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     doc.setFontSize(11)
     const label = score >= 80 ? 'CUMPLE — Buen nivel de compliance'
       : score >= 60 ? 'EN RIESGO — Necesita mejoras urgentes'
-      : 'CRITICO — Accion inmediata requerida'
+      : 'CRÍTICO — Acción inmediata requerida'
     doc.text(label, 55, y + 6)
 
     // Multa potencial
@@ -118,8 +131,8 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
 
     // ── 2. Metadata ──
 
-    y = kv(doc, 'Tipo de diagnostico', type, 14, y)
-    y = kv(doc, 'Fecha de realizacion', new Date(diagnostic.completedAt ?? diagnostic.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }), 14, y)
+    y = kv(doc, 'Tipo de diagnóstico', type, 14, y)
+    y = kv(doc, 'Fecha de realización', new Date(diagnostic.completedAt ?? diagnostic.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }), 14, y)
     y = kv(doc, 'Empresa', org.razonSocial ?? org.name ?? '', 14, y)
     if (org.ruc) y = kv(doc, 'RUC', org.ruc, 14, y)
     if (org.sector) y = kv(doc, 'Sector', org.sector, 14, y)
@@ -128,27 +141,14 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     // ── 3. Area breakdown chart ──
 
     y = checkPageBreak(doc, y, 200, headerArgs)
-    y = sectionTitle(doc, 'Score por Area', y)
+    y = sectionTitle(doc, 'Score por Área', y)
 
-    // Build area items from scoreByArea
-    const AREA_LABELS: Record<string, { label: string; weight: number }> = {
-      contratos_registro:            { label: 'Contratos y Registro', weight: 14 },
-      remuneraciones_beneficios:     { label: 'Remuneraciones y Beneficios', weight: 18 },
-      jornada_descansos:             { label: 'Jornada y Descansos', weight: 10 },
-      sst:                           { label: 'SST', weight: 19 },
-      documentos_obligatorios:       { label: 'Documentos Obligatorios', weight: 14 },
-      relaciones_laborales:          { label: 'Relaciones Laborales', weight: 5 },
-      igualdad_nodiscriminacion:     { label: 'Igualdad y No Discriminacion', weight: 7 },
-      trabajadores_especiales:       { label: 'Trabajadores Especiales', weight: 5 },
-      tercerizacion_intermediacion:  { label: 'Tercerizacion', weight: 4 },
-      hostigamiento_sexual_detallado: { label: 'Hostigamiento Sexual', weight: 4 },
-    }
-
+    // Nombres y pesos reales de cada área (mismo dato que usa el motor)
     const chartItems = Object.entries(scoreByArea)
       .map(([key, areaScore]) => ({
-        label: AREA_LABELS[key]?.label ?? key,
+        label: areaLabel(key),
         score: areaScore,
-        weight: AREA_LABELS[key]?.weight ?? 10,
+        weight: areaWeight(key) ?? 10,
       }))
       .sort((a, b) => a.score - b.score) // worst first
 
@@ -191,7 +191,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     // ── 5. Action Plan ──
 
     y = checkPageBreak(doc, y, 100, headerArgs)
-    y = sectionTitle(doc, 'Plan de Accion Sugerido', y)
+    y = sectionTitle(doc, 'Plan de Acción Sugerido', y)
 
     if (actionPlan.length > 0) {
       for (let i = 0; i < Math.min(actionPlan.length, 10); i++) {
@@ -212,7 +212,7 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
         // Plazo
         doc.setFontSize(7)
         doc.setTextColor(150, 150, 150)
-        doc.text(item.plazoSugerido, 180, y, { align: 'right' })
+        doc.text(formatPlazo(item.plazoSugerido ?? ''), 180, y, { align: 'right' })
         y += 4
 
         // Action text
@@ -248,12 +248,12 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     doc.setFontSize(7)
     doc.setTextColor(150, 150, 150)
     doc.text(
-      'Este informe es referencial y no constituye asesoria legal. Las multas estimadas se calculan segun D.S. 019-2006-TR',
+      'Este informe es referencial y no constituye asesoría legal. Las multas estimadas se calculan según D.S. 019-2006-TR',
       14, y, { maxWidth: 180 },
     )
     y += 4
     doc.text(
-      'con UIT 2026 = 5,500 nuevos soles. Los montos reales dependen de factores adicionales evaluados por SUNAFIL durante la inspeccion.',
+      `con UIT = ${formatSoles(PERU_LABOR.UIT)}. Los montos reales dependen de factores adicionales evaluados por SUNAFIL durante la inspección.`,
       14, y, { maxWidth: 180 },
     )
 
@@ -263,6 +263,6 @@ export const GET = withAuthParams<{ id: string }>(async (_req, ctx, params) => {
     return finalizePDF(doc, filename)
   } catch (error) {
     console.error('[Diagnostic PDF] Error:', error)
-    return NextResponse.json({ error: 'Error al generar PDF del diagnostico' }, { status: 500 })
+    return NextResponse.json({ error: 'Error al generar el PDF del diagnóstico' }, { status: 500 })
   }
 })

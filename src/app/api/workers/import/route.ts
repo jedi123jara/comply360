@@ -510,7 +510,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
 
     if (!file) {
       return NextResponse.json(
-        { error: 'No se proporciono ningun archivo' },
+        { error: 'No se recibió ningún archivo.' },
         { status: 400 }
       )
     }
@@ -571,7 +571,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
         customMapping = JSON.parse(customMappingStr) as ColumnMapping
       } catch {
         return NextResponse.json(
-          { error: 'Formato de mapeo de columnas invalido' },
+          { error: 'El mapeo de columnas no es válido.' },
           { status: 400 }
         )
       }
@@ -599,7 +599,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext)
           result.errors.push({
             row: row.rowNumber,
             field: 'DNI',
-            message: `Ya existe un trabajador con DNI ${row.dni} en la organizacion`,
+            message: `Ya existe un trabajador con DNI ${row.dni} en tu empresa`,
           })
         } else {
           stillValid.push(row)
@@ -656,7 +656,7 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
 
     if (!importToken) {
       return NextResponse.json(
-        { error: 'Token de importacion no proporcionado' },
+        { error: 'Falta la vista previa de la importación. Sube el archivo de nuevo.' },
         { status: 400 }
       )
     }
@@ -686,7 +686,7 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
     const tokenData = verifyAndDecodeImportToken<TokenPayload>(importToken)
     if (!tokenData) {
       return NextResponse.json(
-        { error: 'Token de importacion invalido o adulterado' },
+        { error: 'No pudimos validar la vista previa de la importación. Sube el archivo de nuevo.' },
         { status: 400 }
       )
     }
@@ -696,7 +696,7 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
     // si el admin cambió de org entre POST y PUT).
     if (tokenData.orgId !== ctx.orgId) {
       return NextResponse.json(
-        { error: 'Token de importacion no corresponde a esta organizacion' },
+        { error: 'Esta importación se preparó para otra empresa. Sube el archivo de nuevo.' },
         { status: 403 }
       )
     }
@@ -704,7 +704,7 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
     // Token expires after 30 minutes
     if (Date.now() - tokenData.timestamp > 30 * 60 * 1000) {
       return NextResponse.json(
-        { error: 'Token de importacion expirado. Suba el archivo nuevamente.' },
+        { error: 'La vista previa venció (dura 30 minutos). Sube el archivo de nuevo.' },
         { status: 410 }
       )
     }
@@ -713,14 +713,14 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
 
     if (!validRows || validRows.length === 0) {
       return NextResponse.json(
-        { error: 'No hay registros validos para importar' },
+        { error: 'No hay registros válidos para importar.' },
         { status: 400 }
       )
     }
 
     if (validRows.length > IMPORT_MAX_ROWS) {
       return NextResponse.json(
-        { error: `Maximo ${IMPORT_MAX_ROWS} trabajadores por importacion` },
+        { error: `Máximo ${IMPORT_MAX_ROWS} trabajadores por importación.` },
         { status: 400 }
       )
     }
@@ -736,7 +736,7 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
 
     if (rowsToInsert.length === 0) {
       return NextResponse.json(
-        { error: 'Todos los trabajadores ya existen en la organizacion' },
+        { error: 'Todos los trabajadores del archivo ya están registrados en tu empresa.' },
         { status: 409 }
       )
     }
@@ -779,7 +779,7 @@ export const PUT = withRole('ADMIN', async (req: NextRequest, ctx: AuthContext) 
     }
 
     return NextResponse.json({
-      message: `Se importaron ${created.count} trabajadores exitosamente`,
+      message: `Se importaron ${created.count} trabajadores.`,
       imported: created.count,
       skipped: existingSet.size,
       total: validRows.length,

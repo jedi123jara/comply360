@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { ShieldCheck, ArrowRight, ArrowLeft, CheckCircle2, XCircle, MinusCircle, Scale, Loader2, Mail, TrendingDown, FileText, Users, Clock, Award } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { EXPRESS_QUESTIONS, AREAS } from '@/lib/compliance/questions'
 import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
+import { QUESTION_COUNT, areaLabel } from '@/app/dashboard/diagnostico/_lib/diagnostic-meta'
+import { PUBLIC_QUESTIONS, PUBLIC_QUESTION_COUNT, PUBLIC_ESTIMATE } from './_lib/public-questions'
 import { track } from '@/lib/analytics'
 import { formatSoles } from '@/lib/format/peruvian'
 import type { ComplianceQuestion } from '@/lib/compliance/questions'
@@ -69,13 +70,8 @@ export default function DiagnosticoGratisPage() {
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<DiagnosticResult | null>(null)
 
-  // Use express questions (38 questions, no auth needed)
-  const questions: ComplianceQuestion[] = useMemo(() => {
-    // For public landing, we use a subset of 20 of the express questions (the highest-weight ones)
-    return [...EXPRESS_QUESTIONS]
-      .sort((a, b) => b.peso - a.peso)
-      .slice(0, 20)
-  }, [])
+  // Preguntas express de mayor peso (sin registro). Ver _lib/public-questions.ts
+  const questions: ComplianceQuestion[] = PUBLIC_QUESTIONS
 
   const totalQuestions = questions.length
   const currentQ = questions[currentIdx]
@@ -230,15 +226,15 @@ export default function DiagnosticoGratisPage() {
             }}
           />
           <p className="text-lg text-gray-600 leading-relaxed max-w-xl mx-auto mb-8">
-            Responde 20 preguntas en 10 minutos y obtén tu <b>score de compliance</b>,
+            Responde {PUBLIC_QUESTION_COUNT} preguntas en unos {PUBLIC_ESTIMATE.replace('~', '')} y obtén tu <b>score de compliance</b>,
             la <b>multa potencial estimada</b> y un plan de acción priorizado — todo sin registro.
           </p>
 
           {/* Stats trust signals */}
           <div className="grid grid-cols-3 gap-3 mb-8 max-w-lg mx-auto">
             {[
-              { icon: Clock, label: '10 min', sub: 'Rápido y directo' },
-              { icon: FileText, label: '20 preguntas', sub: 'Las más críticas' },
+              { icon: Clock, label: PUBLIC_ESTIMATE, sub: 'Rápido y directo' },
+              { icon: FileText, label: `${PUBLIC_QUESTION_COUNT} preguntas`, sub: 'Las de mayor impacto' },
               { icon: ShieldCheck, label: 'Resultado en vivo', sub: 'Score + multa estimada' },
             ].map(({ icon: Icon, label, sub }) => (
               <div
@@ -375,7 +371,7 @@ export default function DiagnosticoGratisPage() {
                 {currentQ.infraccionGravedad}
               </span>
               <span className="text-xs text-gray-400">
-                {AREAS.find(a => a.key === currentQ.area)?.label}
+                {areaLabel(currentQ.area)}
               </span>
             </div>
 
@@ -730,7 +726,7 @@ export default function DiagnosticoGratisPage() {
           {/* Trust footer */}
           <div className="text-center py-8">
             <p className="text-xs text-gray-400 mb-4">
-              Mas de 135 criterios de compliance laboral peruano | Actualizado 2026 | D.S. 019-2006-TR, Ley 29783, Ley 27942
+              Preguntas tomadas de los {QUESTION_COUNT.FULL} criterios del diagnóstico completo | Actualizado 2026 | D.S. 019-2006-TR, Ley 29783, Ley 27942
             </p>
             <Link href="/" className="text-xs text-emerald-700 hover:underline">
               Volver a COMPLY360
