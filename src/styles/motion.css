@@ -39,16 +39,37 @@
   --scale-press: 0.98;
   --scale-hover: 1.02;
   --scale-emphasis: 1.05;
+
+  /* ─── Ciclos de animaciones DECORATIVAS ─────────────────────────────
+   * Las animaciones decorativas (flotar, brillos, halos, escudo, logo…)
+   * corren pocas veces al montar y se detienen; nada decorativo en bucle
+   * infinito. Úsalas en la posición de iteration-count del shorthand:
+   *   animation: c360-float 4s ease-in-out var(--motion-loop-decor);
+   * Para animaciones `alternate` usa la variante par, así terminan donde
+   * empezaron (sin salto final).
+   * Solo los indicadores FUNCIONALES quedan en `infinite`: spinners,
+   * skeletons de carga, puntos de alerta/en vivo y "analizando…".
+   */
+  --motion-loop-decor: 3;
+  --motion-loop-decor-alt: 2;
 }
 
-/* ─── Reduced motion: anula todo ───────────────────────────────────── */
+/* ─── Reduced motion: anula todo ───────────────────────────────────
+ * Bloque ÚNICO del sistema (tokens.css ya no lo duplica). Cubre todo
+ * elemento y pseudo-elemento, incluidas las animaciones inline de los
+ * componentes (un !important de autor le gana a un style="" normal).
+ * El delay en 0 evita que elementos con `opacity: 0` + animación con
+ * delay (stagger) se queden invisibles un rato.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }
@@ -163,11 +184,13 @@
 .c360-stagger-5 { animation-delay: 250ms; }
 .c360-stagger-6 { animation-delay: 300ms; }
 
-/* Pulses (loops) */
+/* Pulses (loops) — reservados a indicadores funcionales (alerta crítica,
+   "en vivo"); por eso siguen en bucle. Para un realce decorativo usa
+   var(--motion-loop-decor) en lugar de `infinite`. */
 .c360-pulse      { animation: c360-pulse 2s var(--ease-soft) infinite; }
 .c360-pulse-ring { animation: c360-pulse-ring 2s var(--ease-soft) infinite; }
 
-/* Shimmer para skeleton y badges premium */
+/* Shimmer para skeleton (indicador de carga → en bucle) */
 .c360-shimmer {
   background: linear-gradient(
     90deg,
@@ -191,7 +214,7 @@
   border-radius: 8px;
 }
 
-/* Premium badge shimmer (gold) — para Plan PRO */
+/* Premium badge shimmer (gold) — para Plan PRO. Decorativo: pocos ciclos. */
 .c360-premium-shimmer {
   background-image: linear-gradient(
     110deg,
@@ -200,7 +223,7 @@
     var(--gold-300) 33%
   );
   background-size: 200% 100%;
-  animation: c360-shimmer 4s linear infinite;
+  animation: c360-shimmer 4s linear var(--motion-loop-decor);
 }
 
 /* Loader spinner — reemplazo del Loader2 verbose */

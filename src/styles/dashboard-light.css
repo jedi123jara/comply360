@@ -4,7 +4,27 @@
  * This scope is intentionally applied at the dashboard shell. It gives every
  * employer route one visual language while keeping public marketing pages and
  * the worker portal independent.
+ *
+ * Cómo se activa: dashboard-shell.tsx pone `.c360-dashboard-light` en el
+ * contenedor del shell y también en <body> (para que los portales —modales,
+ * popovers— hereden el tema claro). `.c360-dashboard-sidebar` es la única
+ * isla oscura (navy) dentro del tema.
+ *
+ * Qué va dónde (Tailwind 4: una regla SIN capa le gana a cualquier utilidad):
+ *   - @layer base  → apariencia POR DEFECTO de elementos en el tema claro
+ *                    (inputs, selects, textareas, placeholder). Una utilidad
+ *                    del componente (bg-*, text-*, border-*) puede cambiarla.
+ *   - SIN capa     → variables del tema y REMAPEOS intencionales de utilidades
+ *                    heredadas del tema oscuro (.bg-white, .text-slate-400,
+ *                    .border-slate-200, controles con text-white…). Deben
+ *                    ganarle a la utilidad, por eso no van en capa.
  */
+
+/* Mismo orden de capas que declara `@import "tailwindcss"` en globals.css.
+   Si este archivo llegara a cargarse antes, `base` no quedaría por delante
+   de `theme` por accidente. Repetir la declaración no cambia nada. */
+@layer theme, base, components, utilities;
+
 .c360-dashboard-light {
   color-scheme: light;
 
@@ -147,23 +167,49 @@
   --border-amber: rgba(217, 119, 6, 0.28);
 
   /*
-   * Tokens semánticos. En tokens.css se calculan en :root con las rampas
+   * COLORES POR FUNCIÓN — tema CLARO. Mismas variables que tokens.css define
+   * para el tema oscuro en :root. Todas las parejas fg/bg dan ≥ 6:1, y el fg
+   * ≥ 6:1 también sobre blanco, el canvas #f4f8ff y #f5f7fb.
+   */
+  --status-success-fg: #166534;
+  --status-success-bg: #ecfdf3;
+  --status-success-border: #bbf7d0;
+  --status-warning-fg: #92400e;
+  --status-warning-bg: #fff8e7;
+  --status-warning-border: #fde68a;
+  --status-danger-fg: #9f1239;
+  --status-danger-bg: #fff1f2;
+  --status-danger-border: #fecdd3;
+  --status-info-fg: #1d4ed8;
+  --status-info-bg: #eff6ff;
+  --status-info-border: #bfdbfe;
+  --status-neutral-fg: #405576;
+  --status-neutral-bg: #f1f5f9;
+  --status-neutral-border: #d8e2f0;
+
+  /* Marca como texto sobre fondo claro (el ámbar puro da 1,9:1 sobre blanco). */
+  --brand-primary-text: #2563eb;  /* 5,2:1 sobre blanco */
+  --brand-amber-text: #b45309;    /* 5,0:1 sobre blanco, ≥ 4,5:1 en todo fondo claro */
+
+  /*
+   * Tokens semánticos legacy. En tokens.css se calculan en :root con las rampas
    * oscuras, así que hay que redeclararlos aquí para que sigan a las claras.
+   * bg/border/text ahora apuntan a los colores por función (mismo valor).
    */
   --color-success: var(--success-green-600);
-  --color-success-bg: #ecfdf3;
-  --color-success-border: var(--success-green-200);
-  --color-success-text: var(--success-green-700);
+  --color-success-bg: var(--status-success-bg);
+  --color-success-border: var(--status-success-border);
+  --color-success-text: var(--status-success-fg);
   --color-warning: var(--amber-500);
-  --color-warning-bg: #fff8e7;
-  --color-warning-border: var(--amber-200);
-  --color-warning-text: var(--amber-700);
+  --color-warning-bg: var(--status-warning-bg);
+  --color-warning-border: var(--status-warning-border);
+  --color-warning-text: var(--status-warning-fg);
   --color-danger: var(--crimson-600);
-  --color-danger-bg: var(--crimson-50);
-  --color-danger-border: var(--crimson-200);
-  --color-danger-text: var(--crimson-700);
-  --color-info-bg: #eff6ff;
-  --color-info-text: #1d4ed8;
+  --color-danger-bg: var(--status-danger-bg);
+  --color-danger-border: var(--status-danger-border);
+  --color-danger-text: var(--status-danger-fg);
+  --color-info-bg: var(--status-info-bg);
+  --color-info-text: var(--status-info-fg);
   --color-compliance-critical: var(--crimson-600);
   --color-compliance-critical-bg: var(--crimson-50);
   --color-compliance-critical-text: var(--crimson-700);
@@ -340,17 +386,76 @@ body.c360-dashboard-light {
   color: var(--text-primary) !important;
 }
 
-.c360-dashboard-light main :is(input, textarea, select) {
-  color-scheme: light;
+/*
+ * Controles de formulario (input / textarea / select) dentro del contenido.
+ *
+ * (a) @layer base: apariencia por defecto en el tema claro. Gana a las reglas
+ *     base de globals.css por especificidad (misma capa) y CEDE ante las
+ *     utilidades del componente (bg-transparent, bg-slate-50, text-*, …).
+ */
+@layer base {
+  .c360-dashboard-light main :is(input, textarea, select) {
+    color-scheme: light;
+  }
+
+  .c360-dashboard-light main :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    background-color: #ffffff;
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+
+  .c360-dashboard-light main :is(input, textarea)::placeholder {
+    color: var(--text-tertiary);
+  }
 }
 
-.c360-dashboard-light main :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+/*
+ * (b) SIN capa, a propósito: remapeo de controles que aún llevan utilidades del
+ *     tema oscuro (text-white, text-slate-100, bg-slate-950, bg-white/5,
+ *     bg-[color:var(--neutral-100)], bg-[#141824]…). Sin esto, al pasar (a) a
+ *     la capa base, esas utilidades ganarían y quedaría texto blanco sobre
+ *     fondo blanco (~80 controles en el dashboard). Mantiene exactamente el
+ *     aspecto de antes para ellos; al migrar cada control a tokens, sale solo
+ *     de esta lista.
+ */
+.c360-dashboard-light main :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="file"]):is(
+  [class*="text-white"],
+  [class*="text-slate-100"],
+  [class*="text-slate-200"],
+  [class*="text-slate-300"],
+  [class*="text-gray-100"],
+  [class*="text-gray-200"],
+  [class*="text-gray-300"],
+  [class*="text-cyan-300"],
+  [class*="bg-slate-800"],
+  [class*="bg-slate-900"],
+  [class*="bg-slate-950"],
+  [class*="bg-gray-800"],
+  [class*="bg-gray-900"],
+  [class*="bg-black"],
+  [class*="bg-white/"],
+  [class*="bg-[#0"],
+  [class*="bg-[#1"],
+  [class*="neutral-100)]"],
+  [class*="bg-amber-900"]
+) {
   background-color: #ffffff;
   color: var(--text-primary);
   border-color: var(--border-default);
 }
 
-.c360-dashboard-light main :is(input, textarea)::placeholder {
+.c360-dashboard-light main :is(input, textarea):is(
+  [class*="text-white"],
+  [class*="text-slate-100"],
+  [class*="text-slate-200"],
+  [class*="text-slate-300"],
+  [class*="text-gray-100"],
+  [class*="text-gray-200"],
+  [class*="text-gray-300"],
+  [class*="bg-slate-950"],
+  [class*="bg-[#0"],
+  [class*="bg-[#1"]
+)::placeholder {
   color: var(--text-tertiary);
 }
 

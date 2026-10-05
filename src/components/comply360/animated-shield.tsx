@@ -12,7 +12,9 @@
  *  - Órbita opcional (círculo dashed rotando)
  *
  * Proviene del prototipo de diseño /tmp/comply360-design (Variant A/D).
- * Los estilos viven en src/styles/comply360-design.css con prefijo `c360-`.
+ * Los estilos viven en src/app/globals.css (sección "Design System v4 'God
+ * Mode'", clases con prefijo `c360-shield*`). Las animaciones decorativas
+ * corren pocos ciclos (--motion-loop-decor en src/styles/motion.css).
  */
 export function AnimatedShield({
   size = 96,
