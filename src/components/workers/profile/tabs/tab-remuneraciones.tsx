@@ -137,17 +137,17 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
           </div>
           <h2
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 26,
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
               lineHeight: 1.2,
             }}
-            dangerouslySetInnerHTML={{
-              __html: `Histórico de boletas de <em style="color: var(--emerald-700); font-style: italic">${workerFirstName}</em>.`,
-            }}
-          />
+          >
+            {/* Texto escapado por React: el nombre viene de datos del usuario. */}
+            Histórico de boletas de <span style={{ color: 'var(--brand-primary-text, #2563eb)' }}>{workerFirstName}</span>.
+          </h2>
           <p className="text-sm text-[color:var(--text-secondary)] mt-1">
             Cada boleta registra bruto, aportes, impuestos y neto con detalle legal auditable.
           </p>
@@ -219,9 +219,9 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
           </div>
           <h3
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 22,
-              fontWeight: 400,
+              fontWeight: 800,
               color: 'var(--text-primary)',
               marginBottom: 4,
             }}
@@ -269,7 +269,7 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
                     </td>
                     <td
                       className="px-4 py-3 text-right font-mono"
-                      style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: 'var(--text-primary)' }}
+                      style={{ fontFamily: 'var(--font-display)', fontSize: 15, color: 'var(--text-primary)' }}
                     >
                       {formatSoles(p.netoPagar ?? 0)}
                     </td>

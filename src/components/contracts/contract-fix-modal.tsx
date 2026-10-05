@@ -38,6 +38,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { diffWords, stripHtmlForDiff, diffStats } from '@/lib/diff/word-diff'
 
 interface AIReviewResult {
@@ -497,7 +498,7 @@ export function ContractFixModal({
                   </header>
                   <div
                     className="p-5 max-h-[500px] overflow-auto text-sm text-[color:var(--text-primary)] leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: contractHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(contractHtml) }}
                   />
                 </section>
 
@@ -511,7 +512,7 @@ export function ContractFixModal({
                   </header>
                   <div
                     className="p-5 max-h-[500px] overflow-auto text-sm text-[color:var(--text-primary)] leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: result.fixedHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(result.fixedHtml) }}
                   />
                 </section>
               </div>

@@ -5,7 +5,7 @@ import { ArrowLeft, Phone, Mail, Calendar, Building2, Sparkles, FileText } from 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ProgressRing } from '@/components/ui/progress-ring'
-import { complianceScoreColor } from '@/lib/brand'
+import { complianceScoreLabel, complianceScoreTextColor } from '@/lib/brand'
 import { useCopilot } from '@/providers/copilot-provider'
 import { AnimatedShield } from '@/components/comply360/animated-shield'
 
@@ -70,7 +70,9 @@ function initials(firstName: string, lastName: string): string {
 export function WorkerProfileHeader({ worker }: { worker: WorkerSummary }) {
   const copilot = useCopilot()
   const legajoScore = worker.legajoScore ?? 0
-  const scoreColor = complianceScoreColor(legajoScore)
+  // Tinta con contraste AA (el color del anillo, ámbar o dorado, no se lee como texto).
+  const scoreColor = complianceScoreTextColor(legajoScore)
+  const scoreLabel = complianceScoreLabel(legajoScore)
   const statusMeta = STATUS_META[worker.status ?? 'ACTIVE'] ?? STATUS_META.ACTIVE
 
   return (
@@ -99,10 +101,9 @@ export function WorkerProfileHeader({ worker }: { worker: WorkerSummary }) {
               <h1
                 className="c360-page-title-editorial truncate"
                 style={{ fontSize: 28, lineHeight: 1.15 }}
-                dangerouslySetInnerHTML={{
-                  __html: `${worker.lastName}, <em>${worker.firstName}</em>`,
-                }}
-              />
+              >
+                {worker.lastName}, <em>{worker.firstName}</em>
+              </h1>
               <Badge variant={statusMeta.variant} size="sm" dot>
                 {statusMeta.label}
               </Badge>
@@ -146,22 +147,27 @@ export function WorkerProfileHeader({ worker }: { worker: WorkerSummary }) {
         {/* Score + quick actions */}
         <div className="flex items-center gap-4 shrink-0">
           <div className="relative text-center">
-            <ProgressRing value={legajoScore} size={80} stroke={7}>
+            <ProgressRing
+              value={legajoScore}
+              size={80}
+              stroke={7}
+              label={`Legajo completo al ${legajoScore} %: ${scoreLabel}`}
+            >
               <div className="text-center leading-none">
                 <div
                   style={{
                     color: scoreColor,
-                    fontFamily: 'var(--font-serif)',
+                    fontFamily: 'var(--font-display)',
                     fontSize: 24,
-                    fontWeight: 400,
+                    fontWeight: 800,
                     letterSpacing: '-0.02em',
                     lineHeight: 1,
                   }}
                 >
                   {legajoScore}
                 </div>
-                <div className="mt-0.5 text-[9px] uppercase tracking-widest text-[color:var(--text-tertiary)]">
-                  legajo
+                <div className="mt-0.5 text-[11px] font-semibold" style={{ color: scoreColor }}>
+                  {scoreLabel}
                 </div>
               </div>
             </ProgressRing>

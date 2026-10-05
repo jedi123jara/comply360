@@ -145,9 +145,9 @@ export function TabHistorial({ workerId, workerFirstName }: TabHistorialProps) {
         </div>
         <h3
           style={{
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-display)',
             fontSize: 22,
-            fontWeight: 400,
+            fontWeight: 800,
             letterSpacing: '-0.015em',
             color: 'var(--text-primary)',
             marginBottom: 4,
@@ -185,17 +185,17 @@ export function TabHistorial({ workerId, workerFirstName }: TabHistorialProps) {
           </div>
           <h2
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 26,
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
               lineHeight: 1.2,
             }}
-            dangerouslySetInnerHTML={{
-              __html: `Todo lo que pasó con <em style="color: var(--emerald-700); font-style: italic">${workerFirstName}</em>.`,
-            }}
-          />
+          >
+            {/* Texto escapado por React: el nombre viene de datos del usuario. */}
+            Todo lo que pasó con <span style={{ color: 'var(--brand-primary-text, #2563eb)' }}>{workerFirstName}</span>.
+          </h2>
           <p className="text-sm text-[color:var(--text-secondary)] mt-1">
             {entries.length === 0
               ? 'Sin movimientos en la ventana visible para tu plan.'
