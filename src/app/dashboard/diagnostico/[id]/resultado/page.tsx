@@ -268,9 +268,9 @@ function AreaBar({
   if (todoNoAplica) {
     return (
       <div className="space-y-1">
-        <div className="flex items-center justify-between gap-3 text-sm">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
           <span className="font-medium text-[color:var(--text-secondary)]">{label}</span>
-          <span className="shrink-0 text-xs font-medium text-[color:var(--text-tertiary)]">
+          <span className="text-xs font-medium text-[color:var(--text-tertiary)]">
             No aplica a tu empresa · no cuenta en el puntaje
           </span>
         </div>
@@ -283,9 +283,9 @@ function AreaBar({
   const estado = score >= 80 ? 'Bien' : score >= 60 ? 'A mejorar' : 'En riesgo'
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between gap-3 text-sm">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
         <span className="font-medium text-[color:var(--text-secondary)]">{label}</span>
-        <span className="shrink-0 text-gray-400">
+        <span className="text-gray-400">
           <span className="font-semibold text-[color:var(--text-primary)]">{score}%</span> · {estado}
           {weight !== null ? (
             <span className="text-xs text-slate-500"> (pesa {weight}% del total)</span>

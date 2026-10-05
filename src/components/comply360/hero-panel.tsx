@@ -59,7 +59,7 @@ export function HeroPanel({
   const nivel = hasDiagnostic && normalizedScore != null ? nivelCumplimiento(normalizedScore) : null
 
   const resumen = !hasDiagnostic
-    ? `Empecemos por conocer los riesgos laborales de ${org}.`
+    ? `Empecemos por conocer los riesgos laborales de ${org}${org.endsWith('.') ? '' : '.'}`
     : nivel === 'bien'
       ? `${org} está en buen nivel. Mantén al día lo que viene.`
       : nivel === 'en-riesgo'
