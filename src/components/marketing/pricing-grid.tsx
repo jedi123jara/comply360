@@ -37,20 +37,18 @@ const PLAN_ICONS: Record<MarketingPlanKey, LucideIcon> = {
   ENTERPRISE: Crown,
 }
 
-const PLAN_ACCENTS: Record<MarketingPlanKey, string> = {
-  FREE: 'from-slate-500/10 via-transparent to-transparent',
-  STARTER: 'from-sky-500/12 via-transparent to-transparent',
-  PRO: 'from-blue-500/16 via-transparent to-transparent',
-  EMPRESA: 'from-blue-500/12 via-transparent to-amber-500/10',
-  ENTERPRISE: 'from-amber-500/12 via-transparent to-transparent',
-}
-
+/**
+ * Estilo del tema público (ver `public-theme.ts`): tarjetas blancas con borde
+ * #E5EAF2, íconos azules en cuadro #EFF4FF y plan destacado con borde, etiqueta
+ * y botón ámbar. Colores en hex arbitrario para no depender de la capa de
+ * compatibilidad oscura de `globals.css`.
+ */
 const PLAN_ICON_STYLES: Record<MarketingPlanKey, string> = {
-  FREE: 'bg-white/5 text-slate-300 ring-white/10',
-  STARTER: 'bg-sky-500/10 text-sky-300 ring-sky-400/25',
-  PRO: 'bg-blue-500/12 text-blue-300 ring-blue-400/30',
-  EMPRESA: 'bg-blue-500/10 text-blue-200 ring-blue-400/25',
-  ENTERPRISE: 'bg-amber-500/12 text-amber-300 ring-amber-400/30',
+  FREE: 'bg-[#F5F7FB] text-[#475569] ring-[#E5EAF2]',
+  STARTER: 'bg-[#EFF4FF] text-[#2563EB] ring-[#2563EB]/15',
+  PRO: 'bg-[#EFF4FF] text-[#2563EB] ring-[#2563EB]/15',
+  EMPRESA: 'bg-[#EFF4FF] text-[#2563EB] ring-[#2563EB]/15',
+  ENTERPRISE: 'bg-[#FFF8E6] text-[#B45309] ring-[#F5B301]/35',
 }
 
 export function MarketingPricingGrid({
@@ -137,22 +135,14 @@ function MarketingPricingCard({
   return (
     <article
       className={cn(
-        'group relative flex min-h-[560px] flex-col overflow-hidden rounded-lg border p-5 transition duration-200',
-        'bg-white/[0.04] text-slate-100 shadow-[0_28px_80px_rgba(2,8,23,0.5)] backdrop-blur-sm',
+        'group relative flex min-h-[560px] flex-col overflow-hidden rounded-xl border bg-[#ffffff] p-5 text-[#475569] transition duration-200',
         featured
-          ? 'border-blue-400/60 ring-1 ring-blue-400/40'
-          : 'border-white/10 hover:border-blue-400/40',
+          ? 'border-2 border-[#F5B301] shadow-[0_24px_60px_rgba(245,179,1,0.18),0_8px_24px_rgba(11,27,54,0.08)]'
+          : 'border-[#E5EAF2] shadow-[0_1px_2px_rgba(11,27,54,0.04),0_8px_24px_rgba(11,27,54,0.06)] hover:-translate-y-0.5 hover:border-[#2563EB]/35',
       )}
     >
-      <div
-        className={cn(
-          'pointer-events-none absolute inset-0 bg-gradient-to-br opacity-90 transition duration-200 group-hover:opacity-100',
-          PLAN_ACCENTS[planKey],
-        )}
-      />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-amber-300 opacity-70" />
       {featured ? (
-        <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full border border-blue-400/40 bg-blue-500/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-200 shadow-[0_10px_28px_rgba(31,94,255,0.25)]">
+        <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-[#F5B301] px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#0B1B36] shadow-[0_8px_20px_rgba(245,179,1,0.3)]">
           <Sparkles className="h-3 w-3" />
           Más elegido
         </div>
@@ -169,33 +159,38 @@ function MarketingPricingCard({
         </div>
 
         <div className="pr-24">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-300">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2563EB]">
             {getMarketingPlanLimit(planKey)}
           </p>
-          <h3 className="mt-2 text-xl font-semibold tracking-tight text-white">{plan.name}</h3>
-          <p className="mt-2 min-h-[44px] text-sm font-medium leading-6 text-slate-300">
+          <h3 className="mt-2 text-xl font-extrabold tracking-[-0.02em] text-[#0B1B36]">{plan.name}</h3>
+          <p className="mt-2 min-h-[44px] text-sm font-medium leading-6 text-[#475569]">
             {PLAN_POSITIONING[planKey].tagline}
           </p>
         </div>
 
         <div className="mt-6">
           <div className="flex items-end gap-2">
-            <span className={cn('font-serif font-medium leading-none text-white', isEnterprise ? 'text-3xl' : 'text-4xl')}>
+            <span
+              className={cn(
+                'font-extrabold leading-none tracking-[-0.02em] text-[#0B1B36]',
+                isEnterprise ? 'text-3xl' : 'text-4xl',
+              )}
+            >
               {price}
             </span>
             {plan.price !== 0 || isEnterprise ? (
-              <span className="pb-1 text-sm font-semibold text-slate-400">/mes</span>
+              <span className="pb-1 text-sm font-semibold text-[#5A6A80]">/mes</span>
             ) : null}
           </div>
-          <p className="mt-3 min-h-[48px] text-sm font-medium leading-6 text-slate-300">
+          <p className="mt-3 min-h-[48px] text-sm font-medium leading-6 text-[#475569]">
             {getMarketingPlanOutcome(planKey)}
           </p>
         </div>
 
-        <ul className="mt-6 grid flex-1 gap-3 border-t border-white/10 pt-6">
+        <ul className="mt-6 grid flex-1 gap-3 border-t border-[#E5EAF2] pt-6">
           {plan.features.slice(0, featureLimit).map((feature) => (
-            <li key={feature} className="flex items-start gap-2 text-sm font-medium leading-5 text-slate-300">
-              <Check className="mt-0.5 h-4 w-4 flex-none text-blue-400" />
+            <li key={feature} className="flex items-start gap-2 text-sm font-medium leading-5 text-[#475569]">
+              <Check className="mt-0.5 h-4 w-4 flex-none text-[#2563EB]" />
               <span>{cleanPlanFeature(feature)}</span>
             </li>
           ))}
@@ -205,10 +200,10 @@ function MarketingPricingCard({
           href={href}
           onClick={onClick}
           className={cn(
-            'mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition',
+            'mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition duration-150',
             featured
-              ? 'bg-gradient-to-r from-[#1f5eff] to-[#3b82f6] text-white shadow-[0_18px_48px_rgba(31,94,255,0.35)] hover:shadow-[0_24px_60px_rgba(31,94,255,0.45)]'
-              : 'border border-white/15 bg-white/5 text-slate-100 shadow-sm hover:border-blue-400/40 hover:bg-white/10',
+              ? 'bg-[#F5B301] text-[#0B1B36] shadow-[0_10px_24px_rgba(245,179,1,0.28)] hover:-translate-y-px hover:bg-[#E0A100]'
+              : 'border border-[#0B1B36] bg-[#ffffff] text-[#0B1B36] hover:bg-[#0B1B36] hover:text-[#ffffff]',
           )}
         >
           {cta}

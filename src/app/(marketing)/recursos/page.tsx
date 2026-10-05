@@ -50,7 +50,7 @@ export default function RecursosPage() {
 
           <h1
             className="text-4xl lg:text-6xl text-gray-900 mb-4"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.05 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.05 }}
           >
             Todo lo que necesitas saber sobre{' '}
             <em className="italic text-emerald-700">compliance laboral peruano</em>.
@@ -77,7 +77,7 @@ export default function RecursosPage() {
               </div>
               <h2
                 className="text-xl text-gray-900 mb-2 group-hover:text-emerald-800 transition-colors"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, lineHeight: 1.2 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800, lineHeight: 1.2 }}
               >
                 {article.title}
               </h2>
@@ -105,7 +105,7 @@ export default function RecursosPage() {
         >
           <h3
             className="text-3xl mb-3"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em' }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.02em' }}
           >
             ¿Quieres pasar de leer a hacer?
           </h3>

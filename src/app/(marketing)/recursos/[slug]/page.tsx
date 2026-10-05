@@ -75,7 +75,7 @@ export default async function ArticlePage({
 
           <h1
             className="text-4xl lg:text-5xl text-gray-900"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.1 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.1 }}
           >
             {article.title}
           </h1>
@@ -131,7 +131,7 @@ export default async function ArticlePage({
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12">
             <h2
               className="text-2xl text-gray-900 mb-6"
-              style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+              style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
             >
               Más sobre {article.category}
             </h2>
@@ -144,7 +144,7 @@ export default async function ArticlePage({
                 >
                   <h3
                     className="text-base text-gray-900 mb-2 group-hover:text-emerald-800 transition-colors"
-                    style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, lineHeight: 1.3 }}
+                    style={{ fontFamily: 'var(--font-display)', fontWeight: 800, lineHeight: 1.3 }}
                   >
                     {r.title}
                   </h3>
@@ -175,7 +175,7 @@ function RenderBlock({ block }: { block: BlogBlock }) {
     return (
       <h2
         className="text-2xl text-gray-900 mt-8 mb-2"
-        style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, letterSpacing: '-0.01em' }}
+        style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.01em' }}
       >
         {block.text}
       </h2>
@@ -185,7 +185,7 @@ function RenderBlock({ block }: { block: BlogBlock }) {
     return (
       <h3
         className="text-lg text-gray-900 mt-5 mb-1"
-        style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+        style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
       >
         {block.text}
       </h3>
