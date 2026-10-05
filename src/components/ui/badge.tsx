@@ -3,10 +3,22 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 /**
- * Badge v4 — Dark Authority. Fondos translúcidos + texto luminoso.
+ * Badge v5 — legible en tema claro y oscuro.
+ *
+ * Variantes tintadas: fondo `-500/12` + borde `-500/30` + tinta 600/700 de la
+ * rampa. Las rampas cambian de orden según el tema (dashboard-light.css las
+ * redefine para fondo claro), así que la misma clase da tinta oscura sobre
+ * blanco y tinta clara sobre fondo oscuro. Las tintadas dan ≥ 4,5:1 en ambos temas.
+ *
+ * - `text-crimson-700` usa la rampa vía @theme; amber/gold/success-green van
+ *   con `var(--…)` porque su 700 en Tailwind no sigue la rampa del tema.
+ * - `success` es VERDE (success-green). `emerald`/`default` es el acento de
+ *   marca (azul en el dashboard claro). `info`/`low` es cian/azul.
+ * - Sólidos con texto blanco usan tonos que no cambian con el tema
+ *   (rose-700) o tinta oscura sobre ámbar, para no depender del orden de la rampa.
  *
  * Canonical severity (AlertSeverity enum):
- *   critical · high · medium · low
+ *   critical (rojo) · high (ámbar) · medium (dorado) · low (cian/azul)
  */
 const badgeVariants = cva(
   [
@@ -18,26 +30,27 @@ const badgeVariants = cva(
     variants: {
       variant: {
         // Severity
-        critical: 'bg-crimson-500/12 text-crimson-300 border-crimson-500/30',
-        high: 'bg-amber-500/12 text-amber-300 border-amber-500/30',
-        medium: 'bg-amber-500/10 text-amber-200 border-amber-500/24',
+        critical: 'bg-crimson-500/12 text-crimson-700 border-crimson-500/30',
+        high: 'bg-amber-500/12 text-[color:var(--amber-700)] border-amber-500/30',
+        medium: 'bg-gold-500/12 text-[color:var(--gold-700)] border-gold-500/30',
         low: 'bg-cyan-500/12 text-cyan-200 border-cyan-400/25',
 
         // Semantic
-        success: 'bg-emerald-500/12 text-emerald-200 border-emerald-400/30',
-        warning: 'bg-amber-500/12 text-amber-300 border-amber-500/30',
-        danger: 'bg-crimson-500/12 text-crimson-300 border-crimson-500/30',
+        success:
+          'bg-[color:var(--success-green-500)]/12 text-[color:var(--success-green-700)] border-[color:var(--success-green-500)]/30',
+        warning: 'bg-amber-500/12 text-[color:var(--amber-700)] border-amber-500/30',
+        danger: 'bg-crimson-500/12 text-crimson-700 border-crimson-500/30',
         info: 'bg-cyan-500/12 text-cyan-200 border-cyan-400/25',
         neutral: 'bg-[color:var(--bg-inset)] text-[color:var(--text-secondary)] border-[color:var(--border-default)]',
-        emerald: 'bg-emerald-500/12 text-emerald-200 border-emerald-400/30',
-        gold: 'bg-amber-500/12 text-amber-200 border-amber-400/30',
+        emerald: 'bg-emerald-500/12 text-emerald-700 border-emerald-500/30',
+        gold: 'bg-gold-500/15 text-[color:var(--gold-700)] border-gold-500/40',
 
-        default: 'bg-emerald-500/12 text-emerald-200 border-emerald-400/30',
+        default: 'bg-emerald-500/12 text-emerald-700 border-emerald-500/30',
 
         // Solid counters
         'solid-emerald': 'bg-emerald-600 text-white border-transparent',
-        'solid-crimson': 'bg-crimson-600 text-white border-transparent',
-        'solid-amber': 'bg-amber-500 text-white border-transparent',
+        'solid-crimson': 'bg-rose-700 text-white border-transparent',
+        'solid-amber': 'bg-amber-500 text-amber-950 border-transparent',
       },
       size: {
         xs: 'text-[10px] px-1.5 py-0.5 rounded-md',

@@ -7,15 +7,18 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * Button v4 — Dark Authority.
+ * Button v5 — texto ≥ 4,5:1 en tema claro (incluido hover).
  *
  * Variants:
- * - `primary` (default): emerald sólido, texto blanco, hover más oscuro, sombra sutil
+ * - `primary` (default): emerald sólido (azul de marca en el dashboard claro), texto blanco
  * - `secondary`: outline, texto neutral, hover bg gris muy claro
  * - `ghost`: sin borde, hover background sutil
- * - `danger`: crimson sólido
- * - `gold`: acento premium (plan PRO, certificaciones)
- * - `emerald-soft`: fondo emerald-50 + texto emerald-700, muy sutil
+ * - `danger`: rojo sólido (rose-700 → rose-800 en hover). No usa la rampa
+ *   crimson porque en el tema oscuro crimson-600/700 son tonos claros y el
+ *   texto blanco quedaba en 2,7:1 → 1,4:1.
+ * - `gold`: acento premium (plan PRO, certificaciones). Dorado de marca con
+ *   tinta oscura (amber-950); con texto blanco no llegaba a 2,2:1.
+ * - `emerald-soft`: tinte emerald /12 + tinta emerald-700, muy sutil
  * - `link`: underline, emerald
  */
 const buttonVariants = cva(
@@ -46,18 +49,18 @@ const buttonVariants = cva(
           'hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)]',
         ],
         danger: [
-          'bg-crimson-600 text-white',
+          'bg-rose-700 text-white',
           'shadow-[0_1px_2px_rgba(239,68,68,0.25)]',
-          'hover:bg-crimson-700 hover:shadow-[0_4px_12px_rgba(239,68,68,0.25)]',
+          'hover:bg-rose-800 hover:shadow-[0_4px_12px_rgba(239,68,68,0.25)]',
         ],
         gold: [
-          'bg-gold-500 text-white',
+          'bg-gold-500 text-amber-950',
           'shadow-[0_1px_2px_rgba(212,168,83,0.25)]',
-          'hover:bg-gold-600 hover:shadow-[0_4px_12px_rgba(212,168,83,0.30)]',
+          'hover:bg-gold-400 hover:shadow-[0_4px_12px_rgba(212,168,83,0.30)]',
         ],
         'emerald-soft': [
-          'bg-emerald-500/12 text-emerald-200 border border-emerald-400/30',
-          'hover:bg-emerald-500/18 hover:border-emerald-300/55',
+          'bg-emerald-500/12 text-emerald-700 border border-emerald-500/30',
+          'hover:bg-emerald-500/18 hover:border-emerald-500/50',
         ],
         link: [
           'text-emerald-600 hover:text-emerald-700 underline-offset-4 hover:underline',
