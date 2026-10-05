@@ -159,7 +159,14 @@ function isValidGroqKey(): boolean {
  */
 // ─── Routing declarativo por feature ─────────────────────────────────────
 // FEATURE_ROUTING (en feature-routing.ts) es la fuente única de verdad.
-import { FEATURE_ROUTING, tierToDeepSeekModel } from './feature-routing'
+import {
+  DEEPSEEK_FLASH_MODEL,
+  DEEPSEEK_PRO_MODEL,
+  FEATURE_ROUTING,
+  deepSeekThinking,
+  normalizeDeepSeekModel,
+  tierToDeepSeekModel,
+} from './feature-routing'
 import { redactPii, unredact, type RedactOptions } from './pii-redactor'
 import { rolloutProvider } from './rollout'
 
@@ -281,20 +288,19 @@ export function getModelName(opts?: { provider?: AIProvider; feature?: AIFeature
     if (opts?.feature) {
       // 1. Override directo del modelo por env (máxima precedencia)
       const envKeyModel = `${opts.feature.toUpperCase().replace(/-/g, '_')}_DEEPSEEK_MODEL`
-      if (process.env[envKeyModel]) return process.env[envKeyModel]!
+      if (process.env[envKeyModel]) return normalizeDeepSeekModel(process.env[envKeyModel]!)
       // 2. Override del TIER por env (flash | pro)
       const envKeyTier = `${opts.feature.toUpperCase().replace(/-/g, '_')}_TIER`
       const tierEnv = (process.env[envKeyTier] || '').toLowerCase().trim()
-      if (tierEnv === 'flash') return 'deepseek-chat'
-      if (tierEnv === 'pro') return 'deepseek-reasoner'
+      if (tierEnv === 'flash') return DEEPSEEK_FLASH_MODEL
+      if (tierEnv === 'pro') return DEEPSEEK_PRO_MODEL
       // 3. Tier declarativo desde FEATURE_ROUTING
       const cfg = FEATURE_ROUTING[opts.feature]
       if (cfg && cfg.tier) return tierToDeepSeekModel(cfg.tier)
     }
-    // DeepSeek aliases auto-upgradan al modelo más reciente:
-    //   - "deepseek-chat" → V4 Flash (1M context, $0.14/M input)
-    //   - "deepseek-reasoner" → V4 Pro (mejor razonamiento, $1.74/M input)
-    return process.env.DEEPSEEK_MODEL || 'deepseek-chat'
+    // Los alias `deepseek-chat` / `deepseek-reasoner` se retiraron el
+    // 2026-07-24; normalizeDeepSeekModel traduce env vars viejas.
+    return normalizeDeepSeekModel(process.env.DEEPSEEK_MODEL || DEEPSEEK_FLASH_MODEL)
   }
 
   if (provider === 'anthropic') {
@@ -433,6 +439,7 @@ export async function callAI(
       max_tokens: maxTokens,
       stream: false,
     }
+    if (provider === 'deepseek') body.thinking = { type: deepSeekThinking(model) }
 
     if (jsonMode) {
       if (provider === 'openai' || provider === 'deepseek' || provider === 'groq') {
@@ -788,6 +795,7 @@ export async function* callAIStream(
     stream: true,
     stream_options: { include_usage: true }, // OpenAI-compatible: pide usage en el último chunk
   }
+  if (provider === 'deepseek') body.thinking = { type: deepSeekThinking(model) }
   if (jsonMode && (provider === 'openai' || provider === 'deepseek' || provider === 'groq')) {
     body.response_format = { type: 'json_object' }
   }

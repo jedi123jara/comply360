@@ -55,15 +55,18 @@ const PRICING: Record<ProviderName, Record<string, ModelPricing>> = {
     '*': { promptPer1M: 0.5, completionPer1M: 0.7 },
   },
   deepseek: {
-    // V4 Flash (alias `deepseek-chat`): el más barato del mercado.
-    // Cache hit es ~10x más barato que cache miss.
-    'deepseek-chat':      { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
-    'deepseek-v4':        { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
-    'deepseek-v4-flash':  { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
-    // V4 Pro (alias `deepseek-reasoner`): mejor razonamiento.
-    'deepseek-reasoner':  { promptPer1M: 1.74, completionPer1M: 3.48, cachedPer1M: 0.174 },
-    'deepseek-v4-pro':    { promptPer1M: 1.74, completionPer1M: 3.48, cachedPer1M: 0.174 },
-    '*': { promptPer1M: 0.14, completionPer1M: 0.28, cachedPer1M: 0.014 },
+    // Precios en horario pico al 2026-10-05 (api-docs.deepseek.com/quick_start/pricing).
+    // Fuera de pico cuesta la mitad; usamos pico para no subestimar el tope mensual.
+    // V4.1 Flash: el modelo por defecto (tier flash).
+    'deepseek-flash':     { promptPer1M: 0.3, completionPer1M: 1.2, cachedPer1M: 0.006 },
+    // V4 Pro: razonamiento (tier pro).
+    'deepseek-v4-pro':    { promptPer1M: 1.32, completionPer1M: 3.96, cachedPer1M: 0.044 },
+    // Nombres retirados que DeepSeek redirige o que pueden quedar en registros viejos.
+    'deepseek-chat':      { promptPer1M: 0.3, completionPer1M: 1.2, cachedPer1M: 0.006 },
+    'deepseek-v4':        { promptPer1M: 0.3, completionPer1M: 1.2, cachedPer1M: 0.006 },
+    'deepseek-v4-flash':  { promptPer1M: 0.3, completionPer1M: 1.2, cachedPer1M: 0.006 },
+    'deepseek-reasoner':  { promptPer1M: 1.32, completionPer1M: 3.96, cachedPer1M: 0.044 },
+    '*': { promptPer1M: 0.3, completionPer1M: 1.2, cachedPer1M: 0.006 },
   },
   anthropic: {
     // Claude 4 Opus — el más caro pero más exacto en legal high-stakes
