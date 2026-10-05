@@ -74,6 +74,7 @@ import { BrandBlockA } from '@/components/comply360/brand-block'
 import { QueQuieresHacerMenu } from '@/components/dashboard/que-quieres-hacer'
 import { useUpgradeGate } from '@/providers/upgrade-gate-provider'
 import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
+import { MOBILE_MENU_ID } from './topbar'
 
 /* ── Iconos ──────────────────────────────────────────────────────────── */
 
@@ -466,6 +467,7 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
           />
           <div
             ref={drawerRef}
+            id={MOBILE_MENU_ID}
             role="dialog"
             aria-modal="true"
             aria-label="Menú de navegación"

@@ -50,9 +50,17 @@ import { useCopilot } from '@/providers/copilot-provider'
 import { useCalculatorDrawer } from '@/components/ui/calculator-drawer'
 import { complianceScoreColor } from '@/lib/brand'
 
+/**
+ * id del menú lateral móvil (el drawer que abre el botón ☰). El botón lo
+ * referencia con `aria-controls`; el drawer debe llevar este mismo `id`.
+ */
+export const MOBILE_MENU_ID = 'menu-navegacion-movil'
+
 interface TopbarProps {
   onMenuToggle: () => void
   onCommandK: () => void
+  /** ¿Está abierto el menú lateral móvil? Alimenta `aria-expanded` del botón ☰. */
+  menuOpen?: boolean
 }
 
 interface OrgAlert {
@@ -203,7 +211,7 @@ function useOrgAlerts() {
 
 /* ── Topbar ─────────────────────────────────────────────────────────── */
 
-export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
+export default function Topbar({ onMenuToggle, onCommandK, menuOpen = false }: TopbarProps) {
   const pathname = usePathname() ?? '/dashboard'
   const router = useRouter()
   const crumbs = useBreadcrumb(pathname)
@@ -229,8 +237,8 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
   const scoreColor = score != null ? complianceScoreColor(score) : undefined
   const copilotShortcut = modKey === '⌘' ? '⌘I' : 'Ctrl+I'
   const copilotLabel = copilot.isOpen
-    ? `Cerrar Asistente IA (${copilotShortcut})`
-    : `Abrir Asistente IA (${copilotShortcut})`
+    ? `Cerrar el asistente (${copilotShortcut})`
+    : `Abrir el asistente (${copilotShortcut})`
 
   return (
     <>
@@ -262,13 +270,17 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
 
       {/* ── HEADER ──────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 flex h-[var(--topbar-height)] shrink-0 items-center gap-3 border-b border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]/88 backdrop-blur-xl px-4 sm:px-6 shadow-[0_18px_48px_rgba(2,6,23,0.28)]">
-        {/* Mobile menu toggle */}
+        {/* Botón ☰: abre el menú lateral en celulares y tablets */}
         <Button
           size="icon-sm"
           variant="ghost"
           onClick={onMenuToggle}
           className="lg:hidden"
-          aria-label="Abrir menú"
+          // Nombre fijo: el estado abierto/cerrado lo anuncia aria-expanded.
+          aria-label="Menú"
+          aria-expanded={menuOpen}
+          aria-controls={MOBILE_MENU_ID}
+          aria-haspopup="dialog"
         >
           <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>

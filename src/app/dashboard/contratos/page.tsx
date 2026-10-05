@@ -289,7 +289,7 @@ function ContratosPageInner() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Contratos & Docs"
+        eyebrow="Contratos y documentos"
         title="Genera, revisa y vigila tus <em>contratos laborales</em>."
         subtitle="Desde indeterminados hasta locación de servicios. Cada contrato queda enlazado a la ficha del trabajador y te avisamos antes de que venza."
         actions={

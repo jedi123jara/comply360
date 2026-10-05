@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Suspense, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   Bell,
   AlertTriangle,
@@ -363,6 +364,21 @@ function generateHeatmapData(alerts: UnifiedAlert[]): { date: string; count: num
   return days
 }
 
+// ─── Foco desde otra pantalla (?focus=<id>) ──────────────────────────────────
+
+/** Cuánto dura el resaltado de la alerta que se abrió con `?focus=`. */
+const FOCUS_HIGHLIGHT_MS = 2600
+
+/** Llave única de una alerta (las normativas y las de trabajador pueden repetir id). */
+function alertKey(alert: Pick<UnifiedAlert, 'source' | 'id'>): string {
+  return `${alert.source}-${alert.id}`
+}
+
+/** id del <article> de cada alerta (a partir de su llave): lo usa `?focus=` para hacer scroll hasta ella. */
+function alertDomId(key: string): string {
+  return `alerta-${key}`
+}
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function SeverityBadge({ level }: { level: ImpactLevel }) {
@@ -419,11 +435,14 @@ function ResolveNowButton({
 
 function AlertCard({
   alert,
+  highlighted = false,
   onMarkResolved,
   onDismiss,
   onAskAssistant,
 }: {
   alert: UnifiedAlert
+  /** Resaltado breve cuando se llega con `?focus=<id>`. */
+  highlighted?: boolean
   onMarkResolved: (alert: UnifiedAlert) => void
   onDismiss: (alert: UnifiedAlert) => void
   onAskAssistant: (prompt: string) => void
@@ -439,12 +458,18 @@ function AlertCard({
 
   return (
     <article
+      id={alertDomId(alertKey(alert))}
+      // tabIndex -1: recibe el foco cuando se llega con ?focus=, sin ser una
+      // parada más al navegar con Tab.
+      tabIndex={-1}
       aria-labelledby={titleId}
+      data-highlighted={highlighted || undefined}
       className={cn(
-        'bg-surface rounded-2xl border border-l-4 border-[color:var(--border-default)] p-5 transition-all hover:shadow-md',
+        'bg-surface rounded-2xl border border-l-4 border-[color:var(--border-default)] p-5 transition-all duration-500 hover:shadow-md scroll-mt-24 focus:outline-none',
         sev.border,
         isResolved ? 'opacity-75' : 'shadow-sm',
         !isResolved && sev.glow,
+        highlighted && 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-[color:var(--bg-canvas)] shadow-lg opacity-100',
       )}
     >
       <div className="flex items-start gap-4">
@@ -650,8 +675,30 @@ function AlertTimeline({ alerts }: { alerts: UnifiedAlert[] }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+/**
+ * La bandeja de Pendientes enlaza a `/dashboard/alertas?focus=<id>`.
+ * `useSearchParams` necesita un <Suspense> alrededor.
+ */
 export default function AlertasPage() {
+  return (
+    <Suspense fallback={<AlertasLoading />}>
+      <AlertasPageContent />
+    </Suspense>
+  )
+}
+
+function AlertasLoading() {
+  return (
+    <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Cargando alertas">
+      <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" aria-hidden />
+    </div>
+  )
+}
+
+function AlertasPageContent() {
   const copilot = useCopilot()
+  const searchParams = useSearchParams()
+  const focusId = searchParams?.get('focus') ?? null
   const [alerts, setAlerts] = useState<UnifiedAlert[]>([])
   const [stats, setStats] = useState<AlertStats>({ total: 0, critical: 0, high: 0, medium: 0, multaTotalEstimada: 0 })
   const [loading, setLoading] = useState(true)
@@ -670,6 +717,11 @@ export default function AlertasPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+
+  // Alerta pedida con ?focus=<id> (viene de la bandeja de Pendientes)
+  const [highlightedKey, setHighlightedKey] = useState<string | null>(null)
+  const [focusNotice, setFocusNotice] = useState<string | null>(null)
+  const handledFocusRef = useRef<string | null>(null)
 
   // ── Unified data loader ──
   const loadAlerts = useCallback(async () => {
@@ -756,6 +808,46 @@ export default function AlertasPage() {
 
   const hasActiveFilters = severityFilter !== 'TODAS' || categoryFilter !== 'TODAS' || dateFrom !== '' || dateTo !== ''
 
+  // ?focus=<id>: cuando cargan las alertas, deja visible la pedida (sin filtros
+  // y en la pestaña que le toca) y la resalta. Solo una vez por id.
+  useEffect(() => {
+    if (loading || !focusId || handledFocusRef.current === focusId) return
+    const frame = requestAnimationFrame(() => {
+      handledFocusRef.current = focusId
+      const target = alerts.find(a => a.id === focusId && !a.isDismissed)
+      if (!target) {
+        setFocusNotice('No encontramos la alerta que abriste: puede que ya se haya resuelto o que la revisión diaria la haya actualizado.')
+        return
+      }
+      setSeverityFilter('TODAS')
+      setCategoryFilter('TODAS')
+      setDateFrom('')
+      setDateTo('')
+      setStatusFilter(target.isRead ? 'RESUELTAS' : 'PENDIENTES')
+      setFocusNotice(target.isRead ? 'Esta alerta ya está marcada como resuelta. Te la mostramos en "Resueltas".' : null)
+      setHighlightedKey(alertKey(target))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [loading, focusId, alerts])
+
+  // Scroll hasta la alerta resaltada, foco para lectores de pantalla y, tras
+  // unos segundos, se quita el resaltado.
+  useEffect(() => {
+    if (!highlightedKey) return
+    const frame = requestAnimationFrame(() => {
+      const el = document.getElementById(alertDomId(highlightedKey))
+      if (!el) return
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+      el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+      el.focus({ preventScroll: true })
+    })
+    const timer = window.setTimeout(() => setHighlightedKey(null), FOCUS_HIGHLIGHT_MS)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [highlightedKey])
+
   // ── Actions ──
 
   /** Se ejecuta desde el ConfirmDialog; si lanza, el diálogo muestra el error. */
@@ -838,13 +930,7 @@ export default function AlertasPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Cargando alertas">
-        <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" aria-hidden />
-      </div>
-    )
-  }
+  if (loading) return <AlertasLoading />
 
   return (
     <div className="space-y-6">
@@ -906,6 +992,27 @@ export default function AlertasPage() {
           footer="Si llega una inspección hoy"
         />
       </KpiGrid>
+
+      {/* ── Aviso de la alerta pedida con ?focus= ── */}
+      {focusNotice && (
+        <div
+          role="status"
+          className="flex items-start justify-between gap-3 rounded-2xl border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] px-5 py-3"
+        >
+          <p className="flex items-start gap-2 text-sm text-[color:var(--text-secondary)]">
+            <Info className="mt-0.5 w-4 h-4 flex-shrink-0 text-[color:var(--text-tertiary)]" aria-hidden />
+            {focusNotice}
+          </p>
+          <button
+            type="button"
+            onClick={() => setFocusNotice(null)}
+            aria-label="Cerrar aviso"
+            className="rounded-md p-1 text-[color:var(--text-tertiary)] hover:bg-[color:var(--neutral-100)] hover:text-[color:var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        </div>
+      )}
 
       {/* ── Load error ── */}
       {loadError && (
@@ -1126,8 +1233,9 @@ export default function AlertasPage() {
       <div className="space-y-3">
         {filtered.map(alert => (
           <AlertCard
-            key={`${alert.source}-${alert.id}`}
+            key={alertKey(alert)}
             alert={alert}
+            highlighted={highlightedKey === alertKey(alert)}
             onMarkResolved={openResolveConfirm}
             onDismiss={handleDismiss}
             onAskAssistant={askAssistant}

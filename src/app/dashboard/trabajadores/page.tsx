@@ -733,9 +733,9 @@ export default function TrabajadoresPage() {
 
       {/* Header editorial (sistema Emerald Light) */}
       <PageHeader
-        eyebrow="Equipo"
+        eyebrow="Mi personal"
         title="Gestiona tu <em>planilla completa</em>."
-        subtitle="Registra, importa y mantén al día a todos tus trabajadores desde un solo lugar. Su legajo alimenta tu score de compliance."
+        subtitle="Registra, importa y mantén al día a todos tus trabajadores desde un solo lugar. Mientras más completo esté su legajo (sus documentos), mejor es tu puntaje de cumplimiento."
         actions={
           <>
             <DropdownMenu>

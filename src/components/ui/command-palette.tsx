@@ -51,9 +51,15 @@ import {
   Scale,
   Shield,
   LifeBuoy,
+  ListChecks,
+  Network,
+  CheckSquare,
+  Files,
+  Stethoscope,
+  Wallet,
   Command as CommandIcon,
 } from 'lucide-react'
-import { NAV_HUBS, CALCULATOR_TYPES } from '@/lib/constants'
+import { NAV_HUBS, NAV_URL_ONLY_ROUTES, CALCULATOR_TYPES } from '@/lib/constants'
 import { ASISTENTES_GUIADOS } from '@/components/dashboard/que-quieres-hacer'
 import { useCopilot } from '@/providers/copilot-provider'
 import { cn } from '@/lib/utils'
@@ -65,7 +71,10 @@ import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
  * Capabilities:
  * - "¿Qué quieres hacer?": los 5 asistentes guiados (contratar, renovar,
  *   cesar, revisar planilla, SUNAFIL) como primer grupo
- * - Navigate to any of the 7 hubs or their items
+ * - Navigate to any of the 7 hubs or their items. Sin texto solo se sugieren
+ *   páginas visibles del menú; al escribir también aparecen las ocultas
+ *   (`hidden`) y se busca en su ayuda (`hint`). Las rutas de
+ *   `NAV_URL_ONLY_ROUTES` nunca salen aquí.
  * - Jump to any of the 13 calculators
  * - Dynamic search of workers / contracts / documents (debounced API calls)
  * - Quick actions (new worker, new contract, generate report…)
@@ -79,7 +88,11 @@ import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
  * y acepta varias palabras en cualquier orden ("contrato renovar").
  */
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+/**
+ * Íconos por nombre (los mismos que usa `NAV_HUBS`). Si falta uno, la fila cae
+ * al ícono genérico de documento; el test del buscador revisa que estén todos.
+ */
+export const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   Users,
   FileText,
@@ -123,6 +136,13 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Scale,
   Shield,
   Sparkles,
+  LifeBuoy,
+  ListChecks,
+  Network,
+  CheckSquare,
+  Files,
+  Stethoscope,
+  Wallet,
 }
 
 function iconFor(name: string | undefined) {
@@ -155,6 +175,57 @@ export function matchesQuery(query: string, fields: ReadonlyArray<string | undef
  */
 export function calculatorHref(key: string): string {
   return `/dashboard/calculadoras/${key.replace(/_/g, '-')}`
+}
+
+/* ── Páginas del menú en el buscador ─────────────────────────────────── */
+
+export interface PaletteNavItem {
+  label: string
+  href: string
+  icon: string
+  hint?: string
+  hidden: boolean
+  hubLabel: string
+}
+
+/** Cuántas páginas se sugieren cuando el buscador está vacío. */
+const NAV_SUGGESTIONS_WHEN_EMPTY = 8
+
+/**
+ * Todas las páginas de `NAV_HUBS` que pueden salir en el buscador, con el
+ * nombre de su grupo. Excluye las rutas que solo existen por URL
+ * (`NAV_URL_ONLY_ROUTES`).
+ */
+export function buildPaletteNavItems(): PaletteNavItem[] {
+  const urlOnly = new Set(NAV_URL_ONLY_ROUTES.map((route) => route.href))
+  return NAV_HUBS.flatMap((hub) =>
+    hub.items
+      .filter((item) => !urlOnly.has(item.href))
+      .map((item) => ({
+        label: item.label,
+        href: item.href,
+        icon: item.icon,
+        hint: item.hint,
+        hidden: item.hidden === true,
+        hubLabel: hub.label,
+      }))
+  )
+}
+
+/**
+ * Sin texto: solo páginas visibles del menú (las primeras 8).
+ * Con texto: busca en nombre, ayuda y grupo, e incluye las páginas ocultas.
+ * Primero van las que coinciden por nombre; después, las que coinciden solo
+ * por su ayuda o su grupo.
+ */
+export function filterPaletteNav(items: readonly PaletteNavItem[], query: string): PaletteNavItem[] {
+  if (query.trim().length === 0) {
+    return items.filter((item) => !item.hidden).slice(0, NAV_SUGGESTIONS_WHEN_EMPTY)
+  }
+  const matches = items.filter((item) => matchesQuery(query, [item.label, item.hint, item.hubLabel]))
+  const byName = matches.filter((item) => matchesQuery(query, [item.label]))
+  const byHelp = matches.filter((item) => !matchesQuery(query, [item.label]))
+  return [...byName, ...byHelp]
 }
 
 /* ── Types ───────────────────────────────────────────────────────────── */
@@ -243,10 +314,7 @@ export function CommandPalette({
   const [query, setQuery] = useState('')
   const { results: searchHits, loading: searching } = useDebouncedSearch(query)
 
-  const navItems = useMemo(
-    () => NAV_HUBS.flatMap((hub) => hub.items.map((item) => ({ ...item, hubLabel: hub.label }))),
-    []
-  )
+  const navItems = useMemo(() => buildPaletteNavItems(), [])
 
   const close = useCallback(() => {
     setOpenState(false)
@@ -307,7 +375,7 @@ export function CommandPalette({
       },
       {
         id: 'qa-open-copilot',
-        label: 'Abrir Asistente IA',
+        label: 'Abrir el asistente',
         hint: 'Resuelve dudas laborales con base legal peruana',
         icon: Sparkles,
         perform: () => {
@@ -366,9 +434,7 @@ export function CommandPalette({
     ? quickActions.filter((a) => matchesQuery(query, [a.label, a.hint]))
     : quickActions
 
-  const filteredNav = hasQuery
-    ? navItems.filter((n) => matchesQuery(query, [n.label, n.hubLabel]))
-    : navItems.slice(0, 8)
+  const filteredNav = filterPaletteNav(navItems, query)
 
   const filteredCalcs = hasQuery
     ? CALCULATOR_TYPES.filter((c) => matchesQuery(query, [c.label, c.description]))
@@ -427,7 +493,7 @@ export function CommandPalette({
                     className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-500/12 border border-emerald-400/30 px-3 py-1.5 text-sm font-medium text-emerald-200 hover:bg-emerald-500/18 transition-colors"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Preguntar al Asistente IA
+                    Preguntar al asistente
                   </button>
                 </div>
               ) : null}
@@ -450,11 +516,11 @@ export function CommandPalette({
 
               {/* Ask copilot — when there's a query */}
               {hasQuery ? (
-                <CmdkCommand.Group heading={<GroupHeading>Asistente IA</GroupHeading>}>
+                <CmdkCommand.Group heading={<GroupHeading>Asistente</GroupHeading>}>
                   <PaletteRow
                     value="preguntar-asistente-ia"
                     icon={Sparkles}
-                    label={`Preguntar al Asistente IA: "${query}"`}
+                    label={`Preguntar al asistente: "${query}"`}
                     hint="Respuesta con base legal peruana"
                     accent
                     onSelect={askCopilot}
@@ -505,7 +571,7 @@ export function CommandPalette({
                       value={`nav-${n.href}`}
                       icon={iconFor(n.icon)}
                       label={n.label}
-                      hint={n.hubLabel}
+                      hint={n.hint ? `${n.hubLabel} · ${n.hint}` : n.hubLabel}
                       onSelect={() => go(n.href)}
                     />
                   ))}

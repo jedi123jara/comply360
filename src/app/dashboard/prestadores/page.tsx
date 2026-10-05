@@ -12,9 +12,13 @@ import {
   AlertTriangle,
   ShieldCheck,
   Receipt,
+  ScrollText,
+  Building2,
+  ArrowRight,
 } from 'lucide-react'
 import { cn, displayWorkerName } from '@/lib/utils'
 import { formatSoles } from '@/lib/format/peruvian'
+import { PageHeader } from '@/components/comply360/editorial-title'
 
 interface ProviderItem {
   id: string
@@ -43,6 +47,26 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   TERMINATED: { label: 'Finalizado', color: 'bg-slate-100 text-slate-700 bg-white/30 text-gray-400' },
   AT_RISK: { label: 'Riesgo alto', color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' },
 }
+
+/**
+ * Páginas hermanas del menú "Locadores y contratistas". Viven aparte en el
+ * menú (más chicas, debajo de esta), así que aquí las enlazamos con una línea
+ * que explica cuándo usar cada una.
+ */
+const RELATED_PAGES = [
+  {
+    href: '/dashboard/honorarios',
+    icon: ScrollText,
+    title: 'Recibos por honorarios',
+    description: 'Registra los recibos que te emiten tus locadores y revisa si debes retenerles el 8% de impuesto a la renta.',
+  },
+  {
+    href: '/dashboard/terceros',
+    icon: Building2,
+    title: 'Empresas contratistas',
+    description: 'Empresas (no personas) que te prestan servicios o envían personal a tu local (tercerización): revisa que estén en regla.',
+  },
+] as const
 
 function riskBadge(risk: number) {
   if (risk >= 60) return { label: 'ALTO', color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' }
@@ -100,24 +124,47 @@ export default function PrestadoresPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white text-gray-100 flex items-center gap-2">
-            <Briefcase className="w-6 h-6 text-primary" />
-            Prestadores de Servicios
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Independientes que emiten recibos por honorarios (4ta categoría) — regidos por el Código Civil, no por el D.Leg. 728.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/prestadores/nuevo"
-          className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo prestador
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Mi personal"
+        title="Locadores y <em>contratistas</em>."
+        subtitle="Personas que te dan servicios de forma independiente, sin estar en planilla, y te emiten recibos por honorarios (también se les llama locadores o prestadores). No reciben CTS, gratificación ni vacaciones; pero si cumplen horario y reciben órdenes como un trabajador, SUNAFIL puede considerarlos parte de tu planilla."
+        actions={
+          <Link
+            href="/dashboard/prestadores/nuevo"
+            className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" aria-hidden="true" />
+            Nuevo prestador
+          </Link>
+        }
+      />
+
+      {/* Páginas relacionadas: recibos y empresas contratistas */}
+      <nav aria-label="Páginas relacionadas" className="grid gap-3 sm:grid-cols-2">
+        {RELATED_PAGES.map(({ href, icon: Icon, title, description }) => (
+          <Link
+            key={href}
+            href={href}
+            className="group flex items-start gap-3 rounded-xl border border-[color:var(--border-default)] bg-white p-4 transition-colors hover:border-emerald-300 hover:bg-[color:var(--bg-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+          >
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700">
+              <Icon className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text-primary)]">
+                {title}
+                <ArrowRight
+                  className="h-3.5 w-3.5 text-[color:var(--text-tertiary)] transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-[color:var(--text-secondary)]">
+                {description}
+              </span>
+            </span>
+          </Link>
+        ))}
+      </nav>
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -141,7 +188,7 @@ export default function PrestadoresPage() {
             <AlertTriangle className="w-4 h-4 text-red-500" />
           </div>
           <p className="text-2xl font-bold text-red-400 mt-2">{stats.riesgo}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">Desnaturalización ≥ 60%</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Podrían ser vistos como trabajadores</p>
         </div>
         <div className="bg-white rounded-xl border border-white/[0.08] p-4">
           <div className="flex items-center justify-between">
@@ -149,7 +196,7 @@ export default function PrestadoresPage() {
             <Receipt className="w-4 h-4 text-blue-500" />
           </div>
           <p className="text-2xl font-bold text-emerald-600 mt-2">{stats.conSuspension}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">Constancia SUNAT vigente</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Tienen constancia de SUNAT para no retenerles</p>
         </div>
       </div>
 

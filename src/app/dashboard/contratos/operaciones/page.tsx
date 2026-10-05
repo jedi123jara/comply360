@@ -186,7 +186,7 @@ export default function ContractOpsPage() {
   if (!data) {
     return (
       <div className="space-y-4">
-        <PageHeader eyebrow="Operaciones" title="Generador de contratos" subtitle="No se pudo cargar el tablero operativo." />
+        <PageHeader eyebrow="Contratos y documentos" title="Estado de tus contratos generados" subtitle="No pudimos cargar este tablero. Revisa tu conexión e inténtalo de nuevo." />
         <button onClick={() => load()} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
           Reintentar
         </button>
@@ -211,9 +211,9 @@ export default function ContractOpsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Contratos & Docs"
-        title="Centro operativo del <em>generador documental</em>."
-        subtitle="Blockers, procedencia, fallbacks, bulk, plantillas y acuses en una sola vista de control."
+        eyebrow="Contratos y documentos"
+        title="Estado de tus <em>contratos generados</em>."
+        subtitle="En una sola vista: contratos con observaciones por corregir, anexos que faltan, contratos que la IA marcó para revisar, plantillas incompletas, contratos creados en lote y quién ya confirmó haber recibido sus documentos."
         actions={
           <>
             <button
