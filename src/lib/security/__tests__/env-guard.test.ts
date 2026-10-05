@@ -2,7 +2,7 @@
  * Tests for env-guard.ts — environment variable validation.
  */
 
-import { validateEnvironment, enforceEnvironment } from '../env-guard'
+import { validateEnvironment, enforceEnvironment, reportEnvironment } from '../env-guard'
 
 beforeEach(() => {
   vi.stubEnv('DATABASE_URL', 'postgresql://user:pass@localhost:5432/db')
@@ -15,6 +15,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs()
+  vi.restoreAllMocks()
 })
 
 describe('validateEnvironment', () => {
@@ -95,6 +96,44 @@ describe('validateEnvironment', () => {
     expect(result.warnings.some(w => w.includes('RESEND_API_KEY'))).toBe(true)
     expect(result.warnings.some(w => w.includes('APIS_NET_PE_TOKEN'))).toBe(true)
     expect(result.warnings.some(w => w.includes('SUNAT_CLIENT_ID'))).toBe(true)
+  })
+})
+
+describe('secretos exigidos en producción', () => {
+  it('marca los secretos de firma y cifrado que faltan en producción', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    for (const key of ['JWT_SECRET', 'MEDICAL_VAULT_KEY', 'IMPORT_TOKEN_SECRET', 'SIGNATURE_JWT_SECRET', 'WEBAUTHN_CHALLENGE_SECRET']) {
+      vi.stubEnv(key, '')
+    }
+    const result = validateEnvironment()
+    for (const key of ['JWT_SECRET', 'MEDICAL_VAULT_KEY', 'IMPORT_TOKEN_SECRET', 'SIGNATURE_JWT_SECRET', 'WEBAUTHN_CHALLENGE_SECRET']) {
+      expect(result.errors.some(e => e.includes(key)), key).toBe(true)
+    }
+  })
+})
+
+describe('reportEnvironment', () => {
+  it('no detiene la app en producción aunque falten variables', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('DATABASE_URL', '')
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    let result: ReturnType<typeof reportEnvironment> | undefined
+    expect(() => { result = reportEnvironment() }).not.toThrow()
+    expect(result?.valid).toBe(false)
+  })
+
+  it('nunca escribe el valor de un secreto en los logs', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('JWT_SECRET', 'valor-secreto-corto')
+    const logs: string[] = []
+    vi.spyOn(console, 'error').mockImplementation((...args) => { logs.push(args.join(' ')) })
+    vi.spyOn(console, 'warn').mockImplementation((...args) => { logs.push(args.join(' ')) })
+
+    const result = reportEnvironment()
+    expect(result.errors.some(e => e.includes('JWT_SECRET'))).toBe(true)
+    expect(logs.join('\n')).not.toContain('valor-secreto-corto')
   })
 })
 

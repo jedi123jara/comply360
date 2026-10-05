@@ -28,8 +28,20 @@ const ENV_REQUIREMENTS: EnvRequirement[] = [
 
   // Production-only requirements
   { key: 'CRON_SECRET', required: 'production', description: 'Secret for cron job authentication', minLength: 16 },
+  { key: 'JWT_SECRET', required: 'production', description: 'Firma de links de auditor del organigrama y QR de asistencia', minLength: 32 },
+  { key: 'MEDICAL_VAULT_KEY', required: 'production', description: 'Cifrado de datos médicos (EMO, ARCO)', minLength: 32 },
+  { key: 'IMPORT_TOKEN_SECRET', required: 'production', description: 'Tokens de importación masiva de trabajadores', minLength: 16 },
+  { key: 'SIGNATURE_JWT_SECRET', required: 'production', description: 'Firma de documentos (boletas y contratos)', minLength: 16 },
+  { key: 'WEBAUTHN_CHALLENGE_SECRET', required: 'production', description: 'Firma biométrica (WebAuthn)', minLength: 16 },
 
   // Optional but recommended
+  { key: 'NEXT_PUBLIC_SENTRY_DSN', required: 'optional', description: 'Sentry: sin esto no se reportan errores' },
+  { key: 'DEEPSEEK_API_KEY', required: 'optional', description: 'IA principal (DeepSeek)' },
+  { key: 'CULQI_SECRET_KEY', required: 'optional', description: 'Cobros con Culqi' },
+  { key: 'NEXT_PUBLIC_CULQI_PUBLIC_KEY', required: 'optional', description: 'Checkout de Culqi en el navegador' },
+  { key: 'CULQI_WEBHOOK_SECRET', required: 'optional', description: 'Firma de los webhooks de Culqi' },
+  { key: 'SUPABASE_URL', required: 'optional', description: 'Storage de documentos (sin esto cae a /tmp)' },
+  { key: 'SUPABASE_SERVICE_KEY', required: 'optional', description: 'Storage de documentos (sin esto cae a /tmp)' },
   { key: 'RESEND_API_KEY', required: 'optional', description: 'Resend API key for email delivery' },
   { key: 'APIS_NET_PE_TOKEN', required: 'optional', description: 'apis.net.pe token for RUC/DNI validation' },
   { key: 'SUNAT_CLIENT_ID', required: 'optional', description: 'SUNAT API client ID for SOL integration' },
@@ -94,6 +106,25 @@ export function validateEnvironment(): EnvValidationResult {
     errors,
     warnings,
   }
+}
+
+/**
+ * Solo reporta: escribe en los logs qué variables faltan o son débiles (nunca
+ * sus valores) y devuelve el resultado, sin detener la app. Es lo que se usa
+ * al arrancar mientras no esté confirmado qué hay cargado en Vercel; cuando lo
+ * esté, se puede pasar a enforceEnvironment().
+ */
+export function reportEnvironment(): EnvValidationResult {
+  const result = validateEnvironment()
+  if (!result.valid) {
+    console.error('[ENV-GUARD] Variables de entorno faltantes o inválidas:')
+    result.errors.forEach(e => console.error(`  ❌  ${e}`))
+  }
+  if (result.warnings.length > 0) {
+    console.warn('[ENV-GUARD] Variables opcionales sin configurar:')
+    result.warnings.forEach(w => console.warn(`  ⚠️  ${w}`))
+  }
+  return result
 }
 
 /**

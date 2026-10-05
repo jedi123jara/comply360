@@ -10,6 +10,16 @@ import * as Sentry from '@sentry/nextjs'
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     await import('../sentry.server.config')
+
+    // Avisa (sin bloquear) qué variables de entorno faltan. Solo nombres, nunca valores.
+    const { reportEnvironment } = await import('@/lib/security/env-guard')
+    const env = reportEnvironment()
+    if (!env.valid) {
+      Sentry.captureMessage(`env-guard: ${env.errors.length} variables faltantes o inválidas`, {
+        level: 'warning',
+        extra: { errors: env.errors },
+      })
+    }
   }
   if (process.env.NEXT_RUNTIME === 'edge') {
     await import('../sentry.edge.config')
