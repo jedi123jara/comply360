@@ -700,7 +700,7 @@ function HubSubItem({
             <Icon name={item.icon} className={cn(iconClasses, 'shrink-0 opacity-60')} />
             <span className="min-w-0 flex-1 leading-snug">{item.label}</span>
             <span
-              className="inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+              className="inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider"
               style={{
                 background: 'linear-gradient(135deg, var(--gold-100), var(--gold-200))',
                 color: 'var(--gold-700)',

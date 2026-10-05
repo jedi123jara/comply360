@@ -56,8 +56,13 @@ export function nivelCumplimiento(score: number): NivelCumplimiento {
   return 'critico'
 }
 
+/**
+ * Mismas palabras que el resultado del diagnóstico y `complianceScoreLabel`
+ * (src/lib/brand.ts): Bien (80+), A mejorar (60-79), En riesgo (menos de 60).
+ * Las claves internas no cambian.
+ */
 export const NIVEL_LABEL: Record<NivelCumplimiento, string> = {
   bien: 'Bien',
-  'en-riesgo': 'En riesgo',
-  critico: 'Crítico',
+  'en-riesgo': 'A mejorar',
+  critico: 'En riesgo',
 }

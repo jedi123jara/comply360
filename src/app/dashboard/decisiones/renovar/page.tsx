@@ -414,7 +414,7 @@ function Step1Select({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-bold uppercase text-emerald-700">{c.type.replace(/_/g, ' ')}</span>
                     {urgent && (
-                      <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-700 border border-red-200">
+                      <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-red-700 border border-red-200">
                         Urgente · {days} días
                       </span>
                     )}
@@ -548,12 +548,12 @@ function Step3Decision({
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold text-[color:var(--text-primary)]">{opt.title}</p>
                   {opt.recommended && (
-                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700">
+                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold uppercase text-emerald-700">
                       Recomendado
                     </span>
                   )}
                   {opt.warning && (
-                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-700">
+                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold uppercase text-amber-700">
                       Sensible
                     </span>
                   )}

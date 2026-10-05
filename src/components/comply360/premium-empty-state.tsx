@@ -163,9 +163,9 @@ export function PremiumEmptyState({
         {/* Title */}
         <h3
           style={{
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-display)',
             fontSize: 28,
-            fontWeight: 400,
+            fontWeight: 800,
             letterSpacing: '-0.02em',
             color: 'var(--text-primary)',
             lineHeight: 1.15,

@@ -739,7 +739,7 @@ export default function CalendarioPage() {
                           return <Icon key={cat} className={cn('w-3 h-3', CATEGORY_STYLES[cat].text)} />
                         })}
                         {dayCategories.length > MAX_DAY_ICONS && (
-                          <span className="text-[9px] font-semibold leading-none text-[color:var(--text-tertiary)]">
+                          <span className="text-[11px] font-semibold leading-none text-[color:var(--text-tertiary)]">
                             +{dayCategories.length - MAX_DAY_ICONS}
                           </span>
                         )}

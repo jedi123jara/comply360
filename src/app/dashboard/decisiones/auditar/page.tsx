@@ -353,7 +353,7 @@ function Step2Resultados({ analysis }: { analysis: AuditResponse }) {
                       className={cn('rounded-lg border p-2.5 text-sm', cfg.bg, cfg.border)}
                     >
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={cn('text-[9px] font-bold uppercase tracking-wider', cfg.text)}>
+                        <span className={cn('text-[11px] font-bold uppercase tracking-wider', cfg.text)}>
                           {f.type.replace(/_/g, ' ')}
                         </span>
                         <span className="text-[10px] text-[color:var(--text-tertiary)]">· {f.workerName}</span>

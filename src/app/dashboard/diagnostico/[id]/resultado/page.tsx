@@ -151,7 +151,7 @@ function TrendChart({ data, currentId }: { data: { id: string; date: string; sco
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-primary)]">
           <History className="h-5 w-5 text-primary" />
           Evolución de tu puntaje
         </h2>
@@ -407,7 +407,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
           <Link href="/dashboard/centro-sunafil?tab=diagnostico" className="mb-2 flex items-center gap-1 text-sm text-gray-500 hover:text-primary">
             <ArrowLeft className="h-4 w-4" /> Centro SUNAFIL
           </Link>
-          <h1 className="text-2xl font-bold text-white">Resultado del diagnóstico</h1>
+          <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Resultado del diagnóstico</h1>
           <p className="text-sm text-gray-400">
             {TYPE_LABEL[data.type] ?? 'Diagnóstico'} · {new Date(data.completedAt || data.createdAt).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
@@ -439,7 +439,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
         <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6 text-center">
           <AlertTriangle className={cn('h-10 w-10', data.totalMultaRiesgo > 50000 ? 'text-red-500' : 'text-yellow-500')} />
-          <p className="mt-2 text-2xl font-bold text-white">{formatSoles(data.totalMultaRiesgo)}</p>
+          <p className="mt-2 text-2xl font-bold text-[color:var(--text-primary)]">{formatSoles(data.totalMultaRiesgo)}</p>
           <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Multa potencial total</h3>
           <p className="mt-1 text-xs text-slate-500">Lo que podrías pagar si SUNAFIL te inspecciona hoy</p>
           {porVerificar.length > 0 ? (
@@ -452,7 +452,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
         <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white p-6 text-center">
           <ShieldCheck className="h-10 w-10 text-green-500" />
-          <p className="mt-2 text-2xl font-bold text-green-600">{formatSoles(subsanacion90)}</p>
+          <p className="mt-2 text-2xl font-bold text-green-700">{formatSoles(subsanacion90)}</p>
           <h3 className="text-sm font-semibold text-[color:var(--text-secondary)]">Si corriges antes de la inspección</h3>
           <p className="mt-1 text-xs text-slate-500">Descuento de hasta 90% por subsanación voluntaria (Art. 40, Ley 28806)</p>
         </div>
@@ -465,7 +465,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
       {/* Resultado por área */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[color:var(--text-primary)]">
           <BarChart3 className="h-5 w-5" /> Resultado por área
         </h2>
         <div className="space-y-4">
@@ -485,7 +485,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
       {/* Brechas */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">
-        <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-white">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-[color:var(--text-primary)]">
           <Target className="h-5 w-5 text-red-500" /> Brechas prioritarias
         </h2>
         <p className="mb-4 text-sm text-gray-400">
@@ -505,13 +505,13 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
             <div key={gap.questionId} className="flex flex-col gap-3 rounded-lg border border-white/[0.08] p-3 sm:flex-row sm:items-start">
               <div className="flex flex-1 items-start gap-3">
                 <span className={cn(
-                  'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
-                  i < 3 ? 'bg-red-500' : i < 7 ? 'bg-orange-500' : 'bg-yellow-500'
+                  'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#ffffff]',
+                  i < 3 ? 'bg-red-700' : i < 7 ? 'bg-orange-700' : 'bg-amber-700'
                 )}>
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{displayQuestionText(gap.questionId, gap.text)}</p>
+                  <p className="text-sm font-medium text-[color:var(--text-primary)]">{displayQuestionText(gap.questionId, gap.text)}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <GravedadYMulta gap={gap} />
                     <span className="inline-flex items-center gap-1 text-xs text-gray-500">
@@ -548,7 +548,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       {/* Por verificar: respuestas «No sé» */}
       {porVerificar.length > 0 ? (
         <div className="rounded-xl border border-sky-200 bg-white p-6">
-          <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-white">
+          <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-[color:var(--text-primary)]">
             <HelpCircle className="h-5 w-5 text-sky-600" aria-hidden="true" /> Por verificar ({porVerificar.length})
           </h2>
           <p className="mb-4 text-sm text-gray-400">
@@ -566,7 +566,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                   <div className="flex flex-1 items-start gap-3">
                     <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-white">{displayQuestionText(gap.questionId, gap.text)}</p>
+                      <p className="text-sm font-medium text-[color:var(--text-primary)]">{displayQuestionText(gap.questionId, gap.text)}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <GravedadYMulta gap={gap} />
                         <span className="text-xs text-gray-500">{gap.baseLegal}</span>
@@ -592,7 +592,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
       <div className="rounded-xl border border-white/[0.08] bg-white p-6">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-primary)]">
               <CheckCircle2 className="h-5 w-5 text-green-500" /> Plan de acción
             </h2>
             <p className="mt-1 text-sm text-gray-400">
@@ -611,7 +611,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
         <div className="space-y-3">
           {actionPlan.map(item => {
-            const priorityColor = item.priority <= 3 ? 'bg-red-500' : item.priority <= 7 ? 'bg-orange-500' : 'bg-yellow-500'
+            const priorityColor = item.priority <= 3 ? 'bg-red-700' : item.priority <= 7 ? 'bg-orange-700' : 'bg-amber-700'
             const plazoColor = item.plazoSugerido.includes('Inmediato')
               ? 'bg-red-100 text-red-700'
               : item.plazoSugerido.includes('Corto')
@@ -626,7 +626,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                 <div className="flex flex-1 items-start gap-3">
                   {/* Prioridad */}
                   <span className={cn(
-                    'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
+                    'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#ffffff]',
                     priorityColor
                   )}>
                     {item.priority}
@@ -634,7 +634,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
                   {/* Contenido */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">{item.action}</p>
+                    <p className="text-sm font-medium text-[color:var(--text-primary)]">{item.action}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <span className="text-xs text-gray-400">{areaLabel(item.area)}</span>
                       <span className="text-xs text-slate-500">·</span>
@@ -649,7 +649,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
                 {/* Multa evitable + acción */}
                 <div className="flex items-center justify-between gap-3 sm:justify-end">
                   <div className="text-left sm:text-right">
-                    <p className="text-sm font-semibold text-red-500">{formatSoles(item.multaEvitable)}</p>
+                    <p className="text-sm font-semibold text-red-700">{formatSoles(item.multaEvitable)}</p>
                     <p className="text-xs text-slate-500">multa evitable</p>
                   </div>
                   <ResolveLink route={routeForQuestion(item.questionId, item.area)} />
@@ -672,7 +672,7 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
 
       {/* ─── Volver a medir ─── */}
       <div className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-indigo-50 p-6">
-        <h2 className="mb-1 text-lg font-bold text-white">Mide tu avance</h2>
+        <h2 className="mb-1 text-lg font-bold text-[color:var(--text-primary)]">Mide tu avance</h2>
         <p className="mb-5 text-sm text-gray-400">
           Cuando corrijas brechas, vuelve a medir para ver cómo sube tu puntaje.
         </p>
@@ -685,11 +685,11 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
               <Search className="h-5 w-5 text-primary" />
             </div>
-            <h3 className="font-semibold text-white">Diagnóstico completo</h3>
+            <h3 className="font-semibold text-[color:var(--text-primary)]">Diagnóstico completo</h3>
             <p className="mt-1 text-xs text-gray-400">
               {QUESTION_COUNT.FULL} preguntas · {formatEstimate(QUESTION_COUNT.FULL)}
             </p>
-            <p className="mt-auto pt-3 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100">
+            <p className="mt-auto pt-3 text-xs font-semibold text-primary">
               Empezar →
             </p>
           </Link>
@@ -702,11 +702,11 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50">
               <Zap className="h-5 w-5 text-amber-500" />
             </div>
-            <h3 className="font-semibold text-white">Diagnóstico express</h3>
+            <h3 className="font-semibold text-[color:var(--text-primary)]">Diagnóstico express</h3>
             <p className="mt-1 text-xs text-gray-400">
               {QUESTION_COUNT.EXPRESS} preguntas · {formatEstimate(QUESTION_COUNT.EXPRESS)}
             </p>
-            <p className="mt-auto pt-3 text-xs font-medium text-amber-500 opacity-70 transition-opacity group-hover:opacity-100">
+            <p className="mt-auto pt-3 text-xs font-semibold text-amber-800">
               Empezar →
             </p>
           </Link>
@@ -719,9 +719,9 @@ export default function ResultadoPage({ params }: { params: Promise<{ id: string
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-red-50">
               <FlaskConical className="h-5 w-5 text-red-500" />
             </div>
-            <h3 className="font-semibold text-white">Simulacro SUNAFIL</h3>
+            <h3 className="font-semibold text-[color:var(--text-primary)]">Simulacro SUNAFIL</h3>
             <p className="mt-1 text-xs text-gray-400">Simula una inspección con tu legajo real · {SIMULACRO_ESTIMATE}</p>
-            <p className="mt-auto pt-3 text-xs font-medium text-red-500 opacity-70 transition-opacity group-hover:opacity-100">
+            <p className="mt-auto pt-3 text-xs font-semibold text-red-700">
               Empezar →
             </p>
           </Link>

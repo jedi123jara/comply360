@@ -317,7 +317,7 @@ export function TabLegajo({
         <ProgressRing value={percent} size={100} stroke={8}>
           <div className="text-center leading-none">
             <div className="text-xl font-bold text-emerald-700">{percent}%</div>
-            <div className="mt-0.5 text-[9px] uppercase tracking-widest text-[color:var(--text-tertiary)]">
+            <div className="mt-0.5 text-[11px] uppercase tracking-widest text-[color:var(--text-tertiary)]">
               completo
             </div>
           </div>
@@ -654,7 +654,7 @@ function AiBadges({ doc }: { doc: LegajoDoc }) {
           }
         >
           <span
-            className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white"
+            className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white"
             style={{ boxShadow: '0 2px 4px rgba(4,120,87,0.25)' }}
           >
             <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />
@@ -678,7 +678,7 @@ function AiBadges({ doc }: { doc: LegajoDoc }) {
             </div>
           }
         >
-          <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-amber-300">
+          <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-amber-300">
             <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
             Revisar
           </span>
@@ -701,7 +701,7 @@ function AiBadges({ doc }: { doc: LegajoDoc }) {
             </div>
           }
         >
-          <span className="inline-flex items-center gap-0.5 rounded-full bg-red-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+          <span className="inline-flex items-center gap-0.5 rounded-full bg-red-600 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">
             <ShieldAlert className="h-2.5 w-2.5" aria-hidden="true" />
             Sospechoso
           </span>

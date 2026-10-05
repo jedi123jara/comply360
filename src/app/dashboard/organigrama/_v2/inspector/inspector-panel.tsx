@@ -546,7 +546,7 @@ export function InspectorPanel({ tree, coverage }: InspectorPanelProps) {
                       >
                         <div className="flex items-center gap-1.5">
                           <span
-                            className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                            className={`rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
                               f.severity === 'CRITICAL'
                                 ? 'bg-red-600 text-white'
                                 : f.severity === 'HIGH'
@@ -1032,7 +1032,7 @@ function MiniStatus({
   }[tone]
   return (
     <div className={`rounded-lg border px-2 py-1.5 ${toneClass}`}>
-      <div className="text-[9px] font-bold uppercase tracking-wide opacity-70">{label}</div>
+      <div className="text-[11px] font-bold uppercase tracking-wide opacity-70">{label}</div>
       <div className="mt-0.5 truncate text-[11px] font-semibold">{value}</div>
     </div>
   )
@@ -1356,7 +1356,7 @@ function HistoryTab({ unitId }: { unitId: string }) {
             className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs"
           >
             <div className="flex items-center gap-1.5">
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-700">
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-700">
                 {e.type.replace(/_/g, ' ')}
               </span>
               <span className="ml-auto text-[10px] text-slate-500 tabular-nums">

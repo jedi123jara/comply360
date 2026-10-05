@@ -319,9 +319,9 @@ export default function BoletaDetailPage() {
         </div>
         <h1
           style={{
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-display)',
             fontSize: 'clamp(1.75rem, 5vw, 2.25rem)',
-            fontWeight: 400,
+            fontWeight: 800,
             lineHeight: 1.1,
             letterSpacing: '-0.02em',
             color: 'var(--text-primary)',
@@ -365,9 +365,9 @@ export default function BoletaDetailPage() {
           </p>
           <p
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 'clamp(2.5rem, 8vw, 3.5rem)',
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.025em',
               lineHeight: 1,
               fontVariantNumeric: 'tabular-nums',
@@ -416,7 +416,7 @@ export default function BoletaDetailPage() {
           <span className="text-sm font-bold text-[color:var(--text-primary)]">Total ingresos</span>
           <span
             className="font-mono tabular-nums"
-            style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--emerald-700)' }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--emerald-700)' }}
           >
             {formatSoles(boleta.totalIngresos)}
           </span>
@@ -455,7 +455,7 @@ export default function BoletaDetailPage() {
           <span className="text-sm font-bold text-[color:var(--text-primary)]">Total descuentos</span>
           <span
             className="font-mono tabular-nums"
-            style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--crimson-700, #b91c1c)' }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--crimson-700, #b91c1c)' }}
           >
             - {formatSoles(boleta.totalDescuentos)}
           </span>
@@ -680,9 +680,9 @@ function BiometricCeremonyModal({
 
           <h2
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 24,
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.015em',
               color: 'var(--text-primary)',
               lineHeight: 1.15,
@@ -729,9 +729,9 @@ function BiometricCeremonyModal({
             </p>
             <p
               style={{
-                fontFamily: 'var(--font-serif)',
+                fontFamily: 'var(--font-display)',
                 fontSize: 28,
-                fontWeight: 400,
+                fontWeight: 800,
                 color: 'var(--emerald-700)',
                 letterSpacing: '-0.02em',
                 lineHeight: 1,

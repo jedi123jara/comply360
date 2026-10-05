@@ -204,7 +204,7 @@ export function RosterPanel() {
                         </div>
                       </div>
                       {!assigned && (
-                        <span className="flex-shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700">
+                        <span className="flex-shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">
                           Sin puesto
                         </span>
                       )}

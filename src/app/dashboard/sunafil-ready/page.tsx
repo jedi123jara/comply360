@@ -454,7 +454,7 @@ function DocRow({ entry }: { entry: Entry }) {
           <p className="text-sm font-bold truncate">{entry.title}</p>
           <span
             className={cn(
-              'inline-flex items-center rounded-full border px-2 py-0 text-[9px] font-bold uppercase tracking-widest',
+              'inline-flex items-center rounded-full border px-2 py-0 text-[11px] font-bold uppercase tracking-widest',
               gravityTone,
             )}
           >

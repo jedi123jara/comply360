@@ -2,7 +2,6 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { complianceScoreColor } from '@/lib/brand'
 
 /**
  * ActivityHeatmap — GitHub-style contribution graph for compliance activity.
@@ -25,6 +24,46 @@ interface ActivityHeatmapProps {
 }
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+
+/**
+ * Niveles de intensidad con nombre: cada celda lleva su valor en texto
+ * (title + aria-label) y la leyenda los nombra, para no depender del color
+ * (WCAG 1.4.1).
+ */
+const LEVEL_LABELS = ['Sin actividad', 'Baja', 'Media', 'Alta', 'Muy alta'] as const
+
+/**
+ * Rampa monótona sobre fondo claro: a más acciones, más oscuro. La anterior
+ * terminaba en cian claro (rgb(103,232,249)), así que el nivel 4 se veía más
+ * claro que el 3 en el tema claro.
+ */
+function cellColor(value: number) {
+  if (value <= 0) return 'rgba(148, 163, 184, 0.16)'
+  if (value === 1) return 'rgba(13, 148, 136, 0.22)'
+  if (value === 2) return 'rgba(13, 148, 136, 0.45)'
+  if (value === 3) return 'rgba(13, 148, 136, 0.72)'
+  return 'rgb(15, 118, 110)'
+}
+
+function levelLabel(value: number) {
+  return LEVEL_LABELS[Math.max(0, Math.min(4, Math.round(value)))]
+}
+
+// Formato fijo (no Intl): el texto sale igual en el servidor y en el navegador
+// y no rompe la hidratación.
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'set', 'oct', 'nov', 'dic']
+
+/** "lun 5 oct 2026: 3 acciones (alta)" — texto de cada celda. */
+function describeDay(day: HeatmapDay) {
+  const d = new Date(`${day.date}T00:00:00Z`)
+  const fecha = `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} ${MESES[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+  const nivel = levelLabel(day.value).toLowerCase()
+  if (day.count != null) {
+    return `${fecha}: ${day.count} ${day.count === 1 ? 'acción' : 'acciones'} (${nivel})`
+  }
+  return day.value <= 0 ? `${fecha}: sin actividad` : `${fecha}: actividad ${nivel}`
+}
 
 export function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
   // Build a date → value map
@@ -56,14 +95,6 @@ export function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
     grid[col][row] = hit ?? { date: iso, value: 0 }
   }
 
-  function cellColor(value: number) {
-    if (value <= 0) return 'rgba(148, 163, 184, 0.12)'
-    if (value === 1) return 'rgba(20, 184, 166, 0.28)'
-    if (value === 2) return 'rgba(20, 184, 166, 0.46)'
-    if (value === 3) return 'rgba(45, 212, 191, 0.72)'
-    return 'rgb(103, 232, 249)'
-  }
-
   const totalActivity = data.reduce((sum, d) => sum + (d.count ?? d.value), 0)
 
   return (
@@ -87,46 +118,59 @@ export function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
             {WEEKDAYS.map((d, i) => (
               <span
                 key={i}
-                className="h-[11px] w-3 text-[9px] text-[color:var(--text-tertiary)] text-right pr-1 leading-[11px]"
+                className="h-[11px] w-3 text-[11px] text-[color:var(--text-tertiary)] text-right pr-1 leading-[11px]"
               >
                 {i % 2 === 0 ? d : ''}
               </span>
             ))}
           </div>
 
-          {/* Grid */}
+          {/* Grid: cada celda lleva su valor en texto (title + aria-label) */}
           <div className="flex-1 overflow-x-auto">
-            <div className="inline-flex gap-[3px]" role="img" aria-label="Actividad de compliance">
+            <div
+              className="inline-flex gap-[3px]"
+              role="group"
+              aria-label={`Actividad de compliance de las últimas ${weeks} semanas: ${totalActivity} acciones`}
+            >
               {grid.map((week, wi) => (
                 <div key={wi} className="flex flex-col gap-[3px]">
-                  {week.map((day, di) => (
-                    <span
-                      key={di}
-                      title={day ? `${day.date}${day.count != null ? ` · ${day.count} acciones` : ''}` : ''}
-                      className={cn(
-                        'h-[11px] w-[11px] rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-emerald-500/60'
-                      )}
-                      style={{ background: cellColor(day?.value ?? 0) }}
-                    />
-                  ))}
+                  {week.map((day, di) => {
+                    const label = day ? describeDay(day) : ''
+                    return (
+                      <span
+                        key={di}
+                        role="img"
+                        aria-label={label}
+                        title={label}
+                        className={cn(
+                          'h-[11px] w-[11px] rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-emerald-500/60'
+                        )}
+                        style={{ background: cellColor(day?.value ?? 0) }}
+                      />
+                    )
+                  })}
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-[color:var(--text-tertiary)]">
-          <span>Menos</span>
-          {[0, 1, 2, 3, 4].map((v) => (
-            <span
-              key={v}
-              className="h-[10px] w-[10px] rounded-[2px]"
-              style={{ background: cellColor(v), color: complianceScoreColor(80) }}
-            />
+        {/* Leyenda con texto: cada tono tiene su nombre */}
+        <ul
+          className="mt-3 flex flex-wrap items-center justify-end gap-x-2.5 gap-y-1 text-[10px] text-[color:var(--text-tertiary)]"
+          aria-label="Leyenda de intensidad"
+        >
+          {LEVEL_LABELS.map((name, v) => (
+            <li key={name} className="inline-flex items-center gap-1">
+              <span
+                aria-hidden="true"
+                className="h-[10px] w-[10px] rounded-[2px] border border-[color:var(--border-subtle)]"
+                style={{ background: cellColor(v) }}
+              />
+              {name}
+            </li>
           ))}
-          <span>Más</span>
-        </div>
+        </ul>
       </CardContent>
     </Card>
   )

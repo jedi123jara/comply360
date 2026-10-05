@@ -178,7 +178,7 @@ export function TimeMachineDrawer() {
                   }`}
                 >
                   <div
-                    className={`text-[9px] font-bold uppercase tracking-wider ${
+                    className={`text-[11px] font-bold uppercase tracking-wider ${
                       currentId === null ? 'text-emerald-700' : 'text-slate-500'
                     }`}
                   >
@@ -279,11 +279,11 @@ function SnapshotCard({ snapshot, isCurrent, isCompare, onClick, index }: Snapsh
           loading="lazy"
         />
         <div className="absolute right-1 top-1 flex items-center gap-0.5">
-          <span className="rounded bg-slate-900/60 px-1 text-[8px] font-bold text-white">
+          <span className="rounded bg-slate-900/60 px-1 text-[11px] font-bold text-white">
             #{index}
           </span>
           {snapshot.isAuto && (
-            <span className="rounded bg-slate-200 px-1 text-[8px] font-bold text-slate-700">
+            <span className="rounded bg-slate-200 px-1 text-[11px] font-bold text-slate-700">
               AUTO
             </span>
           )}
@@ -302,7 +302,7 @@ function SnapshotCard({ snapshot, isCurrent, isCompare, onClick, index }: Snapsh
         <span title="Unidades">
           <strong className="tabular-nums">{snapshot.unitCount}</strong>u
         </span>
-        <span className="ml-auto truncate font-mono text-[9px] text-slate-400">
+        <span className="ml-auto truncate font-mono text-[11px] text-slate-400">
           #{snapshot.hash.slice(0, 6)}
         </span>
       </div>

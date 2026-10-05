@@ -210,7 +210,7 @@ export function FirmaDocClient({ doc, orgName, workerName, alreadySigned }: Prop
           </span>
           <h1
             className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2 leading-tight"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             {doc.title}
           </h1>

@@ -17,6 +17,9 @@ import {
   Users,
   ShieldAlert,
   AlertTriangle,
+  AlertOctagon,
+  CheckCircle2,
+  XOctagon,
   UsersRound,
   BriefcaseBusiness,
   ShieldCheck,
@@ -28,8 +31,30 @@ import {
 
 import {
   TONE_COLOR_HEX,
+  TONE_LABEL,
   type UnitCoverage,
 } from '@/lib/orgchart/coverage-aggregator'
+
+/**
+ * El tono de cumplimiento no puede ir solo en el color del borde (WCAG 1.4.1):
+ * cada tono tiene un ícono distinto + etiqueta (TONE_LABEL) en aria-label,
+ * title y texto sr-only. `ink` es la tinta del número: TONE_COLOR_HEX es para
+ * bordes y barras (ámbar/naranja sobre blanco quedan en ~2:1 como texto);
+ * estas tintas dan ≥ 5,5:1 sobre el fondo tintado de la pastilla.
+ */
+const TONE_ICON: Record<UnitCoverage['tone'], typeof Building2> = {
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  danger: AlertOctagon,
+  critical: XOctagon,
+}
+
+const TONE_INK: Record<UnitCoverage['tone'], string> = {
+  success: '#1d4ed8', // blue-700 · 5,8:1
+  warning: '#92400e', // amber-800 · 6,6:1
+  danger: '#9a3412', // orange-800 · 6,6:1
+  critical: '#b91c1c', // red-700 · 5,5:1
+}
 import type { UnitNodeData } from '../hooks/use-tree-to-flow'
 import { OrgAvatar } from '../../shared/org-avatar'
 import { useLOD } from '../hooks/use-lod'
@@ -76,6 +101,14 @@ function UnitNodeInner(props: UnitNodeProps) {
   const tone = data.coverage?.tone ?? 'success'
   const ringColor = TONE_COLOR_HEX[tone]
   const Icon = KIND_ICON[data.unitKind] ?? Building2
+  const ToneIcon = TONE_ICON[tone]
+  const coverageLabel = data.coverage
+    ? `Cumplimiento ${data.coverage.score}/100 · ${TONE_LABEL[tone]}`
+    : ''
+  const findingsLabel =
+    data.coverage && data.coverage.findingCount > 0
+      ? `${data.coverage.findingCount} hallazgo${data.coverage.findingCount === 1 ? '' : 's'} de cumplimiento`
+      : ''
 
   return (
     <m.div
@@ -149,11 +182,14 @@ function UnitNodeInner(props: UnitNodeProps) {
           </div>
           {data.coverage && (
             <span
-              className="flex-shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums"
-              style={{ backgroundColor: `${ringColor}1a`, color: ringColor }}
-              title={`Cumplimiento ${data.coverage.score}/100`}
+              role="img"
+              aria-label={coverageLabel}
+              className="inline-flex flex-shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums"
+              style={{ backgroundColor: `${ringColor}1a`, color: TONE_INK[tone] }}
+              title={coverageLabel}
             >
-              {data.coverage.score}
+              <ToneIcon className="h-3 w-3" />
+              <span aria-hidden="true">{data.coverage.score}</span>
             </span>
           )}
         </div>
@@ -203,7 +239,10 @@ function UnitNodeInner(props: UnitNodeProps) {
                 />
                 <span className="truncate text-slate-700">{c.title}</span>
                 {c.isCritical && (
-                  <ShieldAlert className="h-3 w-3 flex-shrink-0 text-amber-600" />
+                  <span title="Cargo crítico" className="inline-flex flex-shrink-0">
+                    <ShieldAlert className="h-3 w-3 text-amber-600" />
+                    <span className="sr-only">(cargo crítico)</span>
+                  </span>
                 )}
                 <span
                   className={`ml-auto flex-shrink-0 max-w-[96px] truncate text-[10px] ${
@@ -234,20 +273,29 @@ function UnitNodeInner(props: UnitNodeProps) {
               {data.occupantsCount}
             </span>
             {data.vacantesCount != null && data.vacantesCount > 0 && (
-              <span className="font-medium text-amber-700">{data.vacantesCount} vac.</span>
+              <span
+                className="font-medium text-amber-700"
+                title={`${data.vacantesCount} vacante${data.vacantesCount === 1 ? '' : 's'}`}
+              >
+                {data.vacantesCount} vac.
+              </span>
             )}
             {data.coverage && data.coverage.findingCount > 0 && (
-              <span className="ml-auto inline-flex items-center gap-1 text-rose-600">
+              <span
+                className="ml-auto inline-flex items-center gap-1 text-rose-700"
+                title={findingsLabel}
+              >
                 <AlertTriangle className="h-3 w-3" />
-                {data.coverage.findingCount}
+                <span aria-hidden="true">{data.coverage.findingCount}</span>
+                <span className="sr-only">{findingsLabel}</span>
               </span>
             )}
           </div>
         )}
 
-        {/* Barra de cumplimiento */}
+        {/* Barra de cumplimiento: refuerzo visual; el estado ya va en la pastilla del encabezado */}
         {data.coverage && (
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
             <div
               className="h-full transition-all duration-500"
               style={{ width: `${data.coverage.score}%`, backgroundColor: ringColor }}

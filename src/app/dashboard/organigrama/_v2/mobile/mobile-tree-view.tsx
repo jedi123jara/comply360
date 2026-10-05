@@ -305,7 +305,7 @@ function UnitRow({
             <span className="truncate text-sm font-semibold text-slate-900">
               {unit.name}
             </span>
-            <span className="rounded bg-slate-100 px-1 py-0.5 text-[8px] font-bold uppercase text-slate-600">
+            <span className="rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold uppercase text-slate-600">
               {unit.kind}
             </span>
           </div>
@@ -320,7 +320,7 @@ function UnitRow({
             </span>
             {cov && (
               <span
-                className="ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                className="ml-auto rounded-full px-1.5 py-0.5 text-[11px] font-bold"
                 style={{
                   backgroundColor: `${TONE_COLOR_HEX[cov.tone]}1a`,
                   color: TONE_COLOR_HEX[cov.tone],

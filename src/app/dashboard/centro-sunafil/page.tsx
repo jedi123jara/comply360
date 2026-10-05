@@ -709,7 +709,7 @@ function ExpedienteHistoryMini({
 function HistoryKpi({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-md bg-white/[0.04] px-2 py-1.5">
-      <p className="text-[9px] font-black uppercase text-slate-500">{label}</p>
+      <p className="text-[11px] font-black uppercase text-slate-500">{label}</p>
       <p className="text-xs font-black text-slate-100">{value}</p>
     </div>
   )

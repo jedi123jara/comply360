@@ -809,7 +809,7 @@ function AlertRow({
           display: 'grid',
           placeItems: 'center',
           color: 'var(--amber-700)',
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-display)',
           fontSize: 18,
           fontWeight: 600,
           fontStyle: 'italic',

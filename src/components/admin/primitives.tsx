@@ -223,9 +223,9 @@ export function Ring({
       >
         <div
           style={{
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-display)',
             fontSize: size * 0.26,
-            fontWeight: 400,
+            fontWeight: 800,
             lineHeight: 1,
             color: 'var(--text-primary)',
             fontStyle: 'italic',

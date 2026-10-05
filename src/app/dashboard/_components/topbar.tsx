@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/popover'
 import { useCopilot } from '@/providers/copilot-provider'
 import { useCalculatorDrawer } from '@/components/ui/calculator-drawer'
-import { complianceScoreColor } from '@/lib/brand'
+import { complianceScoreColor, complianceScoreLabel, complianceScoreTextColor } from '@/lib/brand'
 
 /**
  * id del menú lateral móvil (el drawer que abre el botón ☰). El botón lo
@@ -235,6 +235,9 @@ export default function Topbar({ onMenuToggle, onCommandK, menuOpen = false }: T
         : 'C3'
 
   const scoreColor = score != null ? complianceScoreColor(score) : undefined
+  // El número va en una tinta con contraste AA; el color del anillo solo para el ícono.
+  const scoreTextColor = score != null ? complianceScoreTextColor(score) : undefined
+  const scoreLabel = score != null ? complianceScoreLabel(score) : null
   const copilotShortcut = modKey === '⌘' ? '⌘I' : 'Ctrl+I'
   const copilotLabel = copilot.isOpen
     ? `Cerrar el asistente (${copilotShortcut})`
@@ -374,14 +377,14 @@ export default function Topbar({ onMenuToggle, onCommandK, menuOpen = false }: T
               href="/dashboard/diagnostico"
               title={
                 delta != null
-                  ? `Puntaje de cumplimiento ${score}/100 · ${delta >= 0 ? '+' : ''}${delta} frente al mes anterior`
-                  : `Puntaje de cumplimiento ${score}/100`
+                  ? `Puntaje de cumplimiento ${score}/100 (${scoreLabel}) · ${delta >= 0 ? '+' : ''}${delta} frente al mes anterior`
+                  : `Puntaje de cumplimiento ${score}/100 (${scoreLabel})`
               }
-              aria-label={`Puntaje de cumplimiento: ${score} de 100. Ver diagnóstico`}
+              aria-label={`Puntaje de cumplimiento: ${score} de 100, ${scoreLabel}. Ver diagnóstico`}
               className="hidden sm:flex items-center gap-1.5 rounded-full border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-2.5 py-1 text-xs font-semibold hover:border-emerald-500/60 hover:bg-[color:var(--bg-surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <ShieldCheck className="h-3.5 w-3.5" style={{ color: scoreColor }} aria-hidden="true" />
-              <span style={{ color: scoreColor }}>{score}</span>
+              <span style={{ color: scoreTextColor }}>{score}</span>
               {delta != null && delta !== 0 ? (
                 delta > 0 ? (
                   <TrendingUp className="h-3 w-3 text-emerald-600" />
@@ -429,7 +432,7 @@ export default function Topbar({ onMenuToggle, onCommandK, menuOpen = false }: T
               >
                 <Bell className="h-4 w-4" aria-hidden="true" />
                 {unread > 0 ? (
-                  <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-crimson-600 px-1 text-[9px] font-bold text-white">
+                  <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-crimson-600 px-1 text-[11px] font-bold text-white">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 ) : null}

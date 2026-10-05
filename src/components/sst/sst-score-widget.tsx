@@ -2,10 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, ShieldCheck, ArrowRight, AlertTriangle, Banknote } from 'lucide-react'
+import {
+  Loader2,
+  ShieldCheck,
+  ArrowRight,
+  AlertTriangle,
+  AlertOctagon,
+  CheckCircle2,
+  Banknote,
+} from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatSoles } from '@/lib/format/peruvian'
+import { COMPLIANCE_SCORE_LABELS } from '@/lib/brand'
 
 type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO'
 
@@ -16,20 +25,46 @@ interface ScoreSnapshot {
   recomendaciones: Array<{ prioridad: string }>
 }
 
-const SEMAFORO_STYLES: Record<Semaforo, { ring: string; text: string; bg: string; label: string }> = {
+/**
+ * Semáforo con palabra + ícono (WCAG 1.4.1): el color solo refuerza.
+ * Las palabras son las mismas del score de compliance (≥ 80 / 60-79 / < 60),
+ * que son también los umbrales del semáforo SST (`src/lib/sst/scoring.ts`).
+ */
+const SEMAFORO_STYLES: Record<
+  Semaforo,
+  {
+    ring: string
+    text: string
+    bg: string
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+    badge: 'success' | 'warning' | 'danger'
+  }
+> = {
   VERDE: {
     ring: 'ring-emerald-300',
     text: 'text-emerald-700',
     bg: 'bg-emerald-50',
-    label: 'CUMPLE',
+    label: COMPLIANCE_SCORE_LABELS.good,
+    icon: CheckCircle2,
+    badge: 'success',
   },
   AMARILLO: {
     ring: 'ring-amber-300',
     text: 'text-amber-700',
     bg: 'bg-amber-50',
-    label: 'EN RIESGO',
+    label: COMPLIANCE_SCORE_LABELS.fair,
+    icon: AlertTriangle,
+    badge: 'warning',
   },
-  ROJO: { ring: 'ring-rose-400', text: 'text-rose-700', bg: 'bg-rose-50', label: 'CRÍTICO' },
+  ROJO: {
+    ring: 'ring-rose-400',
+    text: 'text-rose-700',
+    bg: 'bg-rose-50',
+    label: COMPLIANCE_SCORE_LABELS.risk,
+    icon: AlertOctagon,
+    badge: 'danger',
+  },
 }
 
 /**
@@ -94,6 +129,7 @@ export function SstScoreWidget({ compact = false }: { compact?: boolean }) {
   }
 
   const sem = SEMAFORO_STYLES[data.semaforo]
+  const SemIcon = sem.icon
   const recsCriticas = data.recomendaciones.filter(
     (r) => r.prioridad === 'CRITICAL' || r.prioridad === 'HIGH',
   ).length
@@ -102,6 +138,7 @@ export function SstScoreWidget({ compact = false }: { compact?: boolean }) {
     return (
       <Link
         href="/dashboard/sst/score"
+        aria-label={`Score SST: ${data.scoreGlobal} de 100, ${sem.label}. Ver detalle`}
         className="block rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"
       >
         <div className="flex items-center gap-3">
@@ -110,7 +147,8 @@ export function SstScoreWidget({ compact = false }: { compact?: boolean }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-xs font-medium text-slate-500">Score SST</div>
-            <Badge variant={data.semaforo === 'VERDE' ? 'success' : data.semaforo === 'AMARILLO' ? 'warning' : 'danger'} size="xs">
+            <Badge variant={sem.badge} size="xs">
+              <SemIcon className="h-3 w-3" />
               {sem.label}
             </Badge>
           </div>
@@ -131,19 +169,11 @@ export function SstScoreWidget({ compact = false }: { compact?: boolean }) {
             <div className="mt-2 flex items-end gap-3">
               <span className={`text-5xl font-black ${sem.text}`}>{data.scoreGlobal}</span>
               <span className="pb-2 text-xs text-slate-500">/100</span>
+              <Badge variant={sem.badge} size="sm" className="mb-2">
+                <SemIcon className="h-3.5 w-3.5" />
+                {sem.label}
+              </Badge>
             </div>
-            <Badge
-              variant={
-                data.semaforo === 'VERDE'
-                  ? 'success'
-                  : data.semaforo === 'AMARILLO'
-                    ? 'warning'
-                    : 'danger'
-              }
-              size="xs"
-            >
-              {sem.label}
-            </Badge>
           </div>
 
           <Link

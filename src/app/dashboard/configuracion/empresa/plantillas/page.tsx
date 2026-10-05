@@ -290,7 +290,7 @@ function TemplateCard({ template }: { template: TemplateListItem }) {
         </p>
         <h3
           className="text-base font-semibold leading-snug text-[color:var(--text-primary)]"
-          style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+          style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
         >
           {template.title}
         </h3>
@@ -326,7 +326,7 @@ function TemplateCard({ template }: { template: TemplateListItem }) {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="text-xl font-semibold text-[color:var(--text-primary)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>
+      <p className="text-xl font-semibold text-[color:var(--text-primary)]" style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>
         {value}
       </p>
       <p className="text-[10px] font-medium uppercase tracking-wider text-[color:var(--text-tertiary)]">

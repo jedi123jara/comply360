@@ -937,7 +937,7 @@ function Step4Capacitaciones({
                     {score > 0 && (
                       <span
                         className={cn(
-                          'rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                          'rounded-full px-1.5 py-0.5 text-[11px] font-bold uppercase',
                           score >= 2
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-amber-100 text-amber-700',

@@ -258,7 +258,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
         />
       </KpiGrid>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
+      <section className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
         <PrioritiesCard
           tasks={nextTasks}
           open={openTasks}

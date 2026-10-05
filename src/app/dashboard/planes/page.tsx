@@ -250,7 +250,7 @@ export default function PlanesPage() {
           </p>
           <p
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 22,
               color: 'var(--text-primary)',
               lineHeight: 1,

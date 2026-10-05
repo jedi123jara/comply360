@@ -993,7 +993,7 @@ export default function DenunciasPage() {
                                 <p className={cn('font-semibold', d.status === 'OVERDUE' ? 'text-red-400' : d.status === 'EXPIRING_SOON' ? 'text-amber-400' : 'text-[color:var(--text-secondary)]')}>
                                   {d.label}
                                   {d.kind && (
-                                    <span className="ml-2 rounded-full bg-black/10 px-1.5 py-0.5 text-[9px] uppercase text-[color:var(--text-tertiary)]">
+                                    <span className="ml-2 rounded-full bg-black/10 px-1.5 py-0.5 text-[11px] uppercase text-[color:var(--text-tertiary)]">
                                       {d.kind === 'EXTERNAL_REPORT' ? 'reporte externo' : d.kind === 'BEST_PRACTICE' ? 'buena practica' : d.kind === 'PRESCRIPTION' ? 'prescripcion' : 'legal'}
                                     </span>
                                   )}

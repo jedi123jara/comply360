@@ -323,7 +323,7 @@ function Step2Plan({ snapshot }: { snapshot: SunafilSnapshot }) {
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                   <span
                     className={cn(
-                      'rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                      'rounded-full px-1.5 py-0.5 text-[11px] font-bold uppercase',
                       t.gravedad === 'MUY_GRAVE'
                         ? 'bg-red-50 text-red-700'
                         : t.gravedad === 'GRAVE'

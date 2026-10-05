@@ -31,9 +31,9 @@ export function SectionHead({ title, emPart, link }: SectionHeadProps) {
     >
       <h2
         style={{
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-display)',
           fontSize: 22,
-          fontWeight: 400,
+          fontWeight: 800,
           letterSpacing: 0,
           lineHeight: 1.1,
           color: 'var(--text-primary)',
@@ -43,7 +43,7 @@ export function SectionHead({ title, emPart, link }: SectionHeadProps) {
         {emPart && (
           <>
             {' '}
-            <em style={{ color: '#1e40af', fontStyle: 'italic' }}>
+            <em style={{ color: '#1e40af', fontStyle: 'normal' }}>
               {emPart}
             </em>
           </>

@@ -579,7 +579,7 @@ function UnitBlock({
       <div className="flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-[12px]">
         <Users className="h-3 w-3 text-emerald-600" />
         <span className="font-medium text-slate-900">{unit.name}</span>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-600">
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold uppercase text-slate-600">
           {unit.kind}
         </span>
       </div>
@@ -593,7 +593,7 @@ function UnitBlock({
                 <span className="text-slate-400">({q.seats})</span>
               )}
               {q.isManagerial && (
-                <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">
+                <span className="rounded bg-amber-100 px-1 text-[11px] font-bold text-amber-800">
                   jefe
                 </span>
               )}

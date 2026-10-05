@@ -329,7 +329,7 @@ export default function MiPortalAsistenciaPage() {
           </p>
           <p
             className="text-6xl lg:text-7xl text-[color:var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}
           >
             {clockHHMM}
           </p>
@@ -376,8 +376,8 @@ export default function MiPortalAsistenciaPage() {
           <h2
             className="text-2xl mb-1"
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 500,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800,
               color: resultStatus === 'LATE' ? '#78350f' : '#172554',
             }}
           >
@@ -424,7 +424,7 @@ export default function MiPortalAsistenciaPage() {
                     <LogIn className="h-4 w-4 text-emerald-600" />
                     <span className="text-xs text-[color:var(--text-secondary)]">Entrada</span>
                   </div>
-                  <p className="text-2xl font-semibold text-[color:var(--text-primary)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>
+                  <p className="text-2xl font-semibold text-[color:var(--text-primary)]" style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>
                     {new Date(today.clockIn).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                   {today.status === 'LATE' ? (
@@ -455,7 +455,7 @@ export default function MiPortalAsistenciaPage() {
                   </div>
                   {today.clockOut ? (
                     <>
-                      <p className="text-2xl font-semibold text-[color:var(--text-primary)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>
+                      <p className="text-2xl font-semibold text-[color:var(--text-primary)]" style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>
                         {new Date(today.clockOut).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <span className="text-[10px] text-[color:var(--text-tertiary)]">
@@ -485,7 +485,7 @@ export default function MiPortalAsistenciaPage() {
             </div>
             <h2
               className="text-xl text-[color:var(--text-primary)] mb-1"
-              style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+              style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
             >
               ¿Qué vas a marcar?
             </h2>

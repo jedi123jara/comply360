@@ -225,7 +225,7 @@ export function OnboardingCascadeCard({
           {/* Title (Instrument Serif para "drama") */}
           <p
             className="mt-1.5 text-lg leading-snug text-slate-900"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             {cfg.title(workerFirstName)}
           </p>

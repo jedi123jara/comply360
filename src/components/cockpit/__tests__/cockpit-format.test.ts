@@ -39,6 +39,7 @@ describe('nivelCumplimiento', () => {
     expect(nivelCumplimiento(79)).toBe('en-riesgo')
     expect(nivelCumplimiento(60)).toBe('en-riesgo')
     expect(nivelCumplimiento(59)).toBe('critico')
-    expect(NIVEL_LABEL[nivelCumplimiento(30)]).toBe('Crítico')
+    expect(NIVEL_LABEL[nivelCumplimiento(79)]).toBe('A mejorar')
+    expect(NIVEL_LABEL[nivelCumplimiento(30)]).toBe('En riesgo')
   })
 })

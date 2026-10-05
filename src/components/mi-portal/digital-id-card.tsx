@@ -69,7 +69,7 @@ export function DigitalIdCard({
           height: 96,
           borderRadius: 10,
           background: 'linear-gradient(135deg, #93c5fd, #1d4ed8)',
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-display)',
           fontSize: 36,
           color: 'white',
           border: '1.5px solid rgba(255,255,255,0.2)',
@@ -110,9 +110,9 @@ export function DigitalIdCard({
 
         <div
           style={{
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-display)',
             fontSize: 22,
-            fontWeight: 400,
+            fontWeight: 800,
             letterSpacing: '-0.02em',
             lineHeight: 1.05,
             marginTop: 6,
