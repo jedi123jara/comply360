@@ -68,7 +68,9 @@ import { cn } from '@/lib/utils'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { BrandBlockA } from '@/components/comply360/brand-block'
+import { QueQuieresHacerMenu } from '@/components/dashboard/que-quieres-hacer'
 import { useUpgradeGate } from '@/providers/upgrade-gate-provider'
+import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
 
 /* ── Iconos ──────────────────────────────────────────────────────────── */
 
@@ -239,6 +241,8 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
   const plan = useOrgPlan()
   const currentPlan = plan as PlanKey | 'FREE'
   const activeHub = resolveActiveHub(pathname)
+  const modKey = usePlatformModKey()
+  const shortcutLabel = modKey === '⌘' ? '⌘K' : 'Ctrl+K'
 
   // Which hubs the user has manually toggled shut. Active hub auto-expands
   // unless the user explicitly collapsed it — tracked by this set.
@@ -287,7 +291,7 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
         href="/dashboard"
         onClick={onClose}
         className="relative block hover:bg-[color:var(--bg-surface-hover)] transition-colors"
-        aria-label="COMPLY360 · Ir al dashboard"
+        aria-label="COMPLY360 · Ir al inicio del panel"
       >
         <BrandBlockA />
       </Link>
@@ -297,14 +301,23 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
         type="button"
         onClick={onCommandK}
         className="mx-3 mt-3 flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] px-3 py-2 text-xs text-[color:var(--text-tertiary)] hover:border-emerald-500/60 hover:text-[color:var(--text-primary)] hover:bg-[color:var(--bg-surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
-        aria-label="Abrir búsqueda (Ctrl+K)"
+        aria-label={`Buscar (${shortcutLabel})`}
       >
-        <Search className="h-3.5 w-3.5" />
+        <Search className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="flex-1 text-left">Buscar…</span>
-        <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-surface)] px-1.5 py-0.5 font-mono text-[10px]">
-          <Command className="h-2.5 w-2.5" />K
+        <kbd
+          aria-hidden="true"
+          className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-surface)] px-1.5 py-0.5 font-mono text-[10px]"
+        >
+          {modKey === '⌘' ? <Command className="h-2.5 w-2.5" /> : <span>{modKey}</span>}
+          <span>{modKey === '⌘' ? 'K' : '+K'}</span>
         </kbd>
       </button>
+
+      {/* ── ¿QUÉ QUIERES HACER? — asistentes guiados, siempre visible ── */}
+      <div className="mx-3 mt-2.5">
+        <QueQuieresHacerMenu onNavigate={onClose} />
+      </div>
 
       {/* ── HUBS ──────────────────────────────────────────────── */}
       <nav aria-label="Navegación principal" className="relative mt-3 flex-1 overflow-y-auto px-2 pb-4">
@@ -330,7 +343,7 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
       <div className="relative border-t border-[color:var(--border-default)] p-3 bg-[color:var(--bg-inset)]">
         <Link
           href="/dashboard/planes"
-          aria-label={`Plan actual: ${plan}. Click para ver y mejorar tu plan.`}
+          aria-label={`Plan actual: ${plan}. Haz clic para ver y mejorar tu plan.`}
           title="Ver planes y mejorar"
           className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 bg-[color:var(--bg-surface)] border border-[color:var(--border-subtle)] shadow-[var(--elevation-1)] hover:border-emerald-300 hover:shadow-[var(--elevation-2)] transition-all cursor-pointer"
         >
@@ -376,10 +389,10 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-3 top-3 z-10 rounded-md p-1 text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)]"
+              className="absolute right-3 top-3 z-10 rounded-md p-1.5 text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               aria-label="Cerrar menú"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
             {content}
           </aside>
@@ -531,7 +544,7 @@ function HubSubItem({
     return (
       <li>
         <Tooltip
-          content={`Requiere plan ${requiredShort} — click para ver detalles`}
+          content={`Requiere plan ${requiredShort}. Haz clic para ver detalles`}
           side="right"
         >
           <button

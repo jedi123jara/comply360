@@ -21,6 +21,7 @@ import {
   TrendingUp,
   TrendingDown,
   Calculator,
+  LifeBuoy,
 } from 'lucide-react'
 import { NAV_ITEMS, resolveActiveHub } from '@/lib/constants'
 import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
@@ -28,7 +29,9 @@ import { cn } from '@/lib/utils'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip } from '@/components/ui/tooltip'
 import { OrgSwitcher } from './org-switcher'
+import { ASISTENTES_GUIADOS } from '@/components/dashboard/que-quieres-hacer'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -103,7 +106,10 @@ function useBreadcrumb(pathname: string): Crumb[] {
   const segments = pathname.replace('/dashboard', '').split('/').filter(Boolean)
   if (segments.length > 1) {
     const last = segments[segments.length - 1]
+    // En los asistentes guiados usamos el mismo nombre que en "¿Qué quieres hacer?"
+    const asistente = ASISTENTES_GUIADOS.find((a) => a.href === pathname)
     const label =
+      asistente?.title ??
       SEGMENT_LABELS[last] ??
       (isId(last) ? 'Detalle' : last.charAt(0).toUpperCase() + last.slice(1))
     if (label !== crumbs[crumbs.length - 1].label) {
@@ -252,6 +258,10 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
         : 'C3'
 
   const scoreColor = score != null ? complianceScoreColor(score) : undefined
+  const copilotShortcut = modKey === '⌘' ? '⌘I' : 'Ctrl+I'
+  const copilotLabel = copilot.isOpen
+    ? `Cerrar Asistente IA (${copilotShortcut})`
+    : `Abrir Asistente IA (${copilotShortcut})`
 
   return (
     <>
@@ -291,7 +301,7 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
           className="lg:hidden"
           aria-label="Abrir menú"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>
 
         {/* Breadcrumbs */}
@@ -324,25 +334,29 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
           {/* OrgSwitcher (oculto cuando hay 1 sola org) */}
           <OrgSwitcher />
 
-          {/* SUNAFIL sync pill (prototipo god-mode) */}
-          <div
-            className="c360-tb-sync hidden lg:flex"
-            title="Última verificación SUNAFIL: en tiempo real"
-          >
-            <span className="dot" />
-            <span>SUNAFIL sincronizado</span>
-          </div>
-          <div className="c360-tb-divider hidden lg:block" />
+          {/* Buscador: botón con ícono en móvil (el sidebar está oculto ahí) */}
+          <Tooltip content="Buscar" side="bottom">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={onCommandK}
+              className="md:hidden"
+              aria-label="Buscar"
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </Tooltip>
 
           {/* Cmd+K compact button (desktop) */}
           <button
             type="button"
             onClick={onCommandK}
+            aria-label={`Buscar (${modKey === '⌘' ? '⌘K' : 'Ctrl+K'})`}
             className="hidden md:flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-2.5 py-1.5 text-xs text-[color:var(--text-tertiary)] hover:border-emerald-500/60 hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
-            <Search className="h-3 w-3" />
+            <Search className="h-3 w-3" aria-hidden="true" />
             <span>Buscar</span>
-            <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-1 py-0.5 font-mono text-[10px]">
+            <kbd aria-hidden="true" className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-1 py-0.5 font-mono text-[10px]">
               {modKey === '⌘' ? <Command className="h-2.5 w-2.5" /> : <span>{modKey}</span>}
               <span>{modKey === '⌘' ? 'K' : '+K'}</span>
             </kbd>
@@ -354,12 +368,13 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
               href="/dashboard/diagnostico"
               title={
                 delta != null
-                  ? `Score ${score} · ${delta >= 0 ? '+' : ''}${delta} vs mes anterior`
-                  : `Score de compliance ${score}/100`
+                  ? `Puntaje de cumplimiento ${score}/100 · ${delta >= 0 ? '+' : ''}${delta} frente al mes anterior`
+                  : `Puntaje de cumplimiento ${score}/100`
               }
+              aria-label={`Puntaje de cumplimiento: ${score} de 100. Ver diagnóstico`}
               className="hidden sm:flex items-center gap-1.5 rounded-full border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-2.5 py-1 text-xs font-semibold hover:border-emerald-500/60 hover:bg-[color:var(--bg-surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
-              <ShieldCheck className="h-3.5 w-3.5" style={{ color: scoreColor }} />
+              <ShieldCheck className="h-3.5 w-3.5" style={{ color: scoreColor }} aria-hidden="true" />
               <span style={{ color: scoreColor }}>{score}</span>
               {delta != null && delta !== 0 ? (
                 delta > 0 ? (
@@ -372,27 +387,29 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
           ) : null}
 
           {/* Calculator drawer trigger — reemplaza la página índice /dashboard/calculadoras */}
-          <Button
-            size="icon-sm"
-            variant={calculator.isOpen ? 'emerald-soft' : 'ghost'}
-            onClick={() => calculator.open()}
-            aria-label="Abrir calculadoras laborales"
-            title="Calculadoras laborales"
-          >
-            <Calculator className="h-4 w-4" />
-          </Button>
+          <Tooltip content="Calculadoras laborales" side="bottom">
+            <Button
+              size="icon-sm"
+              variant={calculator.isOpen ? 'emerald-soft' : 'ghost'}
+              onClick={() => calculator.open()}
+              aria-label="Abrir calculadoras laborales"
+            >
+              <Calculator className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </Tooltip>
 
           {/* AI Copilot trigger */}
-          <Button
-            size="icon-sm"
-            variant={copilot.isOpen ? 'emerald-soft' : 'ghost'}
-            onClick={copilot.toggle}
-            aria-label={copilot.isOpen ? 'Cerrar Copilot (Ctrl+I)' : 'Abrir Copilot (Ctrl+I)'}
-            title={copilot.isOpen ? 'Cerrar Copilot (Ctrl+I)' : 'Abrir Copilot (Ctrl+I)'}
-            className="relative"
-          >
-            <Sparkles className="h-4 w-4" />
-          </Button>
+          <Tooltip content={copilotLabel} side="bottom">
+            <Button
+              size="icon-sm"
+              variant={copilot.isOpen ? 'emerald-soft' : 'ghost'}
+              onClick={copilot.toggle}
+              aria-label={copilotLabel}
+              className="relative"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </Tooltip>
 
           {/* Notifications bell */}
           <Popover>
@@ -400,13 +417,13 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
               <Button
                 size="icon-sm"
                 variant="ghost"
-                aria-label={`${unread} alertas sin resolver`}
+                aria-label={unread > 0 ? `Alertas: ${unread} sin resolver` : 'Alertas'}
                 title="Alertas"
                 className="relative"
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4" aria-hidden="true" />
                 {unread > 0 ? (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-crimson-600 px-1 text-[9px] font-bold text-white">
+                  <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-crimson-600 px-1 text-[9px] font-bold text-white">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 ) : null}
@@ -520,6 +537,11 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
               <DropdownMenuItem onSelect={() => router.push('/dashboard/configuracion/equipo')}>
                 <Users className="h-3.5 w-3.5" />
                 Mi equipo
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => router.push('/dashboard/ayuda')}>
+                <LifeBuoy className="h-3.5 w-3.5" />
+                Ayuda y guías
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
