@@ -281,7 +281,7 @@ export default function Sidebar({ open, onClose, onCommandK }: SidebarProps) {
   }
 
   const content = (
-    <div className="relative flex h-full flex-col border-r border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]/95 shadow-[24px_0_70px_rgba(2,6,23,0.36)] backdrop-blur-xl">
+    <div className="c360-dashboard-sidebar relative flex h-full flex-col border-r border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]/95 backdrop-blur-xl">
       {/* ── LOGO — Variant A "Sello notarial" (del prototipo de diseño) ── */}
       <Link
         href="/dashboard"

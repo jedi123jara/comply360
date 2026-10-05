@@ -36,14 +36,14 @@ export function BrandMark({ size = 34, animated = true, className }: BrandMarkPr
       <svg viewBox="0 0 64 64" role="img" focusable="false">
         <defs>
           <linearGradient id="c360LogoTile" x1="8" y1="4" x2="56" y2="60">
-            <stop offset="0%" stopColor="#22d3ee" />
-            <stop offset="42%" stopColor="#14b8a6" />
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="42%" stopColor="#2563eb" />
             <stop offset="100%" stopColor="#1d4ed8" />
           </linearGradient>
           <linearGradient id="c360LogoShield" x1="18" y1="11" x2="48" y2="54">
-            <stop offset="0%" stopColor="#ecfeff" stopOpacity="0.96" />
-            <stop offset="45%" stopColor="#a7f3d0" stopOpacity="0.88" />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.82" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.98" />
+            <stop offset="45%" stopColor="#dbeafe" stopOpacity="0.94" />
+            <stop offset="100%" stopColor="#93c5fd" stopOpacity="0.9" />
           </linearGradient>
           <linearGradient id="c360LogoSheen" x1="18" y1="10" x2="48" y2="48">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />

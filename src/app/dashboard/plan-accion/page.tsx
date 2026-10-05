@@ -22,6 +22,7 @@ import {
   Paperclip,
   RefreshCw,
   Save,
+  Search,
   ShieldCheck,
   Target,
   UploadCloud,
@@ -210,6 +211,7 @@ export default function PlanAccionPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -240,13 +242,20 @@ export default function PlanAccionPage() {
   const filtered = useMemo(() => {
     if (!data) return []
     return data.items.filter((item) => {
+      const normalizedQuery = query.trim().toLocaleLowerCase('es-PE')
+      if (
+        normalizedQuery &&
+        !`${item.title} ${item.description ?? ''} ${item.area} ${item.assignedTo ?? ''} ${item.workerName ?? ''}`
+          .toLocaleLowerCase('es-PE')
+          .includes(normalizedQuery)
+      ) return false
       if (sourceFilter !== 'all' && item.source !== sourceFilter) return false
       if (severityFilter !== 'all' && item.severity !== severityFilter) return false
       if (!matchesLaneFilter(item, laneFilter)) return false
       if (!matchesExecutionFilter(item, executionFilter)) return false
       return true
     })
-  }, [data, sourceFilter, severityFilter, laneFilter, executionFilter])
+  }, [data, query, sourceFilter, severityFilter, laneFilter, executionFilter])
 
   const selectedItem = useMemo(() => {
     if (filtered.length === 0) return null
@@ -369,19 +378,16 @@ export default function PlanAccionPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-var(--topbar-height))] px-4 py-7 text-[color:var(--text-primary)] sm:px-6 lg:px-10">
-      <div className="mx-auto w-full max-w-7xl space-y-6">
+    <div className="space-y-5 text-[color:var(--text-primary)]">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-widest text-emerald-800">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Control anti-multas
+              Gestión operativa
             </div>
-            <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-              Plan de acción <span className="ml-2 inline-block whitespace-nowrap">SUNAFIL</span>
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Centro de acción</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--text-secondary)]">
-              Prioridad, dinero expuesto, plazo y evidencia exigible en una sola cola de trabajo.
+              Organiza, asigna y resuelve los riesgos pendientes desde una sola cola de trabajo.
             </p>
           </div>
 
@@ -398,32 +404,52 @@ export default function PlanAccionPage() {
 
         <KpiGrid stats={stats} loading={loading} />
 
-        <ImpactBrief
-          stats={stats}
-          loading={loading}
-          onFocusSprint={() => {
-            setSourceFilter('all')
-            setSeverityFilter('all')
-            setLaneFilter('sprint')
-            setExecutionFilter('all')
-          }}
-          onFocusEvidence={() => {
-            setSourceFilter('all')
-            setSeverityFilter('all')
-            setLaneFilter('all')
-            setExecutionFilter('needs_evidence')
-          }}
-          onFocusUnassigned={() => {
-            setSourceFilter('all')
-            setSeverityFilter('all')
-            setLaneFilter('all')
-            setExecutionFilter('unassigned')
-          }}
-        />
+        <details className="group rounded-xl border border-[color:var(--border-default)] bg-white shadow-[var(--elevation-1)]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-[color:var(--text-secondary)] marker:hidden">
+            <span>Análisis de impacto y sprint de cierre</span>
+            <span className="text-xs text-blue-700 group-open:hidden">Mostrar</span>
+            <span className="hidden text-xs text-blue-700 group-open:inline">Ocultar</span>
+          </summary>
+          <div className="space-y-4 border-t border-[color:var(--border-subtle)] p-4">
+            <ImpactBrief
+              stats={stats}
+              loading={loading}
+              onFocusSprint={() => {
+                setSourceFilter('all')
+                setSeverityFilter('all')
+                setLaneFilter('sprint')
+                setExecutionFilter('all')
+              }}
+              onFocusEvidence={() => {
+                setSourceFilter('all')
+                setSeverityFilter('all')
+                setLaneFilter('all')
+                setExecutionFilter('needs_evidence')
+              }}
+              onFocusUnassigned={() => {
+                setSourceFilter('all')
+                setSeverityFilter('all')
+                setLaneFilter('all')
+                setExecutionFilter('unassigned')
+              }}
+            />
+            <SprintPanel items={sprintItems} loading={loading} onSelect={setSelectedId} selectedId={selectedItem?.id ?? null} />
+          </div>
+        </details>
 
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="space-y-4">
             <div className="rounded-xl border border-[color:var(--border-default)] bg-white p-4 shadow-sm">
+              <label className="relative mb-4 block">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--text-tertiary)]" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar acción, responsable o área..."
+                  className="h-10 w-full rounded-xl border border-[color:var(--border-default)] bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
               <div className="flex flex-wrap items-center gap-2">
                 <Filter className="h-4 w-4 text-[color:var(--text-tertiary)]" />
                 {SOURCE_FILTERS.map((source) => (
@@ -482,8 +508,6 @@ export default function PlanAccionPage() {
               </div>
             </div>
 
-            <SprintPanel items={sprintItems} loading={loading} onSelect={setSelectedId} selectedId={selectedItem?.id ?? null} />
-
             {loading ? (
               <LoadingPanel />
             ) : error ? (
@@ -514,49 +538,40 @@ export default function PlanAccionPage() {
             onResolveExternal={resolveExternalAction}
           />
         </section>
-      </div>
-    </main>
+    </div>
   )
 }
 
 function KpiGrid({ stats, loading }: { stats?: PlanResponse['stats']; loading: boolean }) {
-  const nextDue = stats?.nextDueDate ? fmtDate(stats.nextDueDate) : 'Sin fecha'
   return (
-    <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+    <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <KpiCard
-        icon={Banknote}
-        label="Multa evitable"
-        value={<MoneyValue value={stats?.multaEvitableTotal ?? 0} />}
+        icon={ListChecks}
+        label="Abiertas"
+        value={stats?.total ?? 0}
         loading={loading}
-        tone="emerald"
+        tone="blue"
       />
       <KpiCard
         icon={Flame}
-        label="Críticas"
-        value={stats?.critical ?? 0}
-        loading={loading}
-        tone={stats?.critical ? 'red' : 'slate'}
-      />
-      <KpiCard
-        icon={Clock3}
         label="Vencidas"
         value={stats?.overdue ?? 0}
         loading={loading}
-        tone={stats?.overdue ? 'amber' : 'slate'}
+        tone={stats?.overdue ? 'red' : 'slate'}
+      />
+      <KpiCard
+        icon={ClipboardCheck}
+        label="Listas para cerrar"
+        value={stats?.readyToClose ?? 0}
+        loading={loading}
+        tone="amber"
       />
       <KpiCard
         icon={ShieldCheck}
-        label="Reducido 30d"
-        value={<MoneyValue value={stats?.multaReducida30 ?? 0} />}
+        label="Resueltas 30 días"
+        value={stats?.completedLast30 ?? 0}
         loading={loading}
-        tone="violet"
-      />
-      <KpiCard
-        icon={CalendarClock}
-        label="Próximo cierre"
-        value={nextDue}
-        loading={loading}
-        tone="blue"
+        tone="emerald"
       />
     </section>
   )

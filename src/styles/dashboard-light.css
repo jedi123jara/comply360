@@ -1,0 +1,256 @@
+/*
+ * Comply360 employer workspace — Blue & White system.
+ *
+ * This scope is intentionally applied at the dashboard shell. It gives every
+ * employer route one visual language while keeping public marketing pages and
+ * the worker portal independent.
+ */
+.c360-dashboard-light {
+  color-scheme: light;
+
+  /* Brand aliases. Legacy `emerald-*` utilities now resolve to Comply blue. */
+  --emerald-50: #eff6ff;
+  --emerald-100: #dbeafe;
+  --emerald-200: #bfdbfe;
+  --emerald-300: #93c5fd;
+  --emerald-400: #60a5fa;
+  --emerald-500: #2563eb;
+  --emerald-600: #155eef;
+  --emerald-700: #1d4ed8;
+  --emerald-800: #1e40af;
+  --emerald-900: #172554;
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-500: #2563eb;
+  --blue-600: #155eef;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-150: #eaf0f8;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+
+  --bg-base: #f4f8ff;
+  --bg-canvas: #f4f8ff;
+  --bg-elevated: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f3f7ff;
+  --bg-surface-active: #e8f0ff;
+  --bg-inset: #f7f9fd;
+  --bg-muted: #eef4ff;
+
+  --text-primary: #102a56;
+  --text-secondary: #405576;
+  --text-tertiary: #70809a;
+  --text-disabled: #9aa8bb;
+  --text-inverse: #ffffff;
+  --text-accent: #155eef;
+  --text-link: #155eef;
+
+  --border-subtle: #e8eef7;
+  --border-default: #d8e2f0;
+  --border-strong: #bdcce0;
+  --border-emerald: rgba(21, 94, 239, 0.3);
+  --border-emerald-strong: rgba(21, 94, 239, 0.48);
+  --border-crimson: rgba(225, 29, 72, 0.25);
+  --border-amber: rgba(217, 119, 6, 0.28);
+
+  --color-success-bg: #ecfdf3;
+  --color-success-border: #bbf7d0;
+  --color-success-text: #15803d;
+  --color-warning-bg: #fff8e7;
+  --color-warning-text: #b45309;
+  --color-danger-bg: #fff1f2;
+  --color-danger-text: #be123c;
+  --color-info-bg: #eff6ff;
+  --color-info-text: #1d4ed8;
+
+  --accent-bar-emerald: linear-gradient(90deg, #155eef 0%, #49a7ff 100%);
+  --accent-bar-amber: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+  --accent-bar-crimson: linear-gradient(90deg, #e11d48 0%, #fb7185 100%);
+
+  --elevation-1: 0 1px 2px rgba(16, 42, 86, 0.04), 0 4px 12px rgba(16, 42, 86, 0.035);
+  --elevation-2: 0 1px 2px rgba(16, 42, 86, 0.04), 0 10px 28px rgba(16, 42, 86, 0.06);
+  --elevation-3: 0 2px 4px rgba(16, 42, 86, 0.05), 0 16px 40px rgba(16, 42, 86, 0.08);
+  --elevation-4: 0 3px 6px rgba(16, 42, 86, 0.06), 0 24px 60px rgba(16, 42, 86, 0.1);
+  --elevation-hover: 0 2px 5px rgba(16, 42, 86, 0.06), 0 18px 38px rgba(21, 94, 239, 0.1);
+  --shadow-hero: 0 18px 45px rgba(16, 42, 86, 0.08);
+  --shadow-card-lift: var(--elevation-hover);
+
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 70% -20%, rgba(96, 165, 250, 0.16), transparent 34%),
+    #f4f8ff;
+  color: var(--text-primary);
+}
+
+body.c360-dashboard-light {
+  color-scheme: light;
+  background: #f4f8ff;
+}
+
+/* Restore conventional light utilities inside the employer product. */
+.c360-dashboard-light .bg-white,
+.c360-dashboard-light .bg-white\/80,
+.c360-dashboard-light .bg-white\/90,
+.c360-dashboard-light .bg-white\/95 {
+  background-color: #ffffff !important;
+}
+
+.c360-dashboard-light .bg-white\/30,
+.c360-dashboard-light .bg-white\/40,
+.c360-dashboard-light .bg-white\/50,
+.c360-dashboard-light .bg-white\/60,
+.c360-dashboard-light .bg-white\/70 {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.c360-dashboard-light :is(.bg-slate-50, .bg-gray-50, .bg-neutral-50) {
+  background-color: #f8fafc !important;
+}
+
+.c360-dashboard-light :is(.bg-slate-100, .bg-gray-100, .bg-neutral-100) {
+  background-color: #f1f5f9 !important;
+}
+
+.c360-dashboard-light :is(.bg-slate-200, .bg-gray-200, .bg-neutral-200) {
+  background-color: #e2e8f0 !important;
+}
+
+.c360-dashboard-light :is(.bg-emerald-50, .bg-blue-50, .bg-cyan-50, .bg-sky-50) {
+  background-color: #eff6ff !important;
+}
+
+.c360-dashboard-light :is(.bg-emerald-100, .bg-blue-100, .bg-cyan-100, .bg-sky-100) {
+  background-color: #dbeafe !important;
+}
+
+.c360-dashboard-light :is(.bg-green-50, .bg-green-100) {
+  background-color: #ecfdf3 !important;
+}
+
+.c360-dashboard-light :is(.bg-amber-50, .bg-yellow-50, .bg-orange-50) {
+  background-color: #fffbeb !important;
+}
+
+.c360-dashboard-light :is(.bg-amber-100, .bg-yellow-100, .bg-orange-100) {
+  background-color: #fef3c7 !important;
+}
+
+.c360-dashboard-light :is(.bg-red-50, .bg-rose-50, .bg-crimson-50) {
+  background-color: #fff1f2 !important;
+}
+
+.c360-dashboard-light :is(.bg-red-100, .bg-rose-100, .bg-crimson-100) {
+  background-color: #ffe4e6 !important;
+}
+
+.c360-dashboard-light :is(.bg-purple-50, .bg-violet-50, .bg-indigo-50) {
+  background-color: #f5f3ff !important;
+}
+
+.c360-dashboard-light :is(.text-slate-950, .text-gray-950, .text-neutral-950, .text-slate-900, .text-gray-900, .text-neutral-900, .text-black) {
+  color: var(--text-primary) !important;
+}
+
+.c360-dashboard-light :is(.text-slate-800, .text-gray-800, .text-neutral-800, .text-slate-700, .text-gray-700, .text-neutral-700) {
+  color: var(--text-secondary) !important;
+}
+
+.c360-dashboard-light :is(.text-slate-600, .text-gray-600, .text-neutral-600, .text-slate-500, .text-gray-500, .text-neutral-500, .text-slate-400, .text-gray-400) {
+  color: var(--text-tertiary) !important;
+}
+
+.c360-dashboard-light :is(.text-emerald-200, .text-emerald-300, .text-emerald-400, .text-emerald-600, .text-emerald-700, .text-emerald-800, .text-cyan-200, .text-cyan-300, .text-cyan-400) {
+  color: #1d4ed8 !important;
+}
+
+.c360-dashboard-light :is(.border-slate-100, .border-slate-200, .border-slate-300, .border-gray-100, .border-gray-200, .border-gray-300, .border-neutral-100, .border-neutral-200, .border-white\/10, .border-white\/\[0\.06\], .border-white\/\[0\.08\], .border-white\/\[0\.12\]) {
+  border-color: var(--border-default) !important;
+}
+
+.c360-dashboard-light :is(.divide-slate-100, .divide-slate-200, .divide-gray-100, .divide-gray-200) > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-subtle) !important;
+}
+
+/* Convert legacy dark product surfaces, while preserving code samples. */
+.c360-dashboard-light main :is(.bg-slate-950, .bg-gray-950, .bg-zinc-900, .bg-neutral-950):not(pre):not(code),
+.c360-dashboard-light main :not(pre):not(code)[class*="bg-[#0"],
+.c360-dashboard-light main :not(pre):not(code)[class*="bg-[#1"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: var(--border-default) !important;
+  box-shadow: var(--elevation-2) !important;
+}
+
+.c360-dashboard-light main :is(.bg-slate-950, .bg-gray-950, .bg-zinc-900, .bg-neutral-950) :is(.text-white, .text-slate-100, .text-slate-200),
+.c360-dashboard-light main [class*="bg-[#0"] :is(.text-white, .text-slate-100, .text-slate-200),
+.c360-dashboard-light main [class*="bg-[#1"] :is(.text-white, .text-slate-100, .text-slate-200) {
+  color: var(--text-primary) !important;
+}
+
+.c360-dashboard-light main :is(input, textarea, select) {
+  color-scheme: light;
+}
+
+.c360-dashboard-light main :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  background-color: #ffffff;
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.c360-dashboard-light main :is(input, textarea)::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Dark navy navigation is the single deliberate dark surface. */
+.c360-dashboard-sidebar {
+  --bg-elevated: #08265d;
+  --bg-surface: rgba(255, 255, 255, 0.08);
+  --bg-surface-hover: rgba(96, 165, 250, 0.16);
+  --bg-surface-active: rgba(96, 165, 250, 0.22);
+  --bg-inset: rgba(3, 20, 54, 0.36);
+  --text-primary: #ffffff;
+  --text-secondary: #dbeafe;
+  --text-tertiary: #9dc7ff;
+  --border-subtle: rgba(191, 219, 254, 0.12);
+  --border-default: rgba(191, 219, 254, 0.18);
+  background: linear-gradient(180deg, #0b2d6c 0%, #061f4d 100%) !important;
+  box-shadow: 16px 0 48px rgba(16, 42, 86, 0.12) !important;
+}
+
+.c360-dashboard-sidebar :is(.text-emerald-200, .text-emerald-300, .text-emerald-400, .text-cyan-200, .text-cyan-300, .text-cyan-400) {
+  color: #bfdbfe !important;
+}
+
+.c360-dashboard-sidebar .c360-brand-name,
+.c360-dashboard-sidebar .c360-sb-brand-wordmark {
+  color: #ffffff !important;
+}
+
+.c360-dashboard-sidebar .c360-brand-meta {
+  color: #93c5fd !important;
+}
+
+.c360-dashboard-sidebar .bg-white\/20,
+.c360-dashboard-sidebar .bg-white\/30 {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.c360-dashboard-light header.sticky {
+  box-shadow: 0 1px 0 rgba(16, 42, 86, 0.04), 0 8px 24px rgba(16, 42, 86, 0.04) !important;
+}
+
+@media (max-width: 640px) {
+  .c360-dashboard-light {
+    --topbar-height: 56px;
+  }
+}

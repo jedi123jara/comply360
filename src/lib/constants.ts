@@ -381,10 +381,10 @@ export const NAV_HUBS: readonly NavHub[] = [
       // Vive como sub-ruta del Panel (no como hub principal del sidebar) para
       // mantener el sidebar limpio. Si en 3-6 meses analytics muestran alta
       // frecuencia (>30% sesiones), se promueve a entrada principal.
-      { label: "Plan de Acción", href: "/dashboard/plan-accion", icon: "ListChecks" },
+      { label: "Centro de acción", href: "/dashboard/plan-accion", icon: "ListChecks" },
       // Calendario absorbido aquí: una sola página no merece hub propio,
       // pero sigue accesible y visible como sub-item del Panel.
-      { label: "Calendario compliance", href: "/dashboard/calendario", icon: "Calendar" },
+      { label: "Calendario y análisis", href: "/dashboard/calendario", icon: "Calendar" },
     ],
   },
   {
