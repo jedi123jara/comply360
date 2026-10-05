@@ -12,6 +12,7 @@
  */
 
 import type {
+  StartRouteProgress,
   CockpitFullPayload,
   CockpitRiskSummary,
   CockpitStats,
@@ -315,5 +316,30 @@ export function buildCockpitMock(scenario: CockpitScenario): CockpitFullPayload 
     scoreSnapshot,
     complianceBreakdown: scoreSnapshot.breakdown,
     riskSummary: buildRiskSummary(scenario, complianceTasks),
+    startRoute: buildStartRoute(scenario),
+  }
+}
+
+/** Avance de la ruta de arranque (datos de ejemplo). */
+function buildStartRoute(scenario: CockpitScenario): StartRouteProgress {
+  if (scenario === 'vacio') {
+    return {
+      orgMissingFields: ['sector'],
+      resolvedTasks: 0,
+      resolvedAlerts: 0,
+      multaReducida: 0,
+      openAlerts: 0,
+      legajoDocs: 0,
+      legajoWorker: null,
+    }
+  }
+  return {
+    orgMissingFields: [],
+    resolvedTasks: 2,
+    resolvedAlerts: 1,
+    multaReducida: 4950,
+    openAlerts: 3,
+    legajoDocs: 0,
+    legajoWorker: { id: 'w-ejemplo-1', name: 'Juan García', legajoScore: 0 },
   }
 }

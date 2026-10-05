@@ -963,7 +963,111 @@ export function buildRiskSummary(input: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 10. Agregadora — usada por el route handler para no romper API contract
+// 10. Ruta de arranque (primeros pasos): datos reales de avance
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Lo que la ruta de arranque necesita y no viene ya en el resto del payload
+ * (trabajadores y diagnóstico salen de `stats` y `riskSummary`).
+ */
+export interface StartRouteProgress {
+  /** Datos de la empresa que faltan, en palabras ("RUC", "sector"...). Vacío = completos. */
+  orgMissingFields: string[]
+  /** Pendientes resueltos de verdad: tareas completadas + alertas marcadas como resueltas. */
+  resolvedTasks: number
+  resolvedAlerts: number
+  /** Multa estimada de lo resuelto (tareas + alertas), en soles. */
+  multaReducida: number
+  /** Alertas de trabajadores sin resolver (las tareas abiertas vienen en `complianceTasks.open`). */
+  openAlerts: number
+  /** Documentos subidos o verificados en legajos de trabajadores activos. */
+  legajoDocs: number
+  /** Trabajador con el legajo más avanzado (o el primero registrado si nadie subió nada). */
+  legajoWorker: { id: string; name: string; legajoScore: number } | null
+}
+
+const RUC_PATTERN = /^\d{11}$/
+
+/** Datos mínimos de la empresa para saber qué normas le aplican. */
+export function missingOrgFields(org: {
+  ruc: string | null
+  razonSocial: string | null
+  name: string | null
+  sector: string | null
+  regimenPrincipal: string | null
+} | null): string[] {
+  if (!org) return ['RUC', 'razón social', 'sector', 'régimen laboral']
+  const missing: string[] = []
+  if (!org.ruc || !RUC_PATTERN.test(org.ruc.trim())) missing.push('RUC')
+  if (!(org.razonSocial?.trim() || org.name?.trim())) missing.push('razón social')
+  if (!org.sector?.trim()) missing.push('sector')
+  if (!org.regimenPrincipal?.trim()) missing.push('régimen laboral')
+  return missing
+}
+
+export async function getStartRouteProgress(orgId: string): Promise<StartRouteProgress> {
+  const activeWorker = { orgId, status: { not: 'TERMINATED' as const }, deletedAt: null }
+
+  const [org, completedTasks, resolvedAlerts, openAlerts, legajoDocs, legajoWorker] =
+    await Promise.all([
+      prisma.organization
+        .findUnique({
+          where: { id: orgId },
+          select: { ruc: true, razonSocial: true, name: true, sector: true, regimenPrincipal: true },
+        })
+        .catch(() => null),
+      // La tabla de tareas puede no existir en entornos viejos: degradamos a 0.
+      prisma.complianceTask
+        .aggregate({
+          where: { orgId, status: 'COMPLETED' },
+          _count: { _all: true },
+          _sum: { multaEvitable: true },
+        })
+        .catch(() => null),
+      // Solo las resueltas a propósito: el motor de alertas BORRA (no resuelve)
+      // las que dejan de aplicar, así que esto no infla el avance.
+      prisma.workerAlert
+        .aggregate({
+          where: { orgId, resolvedAt: { not: null } },
+          _count: { _all: true },
+          _sum: { multaEstimada: true },
+        })
+        .catch(() => null),
+      prisma.workerAlert.count({ where: { orgId, resolvedAt: null } }).catch(() => 0),
+      prisma.workerDocument
+        .count({ where: { status: { in: ['UPLOADED', 'VERIFIED'] }, worker: activeWorker } })
+        .catch(() => 0),
+      prisma.worker
+        .findFirst({
+          where: activeWorker,
+          orderBy: [{ legajoScore: { sort: 'desc', nulls: 'last' } }, { createdAt: 'asc' }],
+          select: { id: true, firstName: true, lastName: true, legajoScore: true },
+        })
+        .catch(() => null),
+    ])
+
+  const multaTareas = Number(completedTasks?._sum.multaEvitable ?? 0)
+  const multaAlertas = Number(resolvedAlerts?._sum.multaEstimada ?? 0)
+
+  return {
+    orgMissingFields: missingOrgFields(org),
+    resolvedTasks: completedTasks?._count._all ?? 0,
+    resolvedAlerts: resolvedAlerts?._count._all ?? 0,
+    multaReducida: Math.max(0, multaTareas) + Math.max(0, multaAlertas),
+    openAlerts,
+    legajoDocs,
+    legajoWorker: legajoWorker
+      ? {
+          id: legajoWorker.id,
+          name: `${legajoWorker.firstName ?? ''} ${legajoWorker.lastName ?? ''}`.trim() || 'tu trabajador',
+          legajoScore: legajoWorker.legajoScore ?? 0,
+        }
+      : null,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. Agregadora — usada por el route handler para no romper API contract
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CockpitFullPayload {
@@ -980,6 +1084,8 @@ export interface CockpitFullPayload {
   scoreSnapshot: ScoreSnapshot
   complianceBreakdown: Array<{ label: string; score: number; weight?: number }>
   riskSummary: CockpitRiskSummary
+  /** Avance de la ruta de arranque. Opcional para no romper payloads de ejemplo. */
+  startRoute?: StartRouteProgress
 }
 
 export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullPayload> {
@@ -998,6 +1104,7 @@ export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullP
     recentContracts,
     latestDiagnostic,
     multaAlertasAbiertas,
+    startRoute,
   ] = await Promise.all([
     getCockpitOrgMeta(orgId),
     getCockpitStats(orgId),
@@ -1010,6 +1117,7 @@ export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullP
     getRecentContracts(orgId),
     getLatestDiagnostic(orgId),
     getOpenAlertsMulta(orgId),
+    getStartRouteProgress(orgId),
   ])
 
   const riskSummary = buildRiskSummary({
@@ -1033,6 +1141,7 @@ export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullP
     scoreSnapshot,
     complianceBreakdown: scoreSnapshot.breakdown,
     riskSummary,
+    startRoute,
   }
 }
 

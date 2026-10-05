@@ -1,317 +1,351 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import {
-  CheckCircle,
-  Users,
-  FileText,
-  Calculator,
-  Building2,
-  ArrowRight,
-  Rocket,
-  X,
-  Sparkles,
-  PartyPopper,
-  Trophy,
-} from 'lucide-react'
+import { ArrowRight, Check, Flag, PartyPopper, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  buildCelebration,
+  buildStartRoute,
+  doneStepKeys,
+  newlyCompletedSteps,
+  parseCelebrated,
+  serializeCelebrated,
+  startRouteStorageKeys,
+  type Celebration,
+  type StartRoute,
+  type StartRouteInput,
+  type StartStep,
+} from '@/components/cockpit/start-route'
+import { useStoredValue, writeStoredValue } from '@/components/cockpit/local-store'
+import { claimStimulus, releaseStimulus } from '@/components/cockpit/stimulus'
 
-interface ProgressData {
-  hasOrg: boolean
-  hasWorker: boolean
-  hasContract: boolean
-  hasCalculation: boolean
-  counts: {
-    workers: number
-    contracts: number
-    calculations: number
-  }
+/**
+ * GettingStartedGuide — "Tu ruta de arranque" en el panel principal.
+ *
+ * Cinco pasos calculados con datos reales del servidor (ver
+ * `buildStartRoute`). Se queda en el panel hasta completar los cinco; recién
+ * ahí (o si ya no queda ningún paso que se pueda hacer) aparece "Ya terminé
+ * mis primeros pasos" para ocultarla.
+ *
+ * Cuando un paso pasa a "hecho" se celebra UNA vez, con el dato real que lo
+ * respalda. localStorage solo guarda qué pasos ya se celebraron.
+ */
+
+export interface GettingStartedGuideProps {
+  orgId: string
+  input: StartRouteInput
+  /** false mientras otro aviso (prueba gratis, recorrido guiado) está en pantalla. */
+  celebrationsEnabled: boolean
 }
 
-interface Step {
-  key: 'hasOrg' | 'hasWorker' | 'hasContract' | 'hasCalculation'
-  title: string
-  description: string
-  doneDescription: (counts: ProgressData['counts']) => string
-  icon: typeof Building2
-  href: string
-  cta: string
-  motivation: string
-}
+export function GettingStartedGuide({ orgId, input, celebrationsEnabled }: GettingStartedGuideProps) {
+  const route = useMemo(() => buildStartRoute(input), [input])
+  const keys = useMemo(() => startRouteStorageKeys(orgId), [orgId])
+  const hiddenRaw = useStoredValue(keys.hidden)
+  const celebratedRaw = useStoredValue(keys.celebrated)
+  const [celebration, setCelebration] = useState<Celebration | null>(null)
+  // Respaldo en memoria por si el navegador bloquea localStorage.
+  const [hiddenNow, setHiddenNow] = useState(false)
+  const hidden = hiddenNow || hiddenRaw === '1'
 
-const STEPS: Step[] = [
-  {
-    key: 'hasOrg',
-    title: 'Datos de tu empresa',
-    description: 'RUC, razon social, sector y regimen laboral',
-    doneDescription: () => 'Empresa configurada',
-    icon: Building2,
-    href: '/dashboard/configuracion',
-    cta: 'Editar datos',
-    motivation: 'La base esta lista',
-  },
-  {
-    key: 'hasWorker',
-    title: 'Registra tu primer trabajador',
-    description: 'Agrega un trabajador para activar todas las funciones de cumplimiento',
-    doneDescription: (c) => `${c.workers} trabajador${c.workers === 1 ? '' : 'es'} registrado${c.workers === 1 ? '' : 's'}`,
-    icon: Users,
-    href: '/dashboard/trabajadores/nuevo',
-    cta: 'Registrar trabajador',
-    motivation: 'Sin trabajadores, COMPLY360 no puede calcular tu compliance score ni alertar de vencimientos',
-  },
-  {
-    key: 'hasContract',
-    title: 'Crea su contrato laboral',
-    description: 'Genera un contrato legal desde plantilla o con IA',
-    doneDescription: (c) => `${c.contracts} contrato${c.contracts === 1 ? '' : 's'} creado${c.contracts === 1 ? '' : 's'}`,
-    icon: FileText,
-    href: '/dashboard/contratos/nuevo',
-    cta: 'Crear contrato',
-    motivation: 'Formaliza la relacion laboral con un contrato valido segun el regimen de tu empresa',
-  },
-  {
-    key: 'hasCalculation',
-    title: 'Calcula su CTS',
-    description: 'Verifica que estas pagando correctamente los beneficios sociales',
-    doneDescription: (c) => `${c.calculations} calculo${c.calculations === 1 ? '' : 's'} realizado${c.calculations === 1 ? '' : 's'}`,
-    icon: Calculator,
-    href: '/dashboard/calculadoras/cts',
-    cta: 'Calcular CTS',
-    motivation: 'Asegura que tus depositos cumplen con la ley y evita multas SUNAFIL',
-  },
-]
+  const celebrated = useMemo(
+    () => (celebratedRaw === undefined ? undefined : parseCelebrated(celebratedRaw)),
+    [celebratedRaw]
+  )
+  const pendingKey = celebrated === undefined ? '' : newlyCompletedSteps(route, celebrated).join(',')
 
-const DISMISS_KEY = 'comply360:gettingStartedDismissed'
-
-export function GettingStartedGuide() {
-  const [progress, setProgress] = useState<ProgressData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [dismissed, setDismissed] = useState(false)
-  const [show, setShow] = useState(false)
-
+  // Primera vez en este navegador: guardamos lo que ya estaba hecho como punto
+  // de partida, sin celebrarlo (no sabemos si se acaba de completar).
   useEffect(() => {
-    // Check dismiss state in localStorage
-    if (typeof window !== 'undefined') {
-      const d = localStorage.getItem(DISMISS_KEY)
-      if (d === 'true') {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Hidratación desde localStorage; migrar a useSyncExternalStore.
-        setDismissed(true)
-        setLoading(false)
-        return
-      }
-    }
+    if (celebratedRaw !== null) return
+    writeStoredValue(keys.celebrated, serializeCelebrated(doneStepKeys(route)))
+  }, [celebratedRaw, keys.celebrated, route])
 
-    fetch('/api/onboarding/progress')
-      .then(res => res.json())
-      .then((data: ProgressData & { error?: string }) => {
-        if (data.error) {
-          setProgress(null)
-          return
-        }
-        // Only show if onboarding is completed (hasOrg = true)
-        if (!data.hasOrg) {
-          setProgress(null)
-          return
-        }
-        setProgress(data)
-        setShow(true)
-      })
-      .catch(() => setProgress(null))
-      .finally(() => setLoading(false))
-  }, [])
+  // Un paso nuevo hecho: lo celebramos una vez y lo marcamos como celebrado.
+  useEffect(() => {
+    if (hidden || !celebrationsEnabled || pendingKey === '' || !celebrated) return
+    const timer = window.setTimeout(() => {
+      const steps = pendingKey.split(',') as Celebration['keys']
+      claimStimulus('celebration')
+      setCelebration(buildCelebration(steps, route, input))
+      writeStoredValue(keys.celebrated, serializeCelebrated([...celebrated, ...steps]))
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [hidden, celebrationsEnabled, pendingKey, celebrated, route, input, keys.celebrated])
 
-  const handleDismiss = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(DISMISS_KEY, 'true')
-    }
-    setDismissed(true)
+  useEffect(() => () => releaseStimulus('celebration'), [])
+
+  function dismissCelebration() {
+    setCelebration(null)
+    releaseStimulus('celebration')
   }
 
-  if (loading || !show || dismissed || !progress) return null
-
-  const completedCount = STEPS.filter(s => progress[s.key]).length
-  const totalSteps = STEPS.length
-  const progressPct = Math.round((completedCount / totalSteps) * 100)
-  const allDone = completedCount === totalSteps
-  const nextStepIndex = STEPS.findIndex(s => !progress[s.key])
-
-  // ─────────────────────────────────────────────────────────────
-  // CELEBRATION STATE — todos los pasos completados
-  // ─────────────────────────────────────────────────────────────
-  if (allDone) {
-    return (
-      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-500 to-sky-500 rounded-2xl p-6 text-white overflow-hidden shadow-xl">
-        <div className="pointer-events-none absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-0 w-48 h-48 bg-yellow-300/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
-
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 shrink-0">
-            <Trophy className="w-8 h-8 text-yellow-300" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold">Configuracion completada</h3>
-              <PartyPopper className="w-5 h-5 text-yellow-300" />
-            </div>
-            <p className="text-sm text-white/85 mt-0.5">
-              Has completado los 4 pasos iniciales. COMPLY360 esta listo para protegerte de multas y mantener tu cumplimiento laboral al dia.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleDismiss}
-            className="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-bold transition-all shrink-0"
-          >
-            Entendido
-          </button>
-        </div>
-      </div>
-    )
+  function hideGuide() {
+    writeStoredValue(keys.hidden, '1')
+    setHiddenNow(true)
+    dismissCelebration()
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // ACTIVE STATE — guia con pasos pendientes
-  // ─────────────────────────────────────────────────────────────
+  const canHide = route.complete || route.nextStep === null
+  // Si la ocultó, se respeta aunque después cambie algún dato.
+  if (hidden) return null
+  // Mientras no se lee la preferencia (servidor/hidratación) solo mostramos la
+  // ruta si todavía no se puede ocultar: así no parpadea para quien la ocultó.
+  if (canHide && hiddenRaw === undefined) return null
+
+  const banner = (
+    <div role="status" aria-live="polite">
+      {celebration ? <CelebrationBanner celebration={celebration} onClose={dismissCelebration} /> : null}
+    </div>
+  )
+
+  if (route.complete) {
+    return <CompletedRoute input={input} banner={banner} onHide={hideGuide} />
+  }
+
+  return <ActiveRoute route={route} celebration={celebration} banner={banner} canHide={canHide} onHide={hideGuide} />
+}
+
+/* ── Ruta en curso ─────────────────────────────────────────────────────── */
+
+function ActiveRoute({
+  route,
+  celebration,
+  banner,
+  canHide,
+  onHide,
+}: {
+  route: StartRoute
+  celebration: Celebration | null
+  banner: ReactNode
+  canHide: boolean
+  onHide: () => void
+}) {
+  const titleId = useId()
+  const pct = Math.round((route.doneCount / route.total) * 100)
+
   return (
-    <div className="relative bg-gradient-to-br from-primary via-primary-light to-primary rounded-2xl p-6 text-white overflow-hidden shadow-xl">
-      {/* Decorative blurred circles — pointer-events-none CRITICO para no bloquear clicks */}
-      <div className="pointer-events-none absolute top-0 right-0 w-72 h-72 bg-gold/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-0 w-56 h-56 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
-
-      <div className="relative z-10">
-        {/* ── Header ── */}
-        <div className="flex items-start justify-between mb-5 gap-4">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold/20 shrink-0">
-              <Rocket className="w-5 h-5 text-gold" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                Primeros pasos en COMPLY360
-                <Sparkles className="w-4 h-4 text-gold shrink-0" />
-              </h3>
-              <p className="text-sm text-white/70 mt-0.5">
-                Sigue esta guia para configurar tu plataforma en menos de 10 minutos
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleDismiss}
-            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-            aria-label="Ocultar guia"
-            title="Ocultar guia"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <section
+      aria-labelledby={titleId}
+      className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5 shadow-[var(--elevation-2)] sm:p-6"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Tu ruta de arranque</p>
+          <h2 id={titleId} className="mt-1 text-lg font-bold text-[color:var(--text-primary)]">
+            Primeros pasos en Comply360
+          </h2>
+          <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">
+            Cinco pasos para que conozcamos tu empresa y te avisemos antes de una multa.
+          </p>
         </div>
-
-        {/* ── Progress bar ── */}
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-white/80">
-              {completedCount} de {totalSteps} pasos completados
-            </span>
-            <span className="text-xs font-bold text-gold">{progressPct}%</span>
-          </div>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-gold to-gold-light transition-all duration-700 ease-out rounded-full shadow-lg shadow-gold/30"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-
-        {/* ── Steps list ── */}
-        <div className="space-y-2.5">
-          {STEPS.map((step, idx) => {
-            const isCompleted = progress[step.key]
-            const isActive = idx === nextStepIndex
-            const isFuture = !isCompleted && !isActive
-            const Icon = step.icon
-
-            return (
-              <div
-                key={step.key}
-                className={cn(
-                  'relative flex items-center gap-3 rounded-xl p-3.5 transition-all border',
-                  isCompleted && 'bg-emerald-50 border-emerald-400/40',
-                  isActive && 'bg-gold/15 border-gold/50 shadow-lg shadow-gold/10',
-                  isFuture && 'bg-white/5 border-white/10 opacity-55'
-                )}
-              >
-                {/* Icono del paso */}
-                <div
-                  className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-lg shrink-0 transition-all',
-                    isCompleted && 'bg-emerald-500 text-white shadow-md shadow-emerald-500/40',
-                    isActive && 'bg-gold text-primary shadow-md shadow-gold/40 animate-pulse-soft',
-                    isFuture && 'bg-white/10 text-white/50'
-                  )}
-                >
-                  {isCompleted ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <Icon className="w-5 h-5" />
-                  )}
-                </div>
-
-                {/* Contenido */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className={cn(
-                      'text-sm font-bold',
-                      isCompleted && 'text-emerald-100',
-                      isActive && 'text-white',
-                      isFuture && 'text-white/60'
-                    )}>
-                      {idx + 1}. {step.title}
-                    </p>
-                    {isActive && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-gold text-primary rounded-full uppercase tracking-wide">
-                        Empezar aqui
-                      </span>
-                    )}
-                    {isCompleted && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-200 text-emerald-200 rounded-full uppercase tracking-wide">
-                        Listo
-                      </span>
-                    )}
-                  </div>
-                  <p className={cn(
-                    'text-xs mt-1',
-                    isCompleted ? 'text-emerald-200/80' : isActive ? 'text-white/80' : 'text-white/50'
-                  )}>
-                    {isCompleted
-                      ? step.doneDescription(progress.counts)
-                      : isActive
-                        ? step.motivation
-                        : step.description}
-                  </p>
-                </div>
-
-                {/* CTA — solo en el paso activo */}
-                {isActive && (
-                  <Link
-                    href={step.href}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-gold hover:bg-gold-light text-primary text-xs font-bold shadow-lg shadow-gold/30 transition-all shrink-0 whitespace-nowrap hover:scale-105"
-                  >
-                    {step.cta}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* ── Footer hint ── */}
-        <p className="text-[11px] text-white/50 mt-4 text-center">
-          Cada paso desbloquea nuevas funciones. Cuando completes los 4, tu cumplimiento estara protegido.
+        <p className="shrink-0 text-sm font-semibold text-[color:var(--text-secondary)]">
+          <span className="text-2xl font-bold text-[color:var(--text-primary)]">{route.doneCount}</span> de{' '}
+          {route.total} pasos
         </p>
       </div>
+
+      <div
+        role="progressbar"
+        aria-label="Avance de tu ruta de arranque"
+        aria-valuemin={0}
+        aria-valuemax={route.total}
+        aria-valuenow={route.doneCount}
+        aria-valuetext={`${route.doneCount} de ${route.total} pasos`}
+        className="mt-3 h-2 overflow-hidden rounded-full bg-[color:var(--bg-inset)]"
+      >
+        <div
+          className="h-full rounded-full bg-blue-600 transition-[width] duration-700 ease-out"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {banner}
+
+      <ol className="mt-4 space-y-2">
+        {route.steps.map((step) => (
+          <StepRow
+            key={step.key}
+            step={step}
+            isNext={route.nextStep?.key === step.key}
+            justDone={celebration?.keys.includes(step.key) ?? false}
+          />
+        ))}
+      </ol>
+
+      {canHide ? (
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={onHide}
+            className="rounded-lg px-2 py-1.5 text-sm font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            Ya terminé mis primeros pasos
+          </button>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function StepRow({ step, isNext, justDone }: { step: StartStep; isNext: boolean; justDone: boolean }) {
+  const actionable = !step.done && !step.blockedBy
+
+  return (
+    <li
+      className={cn(
+        'flex gap-3 rounded-xl border p-3.5 sm:p-4',
+        isNext ? 'border-blue-200 bg-blue-50/70' : 'border-[color:var(--border-subtle)] bg-white'
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+          step.done
+            ? 'bg-green-600 text-white'
+            : isNext
+              ? 'bg-blue-600 text-white'
+              : 'border border-slate-300 bg-white text-slate-500',
+          justDone && 'c360-anim-bounce-in'
+        )}
+      >
+        {step.done ? <Check className="h-4 w-4" strokeWidth={3} /> : step.number}
+      </span>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[color:var(--text-primary)]">
+            <span className="sr-only">
+              Paso {step.number}, {step.done ? 'hecho' : 'pendiente'}:{' '}
+            </span>
+            {step.title}
+            {step.done ? (
+              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">Hecho</span>
+            ) : isNext ? (
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-800">Siguiente paso</span>
+            ) : null}
+          </h3>
+          {step.done ? (
+            step.detail ? <p className="mt-0.5 text-sm text-[color:var(--text-secondary)]">{step.detail}</p> : null
+          ) : (
+            <>
+              <p className="mt-0.5 text-sm leading-6 text-[color:var(--text-secondary)]">{step.why}</p>
+              {step.detail ? (
+                <p className="mt-1 text-xs font-semibold text-[color:var(--text-primary)]">{step.detail}</p>
+              ) : null}
+              {step.blockedBy ? (
+                <p className="mt-1 text-xs text-[color:var(--text-tertiary)]">{step.blockedBy}</p>
+              ) : null}
+            </>
+          )}
+        </div>
+
+        {actionable ? (
+          <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+            <Link
+              href={step.href}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+                isNext
+                  ? 'bg-blue-600 px-3.5 py-2 text-white hover:bg-blue-700'
+                  : 'border border-blue-200 bg-white px-3 py-1.5 text-blue-700 hover:bg-blue-50'
+              )}
+            >
+              {step.cta}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            {step.secondary ? (
+              <Link
+                href={step.secondary.href}
+                className="text-xs font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                {step.secondary.label}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </li>
+  )
+}
+
+/* ── Ruta completa ─────────────────────────────────────────────────────── */
+
+function CompletedRoute({
+  input,
+  banner,
+  onHide,
+}: {
+  input: StartRouteInput
+  banner: ReactNode
+  onHide: () => void
+}) {
+  const titleId = useId()
+  const { progress, totalWorkers } = input
+  const resolved = progress.resolvedTasks + progress.resolvedAlerts
+
+  return (
+    <section
+      aria-labelledby={titleId}
+      className="rounded-2xl border border-green-200 bg-white p-5 shadow-[var(--elevation-2)] sm:p-6"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <span
+          aria-hidden="true"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-green-200 bg-green-50 text-green-700"
+        >
+          <Flag className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-green-700">Ruta de arranque: 5 de 5</p>
+          <h2 id={titleId} className="mt-1 text-lg font-bold text-[color:var(--text-primary)]">
+            Terminaste tus primeros pasos
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-[color:var(--text-secondary)]">
+            Ya tienes {totalWorkers} {totalWorkers === 1 ? 'trabajador registrado' : 'trabajadores registrados'},{' '}
+            {progress.legajoDocs} {progress.legajoDocs === 1 ? 'documento' : 'documentos'} en legajos y {resolved}{' '}
+            {resolved === 1 ? 'pendiente resuelto' : 'pendientes resueltos'}. Desde ahora, lo importante es revisar tus
+            Pendientes cada semana.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onHide}
+          className="inline-flex shrink-0 items-center justify-center rounded-xl border border-green-300 bg-white px-4 py-2.5 text-sm font-semibold text-green-800 transition-colors hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+        >
+          Ya terminé mis primeros pasos
+        </button>
+      </div>
+      {banner}
+    </section>
+  )
+}
+
+/* ── Celebración ───────────────────────────────────────────────────────── */
+
+function CelebrationBanner({ celebration, onClose }: { celebration: Celebration; onClose: () => void }) {
+  return (
+    <div className="c360-anim-slide-down mt-4 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+      <span
+        aria-hidden="true"
+        className="c360-anim-bounce-in inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-green-700 ring-1 ring-green-200"
+      >
+        <PartyPopper className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-green-900">{celebration.title}</p>
+        {celebration.detail ? <p className="mt-0.5 text-sm leading-6 text-green-800">{celebration.detail}</p> : null}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar mensaje"
+        className="shrink-0 rounded-md p-1 text-green-700 transition-colors hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+      >
+        <X className="h-4 w-4" aria-hidden="true" />
+      </button>
     </div>
   )
 }

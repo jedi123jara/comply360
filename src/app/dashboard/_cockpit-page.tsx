@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -12,15 +12,17 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardList,
-  Sparkles,
   Users,
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { useCopilot } from '@/providers/copilot-provider'
 import { WelcomeTour } from '@/components/dashboard/welcome-tour'
+import { GettingStartedGuide } from '@/components/dashboard/getting-started-guide'
 import { HeroPanel } from '@/components/comply360/hero-panel'
 import { KpiCard, KpiGrid } from '@/components/comply360/kpi-card'
 import { formatFechaLima, formatSolesRedondeado } from '@/components/cockpit/cockpit-format'
+import type { StartRouteInput } from '@/components/cockpit/start-route'
+import { claimStimulus, releaseStimulus } from '@/components/cockpit/stimulus'
 import type {
   CockpitFullPayload,
   ComplianceTaskTeaser,
@@ -43,12 +45,13 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
   const data = initialData
   const scoreData = initialScore
 
-  // ── Bienvenida de a un estímulo por vez ─────────────────────────────────
-  // Al llegar con ?welcome=trial primero sale el aviso de la prueba gratis y,
-  // recién cuando se cierra (solo o a mano), se permite el tour. Si el aviso
-  // ya se vio en esta sesión, el tour puede salir directo. Nunca los dos juntos.
+  // ── Un estímulo a la vez ────────────────────────────────────────────────
+  // Orden: aviso de la prueba gratis (si llega con ?welcome=trial) → recorrido
+  // guiado (una sola vez por navegador) → celebraciones de la ruta de
+  // arranque. Nunca dos juntos. El pedido de notificaciones (global) también
+  // espera a que la cola esté libre (ver components/cockpit/stimulus.ts).
   const wantsTrialWelcome = searchParams?.get('welcome') === 'trial'
-  const [tourAllowed, setTourAllowed] = useState(false)
+  const [stage, setStage] = useState<'trial' | 'tour' | 'free'>(wantsTrialWelcome ? 'trial' : 'tour')
   const welcomeStartedRef = useRef(false)
 
   useEffect(() => {
@@ -62,7 +65,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
       /* almacenamiento bloqueado: seguimos sin recordar */
     }
     if (alreadyShown) {
-      window.setTimeout(() => setTourAllowed(true), 0)
+      window.setTimeout(() => setStage((current) => (current === 'trial' ? 'tour' : current)), 0)
       return
     }
 
@@ -71,7 +74,11 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
     } catch {
       /* almacenamiento bloqueado */
     }
-    const allowTour = () => setTourAllowed(true)
+    claimStimulus('trial-toast')
+    const allowTour = () => {
+      releaseStimulus('trial-toast')
+      setStage((current) => (current === 'trial' ? 'tour' : current))
+    }
     toast.success('Tu prueba gratis del plan PRO está activa por 14 días', {
       description: 'Agrega a tu primer trabajador y haz el diagnóstico para conocer tus riesgos.',
       onAutoClose: allowTour,
@@ -79,7 +86,8 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
     })
   }, [wantsTrialWelcome])
 
-  const tour = tourAllowed ? <WelcomeTour /> : null
+  const finishTour = useCallback(() => setStage('free'), [])
+  const tour = stage === 'tour' ? <WelcomeTour onDone={finishTour} /> : null
 
   const score = useMemo(() => {
     const value = scoreData.scoreGlobal ?? data.stats.complianceScore ?? null
@@ -113,11 +121,72 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
     criticalAlerts === 0 &&
     (data.stats.expiringCount ?? 0) === 0
 
+  // Ruta de arranque: se calcula con datos reales del servidor.
+  const startRouteProgress = data.startRoute ?? null
+  const diagnosticScore = latestDiagnostic?.scoreGlobal ?? null
+  const focusHref = hasDiagnostic ? (focusAction?.href ?? null) : null
+  const startRouteInput = useMemo<StartRouteInput | null>(
+    () =>
+      startRouteProgress
+        ? {
+            progress: startRouteProgress,
+            totalWorkers,
+            hasDiagnostic,
+            diagnosticScore,
+            openTasks,
+            focusHref,
+          }
+        : null,
+    [startRouteProgress, totalWorkers, hasDiagnostic, diagnosticScore, openTasks, focusHref]
+  )
+
+  // `data-tour` marca la cabecera para el recorrido guiado (welcome-tour).
+  const header = (
+    <div data-tour="panel-cabecera">
+      <HeroPanel
+        userFirstName={data.stats.ownerFirstName ?? undefined}
+        orgName={data.stats.orgName ?? undefined}
+        hasDiagnostic={hasDiagnostic}
+        score={heroScore}
+        scoreSource={useLiveScore ? 'datos' : 'diagnostico'}
+        diagnosticDate={latestDiagnostic?.completedAt ?? null}
+        multaPendiente={risk?.multaPendiente ?? 0}
+        multaAlertas={risk?.multaAlertasAbiertas ?? 0}
+        focusAction={focusAction}
+        totalWorkers={totalWorkers}
+      />
+    </div>
+  )
+
+  const startRoute = startRouteInput ? (
+    <GettingStartedGuide
+      orgId={data.org?.id ?? 'sin-empresa'}
+      input={startRouteInput}
+      celebrationsEnabled={stage === 'free'}
+    />
+  ) : null
+
+  const assistantButton = (
+    <button
+      type="button"
+      onClick={() => copilot.open()}
+      className="fixed bottom-6 right-6 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-[0_12px_30px_rgba(21,94,239,0.3)] transition hover:-translate-y-0.5 hover:bg-blue-700"
+      aria-label="Preguntar al asistente"
+      title="Preguntar al asistente"
+    >
+      <Bot className="h-5 w-5" />
+    </button>
+  )
+
+  // Primera visita: sin datos todavía, la cabecera y la ruta de arranque
+  // bastan; los indicadores vacíos solo sumarían ruido.
   if (isFirstTime) {
     return (
       <div className="space-y-5">
         {tour}
-        <FirstSteps onAskAssistant={() => copilot.open()} />
+        {header}
+        {startRoute}
+        {assistantButton}
       </div>
     )
   }
@@ -149,18 +218,9 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
         </section>
       ) : null}
 
-      <HeroPanel
-        userFirstName={data.stats.ownerFirstName ?? undefined}
-        orgName={data.stats.orgName ?? undefined}
-        hasDiagnostic={hasDiagnostic}
-        score={heroScore}
-        scoreSource={useLiveScore ? 'datos' : 'diagnostico'}
-        diagnosticDate={latestDiagnostic?.completedAt ?? null}
-        multaPendiente={risk?.multaPendiente ?? 0}
-        multaAlertas={risk?.multaAlertasAbiertas ?? 0}
-        focusAction={focusAction}
-        totalWorkers={totalWorkers}
-      />
+      {header}
+
+      {startRoute}
 
       <KpiGrid>
         <KpiCard
@@ -168,6 +228,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
           label="Multa evitada este mes"
           value={avoidedFine}
           formatValue={(value) => formatSolesRedondeado(value)}
+          help="Suma las multas estimadas de las tareas del plan de acción que resolviste este mes. Es una referencia: no es dinero que hayas pagado ni recibido."
           footer={
             avoidedFine > 0
               ? `Tareas resueltas desde el ${avoidedFineSince ?? '1 de este mes'}`
@@ -178,6 +239,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
           icon={Users}
           label="Trabajadores protegidos"
           value={workersProtected}
+          help="Cuenta a tus trabajadores (sin los cesados) que tienen su legajo completo al 60 % o más y ninguna alerta «Urgente» o «Alta» sin resolver."
           footer={totalWorkers > 0 ? `De ${totalWorkers} trabajadores activos` : 'Aún no registras trabajadores'}
         />
         <KpiCard
@@ -185,6 +247,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
           label="Alertas críticas"
           value={criticalAlerts}
           variant={criticalAlerts > 0 ? 'crimson' : 'default'}
+          help="Alertas de tus trabajadores sin resolver con urgencia «Urgente» o «Alta», por ejemplo un contrato o un examen médico vencido."
           footer={
             criticalAlerts > 0
               ? 'Requieren atención'
@@ -206,15 +269,7 @@ export default function CockpitPage({ initialData, initialScore }: CockpitClient
         <NextDeadlineCard deadline={data.upcomingDeadlines?.[0] ?? null} totalWorkers={totalWorkers} />
       </section>
 
-      <button
-        type="button"
-        onClick={() => copilot.open()}
-        className="fixed bottom-6 right-6 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-[0_12px_30px_rgba(21,94,239,0.3)] transition hover:-translate-y-0.5 hover:bg-blue-700"
-        aria-label="Preguntar al asistente"
-        title="Preguntar al asistente"
-      >
-        <Bot className="h-5 w-5" />
-      </button>
+      {assistantButton}
     </div>
   )
 }
@@ -398,40 +453,5 @@ function NextDeadlineCard({ deadline, totalWorkers }: { deadline: UpcomingDeadli
         Ver calendario <ArrowRight className="h-4 w-4" />
       </Link>
     </article>
-  )
-}
-
-function FirstSteps({ onAskAssistant }: { onAskAssistant: () => void }) {
-  const steps = [
-    { label: 'Haz el diagnóstico express', hint: 'Toma unos minutos. Sabrás qué te pueden multar y qué corregir primero.', href: DIAGNOSTICO_HREF },
-    { label: 'Agrega a tu primer trabajador', hint: 'Completa su legajo en menos de un minuto.', href: '/dashboard/trabajadores/nuevo' },
-    { label: 'Importa tu planilla', hint: 'Carga a todos tus trabajadores desde Excel.', href: '/dashboard/trabajadores?import=excel' },
-  ]
-  return (
-    <section className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-[var(--elevation-3)]">
-      <div className="bg-[linear-gradient(120deg,#eff6ff_0%,#ffffff_62%)] p-7 sm:p-10">
-        <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700">
-          <Sparkles className="h-4 w-4" /> Te damos la bienvenida a Comply360
-        </span>
-        <h1 className="mt-5 max-w-2xl text-3xl font-bold tracking-tight text-[color:var(--text-primary)] sm:text-4xl">Aún no conocemos tus riesgos laborales.</h1>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-[color:var(--text-secondary)]">
-          Empieza por el diagnóstico y luego registra a tus trabajadores. Con eso verás tu nivel de cumplimiento, tus alertas y tu calendario.
-        </p>
-      </div>
-      <div className="grid gap-3 border-t border-[color:var(--border-subtle)] p-5 sm:grid-cols-3 sm:p-7">
-        {steps.map((step, index) => (
-          <Link key={step.href} href={step.href} className="group rounded-xl border border-[color:var(--border-default)] bg-white p-4 transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[var(--elevation-hover)]">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">{index + 1}</span>
-            <h2 className="mt-4 text-sm font-bold text-[color:var(--text-primary)]">{step.label}</h2>
-            <p className="mt-1 text-xs leading-5 text-[color:var(--text-tertiary)]">{step.hint}</p>
-          </Link>
-        ))}
-      </div>
-      <div className="flex justify-end px-7 pb-7">
-        <button type="button" onClick={onAskAssistant} className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline">
-          <Bot className="h-4 w-4" /> Preguntar al asistente
-        </button>
-      </div>
-    </section>
   )
 }

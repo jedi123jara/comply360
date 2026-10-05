@@ -323,8 +323,12 @@ body::before {
   z-index: 0;
 }
 
-body > * {
-  position: relative;
+/* En @layer base para que las utilidades (`fixed`, `absolute`) ganen: los
+   portales que van directo al body (marcas guía, toasts) deben poder fijarse. */
+@layer base {
+  body > * {
+    position: relative;
+  }
 }
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
