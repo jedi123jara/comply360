@@ -16,13 +16,16 @@ import {
   ChevronDown,
   ChevronUp,
   Scale,
-  Clock,
   TrendingUp,
   Save,
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { WorkerAutoFill, type WorkerData } from './worker-autofill'
+import { RegimenSelector, AvisoRegimenEspecial } from './shared/regimen-selector'
+import { getRegimenInfo, normalizarRegimen } from './shared/regimen'
+import { ResultadoExplicado, type BaseLegalSimple } from './shared/resultado-explicado'
+import { EstadoVacio } from './shared/ui'
 
 const MOTIVOS_CESE = [
   { value: 'despido_arbitrario', label: 'Despido arbitrario (sin causa justa)', icon: '🔴' },
@@ -33,7 +36,51 @@ const MOTIVOS_CESE = [
   { value: 'hostilidad', label: 'Cese por hostilidad del empleador', icon: '🟠' },
 ] as const
 
-export function LiquidacionCalculadora() {
+/** Explicación simple de cada concepto del desglose (clave = breakdown). */
+const CONCEPTO_SIMPLE: Record<string, { texto: string; norma: string; enSimple: string }> = {
+  cts: {
+    texto: 'CTS trunca: la CTS acumulada desde el último depósito hasta el cese',
+    norma: 'D.S. 001-97-TR',
+    enSimple: 'La CTS que se acumuló desde el último depósito se paga al terminar la relación laboral.',
+  },
+  gratificacionTrunca: {
+    texto: 'Gratificación trunca: 1/6 de la remuneración por cada mes completo del semestre en curso',
+    norma: 'Ley 27735',
+    enSimple: 'Si el trabajador se va antes de julio o diciembre, se le paga la parte de la gratificación por los meses completos trabajados.',
+  },
+  bonificacionEspecial: {
+    texto: 'Bonificación extraordinaria: 9% de la gratificación trunca (lo que iría a EsSalud)',
+    norma: 'Ley 30334',
+    enSimple: 'A la gratificación se le suma un 9% que el empleador ya no aporta a EsSalud.',
+  },
+  vacacionesTruncas: {
+    texto: 'Vacaciones truncas: la parte de las vacaciones del año que no llegó a completar',
+    norma: 'D.Leg. 713',
+    enSimple: 'Las vacaciones ganadas y no tomadas, y la parte proporcional del año incompleto, se pagan al cese.',
+  },
+  vacacionesNoGozadas: {
+    texto: 'Vacaciones no gozadas: días de vacaciones ganados que no tomó',
+    norma: 'D.Leg. 713',
+    enSimple: 'Las vacaciones ganadas y no tomadas, y la parte proporcional del año incompleto, se pagan al cese.',
+  },
+  indemnizacion: {
+    texto: 'Indemnización por despido: corresponde porque el despido fue sin causa justa',
+    norma: 'D.S. 003-97-TR',
+    enSimple: 'Si el despido es sin causa justa, se paga una indemnización (en el régimen general, 1.5 sueldos por año, hasta 12).',
+  },
+  horasExtras: {
+    texto: 'Horas extras pendientes de pago, con su recargo',
+    norma: 'D.S. 007-2002-TR',
+    enSimple: 'Las horas extras que se deben se pagan con su recargo (25% o 35%).',
+  },
+}
+
+interface LiquidacionCalculadoraProps {
+  /** DNI del trabajador para precargar sus datos (incluido su régimen). */
+  prefillDni?: string
+}
+
+export function LiquidacionCalculadora({ prefillDni }: LiquidacionCalculadoraProps = {}) {
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
@@ -49,6 +96,7 @@ export function LiquidacionCalculadora() {
     horasExtrasPendientes: 0,
     ultimaGratificacion: 0,
     comisionesPromedio: 0,
+    regimenLaboral: 'GENERAL',
   })
 
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -73,6 +121,7 @@ export function LiquidacionCalculadora() {
         sueldoBruto: w.sueldoBruto,
         fechaIngreso: w.fechaIngreso,
         asignacionFamiliar: w.asignacionFamiliar,
+        regimenLaboral: normalizarRegimen(w.regimenLaboral),
       }))
     }
   }
@@ -94,7 +143,7 @@ export function LiquidacionCalculadora() {
         body: JSON.stringify({ type: 'LIQUIDACION', inputs: input }),
       })
       if (!res.ok) throw new Error()
-      toast({ title: 'Calculo guardado', description: 'Puedes verlo en tu historial', type: 'success' })
+      toast({ title: 'Cálculo guardado', description: 'Puedes verlo en tu historial', type: 'success' })
     } catch {
       toast({ title: 'Error al guardar', type: 'error' })
     } finally {
@@ -124,7 +173,7 @@ export function LiquidacionCalculadora() {
                 fullName: `${selectedWorker.firstName} ${selectedWorker.lastName}`.trim(),
                 dni: selectedWorker.dni,
                 position: selectedWorker.position ?? undefined,
-                regimen: selectedWorker.regimenLaboral,
+                regimen: input.regimenLaboral ?? selectedWorker.regimenLaboral,
               }
             : undefined,
         }),
@@ -158,443 +207,469 @@ export function LiquidacionCalculadora() {
     }
   }
 
+  const regimen = getRegimenInfo(input.regimenLaboral)
+
+  const faltantes = [
+    input.sueldoBruto > 0 ? null : 'sueldo',
+    input.fechaIngreso ? null : 'fecha de ingreso',
+    input.fechaCese ? null : 'fecha de cese',
+  ].filter((x): x is string => x !== null)
+
+  // ── Explicación en simple ──────────────────────────────────────────────
+  const pasos: string[] = []
+  const baseLegal: BaseLegalSimple[] = []
+  if (result) {
+    const normasVistas = new Set<string>()
+    for (const [key, item] of Object.entries(result.breakdown)) {
+      if (!item || item.amount <= 0) continue
+      const concepto = CONCEPTO_SIMPLE[key]
+      pasos.push(`${concepto ? concepto.texto : item.label} = ${formatSoles(item.amount)}.`)
+      if (concepto && !normasVistas.has(concepto.norma)) {
+        normasVistas.add(concepto.norma)
+        baseLegal.push({ norma: concepto.norma, enSimple: concepto.enSimple })
+      }
+    }
+    if (regimen.key === 'MYPE_MICRO') {
+      pasos.push('Como es microempresa, no se pagan CTS ni gratificación; las vacaciones son de 15 días por año.')
+    } else if (regimen.key === 'MYPE_PEQUENA') {
+      pasos.push('Como es pequeña empresa, la CTS y la gratificación son la mitad; las vacaciones son de 15 días por año.')
+    } else if (regimen.tratamiento === 'especial') {
+      pasos.push(`Régimen ${regimen.label}: los montos se calcularon con las reglas generales y son solo una referencia.`)
+    }
+    pasos.push(`Total bruto: ${formatSoles(result.totalBruto)}.`)
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-      {/* FORM — Left side */}
-      <div className="lg:col-span-2 space-y-6">
-        <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Calculator className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Datos del Trabajador</h2>
-              <p className="text-sm text-gray-500">Los campos se calculan en tiempo real</p>
-            </div>
-          </div>
-
-          {/* Sueldo */}
-          <div className="space-y-4">
-            {/* Worker autofill */}
-            <WorkerAutoFill selectedWorker={selectedWorker} onSelect={handleWorkerSelect} />
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                Remuneración Mensual Bruta
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">S/</span>
-                <input
-                  type="number"
-                  value={input.sueldoBruto || ''}
-                  onChange={e => updateField('sueldoBruto', Number(e.target.value))}
-                  placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
-                />
+    <div className="@container">
+      <div className="grid grid-cols-1 @4xl:grid-cols-5 gap-6 @4xl:gap-8">
+        {/* FORM — Left side */}
+        <div className="@4xl:col-span-2 space-y-6">
+          <div className="bg-[color:var(--bg-elevated)] rounded-2xl border border-[color:var(--border-default)] shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Calculator className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[color:var(--text-primary)]">Datos del trabajador</h2>
+                <p className="text-sm text-[color:var(--text-tertiary)]">El resultado se actualiza mientras escribes</p>
               </div>
             </div>
 
-            {/* Fechas */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                  Fecha de Ingreso
-                </label>
-                <input
-                  type="date"
-                  value={input.fechaIngreso}
-                  onChange={e => updateField('fechaIngreso', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                  Fecha de Cese
-                </label>
-                <input
-                  type="date"
-                  value={input.fechaCese}
-                  onChange={e => updateField('fechaCese', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
-              </div>
-            </div>
+            {/* Sueldo */}
+            <div className="space-y-4">
+              {/* Worker autofill */}
+              <WorkerAutoFill
+                selectedWorker={selectedWorker}
+                onSelect={handleWorkerSelect}
+                prefillDni={prefillDni}
+              />
 
-            {/* Motivo de Cese */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                Motivo de Cese
-              </label>
-              <select
-                value={input.motivoCese}
-                onChange={e => updateField('motivoCese', e.target.value as LiquidacionInput['motivoCese'])}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              >
-                {MOTIVOS_CESE.map(m => (
-                  <option key={m.value} value={m.value}>
-                    {m.icon} {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Toggles */}
-            <div className="space-y-3 pt-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={input.asignacionFamiliar}
-                    onChange={e => updateField('asignacionFamiliar', e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-primary transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-[#141824] rounded-full shadow transition-transform peer-checked:translate-x-5" />
-                </div>
-                <span className="text-sm text-gray-300 group-hover:text-white">
-                  Percibe asignación familiar (10% RMV)
-                </span>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={input.gratificacionesPendientes}
-                    onChange={e => updateField('gratificacionesPendientes', e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-primary transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-[#141824] rounded-full shadow transition-transform peer-checked:translate-x-5" />
-                </div>
-                <span className="text-sm text-gray-300 group-hover:text-white">
-                  Tiene gratificaciones pendientes
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* Advanced Options */}
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-2 mt-6 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            Opciones avanzadas
-          </button>
-
-          {showAdvanced && (
-            <div className="mt-4 space-y-4 pt-4 border-t border-white/[0.06] border-white/[0.08]">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Días de vacaciones no gozadas
-                </label>
-                <input
-                  type="number"
-                  value={input.vacacionesNoGozadas || ''}
-                  onChange={e => updateField('vacacionesNoGozadas', Number(e.target.value))}
-                  placeholder="0"
-                  className="w-full px-3 py-2.5 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
+              <RegimenSelector
+                calc="liquidacion"
+                value={input.regimenLaboral}
+                onChange={v => updateField('regimenLaboral', v)}
+                origenTrabajador={
+                  selectedWorker && normalizarRegimen(selectedWorker.regimenLaboral) === input.regimenLaboral
+                    ? `${selectedWorker.firstName} ${selectedWorker.lastName}`
+                    : null
+                }
+              />
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Horas extras pendientes de pago
-                </label>
-                <input
-                  type="number"
-                  value={input.horasExtrasPendientes || ''}
-                  onChange={e => updateField('horasExtrasPendientes', Number(e.target.value))}
-                  placeholder="0"
-                  className="w-full px-3 py-2.5 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Comisiones promedio mensual
+                <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+                  Sueldo bruto mensual
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-tertiary)] font-semibold text-sm">S/</span>
                   <input
                     type="number"
-                    value={input.comisionesPromedio || ''}
-                    onChange={e => updateField('comisionesPromedio', Number(e.target.value))}
+                    value={input.sueldoBruto || ''}
+                    onChange={e => updateField('sueldoBruto', Number(e.target.value))}
                     placeholder="0.00"
-                    className="w-full pl-10 pr-4 py-2.5 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full pl-10 pr-4 py-3 border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
                   />
                 </div>
               </div>
+
+              {/* Fechas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+                    Fecha de ingreso
+                  </label>
+                  <input
+                    type="date"
+                    value={input.fechaIngreso}
+                    onChange={e => updateField('fechaIngreso', e.target.value)}
+                    className="w-full px-3 py-3 border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+                    Fecha de cese
+                  </label>
+                  <input
+                    type="date"
+                    value={input.fechaCese}
+                    onChange={e => updateField('fechaCese', e.target.value)}
+                    className="w-full px-3 py-3 border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Motivo de Cese */}
+              <div>
+                <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+                  Motivo del cese
+                </label>
+                <select
+                  value={input.motivoCese}
+                  onChange={e => updateField('motivoCese', e.target.value as LiquidacionInput['motivoCese'])}
+                  className="w-full px-3 py-3 border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                >
+                  {MOTIVOS_CESE.map(m => (
+                    <option key={m.value} value={m.value}>
+                      {m.icon} {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Toggles */}
+              <div className="space-y-3 pt-2">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={input.asignacionFamiliar}
+                      onChange={e => updateField('asignacionFamiliar', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-[color:var(--neutral-300)] rounded-full peer-checked:bg-primary transition-colors" />
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                  </div>
+                  <span className="text-sm text-[color:var(--text-secondary)] group-hover:text-[color:var(--text-primary)]">
+                    Percibe asignación familiar (10% RMV)
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={input.gratificacionesPendientes}
+                      onChange={e => updateField('gratificacionesPendientes', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-[color:var(--neutral-300)] rounded-full peer-checked:bg-primary transition-colors" />
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                  </div>
+                  <span className="text-sm text-[color:var(--text-secondary)] group-hover:text-[color:var(--text-primary)]">
+                    Tiene gratificaciones pendientes
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Advanced Options */}
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-2 mt-6 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              Opciones avanzadas
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-4 space-y-4 pt-4 border-t border-[color:var(--border-subtle)]">
+                <div>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">
+                    Días de vacaciones no gozadas
+                  </label>
+                  <input
+                    type="number"
+                    value={input.vacacionesNoGozadas || ''}
+                    onChange={e => updateField('vacacionesNoGozadas', Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">
+                    Horas extras pendientes de pago
+                  </label>
+                  <input
+                    type="number"
+                    value={input.horasExtrasPendientes || ''}
+                    onChange={e => updateField('horasExtrasPendientes', Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full px-3 py-2.5 border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[color:var(--text-secondary)] mb-1">
+                    Comisiones promedio mensual
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-tertiary)] text-sm">S/</span>
+                    <input
+                      type="number"
+                      value={input.comisionesPromedio || ''}
+                      onChange={e => updateField('comisionesPromedio', Number(e.target.value))}
+                      placeholder="0.00"
+                      className="w-full pl-10 pr-4 py-2.5 border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Warnings */}
+          {result && result.warnings.length > 0 && (
+            <div className="space-y-2">
+              {result.warnings.map((w, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-3 p-4 rounded-xl border ${
+                    w.type === 'urgente'
+                      ? 'bg-red-50 border-red-200 text-red-800'
+                      : w.type === 'riesgo'
+                      ? 'bg-amber-50 border-amber-200 text-amber-800'
+                      : 'bg-blue-50 border-blue-200 text-blue-800'
+                  }`}
+                >
+                  {w.type === 'urgente' ? (
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  )}
+                  <p className="text-sm font-medium">{w.message}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Warnings */}
-        {result && result.warnings.length > 0 && (
-          <div className="space-y-2">
-            {result.warnings.map((w, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-3 p-4 rounded-xl border ${
-                  w.type === 'urgente'
-                    ? 'bg-red-50 border-red-200 text-red-800'
-                    : w.type === 'riesgo'
-                    ? 'bg-amber-50 border-amber-200 text-amber-800'
-                    : 'bg-blue-50 border-blue-200 text-blue-800'
-                }`}
-              >
-                {w.type === 'urgente' ? (
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                ) : (
-                  <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                )}
-                <p className="text-sm font-medium">{w.message}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        {/* RESULTS — Right side */}
+        <div className="@4xl:col-span-3 space-y-6">
+          {!result ? (
+            <EstadoVacio titulo="Ingresa los datos del trabajador" faltantes={faltantes} />
+          ) : (
+            <>
+              <AvisoRegimenEspecial regimen={input.regimenLaboral} />
 
-      {/* RESULTS — Right side */}
-      <div className="lg:col-span-3 space-y-6">
-        {!result ? (
-          <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
-              <Calculator className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">
-              Ingresa los datos del trabajador
-            </h3>
-            <p className="text-sm text-gray-400">
-              El cálculo se actualiza automáticamente en tiempo real
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Total Card */}
-            <div className="bg-gradient-to-br from-[#1e3a6e] to-[#0f2548] rounded-2xl p-8 text-white shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-[#d4a853]" />
-                  <span className="text-sm font-medium text-blue-200 uppercase tracking-wider">
-                    Liquidación Total Estimada
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs bg-white/10 px-2.5 py-1 rounded-full">
-                    Base legal vigente
-                  </span>
-                </div>
-              </div>
-              <div className="text-5xl font-black tracking-tight mb-2">
-                {formatSoles(result.totalBruto)}
-              </div>
-              <p className="text-blue-200 text-sm">
-                Monto bruto total (los beneficios sociales no están sujetos a retención de renta de 5ta categoría)
-              </p>
-
-              {/* Action buttons */}
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const motivoLabel = MOTIVOS_CESE.find(m => m.value === input.motivoCese)?.label || input.motivoCese
-                    const breakdownItems = Object.values(result.breakdown)
-                      .filter((item): item is BreakdownItem => item !== null && item.amount > 0)
-                      .map(item => ({
-                        label: item.label,
-                        amount: item.amount,
-                        formula: item.formula,
-                        baseLegal: item.baseLegal,
-                      }))
-                    const content = calculationToHTML({
-                      title: 'Desglose de Liquidacion',
-                      items: breakdownItems,
-                      total: result.totalBruto,
-                      warnings: result.warnings.map(w => ({ message: w.message })),
-                      legalRefs: result.legalBasis.map(ref => ({
-                        norm: ref.norm,
-                        description: `${ref.article} - ${ref.description}`,
-                      })),
-                      metadata: {
-                        'Remuneracion Mensual Bruta': formatSoles(input.sueldoBruto),
-                        'Fecha de Ingreso': input.fechaIngreso,
-                        'Fecha de Cese': input.fechaCese,
-                        'Motivo de Cese': motivoLabel,
-                        'Asignacion Familiar': input.asignacionFamiliar ? 'Si' : 'No',
-                      },
-                    })
-                    generatePDFFromHTML({
-                      title: 'Liquidacion de Beneficios Sociales',
-                      filename: 'liquidacion-beneficios-sociales.pdf',
-                      content,
-                      watermark: 'COMPLY360',
-                    })
-                  }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#d4a853] hover:bg-[#c49a48] text-[#0f172a] rounded-xl font-bold text-sm transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={downloadOfficialPdf}
-                  disabled={downloadingPdf || !result}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="PDF oficial con secciones numeradas, fórmulas, base legal por concepto y bloque de firmas. Sigue el formato MTPE."
-                >
-                  {downloadingPdf ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <FileText className="w-4 h-4" />
-                  )}
-                  {downloadingPdf ? 'Generando…' : 'PDF Oficial'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openWhatsApp({
-                    type: 'liquidacion',
-                    total: result.totalBruto,
-                    data: {
-                      sueldo: input.sueldoBruto,
-                      fechaIngreso: input.fechaIngreso,
-                      fechaCese: input.fechaCese,
-                      motivo: MOTIVOS_CESE.find(m => m.value === input.motivoCese)?.label || input.motivoCese,
-                    },
-                  })}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-colors border border-white/20"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Consultar abogado
-                </button>
-                <button
-                  type="button"
-                  onClick={saveCalculation}
-                  disabled={saving || !result}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-colors border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Guardar
-                </button>
-              </div>
-            </div>
-
-            {/* Breakdown */}
-            <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-white/[0.06] border-white/[0.08]">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  Desglose Detallado
-                </h3>
-              </div>
-
-              <div className="divide-y divide-gray-100">
-                {Object.entries(result.breakdown).map(([key, item]) => {
-                  if (!item || item.amount === 0) return null
-                  const percentage = result.totalBruto > 0
-                    ? (item.amount / result.totalBruto) * 100
-                    : 0
-                  const isExpanded = expandedItem === key
-
-                  return (
-                    <div key={key} className="group">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedItem(isExpanded ? null : key)}
-                        className="w-full px-6 py-4 flex items-center gap-4 hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)] transition-colors text-left"
-                      >
-                        {/* Progress bar mini */}
-                        <div className="w-1 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                          <div
-                            className="w-full bg-primary rounded-full transition-all duration-700"
-                            style={{ height: `${percentage}%` }}
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-white">
-                              {item.label}
-                            </span>
-                            <span className="text-lg font-bold text-white tabular-nums">
-                              {formatSoles(item.amount)}
-                            </span>
-                          </div>
-                          {/* Percentage bar */}
-                          <div className="mt-2 flex items-center gap-3">
-                            <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-700"
-                                style={{ width: `${Math.min(percentage, 100)}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-gray-500 w-10 text-right tabular-nums">
-                              {percentage.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-
-                        <ChevronDown
-                          className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${
-                            isExpanded ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
-
-                      {/* Expanded detail */}
-                      {isExpanded && (
-                        <div className="px-6 pb-4 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)]/50 border-t border-white/[0.06] border-white/[0.08]">
-                          <div className="ml-5 space-y-3 pt-3">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="font-semibold text-gray-500 uppercase tracking-wider">Fórmula:</span>
-                              <code className="bg-[#141824] px-2 py-1 rounded border border-white/[0.08] text-gray-200 font-mono">
-                                {item.formula}
-                              </code>
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              <span className="font-semibold text-gray-500">Detalle:</span>{' '}
-                              {item.details}
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-primary/70">
-                              <Scale className="w-3 h-3" />
-                              <span className="font-medium">{item.baseLegal}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Legal References */}
-            <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-6">
-              <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-primary" />
-                Base Legal Aplicada
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {result.legalBasis.map((ref, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg"
-                  >
-                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
-                      {ref.norm}
+              {/* Total Card */}
+              <div className="bg-gradient-to-br from-[#1e3a6e] to-[#0f2548] rounded-2xl p-6 sm:p-8 text-white shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-5 h-5 text-[#d4a853]" />
+                    <span className="text-sm font-medium text-white/80 uppercase tracking-wider">
+                      Liquidación total estimada
                     </span>
-                    <div>
-                      <span className="text-xs font-medium text-gray-300">{ref.article}</span>
-                      <p className="text-xs text-gray-500">{ref.description}</p>
-                    </div>
                   </div>
-                ))}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-white/10 px-2.5 py-1 rounded-full">
+                      Base legal vigente
+                    </span>
+                  </div>
+                </div>
+                <div className="text-4xl sm:text-5xl font-black tracking-tight mb-2 tabular-nums">
+                  {formatSoles(result.totalBruto)}
+                </div>
+                <p className="text-white/80 text-sm">
+                  Monto bruto total antes de descuentos · {regimen.label}
+                  {regimen.tratamiento === 'especial' ? ' · referencial' : ''}
+                </p>
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2.5 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const motivoLabel = MOTIVOS_CESE.find(m => m.value === input.motivoCese)?.label || input.motivoCese
+                      const breakdownItems = Object.values(result.breakdown)
+                        .filter((item): item is BreakdownItem => item !== null && item.amount > 0)
+                        .map(item => ({
+                          label: item.label,
+                          amount: item.amount,
+                          formula: item.formula,
+                          baseLegal: item.baseLegal,
+                        }))
+                      const content = calculationToHTML({
+                        title: 'Desglose de Liquidación',
+                        items: breakdownItems,
+                        total: result.totalBruto,
+                        warnings: result.warnings.map(w => ({ message: w.message })),
+                        legalRefs: result.legalBasis.map(ref => ({
+                          norm: ref.norm,
+                          description: `${ref.article} - ${ref.description}`,
+                        })),
+                        metadata: {
+                          'Régimen laboral': regimen.label,
+                          'Remuneración Mensual Bruta': formatSoles(input.sueldoBruto),
+                          'Fecha de Ingreso': input.fechaIngreso,
+                          'Fecha de Cese': input.fechaCese,
+                          'Motivo de Cese': motivoLabel,
+                          'Asignación Familiar': input.asignacionFamiliar ? 'Sí' : 'No',
+                        },
+                      })
+                      generatePDFFromHTML({
+                        title: 'Liquidación de Beneficios Sociales',
+                        filename: 'liquidacion-beneficios-sociales.pdf',
+                        content,
+                        watermark: 'COMPLY360',
+                      })
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#d4a853] hover:bg-[#c49a48] text-[#0f172a] rounded-xl font-bold text-sm transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Descargar PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadOfficialPdf}
+                    disabled={downloadingPdf || !result}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="PDF oficial con secciones numeradas, fórmulas, base legal por concepto y bloque de firmas. Sigue el formato MTPE."
+                  >
+                    {downloadingPdf ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <FileText className="w-4 h-4" />
+                    )}
+                    {downloadingPdf ? 'Generando…' : 'PDF Oficial'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openWhatsApp({
+                      type: 'liquidacion',
+                      total: result.totalBruto,
+                      data: {
+                        sueldo: input.sueldoBruto,
+                        fechaIngreso: input.fechaIngreso,
+                        fechaCese: input.fechaCese,
+                        motivo: MOTIVOS_CESE.find(m => m.value === input.motivoCese)?.label || input.motivoCese,
+                      },
+                    })}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-colors border border-white/20"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Consultar abogado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveCalculation}
+                    disabled={saving || !result}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-colors border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Guardar
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+
+              {/* Breakdown */}
+              <div className="bg-[color:var(--bg-elevated)] rounded-2xl border border-[color:var(--border-default)] shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-[color:var(--border-subtle)]">
+                  <h3 className="text-lg font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Desglose detallado
+                  </h3>
+                </div>
+
+                <div className="divide-y divide-[color:var(--border-subtle)]">
+                  {Object.entries(result.breakdown).map(([key, item]) => {
+                    if (!item || item.amount === 0) return null
+                    const percentage = result.totalBruto > 0
+                      ? (item.amount / result.totalBruto) * 100
+                      : 0
+                    const isExpanded = expandedItem === key
+
+                    return (
+                      <div key={key} className="group">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedItem(isExpanded ? null : key)}
+                          className="w-full px-6 py-4 flex items-center gap-4 hover:bg-[color:var(--bg-surface-hover)] transition-colors text-left"
+                        >
+                          {/* Progress bar mini */}
+                          <div className="w-1 h-10 rounded-full bg-[color:var(--neutral-200)] overflow-hidden flex-shrink-0">
+                            <div
+                              className="w-full bg-primary rounded-full transition-all duration-700"
+                              style={{ height: `${percentage}%` }}
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-semibold text-[color:var(--text-primary)]">
+                                {item.label}
+                              </span>
+                              <span className="text-lg font-bold text-[color:var(--text-primary)] tabular-nums">
+                                {formatSoles(item.amount)}
+                              </span>
+                            </div>
+                            {/* Percentage bar */}
+                            <div className="mt-2 flex items-center gap-3">
+                              <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-700"
+                                  style={{ width: `${Math.min(percentage, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium text-[color:var(--text-tertiary)] w-10 text-right tabular-nums">
+                                {percentage.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+
+                          <ChevronDown
+                            className={`w-4 h-4 text-[color:var(--text-tertiary)] flex-shrink-0 transition-transform ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+
+                        {/* Expanded detail */}
+                        {isExpanded && (
+                          <div className="px-6 pb-4 bg-[color:var(--bg-inset)] border-t border-[color:var(--border-subtle)]">
+                            <div className="ml-5 space-y-3 pt-3">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Fórmula:</span>
+                                <code className="bg-[color:var(--bg-elevated)] px-2 py-1 rounded border border-[color:var(--border-default)] text-[color:var(--text-primary)] font-mono">
+                                  {item.formula}
+                                </code>
+                              </div>
+                              <div className="text-xs text-[color:var(--text-secondary)]">
+                                <span className="font-semibold text-[color:var(--text-tertiary)]">Detalle:</span>{' '}
+                                {item.details}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-primary/70">
+                                <Scale className="w-3 h-3" />
+                                <span className="font-medium">{item.baseLegal}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <ResultadoExplicado
+                resumen="Suma de todo lo que se le debe al trabajador al terminar la relación laboral."
+                pasos={pasos}
+                baseLegal={baseLegal}
+                nota="La CTS y la indemnización por despido no pagan AFP/ONP ni impuesto a la renta. Las vacaciones truncas y la gratificación trunca sí pagan el aporte a AFP/ONP y pueden tener retención de renta de quinta categoría. La liquidación debe pagarse dentro de las 48 horas siguientes al cese."
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

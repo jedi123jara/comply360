@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { calcularCTS } from '@/lib/legal-engine/calculators/cts'
 import type { CTSInput } from '@/lib/legal-engine'
-import { Users, Download, RefreshCw, Loader2, CheckCircle, Search, ChevronDown, ChevronUp, FileSpreadsheet } from 'lucide-react'
+import { Users, Download, RefreshCw, Loader2, CheckCircle, Search, ChevronDown, ChevronUp, FileSpreadsheet, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatSoles } from '@/lib/format/peruvian'
+import { AVISO_REFERENCIAL, esRegimenEspecial, getRegimenInfo } from './shared/regimen'
+import { opcionesCorteCTS, periodoCTS, proximoCorteCTS } from './shared/fechas'
 
 // ──────────────────────────────────────────────
 // Types
@@ -27,16 +29,18 @@ interface WorkerRaw {
 interface WorkerRow extends WorkerRaw {
   ctsResult: ReturnType<typeof calcularCTS> | null
   error: string | null
+  /** Régimen con reglas propias que el motor aún no calcula: monto referencial. */
+  referencial: boolean
 }
 
-const CORTE_OPTIONS = [
-  { value: '2026-05-15', label: 'Mayo 2026' },
-  { value: '2025-11-15', label: 'Noviembre 2025' },
-  { value: '2025-05-15', label: 'Mayo 2025' },
-]
-
-// Regímenes que tienen CTS
-const REGIMENES_CON_CTS = ['GENERAL', 'MYPE_PEQUENA', 'CONSTRUCCION_CIVIL', 'MINERO', 'PESQUERO', 'TELETRABAJO']
+/**
+ * Regímenes SIN CTS. El resto se calcula; los regímenes especiales (agrario,
+ * construcción civil, pesquero, hogar, CAS) salen como referenciales.
+ */
+const SIN_CTS: Record<string, string> = {
+  MYPE_MICRO: 'Sin CTS (microempresa)',
+  MODALIDAD_FORMATIVA: 'Sin CTS (practicante)',
+}
 
 // ──────────────────────────────────────────────
 // Component
@@ -46,7 +50,9 @@ export function BulkCTSCalculadora() {
   const [workers, setWorkers] = useState<WorkerRow[]>([])
   const [loading, setLoading] = useState(false)
   const [fetched, setFetched] = useState(false)
-  const [fechaCorte, setFechaCorte] = useState('2026-05-15')
+  // Por defecto el PRÓXIMO depósito; nunca un periodo que ya pasó.
+  const [opcionesCorte] = useState(() => opcionesCorteCTS())
+  const [fechaCorte, setFechaCorte] = useState(() => proximoCorteCTS())
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState<'nombre' | 'cts' | 'regimen'>('cts')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -62,10 +68,11 @@ export function BulkCTSCalculadora() {
       const raw: WorkerRaw[] = data.data ?? []
 
       const rows: WorkerRow[] = raw.map(w => {
-        const hasNoRegimen = !REGIMENES_CON_CTS.includes(w.regimenLaboral)
-        if (hasNoRegimen) {
-          return { ...w, ctsResult: null, error: `Sin CTS (${w.regimenLaboral})` }
+        const sinCts = SIN_CTS[w.regimenLaboral]
+        if (sinCts) {
+          return { ...w, ctsResult: null, error: sinCts, referencial: false }
         }
+        const referencial = esRegimenEspecial(w.regimenLaboral)
 
         try {
           const input: CTSInput = {
@@ -79,16 +86,21 @@ export function BulkCTSCalculadora() {
             regimenLaboral: w.regimenLaboral,
           }
           if (input.sueldoBruto <= 0 || !input.fechaIngreso) {
-            return { ...w, ctsResult: null, error: 'Datos incompletos' }
+            return { ...w, ctsResult: null, error: 'Datos incompletos', referencial }
           }
-          return { ...w, ctsResult: calcularCTS(input), error: null }
+          // Ingresó después del semestre: todavía no le toca este depósito.
+          if (input.fechaIngreso >= `${fechaCorte.slice(0, 8)}01`) {
+            return { ...w, ctsResult: null, error: 'Aún no le corresponde', referencial }
+          }
+          return { ...w, ctsResult: calcularCTS(input), error: null, referencial }
         } catch (e) {
-          return { ...w, ctsResult: null, error: e instanceof Error ? e.message : 'Error' }
+          return { ...w, ctsResult: null, error: e instanceof Error ? e.message : 'Error', referencial }
         }
       })
 
       setWorkers(rows)
-      setSelected(new Set(rows.filter(r => r.ctsResult !== null).map(r => r.id)))
+      // Los referenciales no se suman al total hasta que el usuario los marque.
+      setSelected(new Set(rows.filter(r => r.ctsResult !== null && !r.referencial).map(r => r.id)))
       setFetched(true)
       fetchedRef.current = true
     } catch (err) {
@@ -168,7 +180,8 @@ export function BulkCTSCalculadora() {
       'Apellidos': w.lastName,
       'Nombres': w.firstName,
       'Cargo': w.position ?? '',
-      'Régimen': w.regimenLaboral,
+      'Régimen': getRegimenInfo(w.regimenLaboral).label,
+      'Referencial': w.referencial ? 'Sí' : 'No',
       'Fecha Ingreso': w.fechaIngreso.split('T')[0],
       'Sueldo Bruto': Number(w.sueldoBruto),
       'Asig. Familiar': w.asignacionFamiliar ? 'Sí' : 'No',
@@ -182,7 +195,7 @@ export function BulkCTSCalculadora() {
     const { addJsonSheet, createWorkbook, workbookToArrayBuffer } = await import('@/lib/excel/exceljs')
     const workbook = createWorkbook()
     addJsonSheet(workbook, 'CTS', rows, {
-      columnWidths: [8, 18, 18, 20, 15, 14, 12, 12, 16, 16, 14, 18, 14],
+      columnWidths: [8, 18, 18, 20, 22, 11, 14, 12, 12, 16, 16, 14, 18, 14],
     })
     const buffer = await workbookToArrayBuffer(workbook)
     const blob = new Blob([buffer], {
@@ -204,36 +217,38 @@ export function BulkCTSCalculadora() {
   return (
     <div className="space-y-4">
       {/* Controls */}
-      <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-5">
+      <div className="bg-[color:var(--bg-elevated)] rounded-2xl border border-[color:var(--border-default)] shadow-sm p-5">
         <div className="flex flex-wrap items-end gap-4">
           {/* Fecha corte */}
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-              Fecha de Corte
+            <label htmlFor="cts-bulk-corte" className="block text-xs font-semibold text-[color:var(--text-tertiary)] mb-1.5">
+              Depósito
             </label>
             <select
+              id="cts-bulk-corte"
               value={fechaCorte}
               onChange={e => setFechaCorte(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] text-sm text-white"
+              className="w-full px-3 py-2.5 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-sm text-[color:var(--text-primary)]"
             >
-              {CORTE_OPTIONS.map(o => (
+              {opcionesCorte.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+            <p className="mt-1 text-[11px] text-[color:var(--text-tertiary)]">Semestre {periodoCTS(fechaCorte)}</p>
           </div>
 
           {/* Search */}
           <div className="flex-[2] min-w-[220px]">
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+            <label className="block text-xs font-semibold text-[color:var(--text-tertiary)] mb-1.5">
               Buscar trabajador
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[color:var(--text-tertiary)]" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Nombre, DNI o cargo..."
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] text-sm text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)] outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
           </div>
@@ -267,17 +282,17 @@ export function BulkCTSCalculadora() {
       {/* Stats bar */}
       {fetched && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-[#141824] bg-[#141824] rounded-xl border border-white/[0.08] border-white/[0.08] p-4">
-            <p className="text-xs text-gray-500 mb-1">Trabajadores</p>
-            <p className="text-2xl font-bold text-white">{workers.length}</p>
+          <div className="bg-[color:var(--bg-elevated)] rounded-xl border border-[color:var(--border-default)] p-4">
+            <p className="text-xs text-[color:var(--text-tertiary)] mb-1">Trabajadores</p>
+            <p className="text-2xl font-bold text-[color:var(--text-primary)]">{workers.length}</p>
           </div>
-          <div className="bg-[#141824] bg-[#141824] rounded-xl border border-white/[0.08] border-white/[0.08] p-4">
-            <p className="text-xs text-gray-500 mb-1">Con CTS</p>
+          <div className="bg-[color:var(--bg-elevated)] rounded-xl border border-[color:var(--border-default)] p-4">
+            <p className="text-xs text-[color:var(--text-tertiary)] mb-1">Con CTS</p>
             <p className="text-2xl font-bold text-green-600">{conCTS}</p>
           </div>
-          <div className="bg-[#141824] bg-[#141824] rounded-xl border border-white/[0.08] border-white/[0.08] p-4">
-            <p className="text-xs text-gray-500 mb-1">Sin CTS (exentos)</p>
-            <p className="text-2xl font-bold text-gray-400">{sinCTS}</p>
+          <div className="bg-[color:var(--bg-elevated)] rounded-xl border border-[color:var(--border-default)] p-4">
+            <p className="text-xs text-[color:var(--text-tertiary)] mb-1">Sin CTS (exentos)</p>
+            <p className="text-2xl font-bold text-[color:var(--text-tertiary)]">{sinCTS}</p>
           </div>
           <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
             <p className="text-xs text-blue-600 font-semibold mb-1">Total CTS a depositar</p>
@@ -286,16 +301,30 @@ export function BulkCTSCalculadora() {
         </div>
       )}
 
+      {fetched && workers.some(w => w.referencial && w.ctsResult) && (
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden />
+          <div>
+            <p className="text-sm font-bold">
+              {workers.filter(w => w.referencial && w.ctsResult).length} trabajador(es) con régimen especial
+            </p>
+            <p className="text-sm">
+              {AVISO_REFERENCIAL} Su CTS no se suma al total hasta que la marques.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {fetched && (
-        <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06] border-white/[0.08]">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="bg-[color:var(--bg-elevated)] rounded-2xl border border-[color:var(--border-default)] shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[color:var(--border-subtle)]">
+            <div className="flex items-center gap-2 text-sm text-[color:var(--text-secondary)]">
               <Users className="w-4 h-4" />
               <span className="font-semibold">{filtered.length} trabajadores</span>
-              {selected.size > 0 && <span className="text-xs text-gray-400">· {selected.size} seleccionados</span>}
+              {selected.size > 0 && <span className="text-xs text-[color:var(--text-tertiary)]">· {selected.size} seleccionados</span>}
             </div>
-            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-xs text-[color:var(--text-tertiary)] cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={selectedRows.length === filtered.filter(w => w.ctsResult).length && filtered.some(w => w.ctsResult)}
@@ -312,34 +341,34 @@ export function BulkCTSCalculadora() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50/70 bg-[color:var(--neutral-100)]/50 border-b border-white/[0.06] border-white/[0.08]">
+                <tr className="bg-[color:var(--bg-inset)] border-b border-[color:var(--border-subtle)]">
                   <th className="px-3 py-2.5 w-8"></th>
                   <th className="px-4 py-2.5 text-left">
-                    <button onClick={() => toggleSort('nombre')} className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300">
+                    <button onClick={() => toggleSort('nombre')} className="flex items-center gap-1 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider hover:text-[color:var(--text-primary)]">
                       Trabajador {renderSortIcon('nombre')}
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-left">
-                    <button onClick={() => toggleSort('regimen')} className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300">
+                    <button onClick={() => toggleSort('regimen')} className="flex items-center gap-1 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider hover:text-[color:var(--text-primary)]">
                       Régimen {renderSortIcon('regimen')}
                     </button>
                   </th>
-                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Sueldo</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Últ. Gratif.</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Rem. Comp.</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Meses</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Sueldo</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Últ. Gratif.</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Rem. Comp.</th>
+                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Meses</th>
                   <th className="px-4 py-2.5 text-right">
-                    <button onClick={() => toggleSort('cts')} className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300 ml-auto">
+                    <button onClick={() => toggleSort('cts')} className="flex items-center gap-1 text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider hover:text-[color:var(--text-primary)] ml-auto">
                       CTS {renderSortIcon('cts')}
                     </button>
                   </th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-[color:var(--text-tertiary)] uppercase tracking-wider">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-[color:var(--border-subtle)]">
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-400">
+                    <td colSpan={9} className="px-4 py-10 text-center text-sm text-[color:var(--text-tertiary)]">
                       No se encontraron trabajadores
                     </td>
                   </tr>
@@ -352,7 +381,7 @@ export function BulkCTSCalculadora() {
                       key={w.id}
                       className={cn(
                         'transition-colors',
-                        isSelected && hasCTS ? 'bg-blue-50/30' : 'hover:bg-gray-50/50 hover:bg-[color:var(--neutral-100)]/30',
+                        isSelected && hasCTS ? 'bg-blue-50/30' : 'hover:bg-[color:var(--bg-surface-hover)]',
                         !hasCTS && 'opacity-50',
                       )}
                     >
@@ -377,19 +406,19 @@ export function BulkCTSCalculadora() {
                             {w.firstName[0]}{w.lastName[0]}
                           </div>
                           <div>
-                            <p className="font-semibold text-white text-xs leading-tight">
+                            <p className="font-semibold text-[color:var(--text-primary)] text-xs leading-tight">
                               {w.lastName}, {w.firstName}
                             </p>
-                            <p className="text-[11px] text-gray-400">{w.dni} · {w.position ?? '—'}</p>
+                            <p className="text-[11px] text-[color:var(--text-tertiary)]">{w.dni} · {w.position ?? '—'}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] text-gray-600 font-medium">
-                          {w.regimenLaboral.replace('_', ' ')}
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] font-medium">
+                          {getRegimenInfo(w.regimenLaboral).label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-medium text-gray-300">
+                      <td className="px-4 py-3 text-right text-sm font-medium text-[color:var(--text-secondary)]">
                         {formatSoles(Number(w.sueldoBruto))}
                       </td>
                       {/* Editable gratificación */}
@@ -400,15 +429,15 @@ export function BulkCTSCalculadora() {
                             min={0}
                             defaultValue={0}
                             onChange={e => updateGratificacion(w.id, Number(e.target.value))}
-                            className="w-24 text-right px-2 py-1 rounded-lg border border-white/[0.08] border-white/10 bg-[#141824] bg-[color:var(--neutral-100)] text-xs text-white"
+                            className="w-24 text-right px-2 py-1 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-xs text-[color:var(--text-primary)]"
                             placeholder="0.00"
                           />
-                        ) : <span className="text-gray-300">—</span>}
+                        ) : <span className="text-[color:var(--text-secondary)]">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-600">
+                      <td className="px-4 py-3 text-right text-sm text-[color:var(--text-secondary)]">
                         {w.ctsResult ? formatSoles(w.ctsResult.remuneracionComputable) : '—'}
                       </td>
-                      <td className="px-4 py-3 text-center text-sm text-gray-600">
+                      <td className="px-4 py-3 text-center text-sm text-[color:var(--text-secondary)]">
                         {w.ctsResult
                           ? `${w.ctsResult.mesesComputables}m ${w.ctsResult.diasComputables}d`
                           : '—'}
@@ -418,13 +447,21 @@ export function BulkCTSCalculadora() {
                           <span className="text-base font-bold text-blue-700">
                             {formatSoles(w.ctsResult.ctsTotal)}
                           </span>
-                        ) : <span className="text-xs text-gray-400">—</span>}
+                        ) : <span className="text-xs text-[color:var(--text-tertiary)]">—</span>}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {hasCTS ? (
+                        {hasCTS && w.referencial ? (
+                          <span
+                            title={AVISO_REFERENCIAL}
+                            className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800"
+                          >
+                            <AlertTriangle className="w-3 h-3" aria-hidden />
+                            Referencial
+                          </span>
+                        ) : hasCTS ? (
                           <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
                         ) : (
-                          <span className="text-[10px] text-gray-400 leading-tight block max-w-[80px] mx-auto">
+                          <span className="text-[10px] text-[color:var(--text-tertiary)] leading-tight block max-w-[80px] mx-auto">
                             {w.error}
                           </span>
                         )}
@@ -453,16 +490,16 @@ export function BulkCTSCalculadora() {
 
       {/* Empty state */}
       {!fetched && !loading && (
-        <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm flex flex-col items-center py-16 text-center">
+        <div className="bg-[color:var(--bg-elevated)] rounded-2xl border border-[color:var(--border-default)] shadow-sm flex flex-col items-center py-16 text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
             <Users className="w-8 h-8 text-primary" />
           </div>
-          <h3 className="text-base font-bold text-white mb-1">
+          <h3 className="text-base font-bold text-[color:var(--text-primary)] mb-1">
             Cálculo Masivo de CTS
           </h3>
-          <p className="text-sm text-gray-500 max-w-sm mb-6">
+          <p className="text-sm text-[color:var(--text-tertiary)] max-w-sm mb-6">
             Calcula automáticamente la CTS de todos los trabajadores activos de tu empresa.
-            Selecciona la fecha de corte y haz clic en &quot;Calcular todos&quot;.
+            Elige el depósito y haz clic en &quot;Calcular todos&quot;. Se usa el régimen de cada trabajador.
           </p>
           <button
             onClick={fetchAndCalculate}
@@ -475,9 +512,9 @@ export function BulkCTSCalculadora() {
       )}
 
       {loading && (
-        <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm flex flex-col items-center py-16">
+        <div className="bg-[color:var(--bg-elevated)] rounded-2xl border border-[color:var(--border-default)] shadow-sm flex flex-col items-center py-16">
           <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
-          <p className="text-sm text-gray-500">Cargando trabajadores y calculando CTS...</p>
+          <p className="text-sm text-[color:var(--text-tertiary)]">Cargando trabajadores y calculando CTS...</p>
         </div>
       )}
     </div>

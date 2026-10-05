@@ -12,10 +12,10 @@ interface HistoryEntry {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  LIQUIDACION: 'Liquidacion',
+  LIQUIDACION: 'Liquidación',
   CTS: 'CTS',
-  GRATIFICACION: 'Gratificacion',
-  INDEMNIZACION: 'Indemnizacion',
+  GRATIFICACION: 'Gratificación',
+  INDEMNIZACION: 'Indemnización',
   HORAS_EXTRAS: 'Horas Extras',
   VACACIONES: 'Vacaciones',
   MULTA_SUNAFIL: 'Multa SUNAFIL',
@@ -46,30 +46,30 @@ export function CalculationHistory({ type }: CalculationHistoryProps) {
   if (history.length === 0) return null
 
   return (
-    <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-5">
-      <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+    <div className="bg-[color:var(--bg-elevated)] rounded-2xl border border-[color:var(--border-default)] shadow-sm p-5">
+      <h3 className="text-sm font-bold text-[color:var(--text-primary)] mb-3 flex items-center gap-2">
         <Clock className="w-4 h-4 text-primary" />
-        Calculos recientes
+        Cálculos recientes
       </h3>
       <div className="space-y-2">
         {history.map(entry => (
           <div
             key={entry.id}
-            className="flex items-center justify-between py-2 px-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-xl"
+            className="flex items-center justify-between py-2 px-3 bg-[color:var(--bg-inset)] rounded-xl"
           >
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-              <span className="text-xs font-medium text-gray-300">
+              <TrendingUp className="w-3.5 h-3.5 text-[color:var(--text-tertiary)] flex-shrink-0" />
+              <span className="text-xs font-medium text-[color:var(--text-secondary)]">
                 {TYPE_LABELS[entry.type] ?? entry.type}
               </span>
             </div>
             <div className="text-right">
               {entry.totalAmount != null && (
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs font-bold text-[color:var(--text-primary)]">
                   {formatSoles(entry.totalAmount)}
                 </span>
               )}
-              <p className="text-[10px] text-gray-400">
+              <p className="text-[10px] text-[color:var(--text-tertiary)]">
                 {new Date(entry.createdAt).toLocaleDateString('es-PE', {
                   day: '2-digit',
                   month: 'short',

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { use, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { CTSCalculadora } from '@/components/calculadoras/cts-form'
 import { CalculationHistory } from '@/components/calculadoras/calculation-history'
+import { EncabezadoCalculadora } from '@/components/calculadoras/shared/encabezado'
 import { User, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,64 +26,58 @@ const BulkCTSCalculadora = dynamic(
 
 type Mode = 'individual' | 'masivo'
 
-export default function CTSPage() {
+/**
+ * Acepta `?dni=` (enlace desde la ficha del trabajador) para precargar sus
+ * datos, incluido su régimen laboral.
+ */
+export default function CTSPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dni?: string | string[] }>
+}) {
+  const { dni } = use(searchParams)
   const [mode, setMode] = useState<Mode>('individual')
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-            <span>Calculadoras</span>
-            <span>/</span>
-            <span className="text-primary font-medium">CTS</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">
-            Calculadora de CTS
-          </h1>
-          <p className="text-gray-400 mt-1 text-sm">
-            Compensación por Tiempo de Servicios semestral según el D.S. 001-97-TR.
-            Incluye asignación familiar y 1/6 de gratificación.
-          </p>
+      <EncabezadoCalculadora calc="cts">
+        {/* Individual / masivo */}
+        <div
+          role="tablist"
+          aria-label="Modo de cálculo"
+          className="flex gap-1 bg-[color:var(--neutral-100)] rounded-xl p-1 border border-[color:var(--border-default)] self-start"
+        >
+          {([
+            { value: 'individual', label: 'Un trabajador', icon: User },
+            { value: 'masivo', label: 'Todos', icon: Users },
+          ] as const).map(opt => {
+            const Icon = opt.icon
+            const active = mode === opt.value
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setMode(opt.value)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors',
+                  active
+                    ? 'bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)] shadow-sm'
+                    : 'text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)]',
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {opt.label}
+              </button>
+            )
+          })}
         </div>
+      </EncabezadoCalculadora>
 
-        {/* Mode toggle */}
-        <div className="flex gap-1 bg-[color:var(--neutral-100)] bg-white rounded-xl p-1 border border-white/[0.08] self-start">
-          <button
-            onClick={() => setMode('individual')}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors',
-              mode === 'individual'
-                ? 'bg-white bg-[color:var(--neutral-100)] text-white shadow-sm'
-                : 'text-gray-400 hover:text-slate-200',
-            )}
-          >
-            <User className="w-4 h-4" />
-            Individual
-          </button>
-          <button
-            onClick={() => setMode('masivo')}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors',
-              mode === 'masivo'
-                ? 'bg-white bg-[color:var(--neutral-100)] text-white shadow-sm'
-                : 'text-gray-400 hover:text-slate-200',
-            )}
-          >
-            <Users className="w-4 h-4" />
-            Masivo
-            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">
-              Todos
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Content */}
       {mode === 'individual' ? (
         <>
-          <CTSCalculadora />
+          <CTSCalculadora prefillDni={typeof dni === 'string' ? dni : undefined} />
           <CalculationHistory type="CTS" />
         </>
       ) : (

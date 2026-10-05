@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, UserCheck, X, Loader2, ChevronDown, Check, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatSoles } from '@/lib/format/peruvian'
+import { getRegimenInfo } from './shared/regimen'
 
 // ──────────────────────────────────────────────
 // Types
@@ -34,7 +35,16 @@ interface Props {
   /** Trabajadores ya seleccionados (modo múltiple) */
   selectedWorkers?: WorkerData[]
   label?: string
+  /**
+   * DNI para preseleccionar un trabajador al abrir la calculadora (ej. desde
+   * su ficha: `/dashboard/calculadoras/cts?dni=...`). Solo se usa una vez.
+   */
+  prefillDni?: string
 }
+
+// Referencia estable: un `[]` por defecto en cada render disparaba el efecto
+// de sincronización en bucle.
+const SIN_SELECCION: WorkerData[] = []
 
 // ──────────────────────────────────────────────
 // Helper
@@ -66,8 +76,9 @@ export function WorkerAutoFill({
   selectedWorker,
   multiple = false,
   onSelectMultiple,
-  selectedWorkers = [],
+  selectedWorkers = SIN_SELECCION,
   label = 'Seleccionar trabajador',
+  prefillDni,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -78,6 +89,33 @@ export function WorkerAutoFill({
 
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const onSelectRef = useRef(onSelect)
+  const prefillHecho = useRef(false)
+
+  useEffect(() => {
+    onSelectRef.current = onSelect
+  }, [onSelect])
+
+  // Prefill por DNI: busca al trabajador y lo selecciona (régimen incluido).
+  useEffect(() => {
+    const dni = prefillDni?.trim()
+    if (!dni || multiple || prefillHecho.current) return
+    let cancelled = false
+    fetch(`/api/workers?search=${encodeURIComponent(dni)}&limit=5`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(d => {
+        if (cancelled || !d) return
+        prefillHecho.current = true
+        const match = ((d.data ?? []) as Record<string, unknown>[])
+          .map(mapWorker)
+          .find(w => w.dni === dni)
+        if (match) onSelectRef.current(match)
+      })
+      .catch(() => { /* sin prefill: el usuario elige manualmente */ })
+    return () => {
+      cancelled = true
+    }
+  }, [prefillDni, multiple])
 
   // Sync external selectedWorkers
   useEffect(() => {
@@ -191,7 +229,7 @@ export function WorkerAutoFill({
           'w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all',
           hasSelection
             ? 'border-green-300 bg-green-50 text-green-800'
-            : 'border-2 border-primary/60 bg-primary/5 hover:bg-primary/10 text-gray-800',
+            : 'border-2 border-primary/60 bg-primary/5 hover:bg-primary/10 text-[color:var(--text-primary)]',
         )}
       >
         {hasSelection ? (
@@ -233,29 +271,29 @@ export function WorkerAutoFill({
 
       {/* ── Dropdown ── */}
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#141824] bg-[#141824] border border-white/[0.08] border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-[color:var(--bg-elevated)] border border-[color:var(--border-default)] rounded-xl shadow-xl z-50 overflow-hidden">
 
           {/* Buscador */}
-          <div className="p-2 border-b border-white/[0.06] border-white/[0.08]">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] border border-white/[0.08] border-white/10 focus-within:ring-2 focus-within:ring-primary/30">
-              <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+          <div className="p-2 border-b border-[color:var(--border-subtle)]">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[color:var(--bg-inset)] border border-[color:var(--border-default)] focus-within:ring-2 focus-within:ring-primary/30">
+              <Search className="w-3.5 h-3.5 text-[color:var(--text-tertiary)] flex-shrink-0" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Buscar por nombre o DNI..."
-                className="flex-1 text-sm bg-transparent outline-none text-white placeholder-gray-400"
+                className="flex-1 text-sm bg-transparent outline-none text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)]"
               />
               {loading
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
-                : <span className="text-xs text-gray-400">{results.length}</span>
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[color:var(--text-tertiary)]" />
+                : <span className="text-xs text-[color:var(--text-tertiary)]">{results.length}</span>
               }
             </div>
 
             {/* Seleccionar todos (solo modo múltiple) */}
             {multiple && results.length > 0 && (
               <div className="flex items-center justify-between mt-2 px-1">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-[color:var(--text-tertiary)]">
                   {multiSelected.length} seleccionado{multiSelected.length !== 1 ? 's' : ''}
                 </span>
                 <div className="flex gap-3">
@@ -270,7 +308,7 @@ export function WorkerAutoFill({
                     <button
                       type="button"
                       onClick={clearMulti}
-                      className="text-xs text-gray-400 hover:underline"
+                      className="text-xs text-[color:var(--text-tertiary)] hover:underline"
                     >
                       Limpiar
                     </button>
@@ -283,13 +321,13 @@ export function WorkerAutoFill({
           {/* Lista de trabajadores */}
           <div className="max-h-72 overflow-y-auto">
             {loading && results.length === 0 && (
-              <div className="flex items-center justify-center gap-2 py-8 text-sm text-gray-400">
+              <div className="flex items-center justify-center gap-2 py-8 text-sm text-[color:var(--text-tertiary)]">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Cargando trabajadores...
               </div>
             )}
             {!loading && results.length === 0 && (
-              <p className="px-4 py-6 text-center text-sm text-gray-400">
+              <p className="px-4 py-6 text-center text-sm text-[color:var(--text-tertiary)]">
                 {query.trim() ? 'No se encontraron trabajadores' : 'No hay trabajadores activos'}
               </p>
             )}
@@ -305,7 +343,7 @@ export function WorkerAutoFill({
                     'w-full flex items-center gap-3 px-4 py-3 transition-colors text-left group',
                     selected
                       ? 'bg-primary/8'
-                      : 'hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]',
+                      : 'hover:bg-[color:var(--bg-surface-hover)]',
                   )}
                 >
                   {/* Checkbox (modo múltiple) */}
@@ -314,7 +352,7 @@ export function WorkerAutoFill({
                       'w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all',
                       selected
                         ? 'bg-primary border-primary'
-                        : 'border-white/10 group-hover:border-primary/60',
+                        : 'border-[color:var(--border-strong)] group-hover:border-primary/60',
                     )}>
                       {selected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                     </div>
@@ -330,18 +368,18 @@ export function WorkerAutoFill({
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">
+                    <p className="text-sm font-semibold text-[color:var(--text-primary)] truncate">
                       {w.lastName}, {w.firstName}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-[color:var(--text-tertiary)] truncate">
                       {w.dni} · {w.position ?? 'Sin cargo'} · {formatSoles(w.sueldoBruto)}
                     </p>
                   </div>
 
                   {/* Badges */}
                   <div className="flex-shrink-0 text-right space-y-0.5">
-                    <span className="block text-[10px] px-1.5 py-0.5 rounded-full bg-[color:var(--neutral-100)] text-gray-500">
-                      {w.regimenLaboral.replace(/_/g, ' ')}
+                    <span className="block text-[10px] px-1.5 py-0.5 rounded-full bg-[color:var(--neutral-100)] text-[color:var(--text-tertiary)]">
+                      {getRegimenInfo(w.regimenLaboral).label}
                     </span>
                     {w.asignacionFamiliar && (
                       <span className="block text-[10px] text-green-600">+ Asig. Familiar</span>
@@ -354,8 +392,8 @@ export function WorkerAutoFill({
 
           {/* Footer modo múltiple */}
           {multiple && (
-            <div className="p-2.5 border-t border-white/[0.06] border-white/[0.08] flex items-center justify-between gap-2 bg-gray-50/40">
-              <span className="text-xs text-gray-500">
+            <div className="p-2.5 border-t border-[color:var(--border-subtle)] flex items-center justify-between gap-2 bg-[color:var(--bg-inset)]">
+              <span className="text-xs text-[color:var(--text-tertiary)]">
                 {multiSelected.length === 0
                   ? 'Haz clic para seleccionar'
                   : `${multiSelected.length} trabajador${multiSelected.length !== 1 ? 'es' : ''} seleccionado${multiSelected.length !== 1 ? 's' : ''}`
