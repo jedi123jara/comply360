@@ -243,8 +243,8 @@ describe('FEATURE_MIN_PLAN', () => {
     expect(FEATURE_MIN_PLAN.workers).toBe('STARTER')
   })
 
-  it('diagnostico -> EMPRESA', () => {
-    expect(FEATURE_MIN_PLAN.diagnostico).toBe('EMPRESA')
+  it('diagnostico -> PRO (plan más barato que lo incluye, derivado de la matriz)', () => {
+    expect(FEATURE_MIN_PLAN.diagnostico).toBe('PRO')
   })
 
   it('asistente_ia -> PRO', () => {

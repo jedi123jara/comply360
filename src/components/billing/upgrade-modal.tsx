@@ -1,467 +1,266 @@
 'use client'
 
 import Link from 'next/link'
-import { X, Check, Sparkles, Lock, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, Info, Lightbulb, X } from 'lucide-react'
 import { PLANS, type PlanKey } from '@/lib/constants'
-import { FEATURE_MIN_PLAN, type PlanFeature } from '@/lib/plan-features'
+import { FEATURE_MIN_PLAN, planDisplayName, type PlanFeature } from '@/lib/plan-features'
 import { track } from '@/lib/analytics'
-import { formatSoles, formatSolesMarketing } from '@/lib/format/peruvian'
-import { AREAS } from '@/lib/compliance/questions/types'
+import {
+  ModalClose,
+  ModalContent,
+  ModalDescription,
+  ModalOverlay,
+  ModalPortal,
+  ModalRoot,
+  ModalTitle,
+} from '@/components/ui/modal'
+import { FEATURE_PREVIEW_COPY, GENERIC_PREVIEW_COPY } from './feature-preview-copy'
 
 /**
- * UpgradeModal — panel editorial de upgrade con comparativa de planes.
+ * UpgradeModal — "vista previa" didáctica de una función de un plan superior.
  *
- * Se dispara cuando el backend responde 403 `PLAN_UPGRADE_REQUIRED`.
- * Muestra:
- *  - Hero emerald gradient con "Esta función es parte del plan X"
- *  - Plan actual (gris) vs plan requerido (destacado emerald)
- *  - Features diff con checkmarks
- *  - CTA primario "Actualizar ahora" → /dashboard/planes?highlight=EMPRESA
- *  - CTA secundario "Ver planes"
+ * En vez de un muro de venta, explica en lenguaje simple:
+ *  1. Qué hace la función (2-3 líneas).
+ *  2. Un ejemplo concreto de cómo te ayuda.
+ *  3. Desde qué plan está disponible (el MÁS BARATO que la incluye) y su precio.
+ *  4. Dos salidas claras: "Ver planes" y "Volver".
+ *
+ * Si se abre porque el servidor respondió 403 a mitad de carga, muestra un
+ * aviso tranquilizador ("No es un error…") para que no parezca una falla.
  *
  * Controlado externamente vía props (gestionado por UpgradeGateProvider).
  */
 
+/**
+ * Por qué se abrió la vista previa:
+ *  - `preview`: el usuario hizo clic en algo con candado (todavía no entró).
+ *  - `locked-page`: entró a una sección bloqueada y el servidor la frenó al cargar.
+ *  - `locked-action`: una acción puntual (botón) requiere un plan superior.
+ */
+export type UpgradeModalReason = 'preview' | 'locked-page' | 'locked-action'
+
 export interface UpgradeModalProps {
   open: boolean
   onClose: () => void
+  /** Acción del botón "Volver". Por defecto solo cierra la vista previa. */
+  onBack?: () => void
   currentPlan: PlanKey | 'FREE'
-  requiredPlan: PlanKey | 'EMPRESA' | 'PRO'
-  /** Nombre de la feature intentada (opcional, ayuda al copy). */
+  /** Plan más barato que incluye la función (lo calcula `FEATURE_MIN_PLAN`). */
+  requiredPlan: PlanKey
+  /** Nombre de la opción que se intentó abrir (p. ej. el ítem del menú). */
   featureName?: string
-  /** Feature key — para derivar el plan si no se pasa explícito. */
+  /** Feature key — para mostrar el texto didáctico correcto. */
   feature?: PlanFeature
+  reason?: UpgradeModalReason
 }
 
-const PLAN_COLORS: Record<string, { bg: string; ring: string; text: string }> = {
-  FREE: { bg: '#f1f5f9', ring: '#cbd5e1', text: '#475569' },
-  STARTER: { bg: '#eff6ff', ring: '#bfdbfe', text: '#1e40af' },
-  EMPRESA: { bg: '#dbeafe', ring: '#2563eb', text: '#1e3a8a' },
-  PRO: { bg: '#172554', ring: '#2563eb', text: '#eff6ff' },
+type PlanData = (typeof PLANS)[PlanKey]
+
+function getPlanData(plan: string): PlanData | null {
+  return (PLANS as Record<string, PlanData | undefined>)[plan] ?? null
 }
 
-/**
- * Multas SUNAFIL evitables por feature (S/ estimados).
- *
- * Base: D.S. 019-2006-TR + UIT 2026 (S/5,500) + rangos típicos para empresas
- * de 10-100 trabajadores. Los números son defensibles pero deliberadamente
- * redondeados al escenario "empresa mediana" — el admin verá "hasta S/".
- */
-const FEATURE_SAVINGS: Partial<Record<PlanFeature, { max: number; label: string }>> = {
-  diagnostico: { max: 48000, label: 'Multas por infracciones laborales que el diagnóstico detecta a tiempo' },
-  simulacro_basico: { max: 77000, label: 'Multa grave por no tener documentación lista ante inspección (14 UIT)' },
-  simulacro_completo: { max: 289000, label: 'Multa muy grave acumulada (52.53 UIT — tope)' },
-  ia_contratos: { max: 28000, label: 'Multa por contratos con cláusulas inválidas (5 UIT por trabajador)' },
-  review_ia: { max: 44000, label: 'Multa por cláusulas abusivas detectadas en revisión IA' },
-  denuncias: { max: 288915, label: 'Riesgo por canal interno deficiente en hostigamiento o SST: hasta 52.53 UIT' },
-  sst_completo: { max: 208000, label: 'Multa muy grave SST (Ley 29783 — hasta 38 UIT)' },
-  reportes_pdf: { max: 16500, label: 'Multa por no mantener registros (3 UIT)' },
-  asistente_ia: { max: 55000, label: 'Multas derivadas de consultas mal respondidas (10 UIT promedio)' },
-  api_access: { max: 33000, label: 'Costo de integración manual con ERPs (6 UIT anuales)' },
+function formatPrice(plan: PlanData | null): { amount: string; detail: string } {
+  if (!plan) return { amount: 'Consultar', detail: 'Revisa el detalle en la página de planes' }
+  if (plan.isCustomQuote) return { amount: 'A medida', detail: 'Cotización según el tamaño de tu empresa' }
+  if (plan.price === 0) return { amount: 'Gratis', detail: 'Sin tarjeta de crédito' }
+  return { amount: `S/ ${plan.price.toLocaleString('en-US')}`, detail: 'al mes + IGV' }
 }
 
-const FEATURE_COPY: Partial<Record<PlanFeature, { title: string; pitch: string }>> = {
-  diagnostico: {
-    title: 'Diagnóstico SUNAFIL completo',
-    pitch: `Preguntas guiadas sobre las ${AREAS.length} áreas que revisa SUNAFIL. Calculamos la multa potencial y te damos un plan de acción priorizado.`,
-  },
-  simulacro_basico: {
-    title: 'Simulacro SUNAFIL',
-    pitch: 'Vive una inspección antes de que llegue la de verdad. Genera un Acta de Requerimiento en formato R.M. 199-2016-TR.',
-  },
-  simulacro_completo: {
-    title: 'Simulacro SUNAFIL completo',
-    pitch: 'Inspector virtual que conversa contigo, revisión por sector y el descuento de 90% calculado si corriges a tiempo.',
-  },
-  reportes_pdf: {
-    title: 'Reportes ejecutivos en PDF',
-    pitch: 'Exporta reportes de cumplimiento, planilla, SST y auditoría con el logo de tu empresa.',
-  },
-  ia_contratos: {
-    title: 'Generación de contratos con IA',
-    pitch: 'Contratos redactados automáticamente conforme normativa peruana (19 cláusulas obligatorias).',
-  },
-  asistente_ia: {
-    title: 'Asistente IA laboral peruano',
-    pitch: 'Responde con base en más de 75 normas peruanas y 500 resoluciones del Tribunal de Fiscalización Laboral. Cita la base legal exacta en cada respuesta.',
-  },
-  review_ia: {
-    title: 'Revisión IA de contratos',
-    pitch: 'Sube un PDF y obtén un análisis cláusula por cláusula, con un puntaje de riesgo de 0 a 100 y recomendaciones.',
-  },
-  denuncias: {
-    title: 'Canal de denuncias',
-    pitch: 'Enlace público para denuncias anónimas: hostigamiento sexual, SST y prevención de delitos, con clasificación automática por IA.',
-  },
-  sst_completo: {
-    title: 'SST integral',
-    pitch: 'Política, IPERC digital, capacitaciones, comité, accidentes, EMO, EPP y mapa de riesgos.',
-  },
-  api_access: {
-    title: 'Acceso por API e integraciones',
-    pitch: 'Conecta tu ERP mediante API y webhooks. Exportación PLAME directa.',
-  },
+function reassuranceText(
+  reason: UpgradeModalReason,
+  requiredName: string,
+  currentName: string,
+): string | null {
+  if (reason === 'locked-page') {
+    return `No es un error. Esta sección es parte del plan ${requiredName} y tu plan actual es ${currentName}. Tu información está a salvo.`
+  }
+  if (reason === 'locked-action') {
+    return `No es un error. Esta acción es parte del plan ${requiredName}, por eso no se realizó. Tu información está a salvo.`
+  }
+  return null
 }
 
 export function UpgradeModal({
   open,
   onClose,
+  onBack,
   currentPlan,
   requiredPlan,
   featureName,
   feature,
+  reason = 'preview',
 }: UpgradeModalProps) {
-  if (!open) return null
+  const requiredData = getPlanData(requiredPlan)
+  const requiredName = planDisplayName(requiredPlan)
+  const currentName = planDisplayName(currentPlan)
+  const price = formatPrice(requiredData)
 
-  const reqKey = requiredPlan as PlanKey
-  const requiredPlanData = PLANS[reqKey]
-  const currentPlanData = currentPlan === 'FREE' ? null : PLANS[currentPlan as PlanKey]
+  const copy = feature ? FEATURE_PREVIEW_COPY[feature] : null
+  const title = featureName ?? copy?.title ?? GENERIC_PREVIEW_COPY.title
+  const summary = copy?.summary ?? GENERIC_PREVIEW_COPY.summary
+  const example = copy?.example ?? null
+  // Si el usuario hizo clic en un sub-ítem ("Exámenes médicos (EMO)"), le
+  // contamos a qué módulo pertenece para que entienda el contexto.
+  const partOf = copy && featureName && featureName !== copy.title ? copy.title : null
+  const notice = reassuranceText(reason, requiredName, currentName)
 
-  const featureCopy = feature ? FEATURE_COPY[feature] : null
-  const featureSavings = feature ? FEATURE_SAVINGS[feature] : null
-  const title = featureName ?? featureCopy?.title ?? `Función del plan ${requiredPlanData?.name}`
-  const pitch =
-    featureCopy?.pitch ??
-    `Esta función requiere el plan ${requiredPlanData?.name} o superior.`
-
-  // ROI dinámico: costo anual del plan vs multa máxima evitable
-  const yearlyPlanCost = (requiredPlanData?.price ?? 0) * 12
-  const roiMultiplier =
-    featureSavings && yearlyPlanCost > 0
-      ? Math.floor(featureSavings.max / yearlyPlanCost)
-      : null
+  function handleSeePlans() {
+    track('plan_upgrade_cta_clicked', {
+      required_plan: requiredPlan,
+      current_plan: currentPlan,
+      feature: feature ?? null,
+      reason,
+    })
+    onClose()
+  }
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="upgrade-modal-title"
-    >
-      {/* Backdrop */}
-      <button
-        type="button"
-        aria-label="Cerrar"
-        onClick={onClose}
-        className="absolute inset-0"
-        style={{
-          background: 'rgba(15, 23, 42, 0.55)',
-          backdropFilter: 'blur(8px)',
-        }}
-      />
-
-      {/* Modal */}
-      <div
-        className="relative w-full max-w-3xl motion-fade-in-up"
-        style={{
-          background: 'white',
-          borderRadius: 20,
-          overflow: 'hidden',
-          boxShadow:
-            '0 30px 60px -12px rgba(4, 120, 87, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.06)',
-        }}
-      >
-        {/* Hero editorial */}
-        <div
-          className="relative px-8 pt-10 pb-8 text-white overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 45%, #2563eb 100%)',
-          }}
-        >
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage:
-                'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
-              backgroundSize: '32px 32px',
-              maskImage:
-                'radial-gradient(ellipse at top right, #000 0%, transparent 70%)',
-              WebkitMaskImage:
-                'radial-gradient(ellipse at top right, #000 0%, transparent 70%)',
-            }}
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-
-          <div className="relative flex items-center gap-3 mb-4">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15"
-              style={{ backdropFilter: 'blur(10px)' }}
-            >
-              <Lock className="h-5 w-5" />
-            </div>
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-100">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
-              Disponible en un plan superior
-            </div>
-          </div>
-
-          <h2
-            id="upgrade-modal-title"
-            className="relative"
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 400,
-              fontSize: 30,
-              letterSpacing: '-0.02em',
-              lineHeight: 1.1,
-              marginBottom: 10,
-            }}
-          >
-            {title}
-          </h2>
-          <p className="relative text-emerald-50 text-sm leading-relaxed max-w-xl">
-            {pitch}
-          </p>
-        </div>
-
-        {/* Plan comparison */}
-        <div className="px-8 py-7">
-          {/* Hero económico: multa evitable + ROI */}
-          {featureSavings ? (
-            <div
-              className="mb-6 rounded-2xl p-5 overflow-hidden relative"
-              style={{
-                background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(239,68,68,0.04))',
-                border: '1px solid rgba(245,158,11,0.25)',
-              }}
-            >
-              <div className="flex items-start gap-4 flex-wrap">
-                <div className="flex-1 min-w-[240px]">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-1">
-                    Multa que evitas
-                  </p>
-                  <p
-                    style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontSize: 36,
-                      fontWeight: 400,
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1,
-                      color: '#78350f',
-                    }}
-                  >
-                    Hasta{' '}
-                    <span style={{ color: '#c2410c' }}>
-                      {formatSoles(featureSavings.max)}
-                    </span>
-                  </p>
-                  <p className="text-xs text-amber-900/80 mt-1.5 leading-relaxed max-w-md">
-                    {featureSavings.label}
-                  </p>
-                </div>
-                {roiMultiplier && roiMultiplier >= 5 ? (
-                  <div className="text-right shrink-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-                      Retorno
-                    </p>
-                    <p
-                      style={{
-                        fontFamily: 'var(--font-serif)',
-                        fontSize: 44,
-                        lineHeight: 1,
-                        color: '#1e3a8a',
-                        fontWeight: 400,
-                      }}
-                    >
-                      {roiMultiplier}×
-                    </p>
-                    <p className="text-[10px] text-emerald-700 mt-0.5">
-                      frente a {formatSolesMarketing(yearlyPlanCost)} al año
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Current plan */}
-            {currentPlanData ? (
-              <PlanCard
-                title="Tu plan actual"
-                plan={currentPlan as PlanKey}
-                data={currentPlanData}
-                dim
-              />
-            ) : (
-              <div
-                className="rounded-xl p-5 flex flex-col justify-center text-center"
-                style={{
-                  background: 'var(--neutral-50)',
-                  border: '0.5px solid var(--border-default)',
-                }}
-              >
-                <p className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] mb-2">
-                  Tu plan actual
-                </p>
-                <p
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 22,
-                    color: 'var(--text-primary)',
-                    lineHeight: 1,
-                  }}
-                >
-                  Free
-                </p>
-                <p className="text-xs text-[color:var(--text-tertiary)] mt-1">
-                  Solo calculadoras
-                </p>
-              </div>
-            )}
-
-            {/* Required plan */}
-            <PlanCard
-              title="Plan recomendado"
-              plan={reqKey}
-              data={requiredPlanData}
-              highlight
-            />
-          </div>
-
-          {/* What you unlock */}
-          <div className="mb-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
-              Lo que desbloqueas
-            </p>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-              {requiredPlanData.features.map((f) => (
-                <li
-                  key={f}
-                  className="flex items-start gap-2 text-sm text-[color:var(--text-secondary)]"
-                >
-                  <Check
-                    className="h-4 w-4 mt-0.5 flex-shrink-0"
-                    style={{ color: 'var(--emerald-600)' }}
-                  />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* CTAs */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <Link
-              href={`/dashboard/planes?highlight=${reqKey}`}
-              onClick={() => {
-                track('plan_upgrade_cta_clicked', {
-                  required_plan: reqKey,
-                  current_plan: currentPlan,
-                  feature: feature ?? null,
-                })
-                onClose()
-              }}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-sm font-semibold transition-colors"
-              style={{
-                boxShadow:
-                  '0 10px 24px -6px rgba(4,120,87,0.35), inset 0 1px 0 rgba(255,255,255,0.12)',
-              }}
-            >
-              <Sparkles className="h-4 w-4" />
-              Actualizar a {requiredPlanData.name}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/dashboard/planes"
-              onClick={onClose}
-              className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-white text-[color:var(--text-primary)] px-4 py-3 text-sm font-semibold hover:border-emerald-500/60 transition-colors"
-            >
-              Ver todos los planes
-            </Link>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-sm text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)] font-medium ml-auto"
-            >
-              Ahora no
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ── PlanCard ─────────────────────────────────────────────────────────── */
-
-function PlanCard({
-  title,
-  plan,
-  data,
-  dim = false,
-  highlight = false,
-}: {
-  title: string
-  plan: PlanKey | 'FREE'
-  data: (typeof PLANS)[PlanKey]
-  dim?: boolean
-  highlight?: boolean
-}) {
-  const colors = PLAN_COLORS[plan] ?? PLAN_COLORS.FREE
-  return (
-    <div
-      className="relative rounded-xl p-5"
-      style={{
-        background: highlight ? colors.bg : 'var(--neutral-50)',
-        border: highlight ? `1.5px solid ${colors.ring}` : '0.5px solid var(--border-default)',
-        opacity: dim ? 0.75 : 1,
+    <ModalRoot
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
       }}
     >
-      {highlight && (
-        <span
-          className="absolute -top-2 left-5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-white"
-          style={{ background: 'var(--emerald-600)' }}
-        >
-          <Sparkles className="inline h-2.5 w-2.5 -mt-0.5 mr-1" />
-          Recomendado
-        </span>
-      )}
-      <p className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-tertiary)] mb-2">
-        {title}
-      </p>
-      <div className="flex items-baseline gap-1.5 mb-1">
-        <span
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 28,
-            fontWeight: 400,
-            letterSpacing: '-0.02em',
-            color: highlight ? colors.text : 'var(--text-primary)',
-            lineHeight: 1,
-          }}
-        >
-          {data.name}
-        </span>
-        <span
-          className="text-sm text-[color:var(--text-tertiary)] font-mono"
-          style={{ fontVariantNumeric: 'tabular-nums' }}
-        >
-          {formatSolesMarketing(data.price)}/mes
-        </span>
-      </div>
-      <p className="text-xs text-[color:var(--text-secondary)]">
-        {data.maxWorkers === 999999
-          ? 'Trabajadores ilimitados'
-          : `Hasta ${data.maxWorkers} trabajadores`}{' '}
-        · {data.maxUsers === 999999 ? 'Usuarios ilimitados' : `${data.maxUsers} usuario${data.maxUsers === 1 ? '' : 's'}`}
-      </p>
-    </div>
+      <ModalPortal>
+        <ModalOverlay />
+        <ModalContent size="lg" className="flex flex-col p-0 sm:max-w-xl">
+          {/* Encabezado */}
+          <div
+            className="relative shrink-0 px-6 pt-6 pb-5 text-white sm:px-7"
+            style={{
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%)',
+            }}
+          >
+            <ModalClose asChild>
+              <button
+                type="button"
+                aria-label="Cerrar"
+                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </ModalClose>
+
+            <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-blue-50">
+              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+              Vista previa · Plan {requiredName}
+            </p>
+
+            <ModalTitle className="pr-10 text-2xl font-semibold leading-tight tracking-tight">
+              {title}
+            </ModalTitle>
+            {partOf ? (
+              <p className="mt-1.5 text-sm text-blue-100">Forma parte de: {partOf}</p>
+            ) : null}
+          </div>
+
+          {/* Contenido */}
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5 sm:px-7">
+            {notice ? (
+              <div
+                role="status"
+                className="flex items-start gap-2.5 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-3.5 text-sm leading-relaxed text-[color:var(--text-secondary)]"
+              >
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" aria-hidden="true" />
+                <span>{notice}</span>
+              </div>
+            ) : null}
+
+            <section>
+              <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-[color:var(--text-tertiary)]">
+                Qué hace
+              </h3>
+              <ModalDescription className="text-[15px] leading-relaxed text-[color:var(--text-primary)]">
+                {summary}
+              </ModalDescription>
+            </section>
+
+            {example ? (
+              <section
+                className="flex items-start gap-3 rounded-xl border p-4"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  borderColor: 'rgba(245, 158, 11, 0.3)',
+                }}
+              >
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: 'rgba(245, 158, 11, 0.16)', color: '#b45309' }}
+                  aria-hidden="true"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="mb-0.5 text-xs font-bold uppercase tracking-wider text-amber-700">
+                    Por ejemplo
+                  </h3>
+                  <p className="text-sm leading-relaxed text-[color:var(--text-primary)]">
+                    {example}
+                  </p>
+                </div>
+              </section>
+            ) : null}
+
+            {/* Plan que la incluye */}
+            <section className="rounded-xl border border-[color:var(--border-default)] p-4">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-[color:var(--text-tertiary)]">
+                    Disponible desde el plan
+                  </p>
+                  <p className="text-xl font-semibold text-[color:var(--text-primary)]">
+                    {requiredName}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p
+                    className="text-xl font-semibold text-[color:var(--text-primary)]"
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {price.amount}
+                  </p>
+                  <p className="text-xs text-[color:var(--text-tertiary)]">{price.detail}</p>
+                </div>
+              </div>
+              {currentPlan !== requiredPlan ? (
+                <p className="mt-3 border-t border-[color:var(--border-subtle)] pt-3 text-xs text-[color:var(--text-tertiary)]">
+                  Tu plan actual: <span className="font-semibold">{currentName}</span>. En la página
+                  de planes puedes comparar todo lo que incluye cada uno.
+                </p>
+              ) : null}
+            </section>
+          </div>
+
+          {/* Acciones */}
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-6 py-4 sm:flex-row sm:justify-end sm:px-7">
+            <button
+              type="button"
+              onClick={onBack ?? onClose}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text-primary)] transition-colors hover:bg-[color:var(--bg-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Volver
+            </button>
+            <Link
+              href={`/dashboard/planes?highlight=${requiredPlan}`}
+              onClick={handleSeePlans}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2"
+            >
+              Ver planes
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </ModalContent>
+      </ModalPortal>
+    </ModalRoot>
   )
 }
 
 /**
- * Helper: deriva el plan requerido a partir de una feature key.
+ * Helper: deriva el plan requerido a partir de una feature key
+ * (el plan más barato que la incluye).
  */
 export function featureRequiredPlan(feature: PlanFeature): string {
-  return FEATURE_MIN_PLAN[feature] ?? 'EMPRESA'
+  return FEATURE_MIN_PLAN[feature] ?? 'PRO'
 }

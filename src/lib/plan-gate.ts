@@ -6,6 +6,7 @@ import { PLANS } from '@/lib/constants'
 import {
   FEATURE_MIN_PLAN,
   PLAN_FEATURES,
+  planDisplayName,
   planHasFeature,
   type PlanFeature,
 } from '@/lib/plan-features'
@@ -127,7 +128,8 @@ export async function requirePlanFeature(
     })
     return NextResponse.json(
       {
-        error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+        error: `Esta función es parte del plan ${planDisplayName(minPlan)}. Tu plan actual es ${planDisplayName(effectivePlan)}.`,
+        feature: requiredFeature,
         code: 'PLAN_UPGRADE_REQUIRED',
         requiredPlan: minPlan,
         currentPlan: effectivePlan,
@@ -216,7 +218,8 @@ export function withPlanGate(
       })
       return NextResponse.json(
         {
-          error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+          error: `Esta función es parte del plan ${planDisplayName(minPlan)}. Tu plan actual es ${planDisplayName(effectivePlan)}.`,
+          feature: requiredFeature,
           code: 'PLAN_UPGRADE_REQUIRED',
           requiredPlan: minPlan,
           currentPlan: effectivePlan,
@@ -283,7 +286,8 @@ export function withPlanGateParams<P extends Record<string, string>>(
       })
       return NextResponse.json(
         {
-          error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+          error: `Esta función es parte del plan ${planDisplayName(minPlan)}. Tu plan actual es ${planDisplayName(effectivePlan)}.`,
+          feature: requiredFeature,
           code: 'PLAN_UPGRADE_REQUIRED',
           requiredPlan: minPlan,
           currentPlan: effectivePlan,
