@@ -596,15 +596,15 @@ export default function DevUiShowcase() {
           </div>
         </Section>
 
-        <Section title="Demos navegables" description="Explorá los ensamblajes de la revolución antes de conectar datos reales.">
+        <Section title="Demos navegables" description="Explora los ensamblajes de la revolución antes de conectar datos reales.">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
-              { href: '/dev/shell', title: 'Shell completo', description: 'Sidebar 7 hubs + Topbar + Cmd+K + Copilot' },
-              { href: '/dev/cockpit', title: 'Cockpit narrativo', description: 'ScoreRing + Momentos + Radar + Heatmap' },
-              { href: '/dev/worker', title: 'Worker super-perfil', description: '8 tabs Notion-style' },
+              { href: '/dev/shell', title: 'Shell del dashboard', description: 'Menú lateral + barra superior + Ctrl+K + asistente' },
+              { href: '/dev/cockpit', title: 'Panel principal', description: 'Resumen + KPIs + prioridades con datos de ejemplo' },
+              { href: '/dev/worker', title: 'Perfil del trabajador', description: 'Cabecera + pestañas del legajo' },
               { href: '/dev/diagnostic-intro', title: 'Diagnóstico Typeform', description: '120 preguntas · 1 por pantalla' },
-              { href: '/dev/simulacro-intro', title: 'Simulacro immersive', description: 'Inspector virtual chat' },
-              { href: '/dashboard/ia-laboral', title: 'Hub IA Laboral', description: 'Unifica 3 chatbots + calculadoras' },
+              { href: '/dev/simulacro-intro', title: 'Simulacro inmersivo', description: 'Inspector virtual tipo chat' },
+              { href: '/dev', title: 'Índice de vistas previas', description: 'Todas las vistas previas de diseño' },
             ].map((d) => (
               <a
                 key={d.href}

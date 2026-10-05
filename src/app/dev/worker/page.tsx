@@ -1,29 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import Sidebar from '@/app/dashboard/_components/sidebar'
-import Topbar from '@/app/dashboard/_components/topbar'
-import { CommandPalette } from '@/components/ui/command-palette'
-import { CopilotProvider, useCopilot } from '@/providers/copilot-provider'
-import { CopilotDrawer } from '@/components/copilot/copilot-drawer'
 import { WorkerProfile } from '@/components/workers/profile'
-import type { WorkerSummary } from '@/components/workers/profile/worker-profile-header'
-import type { LegajoDoc } from '@/components/workers/profile/tabs/tab-legajo'
+import type { LegajoDoc, WorkerSummary } from '@/components/workers/profile'
+import { PreviewNotice } from '../_preview/preview-notice'
 
 /**
- * /dev/worker — Fase C showcase del Worker Super-Perfil.
- * Datos mock para visualizar la identidad + las 8 tabs Notion-style.
+ * /dev/worker — perfil del trabajador (cabecera + pestañas) dentro del shell
+ * real del dashboard, con datos de ejemplo.
+ *
+ * Las pestañas y tarjetas que piden datos a `/api/workers/*` reciben un 503
+ * de la API simulada (no hay base), así que muestran su estado vacío o de error.
  */
-export default function DevWorker() {
-  return (
-    <CopilotProvider>
-      <WorkerShell />
-    </CopilotProvider>
-  )
-}
 
 const MOCK_WORKER: WorkerSummary = {
-  id: 'demo-1',
+  id: 'trabajador-ejemplo',
   firstName: 'Juan',
   lastName: 'García López',
   dni: '45612378',
@@ -42,7 +32,7 @@ const MOCK_WORKER: WorkerSummary = {
 const MOCK_DOCS: LegajoDoc[] = [
   { id: 'd1', category: 'INGRESO', title: 'Contrato de trabajo firmado', required: true, status: 'VERIFIED' },
   { id: 'd2', category: 'INGRESO', title: 'DNI vigente', required: true, status: 'VERIFIED' },
-  { id: 'd3', category: 'INGRESO', title: 'Certificado antecedentes policiales', required: true, status: 'MISSING' },
+  { id: 'd3', category: 'INGRESO', title: 'Certificado de antecedentes policiales', required: true, status: 'MISSING' },
   { id: 'd4', category: 'INGRESO', title: 'CV firmado', required: false, status: 'UPLOADED' },
   { id: 'd5', category: 'VIGENTE', title: 'Última boleta de pago', required: true, status: 'VERIFIED' },
   { id: 'd6', category: 'VIGENTE', title: 'Capacitación anual obligatoria', required: true, status: 'PENDING' },
@@ -61,46 +51,15 @@ const MOCK_DOCS: LegajoDoc[] = [
   { id: 'd12', category: 'PREVISIONAL', title: 'EsSalud Vida', required: false, status: 'MISSING' },
 ]
 
-function WorkerShell() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [commandOpen, setCommandOpen] = useState(false)
-  const copilot = useCopilot()
-  const openCommand = useCallback(() => setCommandOpen(true), [])
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
-        e.preventDefault()
-        copilot.toggle()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [copilot])
-
+export default function DevWorkerPage() {
   return (
-    <div className="min-h-screen bg-[color:var(--bg-canvas)] text-[color:var(--text-primary)] relative">
-
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onCommandK={openCommand}
-      />
-
-      <div className="lg:pl-[var(--sidebar-width)] flex min-h-screen flex-col">
-        <Topbar
-          onMenuToggle={() => setSidebarOpen((v) => !v)}
-          onCommandK={openCommand}
-        />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-[var(--content-max)]">
-            <WorkerProfile worker={MOCK_WORKER} legajoDocs={MOCK_DOCS} />
-          </div>
-        </main>
-      </div>
-
-      <CommandPalette openState={commandOpen} setOpenState={setCommandOpen} />
-      <CopilotDrawer />
-    </div>
+    <>
+      <PreviewNotice title="Perfil del trabajador">
+        Cabecera y pestañas reales del perfil con un trabajador ficticio. Información, Legajo y Beneficios usan
+        datos de ejemplo; las pestañas que consultan la base (contratos, remuneraciones, vacaciones, historial)
+        muestran su estado vacío o de error porque aquí no hay base de datos.
+      </PreviewNotice>
+      <WorkerProfile worker={MOCK_WORKER} legajoDocs={MOCK_DOCS} />
+    </>
   )
 }

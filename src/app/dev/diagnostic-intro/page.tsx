@@ -102,7 +102,7 @@ function IntroCover({
           </Badge>
         </div>
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight max-w-3xl mx-auto">
-          Sabé exactamente dónde está tu empresa hoy
+          Descubre exactamente dónde está tu empresa hoy
         </h1>
         <p className="text-lg text-[color:var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
           Una serie de preguntas guiadas que cubren las 8 áreas que SUNAFIL revisa. Al
@@ -113,7 +113,7 @@ function IntroCover({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StepIcon
           icon={FileText}
-          title="Respondé"
+          title="Responde"
           description="Sí / No / Parcial. Puedes subir evidencia cuando aplique."
         />
         <StepIcon
@@ -269,7 +269,7 @@ function QuestionStep({
           Atrás
         </Button>
         <div className="text-xs text-[color:var(--text-tertiary)]">
-          Presioná A, B o C para responder rápido
+          Presiona A, B o C para responder rápido
         </div>
         <Button
           size="sm"
