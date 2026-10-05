@@ -92,7 +92,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         e.preventDefault()
         copilot.toggle()
       }
-      if (e.key === 'Escape' && sidebarOpen) {
+      // Si un menú o diálogo interno ya atendió el Escape (Radix llama a
+      // preventDefault al cerrarse), no cerramos también el menú lateral.
+      if (e.key === 'Escape' && sidebarOpen && !e.defaultPrevented) {
         closeSidebar()
       }
     }

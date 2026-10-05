@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Menu,
   Bell,
+  ChevronLeft,
   ChevronRight,
   AlertTriangle,
   Clock,
@@ -23,7 +24,7 @@ import {
   Calculator,
   LifeBuoy,
 } from 'lucide-react'
-import { NAV_ITEMS, resolveActiveHub } from '@/lib/constants'
+import { buildNavBreadcrumbs, type NavCrumb } from '@/lib/constants'
 import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
 import { cn } from '@/lib/utils'
 import { useUser, useClerk } from '@clerk/nextjs'
@@ -54,11 +55,6 @@ interface TopbarProps {
   onCommandK: () => void
 }
 
-interface Crumb {
-  label: string
-  href: string
-}
-
 interface OrgAlert {
   id: string
   type: string
@@ -69,54 +65,25 @@ interface OrgAlert {
   createdAt: string
 }
 
-const SEGMENT_LABELS: Record<string, string> = {
-  nuevo: 'Nuevo',
-  editar: 'Editar',
-  configuracion: 'Configuración',
-  trabajadores: 'Trabajadores',
-  contratos: 'Contratos',
-  alertas: 'Alertas',
-  calendario: 'Calendario',
-  'centro-sunafil': 'Centro SUNAFIL',
-  simulacro: 'Simulacro',
-  diagnostico: 'Diagnóstico',
-  reportes: 'Reportes',
-  documentos: 'Documentos',
-  expedientes: 'Expedientes',
+/**
+ * Migas de pan desde NAV_HUBS: grupo › página › subpágina. En los asistentes
+ * guiados usamos el mismo nombre que en "¿Qué quieres hacer?".
+ */
+function asistenteLabel(_segment: string, href: string): string | undefined {
+  return ASISTENTES_GUIADOS.find((a) => a.href === href)?.title
 }
 
-function isId(segment: string): boolean {
-  return segment.length > 12 && /^[a-z0-9]+$/.test(segment)
+function useBreadcrumb(pathname: string): NavCrumb[] {
+  return useMemo(() => buildNavBreadcrumbs(pathname, asistenteLabel), [pathname])
 }
 
-function useBreadcrumb(pathname: string): Crumb[] {
-  const crumbs: Crumb[] = [{ label: 'Panel', href: '/dashboard' }]
-  const hub = resolveActiveHub(pathname)
-  if (hub.key !== 'cockpit') {
-    crumbs.push({ label: hub.label, href: hub.rootHref })
+/** Nivel anterior navegable (para el botón "atrás" de la versión móvil). */
+function parentCrumb(crumbs: NavCrumb[], pathname: string): NavCrumb | null {
+  for (let i = crumbs.length - 2; i >= 0; i--) {
+    const crumb = crumbs[i]
+    if (crumb.href && crumb.href !== pathname) return crumb
   }
-  // Add nav-item match if pathname is deeper than the hub's rootHref
-  const match = NAV_ITEMS.find(
-    (item) => pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== hub.rootHref
-  )
-  if (match) {
-    crumbs.push({ label: match.label, href: match.href })
-  }
-  // Detail / action segment
-  const segments = pathname.replace('/dashboard', '').split('/').filter(Boolean)
-  if (segments.length > 1) {
-    const last = segments[segments.length - 1]
-    // En los asistentes guiados usamos el mismo nombre que en "¿Qué quieres hacer?"
-    const asistente = ASISTENTES_GUIADOS.find((a) => a.href === pathname)
-    const label =
-      asistente?.title ??
-      SEGMENT_LABELS[last] ??
-      (isId(last) ? 'Detalle' : last.charAt(0).toUpperCase() + last.slice(1))
-    if (label !== crumbs[crumbs.length - 1].label) {
-      crumbs.push({ label, href: pathname })
-    }
-  }
-  return crumbs
+  return null
 }
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -240,6 +207,8 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
   const pathname = usePathname() ?? '/dashboard'
   const router = useRouter()
   const crumbs = useBreadcrumb(pathname)
+  const currentCrumb = crumbs[crumbs.length - 1]
+  const backCrumb = parentCrumb(crumbs, pathname)
   const { user } = useUser()
   const { signOut } = useClerk()
   const copilot = useCopilot()
@@ -304,25 +273,50 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
           <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>
 
-        {/* Breadcrumbs */}
-        <nav aria-label="Breadcrumb" className="hidden sm:block min-w-0">
+        {/* Migas de pan — móvil: solo el nivel actual con botón para subir un nivel */}
+        <nav aria-label="Ruta de navegación" className="flex min-w-0 flex-1 items-center gap-1 sm:hidden">
+          {backCrumb?.href ? (
+            <Link
+              href={backCrumb.href}
+              aria-label={`Volver a ${backCrumb.label}`}
+              title={`Volver a ${backCrumb.label}`}
+              className="-ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[color:var(--text-tertiary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+            >
+              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+            </Link>
+          ) : null}
+          <span
+            aria-current="page"
+            title={currentCrumb.label}
+            className="truncate text-sm font-semibold text-[color:var(--text-primary)]"
+          >
+            {currentCrumb.label}
+          </span>
+        </nav>
+
+        {/* Migas de pan — escritorio: grupo › página › subpágina */}
+        <nav aria-label="Ruta de navegación" className="hidden sm:block min-w-0">
           <ol className="flex items-center gap-1.5 text-sm">
             {crumbs.map((crumb, idx) => {
               const isLast = idx === crumbs.length - 1
               return (
-                <li key={crumb.href + idx} className="flex items-center gap-1.5 min-w-0">
-                  {idx > 0 ? <ChevronRight className="h-3 w-3 text-[color:var(--text-tertiary)] shrink-0" /> : null}
+                <li key={`${crumb.label}-${idx}`} className="flex items-center gap-1.5 min-w-0">
+                  {idx > 0 ? (
+                    <ChevronRight className="h-3 w-3 text-[color:var(--text-tertiary)] shrink-0" aria-hidden="true" />
+                  ) : null}
                   {isLast ? (
-                    <span className="truncate font-medium text-[color:var(--text-primary)]">
+                    <span aria-current="page" className="truncate font-medium text-[color:var(--text-primary)]">
                       {crumb.label}
                     </span>
-                  ) : (
+                  ) : crumb.href ? (
                     <Link
                       href={crumb.href}
                       className="truncate text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)] transition-colors"
                     >
                       {crumb.label}
                     </Link>
+                  ) : (
+                    <span className="truncate text-[color:var(--text-tertiary)]">{crumb.label}</span>
                   )}
                 </li>
               )
