@@ -139,8 +139,8 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
             }}
           />
           <p className="text-sm text-[color:var(--text-secondary)] mt-1 max-w-2xl">
-            Cada periodo anual genera <b>{worker.diasPorAnio} días</b> según el régimen{' '}
-            <b>{worker.regimenLaboral}</b>. Si acumula 2 periodos sin goce, corresponde triple vacacional.
+            Cada período anual genera <b>{worker.diasPorAnio} días</b> según el régimen{' '}
+            <b>{worker.regimenLaboral}</b>. Si acumula 2 períodos sin goce, corresponde triple vacacional.
           </p>
         </div>
         <Link
@@ -167,7 +167,7 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
           </div>
           <div>
             <p className="text-sm font-bold text-red-800">
-              Triple vacacional aplicable — {summary.periodosSinGoce} periodos sin goce
+              Triple vacacional aplicable — {summary.periodosSinGoce} períodos sin goce
             </p>
             <p className="mt-0.5 text-xs text-red-700">
               Corresponde pagar: una remuneración por el trabajo realizado, otra por el descanso
@@ -198,7 +198,7 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
           <div className="c360-kpi-head">
             <span className="dot" />
             <AlertOctagon size={12} strokeWidth={2.2} />
-            <span>Periodos sin goce</span>
+            <span>Períodos sin goce</span>
           </div>
           <div className="c360-kpi-value">{summary.periodosSinGoce}</div>
           <div className="c360-kpi-foot">
@@ -209,7 +209,7 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
           <div className="c360-kpi-head">
             <span className="dot" />
             <CalendarCheck size={12} strokeWidth={2.2} />
-            <span>Periodos registrados</span>
+            <span>Períodos registrados</span>
           </div>
           <div className="c360-kpi-value">{summary.totalPeriodos}</div>
           <div className="c360-kpi-foot">
@@ -235,10 +235,10 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
               marginBottom: 4,
             }}
           >
-            Todavía no hay periodos registrados
+            Todavía no hay períodos registrados
           </h3>
           <p className="text-sm text-[color:var(--text-tertiary)] max-w-md mx-auto">
-            Registra el primer periodo anual y el sistema calculará automáticamente
+            Registra el primer período anual y el sistema calculará automáticamente
             el riesgo de doble/triple vacacional.
           </p>
         </div>
@@ -261,7 +261,7 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-                      Periodo {fmtDate(r.periodoInicio)} → {fmtDate(r.periodoFin)}
+                      Período {fmtDate(r.periodoInicio)} → {fmtDate(r.periodoFin)}
                     </p>
                     <p className="mt-0.5 text-xs text-[color:var(--text-tertiary)]">
                       Corresponden {r.diasCorresponden} días · Gozados {r.diasGozados} · Pendientes {r.diasPendientes}

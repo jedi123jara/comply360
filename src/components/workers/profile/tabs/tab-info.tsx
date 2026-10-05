@@ -29,7 +29,14 @@ function DataRow({
   )
 }
 
-export function TabInfo({ worker }: { worker: WorkerSummary }) {
+export function TabInfo({
+  worker,
+  onReload,
+}: {
+  worker: WorkerSummary
+  /** Recarga los datos del perfil (la página los carga en el cliente). */
+  onReload?: () => Promise<void> | void
+}) {
   const router = useRouter()
   return (
     <div className="space-y-4">
@@ -45,7 +52,10 @@ export function TabInfo({ worker }: { worker: WorkerSummary }) {
         fechaIngreso={worker.fechaIngreso}
         flagTRegistroPresentado={worker.flagTRegistroPresentado ?? false}
         flagTRegistroFecha={worker.flagTRegistroFecha}
-        onChanged={() => router.refresh()}
+        onChanged={() => {
+          if (onReload) void onReload()
+          else router.refresh()
+        }}
       />
 
       <div className="flex justify-end">

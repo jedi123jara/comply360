@@ -107,7 +107,7 @@ const TIPO_CESE_OPTIONS: { value: TipoCese; label: string; desc: string; icon: R
   {
     value: 'RENUNCIA_VOLUNTARIA',
     label: 'Renuncia Voluntaria',
-    desc: 'Art. 18 D.S. 003-97-TR — Preaviso de 30 dias',
+    desc: 'Art. 18 D.S. 003-97-TR — Preaviso de 30 días',
     icon: <FileText className="h-5 w-5 text-emerald-600" />,
   },
   {
@@ -119,7 +119,7 @@ const TIPO_CESE_OPTIONS: { value: TipoCese; label: string; desc: string; icon: R
   {
     value: 'DESPIDO_ARBITRARIO',
     label: 'Despido Arbitrario',
-    desc: 'Art. 34 D.Leg. 728 — Genera indemnizacion obligatoria',
+    desc: 'Art. 34 D.Leg. 728 — Genera indemnización obligatoria',
     icon: <AlertTriangle className="h-5 w-5 text-amber-400" />,
   },
   {
@@ -136,7 +136,7 @@ const TIPO_CESE_OPTIONS: { value: TipoCese; label: string; desc: string; icon: R
   },
   {
     value: 'NO_RENOVACION',
-    label: 'No Renovacion',
+    label: 'No Renovación',
     desc: 'Contrato temporal no renovado',
     icon: <Ban className="h-5 w-5 text-gray-400" />,
   },
@@ -148,13 +148,13 @@ const TIPO_CESE_OPTIONS: { value: TipoCese; label: string; desc: string; icon: R
   },
   {
     value: 'JUBILACION',
-    label: 'Jubilacion',
+    label: 'Jubilación',
     desc: 'Art. 16.f D.S. 003-97-TR',
     icon: <User className="h-5 w-5 text-purple-400" />,
   },
   {
     value: 'PERIODO_PRUEBA',
-    label: 'Periodo de Prueba',
+    label: 'Período de Prueba',
     desc: 'Art. 10 D.Leg. 728 — Primeros 3 meses',
     icon: <Clock className="h-5 w-5 text-gray-400" />,
   },
@@ -163,21 +163,21 @@ const TIPO_CESE_OPTIONS: { value: TipoCese; label: string; desc: string; icon: R
 const ETAPA_LABELS: Record<EtapaCese, string> = {
   INICIADO: 'Iniciado',
   CARTA_PREAVISO: 'Carta de Preaviso',
-  PERIODO_DESCARGOS: 'Periodo de Descargos',
+  PERIODO_DESCARGOS: 'Período de Descargos',
   CARTA_DESPIDO: 'Carta de Despido',
-  LIQUIDACION_CALCULADA: 'Liquidacion Calculada',
-  LIQUIDACION_PAGADA: 'Liquidacion Pagada',
+  LIQUIDACION_CALCULADA: 'Liquidación Calculada',
+  LIQUIDACION_PAGADA: 'Liquidación Pagada',
   COMPLETADO: 'Completado',
   ANULADO: 'Anulado',
 }
 
 const REGIMEN_LABELS: Record<string, string> = {
-  GENERAL: 'Regimen General (D.Leg. 728)',
+  GENERAL: 'Régimen General (D.Leg. 728)',
   MYPE_MICRO: 'Microempresa (Ley 32353)',
-  MYPE_PEQUENA: 'Pequena Empresa (Ley 32353)',
-  AGRARIO: 'Regimen Agrario',
+  MYPE_PEQUENA: 'Pequeña Empresa (Ley 32353)',
+  AGRARIO: 'Régimen Agrario',
   CAS: 'CAS',
-  CONSTRUCCION_CIVIL: 'Construccion Civil',
+  CONSTRUCCION_CIVIL: 'Construcción Civil',
   DOMESTICO: 'Trabajador del Hogar',
   MODALIDAD_FORMATIVA: 'Modalidad Formativa',
   TELETRABAJO: 'Teletrabajo',
@@ -185,16 +185,16 @@ const REGIMEN_LABELS: Record<string, string> = {
 
 const FALTAS_GRAVES: FaltaGrave[] = [
   { id: 'F01', texto: 'Incumplimiento de obligaciones de trabajo (Art. 25.a)', articulo: 'Art. 25.a' },
-  { id: 'F02', texto: 'Disminucion deliberada y reiterada del rendimiento', articulo: 'Art. 25.a' },
-  { id: 'F03', texto: 'Apropiacion consumada o frustrada de bienes del empleador', articulo: 'Art. 25.b' },
-  { id: 'F04', texto: 'Uso o entrega a terceros de informacion reservada', articulo: 'Art. 25.c' },
-  { id: 'F05', texto: 'Sustraccion o utilizacion no autorizada de documentos', articulo: 'Art. 25.d' },
-  { id: 'F06', texto: 'Concurrencia reiterada en estado de embriaguez o drogadiccion', articulo: 'Art. 25.e' },
-  { id: 'F07', texto: 'Violacion del secreto profesional', articulo: 'Art. 25.f' },
+  { id: 'F02', texto: 'Disminución deliberada y reiterada del rendimiento', articulo: 'Art. 25.a' },
+  { id: 'F03', texto: 'Apropiación consumada o frustrada de bienes del empleador', articulo: 'Art. 25.b' },
+  { id: 'F04', texto: 'Uso o entrega a terceros de información reservada', articulo: 'Art. 25.c' },
+  { id: 'F05', texto: 'Sustracción o utilización no autorizada de documentos', articulo: 'Art. 25.d' },
+  { id: 'F06', texto: 'Concurrencia reiterada en estado de embriaguez o drogadicción', articulo: 'Art. 25.e' },
+  { id: 'F07', texto: 'Violación del secreto profesional', articulo: 'Art. 25.f' },
   { id: 'F08', texto: 'Actos de violencia, falta grave de palabra en agravio del empleador', articulo: 'Art. 25.g' },
-  { id: 'F09', texto: 'Dano intencional a edificios, bienes, instalaciones del empleador', articulo: 'Art. 25.h' },
-  { id: 'F10', texto: 'Abandono de trabajo por mas de 3 dias consecutivos', articulo: 'Art. 25.i' },
-  { id: 'F11', texto: 'Ausencias injustificadas por mas de 5 dias en periodo de 30 dias', articulo: 'Art. 25.i' },
+  { id: 'F09', texto: 'Daño intencional a edificios, bienes, instalaciones del empleador', articulo: 'Art. 25.h' },
+  { id: 'F10', texto: 'Abandono de trabajo por más de 3 días consecutivos', articulo: 'Art. 25.i' },
+  { id: 'F11', texto: 'Ausencias injustificadas por más de 5 días en período de 30 días', articulo: 'Art. 25.i' },
   { id: 'F12', texto: 'Hostigamiento sexual comprobado', articulo: 'Art. 25.j (Ley 27942)' },
 ]
 
@@ -202,33 +202,33 @@ const CHECKLIST_DESPIDO_CAUSA_JUSTA = [
   'Carta de Preaviso firmada por el trabajador',
   'Escrito de descargos del trabajador (o acta de negativa)',
   'Carta de Despido firmada por el trabajador',
-  'Liquidacion de beneficios sociales calculada',
-  'Comprobante de pago de liquidacion',
-  'Comunicacion a AFP/ONP del cese',
-  'Comunicacion a EsSalud del cese',
+  'Liquidación de beneficios sociales calculada',
+  'Comprobante de pago de liquidación',
+  'Comunicación a AFP/ONP del cese',
+  'Comunicación a EsSalud del cese',
 ]
 
 const CHECKLIST_RENUNCIA_VOLUNTARIA = [
   'Carta de renuncia firmada por el trabajador',
-  'Carta de aceptacion de renuncia (y exoneracion si aplica)',
-  'Liquidacion de beneficios sociales',
-  'Comprobante de pago de liquidacion',
-  'Comunicacion a AFP/ONP',
-  'Comunicacion a EsSalud',
+  'Carta de aceptación de renuncia (y exoneración si aplica)',
+  'Liquidación de beneficios sociales',
+  'Comprobante de pago de liquidación',
+  'Comunicación a AFP/ONP',
+  'Comunicación a EsSalud',
 ]
 
 const CHECKLIST_DESPIDO_ARBITRARIO = [
   'Carta de despido entregada al trabajador',
-  'Liquidacion con indemnizacion calculada (1.5 rem x anos, tope 12)',
-  'Comprobante de pago de liquidacion',
-  'Comunicacion a AFP/ONP del cese',
+  'Liquidación con indemnización calculada (1.5 rem x años, tope 12)',
+  'Comprobante de pago de liquidación',
+  'Comunicación a AFP/ONP del cese',
 ]
 
 const CHECKLIST_DEFAULT = [
-  'Liquidacion de beneficios sociales calculada',
-  'Comprobante de pago de liquidacion',
-  'Comunicacion a AFP/ONP del cese',
-  'Comunicacion a EsSalud del cese',
+  'Liquidación de beneficios sociales calculada',
+  'Comprobante de pago de liquidación',
+  'Comunicación a AFP/ONP del cese',
+  'Comunicación a EsSalud del cese',
 ]
 
 // ─── Utility functions ──────────────────────────────────────────────────
@@ -260,7 +260,7 @@ function generarCartaPreaviso(worker: WorkerInfo, ceseRecord: CeseRecord): strin
   const fechaCarta = fmtDateShort(ceseRecord.fechaCartaPreaviso ?? new Date().toISOString())
   const fechaLimite = fmtDateShort(ceseRecord.fechaLimiteDescargos)
   const cargo = worker.position ?? 'Sin especificar'
-  const causa = ceseRecord.causaDetalle ?? 'Se le imputan hechos que podrian constituir falta grave.'
+  const causa = ceseRecord.causaDetalle ?? 'Se le imputan hechos que podrían constituir falta grave.'
 
   return `CARTA DE PREAVISO
 
@@ -272,24 +272,24 @@ DNI: ${worker.dni}
 Cargo: ${cargo}
 Presente.-
 
-De nuestra consideracion:
+De nuestra consideración:
 
-Por medio de la presente, y de conformidad con lo establecido en el articulo 31° del Decreto Legislativo N° 728 (TUO aprobado por D.S. 003-97-TR), nos dirigimos a usted con la finalidad de comunicarle que la empresa ha tomado conocimiento de hechos que podrian constituir falta grave en su perjuicio.
+Por medio de la presente, y de conformidad con lo establecido en el artículo 31° del Decreto Legislativo N° 728 (TUO aprobado por D.S. 003-97-TR), nos dirigimos a usted con la finalidad de comunicarle que la empresa ha tomado conocimiento de hechos que podrían constituir falta grave en su perjuicio.
 
 HECHOS IMPUTADOS:
 ${causa}
 
-En tal sentido, le otorgamos un plazo de SEIS (06) DIAS NATURALES, contados a partir del dia siguiente de recibida la presente carta, para que presente por escrito sus descargos y las pruebas que estime convenientes para su defensa.
+En tal sentido, le otorgamos un plazo de SEIS (06) DÍAS NATURALES, contados a partir del día siguiente de recibida la presente carta, para que presente por escrito sus descargos y las pruebas que estime convenientes para su defensa.
 
 Base Legal: Art. 31° D.Leg. 728 (D.S. 003-97-TR).
 
-Fecha limite para presentar descargos: ${fechaLimite}
+Fecha límite para presentar descargos: ${fechaLimite}
 
 Atentamente,
 
 _______________________
 Representante Legal
-[Razon Social de la Empresa]
+[Razón Social de la Empresa]
 
 _______________________
 ${nombre}
@@ -303,7 +303,7 @@ function generarCartaDespido(worker: WorkerInfo, ceseRecord: CeseRecord): string
   const fechaCarta = fmtDateShort(ceseRecord.fechaCartaDespido ?? new Date().toISOString())
   const fechaCese = fmtDateShort(ceseRecord.fechaCese)
   const cargo = worker.position ?? 'Sin especificar'
-  const causa = ceseRecord.causaDetalle ?? 'Falta grave segun Art. 25 D.Leg. 728.'
+  const causa = ceseRecord.causaDetalle ?? 'Falta grave según Art. 25 D.Leg. 728.'
 
   if (ceseRecord.tipoCese === 'DESPIDO_ARBITRARIO') {
     return `CARTA DE DESPIDO
@@ -316,21 +316,21 @@ DNI: ${worker.dni}
 Cargo: ${cargo}
 Presente.-
 
-De nuestra consideracion:
+De nuestra consideración:
 
 Estimado/a ${worker.firstName}:
 
 Mediante la presente comunicamos a usted que, lamentablemente, la empresa se ve en la necesidad de prescindir de sus servicios con fecha ${fechaCese}.
 
-Le comunicamos que, conforme al articulo 34° del D.Leg. 728, al no mediar causa justificada de despido, le corresponde el pago de una indemnizacion equivalente a una remuneracion y media ordinaria mensual por cada año completo de servicios, con un maximo de doce (12) remuneraciones, la que sera abonada en el plazo de ley.
+Le comunicamos que, conforme al artículo 34° del D.Leg. 728, al no mediar causa justificada de despido, le corresponde el pago de una indemnización equivalente a una remuneración y media ordinaria mensual por cada año completo de servicios, con un máximo de doce (12) remuneraciones, la que será abonada en el plazo de ley.
 
-Los beneficios sociales (CTS, gratificaciones truncas, vacaciones truncas e indemnizacion) seran pagados dentro de las 48 horas del cese (Art. 3° D.S. 001-97-TR).
+Los beneficios sociales (CTS, gratificaciones truncas, vacaciones truncas e indemnización) serán pagados dentro de las 48 horas del cese (Art. 3° D.S. 001-97-TR).
 
 Atentamente,
 
 _______________________
 Representante Legal
-[Razon Social de la Empresa]
+[Razón Social de la Empresa]
 
 _______________________
 ${nombre}
@@ -349,22 +349,22 @@ DNI: ${worker.dni}
 Cargo: ${cargo}
 Presente.-
 
-De nuestra consideracion:
+De nuestra consideración:
 
-Por medio de la presente, y en cumplimiento de lo dispuesto por el articulo 32° del Decreto Legislativo N° 728 (TUO aprobado por D.S. 003-97-TR), comunicamos a usted que con fecha ${fechaCese} quedara extinguido el vinculo laboral que lo une a esta empresa.
+Por medio de la presente, y en cumplimiento de lo dispuesto por el artículo 32° del Decreto Legislativo N° 728 (TUO aprobado por D.S. 003-97-TR), comunicamos a usted que con fecha ${fechaCese} quedará extinguido el vínculo laboral que lo une a esta empresa.
 
 CAUSA DE DESPIDO:
 ${causa}
 
-Habiendo evaluado los descargos presentados (o ante la ausencia de los mismos dentro del plazo otorgado), los hechos imputados no han sido desvirtuados, por lo que se procede al despido justificado por causa relacionada con la conducta del trabajador, conforme al articulo 25° del D.Leg. 728.
+Habiendo evaluado los descargos presentados (o ante la ausencia de los mismos dentro del plazo otorgado), los hechos imputados no han sido desvirtuados, por lo que se procede al despido justificado por causa relacionada con la conducta del trabajador, conforme al artículo 25° del D.Leg. 728.
 
-Los beneficios sociales que correspondan seran pagados dentro de las CUARENTA Y OCHO (48) HORAS posteriores al cese, conforme al articulo 3° del D.S. 001-97-TR.
+Los beneficios sociales que correspondan serán pagados dentro de las CUARENTA Y OCHO (48) HORAS posteriores al cese, conforme al artículo 3° del D.S. 001-97-TR.
 
 Atentamente,
 
 _______________________
 Representante Legal
-[Razon Social de la Empresa]
+[Razón Social de la Empresa]
 
 _______________________
 ${nombre}
@@ -452,7 +452,7 @@ function CountdownTimer({ fechaLimite }: { fechaLimite: string | undefined | nul
         {isExpired ? (
           <>
             <p className="text-sm font-semibold text-red-300">Plazo vencido</p>
-            <p className="text-[11px] text-red-400">El plazo de descargos vencio hace {Math.abs(dias)} dia{Math.abs(dias) !== 1 ? 's' : ''}</p>
+            <p className="text-[11px] text-red-400">El plazo de descargos venció hace {Math.abs(dias)} día{Math.abs(dias) !== 1 ? 's' : ''}</p>
           </>
         ) : (
           <>
@@ -460,13 +460,13 @@ function CountdownTimer({ fechaLimite }: { fechaLimite: string | undefined | nul
               'text-sm font-semibold',
               isUrgent ? 'text-red-300' : isWarning ? 'text-amber-700' : 'text-emerald-600',
             )}>
-              {dias === 0 ? 'Vence HOY' : `${dias} dia${dias !== 1 ? 's' : ''} restante${dias !== 1 ? 's' : ''}`}
+              {dias === 0 ? 'Vence HOY' : `${dias} día${dias !== 1 ? 's' : ''} restante${dias !== 1 ? 's' : ''}`}
             </p>
             <p className={cn(
               'text-[11px]',
               isUrgent ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-emerald-600',
             )}>
-              Plazo limite de descargos: {fmtDate(fechaLimite)}
+              Plazo límite de descargos: {fmtDate(fechaLimite)}
             </p>
           </>
         )}
@@ -696,7 +696,7 @@ export default function CesePage() {
       setEtapasRequeridas(data.etapasRequeridas ?? [])
       setBaseLegal(data.baseLegal ?? [])
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error inesperado al cargar la pagina')
+      setError(e instanceof Error ? e.message : 'Error inesperado al cargar la página')
     } finally {
       setLoading(false)
     }
@@ -808,7 +808,7 @@ export default function CesePage() {
       const res = await fetch(`/api/workers/${workerId}/liquidacion`)
       if (!res.ok) {
         throw new Error(
-          'No pudimos calcular la liquidación. Asegurate de que el trabajador tenga fecha de cese y motivo registrados.',
+          'No pudimos calcular la liquidación. Asegúrate de que el trabajador tenga fecha de cese y motivo registrados.',
         )
       }
       const data = await res.json()
@@ -975,7 +975,7 @@ export default function CesePage() {
       {/* Worker summary card */}
       <div className="rounded-xl border border-white/[0.08] bg-white p-4">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <InfoItem label="Regimen" value={REGIMEN_LABELS[worker.regimenLaboral] ?? worker.regimenLaboral} />
+          <InfoItem label="Régimen" value={REGIMEN_LABELS[worker.regimenLaboral] ?? worker.regimenLaboral} />
           <InfoItem label="Tipo Contrato" value={worker.tipoContrato.replace(/_/g, ' ')} />
           <InfoItem label="Cargo" value={worker.position ?? '—'} />
           <InfoItem label="Fecha Ingreso" value={fmtDate(worker.fechaIngreso)} />
@@ -1056,10 +1056,10 @@ export default function CesePage() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1">
-                      Faltas Graves — Art. 25 D.Leg. 728 (seleccion multiple)
+                      Faltas Graves — Art. 25 D.Leg. 728 (selección múltiple)
                     </label>
                     <p className="text-[11px] text-slate-500 mb-3">
-                      Seleccione las faltas graves aplicables. Se auto-completara el campo de causa.
+                      Selecciona las faltas graves que aplican. Completaremos el campo de causa automáticamente.
                     </p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -1105,7 +1105,7 @@ export default function CesePage() {
                 <div className="space-y-1">
                   <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-400">
                     {selectedTipo === 'DESPIDO_CAUSA_JUSTA'
-                      ? 'Descripcion de Hechos Imputados'
+                      ? 'Descripción de Hechos Imputados'
                       : 'Motivo del Despido'}
                   </label>
                   <textarea
@@ -1114,7 +1114,7 @@ export default function CesePage() {
                     rows={4}
                     placeholder={
                       selectedTipo === 'DESPIDO_CAUSA_JUSTA'
-                        ? 'Descripcion detallada de los hechos que constituyen la falta grave...'
+                        ? 'Descripción detallada de los hechos que constituyen la falta grave...'
                         : 'Motivo del despido (opcional para carta)...'
                     }
                     className="w-full rounded-lg border border-white/[0.12] bg-[#0f172a] px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
@@ -1141,12 +1141,12 @@ export default function CesePage() {
                   <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400 mt-0.5" />
                   <div>
                     <p className="text-sm font-semibold text-amber-700">
-                      Indemnizacion Obligatoria (Art. 38 D.Leg. 728)
+                      Indemnización Obligatoria (Art. 38 D.Leg. 728)
                     </p>
                     <p className="mt-1 text-xs text-amber-400/80">
-                      El despido arbitrario genera la obligacion de pagar una indemnizacion
-                      equivalente a 1.5 remuneraciones mensuales por cada ano completo de servicios,
-                      con un tope de 12 remuneraciones. Las fracciones de ano se abonan por dozavos y treintavos.
+                      El despido arbitrario genera la obligación de pagar una indemnización
+                      equivalente a 1.5 remuneraciones mensuales por cada año completo de servicios,
+                      con un tope de 12 remuneraciones. Las fracciones de año se abonan por dozavos y treintavos.
                     </p>
                   </div>
                 </div>
@@ -1162,9 +1162,9 @@ export default function CesePage() {
                     </p>
                     <p className="mt-1 text-xs text-emerald-600/80">
                       1. Se generara la <strong>Carta de Preaviso</strong> notificando la falta grave.<br />
-                      2. El trabajador tendra <strong>6 dias naturales</strong> para presentar descargos.<br />
+                      2. El trabajador tendrá <strong>6 días naturales</strong> para presentar descargos.<br />
                       3. Tras evaluar los descargos, se emite la <strong>Carta de Despido</strong> con fecha de cese.<br />
-                      4. Luego se calcula y paga la liquidacion dentro de las <strong>48 horas</strong> del cese.
+                      4. Luego se calcula y paga la liquidación dentro de las <strong>48 horas</strong> del cese.
                     </p>
                   </div>
                 </div>
@@ -1273,7 +1273,7 @@ export default function CesePage() {
               <div className="rounded-xl border border-white/[0.08] bg-white p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                   <ChevronRight className="h-4 w-4 text-amber-400" />
-                  Accion Requerida
+                  Acción Requerida
                 </h2>
 
                 {/* CARTA_PREAVISO stage */}
@@ -1285,11 +1285,11 @@ export default function CesePage() {
                         {ceseRecord.fechaCartaPreaviso && (
                           <> (fecha: {fmtDate(ceseRecord.fechaCartaPreaviso)})</>
                         )}.
-                        Debe notificar al trabajador y esperar el periodo de descargos.
+                        Debes notificar al trabajador y esperar el período de descargos.
                       </p>
                       {ceseRecord.fechaLimiteDescargos && (
                         <p className="mt-2 text-xs text-emerald-600">
-                          <strong>Plazo para descargos:</strong> hasta el {fmtDate(ceseRecord.fechaLimiteDescargos)} (6 dias naturales — Art. 31 D.Leg. 728)
+                          <strong>Plazo para descargos:</strong> hasta el {fmtDate(ceseRecord.fechaLimiteDescargos)} (6 días naturales — Art. 31 D.Leg. 728)
                         </p>
                       )}
                     </div>
@@ -1312,7 +1312,7 @@ export default function CesePage() {
                       className="flex items-center gap-2 rounded-lg bg-blue-600 py-2.5 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
                     >
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                      Confirmar Notificacion y Avanzar a Descargos
+                      Confirmar Notificación y Avanzar a Descargos
                     </button>
                   </div>
                 )}
@@ -1322,7 +1322,7 @@ export default function CesePage() {
                   <div className="space-y-3">
                     <div className="rounded-lg bg-amber-900/20 border border-amber-500/30 px-4 py-3">
                       <p className="text-sm text-amber-700">
-                        <strong>Periodo de descargos en curso.</strong> El trabajador tiene hasta
+                        <strong>Período de descargos en curso.</strong> El trabajador tiene hasta
                         el {fmtDate(ceseRecord.fechaLimiteDescargos)} para presentar su defensa.
                       </p>
                       <p className="mt-2 text-xs text-amber-400/80">
@@ -1361,7 +1361,7 @@ export default function CesePage() {
                       <p className="text-sm text-red-300">
                         <strong>Carta de Despido emitida</strong>
                         {ceseRecord.fechaCartaDespido && <> el {fmtDate(ceseRecord.fechaCartaDespido)}</>}.
-                        El siguiente paso es calcular y guardar la liquidacion de beneficios sociales.
+                        El siguiente paso es calcular y guardar la liquidación de beneficios sociales.
                       </p>
                     </div>
 
@@ -1381,7 +1381,7 @@ export default function CesePage() {
                       className="flex items-center gap-2 rounded-lg bg-blue-600 py-2.5 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
                     >
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
-                      Calcular Liquidacion
+                      Calcular Liquidación
                     </button>
                   </div>
                 )}
@@ -1392,7 +1392,7 @@ export default function CesePage() {
                     <div className="rounded-lg bg-blue-900/20 border border-blue-500/30 px-4 py-3">
                       <p className="text-sm text-emerald-600">
                         Proceso de cese iniciado. Tipo: <strong>{TIPO_CESE_OPTIONS.find(o => o.value === ceseRecord.tipoCese)?.label ?? ceseRecord.tipoCese}</strong>.
-                        Proceda a calcular la liquidacion de beneficios sociales.
+                        Ahora calcula la liquidación de beneficios sociales.
                       </p>
                     </div>
 
@@ -1415,7 +1415,7 @@ export default function CesePage() {
                       className="flex items-center gap-2 rounded-lg bg-blue-600 py-2.5 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
                     >
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
-                      Calcular Liquidacion
+                      Calcular Liquidación
                     </button>
                   </div>
                 )}
@@ -1425,8 +1425,8 @@ export default function CesePage() {
                   <div className="space-y-3">
                     <div className="rounded-lg bg-white border border-white/[0.08] px-4 py-3">
                       <p className="text-sm text-slate-300">
-                        Cese dentro del <strong>periodo de prueba</strong> (Art. 10 D.Leg. 728).
-                        No requiere expresion de causa ni pago de indemnizacion.
+                        Cese dentro del <strong>período de prueba</strong> (Art. 10 D.Leg. 728).
+                        No requiere expresión de causa ni pago de indemnización.
                         Solo corresponden beneficios truncos proporcionales.
                       </p>
                     </div>
@@ -1447,12 +1447,12 @@ export default function CesePage() {
                     <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
                       <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
                         <Banknote className="h-4 w-4" />
-                        Liquidacion Calculada
+                        Liquidación Calculada
                       </h3>
                       <div className="space-y-3">
                         <LiqRow
                           label="CTS Trunca"
-                          sublabel="Compensacion por Tiempo de Servicios (D.S. 001-97-TR)"
+                          sublabel="Compensación por Tiempo de Servicios (D.S. 001-97-TR)"
                           amount={liquidacionData.ctsMonto}
                         />
                         <LiqRow
@@ -1461,14 +1461,14 @@ export default function CesePage() {
                           amount={liquidacionData.vacacionesMonto}
                         />
                         <LiqRow
-                          label="Gratificacion Trunca"
-                          sublabel="Gratificacion Trunca (Art. 7 Ley 27735)"
+                          label="Gratificación Trunca"
+                          sublabel="Gratificación Trunca (Art. 7 Ley 27735)"
                           amount={liquidacionData.gratificacionMonto}
                         />
                         {liquidacionData.indemnizacionMonto > 0 && (
                           <LiqRow
-                            label="Indemnizacion"
-                            sublabel="Indemnizacion por Despido Arbitrario (Art. 38 D.Leg. 728)"
+                            label="Indemnización"
+                            sublabel="Indemnización por Despido Arbitrario (Art. 38 D.Leg. 728)"
                             amount={liquidacionData.indemnizacionMonto}
                           />
                         )}
@@ -1493,7 +1493,7 @@ export default function CesePage() {
                         className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 transition-colors"
                       >
                         {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                        Guardar Liquidacion
+                        Guardar Liquidación
                       </button>
                       <Link
                         href={`/dashboard/liquidaciones?worker=${workerId}`}
@@ -1512,12 +1512,12 @@ export default function CesePage() {
                     <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
                       <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
                         <Banknote className="h-4 w-4" />
-                        Liquidacion Guardada
+                        Liquidación Guardada
                       </h3>
                       <div className="space-y-3">
                         <LiqRow
                           label="CTS Trunca"
-                          sublabel="Compensacion por Tiempo de Servicios (D.S. 001-97-TR)"
+                          sublabel="Compensación por Tiempo de Servicios (D.S. 001-97-TR)"
                           amount={ceseRecord.ctsMonto}
                         />
                         <LiqRow
@@ -1526,14 +1526,14 @@ export default function CesePage() {
                           amount={ceseRecord.vacacionesMonto}
                         />
                         <LiqRow
-                          label="Gratificacion Trunca"
-                          sublabel="Gratificacion Trunca (Art. 7 Ley 27735)"
+                          label="Gratificación Trunca"
+                          sublabel="Gratificación Trunca (Art. 7 Ley 27735)"
                           amount={ceseRecord.gratificacionMonto}
                         />
                         {ceseRecord.indemnizacionMonto > 0 && (
                           <LiqRow
-                            label="Indemnizacion"
-                            sublabel="Indemnizacion por Despido Arbitrario (Art. 38 D.Leg. 728)"
+                            label="Indemnización"
+                            sublabel="Indemnización por Despido Arbitrario (Art. 38 D.Leg. 728)"
                             amount={ceseRecord.indemnizacionMonto}
                           />
                         )}
@@ -1546,7 +1546,7 @@ export default function CesePage() {
 
                     <div className="rounded-lg bg-amber-900/20 border border-amber-500/30 px-4 py-3">
                       <p className="text-sm text-amber-700">
-                        <strong>Art. 3 D.S. 001-97-TR:</strong> El pago de la liquidacion debe realizarse
+                        <strong>Art. 3 D.S. 001-97-TR:</strong> El pago de la liquidación debe realizarse
                         dentro de las <strong>48 horas</strong> posteriores al cese efectivo.
                       </p>
                     </div>
@@ -1558,7 +1558,7 @@ export default function CesePage() {
                         className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 transition-colors"
                       >
                         {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
-                        Confirmar Pago de Liquidacion
+                        Confirmar Pago de Liquidación
                       </button>
                       <button
                         onClick={() => {
@@ -1578,8 +1578,8 @@ export default function CesePage() {
                   <div className="space-y-4">
                     <div className="rounded-lg bg-green-900/20 border border-green-500/30 px-4 py-3">
                       <p className="text-sm text-green-300">
-                        Liquidacion pagada. Proceda a completar el proceso de cese.
-                        Esto marcara al trabajador como <strong>CESADO</strong> en el sistema.
+                        Liquidación pagada. Ahora completa el proceso de cese.
+                        Esto marcará al trabajador como <strong>CESADO</strong> en el sistema.
                       </p>
                     </div>
                     <button
@@ -1601,7 +1601,7 @@ export default function CesePage() {
                 <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto" />
                 <h3 className="text-lg font-semibold text-green-300">Proceso de Cese Completado</h3>
                 <p className="text-sm text-green-400/80">
-                  El trabajador ha sido marcado como cesado. La liquidacion de {formatSoles(ceseRecord.totalLiquidacion)} ha sido registrada.
+                  El trabajador ha sido marcado como cesado. La liquidación de {formatSoles(ceseRecord.totalLiquidacion)} ha sido registrada.
                 </p>
                 {ceseRecord.fechaPagoLiquidacion && (
                   <p className="text-xs text-slate-400">
@@ -1632,13 +1632,13 @@ export default function CesePage() {
                   <SummaryRow label="Carta Preaviso" value={fmtDate(ceseRecord.fechaCartaPreaviso)} />
                 )}
                 {ceseRecord.fechaLimiteDescargos && (
-                  <SummaryRow label="Limite Descargos" value={fmtDate(ceseRecord.fechaLimiteDescargos)} />
+                  <SummaryRow label="Límite Descargos" value={fmtDate(ceseRecord.fechaLimiteDescargos)} />
                 )}
                 {ceseRecord.fechaCartaDespido && (
                   <SummaryRow label="Carta Despido" value={fmtDate(ceseRecord.fechaCartaDespido)} />
                 )}
                 {ceseRecord.totalLiquidacion > 0 && (
-                  <SummaryRow label="Total Liquidacion" value={formatSoles(ceseRecord.totalLiquidacion)} highlight />
+                  <SummaryRow label="Total Liquidación" value={formatSoles(ceseRecord.totalLiquidacion)} highlight />
                 )}
               </div>
               {ceseRecord.causaDetalle && (
@@ -1732,7 +1732,7 @@ export default function CesePage() {
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
               >
                 <Banknote className="h-4 w-4 text-amber-400" />
-                Ver Liquidacion Completa
+                Ver Liquidación Completa
               </Link>
               <Link
                 href={`/dashboard/trabajadores/${workerId}`}
@@ -1755,17 +1755,17 @@ export default function CesePage() {
               Anular Proceso de Cese
             </h3>
             <p className="text-sm text-slate-400">
-              Esta accion anulara el proceso de cese. El trabajador permanecera activo.
+              Esta acción anulará el proceso de cese. El trabajador permanecerá activo.
             </p>
             <div className="space-y-1">
               <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-400">
-                Motivo de Anulacion
+                Motivo de Anulación
               </label>
               <textarea
                 value={motivoAnulacion}
                 onChange={e => setMotivoAnulacion(e.target.value)}
                 rows={3}
-                placeholder="Explique el motivo de la anulacion..."
+                placeholder="Explica el motivo de la anulación..."
                 className="w-full rounded-lg border border-white/[0.12] bg-[#0f172a] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
               />
             </div>
@@ -1782,7 +1782,7 @@ export default function CesePage() {
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60 transition-colors"
               >
                 {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                Confirmar Anulacion
+                Confirmar Anulación
               </button>
             </div>
           </div>

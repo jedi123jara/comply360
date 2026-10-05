@@ -235,7 +235,7 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
             icon={<Calendar size={14} />}
             label="Vacaciones acumuladas"
             value={vacaciones.total}
-            meta={`${vacaciones.diasTruncosComputables}d truncos · ${vacaciones.periodosNoGozados} periodo${vacaciones.periodosNoGozados === 1 ? '' : 's'} no gozados`}
+            meta={`${vacaciones.diasTruncosComputables}d truncos · ${vacaciones.periodosNoGozados} período${vacaciones.periodosNoGozados === 1 ? '' : 's'} no gozados`}
             formula={vacaciones.formula}
             baseLegal={vacaciones.baseLegal}
             variant={vacaciones.periodosNoGozados >= 2 ? 'crimson' : 'default'}

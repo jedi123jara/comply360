@@ -239,7 +239,7 @@ export function TabRemuneraciones({ workerId, workerFirstName }: TabRemuneracion
               <thead>
                 <tr className="bg-[color:var(--neutral-50)] border-b border-[color:var(--border-default)]">
                   <th className="text-left px-4 py-3 font-semibold text-[color:var(--text-secondary)] text-xs uppercase tracking-widest">
-                    Periodo
+                    Período
                   </th>
                   <th className="text-right px-4 py-3 font-semibold text-[color:var(--text-secondary)] text-xs uppercase tracking-widest">
                     Bruto

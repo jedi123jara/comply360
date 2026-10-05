@@ -19,13 +19,13 @@ import { cn } from '@/lib/utils'
 const REGIMENES = [
   { value: 'GENERAL', label: 'General (D.Leg. 728)' },
   { value: 'MYPE_MICRO', label: 'MYPE Microempresa' },
-  { value: 'MYPE_PEQUENA', label: 'MYPE Pequena Empresa' },
+  { value: 'MYPE_PEQUENA', label: 'MYPE Pequeña Empresa' },
   { value: 'AGRARIO', label: 'Agrario (Ley 31110)' },
-  { value: 'CONSTRUCCION_CIVIL', label: 'Construccion Civil' },
+  { value: 'CONSTRUCCION_CIVIL', label: 'Construcción Civil' },
   { value: 'MINERO', label: 'Minero' },
   { value: 'PESQUERO', label: 'Pesquero' },
-  { value: 'TEXTIL_EXPORTACION', label: 'Textil Exportacion' },
-  { value: 'DOMESTICO', label: 'Domestico' },
+  { value: 'TEXTIL_EXPORTACION', label: 'Textil Exportación' },
+  { value: 'DOMESTICO', label: 'Doméstico' },
   { value: 'CAS', label: 'CAS' },
   { value: 'MODALIDAD_FORMATIVA', label: 'Modalidad Formativa' },
   { value: 'TELETRABAJO', label: 'Teletrabajo' },
@@ -37,12 +37,12 @@ const TIPOS_CONTRATO = [
   { value: 'TIEMPO_PARCIAL', label: 'Tiempo Parcial' },
   { value: 'INICIO_ACTIVIDAD', label: 'Inicio de Actividad' },
   { value: 'NECESIDAD_MERCADO', label: 'Necesidad de Mercado' },
-  { value: 'RECONVERSION', label: 'Reconversion Empresarial' },
+  { value: 'RECONVERSION', label: 'Reconversión Empresarial' },
   { value: 'SUPLENCIA', label: 'Suplencia' },
   { value: 'EMERGENCIA', label: 'Emergencia' },
   { value: 'OBRA_DETERMINADA', label: 'Obra Determinada' },
   { value: 'INTERMITENTE', label: 'Intermitente' },
-  { value: 'EXPORTACION', label: 'Exportacion No Tradicional' },
+  { value: 'EXPORTACION', label: 'Exportación No Tradicional' },
 ]
 
 const AFPS = [
@@ -179,7 +179,8 @@ export default function EditarTrabajadorPage() {
             email: d.email || '',
             phone: d.phone || '',
             birthDate: d.birthDate ? d.birthDate.split('T')[0] : '',
-            gender: d.gender || '',
+            // Normaliza valores antiguos del autocompletado RENIEC al formato del select.
+            gender: d.gender === 'MASCULINO' ? 'M' : d.gender === 'FEMENINO' ? 'F' : d.gender || '',
             address: d.address || '',
             position: d.position || '',
             department: d.department || '',
@@ -276,10 +277,9 @@ export default function EditarTrabajadorPage() {
               ? data.fechaNacimiento
               : prev.birthDate,
           gender:
+            // Mismos valores que el select (M/F): los usan PLAME, T-REGISTRO e igualdad salarial.
             prev.gender.trim() === '' && data.sexo
-              ? data.sexo === 'M'
-                ? 'MASCULINO'
-                : 'FEMENINO'
+              ? data.sexo
               : prev.gender,
         }))
       } else {
@@ -319,12 +319,12 @@ export default function EditarTrabajadorPage() {
   const validate = (): boolean => {
     const e: Partial<Record<keyof FormData, string>> = {}
     if (!form.dni.trim()) e.dni = 'Requerido'
-    else if (!/^\d{8}$/.test(form.dni.trim())) e.dni = 'DNI debe tener 8 digitos'
+    else if (!/^\d{8}$/.test(form.dni.trim())) e.dni = 'DNI debe tener 8 dígitos'
     if (!form.firstName.trim()) e.firstName = 'Requerido'
     if (!form.lastName.trim()) e.lastName = 'Requerido'
     if (!form.fechaIngreso) e.fechaIngreso = 'Requerido'
     if (!form.sueldoBruto.trim()) e.sueldoBruto = 'Requerido'
-    else if (isNaN(Number(form.sueldoBruto)) || Number(form.sueldoBruto) <= 0) e.sueldoBruto = 'Monto invalido'
+    else if (isNaN(Number(form.sueldoBruto)) || Number(form.sueldoBruto) <= 0) e.sueldoBruto = 'Monto inválido'
     setErrors(e)
 
     // Navigate to the section with the first error
@@ -369,7 +369,7 @@ export default function EditarTrabajadorPage() {
 
       router.push(`/dashboard/trabajadores/${id}`)
     } catch {
-      setApiError('Error de conexion. Intenta de nuevo.')
+      setApiError('Error de conexión. Intenta de nuevo.')
     } finally {
       setSubmitting(false)
     }
@@ -494,7 +494,7 @@ export default function EditarTrabajadorPage() {
                 )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Genero</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Género</label>
                 <select value={form.gender} onChange={e => update('gender', e.target.value)} className={inputClass('gender')}>
                   <option value="">Seleccionar</option>
                   <option value="M">Masculino</option>
@@ -520,11 +520,11 @@ export default function EditarTrabajadorPage() {
                 <input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="trabajador@empresa.com" className={inputClass('email')} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Telefono</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Teléfono</label>
                 <input type="text" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="987654321" className={inputClass('phone')} />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Direccion</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Dirección</label>
                 <input type="text" value={form.address} onChange={e => update('address', e.target.value)} placeholder="Av. Principal 123, Lima" className={inputClass('address')} />
               </div>
             </div>
@@ -540,7 +540,7 @@ export default function EditarTrabajadorPage() {
                 <input type="text" value={form.position} onChange={e => update('position', e.target.value)} placeholder="Analista de RRHH" className={inputClass('position')} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Area / Departamento</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Área / Departamento</label>
                 <input type="text" value={form.department} onChange={e => update('department', e.target.value)} placeholder="Recursos Humanos" className={inputClass('department')} />
               </div>
               {sedes.length > 0 && (
@@ -553,7 +553,7 @@ export default function EditarTrabajadorPage() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Regimen Laboral *</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Régimen Laboral *</label>
                 <select value={form.regimenLaboral} onChange={e => update('regimenLaboral', e.target.value)} className={inputClass('regimenLaboral')}>
                   {REGIMENES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>

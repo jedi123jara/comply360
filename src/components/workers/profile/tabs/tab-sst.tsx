@@ -58,6 +58,14 @@ const GROUPS: ClassifiedGroup[] = [
   },
 ]
 
+const STATUS_LABELS: Record<string, string> = {
+  VERIFIED: 'Verificado',
+  UPLOADED: 'Subido',
+  PENDING: 'Por revisar',
+  EXPIRED: 'Vencido',
+  MISSING: 'Falta',
+}
+
 export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
   const sstDocs = legajoDocs.filter((d) => d.category === 'SST')
 
@@ -207,7 +215,7 @@ export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
                           : 'var(--text-tertiary)',
                   }}
                 >
-                  {doc.status}
+                  {STATUS_LABELS[doc.status] ?? doc.status}
                 </span>
               </li>
             ))}

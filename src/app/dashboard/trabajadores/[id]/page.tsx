@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
 import { WorkerProfile } from '@/components/workers/profile'
 import type { WorkerSummary } from '@/components/workers/profile/worker-profile-header'
 import type { LegajoDoc } from '@/components/workers/profile/tabs/tab-legajo'
+import type { WorkerAlertSummary } from '@/components/workers/profile/worker-alerts-card'
 import { SkeletonCard, SkeletonStats } from '@/components/ui/skeleton'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,13 +15,13 @@ import { Button } from '@/components/ui/button'
 /**
  * Worker [id] — Super-Perfil v2 (Fase C Sprint 2).
  *
- * Reemplaza la página legacy de 1,624 líneas por `<WorkerProfile>` (8 tabs).
+ * Reemplaza la página legacy de 1,624 líneas por `<WorkerProfile>` (9 tabs).
  * La legacy se preservó como `.page-legacy.tsx.bak` para referencia.
  *
- * Tabs con data real: Información · Legajo.
- * Tabs con TabPlaceholder (CTA al módulo): Contratos · Remuneraciones ·
- * Vacaciones · SST · Beneficios · Historial — integración profunda en
- * sprints siguientes.
+ * Los datos se cargan en el cliente; por eso `router.refresh()` NO los
+ * recarga. Las tabs que modifican datos (p. ej. subir un documento al legajo)
+ * llaman a `onReload`, que vuelve a pedir trabajador + documentos sin
+ * desmontar el perfil (la pestaña activa se mantiene).
  */
 
 interface RawWorker {
@@ -37,23 +39,39 @@ interface RawWorker {
   status?: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED' | string
   legajoScore?: number | null
   sueldoBruto?: number | null
-  documents?: Array<{
+  asignacionFamiliar?: boolean | null
+  flagTRegistroPresentado?: boolean | null
+  flagTRegistroFecha?: string | null
+  deletedAt?: string | null
+  alerts?: Array<{
     id: string
-    category: string
-    documentType: string
-    title?: string | null
-    status?: string | null
-    isRequired?: boolean
-    expiresAt?: string | null
-    verifiedBy?: string | null
-    aiVerification?: {
-      decision?: string | null
-      confidence?: number | null
-      summary?: string | null
-      issues?: string[]
-      verifiedByAI?: boolean
-    } | null
+    type: string
+    severity: string
+    title: string
+    description?: string | null
+    dueDate?: string | null
+    multaEstimada?: number | string | null
   }>
+  documents?: RawDocument[]
+}
+
+interface RawDocument {
+  id: string
+  category: string
+  documentType: string
+  title?: string | null
+  status?: string | null
+  isRequired?: boolean
+  expiresAt?: string | null
+  createdAt?: string | null
+  verifiedBy?: string | null
+  aiVerification?: LegajoDoc['aiVerification']
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
 }
 
 export default function WorkerProfilePage() {
@@ -63,69 +81,105 @@ export default function WorkerProfilePage() {
 
   const [worker, setWorker] = useState<WorkerSummary | null>(null)
   const [docs, setDocs] = useState<LegajoDoc[]>([])
+  const [alerts, setAlerts] = useState<WorkerAlertSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  // Descarta respuestas viejas si el id cambia o si hay recargas solapadas.
+  const requestIdRef = useRef(0)
+  const hasDataRef = useRef(false)
+
+  const loadWorker = useCallback(async (): Promise<void> => {
     if (!id) return
-    let mounted = true
-    // Fetch en paralelo: worker detail + docs enriquecidos con AI verification
-    Promise.all([
-      fetch(`/api/workers/${id}`).then((r) => {
-        if (!r.ok) throw new Error(`Status ${r.status}`)
-        return r.json() as Promise<{ data?: RawWorker } | RawWorker>
-      }),
-      fetch(`/api/workers/${id}/documents`)
-        .then((r) => (r.ok ? r.json() : Promise.resolve({ data: [] })))
-        .catch(() => ({ data: [] })) as Promise<{ data?: RawWorker['documents'] }>,
-    ])
-      .then(([workerPayload, docsPayload]) => {
-        if (!mounted) return
-        const raw: RawWorker =
-          'data' in workerPayload && workerPayload.data
-            ? workerPayload.data
-            : (workerPayload as RawWorker)
-        setWorker({
-          id: raw.id,
-          firstName: raw.firstName ?? '',
-          lastName: raw.lastName ?? '',
-          dni: raw.dni,
-          email: raw.email ?? null,
-          phone: raw.phone ?? null,
-          position: raw.position ?? null,
-          department: raw.department ?? null,
-          regimenLaboral: raw.regimenLaboral ?? null,
-          tipoContrato: raw.tipoContrato ?? null,
-          fechaIngreso: raw.fechaIngreso ?? null,
-          status: raw.status ?? 'ACTIVE',
-          legajoScore: raw.legajoScore ?? null,
-          sueldoBruto: typeof raw.sueldoBruto === 'number' ? raw.sueldoBruto : null,
-        })
-        // Usar docs enriquecidos si están disponibles, si no caer a raw.documents
-        const enrichedDocs = docsPayload.data ?? raw.documents ?? []
-        setDocs(
-          enrichedDocs.map((d) => ({
-            id: d.id,
-            category: d.category,
-            title: d.title ?? d.documentType ?? 'Documento',
-            required: !!d.isRequired,
-            status: d.status ?? 'PENDING',
-            expiresAt: d.expiresAt ?? null,
-            verifiedBy: d.verifiedBy ?? null,
-            aiVerification: d.aiVerification ?? null,
-          })),
-        )
-        setLoading(false)
+    const requestId = ++requestIdRef.current
+    try {
+      // Fetch en paralelo: worker detail + docs enriquecidos con AI verification
+      const [workerPayload, docsPayload] = await Promise.all([
+        fetch(`/api/workers/${id}`, { cache: 'no-store' }).then((r) => {
+          if (!r.ok) throw new Error(`Status ${r.status}`)
+          return r.json() as Promise<{ data?: RawWorker } | RawWorker>
+        }),
+        fetch(`/api/workers/${id}/documents`, { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : { data: undefined }))
+          .catch(() => ({ data: undefined })) as Promise<{ data?: RawDocument[] }>,
+      ])
+      if (requestId !== requestIdRef.current) return
+
+      const raw: RawWorker =
+        'data' in workerPayload && workerPayload.data
+          ? workerPayload.data
+          : (workerPayload as RawWorker)
+      setWorker({
+        id: raw.id,
+        firstName: raw.firstName ?? '',
+        lastName: raw.lastName ?? '',
+        dni: raw.dni,
+        email: raw.email ?? null,
+        phone: raw.phone ?? null,
+        position: raw.position ?? null,
+        department: raw.department ?? null,
+        regimenLaboral: raw.regimenLaboral ?? null,
+        tipoContrato: raw.tipoContrato ?? null,
+        fechaIngreso: raw.fechaIngreso ?? null,
+        status: raw.status ?? 'ACTIVE',
+        legajoScore: raw.legajoScore ?? null,
+        sueldoBruto: typeof raw.sueldoBruto === 'number' ? raw.sueldoBruto : null,
+        asignacionFamiliar: raw.asignacionFamiliar ?? false,
+        flagTRegistroPresentado: raw.flagTRegistroPresentado ?? false,
+        flagTRegistroFecha: raw.flagTRegistroFecha ?? null,
+        deletedAt: raw.deletedAt ?? null,
       })
-      .catch((e: unknown) => {
-        if (!mounted) return
+      setAlerts(
+        (raw.alerts ?? []).map((a) => ({
+          id: a.id,
+          type: a.type,
+          severity: a.severity,
+          title: a.title,
+          description: a.description ?? null,
+          dueDate: a.dueDate ?? null,
+          multaEstimada: toNumberOrNull(a.multaEstimada),
+        })),
+      )
+      // Usar docs enriquecidos si están disponibles, si no caer a raw.documents
+      const enrichedDocs = docsPayload.data ?? raw.documents ?? []
+      setDocs(
+        enrichedDocs.map((d) => ({
+          id: d.id,
+          category: d.category,
+          documentType: d.documentType,
+          title: d.title ?? d.documentType ?? 'Documento',
+          required: !!d.isRequired,
+          status: d.status ?? 'PENDING',
+          expiresAt: d.expiresAt ?? null,
+          createdAt: d.createdAt ?? null,
+          verifiedBy: d.verifiedBy ?? null,
+          aiVerification: d.aiVerification ?? null,
+        })),
+      )
+      hasDataRef.current = true
+      setError(null)
+    } catch (e: unknown) {
+      if (requestId !== requestIdRef.current) return
+      if (hasDataRef.current) {
+        // Recarga fallida: conservamos lo que ya se veía en pantalla.
+        toast.error('No pudimos actualizar los datos del trabajador. Revisa tu conexión.')
+      } else {
         setError(e instanceof Error ? e.message : 'Error desconocido')
-        setLoading(false)
-      })
-    return () => {
-      mounted = false
+      }
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (!cancelled) void loadWorker()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadWorker])
 
   if (loading) {
     return (
@@ -160,5 +214,5 @@ export default function WorkerProfilePage() {
     )
   }
 
-  return <WorkerProfile worker={worker} legajoDocs={docs} />
+  return <WorkerProfile worker={worker} legajoDocs={docs} alerts={alerts} onReload={loadWorker} />
 }
