@@ -128,7 +128,7 @@ export function AiStep(props: AiModalProps) {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Generar contrato con IA</h2>
-                  <p className="text-xs text-slate-600">Describe lo que necesitas en lenguaje natural · datos en vivo a la derecha</p>
+                  <p className="text-xs text-slate-600">Cuéntanos con tus palabras qué contrato necesitas. Los datos se revisan en vivo.</p>
                 </div>
               </div>
               <button
@@ -157,7 +157,7 @@ export function AiStep(props: AiModalProps) {
                       value={aiDescription}
                       onChange={e => setAiDescription(e.target.value)}
                       rows={3}
-                      placeholder="Ej: Contrato para profesional de marketing y ventas, jornada completa, salario S/3500 mensual, regimen general..."
+                      placeholder="Ej: Contrato para profesional de marketing y ventas, jornada completa, sueldo S/ 3500 mensual, régimen general..."
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm text-slate-900 placeholder:text-slate-400 resize-none bg-white"
                     />
                     <p className="mt-1 text-xs text-gray-500">
@@ -174,7 +174,7 @@ export function AiStep(props: AiModalProps) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1 flex items-center gap-1.5">
-                          RUC <span className="text-purple-600 font-normal text-[11px]">→ auto-carga datos</span>
+                          RUC <span className="text-purple-600 font-normal text-[11px]">→ los datos se completan solos</span>
                           {empRuc && empRucStatus === 'idle' && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Precargado de tu empresa</span>
                           )}
@@ -199,11 +199,11 @@ export function AiStep(props: AiModalProps) {
                           </div>
                         </div>
                         {empRucStatus === 'ok' && <p className="mt-0.5 text-[11px] text-green-700 flex items-center gap-1"><Check className="h-3 w-3"/>Datos cargados desde SUNAT</p>}
-                        {empRucStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">RUC no encontrado — ingresa manualmente</p>}
+                        {empRucStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">RUC no encontrado: escribe los datos a mano</p>}
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                          Razon Social {empRucStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
+                          Razón social {empRucStatus === 'ok' && <span className="text-green-600 font-normal">(automático)</span>}
                         </label>
                         <input
                           type="text"
@@ -215,7 +215,7 @@ export function AiStep(props: AiModalProps) {
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                          Representante Legal <span className="text-[11px] text-amber-600 font-normal">(ingresar manualmente)</span>
+                          Representante legal <span className="text-[11px] text-amber-600 font-normal">(escríbelo tú)</span>
                         </label>
                         <input
                           type="text"
@@ -227,7 +227,7 @@ export function AiStep(props: AiModalProps) {
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                          Direccion {empRucStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
+                          Dirección {empRucStatus === 'ok' && <span className="text-green-600 font-normal">(automático)</span>}
                         </label>
                         <input
                           type="text"
@@ -269,7 +269,7 @@ export function AiStep(props: AiModalProps) {
                     {trabajadorMode === 'manual' && !selectedWorker && (
                       <>
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-600">Trabajador nuevo (no esta en el directorio)</span>
+                          <span className="text-slate-600">Trabajador nuevo (aún no está en tu lista de trabajadores)</span>
                           <button
                             type="button"
                             onClick={() => setTrabajadorMode('picker')}
@@ -281,7 +281,7 @@ export function AiStep(props: AiModalProps) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label htmlFor="ai-trab-dni" className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                              DNI <span className="text-blue-600 font-normal text-[11px]">→ auto-carga nombre</span>
+                              DNI <span className="text-blue-600 font-normal text-[11px]">→ el nombre se completa solo</span>
                             </label>
                             <div className="relative">
                               <input
@@ -309,11 +309,11 @@ export function AiStep(props: AiModalProps) {
                               {trabDniStatus === 'error' && 'DNI no encontrado'}
                             </p>
                             {trabDniStatus === 'ok' && <p className="mt-0.5 text-[11px] text-green-700 flex items-center gap-1"><Check className="h-3 w-3" aria-hidden="true"/>Nombre cargado desde RENIEC</p>}
-                            {trabDniStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">DNI no encontrado — ingresa manualmente</p>}
+                            {trabDniStatus === 'error' && <p className="mt-0.5 text-[11px] text-red-600">DNI no encontrado: escribe el nombre a mano</p>}
                           </div>
                           <div>
                             <label htmlFor="ai-trab-nombre" className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                              Nombre Completo {trabDniStatus === 'ok' && <span className="text-green-600 font-normal">(auto)</span>}
+                              Nombre completo {trabDniStatus === 'ok' && <span className="text-green-600 font-normal">(automático)</span>}
                             </label>
                             <input
                               id="ai-trab-nombre"
@@ -343,30 +343,30 @@ export function AiStep(props: AiModalProps) {
                           onChange={e => setModalidad(e.target.value)}
                           className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         >
-                          <option value="">IA lo detecta auto</option>
-                          <option value="INDEFINIDO">Plazo Indeterminado</option>
-                          <option value="PLAZO_FIJO">Plazo Fijo (Temporal)</option>
-                          <option value="PARTTIME">Tiempo Parcial (&lt;4h/dia)</option>
-                          <option value="MYPE">Regimen MYPE</option>
-                          <option value="LOCACION">Locacion de Servicios</option>
-                          <option value="PRACTICAS">Practicas Pre-profesionales</option>
+                          <option value="">Que la IA lo sugiera</option>
+                          <option value="INDEFINIDO">Plazo indeterminado</option>
+                          <option value="PLAZO_FIJO">Plazo fijo (temporal)</option>
+                          <option value="PARTTIME">Tiempo parcial (menos de 4 horas al día)</option>
+                          <option value="MYPE">Régimen MYPE</option>
+                          <option value="LOCACION">Locación de servicios</option>
+                          <option value="PRACTICAS">Prácticas preprofesionales</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Periodo de Prueba</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Periodo de prueba</label>
                         <select
                           value={periodoPrueba}
                           onChange={e => setPeriodoPrueba(e.target.value)}
                           className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
                         >
-                          <option value="3">3 meses (estandar)</option>
-                          <option value="6">6 meses (trabajador confianza)</option>
-                          <option value="12">12 meses (trabajador direccion)</option>
+                          <option value="3">3 meses (lo usual)</option>
+                          <option value="6">6 meses (trabajador calificado o de confianza)</option>
+                          <option value="12">12 meses (personal de dirección)</option>
                           <option value="0">Sin periodo de prueba</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha de Inicio</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha de inicio</label>
                         <input
                           type="date"
                           value={fechaInicio}
@@ -380,7 +380,7 @@ export function AiStep(props: AiModalProps) {
                     {(modalidad === 'PLAZO_FIJO' || modalidad === 'PRACTICAS') && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-emerald-200 pt-3">
                         <div>
-                          <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha de Vencimiento</label>
+                          <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Fecha de fin</label>
                           <input
                             type="date"
                             value={fechaFin}
@@ -390,7 +390,7 @@ export function AiStep(props: AiModalProps) {
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">
-                            Causa Objetiva <span className="text-red-500">*</span>
+                            ¿Por qué es temporal? (causa objetiva) <span className="text-red-500">*</span>
                             <span className="text-[11px] text-gray-500 font-normal ml-1">(D.S. 003-97-TR Art. 53)</span>
                           </label>
                           <input
@@ -413,7 +413,7 @@ export function AiStep(props: AiModalProps) {
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="col-span-2 sm:col-span-1">
-                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Cargo / Puesto</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Cargo o puesto</label>
                         <input
                           type="text"
                           value={cargo}
@@ -451,7 +451,7 @@ export function AiStep(props: AiModalProps) {
                     {/* ── Remuneración ─ */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Remuneracion Mensual S/</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Sueldo mensual (S/)</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">S/</span>
                           <input
@@ -466,7 +466,7 @@ export function AiStep(props: AiModalProps) {
                         <p className="text-[11px] text-gray-500 mt-0.5">Min. RMV: S/ 1,130</p>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Forma de Pago</label>
+                        <label className="block text-xs font-semibold text-[color:var(--text-secondary)] mb-1">Forma de pago</label>
                         <select
                           value={formaPago}
                           onChange={e => setFormaPago(e.target.value)}
