@@ -48,7 +48,7 @@ import {
   resolveNormAlertAction,
   resolveWorkerAlertAction,
   type AlertAction,
-} from './_lib/alert-actions'
+} from '@/lib/alerts/alert-actions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

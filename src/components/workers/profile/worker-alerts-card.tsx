@@ -1,17 +1,34 @@
 'use client'
 
-import { Bell, ShieldCheck, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
+import { Bell, ShieldCheck, ArrowRight, Building2 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatSoles } from '@/lib/format/peruvian'
-import { PROFILE_TAB_LABELS, type ProfileTab } from './profile-tabs'
+import { daysUntil } from '@/lib/compliance/action-plan'
+import {
+  alertSeverityLabel,
+  cleanAlertDescription,
+  describeDaysLeft,
+  getWorkerAlertConfig,
+  resolveWorkerAlertActionInProfile,
+  type InProfileAlertAction,
+} from '@/lib/alerts/alert-actions'
+import { PROFILE_TAB_LABELS, isProfileTab, type ProfileTab } from './profile-tabs'
 
 /**
  * WorkerAlertsCard — alertas activas (no resueltas) del trabajador.
  *
  * Vive arriba de la pestaña Información: es el destino de "Ver alertas" en la
- * lista de trabajadores (`?tab=alertas` se redirige a `info`). Cada alerta
- * ofrece un botón a la pestaña donde se resuelve.
+ * lista de trabajadores (`?tab=alertas` se redirige a `info`).
+ *
+ * El destino de cada alerta sale del mapeo compartido
+ * (`@/lib/alerts/alert-actions`), el mismo que usan Alertas, Calendario y
+ * Pendientes. Como esta tarjeta ya está DENTRO de la ficha:
+ *  - si la alerta se corrige en una pestaña de esta ficha → se cambia de
+ *    pestaña sin navegar;
+ *  - si se corrige en otra pantalla (calculadora, módulo SST…) → se navega
+ *    allí, igual que desde Alertas.
  */
 
 export interface WorkerAlertSummary {
@@ -24,46 +41,74 @@ export interface WorkerAlertSummary {
   multaEstimada?: number | null
 }
 
-const SEVERITY_META: Record<string, { label: string; variant: 'critical' | 'high' | 'medium' | 'low' }> = {
-  CRITICAL: { label: 'Crítica', variant: 'critical' },
-  HIGH: { label: 'Alta', variant: 'high' },
-  MEDIUM: { label: 'Media', variant: 'medium' },
-  LOW: { label: 'Baja', variant: 'low' },
+const SEVERITY_VARIANT: Record<string, 'critical' | 'high' | 'medium' | 'low'> = {
+  CRITICAL: 'critical',
+  HIGH: 'high',
+  MEDIUM: 'medium',
+  LOW: 'low',
 }
 
 const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
 
-/** Pestaña del perfil donde se resuelve cada tipo de alerta. */
-const ALERT_TAB: Record<string, ProfileTab> = {
-  CONTRATO_POR_VENCER: 'contratos',
-  CONTRATO_VENCIDO: 'contratos',
-  CAMBIO_REGIMEN_SIN_ADENDA: 'contratos',
-  CTS_PENDIENTE: 'beneficios',
-  GRATIFICACION_PENDIENTE: 'beneficios',
-  VACACIONES_ACUMULADAS: 'vacaciones',
-  VACACIONES_DOBLE_PERIODO: 'vacaciones',
-  DOCUMENTO_FALTANTE: 'legajo',
-  DOCUMENTO_VENCIDO: 'legajo',
-  DOCUMENTO_SOSPECHOSO: 'legajo',
-  REGISTRO_INCOMPLETO: 'legajo',
-  EXAMEN_MEDICO_VENCIDO: 'sst',
-  EMO_PROXIMO: 'sst',
-  EMO_VENCIDO: 'sst',
-  IPERC_VENCIDO: 'sst',
-  SCTR_VENCIDO: 'sst',
-  SAT_PLAZO_PROXIMO: 'sst',
-  SAT_PLAZO_VENCIDO: 'sst',
-  COMITE_REUNION_PENDIENTE: 'sst',
-  COMITE_MANDATO_VENCE: 'sst',
-  SIMULACRO_PENDIENTE: 'sst',
-  CAPACITACION_PENDIENTE: 'capacitaciones',
-  AFP_EN_MORA: 'remuneraciones',
-}
+const ACTION_BUTTON_CLASS =
+  'inline-flex shrink-0 items-center gap-1 self-start rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-[color:var(--text-primary)] transition-colors hover:border-emerald-500/60 sm:self-auto'
 
 function fmtDate(iso: string): string {
   return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }).format(
     new Date(iso),
   )
+}
+
+/** "Vence en 3 días (12 oct. 2026)" o "Venció hace 2 días (…)". */
+function deadlineLabel(dueDate: string): string {
+  return `${describeDaysLeft(daysUntil(dueDate))} (${fmtDate(dueDate)})`
+}
+
+function AlertActionButton({
+  action,
+  onGoToTab,
+}: {
+  action: InProfileAlertAction | null
+  onGoToTab?: (tab: ProfileTab) => void
+}) {
+  if (!action) return null
+
+  if (action.kind === 'tab') {
+    const tab = action.tab
+    // La tarjeta vive en la pestaña Información: si la alerta se corrige ahí
+    // mismo (p. ej. T-Registro), no hay a dónde ir; lo indicamos con texto.
+    if (tab === 'info') {
+      return (
+        <span className="shrink-0 self-start text-[11px] font-medium text-[color:var(--text-tertiary)] sm:self-auto">
+          Se corrige más abajo, en esta pestaña
+        </span>
+      )
+    }
+    if (!onGoToTab || !isProfileTab(tab)) return null
+    return (
+      <button
+        type="button"
+        onClick={() => onGoToTab(tab)}
+        title={`Te lleva a: ${action.destination}`}
+        className={ACTION_BUTTON_CLASS}
+      >
+        Resolver en {PROFILE_TAB_LABELS[tab]}
+        <ArrowRight className="h-3 w-3" aria-hidden="true" />
+      </button>
+    )
+  }
+
+  if (action.kind === 'link') {
+    return (
+      <Link href={action.href} title={`Te lleva a: ${action.destination}`} className={ACTION_BUTTON_CLASS}>
+        Resolver en {action.destination}
+        <ArrowRight className="h-3 w-3" aria-hidden="true" />
+      </Link>
+    )
+  }
+
+  // Las alertas de trabajador no generan acciones externas ni del asistente.
+  return null
 }
 
 export function WorkerAlertsCard({
@@ -101,43 +146,48 @@ export function WorkerAlertsCard({
             Alertas activas ({alerts.length})
           </CardTitle>
           <CardDescription>
-            Lo que debes resolver con este trabajador. Cada alerta te lleva a la pestaña donde se corrige.
+            Lo que debes resolver con este trabajador. Cada alerta te lleva a donde se corrige.
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="!p-0">
         <ul className="divide-y divide-[color:var(--border-subtle)]">
           {sorted.map((alert) => {
-            const meta = SEVERITY_META[alert.severity] ?? SEVERITY_META.MEDIUM
-            const targetTab = ALERT_TAB[alert.type]
+            const ref = { type: alert.type, title: alert.title }
+            const config = getWorkerAlertConfig(ref)
+            const action = resolveWorkerAlertActionInProfile(ref)
+            const description = cleanAlertDescription(alert.description)
+            const isOrgWide = config?.scope === 'org'
             return (
               <li key={alert.id} className="flex flex-col gap-2 px-6 py-3 sm:flex-row sm:items-center sm:gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={meta.variant} size="xs">
-                      {meta.label}
+                    <Badge variant={SEVERITY_VARIANT[alert.severity] ?? 'medium'} size="xs">
+                      {alertSeverityLabel(alert.severity)}
                     </Badge>
                     <p className="text-sm font-medium text-[color:var(--text-primary)]">{alert.title}</p>
+                    {isOrgWide ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] font-semibold text-[color:var(--text-secondary)]">
+                        <Building2 className="h-3 w-3" aria-hidden="true" />
+                        De toda la empresa
+                      </span>
+                    ) : null}
                   </div>
-                  {alert.description ? (
-                    <p className="mt-0.5 text-xs text-[color:var(--text-secondary)]">{alert.description}</p>
+                  {description ? (
+                    <p className="mt-0.5 text-xs text-[color:var(--text-secondary)]">{description}</p>
+                  ) : null}
+                  {config?.whyItMatters ? (
+                    <p className="mt-0.5 text-xs text-[color:var(--text-secondary)]">
+                      <span className="font-semibold">Por qué importa:</span> {config.whyItMatters}
+                    </p>
                   ) : null}
                   <p className="mt-0.5 text-[11px] text-[color:var(--text-tertiary)]">
-                    {alert.dueDate ? `Vence el ${fmtDate(alert.dueDate)}` : null}
+                    {alert.dueDate ? deadlineLabel(alert.dueDate) : null}
                     {alert.dueDate && alert.multaEstimada ? ' · ' : null}
-                    {alert.multaEstimada ? `Multa estimada: ${formatSoles(alert.multaEstimada)}` : null}
+                    {alert.multaEstimada ? `Multa si no se corrige: ${formatSoles(alert.multaEstimada)}` : null}
                   </p>
                 </div>
-                {targetTab && targetTab !== 'info' && onGoToTab ? (
-                  <button
-                    type="button"
-                    onClick={() => onGoToTab(targetTab)}
-                    className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg border border-[color:var(--border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-[color:var(--text-primary)] transition-colors hover:border-emerald-500/60 sm:self-auto"
-                  >
-                    Resolver en {PROFILE_TAB_LABELS[targetTab]}
-                    <ArrowRight className="h-3 w-3" aria-hidden="true" />
-                  </button>
-                ) : null}
+                <AlertActionButton action={action} onGoToTab={onGoToTab} />
               </li>
             )
           })}

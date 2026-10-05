@@ -21,7 +21,7 @@ import {
   ROUTES as ALERT_ROUTES,
   resolveWorkerAlertAction,
   workerHref,
-} from '@/app/dashboard/alertas/_lib/alert-actions'
+} from '@/lib/alerts/alert-actions'
 
 export type EventCategory =
   | 'feriado'

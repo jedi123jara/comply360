@@ -1,13 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import {
+  ALERT_SEVERITY_LABELS,
   WORKER_ALERT_ACTIONS,
   ROUTES,
+  alertSeverityLabel,
   cleanAlertDescription,
+  describeDaysLeft,
   getWorkerAlertLabel,
   getWorkerAlertConfig,
   isSafeExternalUrl,
   resolveNormAlertAction,
   resolveWorkerAlertAction,
+  resolveWorkerAlertActionInProfile,
   workerHref,
 } from '../alert-actions'
 
@@ -142,5 +146,71 @@ describe('cleanAlertDescription', () => {
   it('deja intactas las descripciones normales', () => {
     expect(cleanAlertDescription('Faltan 3 documentos.')).toBe('Faltan 3 documentos.')
     expect(cleanAlertDescription(null)).toBe('')
+  })
+})
+
+describe('resolveWorkerAlertActionInProfile', () => {
+  it('si se corrige en una pestaña de la ficha → cambia de pestaña, sin navegar', () => {
+    expect(resolveWorkerAlertActionInProfile({ type: 'DOCUMENTO_FALTANTE', title: 'x' })).toEqual({
+      kind: 'tab',
+      tab: 'legajo',
+      destination: 'Legajo del trabajador',
+    })
+    expect(resolveWorkerAlertActionInProfile({ type: 'CONTRATO_VENCIDO' })).toMatchObject({ kind: 'tab', tab: 'contratos' })
+    expect(resolveWorkerAlertActionInProfile({ type: 'T_REGISTRO_NO_PRESENTADO' })).toMatchObject({ kind: 'tab', tab: 'info' })
+  })
+
+  it('CTS y gratificación → pestaña Beneficios (ya calcula el monto de esa persona)', () => {
+    expect(resolveWorkerAlertActionInProfile({ type: 'CTS_PENDIENTE', title: 'Depósito CTS mayo' })).toMatchObject({
+      kind: 'tab',
+      tab: 'beneficios',
+    })
+    expect(resolveWorkerAlertActionInProfile({ type: 'GRATIFICACION_PENDIENTE' })).toMatchObject({
+      kind: 'tab',
+      tab: 'beneficios',
+    })
+  })
+
+  it('los subtipos respetan su propio destino (utilidades → calculadora, sueldo bajo RMV → remuneraciones)', () => {
+    expect(
+      resolveWorkerAlertActionInProfile({ type: 'CTS_PENDIENTE', title: 'Pago de utilidades vence en 12 días' }),
+    ).toEqual({ kind: 'link', href: ROUTES.calculadoraUtilidades, destination: 'Calculadora de utilidades' })
+    expect(
+      resolveWorkerAlertActionInProfile({ type: 'REGISTRO_INCOMPLETO', title: 'Sueldo por debajo de la RMV' }),
+    ).toMatchObject({ kind: 'tab', tab: 'remuneraciones' })
+  })
+
+  it('lo que se corrige en otra pantalla → mismo enlace que en Alertas', () => {
+    expect(resolveWorkerAlertActionInProfile({ type: 'EMO_VENCIDO' })).toMatchObject({ kind: 'link', href: ROUTES.sstEmo })
+    expect(resolveWorkerAlertActionInProfile({ type: 'IPERC_VENCIDO' })).toMatchObject({ kind: 'link', href: ROUTES.sstIperc })
+    expect(resolveWorkerAlertActionInProfile({ type: 'AFP_EN_MORA' })).toMatchObject({
+      kind: 'link',
+      href: ROUTES.calculadoraAportes,
+    })
+  })
+
+  it('tipo desconocido → sin botón (su destino genérico es la ficha, donde ya está)', () => {
+    expect(resolveWorkerAlertActionInProfile({ type: 'TIPO_NUEVO' })).toBeNull()
+  })
+})
+
+describe('alertSeverityLabel', () => {
+  it('usa "Urgente" (nunca "Crítica") y cae a "Media" si no reconoce el valor', () => {
+    expect(ALERT_SEVERITY_LABELS.CRITICAL).toBe('Urgente')
+    expect(alertSeverityLabel('CRITICAL')).toBe('Urgente')
+    expect(alertSeverityLabel('high')).toBe('Alta')
+    expect(alertSeverityLabel('RARA')).toBe('Media')
+    expect(alertSeverityLabel(null)).toBe('Media')
+  })
+})
+
+describe('describeDaysLeft', () => {
+  it('expresa el plazo en palabras', () => {
+    expect(describeDaysLeft(null)).toBe('Sin fecha límite')
+    expect(describeDaysLeft(5)).toBe('Vence en 5 días')
+    expect(describeDaysLeft(1)).toBe('Vence mañana')
+    expect(describeDaysLeft(0)).toBe('Vence hoy')
+    expect(describeDaysLeft(-1)).toBe('Venció ayer')
+    expect(describeDaysLeft(-2)).toBe('Venció hace 2 días')
   })
 })

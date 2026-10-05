@@ -9,8 +9,11 @@
  * calcular el depósito, el registro del EMO, etc.
  *
  * Este archivo es la única fuente de verdad del destino de cada tipo. Lo usan:
- *   - /dashboard/alertas   → botón "Resolver ahora" de cada tarjeta
- *   - /dashboard/calendario → enlace de los eventos que vienen de alertas
+ *   - /dashboard/alertas      → botón "Resolver ahora" de cada tarjeta
+ *   - /dashboard/calendario   → enlace de los eventos que vienen de alertas
+ *   - /dashboard/plan-accion  → botón "Resolver" de las alertas en Pendientes
+ *   - Ficha del trabajador    → tarjeta "Alertas activas" (WorkerAlertsCard),
+ *     vía `resolveWorkerAlertActionInProfile`
  *
  * Reglas:
  *   - Funciones puras, sin React ni fetch → fáciles de testear.
@@ -64,6 +67,13 @@ interface AlertTypeConfig {
   /** Una línea que explica la consecuencia de no corregirla. */
   whyItMatters?: string
   route: RouteSpec
+  /**
+   * Pestaña de la ficha a abrir cuando la alerta se ve DENTRO del perfil de
+   * ese trabajador y `route` lleva a otra pantalla. Solo se usa cuando esa
+   * pestaña ya resuelve el caso para esa persona (p. ej. Beneficios calcula
+   * su CTS y su gratificación con sus datos reales, sin volver a tipearlos).
+   */
+  inProfile?: { tab: WorkerTab; destination: string }
 }
 
 // ─── Constantes de rutas ─────────────────────────────────────────────────────
@@ -208,6 +218,7 @@ export const WORKER_ALERT_ACTIONS: Record<string, AlertTypeConfig> = {
     whyItMatters:
       'La CTS se deposita hasta el 15 de mayo y el 15 de noviembre. Si se deposita tarde, se pagan intereses y hay riesgo de multa.',
     route: { to: 'page', href: ROUTES.calculadoraCts, destination: 'Calculadora de CTS' },
+    inProfile: { tab: 'beneficios', destination: 'Beneficios (su CTS ya calculada)' },
   },
   GRATIFICACION_PENDIENTE: {
     label: 'Gratificación',
@@ -219,6 +230,7 @@ export const WORKER_ALERT_ACTIONS: Record<string, AlertTypeConfig> = {
       href: ROUTES.calculadoraGratificacion,
       destination: 'Calculadora de gratificación',
     },
+    inProfile: { tab: 'beneficios', destination: 'Beneficios (su gratificación ya calculada)' },
   },
   AFP_EN_MORA: {
     label: 'Aportes AFP',
@@ -346,6 +358,37 @@ const SUBTYPE_OVERRIDES: Array<{
 
 // ─── API pública ─────────────────────────────────────────────────────────────
 
+/**
+ * Nombre de la urgencia en lenguaje simple. Es el mismo en toda la app
+ * (Alertas, Pendientes, ficha del trabajador): "Urgente", nunca "Crítica".
+ */
+export const ALERT_SEVERITY_LABELS: Record<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW', string> = {
+  CRITICAL: 'Urgente',
+  HIGH: 'Alta',
+  MEDIUM: 'Media',
+  LOW: 'Baja',
+}
+
+/** Etiqueta de urgencia para cualquier valor (desconocido → "Media"). */
+export function alertSeverityLabel(severity: string | null | undefined): string {
+  const key = (severity ?? '').toUpperCase() as keyof typeof ALERT_SEVERITY_LABELS
+  return ALERT_SEVERITY_LABELS[key] ?? ALERT_SEVERITY_LABELS.MEDIUM
+}
+
+/**
+ * Plazo en palabras a partir de los días que faltan (negativo = ya venció).
+ * "Vence en 3 días", "Vence mañana", "Vence hoy", "Venció ayer", "Venció hace 2 días".
+ */
+export function describeDaysLeft(daysLeft: number | null | undefined): string {
+  if (daysLeft === null || daysLeft === undefined || !Number.isFinite(daysLeft)) return 'Sin fecha límite'
+  const days = Math.trunc(daysLeft)
+  if (days < -1) return `Venció hace ${Math.abs(days)} días`
+  if (days === -1) return 'Venció ayer'
+  if (days === 0) return 'Vence hoy'
+  if (days === 1) return 'Vence mañana'
+  return `Vence en ${days} días`
+}
+
 export interface WorkerAlertRef {
   type: string
   title?: string | null
@@ -396,6 +439,35 @@ export function resolveWorkerAlertAction(ref: WorkerAlertRef): AlertAction | nul
     href: workerHref(workerId, config.route.tab),
     destination: config.route.destination,
   }
+}
+
+/**
+ * Acción para una alerta que se muestra DENTRO de la ficha de su trabajador.
+ *  - `tab`: se resuelve en una pestaña de esa misma ficha → se cambia de
+ *    pestaña sin navegar (no se pierde el contexto ni se recarga la página).
+ *  - `link`: se resuelve en otra pantalla (calculadora, módulo SST…) → mismo
+ *    destino que en Alertas, Calendario y Pendientes.
+ *  - `null`: tipo desconocido; su destino genérico es la ficha, donde ya está.
+ *
+ * Orden: `inProfile` del tipo (p. ej. CTS → Beneficios, que ya calcula el
+ * monto de esa persona) → ruta de la ficha → ruta general.
+ */
+export type InProfileAlertAction =
+  | { kind: 'tab'; tab: WorkerTab; destination: string }
+  | AlertAction
+
+export function resolveWorkerAlertActionInProfile(
+  ref: Pick<WorkerAlertRef, 'type' | 'title'>,
+): InProfileAlertAction | null {
+  const config = getWorkerAlertConfig(ref)
+  if (!config) return null
+  if (config.inProfile) {
+    return { kind: 'tab', tab: config.inProfile.tab, destination: config.inProfile.destination }
+  }
+  if (config.route.to === 'worker') {
+    return { kind: 'tab', tab: config.route.tab ?? 'info', destination: config.route.destination }
+  }
+  return { kind: 'link', href: config.route.href, destination: config.route.destination }
 }
 
 export interface NormAlertRef {
