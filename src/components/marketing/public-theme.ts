@@ -60,11 +60,11 @@ export const PUBLIC_COLORS = {
   warning: '#B45309',
 } as const
 
-/** Fondo del hero navy: color plano + halos muy sutiles (azul y ámbar). */
-export const PUBLIC_HERO_BACKGROUND =
-  'radial-gradient(circle at 85% -10%, rgba(245, 179, 1, 0.10), transparent 40%), ' +
-  'radial-gradient(circle at 10% 110%, rgba(37, 99, 235, 0.22), transparent 45%), ' +
-  PUBLIC_COLORS.navy
+/**
+ * Fondo del hero: azul marino sólido con un degradado vertical casi imperceptible.
+ * Sin halos ni cuadrículas: el sitio debe sentirse editorial, no de plantilla.
+ */
+export const PUBLIC_HERO_BACKGROUND = 'linear-gradient(180deg, #0B1B36 0%, #0A1730 100%)'
 
 /**
  * Estilo del contenedor público (`PublicShell`). Además del fondo claro,
@@ -111,15 +111,14 @@ export const pub = {
 
   /** Hero navy a todo el ancho (usar con `style={{ background: PUBLIC_HERO_BACKGROUND }}`). */
   hero: 'relative overflow-hidden bg-[#0B1B36] text-[#ffffff]',
-  /** Cuadrícula sutil para el hero / bandas navy. Requiere padre `relative`. */
-  heroGrid:
-    'pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:56px_56px]',
+  /** Retirada (oct-2026): el fondo de cuadrícula se veía de plantilla. Se mantiene la clave. */
+  heroGrid: 'hidden',
   /** Banda CTA navy dentro del contenedor. */
-  band: 'relative overflow-hidden rounded-2xl bg-[#0B1B36] text-[#ffffff] shadow-[0_24px_60px_rgba(11,27,54,0.22)]',
+  band: 'relative overflow-hidden rounded-2xl bg-[#0B1B36] text-[#ffffff]',
 
   /** Tipografía sobre navy */
   eyebrowOnNavy:
-    'inline-flex items-center gap-2 rounded-full border border-[#F5B301]/40 bg-[#F5B301]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#F5B301]',
+    "inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-[#F5B301] before:h-px before:w-8 before:bg-[#F5B301] before:content-['']",
   h1OnNavy:
     'font-extrabold tracking-[-0.02em] text-[#ffffff] text-[2rem] leading-[1.1] sm:text-5xl sm:leading-[1.05] text-balance',
   h2OnNavy: 'font-extrabold tracking-[-0.02em] text-[#ffffff] text-2xl leading-tight sm:text-3xl text-balance',
@@ -131,7 +130,7 @@ export const pub = {
 
   /** Tipografía sobre fondo claro */
   eyebrow:
-    'inline-flex items-center gap-2 rounded-full border border-[#2563EB]/20 bg-[#EFF4FF] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#1D4ED8]',
+    "inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-[#1D4ED8] before:h-px before:w-8 before:bg-[#1D4ED8] before:content-['']",
   kicker: 'text-xs font-bold uppercase tracking-[0.14em] text-[#2563EB]',
   h1: 'font-extrabold tracking-[-0.02em] text-[#0B1B36] text-[2rem] leading-[1.1] sm:text-5xl sm:leading-[1.05] text-balance',
   h2: 'font-extrabold tracking-[-0.02em] text-[#0B1B36] text-2xl leading-tight sm:text-4xl text-balance',
@@ -148,11 +147,10 @@ export const pub = {
     'inline-flex items-center gap-1 font-semibold text-[#B45309] transition-all hover:gap-1.5 hover:text-[#92400E]',
 
   /** Superficies claras */
-  card: 'rounded-xl border border-[#E5EAF2] bg-[#ffffff] shadow-[0_1px_2px_rgba(11,27,54,0.04),0_8px_24px_rgba(11,27,54,0.06)]',
-  cardHover:
-    'transition duration-200 hover:-translate-y-0.5 hover:border-[#2563EB]/35 hover:shadow-[0_14px_34px_rgba(11,27,54,0.10)]',
+  card: 'rounded-xl border border-[#E1E7F0] bg-[#ffffff]',
+  cardHover: 'transition-colors duration-200 hover:border-[#0B1B36]/45',
   inset: 'rounded-lg border border-[#E5EAF2] bg-[#F5F7FB]',
-  iconBox: 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#EFF4FF] text-[#2563EB]',
+  iconBox: 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E1E7F0] text-[#0B1B36]',
   iconTile:
     'inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EFF4FF] text-[#2563EB] shadow-[0_10px_30px_rgba(37,99,235,0.25)] ring-1 ring-[#ffffff]/20',
   divider: 'border-[#E5EAF2]',
@@ -165,9 +163,9 @@ export const pub = {
 
   /** Botones (agrega `<ArrowRight />` al CTA principal). */
   btnPrimary:
-    'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#F5B301] px-5 text-sm font-bold text-[#0B1B36] shadow-[0_10px_24px_rgba(245,179,1,0.28)] transition duration-150 hover:-translate-y-px hover:bg-[#E0A100] disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#F5B301] px-5 text-sm font-bold text-[#0B1B36] transition-colors duration-150 hover:bg-[#E0A100] disabled:pointer-events-none disabled:opacity-50',
   btnPrimaryLg:
-    'inline-flex min-h-[52px] items-center justify-center gap-2 rounded-lg bg-[#F5B301] px-6 text-base font-bold text-[#0B1B36] shadow-[0_12px_28px_rgba(245,179,1,0.3)] transition duration-150 hover:-translate-y-px hover:bg-[#E0A100] disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex min-h-[52px] items-center justify-center gap-2 rounded-lg bg-[#F5B301] px-6 text-base font-bold text-[#0B1B36] transition-colors duration-150 hover:bg-[#E0A100] disabled:pointer-events-none disabled:opacity-50',
   /** Secundario sobre fondo claro: borde navy. */
   btnSecondary:
     'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#0B1B36] bg-[#ffffff] px-5 text-sm font-bold text-[#0B1B36] transition duration-150 hover:bg-[#0B1B36] hover:text-[#ffffff] disabled:pointer-events-none disabled:opacity-50',
@@ -191,16 +189,27 @@ export const pub = {
     'w-full rounded-lg border py-2.5 text-sm transition-colors scheme-light! border-[#7B8AA0]! bg-[#ffffff]! text-[#0B1B36]! placeholder:text-[#64748B] focus:border-[#2563EB]! focus:shadow-[0_0_0_3px_rgba(37,99,235,0.18)]! focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#2563EB] disabled:opacity-60',
 } as const
 
-/** Enlaces del header / footer públicos. Las rutas son las mismas de la landing. */
+/**
+ * Navegación principal del sitio del estudio (oct-2026: Comply360 vende
+ * servicios y capacitaciones, ya no cuentas del SaaS).
+ */
 export const PUBLIC_NAV = [
-  { label: 'Producto', href: '/#producto' },
+  { label: 'Servicios', href: '/servicios' },
+  { label: 'Capacitaciones', href: '/capacitaciones' },
   { label: 'Planes', href: '/planes' },
-  { label: 'Calculadoras', href: '/calculadoras' },
-  { label: 'Diagnóstico gratis', href: '/diagnostico-gratis' },
+  { label: '¿Qué debo cumplir?', href: '/obligaciones' },
+  { label: 'Recursos', href: '/recursos' },
 ] as const
 
+/** Llamado principal del header: diagnóstico gratis. */
+export const PUBLIC_PRIMARY_CTA = { label: 'Diagnóstico gratis', href: '/diagnostico-gratis' } as const
+
+/**
+ * Acceso a la plataforma interna (uso del estudio y clientes con portal). Va
+ * discreto en el pie: el sitio ya no invita a crear cuentas.
+ */
 export const PUBLIC_AUTH_LINKS = {
-  signIn: { label: 'Iniciar sesión', href: '/sign-in' },
+  signIn: { label: 'Acceso para clientes', href: '/sign-in' },
   signUp: { label: 'Crear cuenta', href: '/sign-up' },
 } as const
 

@@ -153,8 +153,8 @@ export default function GratificacionCalculatorPage() {
 
         <LeadCaptureCTA
           source="calc-grati"
-          title="¿Te enviamos el cálculo en PDF?"
-          subtitle="Te llega el resumen con la fórmula desglosada + 14 días gratis del simulacro SUNAFIL completo. Sin tarjeta."
+          title="¿Quieres que revisemos tus gratificaciones?"
+          subtitle="Déjanos tu correo y te escribimos para coordinar un diagnóstico gratis de 30 minutos. Sin compromiso."
         />
         <SignupCTA />
       </CalcBody>

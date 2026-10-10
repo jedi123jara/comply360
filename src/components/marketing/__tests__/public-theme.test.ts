@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PUBLIC_AUTH_LINKS, PUBLIC_COLORS as C, PUBLIC_LEGAL_LINKS, PUBLIC_NAV, pub } from '../public-theme'
+import { PUBLIC_AUTH_LINKS, PUBLIC_COLORS as C, PUBLIC_LEGAL_LINKS, PUBLIC_NAV, PUBLIC_PRIMARY_CTA, pub } from '../public-theme'
 
 /** Luminancia relativa WCAG 2.x de un color #RRGGBB. */
 function luminance(hex: string): number {
@@ -88,13 +88,15 @@ describe('public-theme · clases', () => {
 })
 
 describe('public-theme · navegación', () => {
-  it('mantiene las rutas públicas del recorrido', () => {
+  it('mantiene las rutas públicas del sitio del estudio', () => {
     expect(PUBLIC_NAV.map((l) => l.href)).toEqual([
-      '/#producto',
+      '/servicios',
+      '/capacitaciones',
       '/planes',
-      '/calculadoras',
-      '/diagnostico-gratis',
+      '/obligaciones',
+      '/recursos',
     ])
+    expect(PUBLIC_PRIMARY_CTA.href).toBe('/diagnostico-gratis')
     expect(PUBLIC_AUTH_LINKS.signIn.href).toBe('/sign-in')
     expect(PUBLIC_AUTH_LINKS.signUp.href).toBe('/sign-up')
     expect(PUBLIC_LEGAL_LINKS.map((l) => l.href)).toEqual(['/terminos', '/privacidad'])

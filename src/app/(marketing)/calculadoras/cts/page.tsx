@@ -174,8 +174,8 @@ export default function CTSCalculatorPage() {
         <LeadCaptureCTA
           source="calc-cts"
           resultSummary={mounted && result ? { ctsDeposito: result.ctsTotal, sueldo, fechaCorte } : undefined}
-          title="¿Te enviamos el cálculo en PDF + tu calendario CTS?"
-          subtitle="Te llega el resumen del cálculo con la fórmula desglosada + 14 días gratis del simulacro SUNAFIL completo. Sin tarjeta."
+          title="¿Quieres que revisemos la CTS de tu planilla?"
+          subtitle="Déjanos tu correo y te escribimos para coordinar un diagnóstico gratis de 30 minutos. Sin compromiso."
         />
         <SignupCTA />
       </CalcBody>

@@ -109,16 +109,16 @@ export default function CalculadorasIndex() {
           <div aria-hidden className={pub.heroGrid} />
           <div className="relative max-w-2xl">
             <h2 className={cn(pub.h2OnNavy, 'mb-3 sm:text-4xl')}>
-              Esto es solo el <span className={pub.highlightOnNavy}>5%</span> de Comply360
+              Un cálculo es <span className={pub.highlightOnNavy}>una parte</span> del cumplimiento
             </h2>
-            <p className={cn(pub.leadOnNavy, 'mb-6')}>Regístrate gratis y desbloquea:</p>
+            <p className={cn(pub.leadOnNavy, 'mb-6')}>Comply360 se encarga del resto:</p>
             <ul className="mb-8 space-y-2">
               {[
-                'Diagnóstico SUNAFIL de 135 preguntas con plan de acción',
-                'Simulacro de inspección interactivo con Acta PDF',
-                'Alertas automáticas de vencimientos (CTS, grati, vacaciones, contratos)',
-                'Legajo digital por trabajador con auto-verificación IA',
-                'Copilot laboral con RAG sobre +75 normas peruanas',
+                'Diagnóstico de cumplimiento con la multa estimada de cada brecha',
+                'Implementación de SST, hostigamiento sexual y documentos laborales',
+                'Iguala mensual con alertas de vencimientos y consultas',
+                'Capacitaciones obligatorias con especialistas y evidencia para SUNAFIL',
+                'Acompañamiento si llega una inspección',
               ].map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm sm:text-base">
                   <Check aria-hidden className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#F5B301]" />
@@ -127,11 +127,11 @@ export default function CalculadorasIndex() {
               ))}
             </ul>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link href="/sign-up" className={pub.btnPrimary}>
-                Crear cuenta gratis <ArrowRight aria-hidden className="h-4 w-4" />
+              <Link href="/diagnostico-gratis" className={pub.btnPrimary}>
+                Diagnóstico gratis <ArrowRight aria-hidden className="h-4 w-4" />
               </Link>
-              <Link href="/planes" className={pub.btnSecondaryOnNavy}>
-                Ver planes
+              <Link href="/servicios" className={pub.btnSecondaryOnNavy}>
+                Ver servicios
               </Link>
             </div>
           </div>

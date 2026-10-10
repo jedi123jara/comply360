@@ -34,6 +34,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Comply360 dejó de vender el SaaS: esta secuencia ofrece "14 días de prueba"
+  // y lleva a /sign-up. Queda pausada hasta reescribirla para los servicios del
+  // estudio. Para reactivarla: DRIP_EMAILS_ENABLED=true en Vercel.
+  if (process.env.DRIP_EMAILS_ENABLED !== 'true') {
+    return NextResponse.json({ ok: true, skipped: 'drip pausado: DRIP_EMAILS_ENABLED no es "true"' })
+  }
+
   // FIX #5.A: idempotencia diaria.
   const claim = await claimCronRun('drip-emails', { bucketMinutes: 1440 })
   if (!claim.acquired) {

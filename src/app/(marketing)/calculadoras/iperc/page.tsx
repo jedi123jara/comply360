@@ -324,15 +324,15 @@ export default function IpercDemoPage() {
                 esSignificativo: result.esSignificativo,
                 indices: { personas, procedimiento, capacitacion, exposicion, severidad },
               }}
-              title="¿Te enviamos el resultado + plantilla IPERC editable?"
-              subtitle="Plantilla Excel con 80 peligros base ya validados + 14 días gratis del módulo SST completo."
+              title="¿Necesitas la matriz IPERC de tu empresa?"
+              subtitle="La armamos por puesto con un ingeniero de seguridad y la actualizamos cada año. Déjanos tu correo y te escribimos."
             />
           </>
         )}
 
         <SignupCTA
-          title="Esto es 1 fila. La matriz IPERC enterprise tiene cientos."
-          subtitle="En COMPLY360 el motor IPERC se conecta a tus sedes y puestos: la matriz se genera, se versiona, se firma y se sella criptográficamente. Probarlo gratis 14 días."
+          title="Esto es 1 fila. Tu empresa necesita la matriz completa."
+          subtitle="Armamos el IPERC por puesto, el mapa de riesgos y el resto del sistema de gestión de SST, y te dejamos la evidencia lista para el inspector."
         />
 
         <LegalBasis

@@ -54,38 +54,40 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
+// Metadata del sitio público del estudio (oct-2026). Cada página define su
+// título corto; la plantilla agrega " | Comply360".
+const SITE_TITLE = "Comply360 | Cumplimiento laboral y SST para empresas en Perú";
+const SITE_DESCRIPTION =
+  "Estudio de cumplimiento normativo para empresas: laboral, SST, hostigamiento sexual y capacitaciones obligatorias, con la evidencia lista para SUNAFIL. Trujillo y todo el Perú.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${BRAND.domain}`),
   title: {
-    default: `${BRAND.name} — ${BRAND.tagline}`,
-    template: `%s | ${BRAND.name}`,
+    default: SITE_TITLE,
+    template: "%s | Comply360",
   },
-  description: BRAND.description,
-  alternates: {
-    canonical: "/",
-  },
+  description: SITE_DESCRIPTION,
   keywords: [
-    "derecho laboral",
-    "contratos laborales peru",
-    "calculadora laboral",
-    "CTS",
-    "gratificaciones",
-    "liquidación",
+    "cumplimiento laboral",
+    "seguridad y salud en el trabajo",
+    "capacitaciones obligatorias SST",
+    "hostigamiento sexual empresas",
     "SUNAFIL",
+    "Trujillo",
     "comply360",
   ],
   openGraph: {
-    title: `${BRAND.name} — Compliance Laboral Inteligente`,
-    description: BRAND.description,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: `https://${BRAND.domain}`,
-    siteName: BRAND.name,
+    siteName: "Comply360",
     locale: "es_PE",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${BRAND.name} — Compliance Laboral Inteligente`,
-    description: "Plataforma SaaS de compliance laboral para empresas peruanas.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,
@@ -134,7 +136,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="es"
+      lang="es-PE"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${firaCode.variable} ${instrumentSerif.variable} h-full antialiased`}
       style={{ colorScheme: 'light' }}
     >

@@ -77,8 +77,8 @@ export function LegalBasis({ citations }: { citations: string[] }) {
 export function LeadCaptureCTA({
   source,
   resultSummary,
-  title = '¿Te mandamos el resultado por email?',
-  subtitle = 'Te enviamos el cálculo + 14 días gratis del simulacro SUNAFIL completo (sin tarjeta).',
+  title = '¿Quieres que revisemos tu caso?',
+  subtitle = 'Déjanos tu correo y te escribimos para coordinar un diagnóstico gratis de 30 minutos. Sin compromiso.',
 }: {
   source: string
   resultSummary?: Record<string, unknown>
@@ -125,12 +125,12 @@ export function LeadCaptureCTA({
             <CheckCircle2 aria-hidden className="h-5 w-5 text-[#ffffff]" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">Listo, te llegó a {email}</h3>
+            <h3 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">Listo, te escribiremos a {email}</h3>
             <p className="mt-1 text-sm text-[#475569]">
-              Revisa tu bandeja en los próximos 2 minutos. Mientras tanto, ya puedes activar tu trial PRO de 14 días.
+              Coordinamos contigo el diagnóstico. Mientras tanto, puedes adelantarlo tú mismo.
             </p>
-            <Link href="/sign-up" className={cn(pub.btnPrimary, 'mt-4')}>
-              Activar trial PRO gratis <ArrowRight aria-hidden className="h-4 w-4" />
+            <Link href="/diagnostico-gratis" className={cn(pub.btnPrimary, 'mt-4')}>
+              Hacer el diagnóstico gratis <ArrowRight aria-hidden className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -167,7 +167,7 @@ export function LeadCaptureCTA({
             </>
           ) : (
             <>
-              Enviarme el resultado <ArrowRight aria-hidden className="h-4 w-4" />
+              Quiero el diagnóstico <ArrowRight aria-hidden className="h-4 w-4" />
             </>
           )}
         </button>
@@ -178,15 +178,15 @@ export function LeadCaptureCTA({
         </p>
       )}
       <p className={cn(pub.faintOnNavy, 'mt-3')}>
-        Sin spam. Solo el resultado + 1 email a los 7 días con tips de compliance.
+        Sin spam. Solo usamos tu correo para responderte.
       </p>
     </form>
   )
 }
 
 export function SignupCTA({
-  title = '¿Quieres el análisis completo de tu empresa?',
-  subtitle = 'Regístrate gratis y desbloqueas el diagnóstico SUNAFIL de 135 preguntas, alertas automáticas y más de 13 calculadoras vinculadas a tu planilla.',
+  title = '¿Tu empresa cumple todo lo demás?',
+  subtitle = 'Un cálculo es una parte. Te ayudamos a tener al día lo laboral, la SST y el hostigamiento sexual, con la evidencia lista para SUNAFIL.',
 }: {
   title?: string
   subtitle?: string
@@ -196,11 +196,11 @@ export function SignupCTA({
       <h3 className={pub.h2OnNavy}>{title}</h3>
       <p className={cn(pub.bodyOnNavy, 'mb-5 mt-2 max-w-2xl sm:text-base')}>{subtitle}</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <Link href="/sign-up" className={pub.btnPrimary}>
-          Regístrate gratis <ArrowRight aria-hidden className="h-4 w-4" />
+        <Link href="/diagnostico-gratis" className={pub.btnPrimary}>
+          Diagnóstico gratis <ArrowRight aria-hidden className="h-4 w-4" />
         </Link>
-        <Link href="/diagnostico-gratis" className={pub.btnSecondaryOnNavy}>
-          Diagnóstico express (2 min)
+        <Link href="/servicios" className={pub.btnSecondaryOnNavy}>
+          Ver servicios
         </Link>
       </div>
     </div>

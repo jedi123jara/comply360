@@ -1,6 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyRecaptcha } from '@/lib/recaptcha'
+import { sendEmail } from '@/lib/email'
+import { BRAND } from '@/lib/brand'
+
+// Valores del enum LeadSource. Las calculadoras mandan `source` libres
+// ("calc-cts"...): antes fallaba el create y el lead se perdía en silencio.
+const LEAD_SOURCES = ['DIAGNOSTICO_GRATIS', 'LANDING_PAGE', 'REFERRAL', 'WEBINAR', 'MANUAL'] as const
+type LeadSourceValue = (typeof LEAD_SOURCES)[number]
+
+function normalizeSource(raw: unknown): LeadSourceValue {
+  if (typeof raw === 'string' && (LEAD_SOURCES as readonly string[]).includes(raw)) {
+    return raw as LeadSourceValue
+  }
+  return raw ? 'LANDING_PAGE' : 'DIAGNOSTICO_GRATIS'
+}
+
+function clip(value: unknown, max: number): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed ? trimmed.slice(0, max) : null
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/** Aviso interno de una consulta del sitio. No bloquea la respuesta. */
+async function notifyContact(data: Record<string, string | null>): Promise<void> {
+  const to = process.env.LEADS_NOTIFY_EMAIL || BRAND.supportEmail
+  const rows = Object.entries(data)
+    .filter(([, v]) => v)
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding:4px 12px 4px 0;color:#475569">${escapeHtml(k)}</td><td style="padding:4px 0;color:#0B1B36">${escapeHtml(v as string)}</td></tr>`,
+    )
+    .join('')
+  await sendEmail({
+    to,
+    subject: `Nueva consulta en comply360.pe: ${data.Interés ?? 'contacto'}`,
+    html: `<h2 style="font-family:sans-serif;color:#0B1B36">Nueva consulta desde la web</h2><table style="font-family:sans-serif;font-size:14px">${rows}</table>`,
+  })
+}
 
 // Rate limiter: 5 leads per IP per hour
 const ipCounts = new Map<string, { count: number; resetAt: number }>()
@@ -32,11 +78,53 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, companyName, companySize, sector, phone, source, scoreGlobal, multaEstimada, scoreByArea, recaptchaToken } = body
+    const { email, sector, scoreGlobal, multaEstimada, recaptchaToken } = body
+    const companyName = clip(body.companyName, 160)
+    const companySize = clip(body.companySize, 40)
+    const phone = clip(body.phone, 30)
+    const source = normalizeSource(body.source)
+
+    // Campos del formulario de contacto del sitio (opcionales).
+    const contactName = clip(body.name, 120)
+    const contactMessage = clip(body.message, 2000)
+    const contactInterest = clip(body.interest, 60)
+    const origin = clip(body.origen, 60) ?? clip(body.source, 60)
+    const isContact = Boolean(contactName || contactMessage || contactInterest)
+
+    // Campo trampa: si viene lleno es un bot. Respondemos 200 sin guardar.
+    if (typeof body.website === 'string' && body.website.trim() !== '') {
+      return NextResponse.json({ success: true })
+    }
 
     // Validate email
     if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: 'Email invalido' }, { status: 400 })
+      return NextResponse.json({ error: 'Correo inválido' }, { status: 400 })
+    }
+
+    // El esquema no tiene columnas de contacto: los datos del formulario viajan
+    // en el JSON `scoreByArea` (solo si el diagnóstico no lo usa).
+    const scoreByArea =
+      body.scoreByArea ??
+      (isContact || origin
+        ? {
+            ...(isContact
+              ? { contacto: { nombre: contactName, interes: contactInterest, mensaje: contactMessage } }
+              : {}),
+            ...(origin ? { origen: origin } : {}),
+          }
+        : null)
+
+    if (isContact) {
+      notifyContact({
+        Nombre: contactName,
+        Correo: email.toLowerCase().trim(),
+        Empresa: companyName,
+        Teléfono: phone,
+        Trabajadores: companySize,
+        Interés: contactInterest,
+        Mensaje: contactMessage,
+        Origen: origin,
+      }).catch((err) => console.error('[leads] aviso por correo falló', err))
     }
 
     // FIX #5.B: reCAPTCHA en endpoint público de captura de leads.
@@ -87,7 +175,7 @@ export async function POST(req: NextRequest) {
               companySize: companySize || null,
               sector: sector || null,
               phone: phone || null,
-              source: source || 'DIAGNOSTICO_GRATIS',
+              source,
               scoreGlobal: scoreGlobal != null ? Math.round(scoreGlobal) : null,
               multaEstimada: multaEstimada != null ? multaEstimada : null,
               scoreByArea: scoreByArea || null,
@@ -100,7 +188,7 @@ export async function POST(req: NextRequest) {
       const msg = dbErr instanceof Error ? dbErr.message : String(dbErr)
       console.error('[leads] DB persist failed — returning 200 anyway', {
         email: email.toLowerCase().trim(),
-        source: source || 'DIAGNOSTICO_GRATIS',
+        source,
         scoreGlobal,
         multaEstimada,
         error: msg,

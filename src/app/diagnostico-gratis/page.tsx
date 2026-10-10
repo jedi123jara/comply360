@@ -580,16 +580,18 @@ export default function DiagnosticoGratisPage() {
                   <ShieldCheck aria-hidden className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-lg font-extrabold tracking-[-0.02em] text-[#0B1B36]">
-                  Regístrate para ver el plan completo
+                  Revisemos tu plan de acción juntos
                 </h3>
                 <p className="mx-auto mb-4 max-w-sm text-sm text-[#475569]">
-                  Accede al plan de acción detallado, simulacro SUNAFIL interactivo, alertas automáticas y más.
+                  En una llamada gratis de 30 minutos te explicamos qué corregir primero y cuánto cuesta ponerte al día.
                 </p>
                 <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Link href="/sign-up" className={cn(pub.btnPrimary, 'px-6')}>
-                    Crear cuenta gratis <ArrowRight aria-hidden className="h-4 w-4" />
+                  <Link href="/contacto?interes=diagnostico" className={cn(pub.btnPrimary, 'px-6')}>
+                    Agendar mi llamada gratis <ArrowRight aria-hidden className="h-4 w-4" />
                   </Link>
-                  <span className="text-xs text-[#475569]">Prueba gratuita, sin tarjeta de crédito</span>
+                  <Link href="/planes" className="text-xs font-semibold text-[#1D4ED8] hover:underline">
+                    Ver precios
+                  </Link>
                 </div>
               </div>
             </div>
@@ -601,7 +603,7 @@ export default function DiagnosticoGratisPage() {
               Preguntas tomadas de los {QUESTION_COUNT.FULL} criterios del diagnóstico completo | Actualizado 2026 | D.S. 019-2006-TR, Ley 29783, Ley 27942
             </p>
             <Link href="/" className={cn(pub.link, 'text-xs')}>
-              Volver a COMPLY360
+              Volver a Comply360
             </Link>
           </div>
         </div>

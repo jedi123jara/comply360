@@ -205,12 +205,12 @@ export default function MultaSunafilPage() {
 
         <LeadCaptureCTA
           source="calc-multa-sunafil"
-          title="¿Te enviamos el detalle de cómo evitar esta multa?"
-          subtitle="Te llega un PDF con las medidas de subsanación voluntaria (descuento 90%) + 14 días gratis del diagnóstico SUNAFIL completo."
+          title="¿Quieres evitar esta multa?"
+          subtitle="Déjanos tu correo y coordinamos un diagnóstico gratis de 30 minutos para ver qué conviene subsanar primero."
         />
         <SignupCTA
-          title="Evita esta multa con COMPLY360"
-          subtitle="Nuestro diagnóstico SUNAFIL de 135 preguntas detecta estas infracciones antes de que te inspeccionen, y te da un plan de acción priorizado. La subsanación voluntaria es 90% más barata que una multa."
+          title="Evita esta multa con Comply360"
+          subtitle="Te decimos qué te falta, lo implementamos y te dejamos la evidencia lista para el inspector. Ponerte al día antes de una inspección cuesta mucho menos que una multa."
         />
       </CalcBody>
     </>
