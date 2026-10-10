@@ -540,7 +540,7 @@ interface AiTestResult {
 
 function AiTestCard() {
   const [prompt, setPrompt] = useState('')
-  const [model, setModel] = useState('deepseek-chat')
+  const [model, setModel] = useState('deepseek-flash')
   const [useRag, setUseRag] = useState(true) // RAG activo por default
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AiTestResult | null>(null)
@@ -592,7 +592,7 @@ function AiTestCard() {
           <h2 className="text-lg font-bold text-slate-900">IA — DeepSeek</h2>
           <p className="text-sm text-slate-600 mt-0.5">
             Verifica si la API key de DeepSeek está configurada y respondiendo correctamente.
-            Modelo por defecto: <code className="bg-slate-100 px-1 rounded text-xs">deepseek-chat</code> (alias V4 Flash).
+            Modelo por defecto: <code className="bg-slate-100 px-1 rounded text-xs">deepseek-flash</code> (V4.1 Flash).
           </p>
         </div>
       </div>
@@ -608,8 +608,8 @@ function AiTestCard() {
           disabled={loading}
           className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:opacity-50"
         >
-          <option value="deepseek-chat">deepseek-chat (V4 Flash · barato)</option>
-          <option value="deepseek-reasoner">deepseek-reasoner (V4 Pro · razonamiento)</option>
+          <option value="deepseek-flash">deepseek-flash (V4.1 Flash · barato)</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro (V4 Pro · razonamiento)</option>
         </select>
       </div>
 
@@ -1300,7 +1300,7 @@ function PlanOverrideCard() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="ej. inveraduaneras@gmail.com"
+            placeholder="ej. rrhh@tuempresa.pe"
             disabled={loading}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:opacity-50 font-mono"
           />

@@ -8,8 +8,10 @@ import { test, expect, type Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const EMAIL = 'inveraduaneras@gmail.com'
-const PASSWORD = 'K102007lia'
+// Credenciales de una cuenta de prueba. Nunca escribirlas en el repo: se leen
+// del entorno (E2E_JOURNEY_EMAIL / E2E_JOURNEY_PASSWORD) y sin ellas el spec se salta.
+const EMAIL = process.env.E2E_JOURNEY_EMAIL ?? ''
+const PASSWORD = process.env.E2E_JOURNEY_PASSWORD ?? ''
 
 const RUC = '20512345674'
 const RAZON_SOCIAL = 'Inversiones Aduaneras del Pacífico SAC'
@@ -95,6 +97,8 @@ async function scanCopy(page: Page, label: string, notes: string[]) {
 }
 
 test.describe.serial('Customer journey — PYME peruana', () => {
+  test.skip(!EMAIL || !PASSWORD, 'Define E2E_JOURNEY_EMAIL y E2E_JOURNEY_PASSWORD para correr este recorrido')
+
   test.beforeAll(() => {
     fs.mkdirSync(SCREENSHOT_DIR, { recursive: true })
   })

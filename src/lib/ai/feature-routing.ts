@@ -4,9 +4,10 @@
  * Esta tabla es la fuente única de verdad de cómo se rutea cada workload de IA.
  * Override final por env var (ver provider.ts).
  *
- * Tiers DeepSeek:
- *   - flash → deepseek-chat       (V4-Flash, $0.14/M input, $0.28/M output)
- *   - pro   → deepseek-reasoner   (V4-Pro,   $1.74/M input, $3.48/M output)
+ * Tiers DeepSeek (modelos vigentes al 2026-10; `deepseek-chat` y
+ * `deepseek-reasoner` se retiraron el 2026-07-24):
+ *   - flash → deepseek-flash   (V4.1-Flash, sin modo pensamiento)
+ *   - pro   → deepseek-v4-pro  (V4-Pro, con modo pensamiento)
  *
  * Excepciones (no migrar a DeepSeek):
  *   - rag-embed       → OpenAI text-embedding-3-small (DeepSeek no tiene embeddings)
@@ -178,13 +179,42 @@ export const FEATURE_ROUTING: Record<AIFeature, FeatureConfig> = {
   },
 }
 
+export const DEEPSEEK_FLASH_MODEL = 'deepseek-flash'
+export const DEEPSEEK_PRO_MODEL = 'deepseek-v4-pro'
+
+/**
+ * Nombres retirados que todavía pueden llegar por env vars viejas
+ * (DEEPSEEK_MODEL, <FEATURE>_DEEPSEEK_MODEL) y su reemplazo vigente.
+ */
+const LEGACY_DEEPSEEK_MODELS: Record<string, string> = {
+  'deepseek-chat': DEEPSEEK_FLASH_MODEL,
+  'deepseek-v4': DEEPSEEK_FLASH_MODEL,
+  'deepseek-v4-flash': DEEPSEEK_FLASH_MODEL,
+  'deepseek-reasoner': DEEPSEEK_PRO_MODEL,
+}
+
+export function normalizeDeepSeekModel(model: string): string {
+  const trimmed = model.trim()
+  return LEGACY_DEEPSEEK_MODELS[trimmed.toLowerCase()] ?? trimmed
+}
+
+/**
+ * Los modelos actuales piensan por defecto. El tier flash replica al viejo
+ * `deepseek-chat` (sin razonamiento: rápido y barato, necesario para que el
+ * streaming no supere el timeout del primer token) y el pro replica a
+ * `deepseek-reasoner`.
+ */
+export function deepSeekThinking(model: string): 'enabled' | 'disabled' {
+  return normalizeDeepSeekModel(model) === DEEPSEEK_PRO_MODEL ? 'enabled' : 'disabled'
+}
+
 /**
  * Resuelve el modelo de DeepSeek según tier.
  * Override final via env var FEATURE_DEEPSEEK_MODEL en provider.ts.
  */
 export function tierToDeepSeekModel(tier: DeepSeekTier | null): string {
-  if (tier === 'pro') return 'deepseek-reasoner'
-  return 'deepseek-chat' // flash o null caen al default Flash
+  if (tier === 'pro') return DEEPSEEK_PRO_MODEL
+  return DEEPSEEK_FLASH_MODEL // flash o null caen al default Flash
 }
 
 /**
