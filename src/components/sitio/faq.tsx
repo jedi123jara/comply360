@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { pub } from '@/components/marketing/public-theme'
 import { faqLd } from '@/lib/sitio/seo'
@@ -6,7 +6,8 @@ import { JsonLd } from './json-ld'
 
 /**
  * Preguntas frecuentes con <details> (funciona sin JavaScript y el texto queda
- * en el HTML para Google) + FAQPage en JSON-LD.
+ * en el HTML para Google) + FAQPage en JSON-LD. Estilo editorial: líneas finas.
+ * `titulo={null}` cuando la sección que la contiene ya tiene su título.
  */
 export function Faq({
   faqs,
@@ -14,30 +15,28 @@ export function Faq({
   className,
 }: {
   faqs: ReadonlyArray<{ pregunta: string; respuesta: string }>
-  titulo?: string
+  titulo?: string | null
   className?: string
 }) {
   if (faqs.length === 0) return null
   return (
-    <section aria-labelledby="faq-titulo" className={className}>
+    <div className={className}>
       <JsonLd data={faqLd(faqs)} />
-      <h2 id="faq-titulo" className={pub.h2}>
-        {titulo}
-      </h2>
-      <div className={cn(pub.card, pub.divide, 'mt-6')}>
+      {titulo ? <h2 className={cn(pub.h2, 'mb-10')}>{titulo}</h2> : null}
+      <div className="border-t border-[#0B1B36]">
         {faqs.map((f) => (
-          <details key={f.pregunta} className="group px-5 py-4 sm:px-6">
-            <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-left text-base font-bold text-[#0B1B36] [&::-webkit-details-marker]:hidden">
-              <span>{f.pregunta}</span>
-              <ChevronDown
+          <details key={f.pregunta} className="group border-b border-[#E1E7F0]">
+            <summary className="flex cursor-pointer list-none items-start justify-between gap-6 py-6 text-left [&::-webkit-details-marker]:hidden">
+              <span className="text-lg font-bold tracking-[-0.01em] text-[#0B1B36]">{f.pregunta}</span>
+              <Plus
                 aria-hidden
-                className="mt-0.5 h-5 w-5 shrink-0 text-[#2563EB] transition-transform group-open:rotate-180"
+                className="mt-1 h-5 w-5 shrink-0 text-[#0B1B36] transition-transform duration-200 group-open:rotate-45"
               />
             </summary>
-            <p className={cn(pub.body, 'mt-3 max-w-3xl text-[0.95rem] leading-7')}>{f.respuesta}</p>
+            <p className="-mt-2 max-w-3xl pb-7 text-[1.02rem] leading-8 text-[#475569]">{f.respuesta}</p>
           </details>
         ))}
       </div>
-    </section>
+    </div>
   )
 }
