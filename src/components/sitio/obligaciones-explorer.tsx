@@ -24,6 +24,12 @@ const GRUPOS: Array<{ estado: EstadoObligacion; titulo: string; icono: typeof Ch
   { estado: 'no-exigible', titulo: 'No exigible a tu empresa (REMYPE)', icono: MinusCircle, color: 'text-[#5A6A80]' },
 ]
 
+function claseFalta(falta: string): string {
+  if (falta.startsWith('Muy grave')) return 'bg-[#FEF2F2] text-[#991B1B]'
+  if (falta.startsWith('Grave')) return 'bg-[#FFF7E6] text-[#92400E]'
+  return 'bg-[#F1F4F8] text-[#475569]'
+}
+
 /**
  * Explorador interactivo del mapa de obligaciones: número de trabajadores +
  * condiciones → lista de lo que aplica, agrupado por área.
@@ -53,9 +59,9 @@ export function ObligacionesExplorer() {
   const set = <K extends keyof PerfilEmpresa>(k: K, v: PerfilEmpresa[K]) => setPerfil((p) => ({ ...p, [k]: v }))
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[340px_1fr] lg:items-start">
-      <div className={cn(pub.card, 'p-6 lg:sticky lg:top-24')}>
-        <h2 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">Tu empresa</h2>
+    <div className="grid gap-10 xl:grid-cols-[300px_1fr] xl:items-start">
+      <div className="rounded-2xl border border-[#E1E7F0] bg-[#ffffff] p-6 xl:sticky xl:top-24">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8A97AB]">Tu empresa</p>
         <label htmlFor="obl-trabajadores" className={cn(pub.label, 'mt-5')}>
           Número de trabajadores
         </label>
@@ -66,9 +72,9 @@ export function ObligacionesExplorer() {
           max={100000}
           value={perfil.trabajadores}
           onChange={(e) => set('trabajadores', Math.max(1, parseInt(e.target.value, 10) || 1))}
-          className={cn(pub.input, 'px-3 text-base font-bold')}
+          className={cn(pub.input, 'px-3 text-lg font-extrabold tabular-nums')}
         />
-        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Atajos de tamaño">
+        <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Atajos de tamaño">
           {ATAJOS.map((n) => (
             <button
               key={n}
@@ -76,17 +82,17 @@ export function ObligacionesExplorer() {
               onClick={() => set('trabajadores', n)}
               aria-pressed={perfil.trabajadores === n}
               className={cn(
-                'rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+                'min-w-10 rounded-md border px-2.5 py-1 text-xs font-bold tabular-nums transition-colors',
                 perfil.trabajadores === n
                   ? 'border-[#0B1B36] bg-[#0B1B36] text-[#ffffff]'
-                  : 'border-[#E5EAF2] bg-[#ffffff] text-[#475569] hover:border-[#2563EB]',
+                  : 'border-[#D9E0EA] bg-[#ffffff] text-[#475569] hover:border-[#0B1B36]',
               )}
             >
               {n}
             </button>
           ))}
         </div>
-        <div className="mt-6 grid gap-4">
+        <div className="mt-6 grid gap-4 border-t border-[#E1E7F0] pt-6">
           <Toggle
             id="obl-remype"
             label="Estoy inscrito en el REMYPE"
@@ -118,13 +124,16 @@ export function ObligacionesExplorer() {
         </div>
       </div>
 
-      <div>
-        <div className={cn(pub.card, 'flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between')} aria-live="polite">
+      <div className="min-w-0">
+        <div
+          className="flex flex-col items-start gap-6 rounded-2xl bg-[#0B1B36] p-7 text-[#ffffff] 2xl:flex-row 2xl:items-center 2xl:justify-between"
+          aria-live="polite"
+        >
           <div>
-            <p className="text-3xl font-extrabold tracking-[-0.02em] text-[#0B1B36]">
-              {aplican.length} obligaciones te aplican
+            <p className="text-4xl font-extrabold tracking-[-0.03em] tabular-nums">
+              {aplican.length} <span className="text-2xl">obligaciones te aplican</span>
             </p>
-            <p className={cn(pub.body, 'mt-1')}>
+            <p className="mt-2 text-sm text-[#CBD5E1]">
               {graves} de ellas son faltas muy graves si no las cumples. ¿Sabes cuáles tienes al día?
             </p>
           </div>
@@ -137,37 +146,28 @@ export function ObligacionesExplorer() {
           const lista = clasificadas.get(estado) ?? []
           if (lista.length === 0) return null
           return (
-            <section key={estado} className="mt-8" aria-label={titulo}>
-              <h3 className="flex items-center gap-2 text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">
+            <section key={estado} className="mt-12" aria-label={titulo}>
+              <h3 className="flex items-center gap-2 text-xl font-extrabold tracking-[-0.02em] text-[#0B1B36]">
                 <Icono aria-hidden className={cn('h-5 w-5', color)} />
-                {titulo} <span className="text-sm font-semibold text-[#5A6A80]">({lista.length})</span>
+                {titulo} <span className="text-base font-semibold text-[#8A97AB]">{lista.length}</span>
               </h3>
               {AREAS_OBLIGACION.map((area) => {
                 const deArea = lista.filter((o) => o.area === area)
                 if (deArea.length === 0) return null
                 return (
-                  <div key={area} className="mt-4">
-                    <p className={cn(pub.kicker, 'mb-2')}>{area}</p>
-                    <ul className={cn(pub.card, pub.divide)}>
+                  <div key={area} className="mt-6">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#8A97AB]">{area}</p>
+                    <ul className="border-t border-[#0B1B36]">
                       {deArea.map((o) => (
-                        <li key={o.id} className="grid gap-2 px-5 py-4 sm:grid-cols-[1fr_auto] sm:gap-6">
+                        <li key={o.id} className="grid gap-2 border-b border-[#E1E7F0] py-4 sm:grid-cols-[1fr_auto] sm:gap-6">
                           <div>
-                            <p className="font-semibold text-[#0B1B36]">{o.obligacion}</p>
-                            <p className={cn(pub.faint, 'mt-1')}>
+                            <p className="font-semibold leading-6 text-[#0B1B36]">{o.obligacion}</p>
+                            <p className="mt-1 text-xs leading-5 text-[#5A6A80]">
                               {o.base} · Evidencia: {o.evidencia}
                             </p>
-                            {o.nota ? <p className="mt-1 text-xs text-[#475569]">{o.nota}</p> : null}
+                            {o.nota ? <p className="mt-1 text-xs leading-5 text-[#475569]">{o.nota}</p> : null}
                           </div>
-                          <span
-                            className={cn(
-                              'h-fit whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold',
-                              o.falta.startsWith('Muy grave')
-                                ? 'bg-[#FEE2E2] text-[#991B1B]'
-                                : o.falta.startsWith('Grave')
-                                  ? 'bg-[#FFF8E6] text-[#92400E]'
-                                  : 'bg-[#F5F7FB] text-[#475569]',
-                            )}
-                          >
+                          <span className={cn('h-fit whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-bold', claseFalta(o.falta))}>
                             {o.falta}
                           </span>
                         </li>

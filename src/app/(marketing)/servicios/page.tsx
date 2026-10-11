@@ -1,21 +1,19 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import type { LucideIcon } from 'lucide-react'
-import { ArrowRight, CalendarCheck, ClipboardCheck, FileCheck2, GraduationCap, Scale, Wrench } from 'lucide-react'
-import { PublicHero } from '@/components/marketing/public-hero'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import { pub } from '@/components/marketing/public-theme'
-import { Breadcrumbs } from '@/components/sitio/breadcrumbs'
 import { CtaBand } from '@/components/sitio/cta-band'
+import { FichaHero, HeroPagina, Seccion } from '@/components/sitio/editorial'
 import { Faq } from '@/components/sitio/faq'
 import { JsonLd } from '@/components/sitio/json-ld'
-import { SectionHeader } from '@/components/sitio/section-header'
 import { cn } from '@/lib/utils'
+import { PLANES_IGUALA, SERVICIOS_PRECIO_FIJO, soles } from '@/lib/sitio/planes'
 import { construirMetadata, servicioLd } from '@/lib/sitio/seo'
-import { AREAS_SERVICIO, LINEAS_SERVICIO, type LineaServicio } from '@/lib/sitio/servicios'
-import { CTA } from '@/lib/sitio/site'
+import { AREAS_SERVICIO, LINEAS_SERVICIO } from '@/lib/sitio/servicios'
+import { CTA, SITIO } from '@/lib/sitio/site'
 
 const DESCRIPCION =
-  'Diagnóstico, implementación, iguala mensual, capacitaciones obligatorias y defensa ante SUNAFIL para empresas. Laboral, SST y hostigamiento sexual en un solo lugar.'
+  'Diagnóstico, implementación, iguala mensual, capacitaciones obligatorias y defensa ante SUNAFIL para empresas: laboral, SST, hostigamiento y RRHH en un solo lugar.'
 
 export const metadata: Metadata = construirMetadata({
   titulo: 'Servicios de cumplimiento normativo para empresas',
@@ -23,15 +21,6 @@ export const metadata: Metadata = construirMetadata({
   ruta: '/servicios',
   keywords: ['servicios de cumplimiento normativo', 'iguala laboral empresas', 'consultoría SST', 'defensa SUNAFIL', 'compliance laboral'],
 })
-
-const ICONOS: Record<LineaServicio['id'], LucideIcon> = {
-  diagnostico: ClipboardCheck,
-  implementacion: FileCheck2,
-  iguala: CalendarCheck,
-  capacitaciones: GraduationCap,
-  defensa: Scale,
-  puntuales: Wrench,
-}
 
 const FAQS = [
   {
@@ -56,6 +45,9 @@ const FAQS = [
 ]
 
 export default function ServiciosPage() {
+  const igualaDesde = Math.min(...PLANES_IGUALA.map((p) => p.precioMensual))
+  const diagnosticoDesde = SERVICIOS_PRECIO_FIJO.find((s) => s.servicio === 'Diagnóstico completo')?.precios[0] ?? 600
+
   return (
     <>
       <JsonLd
@@ -64,21 +56,30 @@ export default function ServiciosPage() {
           descripcion: DESCRIPCION,
           ruta: '/servicios',
           tipo: 'Cumplimiento normativo laboral y de SST',
-          precioDesde: 390,
+          precioDesde: igualaDesde,
         })}
       />
-      <PublicHero
-        align="left"
-        eyebrow="Servicios"
-        title={
+
+      <HeroPagina
+        migas={[{ nombre: 'Servicios', ruta: '/servicios' }]}
+        etiqueta="Servicios"
+        titulo={
           <>
-            Seis servicios para que tu empresa <span className={pub.highlightOnNavy}>esté en regla todo el año</span>
+            Seis servicios para que tu empresa <span className="text-[#F5B301]">esté en regla todo el año</span>
           </>
         }
-        description="El diagnóstico abre la puerta, la implementación ordena, la iguala te mantiene al día, y las capacitaciones y la defensa completan el círculo."
-        media={<Breadcrumbs items={[{ nombre: 'Servicios', ruta: '/servicios' }]} className="mb-0" />}
+        bajada="El diagnóstico abre la puerta, la implementación ordena, la iguala te mantiene al día, y las capacitaciones y la defensa completan el ciclo."
+        aside={
+          <FichaHero
+            filas={[
+              { etiqueta: 'Diagnóstico', valor: `Express gratis · completo desde ${soles(diagnosticoDesde)}` },
+              { etiqueta: 'Iguala', valor: `Desde ${soles(igualaDesde)} + IGV al mes` },
+              { etiqueta: 'Atención', valor: SITIO.cobertura },
+            ]}
+          />
+        }
       >
-        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link href={CTA.diagnostico.href} className={pub.btnPrimaryLg}>
             {CTA.diagnostico.label} <ArrowRight aria-hidden className="h-4 w-4" />
           </Link>
@@ -86,75 +87,85 @@ export default function ServiciosPage() {
             Ver precios
           </Link>
         </div>
-      </PublicHero>
+      </HeroPagina>
 
-      <section className="bg-[#ffffff]" aria-label="Líneas de servicio">
-        <div className={cn(pub.container, pub.section, 'grid gap-6')}>
-          {LINEAS_SERVICIO.map((linea) => {
-            const Icono = ICONOS[linea.id]
-            return (
-              <article key={linea.id} id={linea.id} className={cn(pub.card, 'scroll-mt-28 grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.3fr_1fr]')}>
+      {/* 01 — Los servicios */}
+      <Seccion
+        id="lineas"
+        numero="01"
+        etiqueta="Los servicios"
+        titulo="Del diagnóstico a la defensa, con un mismo equipo"
+        bajada="Puedes contratarlos por separado, pero funcionan mejor encadenados."
+      >
+        <ol className="border-t border-[#0B1B36]">
+          {LINEAS_SERVICIO.map((linea, i) => (
+            <li key={linea.id} id={linea.id} className="scroll-mt-28 border-b border-[#E1E7F0] py-9">
+              <div className="grid grid-cols-[3rem_1fr] gap-x-4">
+                <span className="pt-1.5 text-sm font-bold tabular-nums text-[#B45309]">{String(i + 1).padStart(2, '0')}</span>
                 <div>
-                  <div className="flex items-center gap-3">
-                    <span className={pub.iconBox}>
-                      <Icono aria-hidden className="h-5 w-5" />
-                    </span>
-                    <p className={pub.kicker}>{linea.verbo}</p>
-                  </div>
-                  <h2 className="mt-4 text-2xl font-extrabold tracking-[-0.02em] text-[#0B1B36]">{linea.nombre}</h2>
-                  <p className={cn(pub.lead, 'mt-2 text-base')}>{linea.descripcion}</p>
-                </div>
-                <dl className={cn(pub.inset, 'grid gap-4 p-5 text-sm')}>
-                  <div>
-                    <dt className="font-bold text-[#0B1B36]">Qué recibes</dt>
-                    <dd className="mt-1 text-[#475569]">{linea.entregable}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-bold text-[#0B1B36]">Plazo</dt>
-                    <dd className="mt-1 text-[#475569]">{linea.plazo}</dd>
-                  </div>
-                  {linea.id === 'capacitaciones' ? (
-                    <Link href="/capacitaciones" className={cn(pub.linkMore, 'text-sm')}>
-                      Ver el catálogo de capacitaciones <ArrowRight aria-hidden className="h-4 w-4" />
-                    </Link>
-                  ) : null}
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8A97AB]">{linea.verbo}</p>
+                  <h3 className="mt-1.5 text-[1.5rem] font-extrabold tracking-[-0.02em] text-[#0B1B36]">{linea.nombre}</h3>
+                  <p className="mt-3 max-w-2xl text-[1.02rem] leading-7 text-[#475569]">{linea.descripcion}</p>
+                  <dl className="mt-6 grid gap-5 border-t border-[#EEF2F7] pt-5 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">Qué recibes</dt>
+                      <dd className="mt-1.5 leading-6 text-[#0B1B36]">{linea.entregable}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">Plazo</dt>
+                      <dd className="mt-1.5 leading-6 text-[#0B1B36]">{linea.plazo}</dd>
+                    </div>
+                  </dl>
                   {linea.id === 'diagnostico' ? (
-                    <Link href="/diagnostico-gratis" className={cn(pub.linkMore, 'text-sm')}>
+                    <Link href="/diagnostico-gratis" className={cn(pub.linkMore, 'mt-5 text-sm')}>
                       Hacer el diagnóstico gratis <ArrowRight aria-hidden className="h-4 w-4" />
                     </Link>
                   ) : null}
-                </dl>
-              </article>
-            )
-          })}
-        </div>
-      </section>
+                  {linea.id === 'capacitaciones' ? (
+                    <Link href="/capacitaciones" className={cn(pub.linkMore, 'mt-5 text-sm')}>
+                      Ver el catálogo de capacitaciones <ArrowRight aria-hidden className="h-4 w-4" />
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Seccion>
 
-      <section aria-labelledby="por-area">
-        <div className={cn(pub.container, pub.section)}>
-          <SectionHeader
-            id="por-area"
-            kicker="Por área"
-            titulo="Lo que hacemos en cada materia"
-            bajada="Empezamos por lo que más fiscaliza SUNAFIL. Protección de datos personales, libro de reclamaciones y prevención de delitos se suman a pedido."
-          />
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            {AREAS_SERVICIO.map((area) => (
-              <Link key={area.slug} href={`/servicios/${area.slug}`} className={cn(pub.card, pub.cardHover, 'flex flex-col p-6')}>
-                <h3 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">{area.titulo}</h3>
-                <p className={cn(pub.body, 'mt-2 flex-1')}>{area.resumen}</p>
-                <span className={cn(pub.linkMore, 'mt-4 text-sm')}>
-                  {area.enlace} <ArrowRight aria-hidden className="h-4 w-4" />
-                </span>
-              </Link>
-            ))}
-          </div>
+      {/* 02 — Por área */}
+      <Seccion
+        id="por-area"
+        numero="02"
+        etiqueta="Por área"
+        tono="claro"
+        titulo="Lo que hacemos en cada materia"
+        bajada="Protección de datos personales, libro de reclamaciones y prevención de delitos se suman a pedido."
+      >
+        <div className="grid gap-x-10 gap-y-14 sm:grid-cols-2">
+          {AREAS_SERVICIO.map((area) => (
+            <Link key={area.slug} href={`/servicios/${area.slug}`} className="group flex flex-col border-t-2 border-[#0B1B36] pt-6">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">{area.baseLegal}</p>
+              <h3 className="mt-3 flex items-start justify-between gap-4 text-xl font-extrabold leading-snug tracking-[-0.02em] text-[#0B1B36]">
+                {area.titulo}
+                <ArrowUpRight
+                  aria-hidden
+                  className="mt-1 h-5 w-5 shrink-0 text-[#9AA6B8] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#0B1B36]"
+                />
+              </h3>
+              <p className="mt-3 flex-1 text-[0.98rem] leading-7 text-[#475569]">{area.resumen}</p>
+              <span className={cn(pub.linkMore, 'mt-6 text-sm')}>
+                {area.enlace} <ArrowRight aria-hidden className="h-4 w-4" />
+              </span>
+            </Link>
+          ))}
         </div>
-      </section>
+      </Seccion>
 
-      <div className={cn(pub.container, 'pb-4')}>
-        <Faq faqs={FAQS} />
-      </div>
+      {/* 03 — Preguntas frecuentes */}
+      <Seccion id="preguntas" numero="03" etiqueta="Preguntas frecuentes" titulo="Lo que suelen preguntarnos">
+        <Faq faqs={FAQS} titulo={null} />
+      </Seccion>
 
       <CtaBand />
     </>
