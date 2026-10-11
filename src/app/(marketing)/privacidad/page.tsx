@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Política de Privacidad',
   description:
     'Política de privacidad y tratamiento de datos personales de COMPLY360, conforme a la Ley N° 29733 y su reglamento.',
+  alternates: { canonical: '/privacidad' },
 }
 
 export default function PrivacidadPage() {

@@ -13,7 +13,10 @@ import Script from "next/script";
 import { BRAND } from "@/lib/brand";
 
 const faviconVersion = "20260511-2";
-const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+// Verificación de Search Console para la propiedad https://comply360.pe/. Si se
+// borra, Google deja de considerar verificado el sitio. No es un secreto.
+const googleSiteVerification =
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "7CezB-bjQCibqzmBxcpB5TwWblXoD8OwLdM0jWpEehM";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
