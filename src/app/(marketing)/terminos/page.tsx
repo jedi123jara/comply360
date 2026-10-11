@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Términos y Condiciones',
   description:
     'Términos y condiciones de uso de la plataforma COMPLY360 para compliance laboral en Perú.',
+  alternates: { canonical: '/terminos' },
 }
 
 export default function TerminosPage() {

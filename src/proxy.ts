@@ -10,6 +10,9 @@ const isPublicRoute = createRouteMatcher([
   // SEO files (Next.js generates these from src/app/sitemap.ts + robots.ts)
   '/sitemap.xml',
   '/robots.txt',
+  // Clave de IndexNow (Bing, Yandex, Seznam…): el buscador la lee para validar
+  // los avisos de URLs nuevas que manda `scripts/indexnow.mjs`.
+  '/1c1d094153c5781b8b47e6a7884805ab.txt',
 
   // Marketing pages (route group `(marketing)/*` en el filesystem, URL al root)
   '/calculadoras(.*)',       // hub + CTS / grati / multa-sunafil / etc.
