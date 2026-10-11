@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse, type NextRequest } from 'next/server'
+import { esSlugInexistente } from '@/lib/sitio/slugs-publicos'
 
 const isPublicRoute = createRouteMatcher([
   // Landing + auth
@@ -172,6 +173,18 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
 export default async function proxy(request: NextRequest) {
   if (isDev && request.nextUrl.searchParams.get('__workerPreview') === '1') {
     const response = NextResponse.next()
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
+  // /servicios, /capacitaciones y /recursos con un slug que no existe: se
+  // reescribe a una ruta inexistente para que Next responda el 404 real con la
+  // página de "no encontrado". Si llega a la página, el loading.tsx ya empezó a
+  // transmitir con 200 y Google lo cuenta como soft 404 (ver slugs-publicos.ts).
+  if (esSlugInexistente(request.nextUrl.pathname)) {
+    const response = NextResponse.rewrite(new URL('/pagina-no-encontrada-404', request.url))
     for (const [key, value] of Object.entries(securityHeaders)) {
       response.headers.set(key, value)
     }
