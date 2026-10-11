@@ -1,12 +1,9 @@
 import type { Metadata } from 'next'
-import { PublicHero } from '@/components/marketing/public-hero'
-import { pub } from '@/components/marketing/public-theme'
-import { Breadcrumbs } from '@/components/sitio/breadcrumbs'
 import { CtaBand } from '@/components/sitio/cta-band'
+import { FichaHero, HeroPagina, Seccion } from '@/components/sitio/editorial'
 import { Faq } from '@/components/sitio/faq'
 import { JsonLd } from '@/components/sitio/json-ld'
 import { ObligacionesExplorer } from '@/components/sitio/obligaciones-explorer'
-import { SectionHeader } from '@/components/sitio/section-header'
 import { cn } from '@/lib/utils'
 import { AREAS_OBLIGACION, OBLIGACIONES } from '@/lib/sitio/obligaciones'
 import { construirMetadata } from '@/lib/sitio/seo'
@@ -51,6 +48,8 @@ const FAQS = [
   },
 ]
 
+const celdaCabecera = 'py-4 pr-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]'
+
 export default function ObligacionesPage() {
   return (
     <>
@@ -67,63 +66,73 @@ export default function ObligacionesPage() {
           offers: { '@type': 'Offer', price: 0, priceCurrency: 'PEN' },
         }}
       />
-      <PublicHero
-        align="left"
-        eyebrow="Herramienta gratis"
-        title={
+
+      <HeroPagina
+        migas={[{ nombre: '¿Qué debo cumplir?', ruta: '/obligaciones' }]}
+        etiqueta="Herramienta gratis"
+        titulo={
           <>
-            ¿Qué obligaciones tiene tu empresa <span className={pub.highlightOnNavy}>según su tamaño?</span>
+            ¿Qué obligaciones tiene tu empresa <span className="text-[#F5B301]">según su tamaño?</span>
           </>
         }
-        description="Indica cuántos trabajadores tienes y mira lo que te exige la ley en SST, hostigamiento sexual, laboral y más, con la base legal y la gravedad de cada falta."
-        media={<Breadcrumbs items={[{ nombre: '¿Qué debo cumplir?', ruta: '/obligaciones' }]} className="mb-0" />}
+        bajada="Indica cuántos trabajadores tienes y mira lo que te exige la ley en SST, hostigamiento sexual, laboral y más, con la base legal y la gravedad de cada falta."
+        aside={
+          <FichaHero
+            filas={[
+              { etiqueta: 'Obligaciones', valor: `${OBLIGACIONES.length} verificadas con la norma vigente` },
+              { etiqueta: 'Actualizado', valor: '10 de octubre de 2026' },
+              { etiqueta: 'Costo', valor: 'Gratis, sin registrarte' },
+            ]}
+          />
+        }
       />
 
-      <section aria-label="Explorador de obligaciones">
-        <div className={cn(pub.container, pub.section)}>
-          <ObligacionesExplorer />
-          <p className={cn(pub.note, 'mt-8')}>
-            Verificado con el texto vigente al 10 de octubre de 2026. Es una guía general: no reemplaza una revisión de tu
-            caso. La gravedad corresponde al reglamento de inspección (D.S. 019-2006-TR) salvo que se indique otra
-            autoridad.
-          </p>
-        </div>
-      </section>
+      {/* 01 — La herramienta */}
+      <Seccion id="herramienta" numero="01" etiqueta="La herramienta" titulo="Tu empresa, en un minuto">
+        <ObligacionesExplorer />
+        <p className="mt-10 max-w-3xl border-t border-[#E1E7F0] pt-6 text-sm leading-6 text-[#5A6A80]">
+          Verificado con el texto vigente al 10 de octubre de 2026. Es una guía general y no reemplaza la revisión de tu
+          caso. La gravedad corresponde al reglamento de inspección (D.S. 019-2006-TR), salvo que se indique otra
+          autoridad.
+        </p>
+      </Seccion>
 
-      <section className="bg-[#ffffff]" aria-labelledby="tabla-completa">
-        <div className={cn(pub.container, pub.section)}>
-          <SectionHeader
-            id="tabla-completa"
-            kicker="Referencia"
-            titulo="Todas las obligaciones, con su base legal"
-            bajada="La tabla completa, ordenada por área y por umbral."
-          />
+      {/* 02 — Referencia completa */}
+      <Seccion
+        id="referencia"
+        numero="02"
+        etiqueta="Referencia"
+        tono="claro"
+        titulo="Todas las obligaciones, con su base legal"
+        bajada="La tabla completa, ordenada por área y por umbral."
+      >
+        <div className="grid gap-14">
           {AREAS_OBLIGACION.map((area) => {
             const lista = OBLIGACIONES.filter((o) => o.area === area)
             return (
-              <div key={area} className="mt-8">
-                <h3 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">{area}</h3>
-                <div className={cn(pub.card, 'mt-3 overflow-x-auto')}>
-                  <table className="w-full min-w-[760px] text-left text-sm">
+              <div key={area}>
+                <h3 className="text-xl font-extrabold tracking-[-0.02em] text-[#0B1B36]">{area}</h3>
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full min-w-[720px] border-t border-[#0B1B36] text-left">
                     <caption className="sr-only">Obligaciones de {area}</caption>
                     <thead>
-                      <tr className="border-b border-[#E5EAF2] bg-[#F5F7FB] text-xs uppercase tracking-[0.08em] text-[#5A6A80]">
-                        <th scope="col" className="px-4 py-3 font-bold">Desde</th>
-                        <th scope="col" className="px-4 py-3 font-bold">Obligación</th>
-                        <th scope="col" className="px-4 py-3 font-bold">Base legal</th>
-                        <th scope="col" className="px-4 py-3 font-bold">Falta</th>
+                      <tr className="border-b border-[#D9E0EA]">
+                        <th scope="col" className={cn(celdaCabecera, 'w-[18%]')}>Desde</th>
+                        <th scope="col" className={celdaCabecera}>Obligación</th>
+                        <th scope="col" className={cn(celdaCabecera, 'w-[24%]')}>Base legal</th>
+                        <th scope="col" className={cn(celdaCabecera, 'w-[16%] pr-0')}>Falta</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E5EAF2] align-top">
+                    <tbody className="divide-y divide-[#D9E0EA] align-top">
                       {lista.map((o) => (
                         <tr key={o.id}>
-                          <td className="whitespace-nowrap px-4 py-3 font-semibold text-[#0B1B36]">{o.desde}</td>
-                          <th scope="row" className="normal-case text-sm tracking-normal px-4 py-3 font-semibold text-[#0B1B36]">
+                          <td className="py-4 pr-6 text-sm font-semibold text-[#0B1B36]">{o.desde}</td>
+                          <th scope="row" className="normal-case py-4 pr-6 text-[0.98rem] font-semibold leading-6 tracking-normal text-[#0B1B36]">
                             {o.obligacion}
-                            {o.nota ? <span className="mt-1 block text-xs font-normal text-[#5A6A80]">{o.nota}</span> : null}
+                            {o.nota ? <span className="mt-1 block text-sm font-normal leading-6 text-[#5A6A80]">{o.nota}</span> : null}
                           </th>
-                          <td className="px-4 py-3 text-[#475569]">{o.base}</td>
-                          <td className="px-4 py-3 text-[#475569]">{o.falta}</td>
+                          <td className="py-4 pr-6 text-sm leading-6 text-[#5A6A80]">{o.base}</td>
+                          <td className="py-4 text-sm font-semibold text-[#0B1B36]">{o.falta}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -133,11 +142,12 @@ export default function ObligacionesPage() {
             )
           })}
         </div>
-      </section>
+      </Seccion>
 
-      <div className={cn(pub.container, pub.section)}>
-        <Faq faqs={FAQS} />
-      </div>
+      {/* 03 — Preguntas frecuentes */}
+      <Seccion id="preguntas" numero="03" etiqueta="Preguntas frecuentes" titulo="Lo que suelen preguntarnos">
+        <Faq faqs={FAQS} titulo={null} />
+      </Seccion>
 
       <CtaBand titulo="¿Quieres saber cuáles cumples y cuáles no?" />
     </>

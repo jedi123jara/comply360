@@ -43,6 +43,7 @@ export const FOOTER_GRUPOS = [
       { label: 'Cumplimiento laboral', href: '/servicios/laboral' },
       { label: 'Seguridad y salud en el trabajo', href: '/servicios/sst' },
       { label: 'Hostigamiento sexual', href: '/servicios/hostigamiento' },
+      { label: 'Soporte legal a RRHH', href: '/servicios/rrhh' },
       { label: 'Planes y precios', href: '/planes' },
     ],
   },

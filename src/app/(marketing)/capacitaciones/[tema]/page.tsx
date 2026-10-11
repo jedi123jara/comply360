@@ -1,14 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowRight, CheckCircle2, Info } from 'lucide-react'
-import { PublicHero } from '@/components/marketing/public-hero'
+import { ArrowRight, ArrowUpRight, Check } from 'lucide-react'
 import { pub } from '@/components/marketing/public-theme'
-import { Breadcrumbs } from '@/components/sitio/breadcrumbs'
 import { CtaBand } from '@/components/sitio/cta-band'
+import { FichaHero, HeroPagina, Seccion } from '@/components/sitio/editorial'
 import { Faq } from '@/components/sitio/faq'
 import { JsonLd } from '@/components/sitio/json-ld'
-import { SectionHeader } from '@/components/sitio/section-header'
 import { cn } from '@/lib/utils'
 import { CAPACITACIONES, EVIDENCIA_ENTREGADA, capacitacionPorSlug } from '@/lib/sitio/capacitaciones'
 import { construirMetadata, cursoLd } from '@/lib/sitio/seo'
@@ -38,7 +36,7 @@ export default async function CapacitacionPage({ params }: { params: Promise<{ t
   if (!c) notFound()
 
   const ruta = `/capacitaciones/${c.slug}`
-  const otras = CAPACITACIONES.filter((o) => o.slug !== c.slug).slice(0, 3)
+  const otras = CAPACITACIONES.filter((o) => o.slug !== c.slug).slice(0, 4)
   const ficha = [
     { etiqueta: 'Obligatoria para', valor: c.obligatoriaPara },
     { etiqueta: 'Frecuencia', valor: c.frecuencia },
@@ -59,109 +57,102 @@ export default async function CapacitacionPage({ params }: { params: Promise<{ t
           precioDesde: c.precioDesde,
         })}
       />
-      <PublicHero
-        align="left"
-        eyebrow="Capacitación"
-        title={c.titulo}
-        description={c.resumen}
-        media={
-          <Breadcrumbs
-            items={[
-              { nombre: 'Capacitaciones', ruta: '/capacitaciones' },
-              { nombre: c.nombre, ruta },
+
+      <HeroPagina
+        migas={[
+          { nombre: 'Capacitaciones', ruta: '/capacitaciones' },
+          { nombre: c.nombre, ruta },
+        ]}
+        etiqueta="Capacitación"
+        titulo={c.titulo}
+        bajada={c.resumen}
+        aside={
+          <FichaHero
+            filas={[
+              { etiqueta: 'Precio', valor: c.precio },
+              { etiqueta: 'Duración', valor: c.duracion },
+              { etiqueta: 'Modalidad', valor: c.modalidad },
             ]}
-            className="mb-0"
           />
         }
       >
-        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link href="/contacto?interes=capacitaciones" className={pub.btnPrimaryLg}>
             Cotiza esta capacitación <ArrowRight aria-hidden className="h-4 w-4" />
           </Link>
-          <Link href="/capacitaciones" className={cn(pub.btnSecondaryOnNavy, 'min-h-[52px] px-6')}>
+          <Link href="/capacitaciones#plan-anual" className={cn(pub.btnSecondaryOnNavy, 'min-h-[52px] px-6')}>
             Ver el Plan Anual
           </Link>
         </div>
-      </PublicHero>
+      </HeroPagina>
 
-      <section className="bg-[#ffffff]" aria-labelledby="ficha">
-        <div className={cn(pub.container, pub.section, 'grid gap-8 lg:grid-cols-[1fr_1.1fr]')}>
-          <div>
-            <SectionHeader id="ficha" kicker="Ficha" titulo="Lo esencial" />
-            <dl className={cn(pub.card, pub.divide, 'mt-6')}>
-              {ficha.map((f) => (
-                <div key={f.etiqueta} className="grid gap-1 px-5 py-3 sm:grid-cols-[150px_1fr] sm:gap-4">
-                  <dt className="text-sm font-bold text-[#0B1B36]">{f.etiqueta}</dt>
-                  <dd className="text-sm text-[#475569]">{f.valor}</dd>
-                </div>
-              ))}
-              <div className="grid gap-1 bg-[#FFF8E6] px-5 py-3 sm:grid-cols-[150px_1fr] sm:gap-4">
-                <dt className="text-sm font-bold text-[#0B1B36]">Precio</dt>
-                <dd className="text-sm font-semibold text-[#0B1B36]">{c.precio}</dd>
-              </div>
-            </dl>
-          </div>
-          <div>
-            <SectionHeader kicker="Temario" titulo="Qué se ve en la sesión" />
-            <ol className="mt-6 grid gap-3">
-              {c.temario.map((t, i) => (
-                <li key={t} className={cn(pub.inset, 'flex items-start gap-3 p-4')}>
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0B1B36] text-xs font-extrabold text-[#F5B301]">
-                    {i + 1}
-                  </span>
-                  <span className="text-[0.95rem] leading-6 text-[#0B1B36]">{t}</span>
-                </li>
-              ))}
-            </ol>
-            {c.nota ? (
-              <p className={cn(pub.note, 'mt-4 flex items-start gap-2')}>
-                <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-[#2563EB]" />
-                {c.nota}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </section>
+      {/* 01 — La ficha */}
+      <Seccion id="ficha" numero="01" etiqueta="La ficha" titulo="Lo esencial">
+        <dl className="border-t border-[#0B1B36]">
+          {ficha.map((f) => (
+            <div key={f.etiqueta} className="grid gap-1 border-b border-[#E1E7F0] py-5 sm:grid-cols-[12rem_1fr] sm:gap-8">
+              <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB] sm:pt-1">{f.etiqueta}</dt>
+              <dd className="text-[1.02rem] leading-7 text-[#0B1B36]">{f.valor}</dd>
+            </div>
+          ))}
+        </dl>
+      </Seccion>
 
-      <section aria-labelledby="evidencia">
-        <div className={cn(pub.container, pub.section)}>
-          <SectionHeader
-            id="evidencia"
-            kicker="La evidencia"
-            titulo="Lo que te entregamos"
-            bajada="En una inspección, el inspector no pregunta si capacitaste: pide la prueba. Te dejamos el archivo completo."
-          />
-          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-            {EVIDENCIA_ENTREGADA.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-[0.95rem] text-[#0B1B36]">
-                <CheckCircle2 aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-[#15803D]" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      {/* 02 — Temario */}
+      <Seccion id="temario" numero="02" etiqueta="Temario" tono="claro" titulo="Qué se ve en la sesión">
+        <ol className="border-t border-[#0B1B36]">
+          {c.temario.map((t, i) => (
+            <li key={t} className="grid grid-cols-[3rem_1fr] gap-x-4 border-b border-[#D9E0EA] py-5">
+              <span className="pt-0.5 text-sm font-bold tabular-nums text-[#B45309]">{String(i + 1).padStart(2, '0')}</span>
+              <span className="text-[1.05rem] leading-7 text-[#0B1B36]">{t}</span>
+            </li>
+          ))}
+        </ol>
+        {c.nota ? <p className="mt-6 max-w-2xl text-sm leading-6 text-[#5A6A80]">{c.nota}</p> : null}
+      </Seccion>
 
-      <div className={cn(pub.container, 'pb-4')}>
-        <Faq faqs={c.faqs} />
-      </div>
+      {/* 03 — La evidencia */}
+      <Seccion
+        id="evidencia"
+        numero="03"
+        etiqueta="La evidencia"
+        titulo="Lo que te entregamos"
+        bajada="Es lo que revisa el inspector cuando pide demostrar que capacitaste."
+      >
+        <ul className="grid border-t border-[#0B1B36] sm:grid-cols-2 sm:gap-x-10">
+          {EVIDENCIA_ENTREGADA.map((item) => (
+            <li key={item} className="flex items-start gap-3 border-b border-[#E1E7F0] py-4 text-[1.02rem] text-[#0B1B36]">
+              <Check aria-hidden className="mt-1 h-4 w-4 shrink-0 text-[#B45309]" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </Seccion>
 
-      <section className="bg-[#ffffff]" aria-labelledby="otras">
-        <div className={cn(pub.container, pub.section)}>
-          <SectionHeader id="otras" kicker="También te puede servir" titulo="Otras capacitaciones" />
-          <div className="mt-8 grid gap-5 sm:grid-cols-3">
-            {otras.map((o) => (
-              <Link key={o.slug} href={`/capacitaciones/${o.slug}`} className={cn(pub.card, pub.cardHover, 'flex flex-col p-5')}>
-                <h3 className="text-base font-extrabold text-[#0B1B36]">{o.nombre}</h3>
-                <p className={cn(pub.faint, 'mt-2 flex-1')}>{o.frecuencia}</p>
-                <span className={cn(pub.linkMore, 'mt-3 text-sm')}>
-                  Ver ficha <ArrowRight aria-hidden className="h-4 w-4" />
+      {/* 04 — Preguntas frecuentes */}
+      <Seccion id="preguntas" numero="04" etiqueta="Preguntas frecuentes" tono="claro" titulo="Lo que suelen preguntarnos">
+        <Faq faqs={c.faqs} titulo={null} />
+      </Seccion>
+
+      {/* 05 — Otras capacitaciones */}
+      <Seccion id="otras" numero="05" etiqueta="También te puede servir" titulo="Otras capacitaciones">
+        <ul className="border-t border-[#0B1B36]">
+          {otras.map((o) => (
+            <li key={o.slug} className="border-b border-[#E1E7F0]">
+              <Link href={`/capacitaciones/${o.slug}`} className="group flex items-center justify-between gap-6 py-5">
+                <span>
+                  <span className="block text-base font-extrabold tracking-[-0.01em] text-[#0B1B36]">{o.nombre}</span>
+                  <span className="mt-1 block text-sm text-[#5A6A80]">{o.frecuencia}</span>
                 </span>
+                <ArrowUpRight
+                  aria-hidden
+                  className="h-5 w-5 shrink-0 text-[#9AA6B8] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#0B1B36]"
+                />
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+            </li>
+          ))}
+        </ul>
+      </Seccion>
 
       <CtaBand
         titulo="¿La programamos en tu empresa?"

@@ -1,12 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Clock } from 'lucide-react'
-import { PublicHero } from '@/components/marketing/public-hero'
-import { pub } from '@/components/marketing/public-theme'
-import { Breadcrumbs } from '@/components/sitio/breadcrumbs'
+import { ArrowUpRight, Clock } from 'lucide-react'
 import { CtaBand } from '@/components/sitio/cta-band'
+import { FichaHero, HeroPagina, Seccion } from '@/components/sitio/editorial'
 import { JsonLd } from '@/components/sitio/json-ld'
-import { cn } from '@/lib/utils'
 import { ARTICLES } from '@/lib/blog/articles'
 import { construirMetadata } from '@/lib/sitio/seo'
 import { SITE_URL } from '@/lib/sitio/site'
@@ -25,6 +22,8 @@ function fecha(iso: string): string {
 
 export default function RecursosPage() {
   const articulos = [...ARTICLES].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+  const temas = Array.from(new Set(articulos.map((a) => a.category)))
+  const ultimaActualizacion = articulos.reduce((max, a) => (a.updatedAt > max ? a.updatedAt : max), '')
 
   return (
     <>
@@ -44,40 +43,60 @@ export default function RecursosPage() {
           })),
         }}
       />
-      <PublicHero
-        align="left"
-        eyebrow="Recursos"
-        title={
+
+      <HeroPagina
+        migas={[{ nombre: 'Recursos', ruta: '/recursos' }]}
+        etiqueta="Recursos"
+        titulo={
           <>
-            Guías claras para <span className={pub.highlightOnNavy}>cumplir sin adivinar</span>
+            Guías claras para <span className="text-[#F5B301]">cumplir sin adivinar</span>
           </>
         }
-        description="Lo que exige la ley en SST, hostigamiento sexual y lo laboral, explicado con la norma en la mano y sin jerga."
-        media={<Breadcrumbs items={[{ nombre: 'Recursos', ruta: '/recursos' }]} className="mb-0" />}
+        bajada="Lo que exige la ley en SST, hostigamiento sexual y lo laboral, explicado con la norma en la mano y sin jerga."
+        aside={
+          <FichaHero
+            filas={[
+              { etiqueta: 'Guías', valor: `${articulos.length} artículos` },
+              { etiqueta: 'Temas', valor: temas.join(', ') },
+              ...(ultimaActualizacion ? [{ etiqueta: 'Actualizado', valor: fecha(ultimaActualizacion) }] : []),
+            ]}
+          />
+        }
       />
 
-      <section aria-label="Artículos">
-        <div className={cn(pub.container, pub.section)}>
-          <div className="grid gap-5 md:grid-cols-2">
-            {articulos.map((a) => (
-              <Link key={a.slug} href={`/recursos/${a.slug}`} className={cn(pub.card, pub.cardHover, 'flex flex-col p-6')}>
-                <p className={pub.kicker}>{a.category}</p>
-                <h2 className="mt-2 text-xl font-extrabold leading-snug tracking-[-0.01em] text-[#0B1B36]">{a.title}</h2>
-                <p className={cn(pub.body, 'mt-2 flex-1')}>{a.metaDescription}</p>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <span className={cn(pub.faint, 'inline-flex items-center gap-1.5')}>
+      {/* 01 — Artículos */}
+      <Seccion
+        id="articulos"
+        numero="01"
+        etiqueta="Artículos"
+        titulo="Todas las guías"
+        bajada="De la más reciente a la más antigua."
+      >
+        <ol className="border-t border-[#0B1B36]">
+          {articulos.map((a, i) => (
+            <li key={a.slug} className="border-b border-[#E1E7F0]">
+              <Link href={`/recursos/${a.slug}`} className="group grid grid-cols-[3rem_1fr_auto] gap-x-4 py-8">
+                <span className="pt-1 text-sm font-bold tabular-nums text-[#B45309]">{String(i + 1).padStart(2, '0')}</span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#5A6A80]">{a.category}</p>
+                  <h3 className="mt-2 max-w-3xl text-balance text-[1.4rem] font-extrabold leading-snug tracking-[-0.02em] text-[#0B1B36] sm:text-[1.55rem]">
+                    {a.title}
+                  </h3>
+                  <p className="mt-3 max-w-2xl text-[1.02rem] leading-7 text-[#475569]">{a.metaDescription}</p>
+                  <p className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#5A6A80]">
                     <Clock aria-hidden className="h-3.5 w-3.5" />
-                    {a.readMinutes} min · {fecha(a.updatedAt)}
-                  </span>
-                  <span className={cn(pub.linkMore, 'text-sm')}>
-                    Leer <ArrowRight aria-hidden className="h-4 w-4" />
-                  </span>
+                    {a.readMinutes} min de lectura · Actualizado el {fecha(a.updatedAt)}
+                  </p>
                 </div>
+                <ArrowUpRight
+                  aria-hidden
+                  className="mt-1 h-5 w-5 text-[#9AA6B8] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#0B1B36]"
+                />
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+            </li>
+          ))}
+        </ol>
+      </Seccion>
 
       <CtaBand
         titulo="¿Pasamos de leer a hacer?"

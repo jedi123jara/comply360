@@ -3,6 +3,7 @@
  * Contenido apoyado en el mapa de obligaciones verificado (obligaciones.ts).
  */
 import type { AreaObligacion } from './obligaciones'
+import { PLAN_RRHH } from './planes'
 
 export interface LineaServicio {
   id: 'diagnostico' | 'implementacion' | 'iguala' | 'capacitaciones' | 'defensa' | 'puntuales'
@@ -70,7 +71,7 @@ export const LINEAS_SERVICIO: LineaServicio[] = [
   },
 ]
 
-export type SlugArea = 'laboral' | 'sst' | 'hostigamiento'
+export type SlugArea = 'laboral' | 'sst' | 'hostigamiento' | 'rrhh'
 
 export interface AreaServicio {
   slug: SlugArea
@@ -84,12 +85,21 @@ export interface AreaServicio {
   metaDescripcion: string
   keywords: string[]
   resumen: string
+  /** Normas principales, para la ficha y las tarjetas. */
+  baseLegal: string
   porQueImporta: string[]
   areasObligacion: AreaObligacion[]
+  /**
+   * Reglas propias del área (en lugar de la tabla de obligaciones), para áreas
+   * como RRHH donde lo clave son procedimientos y no umbrales.
+   */
+  reglas?: Array<{ tema: string; regla: string; base: string }>
   queHacemos: Array<{ titulo: string; detalle: string }>
   entregables: string[]
-  /** Nombre del servicio en SERVICIOS_PRECIO_FIJO para mostrar su precio. */
-  servicioPrecio: string
+  /** Nombre del servicio en SERVICIOS_PRECIO_FIJO para mostrar su precio (pago único). */
+  servicioPrecio?: string
+  /** Plan mensual por tramo de tamaño (20–50, 51–100, 101–250), en lugar del pago único. */
+  planMensual?: { nombre: string; precios: [number, number, number]; incluye: string[] }
   capacitaciones: string[]
   faqs: Array<{ pregunta: string; respuesta: string }>
 }
@@ -99,6 +109,7 @@ export const AREAS_SERVICIO: AreaServicio[] = [
     slug: 'sst',
     nombreCorto: 'SST',
     enlace: 'Ver implementación de SST',
+    baseLegal: 'Ley 29783 · D.S. 005-2012-TR',
     titulo: 'Implementación de seguridad y salud en el trabajo para empresas',
     metaTitulo: 'Implementación de SST para empresas (Ley 29783)',
     metaDescripcion:
@@ -183,6 +194,7 @@ export const AREAS_SERVICIO: AreaServicio[] = [
     slug: 'hostigamiento',
     nombreCorto: 'Hostigamiento sexual',
     enlace: 'Ver prevención del hostigamiento',
+    baseLegal: 'Ley 27942 · D.S. 014-2019-MIMP',
     titulo: 'Prevención del hostigamiento sexual en el trabajo para empresas',
     metaTitulo: 'Hostigamiento sexual: obligaciones de la empresa',
     metaDescripcion:
@@ -261,6 +273,7 @@ export const AREAS_SERVICIO: AreaServicio[] = [
     slug: 'laboral',
     nombreCorto: 'Laboral',
     enlace: 'Ver cumplimiento laboral',
+    baseLegal: 'Ley 30709 · D.S. 004-2006-TR',
     titulo: 'Cumplimiento laboral para empresas: documentos y obligaciones al día',
     metaTitulo: 'Cumplimiento laboral para empresas en Perú',
     metaDescripcion:
@@ -330,6 +343,106 @@ export const AREAS_SERVICIO: AreaServicio[] = [
       {
         pregunta: '¿Cuánto cuesta?',
         respuesta: 'La implementación laboral cuesta desde S/ 1,200 + IGV para empresas de 20 a 50 trabajadores.',
+      },
+    ],
+  },
+  {
+    slug: 'rrhh',
+    nombreCorto: 'RRHH',
+    enlace: 'Ver soporte legal a RRHH',
+    baseLegal: 'D.S. 003-97-TR · D. Leg. 713',
+    titulo: 'Soporte legal para tu equipo de RRHH',
+    metaTitulo: 'Soporte legal para RRHH: disciplina, contratos y ceses',
+    metaDescripcion:
+      'Respaldo legal para el día a día de RRHH: contratos, vacaciones, amonestaciones, suspensiones y desvinculaciones sin contingencias. En Trujillo y todo el Perú.',
+    keywords: [
+      'asesoría legal para RRHH',
+      'procedimiento disciplinario laboral',
+      'carta de amonestación',
+      'carta de preaviso de despido',
+      'contratos sujetos a modalidad',
+      'soporte laboral para recursos humanos',
+    ],
+    resumen:
+      'Tu equipo de RRHH toma decisiones legales todos los días: un contrato, una amonestación, un despido. Le damos respaldo para que cada paso quede bien hecho y documentado.',
+    porQueImporta: [
+      'Un despido sin el procedimiento correcto puede terminar en una demanda de reposición o de indemnización, aunque la falta haya sido real.',
+      'Una sanción desproporcionada o tardía pierde validez: la ley exige razonabilidad y que el empleador actúe con inmediatez.',
+      'Un contrato a plazo fijo mal redactado o renovado más allá de lo permitido puede convertirse en indefinido.',
+    ],
+    areasObligacion: ['Laboral'],
+    reglas: [
+      { tema: 'Sanciones', regla: 'El empleador puede sancionar, pero dentro de los límites de la razonabilidad.', base: 'D.S. 003-97-TR, art. 9' },
+      {
+        tema: 'Despido por conducta',
+        regla: 'Antes de despedir hay que dar, por escrito, al menos 6 días naturales para los descargos, salvo falta grave flagrante.',
+        base: 'D.S. 003-97-TR, art. 31',
+      },
+      { tema: 'Inmediatez', regla: 'Desde que se conoce la falta, el procedimiento debe seguirse sin demoras injustificadas.', base: 'D.S. 003-97-TR, art. 31' },
+      { tema: 'Carta de despido', regla: 'Debe indicar de forma precisa la causa y la fecha del cese.', base: 'D.S. 003-97-TR, art. 32' },
+      {
+        tema: 'Contratos a plazo fijo',
+        regla: 'Se presentan a la Autoridad de Trabajo dentro de los 15 días naturales de celebrados; si se desnaturalizan, pasan a ser indefinidos.',
+        base: 'D.S. 003-97-TR, arts. 73 y 77',
+      },
+      { tema: 'Vacaciones', regla: '30 días por año completo de servicios; se pueden fraccionar según las reglas vigentes.', base: 'D. Leg. 713; D. Leg. 1405' },
+    ],
+    queHacemos: [
+      {
+        titulo: 'Contratos y adendas',
+        detalle: 'Revisamos o redactamos contratos por modalidad, adendas, convenios y cartas, y te avisamos cuándo vence cada contrato.',
+      },
+      {
+        titulo: 'Disciplina',
+        detalle: 'Te guiamos en cada memorándum, amonestación o suspensión para que sea proporcional, oportuna y quede documentada.',
+      },
+      {
+        titulo: 'Desvinculaciones',
+        detalle: 'Preparamos la carta de preaviso, revisamos los descargos y redactamos la carta de despido y la liquidación.',
+      },
+      {
+        titulo: 'Vacaciones y jornada',
+        detalle: 'Ordenamos el rol de vacaciones, los fraccionamientos y el control de horas extras.',
+      },
+      {
+        titulo: 'Consultas del día a día',
+        detalle: 'Tu equipo de RRHH nos escribe y recibe una respuesta clara, con su base legal, para decidir con tranquilidad.',
+      },
+    ],
+    entregables: [
+      'Modelos de contratos, adendas y cartas para tu empresa',
+      'Protocolo de procedimiento disciplinario con sus formatos',
+      'Cartas de preaviso y de despido revisadas',
+      'Calendario de vencimientos de contratos y vacaciones',
+      'Respuestas por escrito a las consultas de RRHH',
+    ],
+    planMensual: PLAN_RRHH,
+    capacitaciones: ['procedimiento-disciplinario', 'gestion-laboral-supervisores', 'inspeccion-sunafil'],
+    faqs: [
+      {
+        pregunta: '¿Esto reemplaza a mi área de RRHH?',
+        respuesta:
+          'No. Tu equipo sigue a cargo de la gestión diaria. Nosotros le damos el respaldo legal para que cada decisión sobre contratos, sanciones o ceses quede bien hecha.',
+      },
+      {
+        pregunta: '¿Cuántos días hay que dar para los descargos antes de un despido?',
+        respuesta:
+          'Al menos 6 días naturales, por escrito, cuando el despido es por una falta de conducta, salvo falta grave flagrante (D.S. 003-97-TR, art. 31).',
+      },
+      {
+        pregunta: '¿Hacen planillas o reclutamiento?',
+        respuesta:
+          'No. Las planillas las ve tu contador. Reclutamiento, selección y clima laboral los derivamos a especialistas aliados.',
+      },
+      {
+        pregunta: '¿Y si el trabajador ya nos demandó?',
+        respuesta:
+          'Si el caso ya está en juicio, te derivamos a un estudio aliado que defiende empresas. Nosotros nos enfocamos en prevenir.',
+      },
+      {
+        pregunta: '¿Cuánto cuesta?',
+        respuesta:
+          'El plan cuesta desde S/ 490 + IGV al mes para empresas de 20 a 50 trabajadores. También atendemos casos sueltos: un procedimiento disciplinario desde S/ 350 y una desvinculación desde S/ 450.',
       },
     ],
   },

@@ -1,12 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Mail, MapPin, MessageCircle } from 'lucide-react'
-import { PublicHero } from '@/components/marketing/public-hero'
-import { pub } from '@/components/marketing/public-theme'
-import { Breadcrumbs } from '@/components/sitio/breadcrumbs'
 import { ContactForm } from '@/components/sitio/contact-form'
+import { FichaHero, HeroPagina, Seccion } from '@/components/sitio/editorial'
 import { JsonLd } from '@/components/sitio/json-ld'
-import { cn } from '@/lib/utils'
 import { ORGANIZACION_REF, construirMetadata } from '@/lib/sitio/seo'
 import { SITE_URL, SITIO, whatsappHref } from '@/lib/sitio/site'
 
@@ -38,74 +34,76 @@ export default async function ContactoPage({ searchParams }: { searchParams: Pro
           about: ORGANIZACION_REF,
         }}
       />
-      <PublicHero
-        align="left"
-        eyebrow="Contacto"
-        title="Cuéntanos qué necesita tu empresa"
-        description="Un diagnóstico, una implementación, el Plan Anual de Capacitaciones o una inspección en curso: te respondemos con un siguiente paso concreto."
-        media={<Breadcrumbs items={[{ nombre: 'Contacto', ruta: '/contacto' }]} className="mb-0" />}
-      />
 
-      <section aria-label="Formulario de contacto">
-        <div className={cn(pub.container, pub.section, 'grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-start')}>
-          <ContactForm origen="contacto" interesInicial={interes} />
-
-          <aside className="grid gap-5">
-            <div className={cn(pub.card, 'p-6')}>
-              <h2 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">Otros canales</h2>
-              <ul className="mt-4 grid gap-3 text-sm">
-                <li className="flex items-start gap-3">
-                  <Mail aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-[#2563EB]" />
-                  <a href={`mailto:${SITIO.email}`} className={pub.link}>
+      <HeroPagina
+        migas={[{ nombre: 'Contacto', ruta: '/contacto' }]}
+        etiqueta="Contacto"
+        titulo="Cuéntanos qué necesita tu empresa"
+        bajada="Un diagnóstico, una implementación, el Plan Anual de Capacitaciones o una inspección en curso: te respondemos con un siguiente paso concreto."
+        aside={
+          <FichaHero
+            filas={[
+              {
+                etiqueta: 'Correo',
+                valor: (
+                  <a href={`mailto:${SITIO.email}`} className="underline decoration-[#ffffff]/30 underline-offset-4 hover:decoration-[#F5B301]">
                     {SITIO.email}
                   </a>
-                </li>
-                {wa ? (
-                  <li className="flex items-start gap-3">
-                    <MessageCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-[#2563EB]" />
-                    <a href={wa} target="_blank" rel="noopener noreferrer" className={pub.link}>
-                      Escríbenos por WhatsApp
-                    </a>
-                  </li>
-                ) : null}
-                <li className="flex items-start gap-3">
-                  <MapPin aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-[#2563EB]" />
-                  <span className="text-[#475569]">
-                    {SITIO.ciudad}, {SITIO.region}. {SITIO.cobertura}.
-                  </span>
-                </li>
-              </ul>
-            </div>
+                ),
+              },
+              ...(wa
+                ? [
+                    {
+                      etiqueta: 'WhatsApp',
+                      valor: (
+                        <a href={wa} target="_blank" rel="noopener noreferrer" className="underline decoration-[#ffffff]/30 underline-offset-4 hover:decoration-[#F5B301]">
+                          Escríbenos por WhatsApp
+                        </a>
+                      ),
+                    },
+                  ]
+                : []),
+              { etiqueta: 'Atención', valor: `${SITIO.ciudad}, ${SITIO.region}. ${SITIO.cobertura}.` },
+            ]}
+          />
+        }
+      />
 
-            <div className={cn(pub.card, 'p-6')}>
-              <h2 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">Qué pasa después</h2>
-              <ol className="mt-4 grid gap-3">
+      <Seccion id="formulario" numero="01" etiqueta="Escríbenos" titulo="Te respondemos con un siguiente paso">
+        <div className="grid gap-12">
+          <ContactForm origen="contacto" interesInicial={interes} />
+
+          <aside className="grid gap-10 lg:grid-cols-2 lg:items-start">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8A97AB]">Qué pasa después</p>
+              <ol className="mt-4 border-t border-[#0B1B36]">
                 {PASOS.map((paso, i) => (
-                  <li key={paso} className="flex items-start gap-3 text-sm text-[#475569]">
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0B1B36] text-xs font-extrabold text-[#F5B301]">
-                      {i + 1}
-                    </span>
-                    {paso}
+                  <li key={paso} className="grid grid-cols-[2.5rem_1fr] gap-x-3 border-b border-[#E1E7F0] py-4">
+                    <span className="text-sm font-bold tabular-nums text-[#B45309]">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="text-[0.98rem] leading-7 text-[#0B1B36]">{paso}</span>
                   </li>
                 ))}
               </ol>
             </div>
 
-            <div className={cn(pub.notice, 'text-sm')}>
-              ¿Te llegó una notificación o un requerimiento de SUNAFIL? Elige «Tengo una inspección de SUNAFIL» en el
-              formulario y cuéntanos el plazo: lo atendemos primero.
+            <div className="rounded-2xl bg-[#0B1B36] p-7 text-[#ffffff]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#F5B301]">¿Tienes una inspección?</p>
+              <p className="mt-3 text-[0.98rem] leading-7 text-[#CBD5E1]">
+                Si te llegó una notificación o un requerimiento de SUNAFIL, elige «Tengo una inspección de SUNAFIL» en el
+                formulario y cuéntanos el plazo. Esos casos los atendemos primero.
+              </p>
             </div>
 
-            <p className={pub.body}>
-              ¿Prefieres empezar solo?{' '}
-              <Link href="/diagnostico-gratis" className={pub.link}>
+            <p className="text-sm text-[#475569] lg:col-span-2">
+              ¿Prefieres empezar por tu cuenta?{' '}
+              <Link href="/diagnostico-gratis" className="font-semibold text-[#0B1B36] underline decoration-[#C9D1DD] underline-offset-4 hover:decoration-[#0B1B36]">
                 Haz el diagnóstico gratis
               </Link>
               .
             </p>
           </aside>
         </div>
-      </section>
+      </Seccion>
     </>
   )
 }

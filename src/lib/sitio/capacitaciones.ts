@@ -355,6 +355,85 @@ export const CAPACITACIONES: Capacitacion[] = [
       },
     ],
   },
+  {
+    slug: 'procedimiento-disciplinario',
+    nombre: 'Procedimiento disciplinario sin contingencias',
+    titulo: 'Curso de procedimiento disciplinario laboral para RRHH',
+    metaTitulo: 'Curso de procedimiento disciplinario para RRHH',
+    metaDescripcion:
+      'Aprende a amonestar, suspender y despedir con el procedimiento correcto: razonabilidad, inmediatez, plazo de descargos y cartas. Curso para RRHH y jefaturas.',
+    keywords: [
+      'curso procedimiento disciplinario laboral',
+      'carta de amonestación',
+      'carta de preaviso de despido',
+      'despido por falta grave',
+      'capacitación RRHH',
+    ],
+    resumen:
+      'Amonestar, suspender o despedir sin seguir el procedimiento abre la puerta a una demanda. Este curso le da a RRHH y a las jefaturas el paso a paso y los formatos.',
+    obligatoriaPara: 'No es obligatoria; recomendada para RRHH y jefaturas',
+    frecuencia: 'A pedido',
+    baseLegal: 'D.S. 003-97-TR, arts. 9, 24, 25, 31 y 32',
+    dicta: 'Abogado',
+    modalidad: 'Presencial o virtual en vivo',
+    modo: 'Blended',
+    duracion: '3 horas',
+    temario: [
+      'El poder sancionador del empleador y sus límites',
+      'Faltas graves y cómo dejarlas probadas',
+      'Memorándum, amonestación y suspensión: cuándo usar cada uno',
+      'Carta de preaviso, plazo de descargos e inmediatez',
+      'Carta de despido y errores que pueden terminar en reposición o indemnización',
+      'Casos prácticos con formatos',
+    ],
+    precio: 'S/ 149 por persona o S/ 600 + IGV in-company',
+    precioDesde: 149,
+    faqs: [
+      {
+        pregunta: '¿Incluye formatos?',
+        respuesta: 'Sí: memorándum, amonestación, suspensión, carta de preaviso y carta de despido, adaptables a tu empresa.',
+      },
+      {
+        pregunta: '¿Cuántos días hay que dar para los descargos?',
+        respuesta:
+          'Al menos 6 días naturales, por escrito, antes de despedir por una falta de conducta, salvo falta grave flagrante (D.S. 003-97-TR, art. 31).',
+      },
+    ],
+  },
+  {
+    slug: 'gestion-laboral-supervisores',
+    nombre: 'Gestión laboral para supervisores',
+    titulo: 'Capacitación en gestión laboral para supervisores y jefaturas',
+    metaTitulo: 'Gestión laboral para supervisores y jefaturas',
+    metaDescripcion:
+      'Lo que todo supervisor debe saber para no generar contingencias: jornada y horas extras, vacaciones, trato al personal, hostigamiento sexual y cómo documentar.',
+    keywords: ['capacitación supervisores', 'gestión laboral jefaturas', 'horas extras supervisores', 'capacitación jefes de área Perú'],
+    resumen:
+      'Muchas contingencias laborales empiezan en la línea de supervisión: una hora extra no registrada, una llamada de atención mal hecha, una queja que no se atendió. Preparamos a tus jefaturas.',
+    obligatoriaPara: 'No es obligatoria; recomendada para supervisores y jefaturas',
+    frecuencia: 'Anual (recomendable)',
+    baseLegal: 'D.S. 007-2002-TR; D. Leg. 713; Ley 27942',
+    dicta: 'Abogado',
+    modalidad: 'Presencial o virtual en vivo',
+    modo: 'Blended',
+    duracion: '2 a 3 horas',
+    temario: [
+      'Jornada, horas extras y descansos',
+      'Vacaciones y permisos',
+      'Cómo dar instrucciones y llamar la atención sin vulnerar derechos',
+      'Qué hacer si recibes una queja de hostigamiento sexual',
+      'Qué documentar y cómo hacerlo',
+      'Qué hacer si llega un inspector',
+    ],
+    precio: 'S/ 600 + IGV in-company',
+    precioDesde: 600,
+    faqs: [
+      {
+        pregunta: '¿Para quién es?',
+        respuesta: 'Para supervisores, jefes de área y encargados de turno: quienes dirigen personal todos los días.',
+      },
+    ],
+  },
 ]
 
 /** Catálogo completo, incluidas las que todavía no tienen página propia. */
@@ -374,6 +453,8 @@ export const CATALOGO_RESUMEN: Array<{
   { nombre: 'Brigadas de emergencia', para: 'Brigadistas', frecuencia: 'Anual', dicta: 'Instructor certificado', modalidad: 'Presencial', slug: 'brigadas-emergencia', disponibilidad: 'Disponible' },
   { nombre: 'Cómo atender una inspección de SUNAFIL', para: 'Gerencia y RRHH', frecuencia: 'A pedido', dicta: 'Abogado', modalidad: 'Presencial o virtual', slug: 'inspeccion-sunafil', disponibilidad: 'Disponible' },
   { nombre: 'Protección de datos personales', para: 'Personal que maneja datos', frecuencia: 'Anual', dicta: 'Abogado', modalidad: 'Virtual', slug: 'proteccion-datos-personales', disponibilidad: 'Disponible' },
+  { nombre: 'Procedimiento disciplinario sin contingencias', para: 'RRHH y jefaturas', frecuencia: 'A pedido', dicta: 'Abogado', modalidad: 'Presencial o virtual', slug: 'procedimiento-disciplinario', disponibilidad: 'Disponible' },
+  { nombre: 'Gestión laboral para supervisores', para: 'Supervisores y jefaturas', frecuencia: 'Anual', dicta: 'Abogado', modalidad: 'Presencial o virtual', slug: 'gestion-laboral-supervisores', disponibilidad: 'Disponible' },
   { nombre: 'Ergonomía y pausas activas', para: 'Oficinas y trabajo repetitivo', frecuencia: 'Anual', dicta: 'Ingeniero de seguridad o fisioterapeuta', modalidad: 'Presencial o virtual', disponibilidad: 'A pedido' },
   { nombre: 'Riesgos psicosociales', para: 'Todo el personal', frecuencia: 'Anual', dicta: 'Psicólogo', modalidad: 'Presencial o virtual', disponibilidad: 'A pedido' },
   { nombre: 'Prevención de lavado de activos', para: 'Sujetos obligados ante la UIF', frecuencia: 'Anual', dicta: 'Abogado', modalidad: 'Virtual', disponibilidad: 'A pedido' },

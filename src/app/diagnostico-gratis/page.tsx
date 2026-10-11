@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ShieldCheck, ArrowRight, ArrowLeft, CheckCircle2, XCircle, MinusCircle, Scale, Loader2, Mail, TrendingDown, FileText, Users, Clock, Award } from 'lucide-react'
+import { ShieldCheck, ArrowRight, ArrowLeft, CheckCircle2, XCircle, MinusCircle, Loader2, Mail, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
 import { QUESTION_COUNT, areaLabel } from '@/app/dashboard/diagnostico/_lib/diagnostic-meta'
@@ -10,6 +10,7 @@ import { PUBLIC_QUESTIONS, PUBLIC_QUESTION_COUNT, PUBLIC_ESTIMATE } from './_lib
 import { track } from '@/lib/analytics'
 import { formatSoles } from '@/lib/format/peruvian'
 import { PublicHero } from '@/components/marketing/public-hero'
+import { FichaHero, HeroPagina, Seccion } from '@/components/sitio/editorial'
 import { PublicShell } from '@/components/marketing/public-shell'
 import { pub } from '@/components/marketing/public-theme'
 import type { ComplianceQuestion } from '@/lib/compliance/questions'
@@ -178,102 +179,73 @@ export default function DiagnosticoGratisPage() {
   if (phase === 'intro') {
     return (
       <PublicShell>
-        <PublicHero
-          eyebrow={
+        <HeroPagina
+          migas={[{ nombre: 'Diagnóstico gratis', ruta: '/diagnostico-gratis' }]}
+          etiqueta="Diagnóstico express · gratis"
+          titulo={
             <>
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#F5B301]" />
-              Diagnóstico express · 100% gratis
+              ¿Cuánto te costaría una inspección de <span className="text-[#F5B301]">SUNAFIL</span> hoy?
             </>
           }
-          title={
-            <>
-              ¿Cuánto te costaría una inspección <span className={pub.highlightOnNavy}>SUNAFIL</span> hoy?
-            </>
+          bajada={`Responde ${PUBLIC_QUESTION_COUNT} preguntas en unos ${PUBLIC_ESTIMATE.replace('~', '')} y obtén tu nivel de cumplimiento, la multa potencial estimada y un plan de acción priorizado. No necesitas registrarte.`}
+          aside={
+            <FichaHero
+              filas={[
+                { etiqueta: 'Duración', valor: `Unos ${PUBLIC_ESTIMATE.replace('~', '')}` },
+                { etiqueta: 'Preguntas', valor: `${PUBLIC_QUESTION_COUNT}, las de mayor impacto` },
+                { etiqueta: 'Resultado', valor: 'Al instante: nivel de cumplimiento y multa estimada' },
+              ]}
+            />
           }
-          description={
-            <>
-              Responde {PUBLIC_QUESTION_COUNT} preguntas en unos {PUBLIC_ESTIMATE.replace('~', '')} y obtén tu{' '}
-              <b className="text-[#ffffff]">score de compliance</b>, la{' '}
-              <b className="text-[#ffffff]">multa potencial estimada</b> y un plan de acción priorizado — todo sin registro.
-            </>
-          }
-        >
-          {/* Stats trust signals */}
-          <div className="mx-auto mt-8 grid max-w-lg grid-cols-3 gap-2 sm:gap-3">
-            {[
-              { icon: Clock, label: PUBLIC_ESTIMATE, sub: 'Rápido y directo' },
-              { icon: FileText, label: `${PUBLIC_QUESTION_COUNT} preguntas`, sub: 'Las de mayor impacto' },
-              { icon: ShieldCheck, label: 'Resultado en vivo', sub: 'Score + multa estimada' },
-            ].map(({ icon: Icon, label, sub }) => (
-              <div
-                key={label}
-                className="rounded-xl border border-[#ffffff]/12 bg-[#ffffff]/[0.06] p-3 sm:p-4"
-              >
-                <Icon aria-hidden className="mx-auto mb-2 h-5 w-5 text-[#F5B301]" />
-                <p className="text-sm font-bold text-[#ffffff]">{label}</p>
-                <p className="text-[11px] text-[#CBD5E1]">{sub}</p>
-              </div>
-            ))}
-          </div>
-        </PublicHero>
+        />
 
-        <div className={cn(pub.container, 'py-10 sm:py-12')}>
-          <div className="mx-auto max-w-md text-center">
-            {/* Company size input */}
-            <div className={cn(pub.card, 'mb-6 p-5 text-left')}>
-              <label htmlFor="company-size" className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#0B1B36]">
-                <Users aria-hidden className="-mt-0.5 mr-1 inline h-3.5 w-3.5 text-[#2563EB]" />
-                ¿Cuántos trabajadores tiene tu empresa?
-              </label>
-              <input
-                id="company-size"
-                type="number"
-                min={1}
-                max={9999}
-                value={companySize}
-                onChange={e => setCompanySize(Math.max(1, parseInt(e.target.value) || 1))}
-                className={cn(pub.input, 'px-4 text-base')}
-                placeholder="Ej: 25"
-              />
-              <p className={cn(pub.hint, 'mt-2')}>
-                La multa estimada se ajusta según el tamaño (base legal: D.S. 019-2006-TR).
-              </p>
-            </div>
+        <Seccion id="empezar" numero="01" etiqueta="Empezar" titulo="¿Cuántos trabajadores tiene tu empresa?">
+          <div className="max-w-xl">
+            <label htmlFor="company-size" className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8A97AB]">
+              Número de trabajadores
+            </label>
+            <input
+              id="company-size"
+              type="number"
+              min={1}
+              max={9999}
+              value={companySize}
+              onChange={e => setCompanySize(Math.max(1, parseInt(e.target.value) || 1))}
+              className={cn(pub.input, 'mt-2 px-4 text-lg font-extrabold tabular-nums')}
+              placeholder="Ej: 25"
+            />
+            <p className={cn(pub.hint, 'mt-2')}>
+              La multa estimada se ajusta según el tamaño (base legal: D.S. 019-2006-TR).
+            </p>
 
-            {/* CTA principal */}
             <button
               type="button"
               onClick={() => {
                 track('free_diagnostic_started', { company_size: companySize })
                 setPhase('quiz')
               }}
-              className={cn(pub.btnPrimaryLg, 'w-full sm:w-auto sm:px-8')}
+              className={cn(pub.btnPrimaryLg, 'mt-8 w-full sm:w-auto sm:px-8')}
             >
               Iniciar diagnóstico gratis <ArrowRight aria-hidden className="h-5 w-5" />
             </button>
-            <p className={cn(pub.faint, 'mt-3')}>
-              Sin registro · sin tarjeta · datos 100% confidenciales
-            </p>
+            <p className="mt-3 text-xs text-[#5A6A80]">Sin registro, sin tarjeta y con tus datos en reserva.</p>
 
-            {/* Trust badges */}
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[#5A6A80]">
-              <span className="inline-flex items-center gap-1.5 text-xs">
-                <Scale aria-hidden className="h-3.5 w-3.5 text-[#2563EB]" /> Basado en normativa vigente
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-xs">
-                <ShieldCheck aria-hidden className="h-3.5 w-3.5 text-[#2563EB]" /> D.S. 019-2006-TR
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-xs">
-                <Award aria-hidden className="h-3.5 w-3.5 text-[#2563EB]" /> UIT 2026: {formatSoles(5500)}
-              </span>
-            </div>
-
-            {/* Volver a landing */}
-            <Link href="/" className={cn(pub.link, 'mt-8 inline-block text-xs')}>
-              ← Volver al sitio
-            </Link>
+            <dl className="mt-12 grid gap-6 border-t border-[#0B1B36] pt-6 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">Base</dt>
+                <dd className="mt-1 text-[#0B1B36]">Normativa vigente</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">Multas</dt>
+                <dd className="mt-1 text-[#0B1B36]">D.S. 019-2006-TR</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">UIT 2026</dt>
+                <dd className="mt-1 text-[#0B1B36]">{formatSoles(5500)}</dd>
+              </div>
+            </dl>
           </div>
-        </div>
+        </Seccion>
       </PublicShell>
     )
   }
