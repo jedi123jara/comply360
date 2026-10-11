@@ -2,51 +2,82 @@
 
 import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
+import { Field, fieldControlClassName, useFieldControl, useFieldContext } from '@/components/ui/field'
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+/**
+ * Input — campo de una línea (h-10), mismo radio, borde y foco que Select y Textarea.
+ *
+ * Uso recomendado, dentro de `Field` (conecta etiqueta, ayuda y error):
+ *   <Field label="DNI" hint="8 dígitos" error={errors.dni} required>
+ *     <Input inputMode="numeric" value={dni} onChange={…} />
+ *   </Field>
+ *
+ * Uso suelto: `<Input aria-label="Buscar trabajador" invalid={!!error} />`.
+ *
+ * Compatibilidad: las props `label`, `error` y `helperText` siguen funcionando
+ * fuera de un Field (internamente arman uno).
+ */
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  /** @deprecated Usa `<Field label>`. */
   label?: string
+  /** @deprecated Usa `<Field error>`; para solo marcar el estado usa `invalid`. */
   error?: string
+  /** @deprecated Usa `<Field hint>`. */
   helperText?: string
+  /** Ícono decorativo a la izquierda (se oculta a lectores de pantalla). */
   icon?: React.ReactNode
+  /** Marca el campo con error (borde + `aria-invalid`). Dentro de un Field con `error` es automático. */
+  invalid?: boolean
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, helperText, icon, id, ...props }, ref) => {
-    const inputId = id || label?.toLowerCase().replace(/\s+/g, '-')
+type InputControlProps = Omit<InputProps, 'label' | 'error' | 'helperText'>
 
+const InputControl = forwardRef<HTMLInputElement, InputControlProps>(function InputControl(
+  { className, icon, invalid, ...props },
+  ref
+) {
+  const { controlProps } = useFieldControl({ ...props, invalid })
+
+  const input = (
+    <input
+      ref={ref}
+      {...props}
+      {...controlProps}
+      className={cn(fieldControlClassName, 'h-10', Boolean(icon) && 'pl-10', className)}
+    />
+  )
+
+  if (!icon) return input
+
+  return (
+    <div className="relative">
+      <span
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-tertiary)] [&_svg]:h-4 [&_svg]:w-4"
+        aria-hidden="true"
+      >
+        {icon}
+      </span>
+      {input}
+    </div>
+  )
+})
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, error, helperText, invalid, ...props },
+  ref
+) {
+  const inField = useFieldContext() !== null
+
+  // API anterior: fuera de un Field, `label`/`error`/`helperText` arman uno.
+  if (!inField && (label || error || helperText)) {
     return (
-      <div className="space-y-1.5">
-        {label && (
-          <label htmlFor={inputId} className="block text-sm font-semibold text-gray-300">
-            {label}
-          </label>
-        )}
-        <div className="relative">
-          {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-              {icon}
-            </div>
-          )}
-          <input
-            ref={ref}
-            id={inputId}
-            className={cn(
-              'w-full rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm px-4 py-2.5 text-sm text-text-primary',
-              'transition-[border-color,box-shadow,background-color] duration-[var(--motion-micro)] ease-[var(--ease-standard)]',
-              'focus:ring-2 focus:ring-gold/20 focus:border-gold/40 outline-none',
-              'placeholder:text-text-tertiary',
-              icon && 'pl-10',
-              error && 'border-red-300 focus:ring-red-200 focus:border-red-400 c360-shake',
-              className
-            )}
-            {...props}
-          />
-        </div>
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        {helperText && !error && <p className="text-xs text-gray-400">{helperText}</p>}
-      </div>
+      <Field label={label} hint={helperText} error={error} id={props.id}>
+        <InputControl ref={ref} invalid={invalid} {...props} />
+      </Field>
     )
   }
-)
+
+  return <InputControl ref={ref} invalid={invalid || Boolean(error)} {...props} />
+})
 
 Input.displayName = 'Input'

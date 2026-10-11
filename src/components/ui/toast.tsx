@@ -1,23 +1,27 @@
 'use client'
 
 /**
- * Legacy compatibility shim for the old `useToast()` / `<ToastProvider>` API.
+ * Adaptador de compatibilidad del antiguo `useToast()` / `<ToastProvider>`.
  *
- * Internally now delegates to Sonner (`@/components/ui/sonner-toaster`).
- * The provider is a no-op — the real <AppToaster /> is mounted in the root
- * layout. `useToast()` returns an object with the same shape as before so
- * existing callers keep compiling while we migrate them to `toast.*`.
+ * Ya no hay un segundo sistema de avisos: `useToast().toast(...)` pinta con
+ * sonner, en el mismo `<AppToaster />` que `toast.*` de
+ * `@/components/ui/sonner-toaster`, así que todos los avisos se ven igual.
  *
- * DO NOT extend this file. Use `toast` from `@/components/ui/sonner-toaster`
- * for new code.
+ * - La API pública es la misma de siempre: `toast({ title, description, type,
+ *   duration })` devuelve el id y `dismiss(id)` lo cierra.
+ * - `useToast()` devuelve SIEMPRE el mismo objeto: se puede poner `toast` en
+ *   las dependencias de useCallback/useEffect sin provocar renders en bucle.
+ * - `ToastProvider` solo renderiza `children` (el layout raíz lo sigue montando).
+ *
+ * Para código nuevo usa `toast` de `@/components/ui/sonner-toaster`.
  */
 
 import type { ReactNode } from 'react'
 import { toast as sonnerToast } from 'sonner'
 
-type ToastType = 'success' | 'error' | 'warning' | 'info'
+export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
-interface ToastInput {
+export interface ToastInput {
   title: string
   description?: string
   type?: ToastType
@@ -29,35 +33,35 @@ interface ToastContextValue {
   dismiss: (id: string) => void
 }
 
-const TYPE_TO_SONNER: Record<
-  ToastType,
-  typeof sonnerToast.success
-> = {
-  success: sonnerToast.success,
-  error: sonnerToast.error,
-  warning: sonnerToast.warning,
-  info: sonnerToast.info,
+const DEFAULT_DURATION = 5000
+
+let toastCounter = 0
+
+/**
+ * El id lo generamos nosotros (string) y se lo pasamos a sonner: así
+ * `dismiss(id)` encuentra el aviso (sonner compara ids con ===, y por defecto
+ * usa números).
+ */
+const toastApi: ToastContextValue = {
+  toast({ title, description, type = 'info', duration = DEFAULT_DURATION }) {
+    toastCounter += 1
+    const id = `c360-toast-${toastCounter}`
+    const show = sonnerToast[type] ?? sonnerToast.info
+    show(title, { id, description, duration })
+    return id
+  },
+  dismiss(id: string) {
+    sonnerToast.dismiss(id)
+  },
 }
 
 export function useToast(): ToastContextValue {
-  return {
-    toast(input) {
-      const fn = TYPE_TO_SONNER[input.type ?? 'info']
-      const id = fn(input.title, {
-        description: input.description,
-        duration: input.duration ?? 5000,
-      })
-      return String(id)
-    },
-    dismiss(id: string) {
-      sonnerToast.dismiss(id)
-    },
-  }
+  return toastApi
 }
 
 /**
- * No-op provider — the actual toaster is rendered by <AppToaster /> at the
- * root. Kept only so existing `<ToastProvider>` wrappers compile.
+ * No-op provider — el toaster real es <AppToaster /> en el layout raíz.
+ * Se mantiene para que los `<ToastProvider>` existentes sigan compilando.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   return <>{children}</>

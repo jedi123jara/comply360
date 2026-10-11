@@ -1,13 +1,17 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { ShieldCheck, ArrowRight, ArrowLeft, CheckCircle2, XCircle, MinusCircle, Scale, Loader2, Mail, TrendingDown, FileText, Users, Clock, Award } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { EXPRESS_QUESTIONS, AREAS } from '@/lib/compliance/questions'
 import { scoreDiagnostic } from '@/lib/compliance/diagnostic-scorer'
+import { QUESTION_COUNT, areaLabel } from '@/app/dashboard/diagnostico/_lib/diagnostic-meta'
+import { PUBLIC_QUESTIONS, PUBLIC_QUESTION_COUNT, PUBLIC_ESTIMATE } from './_lib/public-questions'
 import { track } from '@/lib/analytics'
 import { formatSoles } from '@/lib/format/peruvian'
+import { PublicHero } from '@/components/marketing/public-hero'
+import { PublicShell } from '@/components/marketing/public-shell'
+import { pub } from '@/components/marketing/public-theme'
 import type { ComplianceQuestion } from '@/lib/compliance/questions'
 import type { QuestionAnswer, DiagnosticResult } from '@/lib/compliance/diagnostic-scorer'
 import type { AnswerValue } from '@/lib/compliance/questions/types'
@@ -18,30 +22,37 @@ type Phase = 'intro' | 'quiz' | 'capture' | 'result'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
+// Tema público: cuerpo claro (tarjetas blancas) y hero navy. Colores en hex
+// arbitrario para no depender de la capa de compatibilidad oscura de globals.css.
 const GRAVEDAD_COLORS = {
-  LEVE: 'text-amber-600 bg-amber-50 border-amber-200',
-  GRAVE: 'text-red-600 bg-red-50 border-red-200',
-  MUY_GRAVE: 'text-red-800 bg-red-100 border-red-300',
+  LEVE: 'text-[#92400E] bg-[#FFFBEB] border-[#F5B301]/60',
+  GRAVE: 'text-[#B91C1C] bg-[#FEF2F2] border-[#FCA5A5]',
+  MUY_GRAVE: 'text-[#7F1D1D] bg-[#FEE2E2] border-[#F87171]',
 }
 
 const ANSWER_CONFIG = [
-  { value: 'SI' as AnswerValue, label: 'Si, cumplimos', icon: CheckCircle2, color: 'border-emerald-500 bg-emerald-50 text-emerald-700' },
-  { value: 'PARCIAL' as AnswerValue, label: 'Parcialmente', icon: MinusCircle, color: 'border-amber-500 bg-amber-50 text-amber-700' },
-  { value: 'NO' as AnswerValue, label: 'No cumplimos', icon: XCircle, color: 'border-red-500 bg-red-50 text-red-700' },
+  { value: 'SI' as AnswerValue, label: 'Sí, cumplimos', icon: CheckCircle2, color: 'border-[#15803D] bg-[#F0FDF4] text-[#166534]' },
+  { value: 'PARCIAL' as AnswerValue, label: 'Parcialmente', icon: MinusCircle, color: 'border-[#B45309] bg-[#FFFBEB] text-[#92400E]' },
+  { value: 'NO' as AnswerValue, label: 'No cumplimos', icon: XCircle, color: 'border-[#B91C1C] bg-[#FEF2F2] text-[#991B1B]' },
 ]
 
-// ─── Score Ring Component ────────────────────────────────────────────────────
+/** Colores de estado sobre fondo blanco (texto ≥ 4.5:1). */
+function statusText(score: number) {
+  return score >= 80 ? 'text-[#15803D]' : score >= 60 ? 'text-[#B45309]' : 'text-[#B91C1C]'
+}
+
+// ─── Score Ring Component (sobre el hero navy) ───────────────────────────────
 
 function ScoreRing({ score }: { score: number }) {
   const r = 54
   const circ = 2 * Math.PI * r
   const offset = circ - (score / 100) * circ
-  const color = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'
+  const color = score >= 80 ? '#4ade80' : score >= 60 ? '#fbbf24' : '#f87171'
 
   return (
     <div className="relative inline-flex items-center justify-center">
-      <svg width="140" height="140" viewBox="0 0 140 140">
-        <circle cx="70" cy="70" r={r} fill="none" stroke="#e5e7eb" strokeWidth="8" />
+      <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
+        <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="8" />
         <circle
           cx="70" cy="70" r={r} fill="none"
           stroke={color} strokeWidth="8" strokeLinecap="round"
@@ -51,8 +62,8 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute text-center">
-        <span className="text-3xl font-bold" style={{ color }}>{score}</span>
-        <span className="block text-xs text-gray-400">/100</span>
+        <span className="text-3xl font-extrabold" style={{ color }}>{score}</span>
+        <span className="block text-xs text-[#CBD5E1]">/100</span>
       </div>
     </div>
   )
@@ -69,13 +80,8 @@ export default function DiagnosticoGratisPage() {
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<DiagnosticResult | null>(null)
 
-  // Use express questions (38 questions, no auth needed)
-  const questions: ComplianceQuestion[] = useMemo(() => {
-    // For public landing, we use a subset of 20 of the express questions (the highest-weight ones)
-    return [...EXPRESS_QUESTIONS]
-      .sort((a, b) => b.peso - a.peso)
-      .slice(0, 20)
-  }, [])
+  // Preguntas express de mayor peso (sin registro). Ver _lib/public-questions.ts
+  const questions: ComplianceQuestion[] = PUBLIC_QUESTIONS
 
   const totalQuestions = questions.length
   const currentQ = questions[currentIdx]
@@ -171,169 +177,104 @@ export default function DiagnosticoGratisPage() {
 
   if (phase === 'intro') {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
-        }}
-      >
-        {/* Grid overlay + halo emerald */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-            maskImage: 'radial-gradient(80% 60% at 50% 40%, #000 0%, transparent 70%)',
-            WebkitMaskImage: 'radial-gradient(80% 60% at 50% 40%, #000 0%, transparent 70%)',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute pointer-events-none"
-          style={{
-            top: '-20%',
-            right: '-10%',
-            width: 500,
-            height: 500,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.22), transparent 70%)',
-            animation: 'c360-breathe 6s ease-in-out infinite',
-          }}
-        />
-
-        <div className="relative max-w-2xl w-full text-center">
-          {/* Eyebrow editorial */}
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-1.5 mb-6">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+      <PublicShell>
+        <PublicHero
+          eyebrow={
+            <>
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#F5B301]" />
               Diagnóstico express · 100% gratis
-            </span>
-          </div>
-
-          {/* Hero editorial */}
-          <h1
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 400,
-              fontSize: 'clamp(2.5rem, 5vw, 3.75rem)',
-              lineHeight: 1.05,
-              letterSpacing: '-0.025em',
-              color: 'var(--text-primary)',
-              marginBottom: 18,
-            }}
-            dangerouslySetInnerHTML={{
-              __html:
-                '¿Cuánto te costaría una inspección <em style="color: var(--emerald-700); font-style: italic">SUNAFIL</em> hoy?',
-            }}
-          />
-          <p className="text-lg text-gray-600 leading-relaxed max-w-xl mx-auto mb-8">
-            Responde 20 preguntas en 10 minutos y obtén tu <b>score de compliance</b>,
-            la <b>multa potencial estimada</b> y un plan de acción priorizado — todo sin registro.
-          </p>
-
+            </>
+          }
+          title={
+            <>
+              ¿Cuánto te costaría una inspección <span className={pub.highlightOnNavy}>SUNAFIL</span> hoy?
+            </>
+          }
+          description={
+            <>
+              Responde {PUBLIC_QUESTION_COUNT} preguntas en unos {PUBLIC_ESTIMATE.replace('~', '')} y obtén tu{' '}
+              <b className="text-[#ffffff]">score de compliance</b>, la{' '}
+              <b className="text-[#ffffff]">multa potencial estimada</b> y un plan de acción priorizado — todo sin registro.
+            </>
+          }
+        >
           {/* Stats trust signals */}
-          <div className="grid grid-cols-3 gap-3 mb-8 max-w-lg mx-auto">
+          <div className="mx-auto mt-8 grid max-w-lg grid-cols-3 gap-2 sm:gap-3">
             {[
-              { icon: Clock, label: '10 min', sub: 'Rápido y directo' },
-              { icon: FileText, label: '20 preguntas', sub: 'Las más críticas' },
+              { icon: Clock, label: PUBLIC_ESTIMATE, sub: 'Rápido y directo' },
+              { icon: FileText, label: `${PUBLIC_QUESTION_COUNT} preguntas`, sub: 'Las de mayor impacto' },
               { icon: ShieldCheck, label: 'Resultado en vivo', sub: 'Score + multa estimada' },
             ].map(({ icon: Icon, label, sub }) => (
               <div
                 key={label}
-                className="rounded-xl p-4"
-                style={{
-                  background: 'rgba(255,255,255,0.75)',
-                  backdropFilter: 'blur(10px)',
-                  border: '0.5px solid var(--border-subtle)',
-                }}
+                className="rounded-xl border border-[#ffffff]/12 bg-[#ffffff]/[0.06] p-3 sm:p-4"
               >
-                <Icon className="h-5 w-5 text-emerald-600 mx-auto mb-2" />
-                <p
-                  className="text-sm"
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    color: 'var(--text-primary)',
-                    fontWeight: 400,
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  {label}
-                </p>
-                <p className="text-[11px] text-gray-500">{sub}</p>
+                <Icon aria-hidden className="mx-auto mb-2 h-5 w-5 text-[#F5B301]" />
+                <p className="text-sm font-bold text-[#ffffff]">{label}</p>
+                <p className="text-[11px] text-[#CBD5E1]">{sub}</p>
               </div>
             ))}
           </div>
+        </PublicHero>
 
-          {/* Company size input */}
-          <div
-            className="rounded-xl p-5 mb-6 text-left max-w-md mx-auto"
-            style={{
-              background: 'white',
-              border: '0.5px solid var(--border-default)',
-              boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
-            }}
-          >
-            <label className="block text-xs font-bold uppercase tracking-widest text-gray-700 mb-2">
-              <Users className="inline h-3.5 w-3.5 mr-1 -mt-0.5 text-emerald-600" />
-              ¿Cuántos trabajadores tiene tu empresa?
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={9999}
-              value={companySize}
-              onChange={e => setCompanySize(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full rounded-lg border border-[color:var(--border-default)] px-4 py-2.5 text-base bg-white text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-colors"
-              placeholder="Ej: 25"
-            />
-            <p className="mt-2 text-xs text-gray-500">
-              La multa estimada se ajusta según el tamaño (base legal: D.S. 019-2006-TR).
+        <div className={cn(pub.container, 'py-10 sm:py-12')}>
+          <div className="mx-auto max-w-md text-center">
+            {/* Company size input */}
+            <div className={cn(pub.card, 'mb-6 p-5 text-left')}>
+              <label htmlFor="company-size" className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#0B1B36]">
+                <Users aria-hidden className="-mt-0.5 mr-1 inline h-3.5 w-3.5 text-[#2563EB]" />
+                ¿Cuántos trabajadores tiene tu empresa?
+              </label>
+              <input
+                id="company-size"
+                type="number"
+                min={1}
+                max={9999}
+                value={companySize}
+                onChange={e => setCompanySize(Math.max(1, parseInt(e.target.value) || 1))}
+                className={cn(pub.input, 'px-4 text-base')}
+                placeholder="Ej: 25"
+              />
+              <p className={cn(pub.hint, 'mt-2')}>
+                La multa estimada se ajusta según el tamaño (base legal: D.S. 019-2006-TR).
+              </p>
+            </div>
+
+            {/* CTA principal */}
+            <button
+              type="button"
+              onClick={() => {
+                track('free_diagnostic_started', { company_size: companySize })
+                setPhase('quiz')
+              }}
+              className={cn(pub.btnPrimaryLg, 'w-full sm:w-auto sm:px-8')}
+            >
+              Iniciar diagnóstico gratis <ArrowRight aria-hidden className="h-5 w-5" />
+            </button>
+            <p className={cn(pub.faint, 'mt-3')}>
+              Sin registro · sin tarjeta · datos 100% confidenciales
             </p>
+
+            {/* Trust badges */}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[#5A6A80]">
+              <span className="inline-flex items-center gap-1.5 text-xs">
+                <Scale aria-hidden className="h-3.5 w-3.5 text-[#2563EB]" /> Basado en normativa vigente
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs">
+                <ShieldCheck aria-hidden className="h-3.5 w-3.5 text-[#2563EB]" /> D.S. 019-2006-TR
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs">
+                <Award aria-hidden className="h-3.5 w-3.5 text-[#2563EB]" /> UIT 2026: {formatSoles(5500)}
+              </span>
+            </div>
+
+            {/* Volver a landing */}
+            <Link href="/" className={cn(pub.link, 'mt-8 inline-block text-xs')}>
+              ← Volver al sitio
+            </Link>
           </div>
-
-          {/* CTA primario emerald */}
-          <button
-            type="button"
-            onClick={() => {
-              track('free_diagnostic_started', { company_size: companySize })
-              setPhase('quiz')
-            }}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-8 py-4 text-base font-bold text-white transition-all"
-            style={{
-              boxShadow: '0 12px 32px -8px rgba(4,120,87,0.45), inset 0 1px 0 rgba(255,255,255,0.14)',
-            }}
-          >
-            Iniciar diagnóstico gratis <ArrowRight className="h-5 w-5" />
-          </button>
-          <p className="mt-3 text-xs text-gray-500">
-            Sin registro · sin tarjeta · datos 100% confidenciales
-          </p>
-
-          {/* Trust badges */}
-          <div className="mt-10 flex items-center justify-center gap-6 flex-wrap text-gray-500">
-            <span className="inline-flex items-center gap-1.5 text-xs">
-              <Scale className="h-3.5 w-3.5" /> Basado en normativa vigente
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs">
-              <ShieldCheck className="h-3.5 w-3.5" /> D.S. 019-2006-TR
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs">
-              <Award className="h-3.5 w-3.5" /> UIT 2026: {formatSoles(5500)}
-            </span>
-          </div>
-
-          {/* Volver a landing */}
-          <Link
-            href="/"
-            className="mt-8 inline-block text-xs text-gray-500 hover:text-emerald-700 font-medium"
-          >
-            ← Volver al sitio
-          </Link>
         </div>
-      </div>
+      </PublicShell>
     )
   }
 
@@ -344,47 +285,49 @@ export default function DiagnosticoGratisPage() {
     const gravedadStyle = GRAVEDAD_COLORS[currentQ.infraccionGravedad] ?? GRAVEDAD_COLORS.LEVE
 
     return (
-      <div className="min-h-screen bg-slate-50">
-        {/* Top progress bar */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gray-200 bg-white/[0.04]">
-          <div
-            className="h-full bg-amber-500 transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        {/* Header */}
-        <div className="border-b bg-white border-[color:var(--border-default)]">
-          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Scale className="h-5 w-5 text-amber-500" />
-              <span className="text-sm font-bold text-gray-900">Comply<span className="text-emerald-700">360</span></span>
-            </div>
-            <span className="text-sm text-gray-500">
+      <PublicShell header="minimal" footer={false}>
+        {/* Barra de progreso */}
+        <div className="border-b border-[#E5EAF2] bg-[#ffffff]">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3">
+            <span className="text-sm font-bold text-[#0B1B36]">Diagnóstico express</span>
+            <span className="text-sm text-[#475569]">
               Pregunta {currentIdx + 1} de {totalQuestions}
             </span>
+          </div>
+          <div
+            className="h-1.5 bg-[#EEF2F7]"
+            role="progressbar"
+            aria-label="Avance del diagnóstico"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
+          >
+            <div
+              className="h-full bg-[linear-gradient(90deg,#2563EB,#F5B301)] transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
 
         {/* Question card */}
-        <div className="max-w-3xl mx-auto px-4 py-12">
-          <div className="rounded-2xl bg-white border border-[color:var(--border-default)] shadow-sm p-8">
+        <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+          <div className={cn(pub.card, 'p-5 sm:p-8')}>
             {/* Area badge */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className={cn('inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium', gravedadStyle)}>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className={cn('inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold', gravedadStyle)}>
                 {currentQ.infraccionGravedad}
               </span>
-              <span className="text-xs text-gray-400">
-                {AREAS.find(a => a.key === currentQ.area)?.label}
+              <span className="text-xs text-[#5A6A80]">
+                {areaLabel(currentQ.area)}
               </span>
             </div>
 
             {/* Question text */}
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="mb-2 text-xl font-extrabold tracking-[-0.02em] text-[#0B1B36]">
               {currentQ.text}
             </h2>
 
-            <p className="text-xs text-gray-400 mb-8">
+            <p className="mb-8 text-xs text-[#5A6A80]">
               Base legal: {currentQ.baseLegal} | Multa: {currentQ.multaUIT} UIT ({formatSoles(currentQ.multaUIT * 5500)})
             </p>
 
@@ -395,37 +338,38 @@ export default function DiagnosticoGratisPage() {
                   key={value}
                   type="button"
                   onClick={() => handleAnswer(value)}
+                  aria-pressed={currentAnswer === value}
                   className={cn(
                     'flex items-center gap-3 rounded-xl border-2 px-5 py-4 text-left transition-all',
                     currentAnswer === value
                       ? color
-                      : 'border-[color:var(--border-default)] bg-white text-gray-300 hover:border-gray-300',
+                      : 'border-[#E5EAF2] bg-[#ffffff] text-[#0B1B36] hover:border-[#2563EB]/45 hover:bg-[#F5F7FB]',
                   )}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className="text-sm font-medium">{label}</span>
+                  <Icon aria-hidden className="h-5 w-5 shrink-0" />
+                  <span className="text-sm font-semibold">{label}</span>
                 </button>
               ))}
             </div>
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-[color:var(--border-default)]">
+            <div className="mt-8 flex items-center justify-between gap-3 border-t border-[#E5EAF2] pt-6">
               <button
                 type="button"
                 onClick={handleBack}
                 disabled={currentIdx === 0}
-                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300 disabled:opacity-30"
+                className="flex items-center gap-1 text-sm font-semibold text-[#475569] hover:text-[#0B1B36] disabled:opacity-40"
               >
-                <ArrowLeft className="h-4 w-4" /> Anterior
+                <ArrowLeft aria-hidden className="h-4 w-4" /> Anterior
               </button>
 
-              <div className="flex gap-1">
+              <div className="hidden gap-1 sm:flex" aria-hidden="true">
                 {questions.map((_, i) => (
                   <div
                     key={i}
                     className={cn(
                       'h-2 w-2 rounded-full transition-colors',
-                      i === currentIdx ? 'bg-amber-500' : answers.has(questions[i].id) ? 'bg-emerald-400' : 'bg-gray-200',
+                      i === currentIdx ? 'bg-[#F5B301]' : answers.has(questions[i].id) ? 'bg-[#2563EB]' : 'bg-[#E5EAF2]',
                     )}
                   />
                 ))}
@@ -435,15 +379,15 @@ export default function DiagnosticoGratisPage() {
                 <button
                   type="button"
                   onClick={() => setCurrentIdx(currentIdx + 1)}
-                  className="flex items-center gap-1 text-sm text-amber-600 hover:text-amber-700 font-medium"
+                  className="flex items-center gap-1 text-sm font-semibold text-[#B45309] hover:text-[#92400E]"
                 >
-                  Siguiente <ArrowRight className="h-4 w-4" />
+                  Siguiente <ArrowRight aria-hidden className="h-4 w-4" />
                 </button>
               )}
             </div>
           </div>
         </div>
-      </div>
+      </PublicShell>
     )
   }
 
@@ -451,86 +395,42 @@ export default function DiagnosticoGratisPage() {
 
   if (phase === 'capture') {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.98) 100%), linear-gradient(135deg, #eff6ff 0%, #f8fafc 55%, #fefce8 100%)',
-        }}
-      >
-        <div
-          aria-hidden="true"
-          className="absolute pointer-events-none"
-          style={{
-            top: '-15%',
-            right: '-10%',
-            width: 400,
-            height: 400,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.18), transparent 70%)',
-            animation: 'c360-breathe 6s ease-in-out infinite',
-          }}
-        />
-
-        <div className="relative max-w-md w-full">
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{
-              background: 'white',
-              border: '0.5px solid var(--border-default)',
-              boxShadow: '0 20px 40px -12px rgba(4,120,87,0.18), 0 4px 8px rgba(15,23,42,0.04)',
-            }}
-          >
+      <PublicShell header="minimal" footer={false} mainClassName="flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className={cn(pub.card, 'p-6 text-center sm:p-8')}>
             {/* Success icon */}
-            <div className="flex justify-center mb-5">
-              <div
-                className="flex items-center justify-center rounded-2xl"
-                style={{
-                  width: 56,
-                  height: 56,
-                  background: 'linear-gradient(165deg, #2563eb 0%, #1e40af 100%)',
-                  boxShadow:
-                    '0 8px 24px -6px rgba(4,120,87,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
-                }}
-              >
-                <ShieldCheck className="h-6 w-6 text-white" />
+            <div className="mb-5 flex justify-center">
+              <div className={pub.iconTile}>
+                <ShieldCheck aria-hidden className="h-6 w-6" />
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700 mb-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#15803D]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#15803D]" />
               <span>Diagnóstico completado</span>
             </div>
 
-            <h2
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 28,
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                color: 'var(--text-primary)',
-                lineHeight: 1.15,
-                marginBottom: 8,
-              }}
-              dangerouslySetInnerHTML={{
-                __html:
-                  'Tu resultado está <em style="color: var(--emerald-700); font-style: italic">listo</em>.',
-              }}
-            />
-            <p className="text-sm text-gray-600 mb-6">
-              Dejanos tu email y desbloqueamos tu score, la multa potencial y las 5 brechas más urgentes.
+            <h2 className="mb-2 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] text-[#0B1B36]">
+              Tu resultado está <span className={pub.highlight}>listo</span>.
+            </h2>
+            <p className="mb-6 text-sm text-[#475569]">
+              Déjanos tu email y desbloqueamos tu score, la multa potencial y las 5 brechas más urgentes.
               Sin spam — sólo el resultado y un tip de compliance semanal.
             </p>
 
             <div className="space-y-3">
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <label htmlFor="diagnostico-email" className="sr-only">
+                  Correo electrónico
+                </label>
+                <Mail aria-hidden className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[#5A6A80]" />
                 <input
+                  id="diagnostico-email"
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="tu@empresa.com"
-                  className="w-full rounded-lg border border-[color:var(--border-default)] bg-white pl-10 pr-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-colors"
+                  className={cn(pub.input, 'py-3 pl-10 pr-4')}
                 />
               </div>
 
@@ -538,28 +438,24 @@ export default function DiagnosticoGratisPage() {
                 type="button"
                 onClick={handleCalculateResult}
                 disabled={!email.includes('@') || submitting}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-sm font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  boxShadow:
-                    '0 10px 24px -6px rgba(4,120,87,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
-                }}
+                className={cn(pub.btnPrimary, 'w-full py-3')}
               >
                 {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    Ver mi resultado <ArrowRight className="h-4 w-4" />
+                    Ver mi resultado <ArrowRight aria-hidden className="h-4 w-4" />
                   </>
                 )}
               </button>
             </div>
 
-            <p className="mt-5 text-xs text-gray-500">
+            <p className={cn(pub.faint, 'mt-5')}>
               100% confidencial · Datos protegidos
             </p>
           </div>
         </div>
-      </div>
+      </PublicShell>
     )
   }
 
@@ -568,6 +464,7 @@ export default function DiagnosticoGratisPage() {
   if (phase === 'result' && result) {
     const score = result.scoreGlobal
     const multa = result.totalMultaRiesgo
+    const heroStatus = score >= 80 ? 'text-[#4ade80]' : score >= 60 ? 'text-[#fbbf24]' : 'text-[#f87171]'
 
     // Group gaps by area for display
     const areaScores = result.areaScores
@@ -575,87 +472,59 @@ export default function DiagnosticoGratisPage() {
       .sort((a, b) => a.score - b.score)
 
     return (
-      <div className="min-h-screen bg-slate-50">
-        {/* Header */}
-        <div className="bg-white border-b border-[color:var(--border-default)]">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Scale className="h-5 w-5 text-amber-500" />
-              <span className="text-sm font-bold text-gray-900">Comply<span className="text-emerald-700">360</span></span>
-            </div>
-            <Link
-              href="/sign-up"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
-            >
-              Crear cuenta gratuita
-            </Link>
-          </div>
-        </div>
+      <PublicShell>
+        {/* Score hero */}
+        <PublicHero
+          title={
+            <>
+              Tu <span className={pub.highlightOnNavy}>diagnóstico</span> de compliance
+            </>
+          }
+        >
+          <div className="mt-8 flex flex-col items-center justify-center gap-8 md:flex-row">
+            <ScoreRing score={score} />
 
-        <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
-          {/* Score hero */}
-          <div className="rounded-2xl bg-white border border-[color:var(--border-default)] shadow-sm p-8 text-center">
-            <h1
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 30,
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                color: 'var(--text-primary)',
-                marginBottom: 24,
-              }}
-              dangerouslySetInnerHTML={{
-                __html:
-                  'Tu <em style="color: var(--emerald-700); font-style: italic">diagnóstico</em> de compliance',
-              }}
-            />
+            <div className="text-center md:text-left">
+              <p className={cn('text-lg font-bold', heroStatus)}>
+                {score >= 80 ? 'Buen nivel de compliance' : score >= 60 ? 'Nivel en riesgo — necesita mejoras' : 'Nivel crítico — acción inmediata'}
+              </p>
 
-            <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-              <ScoreRing score={score} />
-
-              <div className="text-left">
-                <p className={cn(
-                  'text-lg font-bold',
-                  score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600',
-                )}>
-                  {score >= 80 ? 'Buen nivel de compliance' : score >= 60 ? 'Nivel en riesgo — necesita mejoras' : 'Nivel critico — accion inmediata'}
-                </p>
-
-                <div className="mt-4 flex items-center gap-2">
-                  <TrendingDown className="h-5 w-5 text-red-500" />
-                  <span className="text-sm text-gray-600">
-                    Multa potencial estimada: <strong className="text-red-600 text-lg">{formatSoles(multa)}</strong>
-                  </span>
-                </div>
-
-                <p className="mt-2 text-xs text-gray-400">
-                  Basado en {companySize} trabajadores, UIT 2026 = {formatSoles(5500)}, D.S. 019-2006-TR
-                </p>
+              <div className="mt-4 flex items-center justify-center gap-2 md:justify-start">
+                <TrendingDown aria-hidden className="h-5 w-5 shrink-0 text-[#f87171]" />
+                <span className="text-sm text-[#CBD5E1]">
+                  Multa potencial estimada: <strong className="text-lg text-[#f87171]">{formatSoles(multa)}</strong>
+                </span>
               </div>
+
+              <p className={cn(pub.faintOnNavy, 'mt-2')}>
+                Basado en {companySize} trabajadores, UIT 2026 = {formatSoles(5500)}, D.S. 019-2006-TR
+              </p>
             </div>
           </div>
+        </PublicHero>
 
+        <div className="mx-auto max-w-4xl space-y-8 px-4 py-10">
           {/* Area breakdown */}
-          <div className="rounded-2xl bg-white border border-[color:var(--border-default)] shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-[color:var(--border-default)]">
-              <h2 className="text-base font-semibold text-gray-900">Score por área</h2>
+          <div className={cn(pub.card, 'overflow-hidden')}>
+            <div className="border-b border-[#E5EAF2] px-6 py-4">
+              <h2 className={pub.h3}>Score por área</h2>
             </div>
-            <div className="divide-y">
+            <div className={pub.divide}>
               {areaScores.map(area => {
-                const c = area.score >= 80 ? 'bg-emerald-500' : area.score >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                const c = area.score >= 80 ? 'bg-[#16A34A]' : area.score >= 60 ? 'bg-[#F59E0B]' : 'bg-[#DC2626]'
                 return (
                   <div key={area.area} className="px-6 py-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-gray-300">{area.label}</span>
-                      <span className={cn('text-sm font-bold', area.score >= 80 ? 'text-emerald-600' : area.score >= 60 ? 'text-amber-600' : 'text-red-600')}>
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <span className="text-sm text-[#0B1B36]">{area.label}</span>
+                      <span className={cn('text-sm font-bold', statusText(area.score))}>
                         {area.score}%
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-[color:var(--neutral-100)]">
+                    <div className="h-1.5 rounded-full bg-[#EEF2F7]">
                       <div className={cn('h-1.5 rounded-full transition-all', c)} style={{ width: `${area.score}%` }} />
                     </div>
                     {area.multaEstimada > 0 && (
-                      <p className="mt-1 text-xs text-red-500">Multa estimada: {formatSoles(area.multaEstimada)}</p>
+                      <p className="mt-1 text-xs text-[#B91C1C]">Multa estimada: {formatSoles(area.multaEstimada)}</p>
                     )}
                   </div>
                 )
@@ -664,24 +533,24 @@ export default function DiagnosticoGratisPage() {
           </div>
 
           {/* Top 5 gaps */}
-          <div className="rounded-2xl bg-white border border-[color:var(--border-default)] shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-[color:var(--border-default)]">
-              <h2 className="text-base font-semibold text-gray-900">Top 5 brechas más urgentes</h2>
+          <div className={cn(pub.card, 'overflow-hidden')}>
+            <div className="border-b border-[#E5EAF2] px-6 py-4">
+              <h2 className={pub.h3}>Top 5 brechas más urgentes</h2>
             </div>
-            <div className="divide-y">
+            <div className={pub.divide}>
               {result.gapAnalysis.slice(0, 5).map((gap, i) => (
-                <div key={gap.questionId} className="px-6 py-4 flex gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-700">
+                <div key={gap.questionId} className="flex gap-3 px-6 py-4">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FEF2F2] text-xs font-bold text-[#991B1B]">
                     {i + 1}
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-300">{gap.text}</p>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-gray-400">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-[#0B1B36]">{gap.text}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#5A6A80]">
                       <span>{gap.baseLegal}</span>
-                      <span className={cn('px-1.5 py-0.5 rounded text-xs font-medium', GRAVEDAD_COLORS[gap.gravedad as keyof typeof GRAVEDAD_COLORS])}>
+                      <span className={cn('rounded border px-1.5 py-0.5 text-xs font-semibold', GRAVEDAD_COLORS[gap.gravedad as keyof typeof GRAVEDAD_COLORS])}>
                         {gap.gravedad}
                       </span>
-                      <span className="text-red-500 font-medium">{formatSoles(gap.multaPEN)}</span>
+                      <span className="font-semibold text-[#B91C1C]">{formatSoles(gap.multaPEN)}</span>
                     </div>
                   </div>
                 </div>
@@ -690,54 +559,55 @@ export default function DiagnosticoGratisPage() {
           </div>
 
           {/* CTA — blurred action plan teaser */}
-          <div className="relative rounded-2xl bg-white border border-[color:var(--border-default)] shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-[color:var(--border-default)]">
-              <h2 className="text-base font-semibold text-gray-900">Plan de acción completo</h2>
+          <div className={cn(pub.card, 'relative overflow-hidden')}>
+            <div className="border-b border-[#E5EAF2] px-6 py-4">
+              <h2 className={pub.h3}>Plan de acción completo</h2>
             </div>
-            <div className="p-6 blur-sm select-none pointer-events-none" aria-hidden>
+            <div className="pointer-events-none select-none p-6 blur-sm" aria-hidden>
               {result.actionPlan.slice(0, 3).map((item, i) => (
-                <div key={i} className="mb-4 rounded-lg bg-[color:var(--neutral-50)] p-4">
-                  <p className="text-sm font-medium text-gray-300">Prioridad {item.priority}: {item.areaLabel}</p>
-                  <p className="text-xs text-gray-500 mt-1">{item.action}</p>
-                  <p className="text-xs text-red-500 mt-1">Multa evitable: {formatSoles(item.multaEvitable)}</p>
+                <div key={i} className="mb-4 rounded-lg bg-[#F5F7FB] p-4">
+                  <p className="text-sm font-medium text-[#0B1B36]">Prioridad {item.priority}: {item.areaLabel}</p>
+                  <p className="mt-1 text-xs text-[#475569]">{item.action}</p>
+                  <p className="mt-1 text-xs text-[#B91C1C]">Multa evitable: {formatSoles(item.multaEvitable)}</p>
                 </div>
               ))}
             </div>
 
             {/* Overlay CTA */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 bg-[#141824]/70 backdrop-blur-sm">
-              <div className="text-center px-4">
-                <ShieldCheck className="h-10 w-10 text-emerald-700 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Regístrate para ver el plan completo
+            <div className="absolute inset-0 flex items-center justify-center bg-[#ffffff]/80 backdrop-blur-sm">
+              <div className="px-4 text-center">
+                <div className={cn(pub.iconBox, 'mx-auto mb-3 h-12 w-12')}>
+                  <ShieldCheck aria-hidden className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-lg font-extrabold tracking-[-0.02em] text-[#0B1B36]">
+                  Revisemos tu plan de acción juntos
                 </h3>
-                <p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
-                  Accede al plan de accion detallado, simulacro SUNAFIL interactivo, alertas automaticas y mas.
+                <p className="mx-auto mb-4 max-w-sm text-sm text-[#475569]">
+                  En una llamada gratis de 30 minutos te explicamos qué corregir primero y cuánto cuesta ponerte al día.
                 </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <Link
-                    href="/sign-up"
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
-                  >
-                    Crear cuenta gratis <ArrowRight className="h-4 w-4" />
+                <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Link href="/contacto?interes=diagnostico" className={cn(pub.btnPrimary, 'px-6')}>
+                    Agendar mi llamada gratis <ArrowRight aria-hidden className="h-4 w-4" />
                   </Link>
-                  <span className="text-xs text-gray-400">Prueba gratuita, sin tarjeta de credito</span>
+                  <Link href="/planes" className="text-xs font-semibold text-[#1D4ED8] hover:underline">
+                    Ver precios
+                  </Link>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Trust footer */}
-          <div className="text-center py-8">
-            <p className="text-xs text-gray-400 mb-4">
-              Mas de 135 criterios de compliance laboral peruano | Actualizado 2026 | D.S. 019-2006-TR, Ley 29783, Ley 27942
+          <div className="py-8 text-center">
+            <p className="mb-4 text-xs text-[#5A6A80]">
+              Preguntas tomadas de los {QUESTION_COUNT.FULL} criterios del diagnóstico completo | Actualizado 2026 | D.S. 019-2006-TR, Ley 29783, Ley 27942
             </p>
-            <Link href="/" className="text-xs text-emerald-700 hover:underline">
-              Volver a COMPLY360
+            <Link href="/" className={cn(pub.link, 'text-xs')}>
+              Volver a Comply360
             </Link>
           </div>
         </div>
-      </div>
+      </PublicShell>
     )
   }
 

@@ -115,8 +115,13 @@ export function calcularCostoEmpleador(input: CostoEmpleadorInput): CostoEmplead
   } else if (isMypePequena || isDomestico) {
     provisionCTS = round((remuneracionTotal / 12) * 0.5) // 50%
   } else {
-    const gratifMensual = remuneracionTotal / 6
-    const remComputable = remuneracionTotal + (gratifMensual / 6)
+    // FIX auditoría P1 (JUR-06): la remuneración computable de CTS es
+    // sueldo + 1/6 de la última gratificación. Como la gratificación ≈ 1 sueldo,
+    // 1/6 de gratificación = sueldo/6. Antes se calculaba gratifMensual = rem/6
+    // y luego se dividía /6 otra vez, sumando rem/36 en lugar de rem/6 y
+    // subestimando la provisión de CTS. Alineado con cts.ts (sextoGratificacion).
+    const sextoGratificacion = remuneracionTotal / 6
+    const remComputable = remuneracionTotal + sextoGratificacion
     provisionCTS = round(remComputable / 12)
   }
 

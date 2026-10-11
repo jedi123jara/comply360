@@ -23,7 +23,8 @@ import { detectProvider, getModelName } from './provider'
  * `getEffectiveContextWindow(model, maxTokens)`.
  */
 const CONTEXT_WINDOWS: Record<string, number> = {
-  // DeepSeek V4 — 1M tokens reales
+  // DeepSeek V4 / V4.1 — 1M tokens reales
+  'deepseek-flash': 1_000_000,
   'deepseek-chat': 1_000_000,
   'deepseek-reasoner': 1_000_000,
   'deepseek-v4': 1_000_000,

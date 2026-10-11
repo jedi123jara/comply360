@@ -463,7 +463,7 @@ export default function AsistenteIAPage() {
                     {conv.title}
                   </span>
                   <span className={cn(
-                    'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium',
+                    'shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-medium',
                     CATEGORY_COLORS[conv.category]
                   )}>
                     {CATEGORY_LABELS[conv.category]}
@@ -529,7 +529,7 @@ export default function AsistenteIAPage() {
             </div>
             <div>
               <h1 className="text-sm font-semibold text-white text-gray-100">
-                Historial del asistente IA
+                Historial del asistente
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500" />

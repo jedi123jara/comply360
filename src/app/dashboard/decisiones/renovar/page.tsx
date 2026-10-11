@@ -9,12 +9,12 @@ import {
   Check,
   Loader2,
   AlertTriangle,
-  Sparkles,
   FileText,
   CalendarClock,
   ShieldAlert,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AsistenteHeader } from '../_components/asistente-header'
 
 /**
  * /dashboard/decisiones/renovar — Wizard "Renovar contrato".
@@ -214,7 +214,7 @@ export default function RenovarWizardPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Header />
+      <AsistenteHeader asistenteKey="renovar" />
       <Stepper currentStep={step} />
 
       <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5 md:p-6">
@@ -258,29 +258,6 @@ export default function RenovarWizardPage() {
 }
 
 /* ── UI ──────────────────────────────────────────────────────────────── */
-
-function Header() {
-  return (
-    <div>
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 text-xs text-[color:var(--text-tertiary)] hover:text-emerald-700 mb-2"
-      >
-        <ArrowLeft className="h-3 w-3" /> Volver al Panel
-      </Link>
-      <div className="flex items-center gap-2 mb-1">
-        <Sparkles className="h-4 w-4 text-emerald-700" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-          Decisiones Laborales · Wizard
-        </span>
-      </div>
-      <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Renovar contrato</h1>
-      <p className="text-sm text-[color:var(--text-tertiary)] mt-1">
-        Análisis de desnaturalización + decisión guiada para contratos próximos a vencer.
-      </p>
-    </div>
-  )
-}
 
 function Stepper({ currentStep }: { currentStep: number }) {
   const steps = [
@@ -437,7 +414,7 @@ function Step1Select({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-bold uppercase text-emerald-700">{c.type.replace(/_/g, ' ')}</span>
                     {urgent && (
-                      <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-700 border border-red-200">
+                      <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-red-700 border border-red-200">
                         Urgente · {days} días
                       </span>
                     )}
@@ -571,12 +548,12 @@ function Step3Decision({
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold text-[color:var(--text-primary)]">{opt.title}</p>
                   {opt.recommended && (
-                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700">
+                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold uppercase text-emerald-700">
                       Recomendado
                     </span>
                   )}
                   {opt.warning && (
-                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-700">
+                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold uppercase text-amber-700">
                       Sensible
                     </span>
                   )}

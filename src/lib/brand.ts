@@ -150,6 +150,41 @@ export function complianceScoreColor(score: number): string {
 }
 
 /**
+ * Banda del score de compliance en palabras. El color nunca debe ser la única
+ * señal de estado (WCAG 1.4.1): junto al número o al anillo va esta etiqueta.
+ * Umbrales del semáforo: ≥ 80 bien · 60-79 a mejorar · < 60 en riesgo.
+ */
+export type ComplianceScoreTone = 'good' | 'fair' | 'risk'
+
+export const COMPLIANCE_SCORE_LABELS: Record<ComplianceScoreTone, string> = {
+  good: 'Bien',
+  fair: 'A mejorar',
+  risk: 'En riesgo',
+}
+
+export function complianceScoreTone(score: number): ComplianceScoreTone {
+  if (score >= 80) return 'good'
+  if (score >= 60) return 'fair'
+  return 'risk'
+}
+
+export function complianceScoreLabel(score: number): string {
+  return COMPLIANCE_SCORE_LABELS[complianceScoreTone(score)]
+}
+
+/**
+ * Tinta para escribir el score como texto. Sigue las mismas bandas que
+ * `complianceScoreColor`, pero con contraste ≥ 4,5:1 sobre blanco: gold-500 y
+ * amber-500 sirven para anillos y barras, no para texto (≈ 2,2:1).
+ */
+export function complianceScoreTextColor(score: number): string {
+  if (score >= 90) return '#835c15' // gold-600 del tema claro · 6,0:1
+  if (score >= 80) return BRAND_COLORS.emerald[600] // #1d4ed8 · 6,7:1
+  if (score >= 60) return '#92400e' // amber-700 del tema claro · 7,1:1
+  return BRAND_COLORS.crimson[700] // #b91c1c · 6,5:1
+}
+
+/**
  * Accessor tipado para color por severidad.
  */
 export function severityColor(severity: Severity): string {

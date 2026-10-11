@@ -122,7 +122,7 @@ src/
 │   └── ...
 ├── providers/                   # Context providers (copilot, query, upgrade-gate, motion)
 ├── hooks/                       # Custom hooks (use-api, use-page-context)
-└── styles/                      # tokens.css + comply360-design.css
+└── styles/                      # tokens.css, motion.css y dashboard-light.css
 ```
 
 Ver [ARCHITECTURE.md](./ARCHITECTURE.md) para el layout detallado y cómo

@@ -8,11 +8,11 @@ import {
   Check,
   Loader2,
   AlertTriangle,
-  Sparkles,
   ClipboardCheck,
   TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AsistenteHeader } from '../_components/asistente-header'
 
 /**
  * /dashboard/decisiones/auditar — Wizard "Auditar nómina".
@@ -144,7 +144,7 @@ export default function AuditarWizardPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Header />
+      <AsistenteHeader asistenteKey="auditar" />
       <Stepper currentStep={step} />
 
       <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5 md:p-6">
@@ -213,30 +213,6 @@ export default function AuditarWizardPage() {
 }
 
 /* ── UI ──────────────────────────────────────────────────────────────── */
-
-function Header() {
-  return (
-    <div>
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 text-xs text-[color:var(--text-tertiary)] hover:text-emerald-700 mb-2"
-      >
-        <ArrowLeft className="h-3 w-3" /> Volver al Panel
-      </Link>
-      <div className="flex items-center gap-2 mb-1">
-        <Sparkles className="h-4 w-4 text-emerald-700" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-          Decisiones Laborales · Wizard
-        </span>
-      </div>
-      <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Auditar nómina</h1>
-      <p className="text-sm text-[color:var(--text-tertiary)] mt-1">
-        Análisis automático de boletas: aportes, descuentos, totales y RMV. Genera tareas por
-        hallazgo en tu Plan de Acción.
-      </p>
-    </div>
-  )
-}
 
 function Stepper({ currentStep }: { currentStep: number }) {
   const steps = [
@@ -377,7 +353,7 @@ function Step2Resultados({ analysis }: { analysis: AuditResponse }) {
                       className={cn('rounded-lg border p-2.5 text-sm', cfg.bg, cfg.border)}
                     >
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={cn('text-[9px] font-bold uppercase tracking-wider', cfg.text)}>
+                        <span className={cn('text-[11px] font-bold uppercase tracking-wider', cfg.text)}>
                           {f.type.replace(/_/g, ' ')}
                         </span>
                         <span className="text-[10px] text-[color:var(--text-tertiary)]">· {f.workerName}</span>

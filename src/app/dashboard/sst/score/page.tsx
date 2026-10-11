@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   Loader2,
   AlertCircle,
+  AlertOctagon,
   TrendingUp,
   ShieldAlert,
   AlertTriangle,
@@ -16,6 +17,7 @@ import { PageHeader } from '@/components/comply360/editorial-title'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatSoles } from '@/lib/format/peruvian'
+import { COMPLIANCE_SCORE_LABELS } from '@/lib/brand'
 
 type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO'
 type Prioridad = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
@@ -71,10 +73,44 @@ interface ScoreData {
   }
 }
 
+/**
+ * Estado con palabra + ícono; el color solo refuerza (WCAG 1.4.1).
+ * Mismas palabras que el score de compliance: el semáforo SST usa los mismos
+ * umbrales (≥ 80 / 60-79 / < 60, ver `src/lib/sst/scoring.ts`).
+ */
+type Tone = 'good' | 'fair' | 'risk'
+
+const TONE_ICON: Record<Tone, React.ComponentType<{ className?: string }>> = {
+  good: CheckCircle2,
+  fair: AlertTriangle,
+  risk: AlertOctagon,
+}
+
+const SEMAFORO_TONE: Record<Semaforo, Tone> = {
+  VERDE: 'good',
+  AMARILLO: 'fair',
+  ROJO: 'risk',
+}
+
 const SEMAFORO_COLOR: Record<Semaforo, { fg: string; bg: string; ring: string; label: string }> = {
-  VERDE: { fg: 'text-emerald-700', bg: 'bg-emerald-50', ring: 'ring-emerald-300', label: 'CUMPLE' },
-  AMARILLO: { fg: 'text-amber-700', bg: 'bg-amber-50', ring: 'ring-amber-300', label: 'EN RIESGO' },
-  ROJO: { fg: 'text-rose-700', bg: 'bg-rose-50', ring: 'ring-rose-400', label: 'CRÍTICO' },
+  VERDE: {
+    fg: 'text-emerald-700',
+    bg: 'bg-emerald-50',
+    ring: 'ring-emerald-300',
+    label: COMPLIANCE_SCORE_LABELS.good,
+  },
+  AMARILLO: {
+    fg: 'text-amber-700',
+    bg: 'bg-amber-50',
+    ring: 'ring-amber-300',
+    label: COMPLIANCE_SCORE_LABELS.fair,
+  },
+  ROJO: {
+    fg: 'text-rose-700',
+    bg: 'bg-rose-50',
+    ring: 'ring-rose-400',
+    label: COMPLIANCE_SCORE_LABELS.risk,
+  },
 }
 
 const PRIORIDAD_VARIANT: Record<Prioridad, 'critical' | 'danger' | 'warning' | 'info'> = {
@@ -82,6 +118,13 @@ const PRIORIDAD_VARIANT: Record<Prioridad, 'critical' | 'danger' | 'warning' | '
   HIGH: 'danger',
   MEDIUM: 'warning',
   LOW: 'info',
+}
+
+const PRIORIDAD_LABEL: Record<Prioridad, string> = {
+  CRITICAL: 'Crítica',
+  HIGH: 'Alta',
+  MEDIUM: 'Media',
+  LOW: 'Baja',
 }
 
 const AREA_LINK: Record<Area, string> = {
@@ -152,6 +195,7 @@ export default function SstScorePage() {
   }
 
   const sem = SEMAFORO_COLOR[data.semaforo]
+  const SemIcon = TONE_ICON[SEMAFORO_TONE[data.semaforo]]
 
   return (
     <div className="space-y-6">
@@ -168,7 +212,10 @@ export default function SstScorePage() {
             <div className="text-center">
               <div className={`text-7xl font-black ${sem.fg}`}>{data.scoreGlobal}</div>
               <div className="mt-2 text-sm text-slate-500">de 100</div>
-              <div className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${sem.fg} ${sem.bg} ring-1 ${sem.ring}`}>
+              <div
+                className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${sem.fg} ${sem.bg} ring-1 ${sem.ring}`}
+              >
+                <SemIcon className="h-3.5 w-3.5" />
                 {sem.label}
               </div>
             </div>
@@ -277,7 +324,7 @@ export default function SstScorePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={PRIORIDAD_VARIANT[r.prioridad]} size="xs">
-                          {r.prioridad}
+                          Prioridad {PRIORIDAD_LABEL[r.prioridad] ?? r.prioridad}
                         </Badge>
                         <span className="text-xs font-medium text-slate-500">{AREA_LABEL[r.area]}</span>
                       </div>
@@ -336,25 +383,32 @@ function DimRow({ label, item, link }: { label: string; item: BreakdownItem; lin
     tone === 'emerald' ? 'bg-emerald-500' : tone === 'amber' ? 'bg-amber-500' : 'bg-rose-500'
   const textColor =
     tone === 'emerald' ? 'text-emerald-700' : tone === 'amber' ? 'text-amber-700' : 'text-rose-700'
+  // Palabra + ícono por tono (antes ámbar y rojo compartían el mismo ícono).
+  const toneKey: Tone = tone === 'emerald' ? 'good' : tone === 'amber' ? 'fair' : 'risk'
+  const ToneIcon = TONE_ICON[toneKey]
   return (
     <Link href={link} className="block rounded-lg border border-slate-100 px-3 py-3 transition hover:border-slate-200 hover:bg-slate-50/50">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-slate-900">{label}</span>
-            <span className={`text-xs font-bold ${textColor}`}>
+            <span className={`inline-flex items-center gap-1 text-xs font-bold ${textColor}`}>
+              <ToneIcon className="h-3.5 w-3.5 shrink-0" />
+              {COMPLIANCE_SCORE_LABELS[toneKey]}
+              <span className="font-semibold text-slate-500" aria-hidden="true">
+                ·
+              </span>
               {item.score}/{item.max}
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">{item.nota}</p>
-          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
+          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100" aria-hidden="true">
             <div
               className={`h-1.5 rounded-full ${barColor} transition-all`}
               style={{ width: `${(item.score / item.max) * 100}%` }}
             />
           </div>
         </div>
-        {ratio < 0.8 && <AlertTriangle className={`h-4 w-4 shrink-0 ${textColor}`} />}
       </div>
     </Link>
   )

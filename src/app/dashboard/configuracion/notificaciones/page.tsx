@@ -2,60 +2,24 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Mail, Clock, ArrowLeft, Loader2, Save } from 'lucide-react'
+import { Bell, Mail, Clock, ArrowLeft, Loader2, Save, Info } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Qué se envía hoy (refleja los crons reales) ──────────────────────────────
+//
+// Antes esta pantalla mostraba interruptores por tipo de alerta y una frecuencia
+// (inmediata / diaria / semanal) que NO se guardaban: el servidor los ignoraba.
+// Ahora describimos lo que de verdad pasa y solo dejamos editable el correo,
+// que sí se guarda (Organization.alertEmail). Fuentes:
+//   - /api/cron/daily-alerts  → todos los días 8:00 a. m. (Lima), solo si hay pendientes
+//   - /api/cron/weekly-digest → lunes 8:00 a. m. (Lima)
 
-interface AlertToggle {
-  key: string
-  label: string
-  description: string
-  enabled: boolean
-}
-
-type Frequency = 'INMEDIATA' | 'RESUMEN_DIARIO' | 'RESUMEN_SEMANAL'
-
-const FREQUENCY_OPTIONS: { value: Frequency; label: string; description: string }[] = [
-  { value: 'INMEDIATA', label: 'Inmediata', description: 'Recibe cada alerta al momento de generarse' },
-  { value: 'RESUMEN_DIARIO', label: 'Resumen diario', description: 'Un email consolidado cada dia a las 8:00 AM' },
-  { value: 'RESUMEN_SEMANAL', label: 'Resumen semanal', description: 'Un email consolidado cada lunes a las 8:00 AM' },
+const DAILY_ALERT_TOPICS = [
+  'Contratos que vencen en los próximos 7 días',
+  'Registros de SST vencidos (exámenes, capacitaciones, etc.)',
+  'Depósito de CTS cuando se acerca la fecha límite (15 de mayo y 15 de noviembre)',
+  'Plazos de las denuncias que estás atendiendo',
 ]
-
-const DEFAULT_TOGGLES: AlertToggle[] = [
-  { key: 'contratos_vencer', label: 'Contratos por vencer', description: 'Alerta cuando un contrato esta proximo a su fecha de vencimiento (30, 15, 7 dias)', enabled: true },
-  { key: 'cts_pendiente', label: 'CTS pendiente', description: 'Recordatorio de deposito de CTS antes del 15 de mayo y noviembre', enabled: true },
-  { key: 'vacaciones_acumuladas', label: 'Vacaciones acumuladas', description: 'Alerta cuando un trabajador acumula mas de 1 periodo sin goce', enabled: true },
-  { key: 'documentos_faltantes', label: 'Documentos faltantes', description: 'Aviso de documentos obligatorios del legajo digital no subidos', enabled: true },
-  { key: 'sst_vencimientos', label: 'SST vencimientos', description: 'Examenes medicos, SCTR o capacitaciones SST proximos a vencer', enabled: true },
-  { key: 'cambios_normativos', label: 'Cambios normativos', description: 'Nuevas normas laborales publicadas que afectan a tu organizacion', enabled: false },
-]
-
-// ─── Toggle Switch ─────────────────────────────────────────────────────────────
-
-function ToggleSwitch({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      onClick={() => onChange(!enabled)}
-      className={`
-        relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
-        transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-surface
-        ${enabled ? 'bg-primary' : 'bg-white/[0.12]'}
-      `}
-    >
-      <span
-        className={`
-          pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0
-          transition-transform duration-200 ease-in-out
-          ${enabled ? 'translate-x-5' : 'translate-x-0'}
-        `}
-      />
-    </button>
-  )
-}
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -63,8 +27,6 @@ export default function NotificacionesConfigPage() {
   const router = useRouter()
   const { toast } = useToast()
 
-  const [toggles, setToggles] = useState<AlertToggle[]>(DEFAULT_TOGGLES)
-  const [frequency, setFrequency] = useState<Frequency>('INMEDIATA')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -78,7 +40,7 @@ export default function NotificacionesConfigPage() {
         if (data.alertEmail) setEmail(data.alertEmail)
       }
     } catch {
-      // Silent — defaults will be used
+      // Silencioso: se muestra el campo vacío
     } finally {
       setLoading(false)
     }
@@ -95,30 +57,20 @@ export default function NotificacionesConfigPage() {
     }
   }, [fetchProfile])
 
-  const handleToggle = (key: string, value: boolean) => {
-    setToggles(prev => prev.map(t => t.key === key ? { ...t, enabled: value } : t))
-  }
-
   const handleSave = async () => {
     setSaving(true)
     try {
       const res = await fetch('/api/org/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          alertEmail: email,
-          notificationPrefs: {
-            frequency,
-            toggles: Object.fromEntries(toggles.map(t => [t.key, t.enabled])),
-          },
-        }),
+        body: JSON.stringify({ alertEmail: email.trim() }),
       })
 
       if (!res.ok) throw new Error('Error al guardar')
 
-      toast({ title: 'Preferencias guardadas', description: 'La configuracion de notificaciones se actualizo correctamente.', type: 'success' })
+      toast({ title: 'Correo guardado', description: 'Las alertas llegarán a este correo.', type: 'success' })
     } catch {
-      toast({ title: 'Error al guardar', description: 'No se pudieron guardar las preferencias. Intenta nuevamente.', type: 'error' })
+      toast({ title: 'No se pudo guardar', description: 'Revisa tu conexión e inténtalo de nuevo.', type: 'error' })
     } finally {
       setSaving(false)
     }
@@ -138,6 +90,7 @@ export default function NotificacionesConfigPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/dashboard/configuracion')}
+          aria-label="Volver a Configuración"
           className="p-2 rounded-xl hover:bg-[color:var(--neutral-100)] transition-colors"
         >
           <ArrowLeft className="h-5 w-5 text-gray-400" />
@@ -145,102 +98,29 @@ export default function NotificacionesConfigPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Notificaciones</h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Configura que alertas recibir y con que frecuencia.
+            Elige a qué correo llegan las alertas de tu empresa y revisa qué te enviamos.
           </p>
         </div>
       </div>
 
-      {/* Alert Toggles */}
-      <div className="bg-surface/75 backdrop-blur-xl rounded-2xl border border-glass-border shadow-[0_0_15px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Bell className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-white">Tipos de alerta</h2>
-            <p className="text-xs text-gray-400">Activa o desactiva cada tipo de notificacion.</p>
-          </div>
-        </div>
-
-        <div className="divide-y divide-white/[0.06]">
-          {toggles.map(toggle => (
-            <div key={toggle.key} className="px-6 py-4 flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">{toggle.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{toggle.description}</p>
-              </div>
-              <ToggleSwitch enabled={toggle.enabled} onChange={(v) => handleToggle(toggle.key, v)} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Frequency */}
-      <div className="bg-surface/75 backdrop-blur-xl rounded-2xl border border-glass-border shadow-[0_0_15px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-blue-500/10">
-            <Clock className="h-5 w-5 text-emerald-600" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-white">Frecuencia de envio</h2>
-            <p className="text-xs text-gray-400">Elige como quieres recibir las notificaciones.</p>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-3">
-          {FREQUENCY_OPTIONS.map(opt => (
-            <label
-              key={opt.value}
-              className={`
-                flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-150
-                ${frequency === opt.value
-                  ? 'border-primary/50 bg-primary/[0.06]'
-                  : 'border-white/[0.08] bg-[color:var(--neutral-50)] hover:border-white/[0.15]'
-                }
-              `}
-            >
-              <input
-                type="radio"
-                name="frequency"
-                value={opt.value}
-                checked={frequency === opt.value}
-                onChange={() => setFrequency(opt.value)}
-                className="sr-only"
-              />
-              <div className={`
-                w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0
-                ${frequency === opt.value ? 'border-primary' : 'border-white/30'}
-              `}>
-                {frequency === opt.value && (
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">{opt.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{opt.description}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Email destinatario */}
+      {/* Email destinatario (lo único editable: sí se guarda) */}
       <div className="bg-surface/75 backdrop-blur-xl rounded-2xl border border-glass-border shadow-[0_0_15px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
           <div className="p-2 rounded-xl bg-emerald-50">
             <Mail className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white">Email destinatario</h2>
-            <p className="text-xs text-gray-400">Direccion donde se enviaran las alertas.</p>
+            <h2 className="text-base font-bold text-white">Correo para alertas</h2>
+            <p className="text-xs text-gray-400">Aquí llegan los avisos de vencimientos de tu empresa.</p>
           </div>
         </div>
 
         <div className="p-6">
-          <label className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
-            Correo electronico
+          <label htmlFor="alert-email" className="block text-sm font-semibold text-[color:var(--text-secondary)] mb-1.5">
+            Correo electrónico
           </label>
           <input
+            id="alert-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -248,8 +128,57 @@ export default function NotificacionesConfigPage() {
             className="w-full rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm px-4 py-2.5 text-sm text-white transition-all duration-200 focus:ring-2 focus:ring-gold/20 focus:border-gold/40 outline-none placeholder:text-gray-500"
           />
           <p className="text-xs text-gray-500 mt-1.5">
-            Este es el email principal de alertas de tu organizacion.
+            Si lo dejas vacío, no enviaremos alertas por correo.
           </p>
+        </div>
+      </div>
+
+      {/* Qué enviamos (informativo, refleja lo que hace el sistema) */}
+      <div className="bg-surface/75 backdrop-blur-xl rounded-2xl border border-glass-border shadow-[0_0_15px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <Bell className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white">Qué te enviamos a este correo</h2>
+            <p className="text-xs text-gray-400">Así funcionan hoy los avisos automáticos.</p>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="flex items-start gap-3">
+            <Clock className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+            <div>
+              <p className="text-sm font-semibold text-white">Aviso diario, a las 8:00 a. m. (hora de Lima)</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Solo te escribimos si hay algo pendiente. Incluye:
+              </p>
+              <ul className="mt-2 space-y-1 text-xs text-gray-400 list-disc pl-4">
+                {DAILY_ALERT_TOPICS.map((topic) => (
+                  <li key={topic}>{topic}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Clock className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+            <div>
+              <p className="text-sm font-semibold text-white">Resumen semanal, los lunes a las 8:00 a. m.</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Un resumen de tus trabajadores, alertas abiertas y contratos por vencer.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-xl bg-[color:var(--neutral-50)] border border-white/[0.06] p-3">
+            <Info className="h-4 w-4 mt-0.5 shrink-0 text-gray-400" />
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Por ahora no puedes elegir qué tipos de aviso recibir ni cambiar la frecuencia: se
+              envían todos los avisos de la lista. Todas las alertas también las ves en la plataforma,
+              en la sección Alertas.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -261,7 +190,7 @@ export default function NotificacionesConfigPage() {
           className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.3)]"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? 'Guardando...' : 'Guardar preferencias'}
+          {saving ? 'Guardando…' : 'Guardar correo'}
         </button>
       </div>
     </div>

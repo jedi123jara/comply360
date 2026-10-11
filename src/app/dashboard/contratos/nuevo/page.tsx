@@ -31,8 +31,16 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
-import { CONTRACT_TEMPLATES, type ContractTemplateDefinition, type TemplateField } from '@/lib/legal-engine/contracts/templates'
+import { toast as sonnerToast } from '@/components/ui/sonner-toaster'
+import {
+  CONTRACT_TEMPLATES,
+  getTemplateByType,
+  type ContractTemplateDefinition,
+  type TemplateField,
+} from '@/lib/legal-engine/contracts/templates'
 import { RegimeBadge } from '@/components/contracts/regime-badge'
+import { ContractTypeAdvisor } from '@/components/contracts/contract-type-advisor'
+import type { AdvisorRecommendation } from '@/components/contracts/contract-advisor'
 import { useCloudDraft } from '@/hooks/use-cloud-draft'
 import { useCostEmployer } from '@/hooks/use-cost-employer'
 import { CostSummaryPill } from '@/components/contracts/cost-summary-pill'
@@ -42,6 +50,7 @@ import { LiveValidationPanel } from '@/components/contracts/live-validation-pane
 import { ContractPreview } from '@/components/contracts/contract-preview'
 import { PremiumContractPreview } from '@/components/contracts/premium-contract-preview'
 import { buildPremiumContractDocument } from '@/lib/contracts/premium-library'
+import { cn } from '@/lib/utils'
 import { AiStep } from './_components/ai-modal'
 
 // ─── Types for AI generated contract (mirror of contract-generator.ts) ──────
@@ -82,8 +91,8 @@ const TEMPLATE_OPTIONS = [
   },
   {
     id: 'laboral-indefinido',
-    name: 'Plazo Indeterminado',
-    description: 'Contrato laboral estándar sin fecha de vencimiento',
+    name: 'Plazo indeterminado',
+    description: 'Para puestos permanentes. No tiene fecha de fin y es la regla general. También sirve para tiempo parcial.',
     icon: Users,
     badge: 'Más usado',
     badgeColor: 'bg-amber-100 text-amber-700',
@@ -91,28 +100,49 @@ const TEMPLATE_OPTIONS = [
   },
   {
     id: 'laboral-plazo-fijo',
-    name: 'Plazo Fijo (Modalidad)',
-    description: 'Contrato temporal con causa objetiva obligatoria',
+    name: 'Plazo fijo (temporal)',
+    description: 'Solo si hay un motivo temporal real: proyecto, temporada, reemplazo o aumento pasajero de trabajo.',
     icon: Briefcase,
     available: true,
   },
   {
     id: 'locacion-servicios',
-    name: 'Locación de Servicios',
-    description: 'Prestación de servicios independiente (Código Civil)',
+    name: 'Locación de servicios',
+    description: 'Para un servicio independiente, sin horario ni jefe. Es un contrato civil, no laboral.',
     icon: FileText,
     available: true,
   },
   {
     id: 'confidencialidad',
-    name: 'Confidencialidad (NDA)',
-    description: 'Acuerdo de no divulgación de información',
+    name: 'Confidencialidad',
+    description: 'Acuerdo para no divulgar información de la empresa',
     icon: Shield,
     available: false,
   },
 ]
 
-type Step = 'select' | 'form' | 'preview' | 'review' | 'ai-generate'
+type Step = 'select' | 'form' | 'preview' | 'ai-generate'
+
+/** Pasos que ve la persona en el único indicador de progreso del asistente. */
+const WIZARD_STEPS = [
+  { key: 'select', label: 'Tipo de contrato', sub: 'Elige o te ayudamos' },
+  { key: 'data', label: 'Datos', sub: 'Completa la información' },
+  { key: 'review', label: 'Revisar y descargar', sub: 'Revisa, guarda y descarga' },
+] as const
+
+/** Posición en el indicador de progreso para cada pantalla del asistente. */
+const STEP_POSITION: Record<Step, number> = {
+  select: 0,
+  form: 1,
+  'ai-generate': 1,
+  preview: 2,
+}
+
+/**
+ * Datos que ya vienen completos (empresa y trabajador) y que se conservan al
+ * elegir un modelo de contrato, para no pedirlos de nuevo.
+ */
+const PREFILLED_FIELD_PATTERN = /^(empleador_|trabajador_)/
 
 /** Resumen de una plantilla propia (subset del payload de /api/org-templates) */
 interface OrgTemplateSummary {
@@ -133,6 +163,8 @@ interface OrgTemplateSummary {
 interface ContractWizardDraft {
   step: Step
   selectedTemplateId: string | null
+  /** Contrato ya guardado como borrador en la lista (para seguir actualizándolo). */
+  savedContractId?: string | null
   currentSection: number
   formData: Record<string, string | number | boolean>
   // Modal IA
@@ -161,6 +193,13 @@ interface ContractWizardDraft {
   beneficios: string
 }
 
+/** Resultado de guardar el contrato de plantilla como borrador en la lista. */
+interface TemplateDraftSaveResult {
+  id: string
+  /** true si se acaba de crear; false si se actualizó uno ya guardado. */
+  created: boolean
+}
+
 function formatRelativeTime(date: Date): string {
   const diffMs = Date.now() - date.getTime()
   const diffMin = Math.floor(diffMs / 60000)
@@ -169,12 +208,12 @@ function formatRelativeTime(date: Date): string {
   const diffH = Math.floor(diffMin / 60)
   if (diffH < 24) return `hace ${diffH} ${diffH === 1 ? 'hora' : 'horas'}`
   const diffD = Math.floor(diffH / 24)
-  return `hace ${diffD} ${diffD === 1 ? 'dia' : 'dias'}`
+  return `hace ${diffD} ${diffD === 1 ? 'día' : 'días'}`
 }
 
 function exportErrorDescription(payload: unknown): string {
   if (!payload || typeof payload !== 'object') {
-    return 'El exportador no devolvió un detalle legible.'
+    return 'No recibimos más detalles del problema.'
   }
   const data = payload as {
     error?: unknown
@@ -184,17 +223,17 @@ function exportErrorDescription(payload: unknown): string {
   }
   if (data.code === 'DOCUMENT_QUALITY_BLOCKED' && data.quality) {
     return data.quality.blockers[0]?.message
-      ?? `El contrato no pasa calidad legal (${data.quality.score}/100).`
+      ?? `El contrato todavía no pasa la revisión de calidad (${data.quality.score}/100).`
   }
   const unresolved = Array.isArray(data.details?.unresolvedPlaceholders)
     ? data.details.unresolvedPlaceholders.filter((item): item is string => typeof item === 'string')
     : []
   if (data.code === 'UNRESOLVED_PLACEHOLDERS' && unresolved.length > 0) {
-    return `Completa estos campos antes de exportar: ${unresolved.join(', ')}.`
+    return `Completa estos datos antes de descargar: ${unresolved.join(', ')}.`
   }
   return typeof data.error === 'string'
     ? data.error
-    : 'El contrato todavía no está listo para exportarse.'
+    : 'El contrato todavía no está listo para descargarse.'
 }
 
 function fileNameFromDisposition(disposition: string | null, fallback: string): string {
@@ -206,7 +245,7 @@ const QUALITY_LABELS: Record<ContractQualityResult['status'], { label: string; t
   DRAFT_INCOMPLETE: { label: 'Borrador incompleto', tone: 'border-red-200 bg-red-50 text-red-800' },
   READY_FOR_REVIEW: { label: 'Listo para revisión', tone: 'border-blue-200 bg-blue-50 text-blue-800' },
   LEGAL_REVIEW_REQUIRED: { label: 'Revisión legal requerida', tone: 'border-amber-200 bg-amber-50 text-amber-800' },
-  READY_FOR_SIGNATURE: { label: 'Listo para documento oficial', tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+  READY_FOR_SIGNATURE: { label: 'Listo para descargar y firmar', tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
   BLOCKED: { label: 'Bloqueado', tone: 'border-red-200 bg-red-50 text-red-800' },
 }
 
@@ -216,7 +255,7 @@ function PremiumQualityPanel({ quality }: { quality: ContractQualityResult | nul
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <div className="flex items-start gap-2 text-slate-600">
           <ShieldCheck className="h-4 w-4 mt-0.5" aria-hidden="true" />
-          <p className="text-xs">El control premium aparecerá al completar datos esenciales.</p>
+          <p className="text-xs">La revisión de calidad aparecerá cuando completes los datos principales.</p>
         </div>
       </div>
     )
@@ -227,12 +266,12 @@ function PremiumQualityPanel({ quality }: { quality: ContractQualityResult | nul
   const required = quality.legalCoverage.filter(item => item.required).length
 
   return (
-    <section className={`rounded-2xl border p-4 ${cfg.tone}`} aria-label="Control premium del contrato">
+    <section className={`rounded-2xl border p-4 ${cfg.tone}`} aria-label="Revisión de calidad del contrato">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2">
           <ShieldCheck className="h-4 w-4 mt-0.5" aria-hidden="true" />
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide">Documento oficial</p>
+            <p className="text-xs font-bold uppercase tracking-wide">Revisión de calidad</p>
             <p className="text-sm font-semibold">{cfg.label} · {quality.score}/100</p>
           </div>
         </div>
@@ -243,7 +282,7 @@ function PremiumQualityPanel({ quality }: { quality: ContractQualityResult | nul
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-white/70 p-2">
-          <p className="text-[10px] font-semibold uppercase">Blockers</p>
+          <p className="text-[10px] font-semibold uppercase">Por resolver</p>
           <p className="text-lg font-bold">{quality.blockers.length}</p>
         </div>
         <div className="rounded-xl bg-white/70 p-2">
@@ -251,7 +290,7 @@ function PremiumQualityPanel({ quality }: { quality: ContractQualityResult | nul
           <p className="text-lg font-bold">{quality.missingAnnexes.length}</p>
         </div>
         <div className="rounded-xl bg-white/70 p-2">
-          <p className="text-[10px] font-semibold uppercase">Datos</p>
+          <p className="text-[10px] font-semibold uppercase">Datos faltantes</p>
           <p className="text-lg font-bold">{quality.missingInputs.length}</p>
         </div>
       </div>
@@ -314,7 +353,12 @@ function NuevoContratoInner() {
   // ─── Template contract autosave state ──────────────────────────────────
   const [templateSavedId, setTemplateSavedId] = useState<string | null>(null)
   const [templateAutoSaveStatus, setTemplateAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [templateSavedAt, setTemplateSavedAt] = useState<Date | null>(null)
   const [downloadingDocx, setDownloadingDocx] = useState(false)
+  // Id del borrador guardado disponible al instante (el estado tarda un render)
+  const savedContractIdRef = useRef<string | null>(null)
+  // Evita crear dos borradores si se pulsa "Guardar" mientras otro guardado sigue en curso
+  const saveInFlightRef = useRef<Promise<TemplateDraftSaveResult | null> | null>(null)
 
   // Empleador fields
   const [empRuc, setEmpRuc] = useState('')
@@ -433,7 +477,7 @@ function NuevoContratoInner() {
         if (!res.ok) {
           toast({
             title: 'No se pudo cargar el borrador',
-            description: 'Verifica que aun exista en la lista de contratos.',
+            description: 'Verifica que aún exista en la lista de contratos.',
             type: 'error',
           })
           return
@@ -448,16 +492,26 @@ function NuevoContratoInner() {
             status: string
           }
         }
-        if (data.templateId) {
-          const tmpl = CONTRACT_TEMPLATES.find(t => t.id === data.templateId)
-          if (tmpl) setSelectedTemplate(tmpl)
+        // El id guardado puede no coincidir con el del modelo: se busca también por tipo
+        const tmpl =
+          (data.templateId ? CONTRACT_TEMPLATES.find(t => t.id === data.templateId) : undefined) ??
+          getTemplateByType(data.type)
+        if (!tmpl) {
+          toast({
+            title: 'Este borrador no se puede editar aquí',
+            description: 'Ábrelo desde tu lista de contratos para revisarlo.',
+            type: 'error',
+          })
+          return
         }
+        setSelectedTemplate(tmpl)
         setFormData((data.formData as Record<string, string | number | boolean>) ?? {})
+        savedContractIdRef.current = data.id
         setTemplateSavedId(data.id)
         setStep('form')
         toast({
           title: 'Borrador cargado',
-          description: `Continua editando "${data.title}"`,
+          description: `Continúa editando "${data.title}"`,
           type: 'success',
         })
         setA11yAnnouncement(`Borrador "${data.title}" cargado.`)
@@ -490,6 +544,7 @@ function NuevoContratoInner() {
     ttlDays: 7,
     debounceMs: 1500,
   })
+  const clearCloudDraft = draftHook.clear
 
   // Mostrar banner de restaurar cuando el draft se restaura del storage
   useEffect(() => {
@@ -507,9 +562,7 @@ function NuevoContratoInner() {
 
   // Persistir cambios al draft (debounced por el hook)
   useEffect(() => {
-    // No guardar borrador en estados terminales
-    if (step === 'review') return
-    // No guardar si nada significativo se ha llenado todavia
+    // No guardar si nada significativo se ha llenado todavía
     const hasMeaningfulData =
       selectedTemplate !== null ||
       Object.keys(formData).length > 0 ||
@@ -521,6 +574,7 @@ function NuevoContratoInner() {
     draftHook.save({
       step,
       selectedTemplateId: selectedTemplate?.id ?? null,
+      savedContractId: templateSavedId,
       currentSection,
       formData,
       aiDescription,
@@ -545,8 +599,9 @@ function NuevoContratoInner() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    // templateSavedId no va aquí a propósito: se guarda junto con el siguiente cambio real
     step, selectedTemplate?.id, currentSection, formData,
-    aiDescription, step,
+    aiDescription,
     empRuc, empRazonSocial, empRepresentante, empDireccion,
     trabDni, trabNombre,
     modalidad, causaObjetiva, fechaInicio, fechaFin, periodoPrueba,
@@ -561,7 +616,12 @@ function NuevoContratoInner() {
       const tmpl = CONTRACT_TEMPLATES.find(t => t.id === d.selectedTemplateId)
       if (tmpl) setSelectedTemplate(tmpl)
     }
-    setStep(d.step)
+    if (d.savedContractId) {
+      savedContractIdRef.current = d.savedContractId
+      setTemplateSavedId(d.savedContractId)
+    }
+    // Borradores antiguos podían guardar pasos que ya no existen
+    setStep(d.step in STEP_POSITION ? d.step : 'select')
     setCurrentSection(d.currentSection || 0)
     setFormData(d.formData || {})
     setAiDescription(d.aiDescription || '')
@@ -586,7 +646,7 @@ function NuevoContratoInner() {
     setA11yAnnouncement('Borrador restaurado.')
     toast({
       title: 'Borrador restaurado',
-      description: 'Continua donde lo dejaste.',
+      description: 'Continúa donde lo dejaste.',
       type: 'success',
     })
   }
@@ -605,7 +665,7 @@ function NuevoContratoInner() {
     if (!draftHook.draft && Object.keys(formData).length === 0) return
     // Solo anunciar cuando dejo de estar 'saving' y tenemos contenido
     const handle = setTimeout(() => {
-      setA11yAnnouncement('Borrador guardado automaticamente.')
+      setA11yAnnouncement('Avance guardado automáticamente.')
     }, 200)
     return () => clearTimeout(handle)
   }, [draftHook.saving, draftHook.draft, formData, showRestoreBanner])
@@ -649,7 +709,7 @@ function NuevoContratoInner() {
     )
   }
 
-  const handleSelectTemplate = (id: string) => {
+  const handleSelectTemplate = (id: string, presetFields?: Record<string, string>) => {
     if (id === '__ai_generate__') {
       setStep('ai-generate')
       setAiContract(null)
@@ -658,11 +718,28 @@ function NuevoContratoInner() {
     }
     const template = CONTRACT_TEMPLATES.find(t => t.id === id)
     if (template) {
+      // Elegir un modelo empieza un contrato nuevo: no se sobrescribe un borrador guardado antes
+      savedContractIdRef.current = null
+      setTemplateSavedId(null)
+      setTemplateSavedAt(null)
+      setTemplateAutoSaveStatus('idle')
       setSelectedTemplate(template)
       setStep('form')
       setCurrentSection(0)
-      setFormData({})
+      // Conserva los datos de la empresa y del trabajador que ya se completaron solos
+      setFormData(prev => ({
+        ...Object.fromEntries(
+          Object.entries(prev).filter(([key]) => PREFILLED_FIELD_PATTERN.test(key)),
+        ),
+        ...presetFields,
+      }))
     }
+  }
+
+  /** El orientador "¿Qué contrato necesito?" sugirió un modelo y la persona lo aceptó. */
+  const handleChooseRecommendation = (recommendation: AdvisorRecommendation) => {
+    handleSelectTemplate(recommendation.templateId, recommendation.presetFields)
+    setA11yAnnouncement(`Modelo ${recommendation.templateLabel} seleccionado.`)
   }
 
   // ─── RUC auto-lookup ─────────────────────────────────────────────────────
@@ -897,6 +974,9 @@ function NuevoContratoInner() {
       trabajador_regimen: w.regimenLaboral,
       remuneracion_mensual: w.sueldoBruto ? String(w.sueldoBruto) : prev.remuneracion_mensual,
       fecha_inicio: w.fechaIngreso?.split('T')[0] ?? prev.fecha_inicio,
+      // Campos de las plantillas: se completan solo si aún están vacíos
+      ...(w.position && !prev.cargo ? { cargo: w.position } : {}),
+      ...(w.sueldoBruto && !prev.remuneracion ? { remuneracion: Number(w.sueldoBruto) } : {}),
     }))
     setA11yAnnouncement(
       `Trabajador ${w.firstName} ${w.lastName} seleccionado. Datos prellenados.`
@@ -938,15 +1018,27 @@ function NuevoContratoInner() {
     return null
   })()
 
-  const liveFormData = useMemo<Record<string, string | number | boolean>>(() => ({
-    ...formData,
-    causa_objetiva: causaObjetiva,
-    fecha_inicio: fechaInicio,
-    fecha_fin: fechaFin,
-    remuneracion: remuneracion ? Number(remuneracion) : '',
-    cargo,
-    jornada_semanal: jornada ? Number(jornada) : '',
-  }), [cargo, causaObjetiva, fechaFin, fechaInicio, formData, jornada, remuneracion])
+  const liveFormData = useMemo<Record<string, string | number | boolean>>(() => {
+    // Campos que el paso de IA maneja con inputs propios (espejos de formData)
+    const mirrored: Record<string, string | number> = {
+      causa_objetiva: causaObjetiva,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      remuneracion: remuneracion ? Number(remuneracion) : '',
+      cargo,
+      jornada_semanal: jornada ? Number(jornada) : '',
+    }
+    // Con IA mandan los inputs del paso de IA. Con una plantilla manda lo que la
+    // persona escribió en el formulario; el espejo solo rellena lo que falte
+    // (antes lo sobrescribía con vacío y se perdían cargo, fechas y sueldo).
+    if (step === 'ai-generate') return { ...formData, ...mirrored }
+    const merged: Record<string, string | number | boolean> = { ...formData }
+    for (const [key, value] of Object.entries(mirrored)) {
+      const current = merged[key]
+      if (current === undefined || current === '') merged[key] = value
+    }
+    return merged
+  }, [cargo, causaObjetiva, fechaFin, fechaInicio, formData, jornada, remuneracion, step])
 
   const liveValidation = useLiveValidation({
     contractType: liveContractType,
@@ -993,114 +1085,162 @@ function NuevoContratoInner() {
   }
 
   const totalSections = selectedTemplate?.sections.length ?? 0
-  const progress = totalSections > 0 ? ((currentSection + 1) / totalSections) * 100 : 0
-
-  const handleSaveDraft = async () => {
-    if (!selectedTemplate) return
-    setSaving(true)
-    try {
-      const res = await fetch('/api/contracts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          type: selectedTemplate.type,
-          title: selectedTemplate.name,
-          formData,
-        }),
-      })
-      if (!res.ok) throw new Error()
-      const { data } = await res.json() as { data: { id: string } }
-      setTemplateSavedId(data.id)
-      draftHook.clear()
-      toast({ title: 'Borrador guardado', description: 'Puedes continuar editandolo despues', type: 'success' })
-      router.push(`/dashboard/contratos/${data.id}`)
-    } catch {
-      toast({ title: 'Error al guardar', type: 'error' })
-    } finally {
-      setSaving(false)
-    }
-  }
 
   /**
-   * Auto-guarda el contrato de plantilla silenciosamente (sin navegar).
-   * Se dispara al entrar al step 'preview'. Si ya fue guardado una vez
-   * (templateSavedId no nulo) no lo vuelve a crear.
+   * Guarda el contrato de plantilla como borrador en la lista de contratos.
+   * La primera vez lo crea (POST /api/contracts, estado Borrador); después
+   * actualiza ese mismo borrador (PATCH /api/contracts/[id]) para no duplicarlo.
+   * Devuelve null si no se pudo guardar.
    */
-  const autoSaveTemplateContract = useCallback(async () => {
-    if (!selectedTemplate || templateSavedId || templateAutoSaveStatus === 'saving') return
-    setTemplateAutoSaveStatus('saving')
-    try {
-      const res = await fetch('/api/contracts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          type: selectedTemplate.type,
-          title: selectedTemplate.name,
-          formData: liveFormData,
-          sourceKind: 'template-based',
-          provenance: 'MANUAL_TEMPLATE',
-        }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Error al guardar')
-      }
-      const { data } = (await res.json()) as { data: { id: string } }
-      setTemplateSavedId(data.id)
-      setTemplateAutoSaveStatus('saved')
-      // Borrador en BD: limpiar localStorage para no mostrar restore banner
-      draftHook.clear()
-      toast({
-        title: 'Borrador guardado ✓',
-        description: 'Se creó automáticamente. Puedes descargarlo o volver más tarde.',
-        type: 'success',
-      })
-    } catch (e) {
-      console.error('Auto-save template contract failed:', e)
-      setTemplateAutoSaveStatus('error')
-    }
-  }, [draftHook, liveFormData, selectedTemplate, templateAutoSaveStatus, templateSavedId, toast])
+  const saveTemplateDraft = useCallback((): Promise<TemplateDraftSaveResult | null> => {
+    if (!selectedTemplate) return Promise.resolve(null)
+    if (saveInFlightRef.current) return saveInFlightRef.current
 
-  // ─── Auto-save template contract when entering preview step ────────────
-  useEffect(() => {
-    let cancelled = false
-    if (step === 'preview' && selectedTemplate && !templateSavedId && templateAutoSaveStatus === 'idle') {
-      void Promise.resolve().then(() => {
-        if (!cancelled) void autoSaveTemplateContract()
-      })
+    const run = async (): Promise<TemplateDraftSaveResult | null> => {
+      setTemplateAutoSaveStatus('saving')
+      try {
+        const existingId = savedContractIdRef.current ?? templateSavedId
+        let result: TemplateDraftSaveResult
+        if (existingId) {
+          const res = await fetch(`/api/contracts/${existingId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ formData: liveFormData }),
+          })
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}))
+            throw new Error(data.error || `Error ${res.status} al actualizar el borrador`)
+          }
+          result = { id: existingId, created: false }
+        } else {
+          const res = await fetch('/api/contracts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              templateId: selectedTemplate.id,
+              type: selectedTemplate.type,
+              title: selectedTemplate.name,
+              formData: liveFormData,
+              sourceKind: 'template-based',
+              provenance: 'MANUAL_TEMPLATE',
+            }),
+          })
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}))
+            throw new Error(data.error || `Error ${res.status} al guardar el borrador`)
+          }
+          const { data } = (await res.json()) as { data: { id: string } }
+          savedContractIdRef.current = data.id
+          setTemplateSavedId(data.id)
+          result = { id: data.id, created: true }
+        }
+        setTemplateAutoSaveStatus('saved')
+        setTemplateSavedAt(new Date())
+        // El borrador ya está en la lista: no hace falta ofrecer "restaurar" al volver
+        clearCloudDraft()
+        return result
+      } catch (e) {
+        console.error('[saveTemplateDraft] no se pudo guardar:', e)
+        setTemplateAutoSaveStatus('error')
+        return null
+      } finally {
+        saveInFlightRef.current = null
+      }
     }
+
+    const promise = run()
+    saveInFlightRef.current = promise
+    return promise
+  }, [clearCloudDraft, liveFormData, selectedTemplate, templateSavedId])
+
+  /** Botón "Guardar borrador": guarda de verdad y confirma dónde encontrarlo. */
+  const handleSaveDraftClick = async () => {
+    setSaving(true)
+    const result = await saveTemplateDraft()
+    setSaving(false)
+    if (!result) {
+      toast({
+        title: 'No se pudo guardar el borrador',
+        description: 'Revisa tu conexión e inténtalo otra vez. Tus datos siguen aquí.',
+        type: 'error',
+      })
+      return
+    }
+    sonnerToast.success(result.created ? 'Borrador guardado' : 'Borrador actualizado', {
+      description: 'Lo encuentras en Contratos, en la tarjeta «Borrador». Puedes seguir editándolo cuando quieras.',
+      duration: 6000,
+      action: {
+        label: 'Ver borradores',
+        onClick: () => router.push('/dashboard/contratos?status=DRAFT'),
+      },
+    })
+    setA11yAnnouncement('Borrador guardado en tu lista de contratos.')
+  }
+
+  // Al llegar a "Revisar y descargar" se guarda (o actualiza) el borrador con los últimos datos
+  const lastSavedStepRef = useRef<Step>(step)
+  useEffect(() => {
+    const previous = lastSavedStepRef.current
+    lastSavedStepRef.current = step
+    if (step !== 'preview' || previous === 'preview' || !selectedTemplate) return
+    let cancelled = false
+    void Promise.resolve().then(async () => {
+      if (cancelled) return
+      const result = await saveTemplateDraft()
+      if (result?.created) {
+        toast({
+          title: 'Borrador guardado',
+          description: 'Lo guardamos en tu lista de contratos. Puedes descargarlo o volver más tarde.',
+          type: 'success',
+        })
+      }
+    })
     return () => {
       cancelled = true
     }
-  }, [autoSaveTemplateContract, selectedTemplate, step, templateAutoSaveStatus, templateSavedId])
+  }, [saveTemplateDraft, selectedTemplate, step, toast])
+
+  /** "Analizar con IA": guarda los últimos datos y abre el análisis del contrato guardado. */
+  const handleOpenAiReview = async () => {
+    const result = await saveTemplateDraft()
+    if (!result) {
+      toast({
+        title: 'Primero necesitamos guardar el borrador',
+        description: 'No se pudo guardar. Revisa tu conexión e inténtalo otra vez.',
+        type: 'error',
+      })
+      return
+    }
+    router.push(`/dashboard/contratos/${result.id}/analisis`)
+  }
 
   const handleDownloadDocx = async () => {
     if (!selectedTemplate) return
     if (!isQualityReadyForOfficial(liveValidation.quality)) {
       toast({
-        title: 'DOCX oficial bloqueado',
-        description: liveValidation.quality?.blockers[0]?.message ?? 'Resuelve el control premium antes de emitir.',
-        type: 'error',
-      })
-      return
-    }
-    if (!templateSavedId) {
-      toast({
-        title: 'Primero guarda el borrador',
-        description: 'El DOCX oficial se genera desde el contrato persistido.',
+        title: 'Aún no puedes descargar el contrato',
+        description: liveValidation.quality?.blockers[0]?.message ?? 'Resuelve los puntos pendientes de la revisión de calidad.',
         type: 'error',
       })
       return
     }
     setDownloadingDocx(true)
     try {
-      const res = await fetch(`/api/contracts/${templateSavedId}/render-docx`)
+      // Se descarga desde el borrador guardado: primero lo actualizamos con lo último que escribiste
+      const saved = await saveTemplateDraft()
+      if (!saved) {
+        toast({
+          title: 'Primero necesitamos guardar el borrador',
+          description: 'El contrato final se genera a partir del borrador guardado. Revisa tu conexión e inténtalo otra vez.',
+          type: 'error',
+        })
+        return
+      }
+      const res = await fetch(`/api/contracts/${saved.id}/render-docx`)
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
         toast({
-          title: 'DOCX no disponible',
+          title: 'No se pudo descargar el contrato',
           description: exportErrorDescription(errBody),
           type: 'error',
         })
@@ -1120,8 +1260,8 @@ function NuevoContratoInner() {
       setTimeout(() => URL.revokeObjectURL(url), 30_000)
     } catch {
       toast({
-        title: 'No se pudo generar el DOCX',
-        description: 'Revisa tu conexión o intenta nuevamente.',
+        title: 'No se pudo preparar el archivo',
+        description: 'Revisa tu conexión o inténtalo nuevamente.',
         type: 'error',
       })
     } finally {
@@ -1160,27 +1300,43 @@ function NuevoContratoInner() {
           Contratos
         </Link>
         <span className="text-[color:var(--text-secondary)]" aria-hidden="true">/</span>
-        <span className="text-sm font-medium text-slate-900" aria-current="page">Nuevo Contrato</span>
+        <span className="text-sm font-medium text-slate-900" aria-current="page">Nuevo contrato</span>
       </nav>
 
-      {/* Hero header (estilo del mockup) */}
+      {/* Cabecera del asistente con guardado real del borrador */}
       {(step === 'form' || step === 'preview') && (
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Nuevo contrato</h1>
+            <p className="text-3xl font-bold text-slate-900">Nuevo contrato</p>
             <p className="text-sm text-slate-500 mt-1">
-              Crea un contrato en pocos pasos. Tu progreso{' '}
-              <span className="text-emerald-700 font-medium">se guarda automáticamente</span>.
+              {selectedTemplate ? <span className="font-medium text-slate-700">{selectedTemplate.name}. </span> : null}
+              Tu avance <span className="text-emerald-700 font-medium">se guarda automáticamente</span>.
+              Con «Guardar borrador» también aparece en tu lista de contratos.
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Link
-              href="/dashboard/contratos?status=DRAFT"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg"
-            >
-              Guardar borrador
-            </Link>
-          </div>
+          {selectedTemplate && (
+            <div className="flex flex-col items-start gap-1 sm:items-end flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => void handleSaveDraftClick()}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {saving
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  : <Save className="h-3.5 w-3.5" aria-hidden="true" />}
+                {saving ? 'Guardando…' : 'Guardar borrador'}
+              </button>
+              {templateSavedId && templateSavedAt && (
+                <Link
+                  href="/dashboard/contratos?status=DRAFT"
+                  className="text-[11px] text-emerald-700 hover:underline"
+                >
+                  En tu lista de borradores · {templateSavedAt.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1221,44 +1377,57 @@ function NuevoContratoInner() {
         </div>
       )}
 
-      {/* Step Indicator (rediseñado estilo mockup) */}
-      <nav aria-label="Pasos del wizard" className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+      {/* Indicador de progreso (único) del asistente */}
+      <nav aria-label="Pasos para crear el contrato" className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
         <ol className="flex items-center justify-between gap-2 m-0 p-0">
-          {[
-            { key: 'select', label: '1. Plantilla', sub: 'Elegir tipo' },
-            { key: 'form', label: '2. Datos', sub: 'Completar información' },
-            { key: 'preview', label: '3. Revisión', sub: 'Validaciones y preview' },
-            { key: 'review', label: '4. Generar', sub: 'Descargar contrato' },
-          ].map((s, i) => {
-            const isCurrent = step === s.key
-            const isCompleted = ['select', 'form', 'preview', 'review'].indexOf(step) > i
+          {WIZARD_STEPS.map((s, i) => {
+            const position = STEP_POSITION[step]
+            const isCurrent = position === i
+            const isCompleted = position > i
+            const showSections = i === 1 && step === 'form' && totalSections > 0
+            const sub = showSections
+              ? `Parte ${currentSection + 1} de ${totalSections}: ${selectedTemplate?.sections[currentSection]?.title ?? ''}`
+              : i === 1 && step === 'ai-generate'
+                ? 'Describe el contrato que necesitas'
+                : s.sub
             return (
               <li
                 key={s.key}
-                className="flex items-center gap-3 flex-1 min-w-0"
+                className={cn('flex items-center gap-3 min-w-0', isCurrent ? 'flex-[2]' : 'flex-1')}
                 aria-current={isCurrent ? 'step' : undefined}
               >
                 <div
-                  className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center text-sm font-bold transition-colors ${
+                  className={cn(
+                    'w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center text-sm font-bold transition-colors',
                     isCurrent
                       ? 'bg-primary text-white shadow-md shadow-primary/30'
                       : isCompleted
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-slate-100 text-slate-400'
-                  }`}
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-slate-100 text-slate-400',
+                  )}
                   aria-hidden="true"
                 >
                   {isCompleted ? <Check className="w-4 h-4" /> : i + 1}
                 </div>
-                <div className="hidden sm:block min-w-0">
-                  <p className={`text-sm font-semibold truncate ${isCurrent ? 'text-slate-900' : isCompleted ? 'text-slate-700' : 'text-slate-500'}`}>
-                    {s.label}
+                <div className={cn('min-w-0', isCurrent ? 'block' : 'hidden sm:block')}>
+                  <p className={cn('text-sm font-semibold truncate', isCurrent ? 'text-slate-900' : isCompleted ? 'text-slate-700' : 'text-slate-500')}>
+                    {i + 1}. {s.label}
                     {isCurrent && <span className="sr-only"> (paso actual)</span>}
                     {isCompleted && <span className="sr-only"> (completado)</span>}
                   </p>
-                  <p className="text-[11px] text-slate-500 truncate">{s.sub}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{sub}</p>
+                  {showSections && totalSections > 1 && (
+                    <div className="mt-1 flex gap-1" aria-hidden="true">
+                      {selectedTemplate?.sections.map((section, idx) => (
+                        <span
+                          key={section.id}
+                          className={cn('h-1 w-5 rounded-full', idx <= currentSection ? 'bg-emerald-500' : 'bg-slate-200')}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {i < 3 && <div className="hidden md:block flex-1 h-px bg-slate-200" aria-hidden="true" />}
+                {i < WIZARD_STEPS.length - 1 && <div className="hidden md:block flex-1 h-px bg-slate-200" aria-hidden="true" />}
               </li>
             )
           })}
@@ -1274,16 +1443,20 @@ function NuevoContratoInner() {
               tabIndex={-1}
               className="text-2xl font-bold text-slate-900 outline-none"
             >
-              Selecciona el tipo de contrato
+              ¿Qué contrato quieres crear?
             </h1>
-            <p className="text-gray-500 mt-1">
-              Elige una plantilla. Todas están actualizadas con la normativa peruana vigente.
+            <p className="text-slate-500 mt-1">
+              Elige un modelo. Si no sabes cuál usar, te ayudamos a decidir con unas preguntas simples.
             </p>
           </div>
 
           {/* Detección automática de régimen — Generador de Contratos / Chunk 2 */}
           <RegimeBadge />
 
+          {/* Orientador "¿Qué contrato necesito?" */}
+          <ContractTypeAdvisor onChoose={handleChooseRecommendation} />
+
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">Modelos disponibles</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {TEMPLATE_OPTIONS.map(opt => {
               const Icon = opt.icon
@@ -1361,16 +1534,19 @@ function NuevoContratoInner() {
                     </div>
                     <h3 className="text-base font-bold text-slate-900 mb-1">{tmpl.title}</h3>
                     <p className="text-sm text-slate-600">{tmpl.documentTypeLabel}</p>
-                    <div className="mt-3 flex items-center gap-3 text-[11px] text-slate-500">
-                      <span>{tmpl.placeholderCount} placeholders</span>
-                      <span aria-hidden="true">·</span>
-                      <span>
-                        {tmpl.mappingCount}/{tmpl.placeholderCount} mapeados
-                      </span>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                      {tmpl.placeholderCount > 0 && (
+                        <span>
+                          {tmpl.mappingCount} de {tmpl.placeholderCount} datos se completan solos
+                          {tmpl.placeholderCount > tmpl.mappingCount
+                            ? ` (${tmpl.placeholderCount - tmpl.mappingCount} los escribes tú)`
+                            : ''}
+                        </span>
+                      )}
                       {tmpl.usageCount > 0 && (
                         <>
-                          <span aria-hidden="true">·</span>
-                          <span>{tmpl.usageCount} usos</span>
+                          {tmpl.placeholderCount > 0 && <span aria-hidden="true">·</span>}
+                          <span>Usada {tmpl.usageCount} {tmpl.usageCount === 1 ? 'vez' : 'veces'}</span>
                         </>
                       )}
                     </div>
@@ -1451,27 +1627,14 @@ function NuevoContratoInner() {
       {/* STEP: Form */}
       {step === 'form' && selectedTemplate && (
         <div className="space-y-4 pb-24">
-          {/* Progress Bar */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h1
-                ref={stepHeadingRef}
-                tabIndex={-1}
-                className="text-2xl font-bold text-slate-900 outline-none"
-              >
-                {selectedTemplate.sections[currentSection]?.title}
-              </h1>
-              <span className="text-sm text-gray-500">
-                Sección {currentSection + 1} de {totalSections}
-              </span>
-            </div>
-            <div className="h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
+          {/* El avance por partes se muestra en el indicador de pasos de arriba */}
+          <h1
+            ref={stepHeadingRef}
+            tabIndex={-1}
+            className="text-2xl font-bold text-slate-900 outline-none"
+          >
+            {selectedTemplate.sections[currentSection]?.title}
+          </h1>
 
           {/* 3-col layout: form | preview | sidebar */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1480,9 +1643,9 @@ function NuevoContratoInner() {
               {/* WorkerPicker (siempre arriba para vincular trabajador) */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Datos del trabajador</h2>
+                  <h2 className="text-base font-bold text-slate-900">¿Para quién es el contrato?</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Busca un trabajador existente o registra uno nuevo
+                    Busca a un trabajador que ya registraste y sus datos principales se completan solos, o registra a uno nuevo.
                   </p>
                 </div>
                 {trabajadorMode === 'picker' && !selectedWorker && (
@@ -1529,7 +1692,7 @@ function NuevoContratoInner() {
               <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
                 <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <div>
-                  <span className="text-sm font-semibold text-blue-800">Base Legal: </span>
+                  <span className="text-sm font-semibold text-blue-800">Base legal: </span>
                   <span className="text-sm text-blue-700">{selectedTemplate.legalBasis}</span>
                 </div>
               </div>
@@ -1539,14 +1702,14 @@ function NuevoContratoInner() {
             <div className="lg:col-span-4">
               <div className="lg:sticky lg:top-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-slate-900">Preview oficial premium</h2>
+                  <h2 className="text-base font-bold text-slate-900">Vista previa del contrato</h2>
                   <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-                    Actualizado
+                    Se actualiza mientras escribes
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Refleja el render canónico que alimenta PDF/DOCX. El archivo oficial sigue bloqueado hasta pasar calidad legal.
+                  Así se verá tu contrato. Podrás descargar el archivo final cuando pase la revisión de calidad.
                 </p>
                 <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
                   <div className="max-h-[600px] overflow-y-auto p-2 [transform:scale(0.85)] [transform-origin:top_left] [width:117.6%]">
@@ -1592,7 +1755,11 @@ function NuevoContratoInner() {
               {/* Validation Sheet */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-700 relative">
+                  <button
+                    type="button"
+                    aria-label="Ver revisión en vivo"
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-700 relative"
+                  >
                     <AlertTriangle className="h-5 w-5" />
                     {liveValidation.blockers.length > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
@@ -1603,7 +1770,7 @@ function NuevoContratoInner() {
                 </SheetTrigger>
                 <SheetContent side="bottom" className="h-[80vh] px-4 overflow-y-auto rounded-t-2xl">
                   <SheetHeader className="mb-4">
-                    <SheetTitle>Validación en Vivo</SheetTitle>
+                    <SheetTitle>Revisión en vivo</SheetTitle>
                   </SheetHeader>
                   <div className="space-y-4 pb-12">
                     <CostSummaryPill result={costoEmpleador} />
@@ -1624,13 +1791,17 @@ function NuevoContratoInner() {
               {/* Preview Sheet */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <button className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 relative">
+                  <button
+                    type="button"
+                    aria-label="Ver vista previa"
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 relative"
+                  >
                     <Eye className="h-5 w-5" />
                   </button>
                 </SheetTrigger>
                 <SheetContent side="bottom" className="h-[90vh] px-4 overflow-y-auto rounded-t-2xl">
                   <SheetHeader className="mb-4">
-                    <SheetTitle>Vista Previa</SheetTitle>
+                    <SheetTitle>Vista previa</SheetTitle>
                   </SheetHeader>
                   <div className="pb-12">
                     {premiumPreviewDocument ? (
@@ -1658,19 +1829,20 @@ function NuevoContratoInner() {
           <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-sm shadow-lg">
             <div className={containerClass + ' flex items-center justify-between gap-3 py-3 px-4'}>
               <div className="flex items-center gap-2 text-xs text-slate-600">
-                {draftHook.saving ? (
+                {draftHook.saving || templateAutoSaveStatus === 'saving' ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-                    Guardando borrador…
+                    Guardando tu avance…
                   </>
-                ) : (
+                ) : orgId ? (
                   <>
                     <CheckCircle2 className="h-3 w-3 text-emerald-600" aria-hidden="true" />
-                    <span>
-                      Borrador guardado <span className="text-slate-400">· hace unos segundos</span>
+                    <span className="hidden sm:inline">
+                      Tu avance se guarda automáticamente
                     </span>
+                    <span className="sm:hidden">Avance guardado</span>
                   </>
-                )}
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -1701,7 +1873,7 @@ function NuevoContratoInner() {
                   aria-disabled={liveValidation.blockers.length > 0}
                   className="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors shadow-lg shadow-primary/20"
                 >
-                  {currentSection < totalSections - 1 ? 'Continuar' : 'Vista Previa'}
+                  {currentSection < totalSections - 1 ? 'Continuar' : 'Revisar contrato'}
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
@@ -1710,7 +1882,7 @@ function NuevoContratoInner() {
         </div>
       )}
 
-      {/* STEP: Preview */}
+      {/* STEP: Revisar y descargar */}
       {step === 'preview' && selectedTemplate && (
         <div className="space-y-6">
           <h1
@@ -1718,15 +1890,15 @@ function NuevoContratoInner() {
             tabIndex={-1}
             className="text-xl font-bold text-slate-900 outline-none"
           >
-            Revisión final del borrador
+            Revisa tu contrato antes de descargarlo
           </h1>
 
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Preview borrador</p>
-                  <p className="text-sm text-slate-700">Sirve para revisar redacción y datos. No es documento oficial.</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Vista previa</p>
+                  <p className="text-sm text-slate-700">Revisa la redacción y los datos. Todavía no es el documento final.</p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
                   BORRADOR
@@ -1742,49 +1914,55 @@ function NuevoContratoInner() {
             <aside className="space-y-4">
               <PremiumQualityPanel quality={liveValidation.quality} />
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Documento oficial</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Archivo final</p>
                 <p className="mt-1 text-sm text-slate-700">
-                  PDF/DOCX oficial se emite desde el contrato guardado y vuelve a ejecutar el gate legal premium en servidor.
+                  El contrato en Word se genera a partir del borrador guardado y pasa una última revisión de calidad antes de descargarse.
                 </p>
                 {!isQualityReadyForOfficial(liveValidation.quality) && (
                   <div className="mt-3 rounded-xl border border-red-100 bg-red-50 p-3 text-xs text-red-800">
-                    El archivo oficial quedará bloqueado hasta resolver los blockers, anexos o datos críticos.
+                    Podrás descargarlo cuando resuelvas los puntos pendientes, los anexos o los datos que faltan.
                   </div>
                 )}
               </div>
             </aside>
           </div>
 
-
-          {/* Auto-save status */}
-          <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${
-            templateAutoSaveStatus === 'saved'
-              ? 'border-green-200 bg-green-50'
-              : templateAutoSaveStatus === 'error'
-                ? 'border-amber-200 bg-amber-50'
-                : 'border-white/[0.08] bg-[color:var(--neutral-50)]'
-          }`}>
-            {templateAutoSaveStatus === 'saving' && (
+          {/* Estado del guardado en la lista de contratos */}
+          <div
+            role="status"
+            className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${
+              templateAutoSaveStatus === 'saved'
+                ? 'border-green-200 bg-green-50'
+                : templateAutoSaveStatus === 'error'
+                  ? 'border-amber-200 bg-amber-50'
+                  : 'border-slate-200 bg-[color:var(--neutral-50)]'
+            }`}
+          >
+            {(templateAutoSaveStatus === 'saving' || templateAutoSaveStatus === 'idle') && (
               <>
-                <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-                <p className="text-xs text-[color:var(--text-secondary)]">Guardando borrador automáticamente...</p>
+                <Loader2 className="h-4 w-4 animate-spin text-gray-600" aria-hidden="true" />
+                <p className="text-xs text-[color:var(--text-secondary)]">Guardando el borrador en tu lista de contratos…</p>
               </>
             )}
             {templateAutoSaveStatus === 'saved' && (
               <>
-                <CheckCircle2 className="h-4 w-4 text-green-700" />
+                <CheckCircle2 className="h-4 w-4 text-green-700" aria-hidden="true" />
                 <p className="text-xs text-green-800">
-                  <b>Contrato guardado como borrador.</b> Puedes descargarlo a DOCX o continuar editándolo más tarde desde la lista de contratos.
+                  <b>Contrato guardado como borrador.</b> Puedes descargarlo o seguir editándolo más tarde desde tu lista de contratos.
                 </p>
               </>
             )}
             {templateAutoSaveStatus === 'error' && (
               <>
-                <AlertTriangle className="h-4 w-4 text-amber-700" />
-                <p className="text-xs text-amber-800 flex-1">No se pudo guardar automáticamente. Puedes descargar el DOCX igualmente o intentar guardar manualmente.</p>
+                <AlertTriangle className="h-4 w-4 text-amber-700" aria-hidden="true" />
+                <p className="text-xs text-amber-800 flex-1">
+                  No se pudo guardar el borrador. Revisa tu conexión e inténtalo otra vez.
+                </p>
                 <button
-                  onClick={() => { setTemplateAutoSaveStatus('idle'); void autoSaveTemplateContract() }}
-                  className="text-xs font-semibold text-amber-900 underline"
+                  type="button"
+                  onClick={() => void handleSaveDraftClick()}
+                  disabled={saving}
+                  className="text-xs font-semibold text-amber-900 underline disabled:opacity-50"
                 >
                   Reintentar
                 </button>
@@ -1792,92 +1970,53 @@ function NuevoContratoInner() {
             )}
           </div>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between">
+          {/* Navegación */}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
+              type="button"
               onClick={() => {
                 setStep('form')
                 setCurrentSection(totalSections - 1)
               }}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)]"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-slate-200 rounded-xl hover:bg-[color:var(--neutral-50)]"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               Editar datos
             </button>
-            <div className="flex gap-3">
-              {templateSavedId ? (
-                <button
-                  onClick={() => router.push(`/dashboard/contratos/${templateSavedId}`)}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-green-700 border border-green-300 bg-green-50 rounded-xl hover:bg-green-100"
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {templateSavedId && (
+                <Link
+                  href={`/dashboard/contratos/${templateSavedId}`}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-green-700 border border-green-300 bg-green-50 rounded-xl hover:bg-green-100"
                 >
-                  <FileText className="w-4 h-4" />
-                  Ver borrador guardado
-                </button>
-              ) : (
-                <button
-                  onClick={handleSaveDraft}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Guardar borrador
-                </button>
+                  <FileText className="w-4 h-4" aria-hidden="true" />
+                  Ver en mis contratos
+                </Link>
               )}
               <button
-                onClick={() => void handleDownloadDocx()}
-                disabled={downloadingDocx || !isQualityReadyForOfficial(liveValidation.quality)}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-white/10 rounded-xl hover:bg-[color:var(--neutral-50)] disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
+                onClick={() => void handleOpenAiReview()}
+                disabled={templateAutoSaveStatus === 'saving'}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-[color:var(--text-secondary)] border border-slate-200 rounded-xl hover:bg-[color:var(--neutral-50)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {downloadingDocx
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <Download className="w-4 h-4" />}
-                {downloadingDocx
-                  ? 'Generando DOCX...'
-                  : isQualityReadyForOfficial(liveValidation.quality)
-                    ? 'Descargar DOCX oficial'
-                    : 'DOCX oficial bloqueado'}
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
+                Analizar con IA
               </button>
               <button
-                onClick={() => setStep('review')}
-                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl shadow-lg shadow-primary/20"
+                type="button"
+                onClick={() => void handleDownloadDocx()}
+                disabled={downloadingDocx || !isQualityReadyForOfficial(liveValidation.quality)}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Sparkles className="w-4 h-4" />
-                Revisar con IA
+                {downloadingDocx
+                  ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  : <Download className="w-4 h-4" aria-hidden="true" />}
+                {downloadingDocx
+                  ? 'Preparando el archivo…'
+                  : isQualityReadyForOfficial(liveValidation.quality)
+                    ? 'Descargar contrato (Word)'
+                    : 'Resuelve los pendientes para descargar'}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* STEP: AI Review */}
-      {step === 'review' && (
-        <div className="space-y-6">
-          <h1
-            ref={stepHeadingRef}
-            tabIndex={-1}
-            className="text-xl font-bold text-slate-900 outline-none"
-          >
-            Revisión con IA
-          </h1>
-
-          <div
-            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center"
-            aria-busy="true"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <Sparkles className="w-8 h-8 text-primary" aria-hidden="true" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
-              Analizando tu contrato...
-            </h3>
-            <p className="text-sm text-gray-500 max-w-md mx-auto">
-              Nuestra IA está verificando cláusulas, detectando riesgos legales y comparando
-              con la normativa vigente. Esto toma unos segundos.
-            </p>
-            <div className="mt-6 max-w-xs mx-auto">
-              <div className="h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full animate-[progress_3s_ease-in-out_infinite] w-2/3" />
-              </div>
             </div>
           </div>
         </div>

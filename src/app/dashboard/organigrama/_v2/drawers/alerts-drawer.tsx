@@ -175,11 +175,11 @@ function AlertCard({ alert }: { alert: OrgAlertDTO }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span
-              className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${SEVERITY_BADGE[alert.severity]}`}
+              className={`rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${SEVERITY_BADGE[alert.severity]}`}
             >
               {alert.severity}
             </span>
-            <span className="rounded bg-white/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-700">
+            <span className="rounded bg-white/60 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-700">
               {alert.category}
             </span>
           </div>
@@ -240,7 +240,7 @@ function SeverityBox({
 }) {
   return (
     <div className={`rounded ${value > 0 ? SEVERITY_BADGE[severity] : 'bg-slate-100 text-slate-500'} px-1 py-1`}>
-      <div className="text-[8px] font-bold uppercase tracking-wide opacity-80">{label}</div>
+      <div className="text-[11px] font-bold uppercase tracking-wide opacity-80">{label}</div>
       <div className="text-base font-bold tabular-nums">{value}</div>
     </div>
   )

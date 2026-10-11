@@ -4,6 +4,7 @@ import { forwardRef } from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fieldControlClassName, useFieldControl } from '@/components/ui/field'
 
 /**
  * Select v4 — Radix-powered, dark skin.
@@ -13,15 +14,21 @@ import { cn } from '@/lib/utils'
  * nuestro CSS y se ve con fondo oscuro en esos casos). Totalmente
  * accesible vía teclado; portaled al body con backdrop.
  *
+ * El trigger comparte altura (h-10), radio, borde y anillo de foco con
+ * Input y Textarea. Dentro de un `Field` recibe solo el id, `aria-describedby`
+ * y `aria-invalid`.
+ *
  * Uso mínimo:
- *   <Select value={sector} onValueChange={setSector}>
- *     <SelectTrigger error={!!errors.sector}>
- *       <SelectValue placeholder="Selecciona sector…" />
- *     </SelectTrigger>
- *     <SelectContent>
- *       <SelectItem value="COMERCIO">Comercio</SelectItem>
- *     </SelectContent>
- *   </Select>
+ *   <Field label="Sector" error={errors.sector}>
+ *     <Select value={sector} onValueChange={setSector}>
+ *       <SelectTrigger>
+ *         <SelectValue placeholder="Selecciona sector…" />
+ *       </SelectTrigger>
+ *       <SelectContent>
+ *         <SelectItem value="COMERCIO">Comercio</SelectItem>
+ *       </SelectContent>
+ *     </Select>
+ *   </Field>
  */
 
 export const Select = SelectPrimitive.Root
@@ -31,32 +38,34 @@ export const SelectValue = SelectPrimitive.Value
 export const SelectTrigger = forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
+    /** Marca el campo con error. Equivale a `invalid` (se mantiene por compatibilidad). */
     error?: boolean
+    /** Marca el campo con error (borde + `aria-invalid`). Dentro de un Field con `error` es automático. */
+    invalid?: boolean
   }
->(({ className, children, error, ...props }, ref) => (
-  <SelectPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      'flex h-10 w-full items-center justify-between gap-2 rounded-lg px-3 py-2',
-      'text-sm text-[color:var(--text-primary)]',
-      'bg-[color:var(--bg-surface)] border transition-all',
-      'focus:outline-none focus:shadow-[0_0_0_4px_rgba(16,185,129,0.10)]',
-      'disabled:cursor-not-allowed disabled:opacity-50',
-      'data-[placeholder]:text-[color:var(--text-tertiary)]',
-      '[&>span]:line-clamp-1 [&>span]:text-left',
-      error
-        ? 'border-crimson-300 focus:border-crimson-500'
-        : 'border-[color:var(--border-default)] focus:border-emerald-500',
-      className
-    )}
-    {...props}
-  >
-    {children}
-    <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)]" />
-    </SelectPrimitive.Icon>
-  </SelectPrimitive.Trigger>
-))
+>(({ className, children, error, invalid, ...props }, ref) => {
+  const { controlProps } = useFieldControl({ ...props, invalid: invalid || error })
+
+  return (
+    <SelectPrimitive.Trigger
+      ref={ref}
+      {...props}
+      {...controlProps}
+      className={cn(
+        fieldControlClassName,
+        'flex h-10 items-center justify-between gap-2 py-2 text-left',
+        'data-[placeholder]:text-[color:var(--text-tertiary)]',
+        '[&>span]:line-clamp-1 [&>span]:text-left',
+        className
+      )}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        <ChevronDown className="h-4 w-4 shrink-0 text-[color:var(--text-tertiary)]" aria-hidden="true" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  )
+})
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
 export const SelectScrollUpButton = forwardRef<

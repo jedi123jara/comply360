@@ -150,6 +150,9 @@ describe('POST /api/payments/checkout', () => {
       id: 'chr_abc123',
       amount: 69900,
       currency: 'PEN',
+      // FIX auditoría (NEG-01): el checkout ahora exige que Culqi haya
+      // autorizado la venta antes de subir el plan.
+      outcome: { type: 'venta_exitosa', code: 'AUT0000' },
     }
     mockCreateCharge.mockResolvedValue(mockCharge)
     mockPrisma.$transaction.mockResolvedValue([{}, {}])
@@ -200,5 +203,30 @@ describe('POST /api/payments/checkout', () => {
         }),
       }),
     )
+  })
+
+  // FIX auditoría (NEG-01): un cargo NO autorizado por Culqi no debe subir el plan.
+  it('rejects checkout and does NOT upgrade plan when the charge is not approved', async () => {
+    mockPrisma.organization.findUnique.mockResolvedValue({
+      id: 'org-1',
+      name: 'Empresa Test',
+      plan: 'FREE',
+    })
+    mockCreateCharge.mockResolvedValue({
+      id: 'chr_declined',
+      amount: 69900,
+      currency: 'PEN',
+      outcome: { type: 'tarjeta_rechazada', code: 'R101' },
+    })
+    mockPrisma.auditLog.findFirst.mockResolvedValue(null)
+
+    const req = makeRequest({ planId: 'PRO', token: 'tok_live_declined' })
+    const res = await POST(req)
+    const json = await res.json()
+
+    expect(res.status).toBe(402)
+    expect(json.code).toBe('CHARGE_NOT_APPROVED')
+    // El plan NO se actualiza: no se abre la transacción de upgrade.
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled()
   })
 })

@@ -24,21 +24,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-auth'
 import { estimateCostUsd } from '@/lib/ai/pricing'
+import {
+  DEEPSEEK_FLASH_MODEL,
+  DEEPSEEK_PRO_MODEL,
+  deepSeekThinking,
+  normalizeDeepSeekModel,
+} from '@/lib/ai/feature-routing'
 import { retrieveRelevantLaw, formatRetrievedContext } from '@/lib/ai/rag/retriever'
 
 // Tabla local — para mostrar el detalle de promptPer1M/completionPer1M.
 // pricing.ts no exporta la tabla cruda (solo la función estimateCostUsd).
 // Mantener sincronizado con pricing.ts §deepseek (revisar si subes precios).
 const DEEPSEEK_PRICING_DISPLAY: Record<string, { promptPer1M: number; completionPer1M: number }> = {
-  'deepseek-chat': { promptPer1M: 0.14, completionPer1M: 0.28 },
-  'deepseek-v4': { promptPer1M: 0.14, completionPer1M: 0.28 },
-  'deepseek-v4-flash': { promptPer1M: 0.14, completionPer1M: 0.28 },
-  'deepseek-reasoner': { promptPer1M: 1.74, completionPer1M: 3.48 },
-  'deepseek-v4-pro': { promptPer1M: 1.74, completionPer1M: 3.48 },
+  [DEEPSEEK_FLASH_MODEL]: { promptPer1M: 0.3, completionPer1M: 1.2 },
+  [DEEPSEEK_PRO_MODEL]: { promptPer1M: 1.32, completionPer1M: 3.96 },
 }
 
 const DEFAULT_PROMPT = '¿Cuál es la Remuneración Mínima Vital (RMV) en Perú para 2026? Responde en una sola oración.'
-const DEFAULT_MODEL = 'deepseek-chat' // alias V4 Flash
+const DEFAULT_MODEL = DEEPSEEK_FLASH_MODEL
 
 export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
   let body: { prompt?: string; model?: string; useRag?: boolean }
@@ -49,7 +52,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
   }
 
   const prompt = body.prompt?.trim() || DEFAULT_PROMPT
-  const model = body.model?.trim() || DEFAULT_MODEL
+  const model = normalizeDeepSeekModel(body.model?.trim() || DEFAULT_MODEL)
   const useRag = body.useRag !== false // default true (con corpus)
 
   // ─── RAG: si está activo, recuperamos chunks legales relevantes ─────────
@@ -129,15 +132,16 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
               'Responde en español peruano (tuteo, NO voseo argentino), conciso y preciso.' +
               (ragContext
                 ? '\n\n=== CORPUS LEGAL PERUANO ACTUALIZADO ===\n' +
-                  'Usa OBLIGATORIAMENTE estos datos como fuente de verdad. Si la pregunta del usuario tiene respuesta directa en este corpus, citá los valores exactos de aquí (no inventés ni uses datos de tu training):\n\n' +
+                  'Usa OBLIGATORIAMENTE estos datos como fuente de verdad. Si la pregunta del usuario tiene respuesta directa en este corpus, cita los valores exactos de aquí (no inventes ni uses datos de tu entrenamiento):\n\n' +
                   ragContext +
-                  '\n\n=== FIN CORPUS ===\n\nSi el corpus tiene la respuesta, usala. Si no, indica claramente que no tienes la información actualizada.'
+                  '\n\n=== FIN CORPUS ===\n\nSi el corpus tiene la respuesta, úsala. Si no, indica claramente que no tienes la información actualizada.'
                 : ''),
           },
           { role: 'user', content: prompt },
         ],
         temperature: 0.3,
         max_tokens: 250,
+        thinking: { type: deepSeekThinking(model) },
       }),
       signal: AbortSignal.timeout(30000), // 30s timeout
     })
@@ -189,7 +193,7 @@ export const POST = withRole('ADMIN', async (req: NextRequest, ctx) => {
       promptTokens,
       completionTokens,
     })
-    const pricing = DEEPSEEK_PRICING_DISPLAY[model] ?? DEEPSEEK_PRICING_DISPLAY['deepseek-chat']
+    const pricing = DEEPSEEK_PRICING_DISPLAY[model] ?? DEEPSEEK_PRICING_DISPLAY[DEEPSEEK_FLASH_MODEL]
 
     return NextResponse.json({
       ...baseReport,

@@ -17,9 +17,8 @@ export default function DpaPage() {
       legalBasis={['Ley 29733 Art. 9', 'D.S. 003-2013-JUS Art. 29', 'Directiva 01-2020-JUS']}
     >
       <p>
-        <strong>Versión descargable en PDF</strong>: disponible en{' '}
-        <a href="/api/legal/dpa-pdf">/api/legal/dpa-pdf</a> (pendiente de generar).
-        Para firmar una versión personalizada con tu empresa, escríbenos a{' '}
+        <strong>Versión descargable en PDF</strong>: en preparación. Para firmar
+        una versión personalizada con tu empresa, escríbenos a{' '}
         <a href="mailto:legal@comply360.pe">legal@comply360.pe</a>.
       </p>
 
@@ -106,8 +105,7 @@ export default function DpaPage() {
         <li>Resend (email)</li>
       </ul>
       <p>
-        La lista vigente se publica en{' '}
-        <a href="/legal/sub-encargados">/legal/sub-encargados</a> y se notifica 30 días
+        Esta lista se mantiene actualizada y se notifica con 30 días de anticipación
         antes de cualquier alta. Si el Cliente no está de acuerdo, puede rescindir sin
         penalidad.
       </p>

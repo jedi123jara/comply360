@@ -146,41 +146,63 @@
    * Jakarta como sans principal (mejor jerarquía B2B SaaS).
    * Fira Code como mono principal (datos, hora, currency).
    * Geist como fallback (sigue cargado, ya tenía adopción).
-   * Instrument Serif solo para "drama moments" (hero numbers, headlines).
+   * Instrument Serif (--font-serif) solo para vistas de documentos legales;
+   * títulos y cifras grandes usan --font-display (Jakarta gruesa).
    */
   --font-sans: var(--font-jakarta), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-fira), var(--font-geist-mono), ui-monospace, monospace;
   --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  /* Títulos de marca (Plus Jakarta Sans gruesa) → utilidad `font-display`.
+     El valor real vive en tokens.css (:root, sin capa, le gana a este alias). */
+  --font-display: var(--font-display);
 }
 
 /* =============================================================================
- * Base
+ * Base — estilos de ELEMENTOS HTML
+ *
+ * Todo lo que estiliza elementos sueltos (html, body, input, select, textarea,
+ * button, table, scrollbar, ::selection, :focus-visible…) vive en
+ * `@layer base`. Así cualquier utilidad de Tailwind (bg-*, rounded-*, text-*,
+ * shadow-*, focus:ring-*…) puede sobrescribirlo.
+ *
+ * Por qué: en Tailwind 4 las utilidades viven en `@layer utilities`, y una
+ * regla SIN capa le gana a cualquier capa sin importar la especificidad. Antes
+ * estas reglas iban sin capa y, por ejemplo, `<textarea class="rounded-xl">`
+ * seguía con 8 px de radio.
+ *
+ * Quedan SIN capa (a propósito): variables en :root, @keyframes, @theme,
+ * clases propias (.c360-*, .glass, .animate-*) y los remapeos intencionales de
+ * utilidades (p. ej. `.c360-worker-portal .bg-white`, `[class*="bg-emerald-"] .text-white`).
+ * Excepción documentada: el espacio de la flecha del <select> (ver más abajo).
  * ============================================================================= */
 
-html,
-body {
-  color-scheme: dark only;
+@layer base {
+  html,
+  body {
+    color-scheme: dark only;
+  }
+
+  body {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: var(--text-primary);
+    min-height: 100vh;
+
+    background-color: var(--bg-canvas);
+    background-image:
+      radial-gradient(circle at 18% -10%, rgba(14, 165, 233, 0.16), transparent 34%),
+      radial-gradient(circle at 82% 4%, rgba(20, 184, 166, 0.13), transparent 30%),
+      radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.035) 1px, transparent 0);
+    background-size: 100% 100%, 100% 100%, 28px 28px;
+    background-attachment: fixed, fixed;
+    background-position: 0 0, 0 0;
+  }
 }
 
-body {
-  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: var(--text-primary);
-  min-height: 100vh;
-
-  background-color: var(--bg-canvas);
-  background-image:
-    radial-gradient(circle at 18% -10%, rgba(14, 165, 233, 0.16), transparent 34%),
-    radial-gradient(circle at 82% 4%, rgba(20, 184, 166, 0.13), transparent 30%),
-    radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.035) 1px, transparent 0);
-  background-size: 100% 100%, 100% 100%, 28px 28px;
-  background-attachment: fixed, fixed;
-  background-position: 0 0, 0 0;
-}
-
+/* Variables del tema oscuro por defecto (sin capa: no son estilos de elemento). */
 :root {
   color-scheme: dark;
 
@@ -268,15 +290,17 @@ body {
   --border-crimson: rgba(248, 113, 113, 0.34);
   --border-amber: rgba(251, 191, 36, 0.34);
 
+  /* *-text → colores por función (tokens.css, mismo valor que antes).
+     *-bg / *-border legacy: translúcidos, se mantienen. */
   --color-success-bg: rgba(34, 197, 94, 0.12);
   --color-success-border: rgba(34, 197, 94, 0.32);
-  --color-success-text: #86efac;
+  --color-success-text: var(--status-success-fg);
   --color-warning-bg: rgba(245, 158, 11, 0.13);
-  --color-warning-text: #fcd34d;
+  --color-warning-text: var(--status-warning-fg);
   --color-danger-bg: rgba(239, 68, 68, 0.13);
-  --color-danger-text: #fca5a5;
+  --color-danger-text: var(--status-danger-fg);
   --color-info-bg: rgba(6, 182, 212, 0.13);
-  --color-info-text: #67e8f9;
+  --color-info-text: var(--status-info-fg);
 
   --hairline: 0.5px solid rgba(148, 163, 184, 0.16);
   --hairline-strong: 0.5px solid rgba(148, 163, 184, 0.28);
@@ -309,158 +333,173 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.075);
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse 78% 58% at 58% 22%, #000 0%, transparent 72%);
-  -webkit-mask-image: radial-gradient(ellipse 78% 58% at 58% 22%, #000 0%, transparent 72%);
-  z-index: 0;
+@layer base {
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 78% 58% at 58% 22%, #000 0%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse 78% 58% at 58% 22%, #000 0%, transparent 72%);
+    z-index: 0;
+  }
+
+  /* Las utilidades (`fixed`, `absolute`) deben ganar: los portales que van
+     directo al body (marcas guía, toasts) tienen que poder fijarse. */
+  body > * {
+    position: relative;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    color: var(--text-primary);
+    background-color: rgba(2, 6, 23, 0.42);
+    border-color: var(--border-default);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  /* Dark-only controls. */
+  select,
+  option,
+  input,
+  textarea,
+  button {
+    color-scheme: dark;
+  }
+
+  ::selection {
+    background: rgba(20, 184, 166, 0.34);
+    color: #f8fafc;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--emerald-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* =============================================================================
+   * Form inputs
+   * ============================================================================= */
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    color: var(--text-primary);
+    background-color: rgba(2, 6, 23, 0.42);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition: border-color var(--duration-fast) var(--ease-out),
+      box-shadow var(--duration-fast) var(--ease-out);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
+  select:hover,
+  textarea:hover {
+    border-color: var(--border-strong);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--emerald-500);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 0 0 4px rgba(20, 184, 166, 0.14);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-tertiary);
+    opacity: 1;
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Espacio para la flecha; protegido contra px-N y p-N fuera de la capa (abajo). */
+    padding-right: 2.5rem;
+  }
+
+  /* =============================================================================
+   * Tables
+   * ============================================================================= */
+
+  table {
+    color: var(--text-primary);
+  }
+
+  th {
+    color: var(--text-tertiary);
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    font-size: var(--text-xs);
+  }
+
+  td {
+    color: var(--text-secondary);
+  }
+
+  tr {
+    transition: background-color var(--duration-fast) var(--ease-out);
+  }
+  tr:hover td {
+    background-color: var(--bg-surface-hover);
+  }
+
+  /* =============================================================================
+   * Scrollbar
+   * ============================================================================= */
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.24);
+    border-radius: var(--radius-full);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.36);
+    background-clip: padding-box;
+  }
 }
 
-body > * {
-  position: relative;
-}
-
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-select,
-textarea {
-  color: var(--text-primary);
-  background-color: rgba(2, 6, 23, 0.42);
-  border-color: var(--border-default);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-/* Dark-only controls. */
-select,
-option,
-input,
-textarea,
-button {
-  color-scheme: dark;
-}
-
-::selection {
-  background: rgba(20, 184, 166, 0.34);
-  color: #f8fafc;
-}
-
-*:focus-visible {
-  outline: 2px solid var(--emerald-500);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-button:not(:disabled),
-[role="button"]:not(:disabled) {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-/* =============================================================================
- * Form inputs
- * ============================================================================= */
-
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-select,
-textarea {
-  color: var(--text-primary);
-  background-color: rgba(2, 6, 23, 0.42);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  transition: border-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
-}
-
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
-select:hover,
-textarea:hover {
-  border-color: var(--border-strong);
-}
-
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--emerald-500);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 0 0 4px rgba(20, 184, 166, 0.14);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--text-tertiary);
-  opacity: 1;
-}
-
-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
-  background-position: right 0.5rem center;
-  background-repeat: no-repeat;
-  background-size: 1.5em 1.5em;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
+/* Excepción deliberada SIN capa: la flecha del <select> se dibuja con
+   background-image a la derecha. Si este padding viviera solo en @layer base,
+   un `px-2` o `p-3` lo pisaría y la flecha taparía el texto (p. ej. el selector
+   de "por página" de la paginación). Un `pr-*` explícito sí gana, porque esta
+   regla lo excluye. :where() mantiene la especificidad de antes (solo `select`),
+   así las clases propias (.a-input, etc.) siguen pudiendo cambiarlo. */
+select:where(:not([class*="pr-"])) {
   padding-right: 2.5rem;
-}
-
-/* =============================================================================
- * Tables
- * ============================================================================= */
-
-table {
-  color: var(--text-primary);
-}
-
-th {
-  color: var(--text-tertiary);
-  font-weight: var(--weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
-  font-size: var(--text-xs);
-}
-
-td {
-  color: var(--text-secondary);
-}
-
-tr {
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-tr:hover td {
-  background-color: var(--bg-surface-hover);
-}
-
-/* =============================================================================
- * Scrollbar
- * ============================================================================= */
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.24);
-  border-radius: var(--radius-full);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.36);
-  background-clip: padding-box;
 }
 
 /* =============================================================================
@@ -512,14 +551,17 @@ tr:hover td {
   100% { background-position: -200% center; }
 }
 
+/* Animaciones decorativas: ciclos limitados con --motion-loop-decor (motion.css).
+   .animate-pulse-soft queda en bucle: hoy solo se usa como indicador de carga
+   ("Analizando contrato con IA…"). */
 .animate-fade-in { animation: fadeIn 0.25s ease-out; }
 .animate-slide-in { animation: slideInLeft 0.25s ease-out; }
 .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
-.animate-float { animation: float 5s ease-in-out infinite; }
-.animate-float-delay { animation: float-delay 4s ease-in-out infinite; animation-delay: 1s; }
+.animate-float { animation: float 5s ease-in-out var(--motion-loop-decor); }
+.animate-float-delay { animation: float-delay 4s ease-in-out var(--motion-loop-decor); animation-delay: 1s; }
 .animate-progress { animation: progress-fill 0.8s ease-out forwards; }
 .animate-scale-in { animation: scale-in 0.2s ease-out; }
-.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+.animate-glow-pulse { animation: glow-pulse 2s ease-in-out var(--motion-loop-decor); }
 
 .stagger-item {
   opacity: 0;
@@ -547,9 +589,11 @@ tr:hover td {
  * Espejo CSS del prototipo de diseño entregado por Claude Design
  * (variant A "Sello notarial" + escudo animado signature + hero panel editorial).
  *
- * Esta capa se carga DESPUÉS de globals.css/tokens.css y extiende el sistema
- * con los componentes distintivos del prototipo: shell premium, hero panel,
- * KPIs con sparkline, escudo animado, tipografía editorial Instrument Serif.
+ * Esta sección (antes el archivo suelto src/styles/comply360-design.css, hoy
+ * eliminado) es la ÚNICA fuente de los estilos `c360-*` del prototipo: shell
+ * premium, hero panel, KPIs con sparkline, escudo animado (AnimatedShield).
+ * Los títulos y cifras grandes usan --font-display (Plus Jakarta Sans gruesa);
+ * Instrument Serif (--font-serif) queda solo para vistas de documentos.
  *
  * Origen: /tmp/comply360-design/comply360/project (handoff bundle v6).
  * ===================================================================== */
@@ -598,7 +642,7 @@ tr:hover td {
   position: relative;
   display: inline-grid;
   place-items: center;
-  animation: c360-shieldFloat 4.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation: c360-shieldFloat 4.2s cubic-bezier(0.16, 1, 0.3, 1) var(--motion-loop-decor);
   flex-shrink: 0;
 }
 .c360-shield-glow {
@@ -606,7 +650,7 @@ tr:hover td {
   inset: -18%;
   background: radial-gradient(circle, rgba(34, 211, 238, 0.36) 0%, rgba(20, 184, 166, 0.18) 38%, rgba(16, 185, 129, 0) 68%);
   filter: blur(10px);
-  animation: c360-shieldGlow 3.2s ease-in-out infinite;
+  animation: c360-shieldGlow 3.2s ease-in-out var(--motion-loop-decor);
   pointer-events: none;
   z-index: 0;
 }
@@ -633,11 +677,17 @@ tr:hover td {
   animation: c360-shieldCheckDraw 1200ms cubic-bezier(0.16, 1, 0.3, 1) 400ms forwards;
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
 }
-.c360-shield-sweep { fill: rgba(255, 255, 255, 0.22); }
+.c360-shield-sweep {
+  fill: rgba(255, 255, 255, 0.22);
+  /* animated-shield.tsx declara la animación inline con `infinite`; este
+     !important (de autor) le gana al style="" y la limita a pocos ciclos.
+     Mejor mover esa animación aquí y quitar el inline cuando se toque el .tsx. */
+  animation-iteration-count: var(--motion-loop-decor) !important;
+}
 .c360-shield-sparks circle {
   fill: #ffffff;
   opacity: 0;
-  animation: c360-sparkPop 2.8s ease-in-out infinite;
+  animation: c360-sparkPop 2.8s ease-in-out var(--motion-loop-decor);
 }
 .c360-shield-sparks circle:nth-child(1) { animation-delay: 0ms; }
 .c360-shield-sparks circle:nth-child(2) { animation-delay: 700ms; }
@@ -647,7 +697,7 @@ tr:hover td {
   position: absolute; inset: 0;
   border-radius: 9999px;
   border: 1px dashed rgba(34, 211, 238, 0.34);
-  animation: c360-spin 14s linear infinite;
+  animation: c360-spin 14s linear var(--motion-loop-decor);
   pointer-events: none;
   z-index: 0;
 }
@@ -743,7 +793,7 @@ tr:hover td {
   width: 4px; height: 4px; border-radius: 9999px;
   background: var(--emerald-500);
   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
-  animation: c360-pulseEmerald 2.4s infinite;
+  animation: c360-pulseEmerald 2.4s var(--motion-loop-decor);
 }
 
 @keyframes c360-brandFloat {
@@ -837,7 +887,7 @@ tr:hover td {
   border-radius: 9999px;
   background: var(--cyan-400);
   box-shadow: 0 0 10px rgba(34, 211, 238, 0.72);
-  animation: c360-pulseEmerald 2.4s infinite;
+  animation: c360-pulseEmerald 2.4s var(--motion-loop-decor);
 }
 
 .c360-brand-mark {
@@ -863,7 +913,7 @@ tr:hover td {
 }
 
 .c360-brand-mark.is-animated::before {
-  animation: c360-brandAura 4.8s ease-in-out infinite;
+  animation: c360-brandAura 4.8s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-brand-mark svg {
@@ -924,11 +974,11 @@ tr:hover td {
 }
 
 .c360-brand-mark.is-animated .c360-brand-shield {
-  animation: c360-brandFloat 5.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation: c360-brandFloat 5.4s cubic-bezier(0.16, 1, 0.3, 1) var(--motion-loop-decor);
 }
 
 .c360-brand-mark.is-animated .c360-brand-sweep {
-  animation: c360-brandSweep 4.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation: c360-brandSweep 4.2s cubic-bezier(0.16, 1, 0.3, 1) var(--motion-loop-decor);
 }
 
 .c360-brand-mark.is-animated .c360-brand-check {
@@ -936,11 +986,11 @@ tr:hover td {
 }
 
 .c360-brand-mark.is-animated .c360-brand-node-a {
-  animation: c360-brandNode 3.2s ease-in-out infinite;
+  animation: c360-brandNode 3.2s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-brand-mark.is-animated .c360-brand-node-b {
-  animation: c360-brandNode 3.2s ease-in-out 1.2s infinite;
+  animation: c360-brandNode 3.2s ease-in-out 1.2s var(--motion-loop-decor);
 }
 
 .c360-sb-brand.c360-brand-logo {
@@ -1067,6 +1117,7 @@ tr:hover td {
   width: 6px; height: 6px; border-radius: 9999px;
   background: var(--crimson-500);
   border: 1.5px solid var(--bg-elevated);
+  /* Indicador funcional (conteo crítico): se mantiene en bucle. */
   animation: c360-pulseCrimson 1.6s infinite;
 }
 
@@ -1096,6 +1147,7 @@ tr:hover td {
   width: 6px; height: 6px; border-radius: 9999px;
   background: var(--emerald-500);
   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  /* Indicador funcional (estado del sistema): se mantiene en bucle. */
   animation: c360-pulseEmerald 2s infinite;
   flex-shrink: 0;
 }
@@ -1151,6 +1203,7 @@ tr:hover td {
   width: 6px; height: 6px;
   background: var(--emerald-500);
   border-radius: 9999px;
+  /* Indicador funcional ("sincronizado en vivo"): se mantiene en bucle. */
   animation: c360-pulseEmerald 2s infinite;
   flex-shrink: 0;
 }
@@ -1193,7 +1246,7 @@ tr:hover td {
   width: 420px; height: 420px;
   background: radial-gradient(circle, rgba(20, 184, 166, 0.28), transparent 68%);
   pointer-events: none;
-  animation: c360-breathe 6s ease-in-out infinite;
+  animation: c360-breathe 6s ease-in-out var(--motion-loop-decor);
 }
 .c360-hero-panel > * { position: relative; z-index: 1; }
 
@@ -1212,20 +1265,21 @@ tr:hover td {
   display: grid; place-items: center;
 }
 .c360-hero-score-big .n {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 88px;
-  font-weight: 400;
-  letter-spacing: -0.04em;
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   line-height: 0.9;
   color: var(--emerald-700);
   font-variant-numeric: tabular-nums;
   animation: c360-countup 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .c360-hero-score-big .over {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 28px;
   color: var(--text-tertiary);
-  font-weight: 400;
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
 }
 .c360-hero-score-label {
   display: block;
@@ -1245,18 +1299,18 @@ tr:hover td {
 }
 
 .c360-hero-headline {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 30px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  font-weight: 400;
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-display);
   color: var(--text-primary);
   margin: 0 0 4px;
   max-width: 520px;
 }
 .c360-hero-headline em {
-  font-style: italic;
-  color: var(--emerald-700);
+  font-style: normal;
+  color: var(--brand-primary-text, #2563eb);
 }
 .c360-hero-sub {
   font-size: 13.5px;
@@ -1289,10 +1343,10 @@ tr:hover td {
   display: flex; align-items: center; gap: 5px;
 }
 .c360-hero-stat-value {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   color: var(--text-primary);
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -1803,15 +1857,15 @@ tr:hover td {
 .c360-kpi-head .dot {
   width: 6px; height: 6px; border-radius: 9999px;
   background: var(--emerald-500);
-  animation: c360-dotPulse 2s ease-in-out infinite;
+  animation: c360-dotPulse 2s ease-in-out var(--motion-loop-decor);
 }
 .c360-kpi.crimson .c360-kpi-head .dot { background: var(--crimson-500); }
 .c360-kpi.amber .c360-kpi-head .dot { background: var(--amber-500); }
 .c360-kpi-value {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 34px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   color: var(--text-primary);
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -1819,7 +1873,9 @@ tr:hover td {
 .c360-kpi-value .unit {
   font-size: 16px;
   color: var(--text-tertiary);
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   margin-left: 2px;
 }
 .c360-kpi-foot {
@@ -1831,17 +1887,18 @@ tr:hover td {
 
 /* ============ Editorial page title ============ */
 .c360-page-title-editorial {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 34px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   color: var(--text-primary);
-  line-height: 1.1;
+  line-height: var(--leading-display);
   margin: 0;
 }
+/* Palabra destacada: sin cursiva (la marca usa sans gruesa); color de acento. */
 .c360-page-title-editorial em {
-  font-style: italic;
-  color: var(--emerald-700);
+  font-style: normal;
+  color: var(--brand-primary-text, #2563eb);
 }
 
 /* ============ Section divider (label entre hairlines) ============ */
@@ -1876,10 +1933,10 @@ tr:hover td {
 
 /* ============ Money drama counter ============ */
 .c360-money-drama {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 46px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   color: var(--crimson-700);
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -2063,6 +2120,27 @@ body.c360-canvas {
   --crimson-500: #ef4444;
   --crimson-600: #dc2626;
   --crimson-700: #b91c1c;
+
+  /* Colores por función — tema claro. Mismos valores que .c360-dashboard-light
+     (dashboard-light.css); se redeclaran aquí porque el portal no carga ese
+     archivo y, sin esto, heredaría los valores del tema oscuro de :root. */
+  --status-success-fg: #166534;
+  --status-success-bg: #ecfdf3;
+  --status-success-border: #bbf7d0;
+  --status-warning-fg: #92400e;
+  --status-warning-bg: #fff8e7;
+  --status-warning-border: #fde68a;
+  --status-danger-fg: #9f1239;
+  --status-danger-bg: #fff1f2;
+  --status-danger-border: #fecdd3;
+  --status-info-fg: #1d4ed8;
+  --status-info-bg: #eff6ff;
+  --status-info-border: #bfdbfe;
+  --status-neutral-fg: #405576;
+  --status-neutral-bg: #f1f5f9;
+  --status-neutral-border: #d8e2f0;
+  --brand-primary-text: #2563eb;
+  --brand-amber-text: #b45309;
 }
 
 .c360-worker-portal .bg-white,
@@ -2433,7 +2511,7 @@ body.c360-canvas {
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 46px);
   background-size: 180% 100%, 46px 46px, 46px 46px;
   opacity: 0.72;
-  animation: c360-worker-hero-shift 12s ease-in-out infinite alternate;
+  animation: c360-worker-hero-shift 12s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-worker-home-hero::after {
@@ -2698,9 +2776,10 @@ body.c360-canvas {
   border-radius: 28px;
   background: linear-gradient(135deg, #ffffff 0%, #ecfeff 52%, #dbeafe 100%);
   color: #0f766e;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 3rem;
-  font-weight: 700;
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   border: 4px solid #ffffff;
   box-shadow:
     0 18px 34px -22px rgba(15, 23, 42, 0.48),
@@ -3206,21 +3285,21 @@ body.c360-canvas {
 
 .c360-worker-person {
   transform-origin: 330px 220px;
-  animation: c360-worker-float 4.6s ease-in-out infinite;
+  animation: c360-worker-float 4.6s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-phone,
 .c360-phone-hand {
   transform-origin: 256px 203px;
-  animation: c360-worker-phone 2.4s ease-in-out infinite;
+  animation: c360-worker-phone 2.4s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-clouds {
-  animation: c360-worker-clouds 12s ease-in-out infinite alternate;
+  animation: c360-worker-clouds 12s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-bird {
-  animation: c360-worker-bird 7s ease-in-out infinite alternate;
+  animation: c360-worker-bird 7s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-ref-recommendation {
@@ -3330,7 +3409,7 @@ body.c360-canvas {
   box-shadow:
     0 18px 34px -24px rgba(15, 23, 42, 0.48),
     0 0 0 10px rgba(20, 184, 166, 0.12);
-  animation: c360-ref-pulse 2.8s ease-in-out infinite;
+  animation: c360-ref-pulse 2.8s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-ref-section {
@@ -3658,7 +3737,9 @@ body.c360-canvas {
   border-radius: 20px;
   color: #ffffff;
   background: linear-gradient(135deg, #3b82f6, #155bd6);
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   font-size: 56px;
   box-shadow: 0 20px 38px -26px rgba(59, 130, 246, 0.85);
 }
@@ -4183,7 +4264,7 @@ body.c360-canvas {
   color: #ffffff;
   background: linear-gradient(145deg, #31d8bb, #0aa083);
   box-shadow: 0 22px 38px -24px rgba(5, 150, 105, 0.78);
-  animation: c360-hero-check-float 4.8s ease-in-out infinite;
+  animation: c360-hero-check-float 4.8s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-hero-dot-grid {
@@ -4199,7 +4280,7 @@ body.c360-canvas {
 }
 
 .c360-hero-dots {
-  animation: c360-hero-dots 7s ease-in-out infinite alternate;
+  animation: c360-hero-dots 7s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-ref-recommendation {
@@ -4358,7 +4439,7 @@ body.c360-canvas {
   background-image:
     repeating-linear-gradient(170deg, transparent 0 18px, rgba(45, 212, 191, 0.13) 18px 20px, transparent 20px 36px),
     linear-gradient(115deg, transparent 0 62%, rgba(45, 212, 191, 0.16) 62% 63%, transparent 63% 100%);
-  animation: c360-credential-lines 9s ease-in-out infinite alternate;
+  animation: c360-credential-lines 9s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-ref-credential-avatar {
@@ -4635,7 +4716,7 @@ body.c360-canvas {
   object-position: right bottom;
   filter: drop-shadow(0 26px 30px rgba(15, 23, 42, 0.16));
   transform-origin: 70% 70%;
-  animation: c360-worker-asset-float 5.4s ease-in-out infinite;
+  animation: c360-worker-asset-float 5.4s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-ref-credential {
@@ -5029,7 +5110,7 @@ body.c360-canvas {
 .c360-ref-hero::after {
   height: 6px;
   background-size: 220% 100%;
-  animation: c360-premium-gradient-pan 7s ease-in-out infinite alternate;
+  animation: c360-premium-gradient-pan 7s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-premium-hero-ribbons {
@@ -5049,7 +5130,7 @@ body.c360-canvas {
   border-right: 0;
   border-left: 0;
   transform: rotate(-12deg);
-  animation: c360-premium-ribbon 11s ease-in-out infinite alternate;
+  animation: c360-premium-ribbon 11s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-premium-hero-ribbons span:nth-child(1) {
@@ -5090,14 +5171,14 @@ body.c360-canvas {
   font-size: 12px;
   font-weight: 900;
   backdrop-filter: blur(14px);
-  animation: c360-premium-float 4.8s ease-in-out infinite;
+  animation: c360-premium-float 4.8s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-wave-emoji {
   display: inline-block;
   margin-left: 12px;
   transform-origin: 70% 70%;
-  animation: c360-premium-wave 2.6s ease-in-out 700ms infinite;
+  animation: c360-premium-wave 2.6s ease-in-out 700ms var(--motion-loop-decor);
 }
 
 .c360-ref-hero-copy h1,
@@ -5129,7 +5210,7 @@ body.c360-canvas {
   width: 34%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
   transform: skewX(-18deg);
-  animation: c360-premium-shine 4.6s ease-in-out infinite;
+  animation: c360-premium-shine 4.6s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-ref-primary svg:last-child,
@@ -5310,7 +5391,7 @@ body.c360-canvas {
 }
 
 .c360-ref-status-check {
-  animation: c360-premium-check-pulse 2.8s ease-in-out infinite;
+  animation: c360-premium-check-pulse 2.8s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-ref-credential-section {
@@ -5341,7 +5422,7 @@ body.c360-canvas {
   mix-blend-mode: screen;
   opacity: 0.54;
   transform: translateX(-34%);
-  animation: c360-premium-holo 7s ease-in-out infinite;
+  animation: c360-premium-holo 7s ease-in-out var(--motion-loop-decor);
   pointer-events: none;
 }
 
@@ -5972,7 +6053,7 @@ body.c360-canvas {
     linear-gradient(104deg, transparent 0 68%, rgba(43, 109, 255, 0.12) 68% 69%, transparent 69% 100%),
     repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.026) 0 1px, transparent 1px 44px);
   background-size: 150% 100%, 160% 100%, 44px 44px;
-  animation: c360-os-lines 12s ease-in-out infinite alternate;
+  animation: c360-os-lines 12s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-os-hero::after {
@@ -5985,7 +6066,7 @@ body.c360-canvas {
   background: linear-gradient(90deg, #14b8a6, #2563eb, #8b5cf6, #f59e0b);
   background-size: 240% 100%;
   opacity: 0.8;
-  animation: c360-premium-gradient-pan 8s ease-in-out infinite alternate;
+  animation: c360-premium-gradient-pan 8s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-os-hero-copy,
@@ -6082,7 +6163,7 @@ body.c360-canvas {
   width: 32%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
   transform: skewX(-18deg);
-  animation: c360-premium-shine 4.8s ease-in-out infinite;
+  animation: c360-premium-shine 4.8s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-os-primary-action svg,
@@ -7034,7 +7115,7 @@ body.c360-canvas {
     linear-gradient(115deg, transparent 0 38%, rgba(45, 212, 191, 0.14) 38% 39%, transparent 39% 100%),
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 46px);
   background-size: 160% 100%, 46px 46px;
-  animation: c360-os-lines 12s ease-in-out infinite alternate;
+  animation: c360-os-lines 12s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-worker-portal .c360-attendance-hero > .relative {
@@ -7261,7 +7342,7 @@ body.c360-canvas {
     linear-gradient(118deg, transparent 0 38%, rgba(20, 184, 166, 0.14) 38% 39%, transparent 39% 100%),
     linear-gradient(104deg, transparent 0 62%, rgba(43, 109, 255, 0.12) 62% 63%, transparent 63% 100%);
   background-size: 160% 100%, 140% 100%;
-  animation: c360-report-lines 11s ease-in-out infinite alternate;
+  animation: c360-report-lines 11s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-report-hero::after {
@@ -7273,7 +7354,7 @@ body.c360-canvas {
   border-radius: 999px 999px 0 0;
   background: linear-gradient(90deg, #14b8a6, #2b6dff, #f59e0b);
   background-size: 180% 100%;
-  animation: c360-premium-gradient-pan 7s ease-in-out infinite alternate;
+  animation: c360-premium-gradient-pan 7s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-report-hero-copy,
@@ -7346,7 +7427,7 @@ body.c360-canvas {
   width: 32%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
   transform: skewX(-18deg);
-  animation: c360-premium-shine 4.6s ease-in-out infinite;
+  animation: c360-premium-shine 4.6s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-report-primary svg,
@@ -7770,7 +7851,7 @@ body.c360-canvas {
   border-radius: 999px 999px 0 0;
   background: linear-gradient(90deg, #14b8a6, #2563eb, #8b5cf6, #f59e0b);
   background-size: 260% 100%;
-  animation: c360-premium-gradient-pan 8s ease-in-out infinite alternate;
+  animation: c360-premium-gradient-pan 8s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-pulse-home-copy,
@@ -7966,7 +8047,7 @@ body.c360-canvas {
     linear-gradient(104deg, transparent 0 70%, rgba(139, 92, 246, 0.13) 70% 71%, transparent 71% 100%),
     repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.026) 0 1px, transparent 1px 44px);
   background-size: 155% 100%, 165% 100%, 44px 44px;
-  animation: c360-os-lines 12s ease-in-out infinite alternate;
+  animation: c360-os-lines 12s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-pulse-hero::after {
@@ -7978,7 +8059,7 @@ body.c360-canvas {
   border-radius: 999px 999px 0 0;
   background: linear-gradient(90deg, #14b8a6, #2563eb, #8b5cf6, #f59e0b);
   background-size: 260% 100%;
-  animation: c360-premium-gradient-pan 8s ease-in-out infinite alternate;
+  animation: c360-premium-gradient-pan 8s ease-in-out var(--motion-loop-decor-alt) alternate;
 }
 
 .c360-pulse-hero-copy,
@@ -8800,7 +8881,7 @@ body.c360-canvas {
   width: 30%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
   transform: skewX(-18deg);
-  animation: c360-premium-shine 5.6s ease-in-out infinite;
+  animation: c360-premium-shine 5.6s ease-in-out var(--motion-loop-decor);
 }
 
 .c360-today-command-primary > * {

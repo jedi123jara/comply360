@@ -103,7 +103,7 @@ export default async function BienvenidaPage() {
           </div>
           <h1
             className="text-3xl sm:text-4xl font-bold text-slate-900"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             ¡Bienvenido, <span className="text-emerald-600 italic">{firstName}</span>!
           </h1>

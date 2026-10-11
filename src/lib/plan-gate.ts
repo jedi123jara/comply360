@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { withAuth, withAuthParams } from '@/lib/api-auth'
+import { withAuth, withAuthParams, hasMinRole } from '@/lib/api-auth'
 import type { AuthContext } from '@/lib/auth'
 import { PLANS } from '@/lib/constants'
 import {
   FEATURE_MIN_PLAN,
   PLAN_FEATURES,
+  planDisplayName,
   planHasFeature,
   type PlanFeature,
 } from '@/lib/plan-features'
@@ -127,7 +128,8 @@ export async function requirePlanFeature(
     })
     return NextResponse.json(
       {
-        error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+        error: `Esta función es parte del plan ${planDisplayName(minPlan)}. Tu plan actual es ${planDisplayName(effectivePlan)}.`,
+        feature: requiredFeature,
         code: 'PLAN_UPGRADE_REQUIRED',
         requiredPlan: minPlan,
         currentPlan: effectivePlan,
@@ -144,6 +146,20 @@ export async function requirePlanFeature(
  * Middleware that gates API access by plan feature.
  * Usage: export const POST = withPlanGate('asistente_ia', async (req, ctx) => { ... })
  */
+// FIX auditoría P0 (SEG-02): withPlanGate/withPlanGateParams solo verificaban
+// el plan, NUNCA el rol. El rol VIEWER ("Lector", solo lectura) podía ejecutar
+// mutaciones (POST/PATCH/PUT/DELETE) en cientos de rutas. Bloqueamos los
+// métodos no seguros para roles por debajo de MEMBER (VIEWER/WORKER).
+const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+function enforceReadOnlyRole(req: NextRequest, ctx: AuthContext): NextResponse | null {
+  if (SAFE_HTTP_METHODS.has(req.method)) return null
+  if (hasMinRole(ctx.role, 'MEMBER')) return null
+  return NextResponse.json(
+    { error: 'Permiso denegado. El rol Lector es de solo lectura.', code: 'READ_ONLY_ROLE' },
+    { status: 403 },
+  )
+}
+
 export function withPlanGate(
   requiredFeature: PlanFeature,
   handler: (req: NextRequest, ctx: AuthContext) => Promise<NextResponse>,
@@ -155,6 +171,8 @@ export function withPlanGate(
     if (ctx.role === 'SUPER_ADMIN') {
       return handler(req, ctx)
     }
+    const readOnlyBlock = enforceReadOnlyRole(req, ctx)
+    if (readOnlyBlock) return readOnlyBlock
     const founderEmails = (process.env.FOUNDER_EMAILS ?? process.env.FOUNDER_EMAIL ?? '')
       .split(',')
       .map((e) => e.trim().toLowerCase())
@@ -200,7 +218,8 @@ export function withPlanGate(
       })
       return NextResponse.json(
         {
-          error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+          error: `Esta función es parte del plan ${planDisplayName(minPlan)}. Tu plan actual es ${planDisplayName(effectivePlan)}.`,
+          feature: requiredFeature,
           code: 'PLAN_UPGRADE_REQUIRED',
           requiredPlan: minPlan,
           currentPlan: effectivePlan,
@@ -226,6 +245,8 @@ export function withPlanGateParams<P extends Record<string, string>>(
     if (ctx.role === 'SUPER_ADMIN') {
       return handler(req, ctx, params)
     }
+    const readOnlyBlock = enforceReadOnlyRole(req, ctx)
+    if (readOnlyBlock) return readOnlyBlock
     const founderEmails = (process.env.FOUNDER_EMAILS ?? process.env.FOUNDER_EMAIL ?? '')
       .split(',')
       .map((e) => e.trim().toLowerCase())
@@ -265,7 +286,8 @@ export function withPlanGateParams<P extends Record<string, string>>(
       })
       return NextResponse.json(
         {
-          error: `Esta funcion requiere el plan ${minPlan} o superior. Tu plan actual es ${effectivePlan}.`,
+          error: `Esta función es parte del plan ${planDisplayName(minPlan)}. Tu plan actual es ${planDisplayName(effectivePlan)}.`,
+          feature: requiredFeature,
           code: 'PLAN_UPGRADE_REQUIRED',
           requiredPlan: minPlan,
           currentPlan: effectivePlan,

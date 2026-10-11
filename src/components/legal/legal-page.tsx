@@ -53,7 +53,7 @@ export function LegalPage({
 
           <h1
             className="text-4xl lg:text-5xl text-[color:var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.05 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.05 }}
           >
             {title}
           </h1>

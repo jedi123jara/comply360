@@ -101,6 +101,18 @@ export const POST = withRole('OWNER', async (req: NextRequest, ctx: AuthContext)
       }
     )
 
+    // ---- FIX auditoría P0 (NEG-01): validar el resultado del cargo ----
+    // Defensa en profundidad: no subir el plan a menos que Culqi haya
+    // autorizado la venta. Antes el checkout usaba solo charge.id y nunca
+    // inspeccionaba el outcome, de modo que un cargo no autorizado (o un mock)
+    // activaba el plan igual.
+    if (charge.outcome?.type !== 'venta_exitosa') {
+      return NextResponse.json(
+        { error: 'El pago no fue autorizado. No se realizó ningún cobro.', code: 'CHARGE_NOT_APPROVED' },
+        { status: 402 },
+      )
+    }
+
     // ---- Calculate subscription period ----
     const now = new Date()
     const periodEnd = new Date(now)

@@ -8,7 +8,6 @@ import {
   Check,
   Loader2,
   AlertTriangle,
-  Sparkles,
   ShieldAlert,
   ShieldCheck,
   Calendar,
@@ -17,6 +16,7 @@ import {
   Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AsistenteHeader } from '../_components/asistente-header'
 import { formatSoles } from '@/lib/format/peruvian'
 
 /**
@@ -107,7 +107,7 @@ export default function SunafilWizardPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Header />
+      <AsistenteHeader asistenteKey="sunafil" />
       <Stepper currentStep={step} />
 
       <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5 md:p-6">
@@ -175,30 +175,6 @@ export default function SunafilWizardPage() {
 }
 
 /* ── UI ──────────────────────────────────────────────────────────────── */
-
-function Header() {
-  return (
-    <div>
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 text-xs text-[color:var(--text-tertiary)] hover:text-emerald-700 mb-2"
-      >
-        <ArrowLeft className="h-3 w-3" /> Volver al Panel
-      </Link>
-      <div className="flex items-center gap-2 mb-1">
-        <Sparkles className="h-4 w-4 text-emerald-700" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-          Decisiones Laborales · Wizard
-        </span>
-      </div>
-      <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Prepararse ante SUNAFIL</h1>
-      <p className="text-sm text-[color:var(--text-tertiary)] mt-1">
-        Snapshot del estado actual + plan priorizado por multa potencial. Genera tarea de seguimiento
-        en el Plan de Acción.
-      </p>
-    </div>
-  )
-}
 
 function Stepper({ currentStep }: { currentStep: number }) {
   const steps = [
@@ -347,7 +323,7 @@ function Step2Plan({ snapshot }: { snapshot: SunafilSnapshot }) {
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                   <span
                     className={cn(
-                      'rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                      'rounded-full px-1.5 py-0.5 text-[11px] font-bold uppercase',
                       t.gravedad === 'MUY_GRAVE'
                         ? 'bg-red-50 text-red-700'
                         : t.gravedad === 'GRAVE'

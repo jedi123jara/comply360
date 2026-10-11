@@ -19,6 +19,15 @@ const isPublicRoute = createRouteMatcher([
   '/terminos(.*)',            // ToS
   '/privacidad(.*)',          // privacy
   '/diagnostico-gratis(.*)',  // Lead-capture: diagnóstico SUNAFIL público
+  // Sitio del estudio de cumplimiento (oct-2026). Sin esto, en producción
+  // Clerk redirige a /sign-in y Google no puede indexar estas páginas.
+  '/servicios(.*)',
+  '/capacitaciones(.*)',
+  '/obligaciones(.*)',
+  '/contadores(.*)',
+  '/nosotros(.*)',
+  '/contacto(.*)',
+  '/opengraph-image(.*)',
 
   // Public worker / external flows
   '/denuncias(.*)',          // Public complaint form (URL por empresa)

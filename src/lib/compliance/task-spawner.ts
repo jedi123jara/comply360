@@ -31,7 +31,8 @@ export interface ActionItemInput {
  */
 function computeDueDate(gravedad: InfracGravedad, plazoSugerido?: string): Date {
   const now = new Date()
-  const m = plazoSugerido?.match(/(\d+)\s*dias?/i)
+  // Acepta "dias" (como se guarda hoy) y "días".
+  const m = plazoSugerido?.match(/(\d+)\s*d[ií]as?/i)
   const dias = m ? Number(m[1]) : gravedad === 'MUY_GRAVE' ? 7 : gravedad === 'GRAVE' ? 30 : 60
   const due = new Date(now)
   due.setDate(due.getDate() + dias)
@@ -84,8 +85,34 @@ export async function spawnTasksFromActionPlan(
   return result.count
 }
 
+const MAX_TITLE = 120
+
+/** Recorta a `max` caracteres sin cortar palabras y agrega "…". */
+function truncateTitle(text: string, max = MAX_TITLE): string {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (clean.length <= max) return clean
+  const cut = clean.slice(0, max - 1)
+  const lastSpace = cut.lastIndexOf(' ')
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:]+$/, '')}…`
+}
+
+/**
+ * Título de la tarea. Con la pregunta del diagnóstico se usa el texto completo
+ * (las preguntas pueden tener ":" o "." internos); sin ella, la primera frase de
+ * la acción. Las respuestas «No sé» se marcan «Por verificar».
+ */
+export function taskTitleFor(
+  gap: { text: string; answer?: string | null } | undefined,
+  action: string,
+): string {
+  const base = gap?.text?.trim() ? gap.text : action.split(/\.|:/)[0]
+  const prefix = gap?.answer === 'NO_SE' ? 'Por verificar: ' : ''
+  return truncateTitle(`${prefix}${base.trim()}`)
+}
+
 /**
  * Mapea `DiagnosticResult.actionPlan` (scoreDiagnostic output) a `ActionItemInput[]`.
+ * Las respuestas «No aplica» nunca llegan aquí (no generan brecha ni acción).
  */
 export function actionPlanToTaskInputs(actionPlan: Array<{
   priority: number
@@ -96,7 +123,7 @@ export function actionPlanToTaskInputs(actionPlan: Array<{
   baseLegal: string
   multaEvitable: number
   plazoSugerido: string
-}>, gapAnalysis: Array<{ questionId: string; gravedad: string; text: string }>): ActionItemInput[] {
+}>, gapAnalysis: Array<{ questionId: string; gravedad: string; text: string; answer?: string | null }>): ActionItemInput[] {
   const gapByQ = new Map(gapAnalysis.map((g) => [g.questionId, g]))
   return actionPlan.map((item) => {
     const gap = gapByQ.get(item.questionId)
@@ -105,8 +132,7 @@ export function actionPlanToTaskInputs(actionPlan: Array<{
       sourceId: item.questionId,
       area: item.area,
       priority: item.priority,
-      // Título = primeras 120 chars de la acción, antes de primer punto si hay
-      title: (gap?.text ?? item.action).split(/\.|:/)[0].trim().slice(0, 120),
+      title: taskTitleFor(gap, item.action),
       description: item.action,
       baseLegal: item.baseLegal,
       gravedad,

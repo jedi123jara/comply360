@@ -17,7 +17,9 @@ export const GET = withPlanGate('alertas_basicas', async (req: NextRequest, ctx:
       prisma.normAlert.findMany({
         where: impactLevel ? { impactLevel: impactLevel as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' } : undefined,
         include: {
-          norm: { select: { code: true, category: true } },
+          // sourceUrl: enlace al texto oficial de la norma — lo usa el botón
+          // "Resolver ahora" de /dashboard/alertas (no hay página de detalle interna).
+          norm: { select: { code: true, category: true, sourceUrl: true } },
         },
         orderBy: [
           { impactLevel: 'asc' }, // CRITICAL first
@@ -46,6 +48,7 @@ export const GET = withPlanGate('alertas_basicas', async (req: NextRequest, ctx:
         publishedAt: alert.publishedAt.toISOString(),
         normCode: alert.norm.code,
         normCategory: alert.norm.category,
+        normSourceUrl: alert.norm.sourceUrl ?? null,
         affectedContractTypes: alert.affectedContractTypes,
         isRead: orgStatus === 'READ',
         isDismissed: orgStatus === 'DISMISSED',

@@ -112,7 +112,7 @@ export default function ExtranjerosPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Trabajadores Extranjeros</h1>
           <p className="text-sm text-gray-500">
-            Control de limite legal de contratacion - Ley 689
+            Control de límite legal de contratación - Ley 689
           </p>
         </div>
       </div>
@@ -138,8 +138,8 @@ export default function ExtranjerosPage() {
               }`}
             >
               {data.isOverLimit
-                ? 'ALERTA: Se ha superado el limite legal del 20%'
-                : 'ATENCION: Se esta acercando al limite legal del 20%'}
+                ? 'ALERTA: Se ha superado el límite legal del 20%'
+                : 'ATENCIÓN: Te estás acercando al límite legal del 20%'}
             </p>
             <p
               className={`text-sm mt-1 ${
@@ -148,10 +148,10 @@ export default function ExtranjerosPage() {
             >
               {data.isOverLimit
                 ? `Actualmente tiene ${data.percentage}% de trabajadores extranjeros. ` +
-                  'Esto constituye una infraccion grave sancionable por SUNAFIL. ' +
-                  'Debe regularizar la situacion inmediatamente.'
+                  'Esto constituye una infracción grave sancionable por SUNAFIL. ' +
+                  'Debes regularizar la situación de inmediato.'
                 : `Actualmente tiene ${data.percentage}% de trabajadores extranjeros. ` +
-                  'El limite legal es 20%. Tome precauciones antes de nuevas contrataciones.'}
+                  'El límite legal es 20%. Toma precauciones antes de nuevas contrataciones.'}
             </p>
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function ExtranjerosPage() {
         <StatCard
           label="Porcentaje"
           value={`${data.percentage}%`}
-          subtitle={`Limite: ${data.limitPercentage}%`}
+          subtitle={`Límite: ${data.limitPercentage}%`}
           icon={
             data.isOverLimit ? (
               <AlertTriangle className="h-5 w-5 text-red-600" />
@@ -227,7 +227,7 @@ export default function ExtranjerosPage() {
         </div>
         <div className="flex justify-between mt-1">
           <span className="text-xs text-gray-500">0%</span>
-          <span className="text-xs text-red-500 font-medium">Limite 20%</span>
+          <span className="text-xs text-red-500 font-medium">Límite 20%</span>
           <span className="text-xs text-gray-500">
             {Math.max(data.percentage, data.limitPercentage + 5)}%
           </span>
@@ -353,9 +353,9 @@ export default function ExtranjerosPage() {
             <p className="font-semibold text-blue-800">{data.baseLegal}</p>
             <p className="text-sm text-blue-700 mt-1">{data.limitExplanation}</p>
             <ul className="mt-2 space-y-1 text-xs text-blue-600">
-              <li>- Limite de personal extranjero: 20% del total</li>
-              <li>- Limite de remuneraciones extranjeras: 30% del total de planilla</li>
-              <li>- Excepcion: personal de direccion y/o confianza (Art. 6 D.Leg. 689)</li>
+              <li>- Límite de personal extranjero: 20% del total</li>
+              <li>- Límite de remuneraciones extranjeras: 30% del total de planilla</li>
+              <li>- Excepción: personal de dirección y/o confianza (Art. 6 D.Leg. 689)</li>
               <li>- Todo trabajador extranjero debe contar con carnet de extranjeria o permiso de trabajo</li>
             </ul>
           </div>

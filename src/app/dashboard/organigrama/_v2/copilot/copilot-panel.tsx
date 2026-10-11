@@ -133,7 +133,7 @@ export function CopilotPanel({ open, onClose }: CopilotPanelProps) {
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             <h2 className="text-sm font-semibold">Copiloto IA</h2>
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider">
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider">
               Beta
             </span>
           </div>

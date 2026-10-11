@@ -1,532 +1,457 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import {
-  ShieldCheck,
-  Calendar,
-  AlertTriangle,
-  Users,
-  FileText,
-  Calculator,
-  ShieldAlert,
-  Bot,
-  BarChart3,
-  Sparkles,
-  ArrowRight,
-} from 'lucide-react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
+import {
+  AlertTriangle,
+  ArrowRight,
+  Banknote,
+  BellRing,
+  Bot,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Users,
+} from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { useCopilot } from '@/providers/copilot-provider'
-import {
-  ScoreNarrative,
-  MomentCard,
-  ActivityHeatmap,
-  UpcomingDeadlines,
-  CalendarWidget,
-  RiskLeaderboard,
-  QuickActions,
-  ComplianceTasksPanel,
-} from '@/components/cockpit'
-import { DecisionesLaborales } from './_components/decisiones-laborales'
-
-// SectorRadar usa `recharts` (~102KB gzipped). Lo cargamos dinámicamente
-// para que no infle el bundle inicial del dashboard. ssr:false porque
-// recharts requiere DOM.
-const SectorRadar = dynamic(
-  () => import('@/components/cockpit').then((m) => ({ default: m.SectorRadar })),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="rounded-xl border border-[color:var(--border-default)] bg-[color:var(--surface-1)]"
-        style={{ height: 320, animation: 'pulse 1.5s ease-in-out infinite' }}
-      />
-    ),
-  },
-)
-import type {
-  DeadlineItem,
-  WorkerRiskItem,
-  RadarAxisDatum,
-  QuickAction,
-} from '@/components/cockpit'
 import { WelcomeTour } from '@/components/dashboard/welcome-tour'
+import { GettingStartedGuide } from '@/components/dashboard/getting-started-guide'
 import { HeroPanel } from '@/components/comply360/hero-panel'
-import type { CockpitFullPayload, ScoreSnapshot } from '@/lib/cockpit/data'
-import { formatSoles } from '@/lib/format/peruvian'
+import { KpiCard, KpiGrid } from '@/components/comply360/kpi-card'
+import { formatFechaLima, formatSolesRedondeado } from '@/components/cockpit/cockpit-format'
+import type { StartRouteInput } from '@/components/cockpit/start-route'
+import { claimStimulus, releaseStimulus } from '@/components/cockpit/stimulus'
+import type {
+  CockpitFullPayload,
+  ComplianceTaskTeaser,
+  ScoreSnapshot,
+  UpcomingDeadlineItem,
+} from '@/lib/cockpit/data'
 
-/**
- * Cockpit v2 — "Obsidian + Esmeralda".
- *
- * Reemplaza la grilla de widgets anterior por una narrativa que cuenta la
- * historia del periodo: score hero → momentos (lo que cerraste / lo que se
- * viene / mayor riesgo) → acciones rápidas → vencimientos + workers en riesgo
- * → heatmap + benchmark sectorial.
- *
- * Data flow:
- *   - GET /api/dashboard       → stats, breakdowns, recent activity
- *   - GET /api/compliance/score → score history + delta
- *   - Fallbacks a mock sólo si la API está vacía (cuentas nuevas sin datos)
- */
-
-/**
- * Props inyectados desde el Server Component `dashboard/page.tsx`.
- * El cockpit ya no fetchea en el cliente — recibe la data resuelta vía RSC.
- */
 export interface CockpitClientProps {
   initialData: CockpitFullPayload
   initialScore: ScoreSnapshot
 }
 
+const PLAN_ACCION_HREF = '/dashboard/plan-accion'
+const DIAGNOSTICO_HREF = '/dashboard/diagnostico'
+const TRIAL_TOAST_KEY = 'comply360.welcomeTrialToastShown'
+
 export default function CockpitPage({ initialData, initialScore }: CockpitClientProps) {
   const copilot = useCopilot()
   const searchParams = useSearchParams()
-
   const data = initialData
   const scoreData = initialScore
 
-  // Toast "Trial PRO activado" — se muestra UNA sola vez al venir del onboarding
-  // con `?welcome=trial`. Usamos sessionStorage para no spam al refrescar.
+  // ── Un estímulo a la vez ────────────────────────────────────────────────
+  // Orden: aviso de la prueba gratis (si llega con ?welcome=trial) → recorrido
+  // guiado (una sola vez por navegador) → celebraciones de la ruta de
+  // arranque. Nunca dos juntos. El pedido de notificaciones (global) también
+  // espera a que la cola esté libre (ver components/cockpit/stimulus.ts).
+  const wantsTrialWelcome = searchParams?.get('welcome') === 'trial'
+  const [stage, setStage] = useState<'trial' | 'tour' | 'free'>(wantsTrialWelcome ? 'trial' : 'tour')
+  const welcomeStartedRef = useRef(false)
+
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (searchParams?.get('welcome') !== 'trial') return
-    const KEY = 'comply360.welcomeTrialToastShown'
-    if (sessionStorage.getItem(KEY)) return
-    sessionStorage.setItem(KEY, '1')
-    toast.success('Trial PRO activado por 14 días', {
-      description: 'Explora el cockpit, agrega tu primer trabajador y dispara un diagnóstico.',
+    if (!wantsTrialWelcome || welcomeStartedRef.current) return
+    welcomeStartedRef.current = true
+
+    let alreadyShown = false
+    try {
+      alreadyShown = sessionStorage.getItem(TRIAL_TOAST_KEY) === '1'
+    } catch {
+      /* almacenamiento bloqueado: seguimos sin recordar */
+    }
+    if (alreadyShown) {
+      window.setTimeout(() => setStage((current) => (current === 'trial' ? 'tour' : current)), 0)
+      return
+    }
+
+    try {
+      sessionStorage.setItem(TRIAL_TOAST_KEY, '1')
+    } catch {
+      /* almacenamiento bloqueado */
+    }
+    claimStimulus('trial-toast')
+    const allowTour = () => {
+      releaseStimulus('trial-toast')
+      setStage((current) => (current === 'trial' ? 'tour' : current))
+    }
+    toast.success('Tu prueba gratis del plan PRO está activa por 14 días', {
+      description: 'Agrega a tu primer trabajador y haz el diagnóstico para conocer tus riesgos.',
+      onAutoClose: allowTour,
+      onDismiss: allowTour,
     })
-  }, [searchParams])
+  }, [wantsTrialWelcome])
 
-  // Derived values
-  const score: number | null = useMemo(() => {
-    const s = scoreData.scoreGlobal ?? data.stats.complianceScore ?? null
-    return typeof s === 'number' ? s : null
-  }, [scoreData, data])
+  const finishTour = useCallback(() => setStage('free'), [])
+  const tour = stage === 'tour' ? <WelcomeTour onDone={finishTour} /> : null
 
-  const delta = scoreData.delta ?? 0
+  const score = useMemo(() => {
+    const value = scoreData.scoreGlobal ?? data.stats.complianceScore ?? null
+    return typeof value === 'number' ? value : null
+  }, [data.stats.complianceScore, scoreData.scoreGlobal])
 
   const totalWorkers = data.stats.totalWorkers ?? 0
-  const expiringCount = data.stats.expiringCount ?? 0
   const criticalAlerts = data.stats.criticalAlerts ?? 0
-  const multaPotencial = data.stats.multaPotencial ?? 0
   const workersProtected = data.stats.workersProtected ?? totalWorkers
-  const daysSinceOrgCreated = data.stats.daysSinceOrgCreated ?? 0
-  const totalWorkersDeclared = data.stats.totalWorkersDeclared ?? null
   const subdeclarationGap = data.stats.subdeclarationGap ?? null
+  const tasks = data.complianceTasks
+  const openTasks = tasks?.open ?? 0
+  const avoidedFine = tasks?.multaEvitada ?? 0
+  const avoidedFineSince = formatFechaLima(tasks?.multaEvitadaDesde)
+  const risk = data.riskSummary
+  const latestDiagnostic = risk?.latestDiagnostic ?? null
+  const hasDiagnostic = latestDiagnostic !== null
+  const focusAction = risk?.focusAction ?? null
+  // Sin diagnóstico la cabecera pide hacerlo y no muestra la acción del día.
+  const heroFocusTaskId = hasDiagnostic && focusAction?.kind === 'task' ? focusAction.id : null
 
-  // Estado "primera vez": cuenta nueva, sin trabajadores ni señales de actividad.
-  // Antes el cockpit asumía score 72 por defecto y disparaba narrativa de "zona crítica",
-  // lo cual asustaba sin razón a usuarios recién registrados. Mostramos un banner
-  // bienvenida que reemplaza ese mensaje y guía a los 3 primeros pasos útiles.
+  // Sin trabajadores el cálculo en vivo devuelve 0 por falta de datos: en ese
+  // caso mostramos el puntaje del último diagnóstico (sus respuestas reales).
+  const useLiveScore = totalWorkers > 0 && score !== null
+  const heroScore = useLiveScore ? score : (latestDiagnostic?.scoreGlobal ?? null)
+
   const isFirstTime =
-    totalWorkers === 0 && criticalAlerts === 0 && expiringCount === 0
+    totalWorkers === 0 &&
+    !hasDiagnostic &&
+    openTasks === 0 &&
+    criticalAlerts === 0 &&
+    (data.stats.expiringCount ?? 0) === 0
 
-  // Estado "onboarding intermedio": ya tiene trabajadores pero todavía no
-  // corrió el diagnóstico. Heurística: score viene null/0 desde la API.
-  const hasDiagnosticData = typeof scoreData.scoreGlobal === 'number' && scoreData.scoreGlobal > 0
-  const isOnboardingMidway = !isFirstTime && totalWorkers > 0 && !hasDiagnosticData
-
-  const topRisk = data.topRisk?.label ?? inferTopRisk(data.complianceBreakdown)
-  const topRiskImpact = data.topRisk?.impact ?? 6
-
-  const quickActions: QuickAction[] = useMemo(
-    () => [
-      {
-        id: 'new-worker',
-        label: 'Nuevo trabajador',
-        hint: 'Wizard + DNI · RUC',
-        icon: Users,
-        href: '/dashboard/trabajadores/nuevo',
-        accent: 'emerald',
-      },
-      {
-        id: 'new-contract',
-        label: 'Generar contrato',
-        hint: 'Plantilla + IA',
-        icon: FileText,
-        href: '/dashboard/contratos/nuevo',
-        accent: 'emerald',
-      },
-      {
-        id: 'calc-cts',
-        label: 'Calcular CTS',
-        hint: 'Pre-fill por worker',
-        icon: Calculator,
-        href: '/dashboard/calculadoras/cts',
-        accent: 'cyan',
-      },
-      {
-        id: 'sunafil-ready',
-        label: 'SUNAFIL-Ready',
-        hint: 'Checklist 28 docs',
-        icon: ShieldCheck,
-        href: '/dashboard/sunafil-ready',
-        accent: 'emerald',
-      },
-      {
-        id: 'simulacro',
-        label: 'Simulacro SUNAFIL',
-        hint: 'Inspector virtual',
-        icon: ShieldAlert,
-        href: '/dashboard/simulacro',
-        accent: 'amber',
-      },
-      {
-        id: 'asistente',
-        label: 'Asistente IA',
-        hint: 'Consultas laborales',
-        icon: Bot,
-        onClick: () => copilot.open(),
-        accent: 'gold',
-      },
-      {
-        id: 'reportes',
-        label: 'Reporte ejecutivo',
-        hint: 'PDF mensual',
-        icon: BarChart3,
-        href: '/dashboard/reportes',
-        accent: 'emerald',
-      },
-    ],
-    [copilot]
+  // Ruta de arranque: se calcula con datos reales del servidor.
+  const startRouteProgress = data.startRoute ?? null
+  const diagnosticScore = latestDiagnostic?.scoreGlobal ?? null
+  const focusHref = hasDiagnostic ? (focusAction?.href ?? null) : null
+  const startRouteInput = useMemo<StartRouteInput | null>(
+    () =>
+      startRouteProgress
+        ? {
+            progress: startRouteProgress,
+            totalWorkers,
+            hasDiagnostic,
+            diagnosticScore,
+            openTasks,
+            focusHref,
+          }
+        : null,
+    [startRouteProgress, totalWorkers, hasDiagnostic, diagnosticScore, openTasks, focusHref]
   )
 
-  const deadlines: DeadlineItem[] = useMemo(() => {
-    if (data.upcomingDeadlines?.length) return data.upcomingDeadlines as DeadlineItem[]
-    return []
-  }, [data])
-
-  const riskWorkers: WorkerRiskItem[] = (data.riskWorkers ?? []) as WorkerRiskItem[]
-  const heatmap = data.activityHeatmap ?? []
-  const sectorRadar: RadarAxisDatum[] = (data.sectorRadar ?? []) as RadarAxisDatum[]
-
-  // ── Render cockpit ──
-  // Hero panel signature (Variant A del prototipo de diseño "sello notarial")
-  // Se renderiza arriba del ScoreNarrative legacy para no romper backcompat; el
-  // ScoreNarrative sigue sirviendo como breakdown detallado por área.
-  return (
-    <div className="space-y-8">
-      <WelcomeTour />
-      {isOnboardingMidway && (
-        <section
-          className="rounded-2xl border border-amber-400/30 bg-[linear-gradient(135deg,rgba(245,158,11,0.14),rgba(15,23,42,0.86)_46%,rgba(15,23,42,0.72))] p-6 sm:p-8 shadow-[var(--elevation-2)]"
-          aria-labelledby="onboarding-midway-title"
-        >
-          <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-amber-500/12 border border-amber-400/30">
-              <ShieldAlert className="w-5 h-5 text-amber-300" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">
-                Siguiente paso
-              </p>
-              <h2
-                id="onboarding-midway-title"
-                className="text-2xl font-bold text-[color:var(--text-primary)] mt-1"
-              >
-                Tienes {totalWorkers} {totalWorkers === 1 ? 'trabajador' : 'trabajadores'} pero aún sin diagnóstico.
-              </h2>
-              <p className="text-sm text-[color:var(--text-secondary)] mt-1.5 max-w-2xl">
-                Corre el diagnóstico SUNAFIL (3 min · 20 preguntas express) para conocer tu compliance score real y prevenir multas.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3 mt-4">
-            <Link
-              href="/dashboard/diagnostico"
-              className="group inline-flex items-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm px-5 py-2.5 transition-colors"
-            >
-              Empezar diagnóstico express
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-            <Link
-              href="/dashboard/sunafil-ready"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[color:var(--bg-inset)] hover:bg-[color:var(--bg-surface-hover)] text-amber-200 border border-amber-400/30 font-semibold text-sm px-5 py-2.5 transition-colors"
-            >
-              Ver checklist SUNAFIL
-            </Link>
-          </div>
-        </section>
-      )}
-      {isFirstTime && (
-        <>
-          <section
-            className="rounded-2xl border border-emerald-400/30 bg-[linear-gradient(135deg,rgba(20,184,166,0.16),rgba(15,23,42,0.88)_48%,rgba(15,23,42,0.72))] p-6 sm:p-8 shadow-[var(--elevation-2)]"
-            aria-labelledby="welcome-cockpit-title"
-          >
-            <div className="flex items-start gap-3 mb-4">
-              <div className="p-2 rounded-xl bg-emerald-500/12 border border-emerald-400/30">
-                <Sparkles className="w-5 h-5 text-emerald-300" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">
-                  Bienvenido a Comply360
-                </p>
-                <h2
-                  id="welcome-cockpit-title"
-                  className="text-2xl font-bold text-[color:var(--text-primary)] mt-1"
-                >
-                  Tu cuenta está lista. Vamos a un compliance 60+ en 5 minutos.
-                </h2>
-                <p className="text-sm text-[color:var(--text-secondary)] mt-1.5 max-w-2xl">
-                  Empieza por estos tres pasos. Cada acción suma a tu score y reduce el riesgo de multa SUNAFIL.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
-              <Link
-                href="/dashboard/trabajadores/nuevo"
-                className="group rounded-xl border border-emerald-400/35 bg-emerald-600 text-white p-4 hover:bg-emerald-700 transition-colors flex flex-col"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Paso 1</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-                <p className="text-base font-semibold mt-2">Sube tu primer trabajador</p>
-                <p className="text-xs opacity-90 mt-1">Wizard con auto-completado por DNI · 30 seg</p>
-              </Link>
-              <Link
-                href="/dashboard/trabajadores?import=excel"
-                className="group rounded-xl border border-emerald-400/30 bg-[color:var(--bg-inset)] p-4 hover:bg-[color:var(--bg-surface-hover)] transition-colors flex flex-col"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Paso 2</span>
-                  <ArrowRight className="w-4 h-4 text-emerald-300 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-                <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Importa de Excel</p>
-                <p className="text-xs text-[color:var(--text-secondary)] mt-1">Sube tu planilla completa en un clic</p>
-              </Link>
-              <Link
-                href="/dashboard/diagnostico"
-                className="group rounded-xl border border-emerald-400/25 bg-[color:var(--bg-inset)] p-4 hover:bg-[color:var(--bg-surface-hover)] transition-colors flex flex-col"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--text-tertiary)]">Paso 3</span>
-                  <ArrowRight className="w-4 h-4 text-[color:var(--text-tertiary)] group-hover:translate-x-0.5 transition-transform" />
-                </div>
-                <p className="text-base font-semibold text-[color:var(--text-primary)] mt-2">Corre tu diagnóstico</p>
-                <p className="text-xs text-[color:var(--text-secondary)] mt-1">3 minutos · 20 preguntas SUNAFIL</p>
-              </Link>
-            </div>
-          </section>
-
-          {/* Quick actions útiles incluso para usuario nuevo (calculadoras, asistente IA) */}
-          <QuickActions actions={quickActions} />
-
-          {/* Hint a futuro: cuando agregues tu primer trabajador, aquí aparecerán
-              tu Compliance Score, alertas activas, vencimientos próximos y más. */}
-          <section className="rounded-2xl border border-dashed border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-8 text-center">
-            <ShieldCheck className="w-8 h-8 mx-auto text-[color:var(--text-tertiary)] mb-3" />
-            <p className="text-sm font-semibold text-[color:var(--text-primary)] mb-1">
-              Tu Compliance Score aparecerá aquí
-            </p>
-            <p className="text-xs text-[color:var(--text-tertiary)] max-w-md mx-auto">
-              Cuando agregues tu primer trabajador, calcularemos tu score real (0-100) según el régimen laboral,
-              documentos del legajo y vencimientos próximos. Sin score inventado.
-            </p>
-          </section>
-        </>
-      )}
-
-      {/* ALERTA SUBDECLARACIÓN — visible siempre que haya brecha detectada */}
-      {subdeclarationGap !== null && subdeclarationGap > 0 && (
-        <section
-          className="rounded-2xl border-2 border-rose-400/35 bg-[linear-gradient(135deg,rgba(244,63,94,0.16),rgba(15,23,42,0.88)_48%,rgba(15,23,42,0.72))] p-6 shadow-[var(--elevation-2)]"
-          aria-labelledby="subdeclaration-alert-title"
-        >
-          <div className="flex items-start gap-4">
-            <div className="p-2.5 rounded-xl bg-rose-500/12 border border-rose-400/30 shrink-0">
-              <AlertTriangle className="w-6 h-6 text-rose-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300 mb-1">
-                Detección de informalidad
-              </p>
-              <h2
-                id="subdeclaration-alert-title"
-                className="text-xl sm:text-2xl font-bold text-[color:var(--text-primary)]"
-              >
-                Declaraste {totalWorkersDeclared} trabajadores pero solo {totalWorkers} están registrados.
-              </h2>
-              <p className="text-sm text-rose-100/86 mt-2 max-w-2xl">
-                Tienes <strong>{subdeclarationGap} {subdeclarationGap === 1 ? 'trabajador' : 'trabajadores'} fuera de planilla</strong>.
-                SUNAFIL multa la subdeclaración con hasta <strong>{formatSoles(5500 * 9.55 * subdeclarationGap)}</strong>{' '}
-                (Art. 24.5 D.S. 019-2006-TR, infracción muy grave).
-              </p>
-              <div className="flex flex-wrap gap-2 mt-4">
-                <Link
-                  href="/dashboard/trabajadores/nuevo"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm px-5 py-2.5 transition-colors"
-                >
-                  Registrar trabajadores faltantes
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link
-                  href="/dashboard/configuracion/empresa"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[color:var(--bg-inset)] hover:bg-[color:var(--bg-surface-hover)] text-rose-200 border border-rose-400/30 font-semibold text-sm px-5 py-2.5 transition-colors"
-                >
-                  Corregir total declarado
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* HeroPanel + ScoreNarrative + bento solo si NO es primera vez */}
-      {!isFirstTime && (<>
+  // `data-tour` marca la cabecera para el recorrido guiado (welcome-tour).
+  const header = (
+    <div data-tour="panel-cabecera">
       <HeroPanel
-        score={typeof score === 'number' ? Math.round(score) : null}
         userFirstName={data.stats.ownerFirstName ?? undefined}
         orgName={data.stats.orgName ?? undefined}
-        multaEvitadaSoles={data.complianceTasks?.multaEvitada ?? multaPotencial ?? 0}
-        alertasCriticas={criticalAlerts}
-        trabajadoresProtegidos={workersProtected}
-        diasSinMulta={daysSinceOrgCreated}
-        onReviewAlerts={() => window.location.assign('/dashboard/alertas')}
-        onOpenDiagnostic={() => window.location.assign('/dashboard/diagnostico')}
-        onAskAssistant={() => copilot.open()}
+        hasDiagnostic={hasDiagnostic}
+        score={heroScore}
+        scoreSource={useLiveScore ? 'datos' : 'diagnostico'}
+        diagnosticDate={latestDiagnostic?.completedAt ?? null}
+        multaPendiente={risk?.multaPendiente ?? 0}
+        multaAlertas={risk?.multaAlertasAbiertas ?? 0}
+        focusAction={focusAction}
+        totalWorkers={totalWorkers}
       />
-      <ScoreNarrative
-        score={score}
-        delta={delta}
-        topRisk={topRisk}
-        topRiskImpact={topRiskImpact}
-        multaEvitada={multaPotencial}
-        onAskCopilot={() => copilot.open()}
-        onOpenActionPlan={() => {
-          window.location.assign('/dashboard/diagnostico')
-        }}
-      />
+    </div>
+  )
 
-      <section className="c360-grid-enter grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MomentCard
-          variant="closed"
-          label="Lo que cerraste"
-          title={buildClosedTitle(data.recentContracts ?? [])}
-          description="Revisa el detalle de alertas resueltas y contratos renovados."
-          icon={ShieldCheck}
-          href="/dashboard/alertas"
-          cta="Ver alertas"
-        />
-        <MomentCard
-          variant="upcoming"
-          label="Lo que se viene"
-          title={`${expiringCount || deadlines.length} vencimientos · 30 días`}
-          description="Contratos, exámenes médicos, capacitaciones SST y aportes AFP en el horizonte."
-          icon={Calendar}
-          href="/dashboard/calendario"
-          cta="Ver calendario"
-        />
-        <MomentCard
-          variant="risk"
-          label="Tu mayor riesgo"
-          title={topRisk}
-          description={
-            multaPotencial > 0
-              ? `Multa estimada ${formatSoles(multaPotencial)} si hay inspección.`
-              : `${criticalAlerts} alertas críticas activas. Prioridad de resolución.`
+  const startRoute = startRouteInput ? (
+    <GettingStartedGuide
+      orgId={data.org?.id ?? 'sin-empresa'}
+      input={startRouteInput}
+      celebrationsEnabled={stage === 'free'}
+    />
+  ) : null
+
+  const assistantButton = (
+    <button
+      type="button"
+      onClick={() => copilot.open()}
+      className="fixed bottom-6 right-6 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-[0_12px_30px_rgba(21,94,239,0.3)] transition hover:-translate-y-0.5 hover:bg-blue-700"
+      aria-label="Preguntar al asistente"
+      title="Preguntar al asistente"
+    >
+      <Bot className="h-5 w-5" />
+    </button>
+  )
+
+  // Primera visita: sin datos todavía, la cabecera y la ruta de arranque
+  // bastan; los indicadores vacíos solo sumarían ruido.
+  if (isFirstTime) {
+    return (
+      <div className="space-y-5">
+        {tour}
+        {header}
+        {startRoute}
+        {assistantButton}
+      </div>
+    )
+  }
+
+  // La acción del día ya está arriba: la lista muestra las que siguen.
+  const nextTasks = (tasks?.top ?? []).filter((task) => task.id !== heroFocusTaskId).slice(0, 3)
+
+  return (
+    <div className="space-y-5">
+      {tour}
+
+      {subdeclarationGap !== null && subdeclarationGap > 0 ? (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-[var(--elevation-1)]" aria-labelledby="subdeclaration-title">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600">
+              <AlertTriangle className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-rose-700">Atención inmediata</p>
+              <h2 id="subdeclaration-title" className="mt-1 text-base font-bold text-rose-950">
+                Hay {subdeclarationGap} trabajador{subdeclarationGap === 1 ? '' : 'es'} fuera de la planilla registrada.
+              </h2>
+              <p className="mt-1 text-sm text-rose-800">Regulariza el registro para reducir exposición ante SUNAFIL.</p>
+            </div>
+            <Link href="/dashboard/trabajadores/nuevo" className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">
+              Regularizar ahora <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
+      {header}
+
+      {startRoute}
+
+      <KpiGrid>
+        <KpiCard
+          icon={Banknote}
+          label="Multa evitada este mes"
+          value={avoidedFine}
+          formatValue={(value) => formatSolesRedondeado(value)}
+          help="Suma las multas estimadas de las tareas del plan de acción que resolviste este mes. Es una referencia: no es dinero que hayas pagado ni recibido."
+          footer={
+            avoidedFine > 0
+              ? `Tareas resueltas desde el ${avoidedFineSince ?? '1 de este mes'}`
+              : 'Sube cada vez que resuelves una tarea del plan'
           }
-          icon={AlertTriangle}
-          href="/dashboard/sunafil-ready"
-          cta="Ver los 28 docs"
         />
+        <KpiCard
+          icon={Users}
+          label="Trabajadores protegidos"
+          value={workersProtected}
+          help="Cuenta a tus trabajadores (sin los cesados) que tienen su legajo completo al 60 % o más y ninguna alerta «Urgente» o «Alta» sin resolver."
+          footer={totalWorkers > 0 ? `De ${totalWorkers} trabajadores activos` : 'Aún no registras trabajadores'}
+        />
+        <KpiCard
+          icon={BellRing}
+          label="Alertas críticas"
+          value={criticalAlerts}
+          variant={criticalAlerts > 0 ? 'crimson' : 'default'}
+          help="Alertas de tus trabajadores sin resolver con urgencia «Urgente» o «Alta», por ejemplo un contrato o un examen médico vencido."
+          footer={
+            criticalAlerts > 0
+              ? 'Requieren atención'
+              : totalWorkers > 0
+                ? 'Sin alertas graves abiertas'
+                : 'Se activan al registrar trabajadores'
+          }
+        />
+      </KpiGrid>
+
+      <section className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
+        <PrioritiesCard
+          tasks={nextTasks}
+          open={openTasks}
+          hasDiagnostic={hasDiagnostic}
+          criticalAlerts={criticalAlerts}
+          focusIsTask={heroFocusTaskId !== null}
+        />
+        <NextDeadlineCard deadline={data.upcomingDeadlines?.[0] ?? null} totalWorkers={totalWorkers} />
       </section>
 
-      <QuickActions actions={quickActions} />
-
-      {/* Decisiones Laborales — Fase 2: sección destacada con wizards
-          orquestadores. Reemplaza el viejo Hub IA Laboral feature-oriented
-          por flujos task-oriented. Solo "Contratar" activo en Fase 2. */}
-      <DecisionesLaborales />
-
-      {/* ─── BENTO GRID — Apple-style asimétrico ──────────────────────────
-       * Layout 12-col en desktop:
-       *   row 1: [Compliance tasks ........ col-span-8] [UpcomingDeadlines col-span-4]
-       *   row 2: [ActivityHeatmap col-span-7] [RiskLeaders col-span-5]
-       *   row 3: [Radar/Placeholder col-span-12]
-       * En mobile: stack vertical full width.
-       *
-       * Sprint 5 (T6.1): hover scale + soft shadows ya provenientes de
-       * <Card> y <MomentCard> via tokens (--elevation-1, --elevation-hover).
-       */}
-      {/*
-       * BENTO GRID — orden distinto en mobile vs desktop:
-       *   Desktop (lg+): tasks + deadlines + calendar + heatmap + risk + radar
-       *   Mobile: deadlines arriba (más útil en celular) → tasks → calendario →
-       *   resto. Usamos `order-*` Tailwind utilities sin duplicar markup.
-       */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="order-2 lg:order-none lg:col-span-8">
-          <ComplianceTasksPanel
-            open={data.complianceTasks?.open ?? 0}
-            completed={data.complianceTasks?.completed ?? 0}
-            overdue={data.complianceTasks?.overdue ?? 0}
-            multaEvitable={data.complianceTasks?.multaEvitable ?? 0}
-            multaEvitada={data.complianceTasks?.multaEvitada ?? 0}
-            top={data.complianceTasks?.top ?? []}
-          />
-        </div>
-        <div className="order-1 lg:order-none lg:col-span-4">
-          <UpcomingDeadlines items={deadlines} />
-        </div>
-
-        {/* Calendar Widget */}
-        <div className="order-3 lg:order-none lg:col-span-12">
-          <CalendarWidget />
-        </div>
-
-        <div className="order-5 lg:order-none lg:col-span-7">
-          <ActivityHeatmap data={heatmap} />
-        </div>
-        <div className="order-4 lg:order-none lg:col-span-5">
-          <RiskLeaderboard workers={riskWorkers} />
-        </div>
-
-        <div className="order-6 lg:order-none lg:col-span-12">
-          {sectorRadar.length > 0 ? (
-            <SectorRadar data={sectorRadar} sectorLabel="Promedio sector" />
-          ) : (
-            <PlaceholderRadar totalWorkers={totalWorkers} />
-          )}
-        </div>
-      </section>
-      </>)}
+      {assistantButton}
     </div>
   )
 }
 
-/* ── helpers ─────────────────────────────────────────────────────────── */
-
-function inferTopRisk(breakdown?: Array<{ label: string; score: number }>): string {
-  if (!breakdown?.length) return 'Sin análisis'
-  const worst = [...breakdown].sort((a, b) => a.score - b.score)[0]
-  return worst?.label ?? 'Sin análisis'
+const GRAVEDAD_CHIP: Record<ComplianceTaskTeaser['gravedad'], { label: string; tone: string }> = {
+  MUY_GRAVE: { label: 'Crítica', tone: 'border-rose-200 bg-rose-50 text-rose-700' },
+  GRAVE: { label: 'Importante', tone: 'border-amber-200 bg-amber-50 text-amber-700' },
+  LEVE: { label: 'Por hacer', tone: 'border-blue-200 bg-blue-50 text-blue-700' },
 }
 
-function buildClosedTitle(recentContracts: Array<{ status: string }>): string {
-  const closed = recentContracts.filter((c) => c.status === 'SIGNED').length
-  if (closed > 0) return `${closed} contratos firmados`
-  return 'Todo al día esta semana'
+/** Respaldo por si el área llega sin nombre legible: "contratos_registro" → "Contratos registro". */
+function fallbackAreaLabel(area: string): string {
+  const text = area.replace(/[_-]+/g, ' ').trim().toLowerCase()
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : 'General'
 }
 
-function PlaceholderRadar({ totalWorkers }: { totalWorkers: number }) {
+function PrioritiesCard({
+  tasks,
+  open,
+  hasDiagnostic,
+  criticalAlerts,
+  focusIsTask,
+}: {
+  tasks: ComplianceTaskTeaser[]
+  open: number
+  hasDiagnostic: boolean
+  criticalAlerts: number
+  focusIsTask: boolean
+}) {
   return (
-    <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--bg-surface)]/40 p-8 flex flex-col items-center justify-center text-center gap-3">
-      <BarChart3 className="h-10 w-10 text-[color:var(--text-tertiary)]" />
-      <div>
-        <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-          Benchmark sectorial en preparación
-        </p>
-        <p className="text-xs text-[color:var(--text-tertiary)] mt-1 max-w-xs">
-          {totalWorkers === 0
-            ? 'Registra trabajadores y corre un diagnóstico para empezar a comparar con tu sector.'
-            : 'El benchmark se actualizará tras el próximo diagnóstico mensual.'}
-        </p>
+    <article className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5 shadow-[var(--elevation-2)] sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-[color:var(--text-primary)]">Próximas acciones</h2>
+          <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">Lo que sigue en tu plan, ordenado por impacto y urgencia.</p>
+        </div>
+        {open > 0 ? <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{open} abierta{open === 1 ? '' : 's'}</span> : null}
       </div>
+
+      {tasks.length > 0 ? (
+        <ul className="mt-5 divide-y divide-[color:var(--border-subtle)] overflow-hidden rounded-xl border border-[color:var(--border-default)]">
+          {tasks.map((task) => {
+            const chip = GRAVEDAD_CHIP[task.gravedad] ?? GRAVEDAD_CHIP.LEVE
+            const fecha = formatFechaLima(task.dueDate)
+            const multa = task.multaEvitable ?? 0
+            return (
+              <li key={task.id}>
+                <Link href={task.href || PLAN_ACCION_HREF} className="flex items-center gap-3 bg-white px-4 py-3.5 transition hover:bg-blue-50/70">
+                  <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-semibold ${chip.tone}`}>{chip.label}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-[color:var(--text-primary)]">{task.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-[color:var(--text-tertiary)]">
+                      {task.areaLabel || fallbackAreaLabel(task.area)}
+                      {multa > 0 ? ` · Evitas hasta ${formatSolesRedondeado(multa)}` : ''}
+                    </p>
+                  </div>
+                  <span className={`hidden shrink-0 text-xs sm:block ${task.overdue ? 'font-semibold text-rose-700' : 'text-[color:var(--text-tertiary)]'}`}>
+                    {fecha ? (task.overdue ? `Venció el ${fecha}` : `Vence el ${fecha}`) : 'Sin fecha'}
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <PrioritiesEmpty open={open} hasDiagnostic={hasDiagnostic} criticalAlerts={criticalAlerts} focusIsTask={focusIsTask} />
+      )}
+
+      <Link href={PLAN_ACCION_HREF} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 hover:underline">
+        Ver todo el plan de acción <ArrowRight className="h-4 w-4" />
+      </Link>
+    </article>
+  )
+}
+
+/**
+ * Estado vacío honesto: solo es "todo al día" (verde) si hay diagnóstico y no
+ * queda nada abierto. Sin diagnóstico no hay plan que evaluar, así que es neutro.
+ */
+function PrioritiesEmpty({
+  open,
+  hasDiagnostic,
+  criticalAlerts,
+  focusIsTask,
+}: {
+  open: number
+  hasDiagnostic: boolean
+  criticalAlerts: number
+  focusIsTask: boolean
+}) {
+  if (open > 0 && focusIsTask) {
+    return (
+      <div className="mt-5 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-4 text-sm text-[color:var(--text-secondary)]">
+        Por ahora, la tarea de hoy es la única pendiente en tu plan.
+      </div>
+    )
+  }
+
+  if (!hasDiagnostic) {
+    return (
+      <div className="mt-5 flex items-start gap-3 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-4">
+        <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--text-tertiary)]" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-semibold text-[color:var(--text-primary)]">Aún no tienes un plan de acción.</p>
+          <p className="mt-1 text-sm text-[color:var(--text-secondary)]">
+            Se arma con el diagnóstico: te decimos qué corregir y en qué orden.
+          </p>
+          <Link href={DIAGNOSTICO_HREF} className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 hover:underline">
+            Hacer el diagnóstico express <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (criticalAlerts > 0) {
+    return (
+      <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <BellRing className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-semibold text-amber-900">No tienes tareas pendientes del diagnóstico.</p>
+          <p className="mt-1 text-sm text-amber-800">
+            Pero hay {criticalAlerts} alerta{criticalAlerts === 1 ? '' : 's'} crítica{criticalAlerts === 1 ? '' : 's'} de tus trabajadores por revisar.
+          </p>
+          <Link href="/dashboard/alertas" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-900 hover:underline">
+            Ver alertas <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-5 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
+      <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
+      <p className="text-sm font-semibold">Todo al día: no tienes acciones pendientes.</p>
     </div>
+  )
+}
+
+function NextDeadlineCard({ deadline, totalWorkers }: { deadline: UpcomingDeadlineItem | null; totalWorkers: number }) {
+  return (
+    <article className="flex min-h-[260px] flex-col rounded-2xl border border-[color:var(--border-default)] bg-white p-5 shadow-[var(--elevation-2)] sm:p-6">
+      <div>
+        <h2 className="text-lg font-bold text-[color:var(--text-primary)]">Próximo vencimiento</h2>
+        <p className="mt-1 text-sm text-[color:var(--text-tertiary)]">La fecha que debes tener en el radar.</p>
+      </div>
+      {deadline ? (
+        <Link
+          href={deadline.href || '/dashboard/calendario'}
+          className="mt-5 block rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-4 transition hover:border-blue-300"
+        >
+          <div className="flex items-start gap-3">
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <CalendarDays className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[color:var(--text-primary)]">{deadline.label}</p>
+              <p className={`mt-1 text-xs ${deadline.dueIn < 0 ? 'font-semibold text-rose-700' : 'text-[color:var(--text-tertiary)]'}`}>
+                {deadline.dueIn < 0
+                  ? `Venció hace ${Math.abs(deadline.dueIn)} día${Math.abs(deadline.dueIn) === 1 ? '' : 's'}`
+                  : deadline.dueIn === 0
+                    ? 'Vence hoy'
+                    : `Vence en ${deadline.dueIn} día${deadline.dueIn === 1 ? '' : 's'}`}
+              </p>
+            </div>
+          </div>
+        </Link>
+      ) : totalWorkers > 0 ? (
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
+          <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <p className="text-sm font-semibold">Sin vencimientos próximos.</p>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--bg-inset)] p-4 text-sm text-[color:var(--text-secondary)]">
+          Aún no hay fechas que vigilar. Se calculan con tus trabajadores y contratos.
+        </div>
+      )}
+      <Link href="/dashboard/calendario" className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50">
+        Ver calendario <ArrowRight className="h-4 w-4" />
+      </Link>
+    </article>
   )
 }

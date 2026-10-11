@@ -3,6 +3,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react'
 import { Sparkline, useCountUp } from './animated-shield'
+import { HelpHint } from '@/components/ui/term'
 
 /**
  * KpiCard — tarjeta KPI premium del sistema "Emerald Light".
@@ -58,6 +59,11 @@ export interface KpiCardProps {
   prefix?: string
   /** Formateador custom del valor (toma el número animado). */
   formatValue?: (n: number) => string
+  /**
+   * Ayuda opcional: un id del glosario (ej. "cts", "multa-sunafil") o un
+   * texto simple. Muestra un ícono "?" junto al label con la explicación.
+   */
+  help?: string
 }
 
 export function KpiCard({
@@ -72,6 +78,7 @@ export function KpiCard({
   countUpMs = 1200,
   prefix,
   formatValue,
+  help,
 }: KpiCardProps) {
   const animated = useCountUp(value, countUpMs)
   const rounded = Math.round(animated)
@@ -93,6 +100,7 @@ export function KpiCard({
         <span className="dot" aria-hidden="true" />
         {Icon ? <Icon size={12} strokeWidth={2.2} aria-hidden="true" /> : null}
         <span>{label}</span>
+        {help ? <HelpHint help={help} label={label} /> : null}
       </div>
 
       <div className="c360-kpi-value">

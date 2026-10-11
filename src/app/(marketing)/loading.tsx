@@ -1,28 +1,28 @@
 /**
  * Skeleton para las páginas de marketing (calculadoras, planes, recursos,
  * diagnóstico, contadores, legal). Mientras se hidrata el cliente, el
- * visitante ve una estructura similar a la final en vez de pantalla
- * en blanco — evita flash y mejora LCP percibido.
+ * visitante ve una estructura similar a la final (header y hero azul marino,
+ * cuerpo claro con tarjetas blancas) en vez de pantalla en blanco.
  */
 export default function MarketingLoading() {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 py-16 ">
-      <div className="h-6 w-56 bg-emerald-100 rounded-full" />
-      <div className="h-12 w-96 max-w-[90vw] bg-slate-200 rounded-lg" />
-      <div className="space-y-2 max-w-xl w-full">
-        <div className="h-4 w-full bg-slate-100 rounded" />
-        <div className="h-4 w-5/6 mx-auto bg-slate-100 rounded" />
+    <div className="min-h-[70vh] bg-[#F5F7FB]" aria-busy="true" aria-label="Cargando">
+      <div className="h-16 bg-[#0B1B36] sm:h-[72px]" />
+      <div className="flex flex-col items-center gap-5 bg-[#0B1B36] px-4 pb-14 pt-10">
+        <div className="h-6 w-56 rounded-full bg-[#F5B301]/20" />
+        <div className="h-11 w-96 max-w-[90vw] rounded-lg bg-[#ffffff]/10" />
+        <div className="w-full max-w-xl space-y-2">
+          <div className="h-4 w-full rounded bg-[#ffffff]/[0.07]" />
+          <div className="mx-auto h-4 w-5/6 rounded bg-[#ffffff]/[0.07]" />
+        </div>
       </div>
-      <div className="grid sm:grid-cols-3 gap-4 max-w-4xl w-full mt-8 px-4">
+      <div className="mx-auto mt-10 grid w-full max-w-4xl gap-4 px-4 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-2xl bg-white ring-1 ring-slate-200 p-6 space-y-3"
-          >
-            <div className="w-10 h-10 bg-slate-200 rounded-lg" />
-            <div className="h-4 w-3/4 bg-slate-200 rounded" />
-            <div className="h-3 w-full bg-slate-100 rounded" />
-            <div className="h-3 w-5/6 bg-slate-100 rounded" />
+          <div key={i} className="space-y-3 rounded-xl border border-[#E5EAF2] bg-[#ffffff] p-6">
+            <div className="h-10 w-10 rounded-lg bg-[#EFF4FF]" />
+            <div className="h-4 w-3/4 rounded bg-[#E5EAF2]" />
+            <div className="h-3 w-full rounded bg-[#EEF2F7]" />
+            <div className="h-3 w-5/6 rounded bg-[#EEF2F7]" />
           </div>
         ))}
       </div>

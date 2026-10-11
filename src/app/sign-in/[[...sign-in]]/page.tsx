@@ -1,72 +1,29 @@
 import { SignIn } from '@clerk/nextjs'
-import { BrandLogo } from '@/components/comply360/brand-logo'
 import Link from 'next/link'
 import { ShieldCheck, Users, Activity, ArrowRight } from 'lucide-react'
+import { PublicHero } from '@/components/marketing/public-hero'
+import { PublicShell } from '@/components/marketing/public-shell'
+import { publicClerkAppearance } from '@/components/marketing/public-clerk-appearance'
+import { pub } from '@/components/marketing/public-theme'
+import { cn } from '@/lib/utils'
 
 /**
- * SignInPage — pantalla editorial de ingreso.
- *
- * Primera impresión con la identidad COMPLY360 "Dark Authority":
- *  - Fondo obsidian con halos emerald/cyan (igual al dashboard)
- *  - AnimatedShield flotando + wordmark editorial
- *  - Tagline emerald italic
- *  - Clerk con tema emerald
- *  - 3 trust signals abajo (multas evitadas, empresas, sincronización SUNAFIL)
+ * SignInPage — ingreso con el tema público de Comply360 (mismo header, hero
+ * azul marino y cuerpo claro que planes, calculadoras y diagnóstico).
+ *  - Clerk con tarjeta blanca y botón ámbar (`publicClerkAppearance`)
+ *  - Enlace al portal del trabajador
+ *  - 3 trust signals abajo
  */
 export default function SignInPage() {
   return (
-    <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{
-        background:
-          'radial-gradient(circle at 50% -20%, rgba(20,184,166,0.18), transparent 34%), radial-gradient(circle at 88% 6%, rgba(14,165,233,0.16), transparent 28%), linear-gradient(180deg, #070b14 0%, #050914 48%, #060a12 100%)',
-      }}
-    >
-      {/* Grid overlay + halo emerald */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage:
-            'linear-gradient(rgba(148,163,184,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.055) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-          maskImage: 'radial-gradient(80% 60% at 50% 40%, #000 0%, transparent 70%)',
-          WebkitMaskImage: 'radial-gradient(80% 60% at 50% 40%, #000 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }}
-      />
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: '-20%',
-          right: '-10%',
-          width: 500,
-          height: 500,
-          background: 'radial-gradient(circle, rgba(16,185,129,0.18), transparent 70%)',
-          animation: 'c360-breathe 6s ease-in-out infinite',
-          pointerEvents: 'none',
-        }}
+    <PublicShell header="minimal" headerAction={{ href: '/sign-up', label: 'Crear cuenta' }} footer={false}>
+      <PublicHero
+        titleAs="p"
+        title={<>Tu escudo inteligente contra multas <span className={pub.highlightOnNavy}>SUNAFIL</span>.</>}
+        contentClassName="pb-24 pt-10 sm:pb-28 sm:pt-12"
       />
 
-      <div className="relative z-10 w-full max-w-md px-4 c360-anim-slide-up">
-        {/* Brand header */}
-        <div className="text-center mb-8">
-          <BrandLogo variant="auth" className="c360-auth-brand" />
-          <p
-            style={{
-              margin: '10px 0 0',
-              fontSize: 14,
-              color: 'var(--text-secondary)',
-              fontStyle: 'italic',
-              fontFamily: 'var(--font-serif)',
-            }}
-          >
-            Tu escudo inteligente contra multas SUNAFIL.
-          </p>
-        </div>
-
+      <div className="relative z-10 mx-auto -mt-16 w-full max-w-md px-4 pb-12 c360-anim-slide-up">
         {/* Clerk sign-in card */}
         <SignIn
           /* Redirect a /post-login que decide la sección según role:
@@ -75,67 +32,24 @@ export default function SignInPage() {
           forceRedirectUrl="/post-login"
           fallbackRedirectUrl="/post-login"
           signUpUrl="/sign-up"
-          appearance={{
-            variables: {
-              colorPrimary: '#2563eb',
-              colorText: '#f8fafc',
-              colorTextSecondary: '#cbd5e1',
-              colorBackground: '#0a0f1c',
-              colorInputBackground: '#111827',
-              colorInputText: '#f8fafc',
-              borderRadius: '12px',
-              fontFamily: 'var(--font-geist-sans), sans-serif',
-            },
-            elements: {
-              rootBox: 'mx-auto',
-              card:
-                'shadow-2xl rounded-2xl border border-[color:var(--border-default)] bg-[color:var(--bg-elevated)] text-[color:var(--text-primary)]',
-              headerTitle: 'text-[color:var(--text-primary)]',
-              headerSubtitle: 'text-[color:var(--text-secondary)]',
-              formButtonPrimary:
-                'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold',
-              footerAction: 'text-emerald-700',
-              identityPreviewEditButton: 'text-emerald-700',
-              formFieldInput:
-                'bg-[color:var(--neutral-50)] text-[color:var(--text-primary)] border-[color:var(--border-default)] focus:border-emerald-500 focus:ring-emerald-500/20',
-              socialButtonsBlockButton:
-                'bg-[color:var(--neutral-50)] text-[color:var(--text-primary)] border-[color:var(--border-default)] hover:bg-[color:var(--bg-surface-hover)]',
-              footer: 'bg-[color:var(--bg-elevated)]',
-            },
-          }}
+          appearance={publicClerkAppearance}
         />
 
-        <div className="mt-4 text-center">
-          <Link
-            href="/mi-portal/ingresar"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-300 hover:text-emerald-200"
-          >
+        <div className="mt-5 text-center">
+          <Link href="/mi-portal/ingresar" className={cn(pub.link, 'inline-flex items-center gap-1 text-sm')}>
             ¿Eres trabajador? Entra a tu portal
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight aria-hidden className="h-3.5 w-3.5" />
           </Link>
         </div>
 
         {/* Trust signals */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 12,
-            marginTop: 32,
-            padding: 16,
-            background: 'rgba(15,23,42,0.72)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: 12,
-            border: '0.5px solid var(--border-subtle)',
-            boxShadow: 'var(--elevation-1)',
-          }}
-        >
+        <div className={cn(pub.card, 'mt-8 grid grid-cols-3 gap-3 p-4')}>
           <TrustSignal icon={<ShieldCheck size={14} />} value="+S/ 12M" label="Multas evitadas" />
           <TrustSignal icon={<Users size={14} />} value="+300" label="Empresas protegidas" />
           <TrustSignal icon={<Activity size={14} />} value="24/7" label="Sync SUNAFIL" />
         </div>
       </div>
-    </div>
+    </PublicShell>
   )
 }
 
@@ -149,39 +63,12 @@ function TrustSignal({
   label: string
 }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        gap: 4,
-      }}
-    >
-      <div style={{ color: 'var(--emerald-600)' }}>{icon}</div>
-      <div
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: 18,
-          fontWeight: 400,
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.01em',
-          lineHeight: 1,
-        }}
-      >
-        {value}
+    <div className="flex flex-col items-center gap-1 text-center">
+      <div className="grid h-7 w-7 place-items-center rounded-md bg-[#EFF4FF] text-[#2563EB]" aria-hidden>
+        {icon}
       </div>
-      <div
-        style={{
-          fontSize: 10,
-          color: 'var(--text-tertiary)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          fontWeight: 600,
-        }}
-      >
-        {label}
-      </div>
+      <div className="text-lg font-extrabold leading-none tracking-[-0.02em] text-[#0B1B36]">{value}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5A6A80]">{label}</div>
     </div>
   )
 }

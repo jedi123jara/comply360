@@ -106,11 +106,11 @@ export function ConfettiCard({ icon: Icon, eyebrow, title, titleEmText, sub }: C
       {/* Title */}
       <h3
         style={{
-          fontFamily: 'var(--font-serif)',
+          fontFamily: 'var(--font-display)',
           fontSize: 24,
           letterSpacing: '-0.02em',
           lineHeight: 1.1,
-          fontWeight: 400,
+          fontWeight: 800,
           position: 'relative',
           zIndex: 1,
           color: 'var(--text-primary)',

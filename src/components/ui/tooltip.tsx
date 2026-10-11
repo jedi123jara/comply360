@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
  * Wrap your app (or a subtree) in `<TooltipProvider>` once, then use:
  *
  *   <Tooltip content="Calcular CTS">
- *     <Button size="icon"><Calculator /></Button>
+ *     <Button size="icon" aria-label="Calcular CTS"><Calculator aria-hidden /></Button>
  *   </Tooltip>
  */
 export const TooltipProvider = TooltipPrimitive.Provider

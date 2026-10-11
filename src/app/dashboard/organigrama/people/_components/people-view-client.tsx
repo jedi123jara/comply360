@@ -343,7 +343,7 @@ function PersonCard({
         <div className="mt-1.5 flex flex-wrap justify-center gap-0.5">
           {person.flags.hasCriticalAlert && (
             <span
-              className="rounded-full bg-rose-200 px-1.5 py-0.5 text-[8px] font-bold text-rose-800"
+              className="rounded-full bg-rose-200 px-1.5 py-0.5 text-[11px] font-bold text-rose-800"
               title="Tiene alertas críticas"
             >
               !
@@ -351,7 +351,7 @@ function PersonCard({
           )}
           {person.flags.contractAtRisk && (
             <span
-              className="rounded-full bg-orange-200 px-1.5 py-0.5 text-[8px] font-bold text-orange-800"
+              className="rounded-full bg-orange-200 px-1.5 py-0.5 text-[11px] font-bold text-orange-800"
               title="Contrato civil con riesgo de desnaturalización"
             >
               C
@@ -359,7 +359,7 @@ function PersonCard({
           )}
           {person.flags.legajoIncomplete && (
             <span
-              className="rounded-full bg-amber-200 px-1.5 py-0.5 text-[8px] font-bold text-amber-800"
+              className="rounded-full bg-amber-200 px-1.5 py-0.5 text-[11px] font-bold text-amber-800"
               title="Legajo digital incompleto"
             >
               L

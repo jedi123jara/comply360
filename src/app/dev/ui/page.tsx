@@ -14,8 +14,28 @@ import {
   Download,
   ArrowRight,
   Plus,
+  Search,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
+  StatusBadge,
+  scoreTone,
+  scoreLabel,
+  type StatusTone,
+} from '@/components/ui/status-badge'
+import { useToast } from '@/components/ui/toast'
+import { confirm } from '@/components/ui/confirm-dialog'
 import {
   Card,
   CardHeader,
@@ -73,9 +93,21 @@ import { BRAND_COLORS } from '@/lib/brand'
  *
  * NOT meant to ship in production — it's a dev-only page.
  */
+const STATUS_TONES: { tone: StatusTone; label: string }[] = [
+  { tone: 'success', label: 'Cumple' },
+  { tone: 'warning', label: 'Por vencer' },
+  { tone: 'danger', label: 'Vencido' },
+  { tone: 'info', label: 'En revisión' },
+  { tone: 'neutral', label: 'Sin iniciar' },
+]
+
 export default function DevUiShowcase() {
   const [modalOpen, setModalOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [dni, setDni] = useState('4567891')
+  const [regimen, setRegimen] = useState('')
+  const { toast: legacyToast } = useToast()
+  const dniError = /^\d{8}$/.test(dni) ? undefined : 'El DNI debe tener 8 dígitos.'
 
   return (
     <main className="min-h-screen px-6 py-12 lg:px-12">
@@ -132,7 +164,10 @@ export default function DevUiShowcase() {
         </Section>
 
         {/* ── BUTTONS ────────────────────────────────────────────────── */}
-        <Section title="Botones" description="6 variants × 5 sizes + iconos + loading.">
+        <Section
+          title="Botones"
+          description="6 variants × 5 sizes + iconos + loading. Los botones solo-ícono llevan aria-label (en desarrollo se avisa por consola si falta)."
+        >
           <div className="space-y-6">
             {/* Variants */}
             <div className="space-y-2">
@@ -211,6 +246,101 @@ export default function DevUiShowcase() {
               <Badge variant="solid-crimson" size="pill">12 críticas</Badge>
               <Badge variant="solid-amber" size="pill">5 por vencer</Badge>
             </div>
+          </div>
+        </Section>
+
+        {/* ── STATUS BADGES ──────────────────────────────────────────── */}
+        <Section
+          title="Insignias de estado"
+          description="StatusBadge: siempre ícono + texto, el color nunca va solo. 5 tonos + semáforo del score."
+        >
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tonos</Label>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_TONES.map(({ tone, label }) => (
+                  <StatusBadge key={tone} tone={tone} label={label} />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tamaños e ícono propio</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge tone="warning" label="Vence en 5 días" icon={Clock} size="sm" />
+                <StatusBadge tone="success" label="Legajo completo" size="lg" />
+                <StatusBadge tone="danger" label="3 críticas" size="pill" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Semáforo del score (scoreTone + scoreLabel)</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                {[42, 59, 60, 79, 80, 94].map((score) => (
+                  <span key={score} className="inline-flex items-center gap-2 text-sm">
+                    <span className="font-mono font-semibold text-[color:var(--text-primary)]">
+                      {score}
+                    </span>
+                    <StatusBadge tone={scoreTone(score)} label={scoreLabel(score)} size="sm" />
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* ── FIELDS ─────────────────────────────────────────────────── */}
+        <Section
+          title="Campos de formulario"
+          description="Field conecta etiqueta, ayuda y error (aria-describedby + aria-invalid). Input, Select y Textarea comparten altura, borde y foco."
+        >
+          <div className="grid gap-6 md:grid-cols-2">
+            <Field
+              label="DNI del trabajador"
+              hint="8 dígitos, sin puntos ni espacios."
+              error={dniError}
+              required
+            >
+              <Input
+                inputMode="numeric"
+                autoComplete="off"
+                value={dni}
+                onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
+              />
+            </Field>
+
+            <Field
+              label="Régimen laboral"
+              hint="Define CTS, gratificaciones y vacaciones."
+              error={regimen ? undefined : 'Elige un régimen para continuar.'}
+              required
+            >
+              <Select value={regimen} onValueChange={setRegimen}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Elige un régimen…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GENERAL">General (D. Leg. 728)</SelectItem>
+                  <SelectItem value="MYPE_MICRO">MYPE — Microempresa</SelectItem>
+                  <SelectItem value="MYPE_PEQUENA">MYPE — Pequeña empresa</SelectItem>
+                  <SelectItem value="AGRARIO">Agrario (Ley 31110)</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field label="Buscar trabajador" hint="Con ícono decorativo a la izquierda.">
+              <Input icon={<Search />} placeholder="Nombre o DNI…" />
+            </Field>
+
+            <Field label="Correo de alertas" hint="Campo deshabilitado.">
+              <Input type="email" value="rrhh@empresa.pe" disabled readOnly />
+            </Field>
+
+            <Field
+              label="Observaciones"
+              hint="Opcional. Máximo 300 caracteres."
+              className="md:col-span-2"
+            >
+              <Textarea rows={3} maxLength={300} placeholder="Escribe aquí…" />
+            </Field>
           </div>
         </Section>
 
@@ -541,12 +671,59 @@ export default function DevUiShowcase() {
               <Button variant="ghost">Hover para tooltip</Button>
             </Tooltip>
 
-            {/* Toast triggers */}
+            {/* Confirmación imperativa */}
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                const ok = await confirm({
+                  title: '¿Eliminar este documento?',
+                  description: 'Se quitará del legajo del trabajador. Esta acción no se puede deshacer.',
+                  confirmLabel: 'Eliminar',
+                  tone: 'danger',
+                })
+                if (ok) toast.success('Documento eliminado')
+              }}
+            >
+              Confirmar (danger)
+            </Button>
+          </div>
+        </Section>
+
+        {/* ── TOASTS ─────────────────────────────────────────────────── */}
+        <Section
+          title="Avisos"
+          description="Un solo sistema: useToast() (heredado) y toast de sonner pintan en el mismo AppToaster."
+        >
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                legacyToast({
+                  title: 'Cálculo guardado',
+                  description: 'Puedes verlo en tu historial.',
+                  type: 'success',
+                })
+              }
+            >
+              useToast · éxito
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                legacyToast({
+                  title: 'Contrato por vencer',
+                  description: 'Vence en 7 días. Renuévalo o prepara la carta de no renovación.',
+                  type: 'warning',
+                })
+              }
+            >
+              useToast · advertencia
+            </Button>
             <Button
               variant="emerald-soft"
               onClick={() => toast.success('Documento subido al legajo')}
             >
-              Toast success
+              sonner · éxito
             </Button>
             <Button
               variant="danger"
@@ -556,7 +733,17 @@ export default function DevUiShowcase() {
                 })
               }
             >
-              Toast error
+              sonner · error
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                toast.info('Nueva norma publicada', {
+                  description: 'Revisa el impacto en tus contratos.',
+                })
+              }
+            >
+              sonner · info
             </Button>
           </div>
         </Section>
@@ -596,15 +783,15 @@ export default function DevUiShowcase() {
           </div>
         </Section>
 
-        <Section title="Demos navegables" description="Explorá los ensamblajes de la revolución antes de conectar datos reales.">
+        <Section title="Demos navegables" description="Explora los ensamblajes de la revolución antes de conectar datos reales.">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
-              { href: '/dev/shell', title: 'Shell completo', description: 'Sidebar 7 hubs + Topbar + Cmd+K + Copilot' },
-              { href: '/dev/cockpit', title: 'Cockpit narrativo', description: 'ScoreRing + Momentos + Radar + Heatmap' },
-              { href: '/dev/worker', title: 'Worker super-perfil', description: '8 tabs Notion-style' },
+              { href: '/dev/shell', title: 'Shell del dashboard', description: 'Menú lateral + barra superior + Ctrl+K + asistente' },
+              { href: '/dev/cockpit', title: 'Panel principal', description: 'Resumen + KPIs + prioridades con datos de ejemplo' },
+              { href: '/dev/worker', title: 'Perfil del trabajador', description: 'Cabecera + pestañas del legajo' },
               { href: '/dev/diagnostic-intro', title: 'Diagnóstico Typeform', description: '120 preguntas · 1 por pantalla' },
-              { href: '/dev/simulacro-intro', title: 'Simulacro immersive', description: 'Inspector virtual chat' },
-              { href: '/dashboard/ia-laboral', title: 'Hub IA Laboral', description: 'Unifica 3 chatbots + calculadoras' },
+              { href: '/dev/simulacro-intro', title: 'Simulacro inmersivo', description: 'Inspector virtual tipo chat' },
+              { href: '/dev', title: 'Índice de vistas previas', description: 'Todas las vistas previas de diseño' },
             ].map((d) => (
               <a
                 key={d.href}

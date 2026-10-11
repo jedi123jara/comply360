@@ -244,7 +244,7 @@ function CaseRow({ case: c, fmt }: { case: DossierCase; fmt: Intl.NumberFormat }
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span
-              className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${SEVERITY_BADGE[c.severity]}`}
+              className={`rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${SEVERITY_BADGE[c.severity]}`}
             >
               {c.severity}
             </span>

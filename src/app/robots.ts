@@ -1,42 +1,33 @@
 import type { MetadataRoute } from 'next'
-
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://comply360.pe'
+import { SITE_URL } from '@/lib/sitio/site'
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
-        allow: [
-          '/',
-          '/calculadoras',
-          '/calculadoras/*',
-          '/diagnostico-gratis',
-          '/planes',
-          '/contadores',
-          '/recursos',
-          '/recursos/*',
-          '/legal',
-          '/terminos',
-          '/privacidad',
-          '/sign-in',
-          '/sign-up',
-        ],
+        allow: ['/'],
         disallow: [
           '/dashboard',
-          '/dashboard/*',
           '/mi-portal',
-          '/mi-portal/*',
           '/admin',
-          '/admin/*',
-          '/api/*',
-          '/denuncias/*', // URLs por-empresa privadas
+          '/api/',
+          '/denuncias/', // URLs por empresa, privadas
           '/firmar',
           '/portal-empleado',
+          '/kiosko',
+          '/verify',
+          '/audit',
+          '/onboarding',
+          '/post-login',
+          '/elegir-acceso',
+          '/sign-in',
+          '/sign-up',
+          '/dev',
         ],
       },
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-    host: BASE_URL,
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   }
 }

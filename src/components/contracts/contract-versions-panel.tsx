@@ -30,6 +30,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { useToast } from '@/components/ui/toast'
 
 interface VersionSummary {
@@ -261,7 +262,7 @@ export function ContractVersionsPanel({ contractId }: Props) {
           return (
             <li key={v.id} className="ml-6">
               <span className="absolute -left-2 flex items-center justify-center w-4 h-4 bg-primary rounded-full ring-4 ring-white">
-                <span className="text-[9px] font-bold text-white">{v.versionNumber}</span>
+                <span className="text-[11px] font-bold text-white">{v.versionNumber}</span>
               </span>
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <button
@@ -369,7 +370,7 @@ export function ContractVersionsPanel({ contractId }: Props) {
                   <h4 className="font-semibold text-slate-900 mb-1">Contenido HTML</h4>
                   <div
                     className="prose prose-sm max-w-none border border-slate-200 rounded-lg p-3 bg-slate-50"
-                    dangerouslySetInnerHTML={{ __html: detail.contentHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(detail.contentHtml) }}
                   />
                 </div>
               )}

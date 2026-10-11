@@ -127,7 +127,7 @@ export function CalendarioWorkerClient() {
         <div>
           <h1
             className="text-2xl sm:text-3xl font-bold text-slate-900"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             Mi <em className="text-emerald-700">calendario</em>
           </h1>

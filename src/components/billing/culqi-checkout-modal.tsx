@@ -319,8 +319,8 @@ export function CulqiCheckoutModal({
           <h2
             id="culqi-checkout-title"
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 400,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800,
               fontSize: 26,
               letterSpacing: '-0.02em',
               lineHeight: 1.1,
@@ -361,7 +361,7 @@ export function CulqiCheckoutModal({
               </span>
               <span
                 style={{
-                  fontFamily: 'var(--font-serif)',
+                  fontFamily: 'var(--font-display)',
                   fontSize: 26,
                   color: 'var(--emerald-700)',
                   fontVariantNumeric: 'tabular-nums',

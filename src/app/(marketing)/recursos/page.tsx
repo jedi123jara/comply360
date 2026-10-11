@@ -1,135 +1,88 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Shield, BookOpen, Clock } from 'lucide-react'
+import { ArrowRight, Clock } from 'lucide-react'
+import { PublicHero } from '@/components/marketing/public-hero'
+import { pub } from '@/components/marketing/public-theme'
+import { Breadcrumbs } from '@/components/sitio/breadcrumbs'
+import { CtaBand } from '@/components/sitio/cta-band'
+import { JsonLd } from '@/components/sitio/json-ld'
+import { cn } from '@/lib/utils'
 import { ARTICLES } from '@/lib/blog/articles'
+import { construirMetadata } from '@/lib/sitio/seo'
+import { SITE_URL } from '@/lib/sitio/site'
 
-export const metadata: Metadata = {
-  title: 'Recursos · Guías de compliance laboral peruano · COMPLY360',
-  description:
-    'Guías prácticas sobre CTS, gratificaciones, multas SUNAFIL, régimen MYPE, contratos laborales y más. Contenido escrito por especialistas, actualizado 2026.',
+export const metadata: Metadata = construirMetadata({
+  titulo: 'Guías de cumplimiento laboral y SST',
+  descripcion:
+    'Guías prácticas sobre capacitaciones obligatorias, comité de SST, hostigamiento sexual, cuadro de categorías, multas SUNAFIL, CTS y régimen MYPE, actualizadas a 2026.',
+  ruta: '/recursos',
+  keywords: ['guías laborales Perú', 'obligaciones SST', 'hostigamiento sexual empleador', 'multas SUNAFIL 2026', 'blog laboral'],
+})
+
+function fecha(iso: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export default function RecursosPage() {
-  const sortedArticles = [...ARTICLES].sort(
-    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
-  )
+  const articulos = [...ARTICLES].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Header */}
-      <div
-        className="border-b border-gray-100"
-        style={{
-          background: 'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)',
+    <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'Blog',
+          name: 'Recursos de Comply360',
+          url: `${SITE_URL}/recursos`,
+          inLanguage: 'es-PE',
+          blogPost: articulos.map((a) => ({
+            '@type': 'BlogPosting',
+            headline: a.title,
+            url: `${SITE_URL}/recursos/${a.slug}`,
+            datePublished: a.publishedAt,
+            dateModified: a.updatedAt,
+          })),
         }}
-      >
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14 lg:py-20">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 group mb-6"
-          >
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
-              style={{
-                background: 'linear-gradient(165deg, #1d4ed8 0%, #1e40af 55%, #1e3a8a 100%)',
-              }}
-            >
-              <Shield className="h-4.5 w-4.5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-gray-900">
-              Comply<span className="text-emerald-700">360</span>
-            </span>
-          </Link>
+      />
+      <PublicHero
+        align="left"
+        eyebrow="Recursos"
+        title={
+          <>
+            Guías claras para <span className={pub.highlightOnNavy}>cumplir sin adivinar</span>
+          </>
+        }
+        description="Lo que exige la ley en SST, hostigamiento sexual y lo laboral, explicado con la norma en la mano y sin jerga."
+        media={<Breadcrumbs items={[{ nombre: 'Recursos', ruta: '/recursos' }]} className="mb-0" />}
+      />
 
-          <div className="inline-flex items-center gap-2 mb-4">
-            <BookOpen className="h-4 w-4 text-emerald-700" />
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-700">
-              Recursos · Guías prácticas
-            </span>
+      <section aria-label="Artículos">
+        <div className={cn(pub.container, pub.section)}>
+          <div className="grid gap-5 md:grid-cols-2">
+            {articulos.map((a) => (
+              <Link key={a.slug} href={`/recursos/${a.slug}`} className={cn(pub.card, pub.cardHover, 'flex flex-col p-6')}>
+                <p className={pub.kicker}>{a.category}</p>
+                <h2 className="mt-2 text-xl font-extrabold leading-snug tracking-[-0.01em] text-[#0B1B36]">{a.title}</h2>
+                <p className={cn(pub.body, 'mt-2 flex-1')}>{a.metaDescription}</p>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <span className={cn(pub.faint, 'inline-flex items-center gap-1.5')}>
+                    <Clock aria-hidden className="h-3.5 w-3.5" />
+                    {a.readMinutes} min · {fecha(a.updatedAt)}
+                  </span>
+                  <span className={cn(pub.linkMore, 'text-sm')}>
+                    Leer <ArrowRight aria-hidden className="h-4 w-4" />
+                  </span>
+                </div>
+              </Link>
+            ))}
           </div>
-
-          <h1
-            className="text-4xl lg:text-6xl text-gray-900 mb-4"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.05 }}
-          >
-            Todo lo que necesitas saber sobre{' '}
-            <em className="italic text-emerald-700">compliance laboral peruano</em>.
-          </h1>
-          <p className="text-lg text-gray-600 leading-relaxed max-w-2xl">
-            Guías escritas por especialistas en Derecho Laboral peruano. Actualizadas
-            a 2026 con las últimas normas. Sin jerga innecesaria, con ejemplos reales.
-          </p>
         </div>
-      </div>
+      </section>
 
-      {/* Articles grid */}
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid gap-6 md:grid-cols-2">
-          {sortedArticles.map((article) => (
-            <Link
-              key={article.slug}
-              href={`/recursos/${article.slug}`}
-              className="group rounded-2xl border border-gray-200 bg-white p-6 hover:border-emerald-300 hover:shadow-md transition-all"
-            >
-              <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-700 mb-3">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                {article.category}
-              </div>
-              <h2
-                className="text-xl text-gray-900 mb-2 group-hover:text-emerald-800 transition-colors"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, lineHeight: 1.2 }}
-              >
-                {article.title}
-              </h2>
-              <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed mb-4">
-                {article.metaDescription}
-              </p>
-              <div className="flex items-center gap-3 text-xs text-gray-400">
-                <span className="inline-flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {article.readMinutes} min
-                </span>
-                <span>·</span>
-                <span>{new Date(article.publishedAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* CTA bottom */}
-        <div
-          className="mt-16 rounded-2xl p-8 text-center text-white relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #172554 0%, #1e40af 50%, #2563eb 100%)',
-          }}
-        >
-          <h3
-            className="text-3xl mb-3"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em' }}
-          >
-            ¿Quieres pasar de leer a hacer?
-          </h3>
-          <p className="text-emerald-100 mb-5 max-w-xl mx-auto">
-            Prueba el diagnóstico SUNAFIL gratis y sabé en 10 minutos cuánto podrías
-            pagar en multas si te visitan mañana.
-          </p>
-          <Link
-            href="/diagnostico-gratis"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-emerald-700 font-semibold hover:bg-emerald-50 transition-all"
-          >
-            Hacer diagnóstico gratis
-          </Link>
-        </div>
-      </div>
-
-      <footer className="py-10 bg-white border-t border-gray-100 text-center text-xs text-gray-500">
-        <p>
-          © {new Date().getFullYear()} COMPLY360 ·{' '}
-          <Link href="/" className="hover:underline">Home</Link> ·{' '}
-          <Link href="/terminos" className="hover:underline">Términos</Link> ·{' '}
-          <Link href="/privacidad" className="hover:underline">Privacidad</Link>
-        </p>
-      </footer>
-    </main>
+      <CtaBand
+        titulo="¿Pasamos de leer a hacer?"
+        texto="Haz el diagnóstico gratis y descubre qué le falta a tu empresa y cuánto arriesga en multas."
+      />
+    </>
   )
 }

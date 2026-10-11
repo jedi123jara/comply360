@@ -9,9 +9,75 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Clock,
   ArrowRight,
 } from 'lucide-react'
 import type { LegajoDoc } from './tab-legajo'
+
+/**
+ * Estado SST con palabra + ícono; el color solo refuerza (WCAG 1.4.1).
+ * Tintas de los tokens semánticos: ≥ 4,5:1 sobre blanco y sobre su fondo.
+ */
+type SstTone = 'ok' | 'warn' | 'danger' | 'neutral'
+
+const SST_TONE: Record<
+  SstTone,
+  { icon: React.ComponentType<{ className?: string }>; ink: string; bg: string; border: string }
+> = {
+  ok: {
+    icon: CheckCircle2,
+    ink: 'var(--color-success-text)',
+    bg: 'var(--color-success-bg)',
+    border: 'var(--color-success-border)',
+  },
+  warn: {
+    icon: AlertTriangle,
+    ink: 'var(--color-warning-text)',
+    bg: 'var(--color-warning-bg)',
+    border: 'var(--color-warning-border)',
+  },
+  danger: {
+    icon: XCircle,
+    ink: 'var(--color-danger-text)',
+    bg: 'var(--color-danger-bg)',
+    border: 'var(--color-danger-border)',
+  },
+  neutral: {
+    icon: Clock,
+    ink: 'var(--text-secondary)',
+    bg: 'var(--bg-inset)',
+    border: 'var(--border-default)',
+  },
+}
+
+function docTone(status: string): SstTone {
+  if (status === 'VERIFIED' || status === 'UPLOADED') return 'ok'
+  if (status === 'EXPIRED' || status === 'MISSING') return 'danger'
+  if (status === 'PENDING') return 'warn'
+  return 'neutral'
+}
+
+function SstStatePill({
+  tone,
+  label,
+  icon,
+}: {
+  tone: SstTone
+  label: string
+  icon?: React.ComponentType<{ className?: string }>
+}) {
+  const t = SST_TONE[tone]
+  const Icon = icon ?? t.icon
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+      style={{ color: t.ink, background: t.bg, borderColor: t.border }}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </span>
+  )
+}
 
 /**
  * TabSST — documentos SST del trabajador (exámenes médicos, capacitaciones, EPP).
@@ -58,6 +124,14 @@ const GROUPS: ClassifiedGroup[] = [
   },
 ]
 
+const STATUS_LABELS: Record<string, string> = {
+  VERIFIED: 'Verificado',
+  UPLOADED: 'Subido',
+  PENDING: 'Por revisar',
+  EXPIRED: 'Vencido',
+  MISSING: 'Falta',
+}
+
 export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
   const sstDocs = legajoDocs.filter((d) => d.category === 'SST')
 
@@ -75,17 +149,17 @@ export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
           </div>
           <h2
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 26,
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
               lineHeight: 1.2,
             }}
-            dangerouslySetInnerHTML={{
-              __html: `Seguridad y salud de <em style="color: var(--emerald-700); font-style: italic">${workerFirstName}</em>.`,
-            }}
-          />
+          >
+            {/* Texto escapado por React: el nombre viene de datos del usuario. */}
+            Seguridad y salud de <span style={{ color: 'var(--brand-primary-text, #2563eb)' }}>{workerFirstName}</span>.
+          </h2>
           <p className="text-sm text-[color:var(--text-secondary)] mt-1 max-w-2xl">
             Exámenes médicos, capacitaciones obligatorias y entrega de EPP — todo consolidado
             desde los documentos del legajo.
@@ -111,13 +185,8 @@ export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
           const missing = matching.length === 0
 
           const GroupIcon = group.icon
-          const statusIcon = missing ? (
-            <XCircle className="h-4 w-4 text-red-600" />
-          ) : expired > 0 ? (
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          )
+          const groupTone: SstTone = missing ? 'danger' : expired > 0 ? 'warn' : 'ok'
+          const groupLabel = missing ? 'Falta' : expired > 0 ? 'Con vencidos' : 'Vigente'
 
           return (
             <div
@@ -138,20 +207,18 @@ export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
                     {group.description}
                   </p>
                 </div>
-                <div className="flex-shrink-0">{statusIcon}</div>
+                <div className="flex-shrink-0">
+                  <SstStatePill tone={groupTone} label={groupLabel} />
+                </div>
               </div>
 
               <div className="mt-3 pt-3 border-t border-[color:var(--border-subtle)]">
                 <div className="flex items-baseline gap-2">
                   <span
                     style={{
-                      fontFamily: 'var(--font-serif)',
+                      fontFamily: 'var(--font-display)',
                       fontSize: 28,
-                      color: missing
-                        ? 'var(--crimson-700, #b91c1c)'
-                        : expired > 0
-                          ? 'var(--amber-700, #b45309)'
-                          : 'var(--emerald-700)',
+                      color: SST_TONE[groupTone].ink,
                       lineHeight: 1,
                     }}
                   >
@@ -196,19 +263,11 @@ export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
                     </p>
                   ) : null}
                 </div>
-                <span
-                  className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{
-                    color:
-                      doc.status === 'VERIFIED' || doc.status === 'UPLOADED'
-                        ? 'var(--emerald-700)'
-                        : doc.status === 'EXPIRED'
-                          ? 'var(--crimson-700, #b91c1c)'
-                          : 'var(--text-tertiary)',
-                  }}
-                >
-                  {doc.status}
-                </span>
+                <SstStatePill
+                  tone={docTone(doc.status)}
+                  icon={doc.status === 'PENDING' ? Clock : undefined}
+                  label={STATUS_LABELS[doc.status] ?? doc.status}
+                />
               </li>
             ))}
           </ul>
@@ -229,24 +288,22 @@ export function TabSST({ workerId, workerFirstName, legajoDocs }: TabSstProps) {
   )
 }
 
+/**
+ * Indicador a la izquierda de cada documento: un ícono distinto por estado
+ * (no solo un punto de color). Es decorativo porque la pastilla de la derecha
+ * ya dice el estado con palabras.
+ */
 function StatusDot({ status }: { status: string }) {
-  const color =
-    status === 'VERIFIED' || status === 'UPLOADED'
-      ? 'var(--emerald-500)'
-      : status === 'EXPIRED'
-        ? 'var(--crimson-500, #ef4444)'
-        : 'var(--amber-500)'
+  const t = SST_TONE[docTone(status)]
+  // "Por revisar" no es una alerta: reloj en vez de triángulo.
+  const Icon = status === 'PENDING' ? Clock : t.icon
   return (
     <span
       aria-hidden="true"
-      style={{
-        width: 8,
-        height: 8,
-        borderRadius: 9999,
-        background: color,
-        boxShadow: `0 0 0 3px color-mix(in srgb, ${color} 14%, transparent)`,
-        flexShrink: 0,
-      }}
-    />
+      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
+      style={{ color: t.ink, background: t.bg }}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </span>
   )
 }

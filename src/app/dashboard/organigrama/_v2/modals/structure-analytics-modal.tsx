@@ -139,7 +139,7 @@ export function StructureAnalyticsModal() {
                     className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-xs"
                   >
                     <span
-                      className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${SEVERITY_TONE[risk.severity]}`}
+                      className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${SEVERITY_TONE[risk.severity]}`}
                     >
                       {SEVERITY_LABEL[risk.severity]}
                     </span>
@@ -216,7 +216,7 @@ function SpanRow({ record }: { record: SpanControlRecord }) {
   return (
     <li className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs">
       <span
-        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${SEVERITY_TONE[record.severity]}`}
+        className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${SEVERITY_TONE[record.severity]}`}
       >
         {SEVERITY_LABEL[record.severity]}
       </span>
@@ -255,7 +255,7 @@ function UnitRow({ unit }: { unit: UnitStructureScore }) {
         </p>
       </div>
       {unit.flags.length > 0 && (
-        <span className="flex-shrink-0 rounded bg-white/80 px-1.5 py-0.5 text-[9px] font-medium text-slate-700">
+        <span className="flex-shrink-0 rounded bg-white/80 px-1.5 py-0.5 text-[11px] font-medium text-slate-700">
           {unit.flags[0]}
         </span>
       )}

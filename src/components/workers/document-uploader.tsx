@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { LEGAJO_DOCS, type LegajoDocDefinition } from './legajo-docs'
 
 // =============================================
 // Types
@@ -38,13 +39,6 @@ interface WorkerDocument {
 type DocStatus = 'PENDING' | 'UPLOADED' | 'VERIFIED' | 'EXPIRED' | 'MISSING'
 type DocCategory = 'INGRESO' | 'VIGENTE' | 'SST' | 'PREVISIONAL' | 'CESE'
 
-interface LegajoDocDefinition {
-  category: DocCategory
-  type: string
-  title: string
-  required: boolean
-}
-
 interface DocumentUploaderProps {
   workerId: string
   documents: WorkerDocument[]
@@ -57,8 +51,8 @@ interface DocumentUploaderProps {
 // =============================================
 
 const CATEGORY_LABELS: Record<DocCategory, string> = {
-  INGRESO: 'Documentos de Ingreso',
-  VIGENTE: 'Documentos Vigentes',
+  INGRESO: 'Documentos de ingreso',
+  VIGENTE: 'Documentos vigentes',
   SST: 'Seguridad y Salud en el Trabajo',
   PREVISIONAL: 'Previsional',
   CESE: 'Cese',
@@ -74,36 +68,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
   MISSING: { label: 'Faltante', variant: 'danger' },
 }
 
-const LEGAJO_DOCS: LegajoDocDefinition[] = [
-  { category: 'INGRESO', type: 'contrato_trabajo', title: 'Contrato de Trabajo', required: true },
-  { category: 'INGRESO', type: 'cv', title: 'Curriculum Vitae', required: true },
-  { category: 'INGRESO', type: 'dni_copia', title: 'Copia de DNI', required: true },
-  { category: 'INGRESO', type: 'antecedentes_penales', title: 'Antecedentes Penales', required: false },
-  { category: 'INGRESO', type: 'antecedentes_policiales', title: 'Antecedentes Policiales', required: false },
-  { category: 'INGRESO', type: 'certificados_trabajo', title: 'Certificados de Trabajo Anteriores', required: false },
-  { category: 'INGRESO', type: 'declaracion_jurada', title: 'Declaracion Jurada de Domicilio', required: true },
-  { category: 'VIGENTE', type: 'boleta_pago', title: 'Ultima Boleta de Pago', required: true },
-  { category: 'VIGENTE', type: 't_registro', title: 'Constancia T-REGISTRO', required: true },
-  { category: 'VIGENTE', type: 'vacaciones_goce', title: 'Registro de Vacaciones', required: true },
-  { category: 'VIGENTE', type: 'capacitacion_registro', title: 'Registro de Capacitaciones', required: true },
-  { category: 'VIGENTE', type: 'evaluacion_desempeno', title: 'Evaluacion de Desempeno', required: false },
-  { category: 'VIGENTE', type: 'addendum', title: 'Addendum de Contrato', required: false },
-  { category: 'SST', type: 'examen_medico_ingreso', title: 'Examen Medico Ocupacional (Ingreso)', required: true },
-  { category: 'SST', type: 'examen_medico_periodico', title: 'Examen Medico Periodico', required: true },
-  { category: 'SST', type: 'induccion_sst', title: 'Constancia Induccion SST', required: true },
-  { category: 'SST', type: 'entrega_epp', title: 'Registro Entrega de EPP', required: true },
-  { category: 'SST', type: 'iperc_puesto', title: 'IPERC del Puesto', required: true },
-  { category: 'SST', type: 'capacitacion_sst', title: 'Capacitaciones SST (4/anio)', required: true },
-  { category: 'SST', type: 'reglamento_interno', title: 'Cargo Reglamento Interno (SST)', required: true },
-  { category: 'PREVISIONAL', type: 'afp_onp_afiliacion', title: 'Constancia AFP/ONP', required: true },
-  { category: 'PREVISIONAL', type: 'sctr_poliza', title: 'Poliza SCTR', required: false },
-  { category: 'PREVISIONAL', type: 'essalud_registro', title: 'Registro EsSalud', required: true },
-  { category: 'PREVISIONAL', type: 'cts_deposito', title: 'Constancia Deposito CTS', required: true },
-  { category: 'CESE', type: 'carta_renuncia', title: 'Carta de Renuncia', required: false },
-  { category: 'CESE', type: 'carta_despido', title: 'Carta de Despido', required: false },
-  { category: 'CESE', type: 'liquidacion_beneficios', title: 'Liquidacion de Beneficios', required: false },
-  { category: 'CESE', type: 'certificado_trabajo', title: 'Certificado de Trabajo', required: false },
-]
+// LEGAJO_DOCS vive en ./legajo-docs (fuente única compartida con el perfil).
 
 // =============================================
 // Upload Modal
@@ -170,7 +135,7 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
     const isRequired = isCustomUpload ? false : docDef.required
 
     if (!title.trim() || !documentType.trim()) {
-      setError('Complete todos los campos requeridos')
+      setError('Completa todos los campos obligatorios')
       return
     }
 
@@ -234,11 +199,11 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white">
-              {isCustomUpload ? 'Subir Documento' : 'Subir Documento'}
+              Subir documento
             </h3>
             <p className="text-sm text-gray-500 mt-0.5">
               {isCustomUpload
-                ? 'Suba un documento adicional al legajo'
+                ? 'Sube un documento adicional al legajo'
                 : docDef.title}
             </p>
           </div>
@@ -255,20 +220,20 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
           <div className="space-y-3 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-300 mb-1">
-                Titulo del documento *
+                Título del documento *
               </label>
               <input
                 type="text"
                 value={customTitle}
                 onChange={e => setCustomTitle(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="Ej: Constancia de capacitacion"
+                placeholder="Ej.: Constancia de capacitación"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1">
-                  Categoria *
+                  Categoría *
                 </label>
                 <select
                   value={customCategory}
@@ -284,14 +249,14 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1">
-                  Tipo documento *
+                  Tipo de documento *
                 </label>
                 <input
                   type="text"
                   value={customDocType}
                   onChange={e => setCustomDocType(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  placeholder="Ej: constancia_extra"
+                  placeholder="Ej.: constancia_extra"
                 />
               </div>
             </div>
@@ -357,10 +322,10 @@ function UploadModal({ workerId, docDef, onClose, onUploaded }: UploadModalProps
             <>
               <FileUp className="w-10 h-10 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-600 font-medium">
-                Arrastre un archivo aqui o haga clic para seleccionar
+                Arrastra un archivo aquí o haz clic para seleccionar
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                PDF, JPEG, PNG o DOCX. Maximo 10MB.
+                PDF, JPEG, PNG o DOCX. Máximo 10 MB.
               </p>
             </>
           )}
@@ -652,7 +617,7 @@ export function DocumentUploader({ workerId, documents: initialDocuments, onDocu
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm font-medium text-gray-300">
-              Completitud del Legajo
+              Avance del legajo
             </span>
             <span className={cn(
               'text-sm font-bold',
@@ -735,7 +700,7 @@ export function DocumentUploader({ workerId, documents: initialDocuments, onDocu
       {extraDocuments.length > 0 && (
         <div className="mb-6">
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Documentos Adicionales
+            Documentos adicionales
           </h4>
           <div className="space-y-1">
             {extraDocuments.map(doc => (

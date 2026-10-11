@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  FolderOpen,
+  UserPlus,
   User,
   Briefcase,
   Shield,
@@ -21,17 +24,20 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { validateWorkerLegality } from '@/lib/legal-engine/validators/worker'
+import { PERU_LABOR } from '@/lib/legal-engine/peru-labor'
+import { formatSolesMarketing } from '@/lib/format/peruvian'
+import { Term } from '@/components/ui/term'
 
 const REGIMENES = [
   { value: 'GENERAL', label: 'General (D.Leg. 728)' },
   { value: 'MYPE_MICRO', label: 'MYPE Microempresa' },
-  { value: 'MYPE_PEQUENA', label: 'MYPE Pequena Empresa' },
+  { value: 'MYPE_PEQUENA', label: 'MYPE Pequeña Empresa' },
   { value: 'AGRARIO', label: 'Agrario (Ley 31110)' },
-  { value: 'CONSTRUCCION_CIVIL', label: 'Construccion Civil' },
+  { value: 'CONSTRUCCION_CIVIL', label: 'Construcción Civil' },
   { value: 'MINERO', label: 'Minero' },
   { value: 'PESQUERO', label: 'Pesquero' },
-  { value: 'TEXTIL_EXPORTACION', label: 'Textil Exportacion' },
-  { value: 'DOMESTICO', label: 'Domestico' },
+  { value: 'TEXTIL_EXPORTACION', label: 'Textil Exportación' },
+  { value: 'DOMESTICO', label: 'Doméstico' },
   { value: 'CAS', label: 'CAS' },
   { value: 'MODALIDAD_FORMATIVA', label: 'Modalidad Formativa' },
   { value: 'TELETRABAJO', label: 'Teletrabajo' },
@@ -43,12 +49,12 @@ const TIPOS_CONTRATO = [
   { value: 'TIEMPO_PARCIAL', label: 'Tiempo Parcial' },
   { value: 'INICIO_ACTIVIDAD', label: 'Inicio de Actividad' },
   { value: 'NECESIDAD_MERCADO', label: 'Necesidad de Mercado' },
-  { value: 'RECONVERSION', label: 'Reconversion Empresarial' },
+  { value: 'RECONVERSION', label: 'Reconversión Empresarial' },
   { value: 'SUPLENCIA', label: 'Suplencia' },
   { value: 'EMERGENCIA', label: 'Emergencia' },
   { value: 'OBRA_DETERMINADA', label: 'Obra Determinada' },
   { value: 'INTERMITENTE', label: 'Intermitente' },
-  { value: 'EXPORTACION', label: 'Exportacion No Tradicional' },
+  { value: 'EXPORTACION', label: 'Exportación No Tradicional' },
 ]
 
 const AFPS = [
@@ -125,13 +131,48 @@ const INITIAL: FormData = {
 
 type Section = 'personal' | 'laboral' | 'previsional'
 
+// Campos de cada pestaña del formulario. Incluye los nombres que usa el
+// validador legal (`regimen`) para poder marcar la pestaña con errores.
+const SECTION_FIELDS: Record<Section, string[]> = {
+  personal: ['dni', 'firstName', 'lastName', 'birthDate', 'gender', 'email', 'phone', 'address'],
+  laboral: [
+    'position', 'department', 'sedeId', 'regimenLaboral', 'regimen', 'tipoContrato', 'fechaIngreso',
+    'sueldoBruto', 'jornadaSemanal', 'tipoJornada', 'asignacionFamiliar', 'tiempoCompleto',
+    'discapacidad', 'discapacidadTipo',
+  ],
+  previsional: [
+    'tipoAporte', 'afpNombre', 'afpComisionTipo', 'cuspp', 'essaludVida', 'sctr', 'sctrRiesgoNivel',
+    'turnoNocturno',
+  ],
+}
+
+const ASIGNACION_FAMILIAR_MONTO = PERU_LABOR.RMV * PERU_LABOR.ASIGNACION_FAMILIAR_PORCENTAJE
+
+/**
+ * Ayuda corta visible bajo un campo (enlazada con aria-describedby). El
+ * "¿Qué es?" abre la tarjeta del glosario con el detalle: por qué importa,
+ * ejemplo, plazos y base legal.
+ */
+function FieldHelp({ id, termId, children }: { id: string; termId: string; children: React.ReactNode }) {
+  return (
+    <p id={id} className="mt-1 text-[11px] leading-snug text-[color:var(--text-tertiary)]">
+      <Term id={termId} className="font-semibold text-[color:var(--text-secondary)]">
+        ¿Qué es?
+      </Term>{' '}
+      {children}
+    </p>
+  )
+}
+
 export default function NuevoTrabajadorPage() {
-  const router = useRouter()
   const [form, setForm] = useState<FormData>(INITIAL)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [submitting, setSubmitting] = useState(false)
   const [apiError, setApiError] = useState('')
   const [section, setSection] = useState<Section>('personal')
+  // Trabajador recién creado: mostramos los próximos pasos en lugar de saltar
+  // al perfil sin decir nada.
+  const [created, setCreated] = useState<{ id: string; firstName: string; contractSaved: boolean } | null>(null)
 
   // Sedes activas para asignar al trabajador (Fase 3). Degrada a [] si la org no
   // tiene el módulo SST (403) o falla; el selector solo aparece si hay sedes.
@@ -231,9 +272,7 @@ export default function NuevoTrabajadorPage() {
               : prev.birthDate,
           gender:
             prev.gender.trim() === '' && data.sexo
-              ? data.sexo === 'M'
-                ? 'MASCULINO'
-                : 'FEMENINO'
+              ? data.sexo
               : prev.gender,
         }))
       } else {
@@ -302,12 +341,12 @@ export default function NuevoTrabajadorPage() {
   const validate = (): boolean => {
     const e: Partial<Record<keyof FormData, string>> = {}
     if (!form.dni.trim()) e.dni = 'Requerido'
-    else if (!/^\d{8}$/.test(form.dni.trim())) e.dni = 'DNI debe tener 8 digitos'
+    else if (!/^\d{8}$/.test(form.dni.trim())) e.dni = 'DNI debe tener 8 dígitos'
     if (!form.firstName.trim()) e.firstName = 'Requerido'
     if (!form.lastName.trim()) e.lastName = 'Requerido'
     if (!form.fechaIngreso) e.fechaIngreso = 'Requerido'
     if (!form.sueldoBruto.trim()) e.sueldoBruto = 'Requerido'
-    else if (isNaN(Number(form.sueldoBruto)) || Number(form.sueldoBruto) <= 0) e.sueldoBruto = 'Monto invalido'
+    else if (isNaN(Number(form.sueldoBruto)) || Number(form.sueldoBruto) <= 0) e.sueldoBruto = 'Monto inválido'
     setErrors(e)
 
     // Navigate to the section with the first error
@@ -437,36 +476,140 @@ export default function NuevoTrabajadorPage() {
 
       const { data } = await res.json()
 
-      // Guardar el contrato en el legajo si se extrajo de un archivo
+      // Guardar el contrato en el legajo si se extrajo de un archivo. Se guarda
+      // con el tipo canónico `contrato_trabajo` para que cuente en el legajo.
+      let contractSaved = false
       if (extractFile) {
         try {
           const fd = new FormData()
           fd.append('file', extractFile)
-          fd.append('category', 'VIGENTE')
-          fd.append('documentType', 'CONTRATO')
-          fd.append('title', extractFile.name)
-          await fetch(`/api/workers/${data.id}/documents`, {
+          fd.append('category', 'INGRESO')
+          fd.append('documentType', 'contrato_trabajo')
+          fd.append('title', 'Contrato de trabajo')
+          fd.append('isRequired', 'true')
+          const uploadRes = await fetch(`/api/workers/${data.id}/documents`, {
             method: 'POST',
             body: fd,
           })
+          contractSaved = uploadRes.ok
         } catch (e) {
           console.error('Error al subir el contrato al legajo:', e)
         }
       }
 
-      router.push(`/dashboard/trabajadores/${data.id}`)
+      setCreated({ id: data.id, firstName: data.firstName ?? form.firstName, contractSaved })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
-      setApiError('Error de conexion. Intenta de nuevo.')
+      setApiError('Error de conexión. Intenta de nuevo.')
     } finally {
       setSubmitting(false)
     }
   }
 
   const SECTIONS: { key: Section; label: string; icon: typeof User }[] = [
-    { key: 'personal', label: 'Datos Personales', icon: User },
-    { key: 'laboral', label: 'Datos Laborales', icon: Briefcase },
-    { key: 'previsional', label: 'Datos Previsionales', icon: Shield },
+    { key: 'personal', label: 'Datos personales', icon: User },
+    { key: 'laboral', label: 'Datos laborales', icon: Briefcase },
+    { key: 'previsional', label: 'Datos previsionales', icon: Shield },
   ]
+
+  // Cuántos campos por corregir hay en cada pestaña (validación del formulario
+  // + validación legal en vivo), para marcarla con un contador.
+  const sectionErrorCount = (key: Section): number => {
+    const fields = SECTION_FIELDS[key]
+    const formErrors = Object.entries(errors).filter(([field, msg]) => msg && fields.includes(field)).length
+    const legalErrors = legality.errors.filter((err) => fields.includes(err.field)).length
+    return formErrors + legalErrors
+  }
+
+  const resetForAnother = () => {
+    setForm(INITIAL)
+    setErrors({})
+    setApiError('')
+    setSection('personal')
+    setExtractFile(null)
+    setExtractResult(null)
+    setDniLookupStatus('idle')
+    setDniLookupMessage('')
+    setCreated(null)
+  }
+
+  if (created) {
+    const legajoHref = `/dashboard/trabajadores/${created.id}?tab=legajo`
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm sm:p-8" role="status" aria-live="polite">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-[color:var(--text-primary)]">
+                Listo, {created.firstName} ya está registrado
+              </h1>
+              <p className="mt-1 text-sm text-[color:var(--text-secondary)]">
+                Ya calculamos sus beneficios y activamos sus alertas. Para que su legajo quede en regla ante SUNAFIL, falta un paso.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-[color:var(--border-default)] bg-[color:var(--neutral-50)] p-4">
+            <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+              {created.contractSaved ? 'Ahora sube su DNI y el resto de su legajo' : 'Ahora sube su contrato y DNI'}
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm text-[color:var(--text-secondary)]">
+              <li className="flex items-start gap-2">
+                {created.contractSaved ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                ) : (
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />
+                )}
+                <span>
+                  <strong>Contrato de trabajo</strong>
+                  {created.contractSaved
+                    ? ': ya lo guardamos en su legajo con el archivo que cargaste.'
+                    : ': prueba la relación laboral (cargo, sueldo y jornada).'}
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />
+                <span>
+                  <strong>Copia del DNI</strong>: identifica al trabajador ante la planilla electrónica.
+                </span>
+              </li>
+            </ul>
+            <p className="mt-3 text-xs text-[color:var(--text-tertiary)]">
+              En el legajo verás la lista completa de documentos obligatorios, por qué los pide la ley y la multa si faltan.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+            <Link
+              href={legajoHref}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+            >
+              <FolderOpen className="h-4 w-4" aria-hidden="true" />
+              Ir a su legajo
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href={`/dashboard/trabajadores/${created.id}`}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[color:var(--border-default)] bg-white px-5 py-2.5 text-sm font-medium text-[color:var(--text-primary)] transition-colors hover:border-emerald-500/60"
+            >
+              Ver su perfil
+            </Link>
+          </div>
+          <button
+            type="button"
+            onClick={resetForAnother}
+            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
+          >
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Registrar otro trabajador
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const inputClass = (field: keyof FormData) => cn(
     'w-full px-3 py-2.5 border rounded-lg text-sm text-white bg-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary',
@@ -482,7 +625,7 @@ export default function NuevoTrabajadorPage() {
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Nuevo Trabajador</h1>
+            <h1 className="text-2xl font-bold text-white">Nuevo trabajador</h1>
             <p className="text-gray-500 mt-0.5 text-sm">Registra los datos del trabajador para gestionar su compliance.</p>
           </div>
         </div>
@@ -512,11 +655,13 @@ export default function NuevoTrabajadorPage() {
       <div className="flex gap-1 bg-[color:var(--neutral-100)] p-1 rounded-xl">
         {SECTIONS.map(s => {
           const Icon = s.icon
+          const errorCount = sectionErrorCount(s.key)
           return (
             <button
               key={s.key}
               type="button"
               onClick={() => setSection(s.key)}
+              aria-current={section === s.key ? 'step' : undefined}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all',
                 section === s.key
@@ -526,6 +671,19 @@ export default function NuevoTrabajadorPage() {
             >
               <Icon className="w-4 h-4" />
               {s.label}
+              {errorCount > 0 && (
+                <>
+                  <span
+                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                    aria-hidden="true"
+                  >
+                    {errorCount}
+                  </span>
+                  <span className="sr-only">
+                    , {errorCount} {errorCount === 1 ? 'campo por corregir' : 'campos por corregir'}
+                  </span>
+                </>
+              )}
             </button>
           )
         })}
@@ -543,7 +701,7 @@ export default function NuevoTrabajadorPage() {
       <div className="bg-white rounded-2xl border border-white/[0.08] shadow-sm p-6">
         {section === 'personal' && (
           <div className="space-y-5">
-            <h3 className="text-sm font-semibold text-white border-b border-white/[0.06] pb-2">Datos Personales</h3>
+            <h3 className="text-sm font-semibold text-white border-b border-white/[0.06] pb-2">Datos personales</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">DNI *</label>
@@ -584,7 +742,7 @@ export default function NuevoTrabajadorPage() {
                 )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Genero</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Género</label>
                 <select value={form.gender} onChange={e => update('gender', e.target.value)} className={inputClass('gender')}>
                   <option value="">Seleccionar</option>
                   <option value="M">Masculino</option>
@@ -610,11 +768,11 @@ export default function NuevoTrabajadorPage() {
                 <input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="trabajador@empresa.com" className={inputClass('email')} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Telefono</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Teléfono</label>
                 <input type="text" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="987654321" className={inputClass('phone')} />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Direccion</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Dirección</label>
                 <input type="text" value={form.address} onChange={e => update('address', e.target.value)} placeholder="Av. Principal 123, Lima" className={inputClass('address')} />
               </div>
             </div>
@@ -623,14 +781,14 @@ export default function NuevoTrabajadorPage() {
 
         {section === 'laboral' && (
           <div className="space-y-5">
-            <h3 className="text-sm font-semibold text-white border-b border-white/[0.06] pb-2">Datos Laborales</h3>
+            <h3 className="text-sm font-semibold text-white border-b border-white/[0.06] pb-2">Datos laborales</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Cargo</label>
                 <input type="text" value={form.position} onChange={e => update('position', e.target.value)} placeholder="Analista de RRHH" className={inputClass('position')} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Area / Departamento</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Área / Departamento</label>
                 <input type="text" value={form.department} onChange={e => update('department', e.target.value)} placeholder="Recursos Humanos" className={inputClass('department')} />
               </div>
               {sedes.length > 0 && (
@@ -643,7 +801,7 @@ export default function NuevoTrabajadorPage() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Regimen Laboral *</label>
+                <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Régimen Laboral *</label>
                 <select value={form.regimenLaboral} onChange={e => update('regimenLaboral', e.target.value)} className={inputClass('regimenLaboral')}>
                   {REGIMENES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
@@ -690,25 +848,34 @@ export default function NuevoTrabajadorPage() {
                   <option value="MIXTO">Mixto (35% sobretasa parcial)</option>
                 </select>
               </div>
-              <div className="flex items-center gap-6 pt-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.asignacionFamiliar}
-                    onChange={e => update('asignacionFamiliar', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
-                  />
-                  <span className="text-sm text-[color:var(--text-secondary)]">Asignación Familiar</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.tiempoCompleto}
-                    onChange={e => update('tiempoCompleto', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
-                  />
-                  <span className="text-sm text-[color:var(--text-secondary)]">Tiempo Completo</span>
-                </label>
+              <div className="sm:col-span-2 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.asignacionFamiliar}
+                      onChange={e => update('asignacionFamiliar', e.target.checked)}
+                      aria-describedby="help-asignacion-familiar"
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                    />
+                    <span className="text-sm text-[color:var(--text-secondary)]">Asignación familiar</span>
+                  </label>
+                  <FieldHelp id="help-asignacion-familiar" termId="asignacion-familiar">
+                    Pago mensual de {formatSolesMarketing(ASIGNACION_FAMILIAR_MONTO)} (10 % de la remuneración mínima)
+                    para quien tiene hijos menores de 18 años, o hasta 24 si siguen estudios superiores. Márcalo si le corresponde.
+                  </FieldHelp>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.tiempoCompleto}
+                      onChange={e => update('tiempoCompleto', e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                    />
+                    <span className="text-sm text-[color:var(--text-secondary)]">Tiempo completo</span>
+                  </label>
+                </div>
               </div>
               {/* Discapacidad — Ley 29973, cuota 3% reportable a SUNAFIL */}
               <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-[color:var(--neutral-50)] p-4">
@@ -752,7 +919,7 @@ export default function NuevoTrabajadorPage() {
 
         {section === 'previsional' && (
           <div className="space-y-5">
-            <h3 className="text-sm font-semibold text-white border-b border-white/[0.06] pb-2">Datos Previsionales</h3>
+            <h3 className="text-sm font-semibold text-white border-b border-white/[0.06] pb-2">Datos previsionales</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">Sistema de Aporte</label>
@@ -772,8 +939,21 @@ export default function NuevoTrabajadorPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">CUSPP</label>
-                    <input type="text" value={form.cuspp} onChange={e => update('cuspp', e.target.value)} placeholder="123456ABCDE12" className={inputClass('cuspp')} />
+                    <label htmlFor="cuspp" className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">CUSPP</label>
+                    <input
+                      id="cuspp"
+                      type="text"
+                      value={form.cuspp}
+                      onChange={e => update('cuspp', e.target.value.toUpperCase())}
+                      placeholder="Ej.: 123456ABCDE1"
+                      maxLength={12}
+                      aria-describedby="help-cuspp"
+                      className={inputClass('cuspp')}
+                    />
+                    <FieldHelp id="help-cuspp" termId="cuspp">
+                      Código único de 12 caracteres que identifica al trabajador en su AFP. Está en su constancia de
+                      afiliación o en la web de la AFP. Si no lo tienes ahora, puedes completarlo después.
+                    </FieldHelp>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[color:var(--text-secondary)] mb-1">
@@ -791,34 +971,50 @@ export default function NuevoTrabajadorPage() {
                   </div>
                 </>
               )}
-              <div className="sm:col-span-2 flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.essaludVida}
-                    onChange={e => update('essaludVida', e.target.checked)}
-                    className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
-                  />
-                  <span className="text-sm text-[color:var(--text-secondary)]">EsSalud +Vida</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.sctr}
-                    onChange={e => update('sctr', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
-                  />
-                  <span className="text-sm text-[color:var(--text-secondary)]">SCTR (riesgo)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.turnoNocturno}
-                    onChange={e => update('turnoNocturno', e.target.checked)}
-                    className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
-                  />
-                  <span className="text-sm text-[color:var(--text-secondary)]">Turno nocturno (10pm–6am)</span>
-                </label>
+              <div className="sm:col-span-2 grid gap-4 pt-2 sm:grid-cols-3">
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.essaludVida}
+                      onChange={e => update('essaludVida', e.target.checked)}
+                      aria-describedby="help-essalud-vida"
+                      className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
+                    />
+                    <span className="text-sm text-[color:var(--text-secondary)]">EsSalud +Vida</span>
+                  </label>
+                  <FieldHelp id="help-essalud-vida" termId="essalud-vida">
+                    Seguro voluntario de EsSalud contra accidentes personales. No es obligatorio: márcalo solo si el
+                    trabajador está afiliado.
+                  </FieldHelp>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.sctr}
+                      onChange={e => update('sctr', e.target.checked)}
+                      aria-describedby="help-sctr"
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                    />
+                    <span className="text-sm text-[color:var(--text-secondary)]">SCTR (trabajo de riesgo)</span>
+                  </label>
+                  <FieldHelp id="help-sctr" termId="sctr">
+                    Seguro Complementario de Trabajo de Riesgo. Es obligatorio si su puesto es de riesgo (construcción,
+                    minería, manufactura, etc.) y cubre salud y pensión ante accidentes de trabajo.
+                  </FieldHelp>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.turnoNocturno}
+                      onChange={e => update('turnoNocturno', e.target.checked)}
+                      className="w-4 h-4 rounded border-white/10 text-primary focus:ring-primary/20"
+                    />
+                    <span className="text-sm text-[color:var(--text-secondary)]">Turno nocturno (10 p. m. a 6 a. m.)</span>
+                  </label>
+                </div>
               </div>
               {form.sctr && (
                 <div className="sm:col-span-2">
@@ -939,7 +1135,7 @@ export default function NuevoTrabajadorPage() {
           ) : (
             <>
               <Save className="w-4 h-4" />
-              Guardar Trabajador
+              Guardar trabajador
             </>
           )}
         </button>

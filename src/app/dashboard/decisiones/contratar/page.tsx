@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AsistenteHeader } from '../_components/asistente-header'
 import { calcularCostoEmpleador, type CostoEmpleadorResult } from '@/lib/legal-engine/calculators/costo-empleador'
 import { formatSoles } from '@/lib/format/peruvian'
 
@@ -400,31 +401,12 @@ export default function ContratarWizardPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      {/* Header */}
-      <div>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1 text-xs text-[color:var(--text-tertiary)] hover:text-emerald-700 mb-2"
-        >
-          <ArrowLeft className="h-3 w-3" /> Volver al Panel
-        </Link>
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-4 w-4 text-emerald-700" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-            Decisiones Laborales · Wizard
-          </span>
-        </div>
-        <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Contratar trabajador</h1>
-        <p className="text-sm text-[color:var(--text-tertiary)] mt-1">
-          Flujo guiado para incorporar un trabajador con cálculo de costo total, régimen recomendado
-          y asignación de capacitaciones obligatorias en un solo proceso.
-        </p>
-      </div>
+      <AsistenteHeader asistenteKey="contratar" />
 
       {restoredDraft && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start justify-between gap-3">
           <p className="text-xs text-amber-800">
-            Retomando un wizard anterior guardado en este navegador. Tus datos se cargaron en el paso{' '}
+            Retomamos lo que dejaste a medias en este navegador. Tus datos se cargaron en el paso{' '}
             <strong>{step}</strong>.
           </p>
           <button
@@ -955,7 +937,7 @@ function Step4Capacitaciones({
                     {score > 0 && (
                       <span
                         className={cn(
-                          'rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                          'rounded-full px-1.5 py-0.5 text-[11px] font-bold uppercase',
                           score >= 2
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-amber-100 text-amber-700',

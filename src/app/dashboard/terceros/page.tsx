@@ -21,8 +21,11 @@ import {
   Filter,
   TrendingUp,
   FileCheck,
+  FileWarning,
+  FileX,
   CircleAlert,
-  Eye,
+  AlertOctagon,
+  CheckCircle2,
 } from 'lucide-react'
 
 // =============================================
@@ -243,16 +246,38 @@ function calcularComplianceScore(tercero: Tercero): number {
   return Math.max(0, Math.min(100, Math.round(docScore + flagScore - expiredPenalty)))
 }
 
+/**
+ * Estados con palabra + ícono; el color solo refuerza (WCAG 1.4.1).
+ * Tokens semánticos del tema: tinta ≥ 4,5:1 sobre su propio fondo
+ * (text-red-400 / text-amber-400 sobre blanco quedaban en 2,8:1 o menos).
+ */
+const STATE_TONE = {
+  ok: 'border border-[color:var(--color-success-border)] bg-[color:var(--color-success-bg)] text-[color:var(--color-success-text)]',
+  warn: 'border border-[color:var(--color-warning-border)] bg-[color:var(--color-warning-bg)] text-[color:var(--color-warning-text)]',
+  danger:
+    'border border-[color:var(--color-danger-border)] bg-[color:var(--color-danger-bg)] text-[color:var(--color-danger-text)]',
+} as const
+
+const INK = {
+  ok: 'text-[color:var(--color-success-text)]',
+  warn: 'text-[color:var(--color-warning-text)]',
+  danger: 'text-[color:var(--color-danger-text)]',
+} as const
+
 function getScoreColor(score: number) {
-  if (score >= 80) return { text: 'text-emerald-600', bg: 'bg-emerald-500', ring: 'ring-emerald-200 ring-emerald-800' }
-  if (score >= 60) return { text: 'text-amber-400', bg: 'bg-amber-500', ring: 'ring-amber-200 ring-amber-800' }
-  return { text: 'text-red-400', bg: 'bg-red-500', ring: 'ring-red-200 ring-red-800' }
+  if (score >= 80) return { text: 'text-emerald-700', bg: 'bg-emerald-500', ring: 'ring-emerald-200 ring-emerald-800' }
+  if (score >= 60) return { text: INK.warn, bg: 'bg-amber-500', ring: 'ring-amber-200 ring-amber-800' }
+  return { text: INK.danger, bg: 'bg-red-500', ring: 'ring-red-200 ring-red-800' }
 }
 
-function getRiskLevel(score: number): { label: string; color: string } {
-  if (score >= 80) return { label: 'Bajo', color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600' }
-  if (score >= 60) return { label: 'Medio', color: 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400' }
-  return { label: 'Alto', color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400' }
+function getRiskLevel(score: number): {
+  label: string
+  color: string
+  icon: React.ComponentType<{ className?: string }>
+} {
+  if (score >= 80) return { label: 'Bajo', color: STATE_TONE.ok, icon: CheckCircle2 }
+  if (score >= 60) return { label: 'Medio', color: STATE_TONE.warn, icon: AlertTriangle }
+  return { label: 'Alto', color: STATE_TONE.danger, icon: AlertOctagon }
 }
 
 function diasParaVencimiento(fecha: string | null): number | null {
@@ -428,24 +453,24 @@ export default function TercerosPage() {
 
       {/* Critical Alerts Banner */}
       {(data.stats.flaggedMainActivity > 0 || alertasVencimiento.some((a) => (a.diasVencimiento ?? 0) < 0)) && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-800 bg-red-900/20 p-4">
-          <ShieldAlert className="h-6 w-6 text-red-400 shrink-0 mt-0.5" />
+        <div role="alert" className={`flex items-start gap-3 rounded-lg p-4 ${STATE_TONE.danger}`}>
+          <ShieldAlert className="h-6 w-6 shrink-0 mt-0.5" />
           <div>
             {data.stats.flaggedMainActivity > 0 && (
-              <p className="font-semibold text-red-300">
-                ALERTA CRITICA: {data.stats.flaggedMainActivity} tercero(s) realizando actividad
+              <p className="font-semibold">
+                ALERTA CRÍTICA: {data.stats.flaggedMainActivity} tercero(s) realizando actividad
                 principal de la empresa
               </p>
             )}
             {alertasVencimiento.some((a) => (a.diasVencimiento ?? 0) < 0) && (
-              <p className="font-semibold text-red-300 mt-1">
+              <p className="font-semibold mt-1">
                 {alertasVencimiento.filter((a) => (a.diasVencimiento ?? 0) < 0).length} contrato(s)
-                vencido(s) requieren accion inmediata
+                vencido(s) requieren acción inmediata
               </p>
             )}
-            <p className="text-sm text-red-400 mt-1">
-              Segun Art. 2 Ley 29245 y Art. 1 D.Leg. 1038, la desnaturalizacion del contrato genera
-              responsabilidad solidaria. Revise y corrija estas situaciones inmediatamente.
+            <p className="text-sm mt-1">
+              Según Art. 2 Ley 29245 y Art. 1 D.Leg. 1038, la desnaturalización del contrato genera
+              responsabilidad solidaria. Revisa y corrige estas situaciones de inmediato.
             </p>
           </div>
         </div>
@@ -609,6 +634,7 @@ export default function TercerosPage() {
               {filteredTerceros.map((tercero) => {
                 const isExpanded = expandedTercero === tercero.id
                 const risk = getRiskLevel(tercero.complianceScore)
+                const RiskIcon = risk.icon
                 const scoreColor = getScoreColor(tercero.complianceScore)
                 const detectedFlags = tercero.redFlags.filter((f) => f.detected)
 
@@ -623,11 +649,14 @@ export default function TercerosPage() {
                   >
                     {/* Card Header */}
                     <div
-                      className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50 transition-colors rounded-xl"
+                      className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 cursor-pointer hover:bg-[color:var(--neutral-50)] hover:bg-[color:var(--neutral-100)]/50 transition-colors rounded-xl"
                       onClick={() => setExpandedTercero(isExpanded ? null : tercero.id)}
                     >
                       {/* Compliance Score Circle */}
-                      <div className="shrink-0">
+                      <div
+                        className="shrink-0"
+                        title={`Compliance ${tercero.complianceScore}/100 · Riesgo ${risk.label.toLowerCase()}`}
+                      >
                         <div
                           className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ${scoreColor.ring}`}
                           style={{
@@ -643,13 +672,14 @@ export default function TercerosPage() {
                           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
                             <span className={`text-sm font-bold ${scoreColor.text}`}>
                               {tercero.complianceScore}
+                              <span className="sr-only"> de 100 de compliance</span>
                             </span>
                           </div>
                         </div>
                       </div>
 
                       {/* Main Info */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-[12rem]">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-white truncate">
                             {tercero.razonSocial}
@@ -663,7 +693,10 @@ export default function TercerosPage() {
                               {TIPO_SERVICIO_CONFIG[tercero.tipoServicio]?.label || tercero.tipoServicio}
                             </span>
                           )}
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${risk.color}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${risk.color}`}
+                          >
+                            <RiskIcon className="h-3 w-3" />
                             Riesgo {risk.label}
                           </span>
                         </div>
@@ -676,24 +709,28 @@ export default function TercerosPage() {
                         </div>
                       </div>
 
-                      {/* Right Side Indicators */}
-                      <div className="flex items-center gap-3 shrink-0">
+                      {/* Right Side Indicators (con texto: en celular bajan a otra línea) */}
+                      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                         {/* Doc Status Badge */}
-                        <DocStatusBadge status={tercero.docs.status} />
+                        <DocStatusBadge status={tercero.docs.status} compact />
 
                         {/* Red Flags Count */}
                         {detectedFlags.length > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-red-900/30 px-2 py-1 text-xs font-bold text-red-400">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold ${STATE_TONE.danger}`}
+                          >
                             <AlertTriangle className="h-3.5 w-3.5" />
-                            {detectedFlags.length}
+                            {detectedFlags.length} red flag{detectedFlags.length === 1 ? '' : 's'}
                           </span>
                         )}
 
                         {/* Contract Status */}
                         {tercero.isContractExpired && (
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-amber-900/30 px-2 py-1 text-xs font-bold text-amber-400">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold ${STATE_TONE.warn}`}
+                          >
                             <Clock className="h-3.5 w-3.5" />
-                            Vencido
+                            Contrato vencido
                           </span>
                         )}
 
@@ -741,17 +778,15 @@ export default function TercerosPage() {
                                   >
                                     <span className="mt-0.5 shrink-0">
                                       {isCompleted ? (
-                                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                                        <CheckCircle className={`h-4 w-4 ${INK.ok}`} />
                                       ) : (
-                                        <X className="h-4 w-4 text-red-500" />
+                                        <FileX className={`h-4 w-4 ${INK.danger}`} />
                                       )}
                                     </span>
-                                    <div>
+                                    <div className="min-w-0 flex-1">
                                       <p
                                         className={`font-medium ${
-                                          isCompleted
-                                            ? 'text-emerald-600'
-                                            : 'text-red-400'
+                                          isCompleted ? INK.ok : INK.danger
                                         }`}
                                       >
                                         {doc.label}
@@ -760,6 +795,13 @@ export default function TercerosPage() {
                                         {doc.descripcion}
                                       </p>
                                     </div>
+                                    <span
+                                      className={`shrink-0 text-[10px] font-bold uppercase tracking-wide ${
+                                        isCompleted ? INK.ok : INK.danger
+                                      }`}
+                                    >
+                                      {isCompleted ? 'Presentado' : 'Falta'}
+                                    </span>
                                   </div>
                                 )
                               })}
@@ -769,7 +811,7 @@ export default function TercerosPage() {
                               <span className="text-xs font-medium text-gray-400">
                                 Estado:
                               </span>
-                              <DocStatusBadge status={tercero.docs.status} showLabel />
+                              <DocStatusBadge status={tercero.docs.status} />
                               <span className="text-xs text-slate-500">
                                 ({tercero.docs.porcentaje}%)
                               </span>
@@ -798,29 +840,35 @@ export default function TercerosPage() {
                                   >
                                     <div className="flex items-start gap-2">
                                       {detected ? (
-                                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                                        <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${INK.danger}`} />
                                       ) : isManual ? (
-                                        <CircleAlert className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                                        <CircleAlert className={`h-4 w-4 shrink-0 mt-0.5 ${INK.warn}`} />
                                       ) : (
-                                        <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                                        <CheckCircle className={`h-4 w-4 shrink-0 mt-0.5 ${INK.ok}`} />
                                       )}
                                       <div>
                                         <p
-                                          className={`font-medium ${
+                                          className={`text-[10px] font-bold uppercase tracking-wide ${
+                                            detected ? INK.danger : isManual ? INK.warn : INK.ok
+                                          }`}
+                                        >
+                                          {detected
+                                            ? 'Detectado'
+                                            : isManual
+                                              ? 'Requiere verificación manual'
+                                              : 'No detectado'}
+                                        </p>
+                                        <p
+                                          className={`font-medium mt-0.5 ${
                                             detected
-                                              ? 'text-red-400'
+                                              ? INK.danger
                                               : isManual
-                                                ? 'text-amber-400'
-                                                : 'text-slate-300'
+                                                ? INK.warn
+                                                : 'text-[color:var(--text-primary)]'
                                           }`}
                                         >
                                           {flag.label}
                                         </p>
-                                        {isManual && (
-                                          <p className="text-amber-500 font-semibold mt-0.5">
-                                            Requiere verificación manual
-                                          </p>
-                                        )}
                                         <p className="text-slate-500 mt-1">
                                           {flag.descripcion}
                                         </p>
@@ -844,7 +892,7 @@ export default function TercerosPage() {
                                 Compliance Score
                               </h4>
                               <div className="relative inline-flex items-center justify-center">
-                                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+                                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
                                   <circle
                                     cx="50"
                                     cy="50"
@@ -876,6 +924,14 @@ export default function TercerosPage() {
                                   {tercero.complianceScore}%
                                 </span>
                               </div>
+                              <div className="mt-2 flex justify-center">
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${risk.color}`}
+                                >
+                                  <RiskIcon className="h-3 w-3" />
+                                  Riesgo {risk.label.toLowerCase()}
+                                </span>
+                              </div>
                               <p className="text-xs text-gray-400 mt-2">
                                 60% documentación + 40% sin red flags
                               </p>
@@ -899,7 +955,7 @@ export default function TercerosPage() {
                                   <span
                                     className={`font-medium ${
                                       tercero.isContractExpired
-                                        ? 'text-red-400'
+                                        ? INK.danger
                                         : 'text-white'
                                     }`}
                                   >
@@ -915,13 +971,17 @@ export default function TercerosPage() {
                                       Vence en:
                                     </span>
                                     <span
-                                      className={`font-medium ${
+                                      className={`inline-flex items-center gap-1 font-medium ${
                                         tercero.diasVencimiento <= 30
-                                          ? 'text-amber-400'
+                                          ? INK.warn
                                           : 'text-white'
                                       }`}
                                     >
-                                      {tercero.diasVencimiento} dias
+                                      {tercero.diasVencimiento <= 30 ? (
+                                        <Clock className="h-3 w-3" />
+                                      ) : null}
+                                      {tercero.diasVencimiento} días
+                                      {tercero.diasVencimiento <= 30 ? ' · Por vencer' : ''}
                                     </span>
                                   </div>
                                 )}
@@ -993,9 +1053,9 @@ export default function TercerosPage() {
                         }`}
                       >
                         {isExpired ? (
-                          <X className="h-5 w-5 text-red-400" />
+                          <X className={`h-5 w-5 ${INK.danger}`} />
                         ) : (
-                          <Clock className="h-5 w-5 text-amber-400" />
+                          <Clock className={`h-5 w-5 ${INK.warn}`} />
                         )}
                       </div>
                       <div>
@@ -1012,15 +1072,20 @@ export default function TercerosPage() {
                     </div>
                     <div className="text-right">
                       <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                          isExpired
-                            ? 'bg-red-100 text-red-700 bg-red-900/30 text-red-400'
-                            : dias <= 7
-                              ? 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400'
-                              : 'bg-yellow-100 text-yellow-700 bg-yellow-900/30 text-yellow-400'
+                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
+                          isExpired ? STATE_TONE.danger : STATE_TONE.warn
                         }`}
                       >
-                        {isExpired ? `Vencido hace ${Math.abs(dias)} dias` : `Vence en ${dias} dias`}
+                        {isExpired ? (
+                          <AlertOctagon className="h-3.5 w-3.5" />
+                        ) : dias <= 7 ? (
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                        ) : (
+                          <Clock className="h-3.5 w-3.5" />
+                        )}
+                        {isExpired
+                          ? `Vencido hace ${Math.abs(dias)} días`
+                          : `Vence en ${dias} días`}
                       </span>
                     </div>
                   </div>
@@ -1177,8 +1242,8 @@ function KPICard({
         className={`mt-2 text-2xl font-bold ${
           highlight
             ? highlightColor === 'red'
-              ? 'text-red-400'
-              : 'text-amber-400'
+              ? INK.danger
+              : INK.warn
             : 'text-white'
         }`}
       >
@@ -1191,36 +1256,46 @@ function KPICard({
   )
 }
 
+/**
+ * Estado de la documentación del tercero: ícono distinto + palabra siempre
+ * visibles (antes, en la cabecera de la tarjeta, solo había un ícono de color).
+ * `compact` antepone "Docs" para que se entienda fuera del panel de documentos.
+ */
 function DocStatusBadge({
   status,
-  showLabel,
+  compact,
 }: {
   status: 'completo' | 'parcial' | 'sin_documentos'
-  showLabel?: boolean
+  compact?: boolean
 }) {
   const config = {
     completo: {
-      icon: <CheckCircle className="h-3.5 w-3.5" />,
+      icon: <FileCheck className="h-3.5 w-3.5" />,
       label: 'Completo',
-      color: 'bg-emerald-100 text-emerald-700 bg-emerald-900/30 text-emerald-600',
+      compactLabel: 'Docs completos',
+      color: STATE_TONE.ok,
     },
     parcial: {
-      icon: <Eye className="h-3.5 w-3.5" />,
+      icon: <FileWarning className="h-3.5 w-3.5" />,
       label: 'Parcial',
-      color: 'bg-amber-100 text-amber-700 bg-amber-900/30 text-amber-400',
+      compactLabel: 'Docs parciales',
+      color: STATE_TONE.warn,
     },
     sin_documentos: {
-      icon: <X className="h-3.5 w-3.5" />,
+      icon: <FileX className="h-3.5 w-3.5" />,
       label: 'Sin documentos',
-      color: 'bg-red-100 text-red-700 bg-red-900/30 text-red-400',
+      compactLabel: 'Sin documentos',
+      color: STATE_TONE.danger,
     },
   }
 
   const c = config[status]
   return (
-    <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium ${c.color}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium ${c.color}`}
+    >
       {c.icon}
-      {showLabel && c.label}
+      {compact ? c.compactLabel : c.label}
     </span>
   )
 }

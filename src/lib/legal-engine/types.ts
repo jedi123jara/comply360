@@ -83,6 +83,8 @@ export interface CTSInput {
   fechaCorte: string  // May 15 or Nov 15
   asignacionFamiliar: boolean
   ultimaGratificacion: number
+  /** Régimen laboral. MYPE_MICRO no tiene CTS; MYPE_PEQUENA 50%. Default GENERAL. */
+  regimenLaboral?: string
 }
 
 export interface CTSResult {
@@ -104,6 +106,8 @@ export interface GratificacionInput {
   periodo: 'julio' | 'diciembre'
   mesesTrabajados: number
   asignacionFamiliar: boolean
+  /** Régimen laboral. MYPE_MICRO no tiene gratificación; MYPE_PEQUENA 50%. Default GENERAL. */
+  regimenLaboral?: string
 }
 
 export interface GratificacionResult {
@@ -124,6 +128,11 @@ export interface IndemnizacionInput {
   fechaDespido: string
   tipoContrato: 'indefinido' | 'plazo_fijo'
   fechaFinContrato?: string  // For plazo_fijo
+  /**
+   * Régimen laboral. En MYPE_MICRO/MYPE_PEQUENA (indefinido) la indemnización se
+   * calcula en jornales (Ley 32353), no 1.5 sueldos/año. Default GENERAL.
+   */
+  regimenLaboral?: string
 }
 
 export interface IndemnizacionResult {

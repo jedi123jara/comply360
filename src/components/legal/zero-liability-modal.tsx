@@ -87,7 +87,7 @@ export function ZeroLiabilityModal() {
               </p>
               <h2
                 className="mt-0.5 text-2xl leading-tight text-[color:var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 ¿Quién responde por el contenido de tus contratos?
               </h2>

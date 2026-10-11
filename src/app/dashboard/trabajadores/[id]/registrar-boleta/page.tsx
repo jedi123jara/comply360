@@ -70,7 +70,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
       <div className="max-w-lg mx-auto py-16 text-center space-y-4">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-2" />
         <h2 className="text-xl font-bold text-white mb-1">Boleta registrada</h2>
-        <p className="text-gray-400">Periodo: {periodoLabel}</p>
+        <p className="text-gray-400">Período: {periodoLabel}</p>
         {advertencias.length > 0 && (
           <div className="text-left bg-amber-900/20 border border-amber-800/40 rounded-xl p-4 space-y-2">
             <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
@@ -103,7 +103,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
         </Link>
         <div>
           <h1 className="text-xl font-bold text-white">Registrar Boleta de Pago</h1>
-          <p className="text-sm text-gray-400">El sueldo bruto y descuentos se calculan automaticamente</p>
+          <p className="text-sm text-gray-400">El sueldo bruto y descuentos se calculan automáticamente</p>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
 
       <form onSubmit={handleSubmit} className="space-y-5 bg-white rounded-2xl border border-white/[0.08] p-6">
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Periodo *</label>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Período *</label>
           <input
             type="month"
             value={periodo}
@@ -171,9 +171,9 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
         {showGratToggle && (
           <label className="flex items-center justify-between p-4 bg-amber-900/10 border border-amber-800/30 rounded-xl cursor-pointer">
             <div>
-              <span className="text-sm font-semibold text-amber-700">Incluir gratificacion</span>
+              <span className="text-sm font-semibold text-amber-700">Incluir gratificación</span>
               <p className="text-xs text-amber-400/70 mt-0.5">
-                {month <= 7 ? 'Gratificacion Fiestas Patrias (julio)' : 'Gratificacion Navidad (diciembre)'}
+                {month <= 7 ? 'Gratificación Fiestas Patrias (julio)' : 'Gratificación Navidad (diciembre)'}
               </p>
             </div>
             <input
@@ -198,7 +198,7 @@ export default function RegistrarBoletaPage({ params }: { params: Promise<{ id: 
       </form>
 
       <p className="text-xs text-gray-500 text-center">
-        El sistema usa el sueldo bruto, asignacion familiar, regimen y tipo de aporte del trabajador para calcular automaticamente ingresos, descuentos y neto a pagar.
+        El sistema usa el sueldo bruto, asignación familiar, régimen y tipo de aporte del trabajador para calcular automáticamente ingresos, descuentos y neto a pagar.
       </p>
     </div>
   )

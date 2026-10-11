@@ -4,6 +4,7 @@ import { calcularLiquidacion } from '@/lib/legal-engine/calculators/liquidacion'
 import type { LiquidacionInput } from '@/lib/legal-engine/types'
 import { getAuthContext } from '@/lib/auth'
 import { runWithOrgScope } from '@/lib/prisma-rls'
+import { publicLimiter } from '@/lib/rate-limit'
 
 // =============================================
 // POST /api/calculations - Run and save a calculation
@@ -12,6 +13,11 @@ import { runWithOrgScope } from '@/lib/prisma-rls'
 // =============================================
 export async function POST(request: NextRequest) {
   try {
+    // FIX auditoría (PDP-03): rate limit en el POST público. Antes cualquiera
+    // podía persistir cálculos anónimos sin límite ni autenticación.
+    const rl = await publicLimiter.check(request)
+    if (!rl.success) return rl.response!
+
     // Optional auth — public calculator still works without login
     const authCtx = await getAuthContext()
     const orgId = authCtx?.orgId ?? null

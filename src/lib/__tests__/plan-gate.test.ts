@@ -21,7 +21,9 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('@/lib/api-auth', () => ({
+vi.mock('@/lib/api-auth', async (importOriginal) => ({
+  // Conservamos hasMinRole real (lo usa el read-only gate) y sustituimos withAuth.
+  ...(await importOriginal<typeof import('@/lib/api-auth')>()),
   withAuth: (handler: (...args: unknown[]) => unknown) => handler,
 }))
 
@@ -241,8 +243,8 @@ describe('FEATURE_MIN_PLAN', () => {
     expect(FEATURE_MIN_PLAN.workers).toBe('STARTER')
   })
 
-  it('diagnostico -> EMPRESA', () => {
-    expect(FEATURE_MIN_PLAN.diagnostico).toBe('EMPRESA')
+  it('diagnostico -> PRO (plan más barato que lo incluye, derivado de la matriz)', () => {
+    expect(FEATURE_MIN_PLAN.diagnostico).toBe('PRO')
   })
 
   it('asistente_ia -> PRO', () => {

@@ -139,8 +139,8 @@ function StringList({
           placeholder={placeholder}
           className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
-        <Button type="button" variant="ghost" size="sm" onClick={add}>
-          <Plus className="w-4 h-4" />
+        <Button type="button" variant="ghost" size="sm" onClick={add} aria-label="Agregar a la lista">
+          <Plus className="w-4 h-4" aria-hidden="true" />
         </Button>
       </div>
       {values.length > 0 && (

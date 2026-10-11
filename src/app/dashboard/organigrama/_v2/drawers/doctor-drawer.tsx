@@ -210,7 +210,7 @@ export function DoctorDrawer({
                             <div className="flex items-start justify-between gap-2">
                               <h3 className="text-[13px] font-semibold text-slate-900">{f.title}</h3>
                               <span
-                                className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ring-1 ${sev.badge}`}
+                                className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ring-1 ${sev.badge}`}
                               >
                                 {sev.label}
                               </span>

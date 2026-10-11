@@ -5,7 +5,7 @@ import {
   ShieldAlert, Eye, Clock, CheckCircle2, XCircle, AlertTriangle,
   Loader2, ChevronDown, ChevronUp, Scale, MessageSquare,
   Timer, HeartPulse, ClipboardList, FileText, UploadCloud,
-  KeyRound, Send, Copy,
+  KeyRound, Send, Copy, Check, ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -302,6 +302,43 @@ export default function DenunciasPage() {
   const [publicNoteDrafts, setPublicNoteDrafts] = useState<Record<string, string>>({})
   const [closeExceptionDrafts, setCloseExceptionDrafts] = useState<Record<string, string>>({})
   const [trackingTokenResults, setTrackingTokenResults] = useState<Record<string, { token: string; url: string }>>({})
+  // URL pública real del canal: /denuncias/<id de la organización>, la misma que
+  // usa el portal del trabajador y la que valida POST /api/complaints?org=…
+  const [publicChannelUrl, setPublicChannelUrl] = useState<string | null>(null)
+  const [publicUrlState, setPublicUrlState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [publicUrlCopied, setPublicUrlCopied] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/me', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((me: { orgId?: string | null } | null) => {
+        if (cancelled) return
+        if (me?.orgId) {
+          setPublicChannelUrl(`${window.location.origin}/denuncias/${encodeURIComponent(me.orgId)}`)
+          setPublicUrlState('ready')
+        } else {
+          setPublicUrlState('error')
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPublicUrlState('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function copyPublicChannelUrl() {
+    if (!publicChannelUrl) return
+    try {
+      await navigator.clipboard.writeText(publicChannelUrl)
+      setPublicUrlCopied(true)
+      window.setTimeout(() => setPublicUrlCopied(false), 2000)
+    } catch {
+      window.prompt('Copia este enlace:', publicChannelUrl)
+    }
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -542,12 +579,42 @@ export default function DenunciasPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Canal de Denuncias y Reclamos Internos</h1>
           <p className="mt-1 text-[color:var(--text-tertiary)]">
-            Gestion por regimen: Hostigamiento Sexual, SST y Compliance Penal / MPD.
+            Gestión por régimen: hostigamiento sexual, SST y compliance penal (modelo de prevención de delitos).
           </p>
         </div>
-        <div className="rounded-lg border bg-amber-900/20 border-amber-800 px-3 py-2">
-          <p className="text-xs font-medium text-amber-400">URL publica para denuncias:</p>
-          <p className="text-xs text-amber-400 font-mono">/denuncias/org-demo</p>
+        <div className="max-w-sm rounded-lg border bg-amber-900/20 border-amber-800 px-3 py-2">
+          <p className="text-xs font-medium text-amber-400">Enlace público para que tus trabajadores denuncien:</p>
+          {publicUrlState === 'loading' && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-amber-400">
+              <Loader2 className="h-3 w-3 animate-spin" /> Cargando enlace…
+            </p>
+          )}
+          {publicUrlState === 'error' && (
+            <p className="mt-1 text-xs text-amber-400">No pudimos cargar el enlace. Recarga la página.</p>
+          )}
+          {publicUrlState === 'ready' && publicChannelUrl && (
+            <>
+              <p className="mt-1 break-all text-xs text-amber-400 font-mono">{publicChannelUrl}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={copyPublicChannelUrl}
+                  className="inline-flex items-center gap-1 rounded-md border border-amber-800 px-2 py-1 text-[11px] font-semibold text-amber-400 hover:bg-amber-900/30"
+                >
+                  {publicUrlCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {publicUrlCopied ? 'Copiado' : 'Copiar enlace'}
+                </button>
+                <a
+                  href={publicChannelUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-amber-800 px-2 py-1 text-[11px] font-semibold text-amber-400 hover:bg-amber-900/30"
+                >
+                  <ExternalLink className="h-3 w-3" /> Abrir
+                </a>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -926,7 +993,7 @@ export default function DenunciasPage() {
                                 <p className={cn('font-semibold', d.status === 'OVERDUE' ? 'text-red-400' : d.status === 'EXPIRING_SOON' ? 'text-amber-400' : 'text-[color:var(--text-secondary)]')}>
                                   {d.label}
                                   {d.kind && (
-                                    <span className="ml-2 rounded-full bg-black/10 px-1.5 py-0.5 text-[9px] uppercase text-[color:var(--text-tertiary)]">
+                                    <span className="ml-2 rounded-full bg-black/10 px-1.5 py-0.5 text-[11px] uppercase text-[color:var(--text-tertiary)]">
                                       {d.kind === 'EXTERNAL_REPORT' ? 'reporte externo' : d.kind === 'BEST_PRACTICE' ? 'buena practica' : d.kind === 'PRESCRIPTION' ? 'prescripcion' : 'legal'}
                                     </span>
                                   )}

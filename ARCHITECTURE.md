@@ -131,7 +131,7 @@ legaliapro-platform/
 │   ├── middleware/api-auth.ts # Wrapper Clerk + org isolation
 │   ├── providers/             # React Providers globales
 │   ├── proxy.ts               # Middleware Next (matches clerkMiddleware)
-│   └── styles/                # tokens.css + comply360-design.css (inline)
+│   └── styles/                # tokens.css, motion.css y dashboard-light.css
 ├── sentry.{client,edge,server}.config.ts
 ├── vercel.json                # Config Vercel (crons)
 ├── vitest.config.ts           # Config tests unitarios
@@ -145,7 +145,7 @@ legaliapro-platform/
 src/app/
 ├── page.tsx                   # Landing (/)
 ├── layout.tsx                 # Root layout + Clerk + fonts (Geist + Instrument Serif)
-├── globals.css                # Tailwind + tokens + comply360-design.css inline
+├── globals.css                # Tailwind + tokens + estilos c360-* (sección "God Mode")
 ├── (marketing)/               # Rutas públicas agrupadas (SEO)
 ├── sign-in/[[...sign-in]]/    # Clerk sign-in con branding emerald
 ├── sign-up/[[...sign-up]]/    # Clerk sign-up con branding emerald
@@ -836,8 +836,8 @@ convertir primera página a imagen con `pdfjs-dist`).
 
 ### Archivos
 - `src/styles/tokens.css` — CSS variables (emerald-*, crimson-*, amber-*, neutral-*, text-*, border-*, bg-*, --font-serif)
-- `src/styles/comply360-design.css` — signature CSS (671 LOC) con prefijo `c360-*`
-- `src/app/globals.css` — importa Tailwind + tokens + **inline** comply360-design.css (importante: no se puede @import desde otro CSS en Tailwind v4)
+- Estilos `c360-*` — viven en `src/app/globals.css` (sección "God Mode"); el antiguo `comply360-design.css` se retiró en 2026-10 porque nadie lo importaba
+- `src/app/globals.css` — importa Tailwind + `tokens.css` + `motion.css`; las reglas de elementos van en `@layer base` para que las utilidades de Tailwind ganen
 
 ### Clases c360-* principales
 

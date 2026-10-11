@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Menu,
   Bell,
+  ChevronLeft,
   ChevronRight,
   AlertTriangle,
   Clock,
@@ -21,14 +22,17 @@ import {
   TrendingUp,
   TrendingDown,
   Calculator,
+  LifeBuoy,
 } from 'lucide-react'
-import { NAV_ITEMS, resolveActiveHub } from '@/lib/constants'
+import { buildNavBreadcrumbs, type NavCrumb } from '@/lib/constants'
 import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
 import { cn } from '@/lib/utils'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip } from '@/components/ui/tooltip'
 import { OrgSwitcher } from './org-switcher'
+import { ASISTENTES_GUIADOS } from '@/components/dashboard/que-quieres-hacer'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -44,16 +48,19 @@ import {
 } from '@/components/ui/popover'
 import { useCopilot } from '@/providers/copilot-provider'
 import { useCalculatorDrawer } from '@/components/ui/calculator-drawer'
-import { complianceScoreColor } from '@/lib/brand'
+import { complianceScoreColor, complianceScoreLabel, complianceScoreTextColor } from '@/lib/brand'
+
+/**
+ * id del menú lateral móvil (el drawer que abre el botón ☰). El botón lo
+ * referencia con `aria-controls`; el drawer debe llevar este mismo `id`.
+ */
+export const MOBILE_MENU_ID = 'menu-navegacion-movil'
 
 interface TopbarProps {
   onMenuToggle: () => void
   onCommandK: () => void
-}
-
-interface Crumb {
-  label: string
-  href: string
+  /** ¿Está abierto el menú lateral móvil? Alimenta `aria-expanded` del botón ☰. */
+  menuOpen?: boolean
 }
 
 interface OrgAlert {
@@ -66,51 +73,25 @@ interface OrgAlert {
   createdAt: string
 }
 
-const SEGMENT_LABELS: Record<string, string> = {
-  nuevo: 'Nuevo',
-  editar: 'Editar',
-  configuracion: 'Configuración',
-  trabajadores: 'Trabajadores',
-  contratos: 'Contratos',
-  alertas: 'Alertas',
-  calendario: 'Calendario',
-  'centro-sunafil': 'Centro SUNAFIL',
-  simulacro: 'Simulacro',
-  diagnostico: 'Diagnóstico',
-  reportes: 'Reportes',
-  documentos: 'Documentos',
-  expedientes: 'Expedientes',
+/**
+ * Migas de pan desde NAV_HUBS: grupo › página › subpágina. En los asistentes
+ * guiados usamos el mismo nombre que en "¿Qué quieres hacer?".
+ */
+function asistenteLabel(_segment: string, href: string): string | undefined {
+  return ASISTENTES_GUIADOS.find((a) => a.href === href)?.title
 }
 
-function isId(segment: string): boolean {
-  return segment.length > 12 && /^[a-z0-9]+$/.test(segment)
+function useBreadcrumb(pathname: string): NavCrumb[] {
+  return useMemo(() => buildNavBreadcrumbs(pathname, asistenteLabel), [pathname])
 }
 
-function useBreadcrumb(pathname: string): Crumb[] {
-  const crumbs: Crumb[] = [{ label: 'Panel', href: '/dashboard' }]
-  const hub = resolveActiveHub(pathname)
-  if (hub.key !== 'cockpit') {
-    crumbs.push({ label: hub.label, href: hub.rootHref })
+/** Nivel anterior navegable (para el botón "atrás" de la versión móvil). */
+function parentCrumb(crumbs: NavCrumb[], pathname: string): NavCrumb | null {
+  for (let i = crumbs.length - 2; i >= 0; i--) {
+    const crumb = crumbs[i]
+    if (crumb.href && crumb.href !== pathname) return crumb
   }
-  // Add nav-item match if pathname is deeper than the hub's rootHref
-  const match = NAV_ITEMS.find(
-    (item) => pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== hub.rootHref
-  )
-  if (match) {
-    crumbs.push({ label: match.label, href: match.href })
-  }
-  // Detail / action segment
-  const segments = pathname.replace('/dashboard', '').split('/').filter(Boolean)
-  if (segments.length > 1) {
-    const last = segments[segments.length - 1]
-    const label =
-      SEGMENT_LABELS[last] ??
-      (isId(last) ? 'Detalle' : last.charAt(0).toUpperCase() + last.slice(1))
-    if (label !== crumbs[crumbs.length - 1].label) {
-      crumbs.push({ label, href: pathname })
-    }
-  }
-  return crumbs
+  return null
 }
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -230,10 +211,12 @@ function useOrgAlerts() {
 
 /* ── Topbar ─────────────────────────────────────────────────────────── */
 
-export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
+export default function Topbar({ onMenuToggle, onCommandK, menuOpen = false }: TopbarProps) {
   const pathname = usePathname() ?? '/dashboard'
   const router = useRouter()
   const crumbs = useBreadcrumb(pathname)
+  const currentCrumb = crumbs[crumbs.length - 1]
+  const backCrumb = parentCrumb(crumbs, pathname)
   const { user } = useUser()
   const { signOut } = useClerk()
   const copilot = useCopilot()
@@ -252,6 +235,13 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
         : 'C3'
 
   const scoreColor = score != null ? complianceScoreColor(score) : undefined
+  // El número va en una tinta con contraste AA; el color del anillo solo para el ícono.
+  const scoreTextColor = score != null ? complianceScoreTextColor(score) : undefined
+  const scoreLabel = score != null ? complianceScoreLabel(score) : null
+  const copilotShortcut = modKey === '⌘' ? '⌘I' : 'Ctrl+I'
+  const copilotLabel = copilot.isOpen
+    ? `Cerrar el asistente (${copilotShortcut})`
+    : `Abrir el asistente (${copilotShortcut})`
 
   return (
     <>
@@ -283,36 +273,65 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
 
       {/* ── HEADER ──────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 flex h-[var(--topbar-height)] shrink-0 items-center gap-3 border-b border-[color:var(--border-default)] bg-[color:var(--bg-elevated)]/88 backdrop-blur-xl px-4 sm:px-6 shadow-[0_18px_48px_rgba(2,6,23,0.28)]">
-        {/* Mobile menu toggle */}
+        {/* Botón ☰: abre el menú lateral en celulares y tablets */}
         <Button
           size="icon-sm"
           variant="ghost"
           onClick={onMenuToggle}
           className="lg:hidden"
-          aria-label="Abrir menú"
+          // Nombre fijo: el estado abierto/cerrado lo anuncia aria-expanded.
+          aria-label="Menú"
+          aria-expanded={menuOpen}
+          aria-controls={MOBILE_MENU_ID}
+          aria-haspopup="dialog"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>
 
-        {/* Breadcrumbs */}
-        <nav aria-label="Breadcrumb" className="hidden sm:block min-w-0">
+        {/* Migas de pan — móvil: solo el nivel actual con botón para subir un nivel */}
+        <nav aria-label="Ruta de navegación" className="flex min-w-0 flex-1 items-center gap-1 sm:hidden">
+          {backCrumb?.href ? (
+            <Link
+              href={backCrumb.href}
+              aria-label={`Volver a ${backCrumb.label}`}
+              title={`Volver a ${backCrumb.label}`}
+              className="-ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[color:var(--text-tertiary)] hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+            >
+              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+            </Link>
+          ) : null}
+          <span
+            aria-current="page"
+            title={currentCrumb.label}
+            className="truncate text-sm font-semibold text-[color:var(--text-primary)]"
+          >
+            {currentCrumb.label}
+          </span>
+        </nav>
+
+        {/* Migas de pan — escritorio: grupo › página › subpágina */}
+        <nav aria-label="Ruta de navegación" className="hidden sm:block min-w-0">
           <ol className="flex items-center gap-1.5 text-sm">
             {crumbs.map((crumb, idx) => {
               const isLast = idx === crumbs.length - 1
               return (
-                <li key={crumb.href + idx} className="flex items-center gap-1.5 min-w-0">
-                  {idx > 0 ? <ChevronRight className="h-3 w-3 text-[color:var(--text-tertiary)] shrink-0" /> : null}
+                <li key={`${crumb.label}-${idx}`} className="flex items-center gap-1.5 min-w-0">
+                  {idx > 0 ? (
+                    <ChevronRight className="h-3 w-3 text-[color:var(--text-tertiary)] shrink-0" aria-hidden="true" />
+                  ) : null}
                   {isLast ? (
-                    <span className="truncate font-medium text-[color:var(--text-primary)]">
+                    <span aria-current="page" className="truncate font-medium text-[color:var(--text-primary)]">
                       {crumb.label}
                     </span>
-                  ) : (
+                  ) : crumb.href ? (
                     <Link
                       href={crumb.href}
                       className="truncate text-[color:var(--text-tertiary)] hover:text-[color:var(--text-secondary)] transition-colors"
                     >
                       {crumb.label}
                     </Link>
+                  ) : (
+                    <span className="truncate text-[color:var(--text-tertiary)]">{crumb.label}</span>
                   )}
                 </li>
               )
@@ -324,25 +343,29 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
           {/* OrgSwitcher (oculto cuando hay 1 sola org) */}
           <OrgSwitcher />
 
-          {/* SUNAFIL sync pill (prototipo god-mode) */}
-          <div
-            className="c360-tb-sync hidden lg:flex"
-            title="Última verificación SUNAFIL: en tiempo real"
-          >
-            <span className="dot" />
-            <span>SUNAFIL sincronizado</span>
-          </div>
-          <div className="c360-tb-divider hidden lg:block" />
+          {/* Buscador: botón con ícono en móvil (el sidebar está oculto ahí) */}
+          <Tooltip content="Buscar" side="bottom">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={onCommandK}
+              className="md:hidden"
+              aria-label="Buscar"
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </Tooltip>
 
           {/* Cmd+K compact button (desktop) */}
           <button
             type="button"
             onClick={onCommandK}
+            aria-label={`Buscar (${modKey === '⌘' ? '⌘K' : 'Ctrl+K'})`}
             className="hidden md:flex items-center gap-2 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-2.5 py-1.5 text-xs text-[color:var(--text-tertiary)] hover:border-emerald-500/60 hover:text-[color:var(--text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
-            <Search className="h-3 w-3" />
+            <Search className="h-3 w-3" aria-hidden="true" />
             <span>Buscar</span>
-            <kbd className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-1 py-0.5 font-mono text-[10px]">
+            <kbd aria-hidden="true" className="inline-flex items-center gap-0.5 rounded border border-[color:var(--border-subtle)] bg-[color:var(--bg-inset)] px-1 py-0.5 font-mono text-[10px]">
               {modKey === '⌘' ? <Command className="h-2.5 w-2.5" /> : <span>{modKey}</span>}
               <span>{modKey === '⌘' ? 'K' : '+K'}</span>
             </kbd>
@@ -354,13 +377,14 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
               href="/dashboard/diagnostico"
               title={
                 delta != null
-                  ? `Score ${score} · ${delta >= 0 ? '+' : ''}${delta} vs mes anterior`
-                  : `Score de compliance ${score}/100`
+                  ? `Puntaje de cumplimiento ${score}/100 (${scoreLabel}) · ${delta >= 0 ? '+' : ''}${delta} frente al mes anterior`
+                  : `Puntaje de cumplimiento ${score}/100 (${scoreLabel})`
               }
+              aria-label={`Puntaje de cumplimiento: ${score} de 100, ${scoreLabel}. Ver diagnóstico`}
               className="hidden sm:flex items-center gap-1.5 rounded-full border border-[color:var(--border-default)] bg-[color:var(--bg-surface)] px-2.5 py-1 text-xs font-semibold hover:border-emerald-500/60 hover:bg-[color:var(--bg-surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
-              <ShieldCheck className="h-3.5 w-3.5" style={{ color: scoreColor }} />
-              <span style={{ color: scoreColor }}>{score}</span>
+              <ShieldCheck className="h-3.5 w-3.5" style={{ color: scoreColor }} aria-hidden="true" />
+              <span style={{ color: scoreTextColor }}>{score}</span>
               {delta != null && delta !== 0 ? (
                 delta > 0 ? (
                   <TrendingUp className="h-3 w-3 text-emerald-600" />
@@ -372,27 +396,29 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
           ) : null}
 
           {/* Calculator drawer trigger — reemplaza la página índice /dashboard/calculadoras */}
-          <Button
-            size="icon-sm"
-            variant={calculator.isOpen ? 'emerald-soft' : 'ghost'}
-            onClick={() => calculator.open()}
-            aria-label="Abrir calculadoras laborales"
-            title="Calculadoras laborales"
-          >
-            <Calculator className="h-4 w-4" />
-          </Button>
+          <Tooltip content="Calculadoras laborales" side="bottom">
+            <Button
+              size="icon-sm"
+              variant={calculator.isOpen ? 'emerald-soft' : 'ghost'}
+              onClick={() => calculator.open()}
+              aria-label="Abrir calculadoras laborales"
+            >
+              <Calculator className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </Tooltip>
 
           {/* AI Copilot trigger */}
-          <Button
-            size="icon-sm"
-            variant={copilot.isOpen ? 'emerald-soft' : 'ghost'}
-            onClick={copilot.toggle}
-            aria-label={copilot.isOpen ? 'Cerrar Copilot (Ctrl+I)' : 'Abrir Copilot (Ctrl+I)'}
-            title={copilot.isOpen ? 'Cerrar Copilot (Ctrl+I)' : 'Abrir Copilot (Ctrl+I)'}
-            className="relative"
-          >
-            <Sparkles className="h-4 w-4" />
-          </Button>
+          <Tooltip content={copilotLabel} side="bottom">
+            <Button
+              size="icon-sm"
+              variant={copilot.isOpen ? 'emerald-soft' : 'ghost'}
+              onClick={copilot.toggle}
+              aria-label={copilotLabel}
+              className="relative"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </Tooltip>
 
           {/* Notifications bell */}
           <Popover>
@@ -400,13 +426,13 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
               <Button
                 size="icon-sm"
                 variant="ghost"
-                aria-label={`${unread} alertas sin resolver`}
+                aria-label={unread > 0 ? `Alertas: ${unread} sin resolver` : 'Alertas'}
                 title="Alertas"
                 className="relative"
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4" aria-hidden="true" />
                 {unread > 0 ? (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-crimson-600 px-1 text-[9px] font-bold text-white">
+                  <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-crimson-600 px-1 text-[11px] font-bold text-white">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 ) : null}
@@ -520,6 +546,11 @@ export default function Topbar({ onMenuToggle, onCommandK }: TopbarProps) {
               <DropdownMenuItem onSelect={() => router.push('/dashboard/configuracion/equipo')}>
                 <Users className="h-3.5 w-3.5" />
                 Mi equipo
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => router.push('/dashboard/ayuda')}>
+                <LifeBuoy className="h-3.5 w-3.5" />
+                Ayuda y guías
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

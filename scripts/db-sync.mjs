@@ -1,23 +1,26 @@
 #!/usr/bin/env node
 /**
- * db-sync — sincroniza el schema de Prisma con la DB en build de Vercel.
+ * db-sync — sincroniza el schema de Prisma con la DB en el build de Vercel.
  *
- * Estrategia:
+ * Solo corre en el deploy de PRODUCCIÓN. Las previews comparten las variables
+ * de entorno (y por lo tanto la DB) de producción: si sincronizaran el schema,
+ * una rama sin mergear podría cambiar la base real. Los builds locales tampoco
+ * corren, salvo que se pida con DB_SYNC=1.
+ *
+ * Estrategia en producción:
  *   1. Intenta `prisma migrate deploy` (lo correcto si la DB tiene
  *      historial de migrations en _prisma_migrations).
- *   2. Si falla con P3005 ("schema not empty, baseline needed"), cae a
- *      `prisma db push` que aplica el schema directamente
- *      sin requerir baseline de migrations.
+ *   2. Si falla (P3005: DB creada sin baseline de migrations), cae a
+ *      `prisma db push`, que sin --accept-data-loss se niega a aplicar
+ *      cambios destructivos.
+ *   3. Si los dos fallan, por ahora el build sigue (comportamiento anterior),
+ *      porque no sabemos si la DB de producción tiene drift que haga fallar
+ *      db push en cada deploy. Con DB_SYNC_STRICT=1 el build se detiene;
+ *      activarlo cuando el baseline esté hecho.
  *
- * P3005 ocurre cuando la DB de prod fue creada sin pasar por el sistema
- * de migrations (con `db push` previo, o manualmente). El `db push` es
- * seguro mientras los cambios sean aditivos (ALTER TABLE ADD COLUMN con
- * DEFAULT, CREATE TABLE, ALTER TYPE ADD VALUE) — sin riesgo de pérdida
- * de datos.
- *
- * Si en el futuro el usuario hace baseline correcto de las migrations
- * existentes, este script automáticamente vuelve a usar migrate deploy
- * sin cambios.
+ * Pendiente: hacer el baseline de las migrations en la DB de producción
+ * (`prisma migrate resolve --applied <migration>` por cada una) para que el
+ * paso 1 funcione y se pueda retirar el fallback a db push.
  */
 
 import { execSync } from 'node:child_process'
@@ -27,16 +30,33 @@ function run(cmd) {
   execSync(cmd, { stdio: 'inherit' })
 }
 
+function shouldSync() {
+  if (process.env.DB_SYNC === '1') return { run: true, reason: 'DB_SYNC=1' }
+  if (process.env.VERCEL !== '1') return { run: false, reason: 'build local (usa DB_SYNC=1 para forzar)' }
+  const env = process.env.VERCEL_ENV
+  if (env === 'production') return { run: true, reason: 'deploy de producción' }
+  if (env === 'preview' || env === 'development') {
+    return { run: false, reason: `deploy de ${env}: no toca la DB de producción` }
+  }
+  // Vercel sin VERCEL_ENV expuesto: mantenemos el comportamiento anterior.
+  console.warn('[db-sync] ⚠ VERCEL_ENV no está disponible; se asume producción')
+  return { run: true, reason: 'VERCEL_ENV ausente' }
+}
+
+const decision = shouldSync()
+if (!decision.run) {
+  console.log(`[db-sync] Omitido: ${decision.reason}`)
+  process.exit(0)
+}
+console.log(`[db-sync] Sincronizando schema (${decision.reason})`)
+
 try {
-  console.log('[db-sync] Intentando: prisma migrate deploy')
   run('npx prisma migrate deploy')
   console.log('[db-sync] ✅ Migrations aplicadas correctamente')
 } catch (err) {
   const msg = err instanceof Error ? err.message : String(err)
-  console.warn('[db-sync] ⚠ migrate deploy falló — caigo a db push')
-  console.warn(`[db-sync] Razón probable: P3005 (DB sin baseline de migrations).`)
-  console.warn(`[db-sync] db push aplica el schema directamente sin requerir migrations.`)
-  console.warn(`[db-sync] Esto es seguro mientras los cambios sean aditivos.`)
+  console.warn('[db-sync] ⚠ migrate deploy falló — intento db push')
+  console.warn('[db-sync] Razón probable: P3005 (DB sin baseline de migrations).')
   console.warn(`[db-sync] Detalle: ${msg.slice(0, 200)}`)
 
   try {
@@ -45,11 +65,10 @@ try {
   } catch (err2) {
     console.error('[db-sync] ❌ db push también falló')
     console.error(err2 instanceof Error ? err2.message : err2)
-    // Si AMBOS fallan, no bloqueamos el build — el código defensivo en los
-    // endpoints (try/catch alrededor de selects con campos nuevos) permite
-    // que la app arranque y degrade gracefully sin las features nuevas.
-    console.warn('[db-sync] ⚠ Continuando con build sin migrations aplicadas')
-    console.warn('[db-sync] Las features nuevas pueden no funcionar hasta que el')
-    console.warn('[db-sync] admin aplique manualmente: npx prisma db push')
+    if (process.env.DB_SYNC_STRICT === '1') {
+      console.error('[db-sync] DB_SYNC_STRICT=1: se detiene el build')
+      process.exit(1)
+    }
+    console.warn('[db-sync] ⚠ Continuando el build sin sincronizar el schema')
   }
 }

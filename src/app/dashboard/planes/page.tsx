@@ -128,7 +128,7 @@ const FEATURE_COMPARISON: FeatureRow[] = [
   { name: 'Export PLAME + T-REGISTRO', free: false, starter: true, pro: true, empresa: true },
   { name: 'Plantillas propias (zero-liability)', free: false, starter: '1', pro: '5', empresa: 'Ilimitadas' },
   { name: 'Legajo digital con IA Vision', free: false, starter: 'Manual', pro: 'IA ✨', empresa: 'IA ✨' },
-  { name: 'IA Copilot consultas/mes', free: false, starter: '50', pro: '500', empresa: '2,000' },
+  { name: 'Consultas al asistente por mes', free: false, starter: '50', pro: '500', empresa: '2,000' },
   { name: 'AI Review de contratos', free: false, starter: false, pro: true, empresa: true },
   { name: 'Diagnóstico SUNAFIL', free: 'Express 1/mes', starter: 'Express ∞', pro: 'Full + Simulacro', empresa: 'Full + Simulacro' },
   { name: '15 generadores SST', free: false, starter: false, pro: true, empresa: true },
@@ -136,7 +136,7 @@ const FEATURE_COMPARISON: FeatureRow[] = [
   { name: 'Portal del trabajador (PWA + firma biométrica)', free: false, starter: false, pro: false, empresa: true },
   { name: 'E-Learning + certificados QR', free: false, starter: false, pro: false, empresa: true },
   { name: 'Multi-empresa', free: false, starter: false, pro: false, empresa: true },
-  { name: 'Asistente IA soporte 24/7', free: true, starter: true, pro: true, empresa: true },
+  { name: 'Asistente de soporte 24/7', free: true, starter: true, pro: true, empresa: true },
   { name: 'Chat humano (lun-sáb 8am-8pm)', free: false, starter: true, pro: true, empresa: true },
   { name: 'WhatsApp Business <2h hábiles', free: false, starter: false, pro: true, empresa: true },
   { name: 'SLA 4h 24/7 (incluye domingos)', free: false, starter: false, pro: false, empresa: true },
@@ -250,7 +250,7 @@ export default function PlanesPage() {
           </p>
           <p
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 22,
               color: 'var(--text-primary)',
               lineHeight: 1,

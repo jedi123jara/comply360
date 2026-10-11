@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   Plus,
   Search,
@@ -108,13 +109,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 const REGIMEN_LABELS: Record<string, string> = {
   GENERAL: 'General',
   MYPE_MICRO: 'MYPE Micro',
-  MYPE_PEQUENA: 'MYPE Pequena',
+  MYPE_PEQUENA: 'MYPE Pequeña',
   AGRARIO: 'Agrario',
-  CONSTRUCCION_CIVIL: 'Construccion',
+  CONSTRUCCION_CIVIL: 'Construcción',
   MINERO: 'Minero',
   PESQUERO: 'Pesquero',
-  TEXTIL_EXPORTACION: 'Textil Export.',
-  DOMESTICO: 'Domestico',
+  TEXTIL_EXPORTACION: 'Textil export.',
+  DOMESTICO: 'Doméstico',
   CAS: 'CAS',
   MODALIDAD_FORMATIVA: 'Formativo',
   TELETRABAJO: 'Teletrabajo',
@@ -132,6 +133,94 @@ const TIPO_CESE_OPTIONS: { value: string; label: string; hint?: string }[] = [
   { value: 'JUBILACION', label: 'Jubilación', hint: 'Art. 16.f' },
   { value: 'FALLECIMIENTO', label: 'Fallecimiento', hint: 'Art. 16.a' },
 ]
+
+// Nombres legibles para los campos que reporta el importador (el parser usa
+// a veces el encabezado del Excel y a veces el nombre técnico del campo).
+const IMPORT_FIELD_LABELS: Record<string, string> = {
+  file: 'Archivo',
+  dni: 'DNI',
+  DNI: 'DNI',
+  firstName: 'Nombres',
+  Nombres: 'Nombres',
+  lastName: 'Apellidos',
+  Apellidos: 'Apellidos',
+  fechaIngreso: 'Fecha de ingreso',
+  'Fecha Ingreso': 'Fecha de ingreso',
+  sueldoBruto: 'Sueldo bruto',
+  'Sueldo Bruto': 'Sueldo bruto',
+  regimenLaboral: 'Régimen laboral',
+  'Regimen Laboral': 'Régimen laboral',
+  tipoContrato: 'Tipo de contrato',
+  'Tipo Contrato': 'Tipo de contrato',
+  tipoAporte: 'Sistema de pensiones (AFP/ONP)',
+  'Tipo Aporte': 'Sistema de pensiones (AFP/ONP)',
+  jornadaSemanal: 'Jornada semanal',
+  'Jornada Semanal': 'Jornada semanal',
+  email: 'Correo',
+  phone: 'Teléfono',
+  position: 'Cargo',
+  department: 'Área',
+  birthDate: 'Fecha de nacimiento',
+  gender: 'Género',
+  address: 'Dirección',
+  afpNombre: 'AFP',
+  cuspp: 'CUSPP',
+}
+
+function importFieldLabel(field: string): string {
+  return IMPORT_FIELD_LABELS[field] ?? IMPORT_FIELD_LABELS[field.trim()] ?? field
+}
+
+type ImportRowError = { row: number; field: string; message: string }
+
+/** Lista completa de errores del importador, con scroll y nombres legibles. */
+function ImportErrorList({ errors, totalCount }: { errors: ImportRowError[]; totalCount: number }) {
+  return (
+    <div>
+      <div className="max-h-60 overflow-y-auto rounded-xl border border-red-200 divide-y divide-red-100" role="list">
+        {errors.map((err, i) => (
+          <div key={`${err.row}-${err.field}-${i}`} role="listitem" className="flex items-start gap-2 px-3 py-2 text-xs">
+            <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" aria-hidden="true" />
+            <span className="text-red-700">
+              <span className="font-semibold">
+                {err.row > 0 ? `Fila ${err.row}` : 'Archivo'} · {importFieldLabel(err.field)}:
+              </span>{' '}
+              {err.message}
+            </span>
+          </div>
+        ))}
+      </div>
+      {totalCount > errors.length && (
+        <p className="mt-1.5 text-[11px] text-gray-500">
+          Mostrando los primeros {errors.length} de {totalCount} errores. Corrige estos y vuelve a subir el archivo para ver el resto.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Abre el importador de Excel si la URL trae `?import=excel` (enlace
+ * "Importa tu planilla" del panel) y limpia el parámetro para que al cerrar
+ * y recargar no se vuelva a abrir.
+ */
+function ImportQueryOpener({ onOpen }: { onOpen: () => void }) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const wantsImport = searchParams.get('import') === 'excel'
+
+  useEffect(() => {
+    if (!wantsImport) return
+    onOpen()
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('import')
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [wantsImport, onOpen, router, pathname, searchParams])
+
+  return null
+}
 
 export default function TrabajadoresPage() {
   const [workers, setWorkers] = useState<WorkerItem[]>([])
@@ -298,6 +387,27 @@ export default function TrabajadoresPage() {
     setImportToken('')
     setImportDone(null)
     setImportError('')
+  }
+
+  // Estable (solo usa setters) para que `ImportQueryOpener` no re-dispare su efecto.
+  const openImporter = useCallback(() => {
+    setImportFile(null)
+    setImportStep('upload')
+    setImportPreview(null)
+    setImportToken('')
+    setImportDone(null)
+    setImportError('')
+    setShowImport(true)
+  }, [])
+
+  // Siguiente paso tras importar: ordenar por legajo (los recién importados
+  // empiezan en 0 %) para que el admin suba contrato y DNI de cada uno.
+  const goToCompleteLegajos = () => {
+    setShowImport(false)
+    resetImport()
+    setSortBy('legajoScore')
+    setSortDir('asc')
+    setPagination(p => ({ ...p, page: 1 }))
   }
 
   // ── Payroll history import state ──────────────────────────────
@@ -617,11 +727,15 @@ export default function TrabajadoresPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <ImportQueryOpener onOpen={openImporter} />
+      </Suspense>
+
       {/* Header editorial (sistema Emerald Light) */}
       <PageHeader
-        eyebrow="Equipo"
+        eyebrow="Mi personal"
         title="Gestiona tu <em>planilla completa</em>."
-        subtitle="Registra, importa y mantén al día a todos tus trabajadores desde un solo lugar. Su legajo alimenta tu score de compliance."
+        subtitle="Registra, importa y mantén al día a todos tus trabajadores desde un solo lugar. Mientras más completo esté su legajo (sus documentos), mejor es tu puntaje de cumplimiento."
         actions={
           <>
             <DropdownMenu>
@@ -813,7 +927,7 @@ export default function TrabajadoresPage() {
             onChange={e => { setRegimenFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })) }}
             className="px-3 py-2 border border-[color:var(--border-default)] bg-[color:var(--neutral-100)] text-[color:var(--text-secondary)] rounded-lg text-sm focus:ring-2 focus:ring-primary/20"
           >
-            <option value="">Todos los regimenes</option>
+            <option value="">Todos los regímenes</option>
             {Object.entries(REGIMEN_LABELS).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
@@ -1127,7 +1241,7 @@ export default function TrabajadoresPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link
-                                  href={`/dashboard/trabajadores/${worker.id}?tab=alertas`}
+                                  href={`/dashboard/trabajadores/${worker.id}?tab=info`}
                                   className="cursor-pointer"
                                 >
                                   <Bell className={cn(
@@ -1394,7 +1508,7 @@ export default function TrabajadoresPage() {
                 <Wallet className="w-4 h-4 text-emerald-600" />
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-[color:var(--text-primary)]">Generar boletas masivas</span>
-                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Una boleta por trabajador para el periodo</span>
+                  <span className="text-[11px] text-[color:var(--text-tertiary)]">Una boleta por trabajador para el período</span>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => {
@@ -1802,7 +1916,7 @@ export default function TrabajadoresPage() {
             <div className="px-6 py-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Periodo
+                  Período
                 </label>
                 <input
                   type="month"
@@ -1826,7 +1940,7 @@ export default function TrabajadoresPage() {
               <div className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-slate-700">
-                  Se omiten trabajadores cesados, sin sueldo o que ya tienen boleta para este periodo. La renta de 5ta usa el acumulado del año en curso.
+                  Se omiten trabajadores cesados, sin sueldo o que ya tienen boleta para este período. La renta de 5ta usa el acumulado del año en curso.
                 </p>
               </div>
             </div>
@@ -2778,22 +2892,16 @@ export default function TrabajadoresPage() {
                     </div>
                   )}
 
-                  {/* Errors */}
+                  {/* Errors — todos, con scroll y nombres de campo legibles */}
                   {importPreview.errors.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-red-500 uppercase tracking-wider mb-2">
-                        Errores detectados ({importPreview.errors.length})
+                      <p className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-1">
+                        Filas con errores ({importPreview.errorCount})
                       </p>
-                      <div className="max-h-28 overflow-y-auto rounded-xl border border-red-800 divide-y divide-red-900">
-                        {importPreview.errors.slice(0, 8).map((err, i) => (
-                          <div key={i} className="flex items-start gap-2 px-3 py-2 text-xs">
-                            <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                            <span className="text-red-300">
-                              Fila {err.row} · {err.field}: {err.message}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                      <p className="text-[11px] text-gray-500 mb-2">
+                        Estas filas no se importarán. Puedes continuar con las válidas y corregir las demás después.
+                      </p>
+                      <ImportErrorList errors={importPreview.errors} totalCount={importPreview.errorCount} />
                     </div>
                   )}
 
@@ -2835,19 +2943,51 @@ export default function TrabajadoresPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  {/* Filas que no entraron: se muestran completas para que el admin las corrija */}
+                  {importPreview && importPreview.errors.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-1">
+                        Filas que no se importaron ({importPreview.errorCount})
+                      </p>
+                      <p className="text-[11px] text-gray-500 mb-2">
+                        Corrígelas en tu Excel y vuelve a importarlo. Los trabajadores que ya se importaron no se duplicarán.
+                      </p>
+                      <ImportErrorList errors={importPreview.errors} totalCount={importPreview.errorCount} />
+                    </div>
+                  )}
+
+                  {importDone.imported > 0 && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+                      <p className="text-sm font-semibold text-emerald-900">Siguiente paso: completa sus legajos</p>
+                      <p className="text-xs text-emerald-800 mt-0.5">
+                        Sube el contrato y el DNI de cada trabajador. Ordenaremos la lista para que empieces por los legajos con menos avance.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={() => { resetImport(); }}
                       className="flex-1 px-4 py-2.5 border border-[color:var(--border-default)] rounded-xl text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-100)] transition-colors"
                     >
                       Importar otro archivo
                     </button>
-                    <button
-                      onClick={() => { setShowImport(false); resetImport() }}
-                      className="flex-1 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm transition-colors"
-                    >
-                      Listo
-                    </button>
+                    {importDone.imported > 0 ? (
+                      <button
+                        onClick={goToCompleteLegajos}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm transition-colors"
+                      >
+                        Completar legajos
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setShowImport(false); resetImport() }}
+                        className="flex-1 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm transition-colors"
+                      >
+                        Cerrar
+                      </button>
+                    )}
                   </div>
                 </>
               )}

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner-toaster'
 import { track } from '@/lib/analytics'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
   tryBiometricCeremony,
   tryStrongBiometricCeremony,
@@ -256,7 +257,7 @@ export default function ContratoDetailPage() {
         </div>
         <h1
           className="text-[28px] leading-tight text-[color:var(--text-primary)]"
-          style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em' }}
+          style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.02em' }}
         >
           {contract.title}
         </h1>
@@ -311,7 +312,7 @@ export default function ContratoDetailPage() {
         <div className="flex items-center justify-between border-b border-[color:var(--border-subtle)] px-4 py-3">
           <h2
             className="text-sm font-semibold text-[color:var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             Contenido
           </h2>
@@ -326,7 +327,9 @@ export default function ContratoDetailPage() {
             lineHeight: 1.7,
           }}
           dangerouslySetInnerHTML={{
-            __html: contract.contentHtml || '<p><em>Sin contenido disponible.</em></p>',
+            __html: contract.contentHtml
+              ? sanitizeHtml(contract.contentHtml)
+              : '<p><em>Sin contenido disponible.</em></p>',
           }}
         />
       </section>
@@ -343,7 +346,7 @@ export default function ContratoDetailPage() {
             <div>
               <h3
                 className="text-lg text-[color:var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 Firma este contrato
               </h3>
@@ -402,7 +405,7 @@ export default function ContratoDetailPage() {
             <div className="min-w-0 flex-1">
               <h3
                 className="text-lg text-emerald-900"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 Contrato firmado
               </h3>
@@ -511,7 +514,7 @@ function CeremonyModal({
               </div>
               <h3
                 className="text-center text-xl text-[color:var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 {biometricAvailable ? 'Firmar con huella' : 'Confirmar firma'}
               </h3>
@@ -551,7 +554,7 @@ function CeremonyModal({
               </div>
               <h3
                 className="text-xl text-[color:var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 Acercá tu huella
               </h3>
@@ -577,7 +580,7 @@ function CeremonyModal({
               </div>
               <h3
                 className="text-xl text-emerald-900"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 ¡Contrato firmado!
               </h3>
@@ -594,7 +597,7 @@ function CeremonyModal({
               </div>
               <h3
                 className="text-xl text-[color:var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 Algo falló
               </h3>

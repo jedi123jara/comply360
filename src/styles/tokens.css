@@ -156,24 +156,26 @@
    *   - compliance-critical → rojo multa SUNAFIL (más fuerte que danger)
    */
   /* Success usa verde nativo, NO brand navy — para no confundir checks ✓ */
+  /* Los *-text apuntan a los colores por función (--status-*, más abajo).
+     Los *-bg / *-border legacy siguen translúcidos a propósito. */
   --color-success: var(--success-green-600);
   --color-success-bg: rgba(34, 197, 94, 0.12);
   --color-success-border: rgba(34, 197, 94, 0.35);
-  --color-success-text: var(--success-green-700);
+  --color-success-text: var(--status-success-fg);
 
   --color-warning: var(--amber-500);
   --color-warning-bg: rgba(245, 158, 11, 0.13);
   --color-warning-border: var(--border-amber);
-  --color-warning-text: #fcd34d;
+  --color-warning-text: var(--status-warning-fg);
 
   --color-danger: var(--crimson-500);
   --color-danger-bg: rgba(239, 68, 68, 0.13);
   --color-danger-border: var(--border-crimson);
-  --color-danger-text: var(--crimson-700);
+  --color-danger-text: var(--status-danger-fg);
 
   --color-info: var(--cyan-500);
   --color-info-bg: rgba(6, 182, 212, 0.13);
-  --color-info-text: var(--cyan-600);
+  --color-info-text: var(--status-info-fg);
 
   --color-compliance-trust: var(--blue-700);
   --color-compliance-trust-bg: var(--blue-50);
@@ -295,6 +297,22 @@
   --text-5xl: 3rem;
   --text-display: 3.75rem;
 
+  /* Tamaño mínimo de texto: 12px. Ningún texto (badges, captions, notas al
+   * pie de tablas, leyendas de gráficos) debería renderizarse por debajo.
+   * Úsalo como piso: `font-size: max(var(--text-min), 0.7em)` o
+   * `text-[length:var(--text-min)]`. */
+  --text-min: 0.75rem;
+
+  /* Tipografía de títulos de marca: sans-serif gruesa (Plus Jakarta Sans,
+   * 700-800, interlineado apretado, tracking -0.02em). NO serif.
+   * --font-jakarta lo inyecta next/font en <html> (src/app/layout.tsx).
+   * Expuesta como utilidad `font-display` desde @theme inline (globals.css).
+   * --font-serif se mantiene solo para vistas de documentos legales. */
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --tracking-display: -0.02em;
+  --weight-display: 800;
+  --leading-display: 1.1;
+
   --leading-tight: 1.2;
   --leading-snug: 1.35;
   --leading-normal: 1.55;
@@ -324,11 +342,22 @@
   --duration-slow: 400ms;
   --duration-slower: 640ms;
 
-  /* ─── Z-index ───────────────────────────────────────────────────────── */
+  /* ─── Z-index ───────────────────────────────────────────────────────────
+   * Escala única. Úsala con `z-[var(--z-…)]`; no inventes números sueltos.
+   *   base < dropdown < sticky < drawer < modal-backdrop < modal
+   *        < popover < tooltip < toast < command
+   * - modal-backdrop va justo debajo del modal (el overlay no tapa el panel).
+   * - popover/tooltip van sobre el modal: un select o tooltip DENTRO de un
+   *   modal debe verse encima de él.
+   * - toast va sobre modales (avisos de una acción hecha en el modal).
+   * - command (paleta Ctrl+K) es la capa más alta propia; Sonner usa su
+   *   propio z-index (muy alto) y queda por encima de todo.
+   */
   --z-base: 0;
   --z-dropdown: 50;
   --z-sticky: 100;
   --z-drawer: 200;
+  --z-modal-backdrop: 290;
   --z-modal: 300;
   --z-popover: 400;
   --z-tooltip: 500;
@@ -341,6 +370,95 @@
   --copilot-width: 400px;
   --topbar-height: 60px;
   --content-max: 1280px;
+}
+
+/* =============================================================================
+ * MARCA (dirección del fundador, 2026-10)
+ *
+ * Constantes: valen igual en tema oscuro y claro.
+ *   - Navy de fondo para hero / header / footer.
+ *   - Ámbar para el CTA principal, SIEMPRE con texto navy encima (no blanco).
+ *   - Azul como acento de íconos, gráficos y enlaces (y botón primario).
+ *   - Secciones claras: fondo #F5F7FB, tarjetas blancas con borde #E5EAF2,
+ *     títulos navy y texto slate.
+ * Las variantes "-text" (marca usada como TEXTO) dependen de la superficie y
+ * se definen abajo, en "Colores por función".
+ * ============================================================================= */
+:root {
+  --brand-navy: #0b1b36;
+  --brand-navy-deep: #081428;      /* footer */
+  --brand-navy-elevated: #12284a;  /* tarjeta/superficie elevada sobre navy */
+
+  --brand-amber: #f5b301;
+  --brand-amber-hover: #e0a100;
+  --brand-cta: var(--brand-amber);
+  --brand-cta-hover: var(--brand-amber-hover);
+  --brand-cta-fg: var(--brand-navy);      /* texto sobre el CTA: 9,3:1 (hover 7,6:1) */
+
+  --brand-blue: #2563eb;
+  --brand-blue-hover: #1d4ed8;
+  --brand-primary: var(--brand-blue);           /* botón primario / relleno */
+  --brand-primary-hover: var(--brand-blue-hover);
+  --brand-primary-fg: #ffffff;                  /* texto sobre el primario: 5,2:1 (hover 6,7:1) */
+
+  /* Alias del pedido original: el "dorado" de acento ahora es el ámbar CTA. */
+  --brand-accent: var(--brand-amber);
+
+  /* Secciones claras de la marca (landing, marketing, documentos en pantalla) */
+  --brand-section-bg: #f5f7fb;
+  --brand-card-bg: #ffffff;
+  --brand-card-border: #e5eaf2;
+  --brand-heading: #0b1b36;
+  --brand-text: #475569;
+}
+
+/* =============================================================================
+ * COLORES POR FUNCIÓN — tema OSCURO (por defecto)
+ *
+ * Una sola fuente para estados: éxito, advertencia, peligro, info y neutro.
+ *   --status-X-fg      texto/ícono del estado
+ *   --status-X-bg      fondo del badge/alerta (OPACO: el contraste no depende
+ *                      de lo que haya debajo)
+ *   --status-X-border  borde del badge/alerta
+ * Regla: fg ≥ 4,5:1 contra su bg y contra la superficie del tema (canvas,
+ * tarjeta, navy de marca). Tabla de contraste en el informe de la Ola 4.
+ *
+ * El tema CLARO redefine estas mismas variables en src/styles/dashboard-light.css
+ * (.c360-dashboard-light) y en globals.css (.c360-worker-portal).
+ *
+ * OJO: una variable que usa var() se resuelve en el elemento donde se declara.
+ * Por eso cada tema redeclara la lista completa en su propio selector; no
+ * basta con cambiar la rampa (--crimson-*, --amber-*, …).
+ *
+ * .c360-dashboard-sidebar: isla navy dentro del tema claro → usa estos
+ * valores oscuros (igual que hace con las rampas en dashboard-light.css).
+ * ============================================================================= */
+:root,
+.c360-dashboard-sidebar {
+  --status-success-fg: #86efac;
+  --status-success-bg: #0d2825;
+  --status-success-border: #135435;
+
+  --status-warning-fg: #fcd34d;
+  --status-warning-bg: #2b231a;
+  --status-warning-border: #634516;
+
+  --status-danger-fg: #fca5a5;
+  --status-danger-bg: #2a1622;
+  --status-danger-border: #61232b;
+
+  --status-info-fg: #67e8f9;
+  --status-info-bg: #092636;
+  --status-info-border: #084e62;
+
+  --status-neutral-fg: #cbd5e1;
+  --status-neutral-bg: #1d2432;
+  --status-neutral-border: #3e4757;
+
+  /* Marca como texto sobre superficies oscuras / navy.
+     #2563eb como texto sobre navy da 3,3:1: sirve para íconos (≥ 3:1), no para texto. */
+  --brand-primary-text: #93c5fd;
+  --brand-amber-text: #f5b301;
 }
 
 /* Pantalla completa del organigrama: oculta el sidebar del dashboard y anula su
@@ -421,6 +539,8 @@ html.org-immersive {
 .motion-fade-in-up { animation: fade-in-up var(--duration-slow) var(--ease-out) both; }
 .motion-fade-in { animation: fade-in var(--duration-base) var(--ease-out) both; }
 .motion-scale-in { animation: scale-in var(--duration-base) var(--ease-spring) both; }
+/* Indicador funcional (prop `pulse` de <Badge>, para estados críticos/en vivo):
+   se mantiene en bucle. Lo decorativo usa --motion-loop-decor (motion.css). */
 .motion-pulse-emerald { animation: pulse-emerald 2s var(--ease-in-out) infinite; }
 .motion-pulse-crimson { animation: pulse-crimson 1.4s var(--ease-in-out) infinite; }
 
@@ -445,16 +565,9 @@ html.org-immersive {
     rgba(15, 23, 42, 0.72) 100%
   );
   background-size: 200% 100%;
+  /* Skeleton de carga: indicador funcional, se mantiene en bucle. */
   animation: shimmer 1.6s var(--ease-in-out) infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* prefers-reduced-motion: el bloque único que anula TODA animación y
+   transición vive en src/styles/motion.css (se importa justo después). */

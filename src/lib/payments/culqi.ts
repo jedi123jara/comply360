@@ -105,6 +105,11 @@ export const CULQI_PLANS: Record<Exclude<Plan, 'FREE' | 'BUSINESS' | 'ENTERPRISE
 const CULQI_API_BASE = 'https://api.culqi.com/v2'
 
 function isDevMode(): boolean {
+  // FIX auditoría P0 (NEG-01): en producción NUNCA se simula el cobro. Si falta
+  // CULQI_SECRET_KEY en prod, createCharge falla (getCulqiSecretKey lanza) y el
+  // checkout NO otorga el plan — antes el mock devolvía "venta_exitosa" y el
+  // plan de pago se activaba sin cobro real.
+  if (process.env.NODE_ENV === 'production') return false
   return !process.env.CULQI_SECRET_KEY
 }
 

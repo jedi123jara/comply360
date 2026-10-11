@@ -7,9 +7,56 @@ import {
   CalendarCheck,
   CalendarClock,
   AlertOctagon,
+  AlertTriangle,
+  CheckCircle2,
+  Hourglass,
   Loader2,
   Plus,
 } from 'lucide-react'
+
+/**
+ * Estado de goce de cada período: palabra + ícono, el color solo refuerza
+ * (WCAG 1.4.1). `bar` es el color vivo de la barra; `ink` es la tinta de
+ * texto (≥ 4,5:1 sobre blanco — amber-500 se queda en 2,1:1).
+ */
+type GoceTone = 'completo' | 'parcial' | 'sinGoce'
+
+const GOCE_TONE: Record<
+  GoceTone,
+  {
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+    bar: string
+    ink: string
+    bg: string
+    border: string
+  }
+> = {
+  completo: {
+    label: 'Gozado completo',
+    icon: CheckCircle2,
+    bar: 'var(--success-green-500)',
+    ink: 'var(--color-success-text)',
+    bg: 'var(--color-success-bg)',
+    border: 'var(--color-success-border)',
+  },
+  parcial: {
+    label: 'Goce parcial',
+    icon: Hourglass,
+    bar: 'var(--amber-500)',
+    ink: 'var(--color-warning-text)',
+    bg: 'var(--color-warning-bg)',
+    border: 'var(--color-warning-border)',
+  },
+  sinGoce: {
+    label: 'Sin goce',
+    icon: AlertOctagon,
+    bar: 'var(--crimson-500, #ef4444)',
+    ink: 'var(--color-danger-text)',
+    bg: 'var(--color-danger-bg)',
+    border: 'var(--color-danger-border)',
+  },
+}
 
 /**
  * TabVacaciones — periodos vacacionales del trabajador.
@@ -127,20 +174,20 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
           </div>
           <h2
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 26,
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
               lineHeight: 1.2,
             }}
-            dangerouslySetInnerHTML={{
-              __html: `Vacaciones y descansos de <em style="color: var(--emerald-700); font-style: italic">${workerFirstName}</em>.`,
-            }}
-          />
+          >
+            {/* Texto escapado por React: el nombre viene de datos del usuario. */}
+            Vacaciones y descansos de <span style={{ color: 'var(--brand-primary-text, #2563eb)' }}>{workerFirstName}</span>.
+          </h2>
           <p className="text-sm text-[color:var(--text-secondary)] mt-1 max-w-2xl">
-            Cada periodo anual genera <b>{worker.diasPorAnio} días</b> según el régimen{' '}
-            <b>{worker.regimenLaboral}</b>. Si acumula 2 periodos sin goce, corresponde triple vacacional.
+            Cada período anual genera <b>{worker.diasPorAnio} días</b> según el régimen{' '}
+            <b>{worker.regimenLaboral}</b>. Si acumula 2 períodos sin goce, corresponde triple vacacional.
           </p>
         </div>
         <Link
@@ -156,6 +203,7 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
       {/* Warning crimson si triple vacacional aplicable */}
       {riesgoDoble ? (
         <div
+          role="alert"
           className="flex items-start gap-3 rounded-xl p-4"
           style={{
             background: 'rgba(239,68,68,0.06)',
@@ -167,11 +215,37 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
           </div>
           <div>
             <p className="text-sm font-bold text-red-800">
-              Triple vacacional aplicable — {summary.periodosSinGoce} periodos sin goce
+              Triple vacacional aplicable — {summary.periodosSinGoce} períodos sin goce
             </p>
             <p className="mt-0.5 text-xs text-red-700">
               Corresponde pagar: una remuneración por el trabajo realizado, otra por el descanso
               no gozado, más una indemnización equivalente. Base: Art. 23 D.Leg. 713.
+            </p>
+          </div>
+        </div>
+      ) : summary.periodosSinGoce === 1 ? (
+        /* Aviso preventivo: un período sin goce → riesgo de acumular el segundo. */
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-xl border p-4"
+          style={{
+            background: GOCE_TONE.parcial.bg,
+            borderColor: GOCE_TONE.parcial.border,
+          }}
+        >
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0"
+            style={{ background: 'var(--amber-100)', color: GOCE_TONE.parcial.ink }}
+          >
+            <AlertTriangle className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-bold" style={{ color: GOCE_TONE.parcial.ink }}>
+              Riesgo de acumular 2 períodos — hay 1 período sin goce
+            </p>
+            <p className="mt-0.5 text-xs text-[color:var(--text-secondary)]">
+              Programa el descanso antes de que se sume un segundo período sin gozar: en ese
+              caso corresponde la triple vacacional (Art. 23 D.Leg. 713).
             </p>
           </div>
         </div>
@@ -194,22 +268,28 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
           <div className="c360-kpi-value">{summary.totalDiasPendientes}</div>
           <div className="c360-kpi-foot">Acumulados sin gozar</div>
         </div>
-        <div className={`c360-kpi${riesgoDoble ? ' crimson' : ''}`}>
+        <div
+          className={`c360-kpi${riesgoDoble ? ' crimson' : summary.periodosSinGoce === 1 ? ' amber' : ''}`}
+        >
           <div className="c360-kpi-head">
             <span className="dot" />
             <AlertOctagon size={12} strokeWidth={2.2} />
-            <span>Periodos sin goce</span>
+            <span>Períodos sin goce</span>
           </div>
           <div className="c360-kpi-value">{summary.periodosSinGoce}</div>
           <div className="c360-kpi-foot">
-            {riesgoDoble ? 'Triple vacacional activo' : 'Sin riesgo inmediato'}
+            {riesgoDoble
+              ? 'Triple vacacional activo'
+              : summary.periodosSinGoce === 1
+                ? 'Programa el descanso pronto'
+                : 'Sin riesgo inmediato'}
           </div>
         </div>
         <div className="c360-kpi">
           <div className="c360-kpi-head">
             <span className="dot" />
             <CalendarCheck size={12} strokeWidth={2.2} />
-            <span>Periodos registrados</span>
+            <span>Períodos registrados</span>
           </div>
           <div className="c360-kpi-value">{summary.totalPeriodos}</div>
           <div className="c360-kpi-foot">
@@ -228,17 +308,17 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
           </div>
           <h3
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 22,
-              fontWeight: 400,
+              fontWeight: 800,
               color: 'var(--text-primary)',
               marginBottom: 4,
             }}
           >
-            Todavía no hay periodos registrados
+            Todavía no hay períodos registrados
           </h3>
           <p className="text-sm text-[color:var(--text-tertiary)] max-w-md mx-auto">
-            Registra el primer periodo anual y el sistema calculará automáticamente
+            Registra el primer período anual y el sistema calculará automáticamente
             el riesgo de doble/triple vacacional.
           </p>
         </div>
@@ -248,11 +328,8 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
             const pct = r.diasCorresponden > 0 ? (r.diasGozados / r.diasCorresponden) * 100 : 0
             const complete = r.diasPendientes === 0
             const sinGoce = r.diasGozados === 0
-            const color = complete
-              ? 'var(--emerald-500)'
-              : sinGoce
-                ? 'var(--crimson-500, #ef4444)'
-                : 'var(--amber-500)'
+            const tone = GOCE_TONE[complete ? 'completo' : sinGoce ? 'sinGoce' : 'parcial']
+            const ToneIcon = tone.icon
             return (
               <div
                 key={r.id}
@@ -261,19 +338,40 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-                      Periodo {fmtDate(r.periodoInicio)} → {fmtDate(r.periodoFin)}
+                      Período {fmtDate(r.periodoInicio)} → {fmtDate(r.periodoFin)}
                     </p>
                     <p className="mt-0.5 text-xs text-[color:var(--text-tertiary)]">
                       Corresponden {r.diasCorresponden} días · Gozados {r.diasGozados} · Pendientes {r.diasPendientes}
-                      {r.esDoble ? ' · 🚨 Doble' : ''}
                     </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                        style={{ color: tone.ink, background: tone.bg, borderColor: tone.border }}
+                      >
+                        <ToneIcon className="h-3.5 w-3.5" />
+                        {tone.label}
+                      </span>
+                      {r.esDoble ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                          style={{
+                            color: GOCE_TONE.sinGoce.ink,
+                            background: GOCE_TONE.sinGoce.bg,
+                            borderColor: GOCE_TONE.sinGoce.border,
+                          }}
+                        >
+                          <AlertOctagon className="h-3.5 w-3.5" />
+                          Doble período
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="text-right">
                     <div
                       style={{
-                        fontFamily: 'var(--font-serif)',
+                        fontFamily: 'var(--font-display)',
                         fontSize: 22,
-                        color,
+                        color: tone.ink,
                         lineHeight: 1,
                       }}
                     >
@@ -284,16 +382,22 @@ export function TabVacaciones({ workerId, workerFirstName }: TabVacacionesProps)
                     </div>
                   </div>
                 </div>
-                {/* Progress bar */}
+                {/* Barra de goce: el texto de arriba ya da los días, la barra lo refuerza */}
                 <div
                   className="mt-3 h-1.5 rounded-full overflow-hidden"
                   style={{ background: 'var(--neutral-100)' }}
+                  role="progressbar"
+                  aria-label="Días gozados del período"
+                  aria-valuemin={0}
+                  aria-valuemax={r.diasCorresponden}
+                  aria-valuenow={Math.min(r.diasGozados, r.diasCorresponden)}
+                  aria-valuetext={`${r.diasGozados} de ${r.diasCorresponden} días gozados · ${r.diasPendientes} pendientes · ${tone.label}`}
                 >
                   <div
                     className="h-full transition-all"
                     style={{
                       width: `${Math.min(100, pct)}%`,
-                      background: color,
+                      background: tone.bar,
                     }}
                   />
                 </div>

@@ -183,14 +183,15 @@ async function bumpBudgetCounter(params: {
 
 /**
  * Budget mensual estándar en USD según plan.
- * Las orgs en plan FREE pueden usar IA pero limitado; las orgs PRO tienen
- * un techo alto que cubre el 99% de uso normal sin alarmar.
+ * Las orgs en plan FREE pueden usar IA pero limitado. PRO (S/ 699) queda por
+ * debajo de EMPRESA (S/ 1,899): antes tenía US$ 100, casi la mitad de lo que
+ * paga el cliente, y quedaba invertido frente a EMPRESA.
  */
 const MONTHLY_BUDGET_BY_PLAN: Record<string, number> = {
   FREE: 1, // 1 USD — solo para que no quemen tokens si entra un bot
   STARTER: 5,
+  PRO: 15,
   EMPRESA: 25,
-  PRO: 100,
   BUSINESS: 250,    // Cuota IA ampliada — coherente con feature listada en plan
   ENTERPRISE: 500,
 }

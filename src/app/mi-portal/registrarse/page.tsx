@@ -70,7 +70,7 @@ export default function RegistrarseWorkerPage() {
 
               <h1
                 className="text-4xl font-semibold tracking-tight leading-tight sm:text-5xl"
-                style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
               >
                 Tu carrera laboral en{' '}
                 <span className="text-emerald-300 italic">un solo lugar</span>.

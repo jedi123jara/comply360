@@ -29,6 +29,7 @@ import {
   Download,
 } from 'lucide-react'
 import { cn, displayWorkerName, workerInitials } from '@/lib/utils'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { useToast } from '@/components/ui/toast'
 import { ContractValidationsPanel } from '@/components/contracts/contract-validations-panel'
 import { ContractVersionsPanel } from '@/components/contracts/contract-versions-panel'
@@ -1379,7 +1380,7 @@ export default function ContratoDetailPage() {
               <div className="p-8 max-w-4xl mx-auto">
                 <div
                   className="prose prose-sm max-w-none prose-invert [&_h1]:text-[#1e3a6e] [&_h2]:text-[#1e3a6e] [&_h3]:text-[#1e3a6e] [&_table]:border-collapse [&_td]:border [&_td]:border-white/10 [&_td]:p-2 [&_th]:border [&_th]:border-white/10 [&_th]:p-2 [&_th]:bg-[color:var(--neutral-50)]"
-                  dangerouslySetInnerHTML={{ __html: contract.contentHtml }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(contract.contentHtml) }}
                 />
               </div>
             </>

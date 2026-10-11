@@ -48,6 +48,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   //
   // Mejora futura: mover este check a Server Component con redirect() server-side.
   useEffect(() => {
+    document.body.classList.add('c360-dashboard-light')
+    return () => document.body.classList.remove('c360-dashboard-light')
+  }, [])
+
+  useEffect(() => {
     // Whitelist de rutas que SIEMPRE deben ser accesibles incluso si
     // hasOrg=false o needsPlan=true. Sin esto, /dashboard/configuracion/
     // diagnostico (donde está el card de Cambiar plan + diagnostico de
@@ -87,7 +92,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         e.preventDefault()
         copilot.toggle()
       }
-      if (e.key === 'Escape' && sidebarOpen) {
+      // Si un menú o diálogo interno ya atendió el Escape (Radix llama a
+      // preventDefault al cerrarse), no cerramos también el menú lateral.
+      if (e.key === 'Escape' && sidebarOpen && !e.defaultPrevented) {
         closeSidebar()
       }
     }
@@ -98,20 +105,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
+        'c360-dashboard-light',
         'min-h-screen bg-[color:var(--bg-canvas)] text-[color:var(--text-primary)]',
-        'relative overflow-hidden'
+        'relative overflow-x-hidden'
       )}
     >
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_18%_-10%,rgba(14,165,233,0.18),transparent_32%),radial-gradient(circle_at_82%_8%,rgba(16,185,129,0.14),transparent_28%),linear-gradient(180deg,rgba(2,6,23,0)_0%,rgba(2,6,23,0.42)_100%)]" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_70%_-18%,rgba(96,165,250,0.16),transparent_34%)]" />
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={closeSidebar} onCommandK={openCommand} />
 
       {/* Content area — offset by sidebar width on desktop */}
       <div className="relative z-10 lg:pl-[var(--sidebar-width)] flex min-h-screen flex-col">
         <TrialBanner />
-        <Topbar onMenuToggle={toggleSidebar} onCommandK={openCommand} />
+        <Topbar onMenuToggle={toggleSidebar} onCommandK={openCommand} menuOpen={sidebarOpen} />
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
           <ErrorBoundary>
             <div className="c360-page-enter c360-app-stage mx-auto w-full max-w-[var(--content-max)]">
               {children}

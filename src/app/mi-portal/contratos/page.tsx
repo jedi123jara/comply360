@@ -123,7 +123,7 @@ export default function MiPortalContratosPage() {
         </div>
         <h1
           className="text-[32px] leading-tight text-[color:var(--text-primary)]"
-          style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em' }}
+          style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.02em' }}
         >
           {pending.length > 0 ? (
             <>
@@ -219,7 +219,7 @@ export default function MiPortalContratosPage() {
           <FileSignature className="mx-auto mb-3 h-10 w-10 text-[color:var(--text-tertiary)]" />
           <p
             className="text-xl text-[color:var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             Aún no hay contratos vinculados a tu perfil.
           </p>
@@ -276,7 +276,7 @@ function Section({
         <div>
           <h2
             className="text-lg font-semibold text-[color:var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             {title}
           </h2>
@@ -357,7 +357,7 @@ function ContractCard({
           </p>
           <h3
             className="mt-0.5 truncate text-[15px] font-semibold text-[color:var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             {contract.title}
           </h3>
@@ -399,7 +399,7 @@ function ContractDocumentCard({ document }: { document: ContractDocumentItem }) 
           </p>
           <h3
             className="mt-0.5 truncate text-[15px] font-semibold text-[color:var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
           >
             {document.title}
           </h3>
@@ -487,7 +487,7 @@ function StatPill({
       <div className="min-w-0">
         <p
           className={`text-lg leading-none ${palette.text}`}
-          style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+          style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
         >
           {value}
         </p>

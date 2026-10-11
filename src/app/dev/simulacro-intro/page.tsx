@@ -68,7 +68,7 @@ function Cover({ onStart }: { onStart: () => void }) {
           </Badge>
         </div>
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight max-w-3xl mx-auto">
-          Enfrentá una inspección sin riesgo
+          Enfrenta una inspección sin riesgo
         </h1>
         <p className="text-lg text-[color:var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
           El inspector virtual va a pedirte los mismos documentos que pediría SUNAFIL.
@@ -290,7 +290,7 @@ function ResultCover({ onRestart }: { onRestart: () => void }) {
         </h1>
         <p className="text-[color:var(--text-secondary)] max-w-xl mx-auto">
           3 observaciones detectadas · multa potencial{' '}
-          <strong className="text-crimson-700">S/ 28,800</strong>. Si subsanás antes de una
+          <strong className="text-crimson-700">S/ 28,800</strong>. Si subsanas antes de una
           inspección real, el descuento es del 90%.
         </p>
       </div>

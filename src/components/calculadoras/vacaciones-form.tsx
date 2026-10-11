@@ -2,44 +2,40 @@
 
 import { useState, useMemo } from 'react'
 import { calcularVacaciones } from '@/lib/legal-engine/calculators/vacaciones'
+import {
+  PERU_LABOR,
+  calcularPeriodoLaboral,
+  getDiasVacacionesPorRegimen,
+} from '@/lib/legal-engine/peru-labor'
+import type { VacacionesInput, VacacionesResult } from '@/lib/legal-engine'
 import { openWhatsApp } from '@/lib/whatsapp'
 import { generatePDFFromHTML, calculationToHTML } from '@/lib/pdf/generate-pdf'
 import { formatSoles } from '@/lib/format/peruvian'
 import {
-  Calculator,
   Download,
   MessageCircle,
-  Scale,
-  Clock,
   TrendingUp,
   CalendarDays,
-  Info,
   Save,
   Loader2,
+  Scale,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { WorkerAutoFill, type WorkerData } from './worker-autofill'
+import { RegimenSelector, AvisoRegimenEspecial } from './shared/regimen-selector'
+import { getRegimenInfo, normalizarRegimen } from './shared/regimen'
+import { ResultadoExplicado, type BaseLegalSimple } from './shared/resultado-explicado'
+import { hoyLimaIso } from './shared/fechas'
+import { CARD, EstadoVacio, HERO_BTN, HINT, INPUT, LABEL } from './shared/ui'
 
-interface VacacionesInput {
-  sueldoBruto: number
-  fechaIngreso: string
-  fechaCese: string
-  diasGozados: number
-  asignacionFamiliar: boolean
+interface VacacionesCalculadoraProps {
+  /** DNI del trabajador para precargar sus datos (incluido su régimen). */
+  prefillDni?: string
 }
 
-interface VacacionesResult {
-  vacacionesTruncas: number
-  vacacionesNoGozadas: number
-  indemnizacionVacacional: number
-  total: number
-  diasTruncosComputables: number
-  periodosNoGozados: number
-  formula: string
-  baseLegal: string
-}
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`
 
-export function VacacionesCalculadora() {
+export function VacacionesCalculadora({ prefillDni }: VacacionesCalculadoraProps = {}) {
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
   const [selectedWorker, setSelectedWorker] = useState<WorkerData | null>(null)
@@ -49,10 +45,13 @@ export function VacacionesCalculadora() {
     fechaCese: '',
     diasGozados: 0,
     asignacionFamiliar: false,
+    regimenLaboral: 'GENERAL',
   })
 
+  const fechasInvertidas = !!input.fechaIngreso && !!input.fechaCese && input.fechaCese < input.fechaIngreso
+
   const result = useMemo<VacacionesResult | null>(() => {
-    if (input.sueldoBruto <= 0 || !input.fechaIngreso || !input.fechaCese) {
+    if (input.sueldoBruto <= 0 || !input.fechaIngreso || !input.fechaCese || fechasInvertidas) {
       return null
     }
     try {
@@ -60,7 +59,7 @@ export function VacacionesCalculadora() {
     } catch {
       return null
     }
-  }, [input])
+  }, [input, fechasInvertidas])
 
   function handleWorkerSelect(w: WorkerData | null) {
     setSelectedWorker(w)
@@ -70,16 +69,23 @@ export function VacacionesCalculadora() {
         sueldoBruto: w.sueldoBruto,
         fechaIngreso: w.fechaIngreso,
         asignacionFamiliar: w.asignacionFamiliar,
+        regimenLaboral: normalizarRegimen(w.regimenLaboral),
       }))
     }
   }
 
-  const updateField = <K extends keyof VacacionesInput>(
-    key: K,
-    value: VacacionesInput[K]
-  ) => {
+  const updateField = <K extends keyof VacacionesInput>(key: K, value: VacacionesInput[K]) => {
     setInput(prev => ({ ...prev, [key]: value }))
   }
+
+  const regimen = getRegimenInfo(input.regimenLaboral)
+  const diasPorAno = getDiasVacacionesPorRegimen(input.regimenLaboral)
+
+  const faltantes = [
+    input.sueldoBruto > 0 ? null : 'sueldo',
+    input.fechaIngreso ? null : 'fecha de ingreso',
+    input.fechaCese ? null : 'fecha de cese o de corte',
+  ].filter((x): x is string => x !== null)
 
   const saveCalculation = async () => {
     if (!result) return
@@ -91,9 +97,9 @@ export function VacacionesCalculadora() {
         body: JSON.stringify({ type: 'VACACIONES', inputs: input }),
       })
       if (!res.ok) throw new Error()
-      toast({ title: 'Calculo guardado', description: 'Puedes verlo en tu historial', type: 'success' })
+      toast({ title: 'Cálculo guardado', description: 'Puedes verlo en tu historial', type: 'success' })
     } catch {
-      toast({ title: 'Error al guardar', type: 'error' })
+      toast({ title: 'No se pudo guardar', description: 'Inténtalo de nuevo en un momento', type: 'error' })
     } finally {
       setSaving(false)
     }
@@ -101,322 +107,351 @@ export function VacacionesCalculadora() {
 
   const breakdownItems = result
     ? [
-        { key: 'truncas', label: 'Vacaciones Truncas', amount: result.vacacionesTruncas },
-        { key: 'noGozadas', label: 'Vacaciones No Gozadas', amount: result.vacacionesNoGozadas },
-        { key: 'indemnizacion', label: 'Indemnización Vacacional', amount: result.indemnizacionVacacional },
+        { key: 'truncas', label: 'Vacaciones truncas', hint: 'Por el año que no llegó a completar', amount: result.vacacionesTruncas },
+        { key: 'noGozadas', label: 'Vacaciones no gozadas', hint: 'Días que ganó y no tomó', amount: result.vacacionesNoGozadas },
+        { key: 'indemnizacion', label: 'Indemnización vacacional', hint: 'Una remuneración más por cada año no tomado a tiempo', amount: result.indemnizacionVacacional },
       ]
     : []
 
+  const descargarPdf = () => {
+    if (!result) return
+    const items = [
+      { label: 'Vacaciones truncas', amount: result.vacacionesTruncas, formula: `${result.diasTruncosComputables} días truncos computables` },
+      { label: 'Vacaciones no gozadas', amount: result.vacacionesNoGozadas, formula: `${result.periodosNoGozados} periodo(s) no gozados` },
+      { label: 'Indemnización vacacional', amount: result.indemnizacionVacacional, formula: 'Remuneración adicional por no gozar a tiempo' },
+    ].filter(item => item.amount > 0)
+    const content = calculationToHTML({
+      title: 'Desglose de vacaciones',
+      items,
+      total: result.total,
+      warnings: regimen.tratamiento === 'especial'
+        ? [{ message: `Régimen ${regimen.label}: resultado referencial, consúltalo con tu asesor.` }]
+        : [],
+      legalRefs: [
+        { norm: 'D.Leg. 713', description: 'Ley de descansos remunerados: vacaciones anuales, truncas, no gozadas e indemnización vacacional' },
+      ],
+      metadata: {
+        'Régimen laboral': regimen.label,
+        'Sueldo bruto mensual': formatSoles(input.sueldoBruto),
+        'Fecha de ingreso': input.fechaIngreso,
+        'Fecha de cese o corte': input.fechaCese,
+        'Días de vacaciones gozados': `${input.diasGozados}`,
+        'Asignación familiar': input.asignacionFamiliar ? 'Sí' : 'No',
+        'Días truncos computables': `${result.diasTruncosComputables}`,
+        'Periodos no gozados': `${result.periodosNoGozados}`,
+        'Fórmula aplicada': result.formula,
+      },
+    })
+    generatePDFFromHTML({
+      title: 'Cálculo de vacaciones',
+      filename: 'calculo-vacaciones.pdf',
+      content,
+      watermark: 'COMPLY360',
+    })
+  }
+
+  // ── Explicación en simple ──────────────────────────────────────────────
+  const pasos: string[] = []
+  const baseLegal: BaseLegalSimple[] = [
+    {
+      norma: 'D.Leg. 713',
+      enSimple:
+        'Cada año completo de trabajo da derecho a 30 días de descanso pagado. Si no se toman dentro del año siguiente, se paga una remuneración más como indemnización.',
+    },
+  ]
+  if (result) {
+    const asignacion = input.asignacionFamiliar
+      ? PERU_LABOR.RMV * PERU_LABOR.ASIGNACION_FAMILIAR_PORCENTAJE
+      : 0
+    const remComputable = input.sueldoBruto + asignacion
+    const periodo = calcularPeriodoLaboral(input.fechaIngreso, input.fechaCese)
+    pasos.push(
+      `Remuneración computable: sueldo ${formatSoles(input.sueldoBruto)}` +
+        (asignacion > 0 ? ` + asignación familiar ${formatSoles(asignacion)}` : '') +
+        ` = ${formatSoles(remComputable)}.`,
+    )
+    pasos.push(
+      `Tiempo de servicio: ${plural(periodo.anos, 'año', 'años')}, ${plural(periodo.meses, 'mes', 'meses')} y ${plural(periodo.dias, 'día', 'días')}. ` +
+        `En este régimen corresponden ${diasPorAno} días de vacaciones por año.`,
+    )
+    if (result.vacacionesTruncas > 0) {
+      pasos.push(
+        `Vacaciones truncas: por el año incompleto se paga 1/12 de la remuneración por cada mes y 1/360 por cada día` +
+          (diasPorAno > 0 && diasPorAno < 30 ? `, a la mitad porque en este régimen son ${diasPorAno} días por año` : '') +
+          ` = ${formatSoles(result.vacacionesTruncas)}.`,
+      )
+    }
+    if (result.vacacionesNoGozadas > 0) {
+      const diasNoGozados = Math.max(periodo.anos * diasPorAno - input.diasGozados, 0)
+      pasos.push(
+        `Vacaciones no gozadas: ${plural(diasNoGozados, 'día ganado que no tomó', 'días ganados que no tomó')} = ${formatSoles(result.vacacionesNoGozadas)}.`,
+      )
+    }
+    if (result.indemnizacionVacacional > 0) {
+      pasos.push(
+        `Indemnización vacacional: ${plural(result.periodosNoGozados, 'año de vacaciones no tomado', 'años de vacaciones no tomados')} × una remuneración = ${formatSoles(result.indemnizacionVacacional)}.`,
+      )
+    }
+    if (regimen.tratamiento === 'especial') {
+      pasos.push(`Régimen ${regimen.label}: el monto es solo una referencia.`)
+    }
+    pasos.push(`Total: ${formatSoles(result.total)}.`)
+    if (regimen.key === 'MYPE_MICRO' || regimen.key === 'MYPE_PEQUENA') {
+      baseLegal.push({
+        norma: PERU_LABOR.MYPE.MICRO.BASE_LEGAL,
+        enSimple: 'Régimen MYPE: en micro y pequeña empresa corresponden 15 días de vacaciones por año.',
+      })
+    }
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-      {/* FORM -- Left side */}
-      <div className="lg:col-span-2 space-y-6">
-        <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <CalendarDays className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Datos del Trabajador</h2>
-              <p className="text-sm text-gray-500">Los campos se calculan en tiempo real</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {/* Worker autofill */}
-            <WorkerAutoFill selectedWorker={selectedWorker} onSelect={handleWorkerSelect} />
-
-            {/* Sueldo Bruto */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                Sueldo Bruto Mensual
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">S/</span>
-                <input
-                  type="number"
-                  value={input.sueldoBruto || ''}
-                  onChange={e => updateField('sueldoBruto', Number(e.target.value))}
-                  placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
-                />
-              </div>
-            </div>
-
-            {/* Fechas */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                  Fecha de Ingreso
-                </label>
-                <input
-                  type="date"
-                  value={input.fechaIngreso}
-                  onChange={e => updateField('fechaIngreso', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
+    <div className="@container">
+      <div className="grid grid-cols-1 @4xl:grid-cols-5 gap-6 @4xl:gap-8">
+        {/* FORMULARIO */}
+        <div className="@4xl:col-span-2 space-y-6">
+          <div className={`${CARD} p-6`}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <CalendarDays className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                  Fecha de Cese
-                </label>
-                <input
-                  type="date"
-                  value={input.fechaCese}
-                  onChange={e => updateField('fechaCese', e.target.value)}
-                  className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
+                <h2 className="text-lg font-bold text-[color:var(--text-primary)]">Datos del trabajador</h2>
+                <p className="text-sm text-[color:var(--text-tertiary)]">El resultado se actualiza mientras escribes</p>
               </div>
             </div>
 
-            {/* Dias Gozados */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                Dias de vacaciones gozados
-              </label>
-              <input
-                type="number"
-                value={input.diasGozados || ''}
-                onChange={e => updateField('diasGozados', Number(e.target.value))}
-                placeholder="0"
-                min={0}
-                className="w-full px-3 py-3 border border-white/10 border-white/10 bg-[color:var(--neutral-100)] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg font-semibold"
+            <div className="space-y-5">
+              <WorkerAutoFill
+                selectedWorker={selectedWorker}
+                onSelect={handleWorkerSelect}
+                prefillDni={prefillDni}
               />
-            </div>
 
-            {/* Toggle: Asignacion Familiar */}
-            <div className="space-y-3 pt-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <RegimenSelector
+                calc="vacaciones"
+                value={input.regimenLaboral}
+                onChange={v => updateField('regimenLaboral', v)}
+                origenTrabajador={
+                  selectedWorker && normalizarRegimen(selectedWorker.regimenLaboral) === input.regimenLaboral
+                    ? `${selectedWorker.firstName} ${selectedWorker.lastName}`
+                    : null
+                }
+              />
+
+              {/* Sueldo */}
+              <div>
+                <label htmlFor="vac-sueldo" className={LABEL}>
+                  Sueldo bruto mensual
+                </label>
                 <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-tertiary)] font-semibold text-sm">S/</span>
+                  <input
+                    id="vac-sueldo"
+                    type="number"
+                    min={0}
+                    inputMode="decimal"
+                    value={input.sueldoBruto || ''}
+                    onChange={e => updateField('sueldoBruto', Number(e.target.value))}
+                    placeholder="0.00"
+                    className={`${INPUT} pl-10 text-lg font-semibold`}
+                  />
+                </div>
+              </div>
+
+              {/* Fechas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="vac-ingreso" className={LABEL}>
+                    Fecha de ingreso
+                  </label>
+                  <input
+                    id="vac-ingreso"
+                    type="date"
+                    value={input.fechaIngreso}
+                    onChange={e => updateField('fechaIngreso', e.target.value)}
+                    className={INPUT}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="vac-cese" className={LABEL}>
+                    Fecha de cese
+                  </label>
+                  <input
+                    id="vac-cese"
+                    type="date"
+                    value={input.fechaCese}
+                    onChange={e => updateField('fechaCese', e.target.value)}
+                    className={INPUT}
+                  />
+                </div>
+              </div>
+              <div className="-mt-3">
+                <p className={HINT}>Si sigue trabajando, usa la fecha de hoy para ver lo acumulado.</p>
+                <button
+                  type="button"
+                  onClick={() => updateField('fechaCese', hoyLimaIso())}
+                  className="mt-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  Usar la fecha de hoy
+                </button>
+                {fechasInvertidas && (
+                  <p className="mt-1 text-xs font-medium text-crimson-700" role="alert">
+                    La fecha de cese no puede ser anterior a la de ingreso.
+                  </p>
+                )}
+              </div>
+
+              {/* Días gozados */}
+              <div>
+                <label htmlFor="vac-gozados" className={LABEL}>
+                  Días de vacaciones que ya tomó
+                </label>
+                <input
+                  id="vac-gozados"
+                  type="number"
+                  value={input.diasGozados || ''}
+                  onChange={e => updateField('diasGozados', Math.max(Number(e.target.value), 0))}
+                  placeholder="0"
+                  min={0}
+                  className={`${INPUT} text-lg font-semibold`}
+                />
+                <p className={HINT}>Suma de todos los días de vacaciones que tomó desde que ingresó.</p>
+              </div>
+
+              {/* Asignación familiar */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5">
                   <input
                     type="checkbox"
                     checked={input.asignacionFamiliar}
                     onChange={e => updateField('asignacionFamiliar', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-primary transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-[#141824] rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                  <div className="w-11 h-6 bg-[color:var(--neutral-300)] rounded-full peer-checked:bg-primary transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40" />
+                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
                 </div>
-                <span className="text-sm text-gray-300 group-hover:text-white">
-                  Percibe asignacion familiar (10% RMV)
+                <span className="text-sm text-[color:var(--text-secondary)] group-hover:text-[color:var(--text-primary)]">
+                  Recibe asignación familiar ({formatSoles(PERU_LABOR.RMV * PERU_LABOR.ASIGNACION_FAMILIAR_PORCENTAJE)})
+                  <span className="block text-xs text-[color:var(--text-tertiary)]">Si tiene hijos menores de 18 años o que estudian.</span>
                 </span>
               </label>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* RESULTS -- Right side */}
-      <div className="lg:col-span-3 space-y-6">
-        {!result ? (
-          <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[color:var(--neutral-100)] bg-[color:var(--neutral-100)] flex items-center justify-center mx-auto mb-4">
-              <Calculator className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">
-              Ingresa los datos del trabajador
-            </h3>
-            <p className="text-sm text-gray-400">
-              El calculo se actualiza automaticamente en tiempo real
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Total Card -- Cyan gradient */}
-            <div className="bg-gradient-to-br from-cyan-600 to-cyan-800 rounded-2xl p-8 text-white shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-cyan-200" />
-                  <span className="text-sm font-medium text-cyan-100 uppercase tracking-wider">
-                    Total Vacaciones
+        {/* RESULTADO */}
+        <div className="@4xl:col-span-3 space-y-6">
+          {!result ? (
+            <EstadoVacio titulo="Ingresa los datos del trabajador" faltantes={faltantes} />
+          ) : (
+            <>
+              <AvisoRegimenEspecial regimen={input.regimenLaboral} />
+
+              {/* Total */}
+              <div className="bg-gradient-to-br from-cyan-600 to-cyan-800 rounded-2xl p-6 sm:p-8 text-white shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-5 h-5 text-white/80" />
+                    <span className="text-sm font-medium text-white/90 uppercase tracking-wider">
+                      Total por vacaciones
+                    </span>
+                  </div>
+                  <span className="text-xs bg-white/15 px-2.5 py-1 rounded-full">
+                    {regimen.label}{diasPorAno > 0 ? ` · ${diasPorAno} días por año` : ''}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs bg-white/10 px-2.5 py-1 rounded-full">
-                    D.Leg. 713
-                  </span>
+                <div className="text-4xl sm:text-5xl font-black tracking-tight mb-2 tabular-nums">
+                  {formatSoles(result.total)}
+                </div>
+                <p className="text-white/85 text-sm">
+                  Vacaciones truncas, no gozadas e indemnización vacacional
+                  {regimen.tratamiento === 'especial' ? ' · referencial' : ''}
+                </p>
+
+                <div className="flex flex-wrap gap-2.5 mt-6">
+                  <button
+                    type="button"
+                    onClick={descargarPdf}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-cyan-50 text-cyan-800 rounded-xl font-bold text-sm transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Descargar PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openWhatsApp({ type: 'vacaciones', total: result.total })}
+                    className={HERO_BTN}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Enviar por WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveCalculation}
+                    disabled={saving}
+                    className={HERO_BTN}
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Guardar
+                  </button>
                 </div>
               </div>
-              <div className="text-5xl font-black tracking-tight mb-2">
-                {formatSoles(result.total)}
-              </div>
-              <p className="text-cyan-100 text-sm">
-                Monto total por concepto de vacaciones truncas, no gozadas e indemnizacion
-              </p>
 
-              {/* Action buttons */}
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const items = [
-                      { label: 'Vacaciones Truncas', amount: result.vacacionesTruncas, formula: `${result.diasTruncosComputables} dias truncos computables` },
-                      { label: 'Vacaciones No Gozadas', amount: result.vacacionesNoGozadas, formula: `${result.periodosNoGozados} periodo(s) no gozados` },
-                      { label: 'Indemnizacion Vacacional', amount: result.indemnizacionVacacional, formula: 'Remuneracion equivalente por falta de descanso' },
-                    ].filter(item => item.amount > 0)
-                    const content = calculationToHTML({
-                      title: 'Desglose de Vacaciones',
-                      items,
-                      total: result.total,
-                      legalRefs: [
-                        { norm: 'D.Leg. 713', description: 'Ley de Descansos Remunerados - regulacion de vacaciones anuales, truncas, no gozadas e indemnizacion vacacional' },
-                      ],
-                      metadata: {
-                        'Sueldo Bruto Mensual': formatSoles(input.sueldoBruto),
-                        'Fecha de Ingreso': input.fechaIngreso,
-                        'Fecha de Cese': input.fechaCese,
-                        'Dias de Vacaciones Gozados': `${input.diasGozados}`,
-                        'Asignacion Familiar': input.asignacionFamiliar ? 'Si' : 'No',
-                        'Dias Truncos Computables': `${result.diasTruncosComputables}`,
-                        'Periodos No Gozados': `${result.periodosNoGozados}`,
-                        'Formula Aplicada': result.formula,
-                      },
-                    })
-                    generatePDFFromHTML({
-                      title: 'Calculo de Vacaciones',
-                      filename: 'calculo-vacaciones.pdf',
-                      content,
-                      watermark: 'COMPLY360',
-                    })
-                  }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#141824] hover:bg-cyan-50 text-cyan-800 rounded-xl font-bold text-sm transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openWhatsApp({
-                    type: 'vacaciones',
-                    total: result.total,
-                  })}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-colors border border-white/20"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Enviar por WhatsApp
-                </button>
-                <button
-                  type="button"
-                  onClick={saveCalculation}
-                  disabled={saving || !result}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-colors border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Guardar
-                </button>
-              </div>
-            </div>
+              {/* Desglose */}
+              <div className={`${CARD} overflow-hidden`}>
+                <div className="px-6 py-4 border-b border-[color:var(--border-subtle)]">
+                  <h3 className="text-base font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Desglose
+                  </h3>
+                </div>
 
-            {/* Breakdown */}
-            <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-white/[0.06] border-white/[0.08]">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  Desglose Detallado
-                </h3>
-              </div>
-
-              <div className="divide-y divide-gray-100">
-                {breakdownItems.map(item => {
-                  if (item.amount === 0) return null
-                  const percentage = result.total > 0
-                    ? (item.amount / result.total) * 100
-                    : 0
-
-                  return (
-                    <div key={item.key} className="px-6 py-4 flex items-center gap-4">
-                      {/* Progress bar mini */}
-                      <div className="w-1 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                        <div
-                          className="w-full bg-cyan-500 rounded-full transition-all duration-700"
-                          style={{ height: `${percentage}%` }}
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-white">
-                            {item.label}
-                          </span>
-                          <span className="text-lg font-bold text-white tabular-nums">
+                <div className="divide-y divide-[color:var(--border-subtle)]">
+                  {breakdownItems.map(item => {
+                    const percentage = result.total > 0 ? (item.amount / result.total) * 100 : 0
+                    return (
+                      <div key={item.key} className="px-6 py-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold text-[color:var(--text-primary)]">{item.label}</p>
+                            <p className="text-xs text-[color:var(--text-tertiary)]">{item.hint}</p>
+                          </div>
+                          <span className="text-lg font-bold text-[color:var(--text-primary)] tabular-nums">
                             {formatSoles(item.amount)}
                           </span>
                         </div>
-                        {/* Percentage bar */}
-                        <div className="mt-2 flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full transition-all duration-700"
-                              style={{ width: `${Math.min(percentage, 100)}%` }}
-                            />
+                        {item.amount > 0 && (
+                          <div className="mt-2 flex items-center gap-3">
+                            <div className="flex-1 h-2 bg-[color:var(--neutral-100)] rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full transition-all duration-700"
+                                style={{ width: `${Math.min(percentage, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-[color:var(--text-tertiary)] w-12 text-right tabular-nums">
+                              {percentage.toFixed(1)}%
+                            </span>
                           </div>
-                          <span className="text-xs font-medium text-gray-500 w-10 text-right tabular-nums">
-                            {percentage.toFixed(1)}%
-                          </span>
-                        </div>
+                        )}
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Info: dias truncos and periodos no gozados */}
-            <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-6">
-              <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                <Info className="w-4 h-4 text-primary" />
-                Informacion Adicional
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-cyan-50 rounded-xl border border-cyan-100">
-                  <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0">
-                    <CalendarDays className="w-5 h-5 text-cyan-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black text-cyan-700">{result.diasTruncosComputables}</p>
-                    <p className="text-xs font-medium text-cyan-600">Dias truncos computables</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                  <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black text-amber-700">{result.periodosNoGozados}</p>
-                    <p className="text-xs font-medium text-amber-600">Periodos no gozados</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Formula and Legal Basis */}
-            <div className="bg-[#141824] bg-[#141824] rounded-2xl border border-white/[0.08] border-white/[0.08] shadow-sm p-6">
-              <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                <Scale className="w-4 h-4 text-primary" />
-                Formula y Base Legal
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Formula aplicada:</span>
-                  <div className="mt-1.5">
-                    <code className="block bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] px-4 py-3 rounded-xl border border-white/[0.08] border-white/10 text-sm text-gray-200 font-mono leading-relaxed">
-                      {result.formula}
-                    </code>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Base legal:</span>
-                  <div className="mt-1.5 flex items-start gap-2 p-3 bg-[color:var(--neutral-50)] bg-[color:var(--neutral-100)] rounded-lg">
-                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
-                      D.Leg. 713
-                    </span>
-                    <p className="text-xs text-gray-600">{result.baseLegal}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+              <ResultadoExplicado
+                resumen={
+                  diasPorAno > 0
+                    ? `Por cada año completo corresponden ${diasPorAno} días pagados; por el año incompleto, la parte proporcional a los meses trabajados.`
+                    : 'En este régimen la calculadora no asigna días de vacaciones; consulta con tu asesor cuánto corresponde.'
+                }
+                pasos={pasos}
+                baseLegal={baseLegal}
+                formulaTecnica={result.formula}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

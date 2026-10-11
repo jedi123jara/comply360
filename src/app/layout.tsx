@@ -13,6 +13,7 @@ import Script from "next/script";
 import { BRAND } from "@/lib/brand";
 
 const faviconVersion = "20260511-2";
+const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +31,7 @@ const geistMono = Geist_Mono({
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -53,36 +54,55 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
+// Metadata del sitio público del estudio (oct-2026). Cada página define su
+// título corto; la plantilla agrega " | Comply360".
+const SITE_TITLE = "Comply360 | Cumplimiento laboral y SST para empresas en Perú";
+const SITE_DESCRIPTION =
+  "Estudio de cumplimiento normativo para empresas: laboral, SST, hostigamiento sexual y capacitaciones obligatorias, con la evidencia lista para SUNAFIL. Trujillo y todo el Perú.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${BRAND.domain}`),
   title: {
-    default: `${BRAND.name} — ${BRAND.tagline}`,
-    template: `%s | ${BRAND.name}`,
+    default: SITE_TITLE,
+    template: "%s | Comply360",
   },
-  description: BRAND.description,
+  description: SITE_DESCRIPTION,
   keywords: [
-    "derecho laboral",
-    "contratos laborales peru",
-    "calculadora laboral",
-    "CTS",
-    "gratificaciones",
-    "liquidación",
+    "cumplimiento laboral",
+    "seguridad y salud en el trabajo",
+    "capacitaciones obligatorias SST",
+    "hostigamiento sexual empresas",
     "SUNAFIL",
+    "Trujillo",
     "comply360",
   ],
   openGraph: {
-    title: `${BRAND.name} — Compliance Laboral Inteligente`,
-    description: BRAND.description,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: `https://${BRAND.domain}`,
-    siteName: BRAND.name,
+    siteName: "Comply360",
     locale: "es_PE",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${BRAND.name} — Compliance Laboral Inteligente`,
-    description: "Plataforma SaaS de compliance laboral para empresas peruanas.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  ...(googleSiteVerification
+    ? { verification: { google: googleSiteVerification } }
+    : {}),
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -104,7 +124,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#060a12",
+  themeColor: "#f4f8ff",
   width: "device-width",
   initialScale: 1,
 };
@@ -116,12 +136,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="es"
+      lang="es-PE"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${firaCode.variable} ${instrumentSerif.variable} h-full antialiased`}
-      style={{ colorScheme: 'dark' }}
+      style={{ colorScheme: 'light' }}
     >
       <head>
-        <meta name="color-scheme" content="dark only" />
+        <meta name="color-scheme" content="light" />
         {/* Plausible analytics — GDPR-friendly, sin cookies. Condicional:
             solo se carga si NEXT_PUBLIC_PLAUSIBLE_DOMAIN está configurado. */}
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ? (

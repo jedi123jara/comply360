@@ -114,17 +114,17 @@ export function TabContratos({ workerId, workerFirstName }: TabContratosProps) {
           </div>
           <h2
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 26,
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
               lineHeight: 1.2,
             }}
-            dangerouslySetInnerHTML={{
-              __html: `Contratos vinculados a <em style="color: var(--emerald-700); font-style: italic">${workerFirstName}</em>.`,
-            }}
-          />
+          >
+            {/* Texto escapado por React: el nombre viene de datos del usuario. */}
+            Contratos vinculados a <span style={{ color: 'var(--brand-primary-text, #2563eb)' }}>{workerFirstName}</span>.
+          </h2>
           <p className="text-sm text-[color:var(--text-secondary)] mt-1 max-w-2xl">
             Indefinidos, plazo fijo, locación o MYPE — cada uno enlazado al legajo y al motor de alertas.
           </p>
@@ -152,9 +152,9 @@ export function TabContratos({ workerId, workerFirstName }: TabContratosProps) {
           </div>
           <h3
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: 22,
-              fontWeight: 400,
+              fontWeight: 800,
               letterSpacing: '-0.015em',
               color: 'var(--text-primary)',
               marginBottom: 4,

@@ -1,0 +1,571 @@
+/*
+ * Comply360 employer workspace — Blue & White system.
+ *
+ * This scope is intentionally applied at the dashboard shell. It gives every
+ * employer route one visual language while keeping public marketing pages and
+ * the worker portal independent.
+ *
+ * Cómo se activa: dashboard-shell.tsx pone `.c360-dashboard-light` en el
+ * contenedor del shell y también en <body> (para que los portales —modales,
+ * popovers— hereden el tema claro). `.c360-dashboard-sidebar` es la única
+ * isla oscura (navy) dentro del tema.
+ *
+ * Qué va dónde (Tailwind 4: una regla SIN capa le gana a cualquier utilidad):
+ *   - @layer base  → apariencia POR DEFECTO de elementos en el tema claro
+ *                    (inputs, selects, textareas, placeholder). Una utilidad
+ *                    del componente (bg-*, text-*, border-*) puede cambiarla.
+ *   - SIN capa     → variables del tema y REMAPEOS intencionales de utilidades
+ *                    heredadas del tema oscuro (.bg-white, .text-slate-400,
+ *                    .border-slate-200, controles con text-white…). Deben
+ *                    ganarle a la utilidad, por eso no van en capa.
+ */
+
+/* Mismo orden de capas que declara `@import "tailwindcss"` en globals.css.
+   Si este archivo llegara a cargarse antes, `base` no quedaría por delante
+   de `theme` por accidente. Repetir la declaración no cambia nada. */
+@layer theme, base, components, utilities;
+
+.c360-dashboard-light {
+  color-scheme: light;
+
+  /* Brand aliases. Legacy `emerald-*` utilities now resolve to Comply blue. */
+  --emerald-50: #eff6ff;
+  --emerald-100: #dbeafe;
+  --emerald-200: #bfdbfe;
+  --emerald-300: #93c5fd;
+  --emerald-400: #60a5fa;
+  --emerald-500: #2563eb;
+  --emerald-600: #155eef;
+  --emerald-700: #1d4ed8;
+  --emerald-800: #1e40af;
+  --emerald-900: #172554;
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-500: #2563eb;
+  --blue-600: #155eef;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-150: #eaf0f8;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+
+  /*
+   * Rampas semánticas para fondo claro.
+   * globals.css define crimson/amber/gold/cyan/success-green invertidas para
+   * fondo oscuro (ej. --crimson-700: #fecdd3). Aquí vuelven al orden claro,
+   * el mismo que usamos para emerald/blue:
+   *   50-200  → fondos y bordes suaves
+   *   300-500 → color vivo (puntos, barras, tintes /10-/15)
+   *   600-900 → tinta de texto. 600 y 700 dan ≥ 4,5:1 sobre blanco, sobre el
+   *             canvas (#f4f8ff) y sobre los fondos 50/100 de su propia rampa.
+   */
+  --crimson-50: #fff1f2;
+  --crimson-100: #ffe4e6;
+  --crimson-200: #fecdd3;
+  --crimson-300: #fda4af;
+  --crimson-400: #fb7185;
+  --crimson-500: #e11d48;
+  --crimson-600: #be123c;
+  --crimson-700: #9f1239;
+  --crimson-800: #881337;
+  --crimson-900: #6b0f2a;
+
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #a84c09;
+  --amber-700: #92400e;
+  --amber-800: #78350f;
+  --amber-900: #5b2a0b;
+
+  /* Gold conserva el dorado de marca (#d4a853) en 500, igual que en oscuro. */
+  --gold-50: #fdf9ef;
+  --gold-100: #f8efd8;
+  --gold-200: #f0dfb1;
+  --gold-300: #e5ca88;
+  --gold-400: #dcb86a;
+  --gold-500: #d4a853;
+  --gold-600: #835c15;
+  --gold-700: #6f4e12;
+  --gold-800: #573d0f;
+  --gold-900: #3f2d0b;
+
+  --cyan-50: #ecfeff;
+  --cyan-100: #cffafe;
+  --cyan-200: #a5f3fc;
+  --cyan-300: #67e8f9;
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+  --cyan-600: #0b6a85;
+  --cyan-700: #155e75;
+  --cyan-800: #164e63;
+  --cyan-900: #083344;
+
+  /* Verde de "Cumple": emerald es azul de marca en este tema, success-green no. */
+  --success-green-50: #f0fdf4;
+  --success-green-100: #dcfce7;
+  --success-green-200: #bbf7d0;
+  --success-green-300: #86efac;
+  --success-green-400: #4ade80;
+  --success-green-500: #22c55e;
+  --success-green-600: #137637;
+  --success-green-700: #166534;
+  --success-green-800: #14532d;
+  --success-green-900: #052e16;
+
+  /*
+   * amber-600..900 y cyan-600..900 no pasan por las variables --amber-NNN ni
+   * --cyan-NNN en el @theme de globals.css: Tailwind usa su paleta por defecto (amber-600 =
+   * #dd7400 → 3,2:1 y cyan-600 = #0092b5 → 3,6:1 sobre blanco). Los atamos a
+   * la rampa clara para que text-amber-600 / text-cyan-600 sean legibles.
+   */
+  --color-amber-600: var(--amber-600);
+  --color-amber-700: var(--amber-700);
+  --color-amber-800: var(--amber-800);
+  --color-amber-900: var(--amber-900);
+  --color-cyan-600: var(--cyan-600);
+  --color-cyan-700: var(--cyan-700);
+  --color-cyan-800: var(--cyan-800);
+  --color-cyan-900: var(--cyan-900);
+
+  --bg-base: #f4f8ff;
+  --bg-canvas: #f4f8ff;
+  --bg-elevated: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f3f7ff;
+  --bg-surface-active: #e8f0ff;
+  --bg-inset: #f7f9fd;
+  --bg-muted: #eef4ff;
+
+  --text-primary: #102a56;
+  --text-secondary: #405576;
+  /* 5,4:1 sobre blanco y 5,1:1 sobre el canvas (antes #70809a: 4,0 / 3,8). */
+  --text-tertiary: #5b6b84;
+  --text-disabled: #9aa8bb;
+  --text-inverse: #ffffff;
+  --text-accent: #155eef;
+  --text-link: #155eef;
+
+  --border-subtle: #e8eef7;
+  --border-default: #d8e2f0;
+  --border-strong: #bdcce0;
+  --border-emerald: rgba(21, 94, 239, 0.3);
+  --border-emerald-strong: rgba(21, 94, 239, 0.48);
+  --border-crimson: rgba(225, 29, 72, 0.25);
+  --border-amber: rgba(217, 119, 6, 0.28);
+
+  /*
+   * COLORES POR FUNCIÓN — tema CLARO. Mismas variables que tokens.css define
+   * para el tema oscuro en :root. Todas las parejas fg/bg dan ≥ 6:1, y el fg
+   * ≥ 6:1 también sobre blanco, el canvas #f4f8ff y #f5f7fb.
+   */
+  --status-success-fg: #166534;
+  --status-success-bg: #ecfdf3;
+  --status-success-border: #bbf7d0;
+  --status-warning-fg: #92400e;
+  --status-warning-bg: #fff8e7;
+  --status-warning-border: #fde68a;
+  --status-danger-fg: #9f1239;
+  --status-danger-bg: #fff1f2;
+  --status-danger-border: #fecdd3;
+  --status-info-fg: #1d4ed8;
+  --status-info-bg: #eff6ff;
+  --status-info-border: #bfdbfe;
+  --status-neutral-fg: #405576;
+  --status-neutral-bg: #f1f5f9;
+  --status-neutral-border: #d8e2f0;
+
+  /* Marca como texto sobre fondo claro (el ámbar puro da 1,9:1 sobre blanco). */
+  --brand-primary-text: #2563eb;  /* 5,2:1 sobre blanco */
+  --brand-amber-text: #b45309;    /* 5,0:1 sobre blanco, ≥ 4,5:1 en todo fondo claro */
+
+  /*
+   * Tokens semánticos legacy. En tokens.css se calculan en :root con las rampas
+   * oscuras, así que hay que redeclararlos aquí para que sigan a las claras.
+   * bg/border/text ahora apuntan a los colores por función (mismo valor).
+   */
+  --color-success: var(--success-green-600);
+  --color-success-bg: var(--status-success-bg);
+  --color-success-border: var(--status-success-border);
+  --color-success-text: var(--status-success-fg);
+  --color-warning: var(--amber-500);
+  --color-warning-bg: var(--status-warning-bg);
+  --color-warning-border: var(--status-warning-border);
+  --color-warning-text: var(--status-warning-fg);
+  --color-danger: var(--crimson-600);
+  --color-danger-bg: var(--status-danger-bg);
+  --color-danger-border: var(--status-danger-border);
+  --color-danger-text: var(--status-danger-fg);
+  --color-info-bg: var(--status-info-bg);
+  --color-info-text: var(--status-info-fg);
+  --color-compliance-critical: var(--crimson-600);
+  --color-compliance-critical-bg: var(--crimson-50);
+  --color-compliance-critical-text: var(--crimson-700);
+
+  --accent-bar-emerald: linear-gradient(90deg, #155eef 0%, #49a7ff 100%);
+  --accent-bar-amber: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+  --accent-bar-crimson: linear-gradient(90deg, #e11d48 0%, #fb7185 100%);
+
+  --elevation-1: 0 1px 2px rgba(16, 42, 86, 0.04), 0 4px 12px rgba(16, 42, 86, 0.035);
+  --elevation-2: 0 1px 2px rgba(16, 42, 86, 0.04), 0 10px 28px rgba(16, 42, 86, 0.06);
+  --elevation-3: 0 2px 4px rgba(16, 42, 86, 0.05), 0 16px 40px rgba(16, 42, 86, 0.08);
+  --elevation-4: 0 3px 6px rgba(16, 42, 86, 0.06), 0 24px 60px rgba(16, 42, 86, 0.1);
+  --elevation-hover: 0 2px 5px rgba(16, 42, 86, 0.06), 0 18px 38px rgba(21, 94, 239, 0.1);
+  --shadow-hero: 0 18px 45px rgba(16, 42, 86, 0.08);
+  --shadow-card-lift: var(--elevation-hover);
+
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 70% -20%, rgba(96, 165, 250, 0.16), transparent 34%),
+    #f4f8ff;
+  color: var(--text-primary);
+}
+
+body.c360-dashboard-light {
+  color-scheme: light;
+  background: #f4f8ff;
+}
+
+/* Restore conventional light utilities inside the employer product. */
+.c360-dashboard-light .bg-white,
+.c360-dashboard-light .bg-white\/80,
+.c360-dashboard-light .bg-white\/90,
+.c360-dashboard-light .bg-white\/95 {
+  background-color: #ffffff !important;
+}
+
+.c360-dashboard-light .bg-white\/30,
+.c360-dashboard-light .bg-white\/40,
+.c360-dashboard-light .bg-white\/50,
+.c360-dashboard-light .bg-white\/60,
+.c360-dashboard-light .bg-white\/70 {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.c360-dashboard-light :is(.bg-slate-50, .bg-gray-50, .bg-neutral-50) {
+  background-color: #f8fafc !important;
+}
+
+.c360-dashboard-light :is(.bg-slate-100, .bg-gray-100, .bg-neutral-100) {
+  background-color: #f1f5f9 !important;
+}
+
+.c360-dashboard-light :is(.bg-slate-200, .bg-gray-200, .bg-neutral-200) {
+  background-color: #e2e8f0 !important;
+}
+
+.c360-dashboard-light :is(.bg-emerald-50, .bg-blue-50, .bg-cyan-50, .bg-sky-50) {
+  background-color: #eff6ff !important;
+}
+
+.c360-dashboard-light :is(.bg-emerald-100, .bg-blue-100, .bg-cyan-100, .bg-sky-100) {
+  background-color: #dbeafe !important;
+}
+
+.c360-dashboard-light :is(.bg-green-50, .bg-green-100) {
+  background-color: #ecfdf3 !important;
+}
+
+.c360-dashboard-light :is(.bg-amber-50, .bg-yellow-50, .bg-orange-50) {
+  background-color: #fffbeb !important;
+}
+
+.c360-dashboard-light :is(.bg-amber-100, .bg-yellow-100, .bg-orange-100) {
+  background-color: #fef3c7 !important;
+}
+
+.c360-dashboard-light :is(.bg-red-50, .bg-rose-50, .bg-crimson-50) {
+  background-color: #fff1f2 !important;
+}
+
+.c360-dashboard-light :is(.bg-red-100, .bg-rose-100, .bg-crimson-100) {
+  background-color: #ffe4e6 !important;
+}
+
+.c360-dashboard-light :is(.bg-purple-50, .bg-violet-50, .bg-indigo-50) {
+  background-color: #f5f3ff !important;
+}
+
+.c360-dashboard-light :is(.text-slate-950, .text-gray-950, .text-neutral-950, .text-slate-900, .text-gray-900, .text-neutral-900, .text-black) {
+  color: var(--text-primary) !important;
+}
+
+.c360-dashboard-light :is(.text-slate-800, .text-gray-800, .text-neutral-800, .text-slate-700, .text-gray-700, .text-neutral-700) {
+  color: var(--text-secondary) !important;
+}
+
+.c360-dashboard-light :is(.text-slate-600, .text-gray-600, .text-neutral-600, .text-slate-500, .text-gray-500, .text-neutral-500, .text-slate-400, .text-gray-400) {
+  color: var(--text-tertiary) !important;
+}
+
+.c360-dashboard-light :is(.text-emerald-200, .text-emerald-300, .text-emerald-400, .text-emerald-600, .text-emerald-700, .text-emerald-800, .text-cyan-200, .text-cyan-300, .text-cyan-400) {
+  color: #1d4ed8 !important;
+}
+
+/*
+ * Tintas "luminosas" heredadas del tema oscuro (texto 200-500 pensado para
+ * fondo negro). Sobre blanco quedan en 1,2-2,2:1, así que las llevamos a la
+ * tinta 600 de su rampa (≥ 5:1). Usan var(): dentro del sidebar navy, que
+ * recupera las rampas oscuras, vuelven a ser claras sin regla extra.
+ */
+.c360-dashboard-light :is(.text-crimson-200, .text-crimson-300, .text-crimson-400) {
+  color: var(--crimson-600);
+}
+
+.c360-dashboard-light :is(.text-amber-300, .text-amber-400, .text-amber-500) {
+  color: var(--amber-600);
+}
+
+.c360-dashboard-light :is(.text-gold-300, .text-gold-400, .text-gold-500) {
+  color: var(--gold-600);
+}
+
+/*
+ * Tonos crimson que el @theme de globals.css no mapea (200/800/900): Tailwind
+ * no genera CSS para ellos y el texto/borde caía al color heredado.
+ */
+.c360-dashboard-light :is(.text-crimson-800, .hover\:text-crimson-800:hover) {
+  color: var(--crimson-800);
+}
+
+.c360-dashboard-light .text-crimson-900 {
+  color: var(--crimson-900);
+}
+
+.c360-dashboard-light :is(.border-crimson-200, .hover\:border-crimson-200:hover) {
+  border-color: var(--crimson-200);
+}
+
+/* globals.css fuerza bg-amber-200 a slate oscuro; aquí vuelve a ser ámbar suave. */
+.c360-dashboard-light .bg-amber-200 {
+  background-color: var(--amber-200) !important;
+}
+
+/* Restos de `dark:bg-amber-900/NN` sin prefijo: sobre blanco quedaban marrón turbio. */
+.c360-dashboard-light :is(.bg-amber-900\/10, .bg-amber-900\/20) {
+  background-color: var(--amber-50);
+}
+
+.c360-dashboard-light :is(.bg-amber-900\/30, .bg-amber-900\/40) {
+  background-color: var(--amber-100);
+}
+
+.c360-dashboard-light :is(.border-slate-100, .border-slate-200, .border-slate-300, .border-gray-100, .border-gray-200, .border-gray-300, .border-neutral-100, .border-neutral-200, .border-white\/10, .border-white\/\[0\.06\], .border-white\/\[0\.08\], .border-white\/\[0\.12\]) {
+  border-color: var(--border-default) !important;
+}
+
+.c360-dashboard-light :is(.divide-slate-100, .divide-slate-200, .divide-gray-100, .divide-gray-200) > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-subtle) !important;
+}
+
+/* Convert legacy dark product surfaces, while preserving code samples. */
+.c360-dashboard-light main :is(.bg-slate-950, .bg-gray-950, .bg-zinc-900, .bg-neutral-950):not(pre):not(code),
+.c360-dashboard-light main :not(pre):not(code)[class*="bg-[#0"],
+.c360-dashboard-light main :not(pre):not(code)[class*="bg-[#1"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: var(--border-default) !important;
+  box-shadow: var(--elevation-2) !important;
+}
+
+.c360-dashboard-light main :is(.bg-slate-950, .bg-gray-950, .bg-zinc-900, .bg-neutral-950) :is(.text-white, .text-slate-100, .text-slate-200),
+.c360-dashboard-light main [class*="bg-[#0"] :is(.text-white, .text-slate-100, .text-slate-200),
+.c360-dashboard-light main [class*="bg-[#1"] :is(.text-white, .text-slate-100, .text-slate-200) {
+  color: var(--text-primary) !important;
+}
+
+/*
+ * Controles de formulario (input / textarea / select) dentro del contenido.
+ *
+ * (a) @layer base: apariencia por defecto en el tema claro. Gana a las reglas
+ *     base de globals.css por especificidad (misma capa) y CEDE ante las
+ *     utilidades del componente (bg-transparent, bg-slate-50, text-*, …).
+ */
+@layer base {
+  .c360-dashboard-light main :is(input, textarea, select) {
+    color-scheme: light;
+  }
+
+  .c360-dashboard-light main :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    background-color: #ffffff;
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+
+  .c360-dashboard-light main :is(input, textarea)::placeholder {
+    color: var(--text-tertiary);
+  }
+}
+
+/*
+ * (b) SIN capa, a propósito: remapeo de controles que aún llevan utilidades del
+ *     tema oscuro (text-white, text-slate-100, bg-slate-950, bg-white/5,
+ *     bg-[color:var(--neutral-100)], bg-[#141824]…). Sin esto, al pasar (a) a
+ *     la capa base, esas utilidades ganarían y quedaría texto blanco sobre
+ *     fondo blanco (~80 controles en el dashboard). Mantiene exactamente el
+ *     aspecto de antes para ellos; al migrar cada control a tokens, sale solo
+ *     de esta lista.
+ */
+.c360-dashboard-light main :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="file"]):is(
+  [class*="text-white"],
+  [class*="text-slate-100"],
+  [class*="text-slate-200"],
+  [class*="text-slate-300"],
+  [class*="text-gray-100"],
+  [class*="text-gray-200"],
+  [class*="text-gray-300"],
+  [class*="text-cyan-300"],
+  [class*="bg-slate-800"],
+  [class*="bg-slate-900"],
+  [class*="bg-slate-950"],
+  [class*="bg-gray-800"],
+  [class*="bg-gray-900"],
+  [class*="bg-black"],
+  [class*="bg-white/"],
+  [class*="bg-[#0"],
+  [class*="bg-[#1"],
+  [class*="neutral-100)]"],
+  [class*="bg-amber-900"]
+) {
+  background-color: #ffffff;
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.c360-dashboard-light main :is(input, textarea):is(
+  [class*="text-white"],
+  [class*="text-slate-100"],
+  [class*="text-slate-200"],
+  [class*="text-slate-300"],
+  [class*="text-gray-100"],
+  [class*="text-gray-200"],
+  [class*="text-gray-300"],
+  [class*="bg-slate-950"],
+  [class*="bg-[#0"],
+  [class*="bg-[#1"]
+)::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Dark navy navigation is the single deliberate dark surface. */
+.c360-dashboard-sidebar {
+  --bg-elevated: #08265d;
+  --bg-surface: rgba(255, 255, 255, 0.08);
+  --bg-surface-hover: rgba(96, 165, 250, 0.16);
+  --bg-surface-active: rgba(96, 165, 250, 0.22);
+  --bg-inset: rgba(3, 20, 54, 0.36);
+  --text-primary: #ffffff;
+  --text-secondary: #dbeafe;
+  --text-tertiary: #9dc7ff;
+  --border-subtle: rgba(191, 219, 254, 0.12);
+  --border-default: rgba(191, 219, 254, 0.18);
+
+  /*
+   * Isla oscura: recupera las rampas de fondo oscuro (mismos valores que :root
+   * en globals.css; los tonos que allí no existen siguen la misma lógica) para
+   * que los tintes /12 y las tintas 600/700 de Badge sigan legibles sobre navy.
+   */
+  --crimson-50: #3b0f18;
+  --crimson-100: #571827;
+  --crimson-200: #7a1c30;
+  --crimson-300: #fca5a5;
+  --crimson-400: #fb7185;
+  --crimson-500: #f43f5e;
+  --crimson-600: #fb7185;
+  --crimson-700: #fecdd3;
+  --crimson-800: #ffe4e6;
+  --crimson-900: #fff1f2;
+  --amber-50: #3b2a0b;
+  --amber-100: #4a3510;
+  --amber-200: #5c4214;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #fbbf24;
+  --amber-700: #fde68a;
+  --amber-800: #fef3c7;
+  --amber-900: #fffbeb;
+  --gold-50: #302807;
+  --gold-100: #42350c;
+  --gold-200: #5f4b12;
+  --gold-300: #fde047;
+  --gold-400: #facc15;
+  --gold-500: #d4a853;
+  --gold-600: #fde68a;
+  --gold-700: #fef3c7;
+  --gold-800: #fefce8;
+  --gold-900: #fffef5;
+  --cyan-50: #062f3a;
+  --cyan-100: #0a3d4a;
+  --cyan-200: #0e5566;
+  --cyan-300: #a5f3fc;
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+  --cyan-600: #67e8f9;
+  --cyan-700: #cffafe;
+  --cyan-800: #ecfeff;
+  --cyan-900: #f5feff;
+  --success-green-50: #052e1a;
+  --success-green-100: #064e2a;
+  --success-green-200: #0a5c32;
+  --success-green-300: #86efac;
+  --success-green-400: #4ade80;
+  --success-green-500: #22c55e;
+  --success-green-600: #16a34a;
+  --success-green-700: #86efac;
+  --success-green-800: #bbf7d0;
+  --success-green-900: #dcfce7;
+  /* Paleta por defecto de Tailwind (tailwindcss/theme.css), como fuera del tema claro. */
+  --color-amber-600: oklch(66.6% 0.179 58.318);
+  --color-amber-700: oklch(55.5% 0.163 48.998);
+  --color-amber-800: oklch(47.3% 0.137 46.201);
+  --color-amber-900: oklch(41.4% 0.112 45.904);
+  --color-cyan-600: oklch(60.9% 0.126 221.723);
+  --color-cyan-700: oklch(52% 0.105 223.128);
+  --color-cyan-800: oklch(45% 0.085 224.283);
+  --color-cyan-900: oklch(39.8% 0.07 227.392);
+
+  background: linear-gradient(180deg, #0b2d6c 0%, #061f4d 100%) !important;
+  box-shadow: 16px 0 48px rgba(16, 42, 86, 0.12) !important;
+}
+
+/* emerald-600/700/800 se usan como tinta en Badge/Button; sobre navy van claras. */
+.c360-dashboard-sidebar :is(.text-emerald-200, .text-emerald-300, .text-emerald-400, .text-emerald-600, .text-emerald-700, .text-emerald-800, .text-cyan-200, .text-cyan-300, .text-cyan-400) {
+  color: #bfdbfe !important;
+}
+
+.c360-dashboard-sidebar .c360-brand-name,
+.c360-dashboard-sidebar .c360-sb-brand-wordmark {
+  color: #ffffff !important;
+}
+
+.c360-dashboard-sidebar .c360-brand-meta {
+  color: #93c5fd !important;
+}
+
+.c360-dashboard-sidebar .bg-white\/20,
+.c360-dashboard-sidebar .bg-white\/30 {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.c360-dashboard-light header.sticky {
+  box-shadow: 0 1px 0 rgba(16, 42, 86, 0.04), 0 8px 24px rgba(16, 42, 86, 0.04) !important;
+}
+
+@media (max-width: 640px) {
+  .c360-dashboard-light {
+    --topbar-height: 56px;
+  }
+}

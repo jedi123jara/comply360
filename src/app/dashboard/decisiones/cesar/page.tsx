@@ -9,13 +9,13 @@ import {
   Check,
   Loader2,
   AlertTriangle,
-  Sparkles,
   UserMinus,
   ShieldAlert,
   Banknote,
   Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AsistenteHeader } from '../_components/asistente-header'
 import { formatSoles } from '@/lib/format/peruvian'
 
 /**
@@ -188,7 +188,7 @@ export default function CesarWizardPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Header />
+      <AsistenteHeader asistenteKey="cesar" />
       <Stepper currentStep={step} />
 
       <div className="rounded-2xl border border-[color:var(--border-default)] bg-white p-5 md:p-6">
@@ -256,29 +256,6 @@ export default function CesarWizardPage() {
 }
 
 /* ── UI ──────────────────────────────────────────────────────────────── */
-
-function Header() {
-  return (
-    <div>
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 text-xs text-[color:var(--text-tertiary)] hover:text-emerald-700 mb-2"
-      >
-        <ArrowLeft className="h-3 w-3" /> Volver al Panel
-      </Link>
-      <div className="flex items-center gap-2 mb-1">
-        <Sparkles className="h-4 w-4 text-emerald-700" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-          Decisiones Laborales · Wizard
-        </span>
-      </div>
-      <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">Cesar trabajador</h1>
-      <p className="text-sm text-[color:var(--text-tertiary)] mt-1">
-        Inicia el proceso de cese con cálculo de liquidación, evaluación de riesgo y plan de pasos.
-      </p>
-    </div>
-  )
-}
 
 function Stepper({ currentStep }: { currentStep: number }) {
   const steps = [
@@ -687,7 +664,7 @@ function Step4Confirm({
       <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 flex items-start gap-2">
         <Banknote className="h-3.5 w-3.5 mt-0.5 shrink-0" />
         <span>
-          Este wizard solo registra el inicio. El cálculo definitivo de liquidación, el pago y los
+          Este asistente solo registra el inicio. El cálculo definitivo de liquidación, el pago y los
           documentos legales se manejan en el flujo de cese del módulo de trabajadores.
         </span>
       </div>

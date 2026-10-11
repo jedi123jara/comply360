@@ -69,7 +69,7 @@ export default function TerminosPage() {
       <h2>5. Planes y precios</h2>
       <p>
         Los planes vigentes, sus funcionalidades y precios se publican en{' '}
-        <a href="https://comply360.pe/dashboard/planes">/dashboard/planes</a>. Los
+        <a href="/planes">/planes</a>. Los
         precios se expresan en Soles peruanos (PEN) e incluyen IGV cuando corresponda.
       </p>
 
@@ -91,7 +91,7 @@ export default function TerminosPage() {
 
       <h2>6. Uso aceptable</h2>
       <p>
-        Al usar Comply360 te comprometés a NO:
+        Al usar Comply360 te comprometes a NO:
       </p>
       <ul>
         <li>Usar la plataforma para fines ilegales o violatorios de la normativa peruana.</li>

@@ -1,22 +1,30 @@
 'use client'
 
-import { forwardRef } from 'react'
+import { forwardRef, useCallback, useEffect, useRef, type Ref, type RefObject } from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * Button v4 — Dark Authority.
+ * Button v5 — texto ≥ 4,5:1 en tema claro (incluido hover).
  *
  * Variants:
- * - `primary` (default): emerald sólido, texto blanco, hover más oscuro, sombra sutil
+ * - `primary` (default): emerald sólido (azul de marca en el dashboard claro), texto blanco
  * - `secondary`: outline, texto neutral, hover bg gris muy claro
  * - `ghost`: sin borde, hover background sutil
- * - `danger`: crimson sólido
- * - `gold`: acento premium (plan PRO, certificaciones)
- * - `emerald-soft`: fondo emerald-50 + texto emerald-700, muy sutil
+ * - `danger`: rojo sólido (rose-700 → rose-800 en hover). No usa la rampa
+ *   crimson porque en el tema oscuro crimson-600/700 son tonos claros y el
+ *   texto blanco quedaba en 2,7:1 → 1,4:1.
+ * - `gold`: acento premium (plan PRO, certificaciones). Dorado de marca con
+ *   tinta oscura (amber-950); con texto blanco no llegaba a 2,2:1.
+ * - `emerald-soft`: tinte emerald /12 + tinta emerald-700, muy sutil
  * - `link`: underline, emerald
+ *
+ * Botones solo-ícono (`size="icon"` / `"icon-sm"` o sin texto): necesitan
+ * `aria-label` (o `aria-labelledby` / `title`) para que el lector de pantalla
+ * diga qué hacen. En desarrollo se avisa por consola una vez por botón si falta.
+ *   <Button size="icon" aria-label="Cerrar"><X className="h-4 w-4" /></Button>
  */
 const buttonVariants = cva(
   [
@@ -46,18 +54,18 @@ const buttonVariants = cva(
           'hover:bg-[color:var(--bg-surface-hover)] hover:text-[color:var(--text-primary)]',
         ],
         danger: [
-          'bg-crimson-600 text-white',
+          'bg-rose-700 text-white',
           'shadow-[0_1px_2px_rgba(239,68,68,0.25)]',
-          'hover:bg-crimson-700 hover:shadow-[0_4px_12px_rgba(239,68,68,0.25)]',
+          'hover:bg-rose-800 hover:shadow-[0_4px_12px_rgba(239,68,68,0.25)]',
         ],
         gold: [
-          'bg-gold-500 text-white',
+          'bg-gold-500 text-amber-950',
           'shadow-[0_1px_2px_rgba(212,168,83,0.25)]',
-          'hover:bg-gold-600 hover:shadow-[0_4px_12px_rgba(212,168,83,0.30)]',
+          'hover:bg-gold-400 hover:shadow-[0_4px_12px_rgba(212,168,83,0.30)]',
         ],
         'emerald-soft': [
-          'bg-emerald-500/12 text-emerald-200 border border-emerald-400/30',
-          'hover:bg-emerald-500/18 hover:border-emerald-300/55',
+          'bg-emerald-500/12 text-emerald-700 border border-emerald-500/30',
+          'hover:bg-emerald-500/18 hover:border-emerald-500/50',
         ],
         link: [
           'text-emerald-600 hover:text-emerald-700 underline-offset-4 hover:underline',
@@ -96,6 +104,49 @@ export interface ButtonProps
   asChild?: boolean
 }
 
+// ─── Aviso de desarrollo: botón sin nombre accesible ─────────────────────
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === 'function') ref(value)
+  else if (ref) (ref as RefObject<T | null>).current = value
+}
+
+/** Texto que llega al lector de pantalla (ignora lo que está bajo aria-hidden). */
+function hasReadableText(el: Element): boolean {
+  const walker = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent?.trim()) continue
+    const hidden = node.parentElement?.closest('[aria-hidden="true"]')
+    if (!hidden || !el.contains(hidden)) return true
+  }
+  return false
+}
+
+function hasAccessibleName(el: Element): boolean {
+  if (el.getAttribute('aria-label')?.trim()) return true
+  if (el.getAttribute('aria-labelledby')?.trim()) return true
+  if (el.getAttribute('title')?.trim()) return true
+  if (hasReadableText(el)) return true
+  // Un ícono o imagen con nombre propio también nombra al botón.
+  return el.querySelector('[aria-label]:not([aria-label=""]), img[alt]:not([alt=""])') !== null
+}
+
+/** Avisa (solo fuera de producción y una vez por botón) si el botón no tiene nombre. */
+function useAccessibleNameWarning(elementRef: RefObject<HTMLElement | null>) {
+  const warnedRef = useRef(false)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production' || warnedRef.current) return
+    const el = elementRef.current
+    if (!el || hasAccessibleName(el)) return
+    warnedRef.current = true
+    console.warn(
+      '[Button] Botón solo-ícono sin nombre accesible. Agrega `aria-label` (o `aria-labelledby` / `title`) ' +
+        'para que los lectores de pantalla digan qué hace.',
+      el
+    )
+  })
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -115,6 +166,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const Comp = asChild ? Slot : 'button'
     const isDisabled = disabled || loading
+
+    const elementRef = useRef<HTMLButtonElement | null>(null)
+    const setRefs = useCallback(
+      (node: HTMLButtonElement | null) => {
+        elementRef.current = node
+        assignRef(ref, node)
+      },
+      [ref]
+    )
+    useAccessibleNameWarning(elementRef)
 
     const decorated = (
       <>
@@ -136,7 +197,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <Comp
-        ref={ref as never}
+        ref={setRefs as never}
         aria-busy={loading || undefined}
         data-loading={loading || undefined}
         className={cn(buttonVariants({ variant, size, fullWidth }), className)}

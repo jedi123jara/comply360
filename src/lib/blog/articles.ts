@@ -1,14 +1,17 @@
 /**
  * Catálogo de artículos del blog /recursos — SEO long-tail Perú laboral.
  *
- * Para bootstrap tenemos 3 artículos seed. Cuando escalemos, migrar a MDX +
- * filesystem-based content (o a un CMS headless tipo Sanity).
+ * Los artículos de servicios del estudio viven en ./articles-cumplimiento.ts y
+ * se publican primero. Cuando escalemos, migrar a MDX + filesystem-based
+ * content (o a un CMS headless tipo Sanity).
  *
  * Convención de slugs:
  *   - kebab-case
  *   - keyword principal al inicio
  *   - incluir "peru" o año si ayuda a diferenciación (ej: "cts-2026-peru")
  */
+
+import { ARTICLES_CUMPLIMIENTO } from './articles-cumplimiento'
 
 export interface BlogArticle {
   slug: string
@@ -17,7 +20,15 @@ export interface BlogArticle {
   /** Keyword principal para SEO (h1 + URL + title match) */
   keyword: string
   /** Categoría visible en el listado */
-  category: 'Calculadoras' | 'Compliance' | 'MYPE' | 'SUNAFIL' | 'Contratos' | 'SST'
+  category:
+    | 'Calculadoras'
+    | 'Compliance'
+    | 'MYPE'
+    | 'SUNAFIL'
+    | 'Contratos'
+    | 'SST'
+    | 'Capacitaciones'
+    | 'Hostigamiento'
   /** Tiempo estimado de lectura en minutos */
   readMinutes: number
   /** Fecha publicación (ISO) */
@@ -42,13 +53,13 @@ export type BlogBlock =
   | { type: 'callout'; variant: 'info' | 'warning' | 'success'; title?: string; text: string }
   | { type: 'code'; text: string }
 
-export const ARTICLES: BlogArticle[] = [
+const ARTICLES_BASE: BlogArticle[] = [
   {
     slug: 'como-calcular-cts-2026-peru',
     keyword: 'cálculo CTS 2026',
     title: 'Cómo calcular la CTS 2026 en Perú: guía completa paso a paso',
     metaDescription:
-      'Aprendé a calcular la CTS 2026 de tus trabajadores. Fórmula oficial D.S. 001-97-TR, casos con y sin asignación familiar, plazos de depósito (15 may / 15 nov) y errores frecuentes.',
+      'Cálculo CTS 2026 paso a paso: fórmula del D.S. 001-97-TR, casos con y sin asignación familiar, plazos de depósito (15 de mayo y 15 de noviembre) y errores.',
     category: 'Calculadoras',
     readMinutes: 7,
     publishedAt: '2026-04-20',
@@ -119,7 +130,7 @@ export const ARTICLES: BlogArticle[] = [
         items: [
           'Primer depósito: hasta el 15 de mayo (cubre noviembre-abril)',
           'Segundo depósito: hasta el 15 de noviembre (cubre mayo-octubre)',
-          'Multa SUNAFIL por no depositar a tiempo: hasta 0.77 UIT por trabajador afectado (infracción grave)',
+          'No depositar a tiempo expone a la empresa a una multa de SUNAFIL',
           'Reajuste con intereses legales desde el día siguiente al vencimiento',
         ],
       },
@@ -137,28 +148,28 @@ export const ARTICLES: BlogArticle[] = [
       {
         type: 'callout',
         variant: 'success',
-        title: 'Calculadora gratis',
-        text: 'Prueba la calculadora CTS de Comply360 sin registrarte. Ingresas los datos del trabajador y te da el monto exacto + la memoria de cálculo para auditoría. Link abajo.',
+        title: 'Revisamos que tu CTS cumpla la ley',
+        text: 'No hacemos planillas: eso lo ve tu contador. Lo que sí hacemos en Comply360 es revisar que la CTS, las gratificaciones y el resto de beneficios cumplan la ley, y que tengas la evidencia lista para SUNAFIL.',
       },
     ],
-    cta: { label: 'Calcular mi CTS gratis', href: '/dashboard/calculadoras' },
+    cta: { label: 'Ver servicio de cumplimiento laboral', href: '/servicios/laboral' },
   },
 
   {
     slug: 'multas-sunafil-2026-cuadro-completo',
     keyword: 'multas SUNAFIL 2026',
-    title: 'Multas SUNAFIL 2026: cuadro completo actualizado por infracción',
+    title: 'Multas SUNAFIL 2026: cómo se calculan y qué las hace subir',
     metaDescription:
-      'Cuadro oficial de multas SUNAFIL 2026 con UIT vigente (S/5,500). Rangos por tipo de infracción (leve, grave, muy grave) y cantidad de trabajadores. Descuentos por subsanación.',
+      'Multas SUNAFIL 2026: cómo se calculan según la gravedad, los trabajadores afectados y si eres MYPE. UIT de S/ 5,500, un ejemplo y descuentos por subsanación.',
     category: 'SUNAFIL',
-    readMinutes: 9,
+    readMinutes: 4,
     publishedAt: '2026-04-20',
     updatedAt: '2026-04-20',
     author: 'Equipo Comply360',
     content: [
       {
         type: 'p',
-        text: 'SUNAFIL aumentó las fiscalizaciones 30% en 2026 respecto al año anterior. Conocer los montos exactos de multas, el factor de corrección por cantidad de trabajadores y los descuentos por subsanación voluntaria es la diferencia entre sobrevivir una inspección o cerrar la empresa.',
+        text: 'El 74% de las inspecciones de SUNAFIL nace de una denuncia. Entender cómo se calcula una multa, qué la hace subir y qué descuentos existen te ayuda a decidir qué corregir primero.',
       },
       { type: 'h2', text: '1. UIT 2026 y base de cálculo' },
       {
@@ -174,58 +185,28 @@ export const ARTICLES: BlogArticle[] = [
           'Muy graves: afectan derechos colectivos, hostigamiento, trabajo forzoso, discriminación.',
         ],
       },
-      { type: 'h2', text: '3. Cuadro de multas por cantidad de trabajadores' },
+      { type: 'h2', text: '3. Qué determina el monto de la multa' },
       {
         type: 'p',
-        text: 'Las multas se multiplican según cuántos trabajadores estén afectados por la infracción. El cuadro oficial (por tipo × cantidad):',
+        text: 'No hay un monto único. La multa depende de tres factores: la gravedad de la infracción, el número de trabajadores afectados y si tu empresa es MYPE.',
       },
-      { type: 'h3', text: '3.1. Leves (por trabajador afectado)' },
       {
         type: 'ul',
         items: [
-          '1 a 10 trabajadores: 0.045 UIT (~S/248)',
-          '11 a 25: 0.110 UIT (~S/605)',
-          '26 a 50: 0.220 UIT (~S/1,210)',
-          '51 a 100: 0.440 UIT (~S/2,420)',
-          '101 a 200: 0.770 UIT (~S/4,235)',
-          '201 a 300: 1.100 UIT (~S/6,050)',
-          '301 a 400: 1.540 UIT (~S/8,470)',
-          '401 a 500: 2.420 UIT (~S/13,310)',
-          '501 a 999: 3.520 UIT (~S/19,360)',
-          '1000 o más: 5.280 UIT (~S/29,040)',
+          'Gravedad: una falta muy grave cuesta más que una grave, y una grave más que una leve.',
+          'Trabajadores afectados: mientras más personas afecta la infracción, más alta es la multa.',
+          'Tamaño de la empresa: si eres MYPE inscrita en el REMYPE, la multa baja 50% y tiene un tope del 1% de tus ingresos netos (RLGIT, art. 48.1-A).',
         ],
       },
-      { type: 'h3', text: '3.2. Graves' },
       {
-        type: 'ul',
-        items: [
-          '1 a 10 trabajadores: 0.225 UIT (~S/1,238)',
-          '11 a 25: 0.550 UIT (~S/3,025)',
-          '26 a 50: 1.100 UIT (~S/6,050)',
-          '51 a 100: 2.200 UIT (~S/12,100)',
-          '101 a 200: 3.850 UIT (~S/21,175)',
-          '201 a 300: 5.500 UIT (~S/30,250)',
-          '301 a 400: 7.700 UIT (~S/42,350)',
-          '401 a 500: 12.100 UIT (~S/66,550)',
-          '501 a 999: 17.600 UIT (~S/96,800)',
-          '1000 o más: 26.400 UIT (~S/145,200)',
-        ],
+        type: 'callout',
+        variant: 'info',
+        title: 'Un ejemplo',
+        text: 'Una infracción muy grave que afecta a 1 trabajador en una empresa no MYPE cuesta 2.63 UIT = S/ 14,465.',
       },
-      { type: 'h3', text: '3.3. Muy graves' },
       {
-        type: 'ul',
-        items: [
-          '1 a 10 trabajadores: 0.450 UIT (~S/2,475)',
-          '11 a 25: 1.100 UIT (~S/6,050)',
-          '26 a 50: 2.200 UIT (~S/12,100)',
-          '51 a 100: 4.400 UIT (~S/24,200)',
-          '101 a 200: 7.700 UIT (~S/42,350)',
-          '201 a 300: 11.000 UIT (~S/60,500)',
-          '301 a 400: 15.400 UIT (~S/84,700)',
-          '401 a 500: 24.200 UIT (~S/133,100)',
-          '501 a 999: 35.200 UIT (~S/193,600)',
-          '1000 o más: 52.530 UIT (~S/288,915)',
-        ],
+        type: 'p',
+        text: 'Para estimar tu propio caso, usa nuestra calculadora de multas SUNAFIL. El resultado es referencial.',
       },
       { type: 'h2', text: '4. Descuentos por subsanación voluntaria (Art. 40 Ley 28806)' },
       {
@@ -242,30 +223,14 @@ export const ARTICLES: BlogArticle[] = [
         title: 'Reincidencia',
         text: 'Si la misma infracción se repite dentro de 12 meses, la multa aumenta 50% y pierde todos los descuentos. Por eso es crítico subsanar y DOCUMENTAR la subsanación.',
       },
-      { type: 'h2', text: '5. Casos reales comunes' },
-      { type: 'h3', text: '5.1. No pago de CTS (1 trabajador)' },
-      {
-        type: 'p',
-        text: 'Infracción grave (1-10 trabajadores) = 0.225 UIT = S/ 1,238. Si afecta 10 trabajadores, sigue en el mismo rango = mismo monto. Si afecta 15 trabajadores, sube al rango 11-25 = 0.55 UIT = S/ 3,025.',
-      },
-      { type: 'h3', text: '5.2. No tener RIT publicado' },
-      {
-        type: 'p',
-        text: 'Infracción leve (incumplimiento formal). 1-10 trabajadores = S/248. Empresas con 101-200 trabajadores = S/4,235.',
-      },
-      { type: 'h3', text: '5.3. Hostigamiento sexual sin canal de denuncia (Ley 27942)' },
-      {
-        type: 'p',
-        text: 'Infracción muy grave. 51-100 trabajadores = 4.4 UIT = S/ 24,200. Empresas grandes pueden pagar hasta S/288k.',
-      },
       {
         type: 'callout',
         variant: 'success',
-        title: 'Simulador gratuito',
-        text: 'Con el simulacro SUNAFIL de Comply360 corres la inspección virtual, detectas tus hallazgos y calculas tu multa potencial exacta en 15 minutos. Incluye Acta de Requerimiento formato R.M. 199-2016-TR.',
+        title: 'Diagnóstico de cumplimiento',
+        text: 'En el diagnóstico de Comply360 revisamos tus documentos como lo haría un inspector y te decimos cuánto arriesgas en multas, en soles, por cada hallazgo. La versión express es gratis.',
       },
     ],
-    cta: { label: 'Probar simulacro SUNAFIL gratis', href: '/diagnostico-gratis' },
+    cta: { label: 'Calcular mi multa SUNAFIL', href: '/calculadoras/multa-sunafil' },
   },
 
   {
@@ -273,7 +238,7 @@ export const ARTICLES: BlogArticle[] = [
     keyword: 'régimen MYPE Perú',
     title: 'Régimen MYPE en Perú 2026: beneficios, límites y cómo acogerte',
     metaDescription:
-      'Guía completa del régimen MYPE Micro y Pequeña Empresa en Perú. Límites de ventas, cantidad de trabajadores, beneficios laborales simplificados (CTS, gratificaciones, vacaciones) y cómo inscribirte en REMYPE.',
+      'Guía del régimen MYPE en Perú 2026: límites de ventas y trabajadores, beneficios de micro y pequeña empresa (CTS, gratificaciones, vacaciones) y REMYPE.',
     category: 'MYPE',
     readMinutes: 8,
     publishedAt: '2026-04-20',
@@ -282,12 +247,12 @@ export const ARTICLES: BlogArticle[] = [
     content: [
       {
         type: 'p',
-        text: 'El 99% de las empresas peruanas son MYPE. Saber si tu empresa califica como microempresa o pequeña empresa puede ahorrarte 40-70% en costos laborales anuales vs el régimen general. Guía rápida de los límites, beneficios y trámites en 2026.',
+        text: 'Saber si tu empresa califica como microempresa o pequeña empresa cambia los beneficios laborales que debes pagar frente al régimen general. Esta es una guía rápida de los límites, beneficios y trámites en 2026.',
       },
       { type: 'h2', text: '1. Base legal vigente' },
       {
         type: 'p',
-        text: 'La Ley 32353 (publicada en 2025, vigente 2026) reemplazó a la Ley 28015. Mantiene la filosofía pero actualizó algunos límites y simplificó la inscripción en REMYPE.',
+        text: 'La Ley 32353 (publicada en 2025, vigente 2026) reemplazó a la Ley 28015. Mantiene la filosofía, pero actualizó algunos límites.',
       },
       { type: 'h2', text: '2. Límites actualizados 2026' },
       { type: 'h3', text: '2.1. Microempresa' },
@@ -341,23 +306,20 @@ export const ARTICLES: BlogArticle[] = [
         title: 'Comparación rápida',
         text: 'Un trabajador con sueldo S/1,500 en régimen general cuesta al empleador aproximadamente S/23,400/año. El mismo trabajador en MYPE Micro cuesta ~S/19,200 (-18%) y en MYPE Pequeña ~S/21,000 (-10%). El ahorro escala con la cantidad de trabajadores.',
       },
-      { type: 'h2', text: '4. Cómo inscribirte en REMYPE 2026' },
+      { type: 'h2', text: '4. La inscripción en el REMYPE' },
       {
-        type: 'ol',
-        items: [
-          'Revisa que tu empresa cumpla los límites de trabajadores + ventas',
-          'Ingresa a www.sunat.gob.pe con tu Clave SOL',
-          'Sección "Operaciones en línea" → "REMYPE"',
-          'Llená el formulario con datos de la empresa + trabajadores actuales',
-          'La SUNAFIL valida en 5 días hábiles',
-          'Al aprobarse, recibes constancia digital que debes conservar',
-        ],
+        type: 'p',
+        text: 'La inscripción en el REMYPE es un trámite aparte, que conviene tener al día. Antes de hacerlo, revisa que tu empresa cumpla los límites de trabajadores y de ventas.',
+      },
+      {
+        type: 'p',
+        text: 'Estar inscrito también importa en una inspección. Con REMYPE, las multas de una MYPE bajan 50% y tienen un tope del 1% de sus ingresos netos (RLGIT, art. 48.1-A).',
       },
       {
         type: 'callout',
         variant: 'warning',
         title: 'Importante',
-        text: 'La inscripción NO es automática — si no te inscribís, la SUNAFIL te tratará como régimen general y te exigirá CTS + gratificaciones completas. Si superás los límites y no migrás a régimen general, acumulás contingencias.',
+        text: 'La inscripción no es automática. Y si tu empresa supera los límites y no migra al régimen general, acumula contingencias laborales.',
       },
       { type: 'h2', text: '5. Cuando SÍ te conviene estar en régimen general' },
       {
@@ -375,18 +337,21 @@ export const ARTICLES: BlogArticle[] = [
       },
       {
         type: 'p',
-        text: 'En esos casos, el costo extra del régimen general se compensa con mejor talent retention y acceso a mercados.',
+        text: 'En esos casos, el costo extra del régimen general se compensa con mejor retención de talento y acceso a mercados.',
       },
       {
         type: 'callout',
         variant: 'success',
-        title: 'Calcula tu régimen óptimo',
-        text: 'Comply360 tiene una calculadora que compara el costo total anual de tener tu planilla en MYPE Micro, MYPE Pequeña o Régimen General. Te dice qué régimen te conviene y por qué.',
+        title: '¿Estás en el régimen correcto?',
+        text: 'En el diagnóstico de cumplimiento de Comply360 revisamos si tus trabajadores están en el régimen laboral que corresponde y si pagas los beneficios que exige la ley. La versión express es gratis.',
       },
     ],
-    cta: { label: 'Comparar regímenes gratis', href: '/dashboard/calculadoras' },
+    cta: { label: 'Pedir diagnóstico gratis', href: '/diagnostico-gratis' },
   },
 ]
+
+/** Catálogo publicado: artículos de servicios del estudio primero, luego los anteriores. */
+export const ARTICLES: BlogArticle[] = [...ARTICLES_CUMPLIMIENTO, ...ARTICLES_BASE]
 
 export function getArticleBySlug(slug: string): BlogArticle | undefined {
   return ARTICLES.find((a) => a.slug === slug)

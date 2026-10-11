@@ -50,9 +50,17 @@ import {
   FileSearch,
   Scale,
   Shield,
+  LifeBuoy,
+  ListChecks,
+  Network,
+  CheckSquare,
+  Files,
+  Stethoscope,
+  Wallet,
   Command as CommandIcon,
 } from 'lucide-react'
-import { NAV_HUBS, CALCULATOR_TYPES } from '@/lib/constants'
+import { NAV_HUBS, NAV_URL_ONLY_ROUTES, CALCULATOR_TYPES } from '@/lib/constants'
+import { ASISTENTES_GUIADOS } from '@/components/dashboard/que-quieres-hacer'
 import { useCopilot } from '@/providers/copilot-provider'
 import { cn } from '@/lib/utils'
 import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
@@ -61,7 +69,12 @@ import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
  * Command Palette — cmdk-based, Obsidian skin.
  *
  * Capabilities:
- * - Navigate to any of the 7 hubs or their items
+ * - "¿Qué quieres hacer?": los 5 asistentes guiados (contratar, renovar,
+ *   cesar, revisar planilla, SUNAFIL) como primer grupo
+ * - Navigate to any of the 7 hubs or their items. Sin texto solo se sugieren
+ *   páginas visibles del menú; al escribir también aparecen las ocultas
+ *   (`hidden`) y se busca en su ayuda (`hint`). Las rutas de
+ *   `NAV_URL_ONLY_ROUTES` nunca salen aquí.
  * - Jump to any of the 13 calculators
  * - Dynamic search of workers / contracts / documents (debounced API calls)
  * - Quick actions (new worker, new contract, generate report…)
@@ -70,9 +83,16 @@ import { usePlatformModKey } from '@/hooks/use-platform-mod-key'
  *
  * Opens with Cmd+K / Ctrl+K globally. The dashboard layout also passes
  * `onExternalOpen` to wire up the sidebar and topbar triggers.
+ *
+ * El filtro ignora tildes y mayúsculas ("liquidacion" encuentra "Liquidación")
+ * y acepta varias palabras en cualquier orden ("contrato renovar").
  */
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+/**
+ * Íconos por nombre (los mismos que usa `NAV_HUBS`). Si falta uno, la fila cae
+ * al ícono genérico de documento; el test del buscador revisa que estén todos.
+ */
+export const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   Users,
   FileText,
@@ -116,11 +136,96 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Scale,
   Shield,
   Sparkles,
+  LifeBuoy,
+  ListChecks,
+  Network,
+  CheckSquare,
+  Files,
+  Stethoscope,
+  Wallet,
 }
 
 function iconFor(name: string | undefined) {
   if (!name) return FileText
   return ICON_MAP[name] ?? FileText
+}
+
+/* ── Helpers de búsqueda ─────────────────────────────────────────────── */
+
+/** Quita tildes y pasa a minúsculas: "Liquidación" → "liquidacion". */
+export function normalizeForSearch(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
+
+/**
+ * ¿Todas las palabras de la búsqueda aparecen en alguno de los campos?
+ * Ignora tildes, mayúsculas y el orden de las palabras.
+ */
+export function matchesQuery(query: string, fields: ReadonlyArray<string | undefined>): boolean {
+  const terms = normalizeForSearch(query).split(/\s+/).filter(Boolean)
+  if (terms.length === 0) return true
+  const haystack = normalizeForSearch(fields.filter(Boolean).join(' '))
+  return terms.every((term) => haystack.includes(term))
+}
+
+/**
+ * Ruta de una calculadora. Las llaves de `CALCULATOR_TYPES` usan guion bajo
+ * (`horas_extras`) pero las carpetas de src/app/dashboard/calculadoras usan
+ * guion (`horas-extras`).
+ */
+export function calculatorHref(key: string): string {
+  return `/dashboard/calculadoras/${key.replace(/_/g, '-')}`
+}
+
+/* ── Páginas del menú en el buscador ─────────────────────────────────── */
+
+export interface PaletteNavItem {
+  label: string
+  href: string
+  icon: string
+  hint?: string
+  hidden: boolean
+  hubLabel: string
+}
+
+/** Cuántas páginas se sugieren cuando el buscador está vacío. */
+const NAV_SUGGESTIONS_WHEN_EMPTY = 8
+
+/**
+ * Todas las páginas de `NAV_HUBS` que pueden salir en el buscador, con el
+ * nombre de su grupo. Excluye las rutas que solo existen por URL
+ * (`NAV_URL_ONLY_ROUTES`).
+ */
+export function buildPaletteNavItems(): PaletteNavItem[] {
+  const urlOnly = new Set(NAV_URL_ONLY_ROUTES.map((route) => route.href))
+  return NAV_HUBS.flatMap((hub) =>
+    hub.items
+      .filter((item) => !urlOnly.has(item.href))
+      .map((item) => ({
+        label: item.label,
+        href: item.href,
+        icon: item.icon,
+        hint: item.hint,
+        hidden: item.hidden === true,
+        hubLabel: hub.label,
+      }))
+  )
+}
+
+/**
+ * Sin texto: solo páginas visibles del menú (las primeras 8).
+ * Con texto: busca en nombre, ayuda y grupo, e incluye las páginas ocultas.
+ * Primero van las que coinciden por nombre; después, las que coinciden solo
+ * por su ayuda o su grupo.
+ */
+export function filterPaletteNav(items: readonly PaletteNavItem[], query: string): PaletteNavItem[] {
+  if (query.trim().length === 0) {
+    return items.filter((item) => !item.hidden).slice(0, NAV_SUGGESTIONS_WHEN_EMPTY)
+  }
+  const matches = items.filter((item) => matchesQuery(query, [item.label, item.hint, item.hubLabel]))
+  const byName = matches.filter((item) => matchesQuery(query, [item.label]))
+  const byHelp = matches.filter((item) => !matchesQuery(query, [item.label]))
+  return [...byName, ...byHelp]
 }
 
 /* ── Types ───────────────────────────────────────────────────────────── */
@@ -209,10 +314,7 @@ export function CommandPalette({
   const [query, setQuery] = useState('')
   const { results: searchHits, loading: searching } = useDebouncedSearch(query)
 
-  const navItems = useMemo(
-    () => NAV_HUBS.flatMap((hub) => hub.items.map((item) => ({ ...item, hubLabel: hub.label }))),
-    []
-  )
+  const navItems = useMemo(() => buildPaletteNavItems(), [])
 
   const close = useCallback(() => {
     setOpenState(false)
@@ -273,24 +375,31 @@ export function CommandPalette({
       },
       {
         id: 'qa-open-copilot',
-        label: 'Abrir Asistente IA',
-        hint: 'Ctrl+I',
+        label: 'Abrir el asistente',
+        hint: 'Resuelve dudas laborales con base legal peruana',
         icon: Sparkles,
         perform: () => {
           close()
           copilot.open()
         },
-        shortcut: '⌃I',
+        shortcut: modKey === '⌘' ? '⌘I' : 'Ctrl+I',
       },
       {
         id: 'qa-reports',
         label: 'Descargar reporte ejecutivo',
-        hint: 'PDF compliance mensual',
+        hint: 'PDF mensual de cumplimiento',
         icon: BarChart3,
         perform: () => go('/dashboard/reportes'),
       },
+      {
+        id: 'qa-ayuda',
+        label: 'Ayuda',
+        hint: 'Guías, videos y preguntas frecuentes',
+        icon: LifeBuoy,
+        perform: () => go('/dashboard/ayuda'),
+      },
     ],
-    [go, close, copilot]
+    [go, close, copilot, modKey]
   )
 
   // Reset query when dialog closes (deferred to next frame so we don't setState
@@ -313,27 +422,30 @@ export function CommandPalette({
     return () => window.removeEventListener('keydown', onKey)
   }, [openState, setOpenState])
 
-  const filteredNav = query.trim()
-    ? navItems.filter(
-        (n) =>
-          n.label.toLowerCase().includes(query.toLowerCase()) ||
-          n.hubLabel.toLowerCase().includes(query.toLowerCase())
-      )
-    : navItems.slice(0, 8)
+  const hasQuery = query.trim().length > 0
 
-  const filteredCalcs = query.trim()
-    ? CALCULATOR_TYPES.filter(
-        (c) =>
-          c.label.toLowerCase().includes(query.toLowerCase()) ||
-          c.description.toLowerCase().includes(query.toLowerCase())
+  const filteredAsistentes = hasQuery
+    ? ASISTENTES_GUIADOS.filter((a) =>
+        matchesQuery(query, [a.title, a.description, ...a.keywords])
       )
+    : ASISTENTES_GUIADOS
+
+  const filteredQuick = hasQuery
+    ? quickActions.filter((a) => matchesQuery(query, [a.label, a.hint]))
+    : quickActions
+
+  const filteredNav = filterPaletteNav(navItems, query)
+
+  const filteredCalcs = hasQuery
+    ? CALCULATOR_TYPES.filter((c) => matchesQuery(query, [c.label, c.description]))
     : CALCULATOR_TYPES.slice(0, 4)
 
-  const hasQuery = query.trim().length > 0
   const noResults =
     hasQuery &&
     !searching &&
     searchHits.length === 0 &&
+    filteredAsistentes.length === 0 &&
+    filteredQuick.length === 0 &&
     filteredNav.length === 0 &&
     filteredCalcs.length === 0
 
@@ -347,7 +459,7 @@ export function CommandPalette({
         >
           <Dialog.Title className="sr-only">Buscar y ejecutar comandos</Dialog.Title>
           <Dialog.Description className="sr-only">
-            Escribe para buscar trabajadores, contratos, módulos o acciones. Presiona Enter para abrir el seleccionado.
+            Escribe lo que quieres hacer o busca un trabajador, contrato o módulo. Usa las flechas para moverte y Enter para abrir.
           </Dialog.Description>
           <CmdkCommand
             loop
@@ -360,7 +472,7 @@ export function CommandPalette({
                 value={query}
                 onValueChange={setQuery}
                 autoFocus
-                placeholder="Buscar trabajadores, contratos, módulos o acciones…"
+                placeholder="¿Qué quieres hacer? Busca un trabajador, contrato o módulo…"
                 className="flex-1 bg-transparent text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)] outline-none"
               />
               <kbd className="hidden sm:inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1.5 py-0.5 font-mono text-[10px] text-[color:var(--text-tertiary)]">
@@ -381,17 +493,34 @@ export function CommandPalette({
                     className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-500/12 border border-emerald-400/30 px-3 py-1.5 text-sm font-medium text-emerald-200 hover:bg-emerald-500/18 transition-colors"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Preguntar al Asistente IA
+                    Preguntar al asistente
                   </button>
                 </div>
               ) : null}
 
-              {/* Ask copilot — always at top when there's a query */}
+              {/* ¿Qué quieres hacer? — asistentes guiados, siempre primero */}
+              {filteredAsistentes.length > 0 ? (
+                <CmdkCommand.Group heading={<GroupHeading>¿Qué quieres hacer?</GroupHeading>}>
+                  {filteredAsistentes.map((a) => (
+                    <PaletteRow
+                      key={a.key}
+                      value={`asistente-${a.key}`}
+                      icon={a.icon}
+                      label={a.title}
+                      hint={a.description}
+                      onSelect={() => go(a.href)}
+                    />
+                  ))}
+                </CmdkCommand.Group>
+              ) : null}
+
+              {/* Ask copilot — when there's a query */}
               {hasQuery ? (
-                <CmdkCommand.Group heading={<GroupHeading>Asistente IA</GroupHeading>}>
+                <CmdkCommand.Group heading={<GroupHeading>Asistente</GroupHeading>}>
                   <PaletteRow
+                    value="preguntar-asistente-ia"
                     icon={Sparkles}
-                    label={`Preguntar al Asistente IA: "${query}"`}
+                    label={`Preguntar al asistente: "${query}"`}
                     hint="Respuesta con base legal peruana"
                     accent
                     onSelect={askCopilot}
@@ -405,6 +534,7 @@ export function CommandPalette({
                   {searchHits.map((hit) => (
                     <PaletteRow
                       key={`${hit.kind}-${hit.id}`}
+                      value={`resultado-${hit.kind}-${hit.id}`}
                       icon={hit.kind === 'worker' ? Users : hit.kind === 'contract' ? FileText : FileStack}
                       label={hit.label}
                       hint={hit.sublabel}
@@ -416,11 +546,12 @@ export function CommandPalette({
               ) : null}
 
               {/* Quick actions */}
-              {!hasQuery ? (
+              {filteredQuick.length > 0 ? (
                 <CmdkCommand.Group heading={<GroupHeading>Acciones rápidas</GroupHeading>}>
-                  {quickActions.map((a) => (
+                  {filteredQuick.map((a) => (
                     <PaletteRow
                       key={a.id}
+                      value={a.id}
                       icon={a.icon}
                       label={a.label}
                       hint={a.hint}
@@ -437,9 +568,10 @@ export function CommandPalette({
                   {filteredNav.slice(0, 14).map((n) => (
                     <PaletteRow
                       key={n.href}
+                      value={`nav-${n.href}`}
                       icon={iconFor(n.icon)}
                       label={n.label}
-                      hint={n.hubLabel}
+                      hint={n.hint ? `${n.hubLabel} · ${n.hint}` : n.hubLabel}
                       onSelect={() => go(n.href)}
                     />
                   ))}
@@ -452,10 +584,11 @@ export function CommandPalette({
                   {filteredCalcs.map((c) => (
                     <PaletteRow
                       key={c.key}
+                      value={`calc-${c.key}`}
                       icon={Calculator}
                       label={c.label}
                       hint={c.description}
-                      onSelect={() => go(`/dashboard/calculadoras/${c.key}`)}
+                      onSelect={() => go(calculatorHref(c.key))}
                     />
                   ))}
                 </CmdkCommand.Group>
@@ -489,12 +622,6 @@ export function CommandPalette({
                 </kbd>
                 cerrar
               </span>
-              <span className="ml-auto flex items-center gap-1">
-                <kbd className="inline-flex items-center rounded border border-[color:var(--border-subtle)] bg-[color:var(--neutral-100)] px-1 py-0.5 font-mono">
-                  ⇧↵
-                </kbd>
-                preguntar al Asistente IA
-              </span>
             </div>
           </CmdkCommand>
         </Dialog.Content>
@@ -506,6 +633,7 @@ export function CommandPalette({
 /* ── Row component ──────────────────────────────────────────────────── */
 
 function PaletteRow({
+  value,
   icon: Icon,
   label,
   hint,
@@ -514,6 +642,8 @@ function PaletteRow({
   accent,
   onSelect,
 }: {
+  /** Identificador único para cmdk (evita que dos filas con el mismo texto se marquen juntas). */
+  value?: string
   icon: React.ComponentType<{ className?: string }>
   label: string
   hint?: string
@@ -524,6 +654,7 @@ function PaletteRow({
 }) {
   return (
     <CmdkCommand.Item
+      value={value}
       onSelect={onSelect}
       className={cn(
         'flex items-center gap-3 mx-1 my-0.5 rounded-lg px-2.5 py-2 text-sm cursor-default select-none',

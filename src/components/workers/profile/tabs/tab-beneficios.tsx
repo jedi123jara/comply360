@@ -74,13 +74,16 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
         sueldoBruto: sueldo,
         fechaIngreso,
         fechaCorte: nextCtsCutoff.toISOString().slice(0, 10),
-        asignacionFamiliar: false,
+        // FIX auditoría P0 (JUR-01): pasar régimen y asignación familiar reales
+        // en vez de valores fijos. MYPE_MICRO no tiene CTS; MYPE_PEQUENA 50%.
+        asignacionFamiliar: worker.asignacionFamiliar ?? false,
         ultimaGratificacion: sueldo, // Estimación: última grati = 1 sueldo
+        regimenLaboral: worker.regimenLaboral ?? undefined,
       })
     } catch {
       return null
     }
-  }, [hasData, sueldo, fechaIngreso, nextCtsCutoff])
+  }, [hasData, sueldo, fechaIngreso, nextCtsCutoff, worker.asignacionFamiliar, worker.regimenLaboral])
 
   // Gratificación — próximo periodo
   const nextGratiPeriodo: 'julio' | 'diciembre' = month < 7 ? 'julio' : 'diciembre'
@@ -95,12 +98,14 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
         fechaIngreso,
         periodo: nextGratiPeriodo,
         mesesTrabajados: Math.max(1, mesesParaGrati),
-        asignacionFamiliar: false,
+        // FIX auditoría P0 (JUR-01): régimen + asignación familiar reales.
+        asignacionFamiliar: worker.asignacionFamiliar ?? false,
+        regimenLaboral: worker.regimenLaboral ?? undefined,
       })
     } catch {
       return null
     }
-  }, [hasData, sueldo, fechaIngreso, nextGratiPeriodo, mesesParaGrati])
+  }, [hasData, sueldo, fechaIngreso, nextGratiPeriodo, mesesParaGrati, worker.asignacionFamiliar, worker.regimenLaboral])
 
   // Vacaciones — estado actual (si cesara hoy).
   // `diasGozados` viene de `VacationRecord` agregados (Ola 2). Si la página
@@ -113,12 +118,15 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
         fechaIngreso,
         fechaCese: now.toISOString().slice(0, 10),
         diasGozados: diasGozadosReales,
-        asignacionFamiliar: false,
+        // FIX auditoría P0 (JUR-01): régimen (MYPE/doméstico = 15 días/año) +
+        // asignación familiar reales.
+        asignacionFamiliar: worker.asignacionFamiliar ?? false,
+        regimenLaboral: worker.regimenLaboral ?? undefined,
       })
     } catch {
       return null
     }
-  }, [hasData, sueldo, fechaIngreso, now, diasGozadosReales])
+  }, [hasData, sueldo, fechaIngreso, now, diasGozadosReales, worker.asignacionFamiliar, worker.regimenLaboral])
 
   // Indemnización — si fuera despido arbitrario hoy
   const indemnizacion = useMemo(() => {
@@ -129,11 +137,13 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
         fechaIngreso,
         fechaDespido: now.toISOString().slice(0, 10),
         tipoContrato: 'indefinido',
+        // FIX auditoría P0 (JUR-01): MYPE usa jornales (Ley 32353), no 1.5 sueldos/año.
+        regimenLaboral: worker.regimenLaboral ?? undefined,
       })
     } catch {
       return null
     }
-  }, [hasData, sueldo, fechaIngreso, now])
+  }, [hasData, sueldo, fechaIngreso, now, worker.regimenLaboral])
 
   const fmtDate = (d: Date) =>
     new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }).format(d)
@@ -147,9 +157,9 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
         </div>
         <h3
           style={{
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-display)',
             fontSize: 22,
-            fontWeight: 400,
+            fontWeight: 800,
             letterSpacing: '-0.015em',
             color: 'var(--text-primary)',
             marginBottom: 4,
@@ -178,16 +188,16 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
         </div>
         <h2
           style={{
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-display)',
             fontSize: 26,
-            fontWeight: 400,
+            fontWeight: 800,
             letterSpacing: '-0.02em',
             color: 'var(--text-primary)',
             lineHeight: 1.2,
             marginBottom: 6,
           }}
         >
-          Cuánto le corresponde a <em style={{ color: 'var(--emerald-700)', fontStyle: 'italic' }}>
+          Cuánto le corresponde a <em style={{ color: 'var(--brand-primary-text, #2563eb)', fontStyle: 'normal' }}>
             {worker.firstName}
           </em> hoy.
         </h2>
@@ -225,7 +235,7 @@ export function TabBeneficios({ worker, vacationsSummary }: TabBeneficiosProps) 
             icon={<Calendar size={14} />}
             label="Vacaciones acumuladas"
             value={vacaciones.total}
-            meta={`${vacaciones.diasTruncosComputables}d truncos · ${vacaciones.periodosNoGozados} periodo${vacaciones.periodosNoGozados === 1 ? '' : 's'} no gozados`}
+            meta={`${vacaciones.diasTruncosComputables}d truncos · ${vacaciones.periodosNoGozados} período${vacaciones.periodosNoGozados === 1 ? '' : 's'} no gozados`}
             formula={vacaciones.formula}
             baseLegal={vacaciones.baseLegal}
             variant={vacaciones.periodosNoGozados >= 2 ? 'crimson' : 'default'}

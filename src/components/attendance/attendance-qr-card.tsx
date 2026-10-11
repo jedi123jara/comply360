@@ -154,7 +154,7 @@ export function AttendanceQrCard({ isKioskMode = false }: { isKioskMode?: boolea
             </p>
             <h2
               className="text-2xl text-[color:var(--text-primary)]"
-              style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}
+              style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}
             >
               QR de check-in
             </h2>

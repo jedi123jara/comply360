@@ -425,7 +425,7 @@ export default function AsistenciaPage() {
 
       {/* Header editorial */}
       <PageHeader
-        eyebrow="Equipo"
+        eyebrow="Mi personal"
         title="Control de <em>asistencia</em>."
         subtitle="Registra entradas y salidas, justifica tardanzas y cumple con la R.M. 037-2024-TR sobre control digital del tiempo de trabajo."
         actions={

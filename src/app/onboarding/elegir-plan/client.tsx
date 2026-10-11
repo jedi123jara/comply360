@@ -27,6 +27,9 @@ import { PLANS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/sonner-toaster'
 import { formatSolesMarketing } from '@/lib/format/peruvian'
+import { PublicHero } from '@/components/marketing/public-hero'
+import { PublicShell } from '@/components/marketing/public-shell'
+import { pub } from '@/components/marketing/public-theme'
 
 type PaidPlan = 'STARTER' | 'PRO' | 'EMPRESA'
 type PlanKey = 'FREE' | PaidPlan | 'ENTERPRISE'
@@ -130,30 +133,33 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-        {/* Hero */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium ring-1 ring-emerald-200 mb-5">
-            <Sparkles className="w-3 h-3" />
+    <PublicShell header="minimal" footer={false}>
+      {/* Hero */}
+      <PublicHero
+        eyebrow={
+          <>
+            <Sparkles aria-hidden className="h-3 w-3" />
             Sin tarjeta de crédito · Cancela cuando quieras
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-            Elige tu plan, <span className="text-emerald-600">{orgName.split(' ')[0]}</span>
-          </h1>
-          <p className="mt-4 text-base sm:text-lg text-slate-600">
-            Tu trial de 14 días arranca al elegir. Si te gusta, sigues; si no, no te cobramos nada.
+          </>
+        }
+        title={
+          <>
+            Elige tu plan, <span className={pub.highlightOnNavy}>{orgName.split(' ')[0]}</span>
+          </>
+        }
+        description="Tu trial de 14 días arranca al elegir. Si te gusta, sigues; si no, no te cobramos nada."
+      >
+        {sizeRange ? (
+          <p className={cn(pub.faintOnNavy, 'mt-3 text-[#CBD5E1]')}>
+            Para empresas de <strong className="text-[#ffffff]">{sizeRange.replace('-', ' a ').replace('+', ' o más')} trabajadores</strong>{' '}
+            recomendamos el plan <strong className="text-[#F5B301]">{recommended}</strong>.
           </p>
-          {sizeRange ? (
-            <p className="mt-3 text-xs text-slate-500">
-              Para empresas de <strong>{sizeRange.replace('-', ' a ').replace('+', ' o más')} trabajadores</strong>{' '}
-              recomendamos el plan <strong className="text-emerald-700">{recommended}</strong>.
-            </p>
-          ) : null}
-        </div>
+        ) : null}
+      </PublicHero>
 
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         {/* Plan grid — FREE | STARTER | PRO ★ | EMPRESA */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ORDER.map((key) => {
             const plan = PLANS[key]
             const meta = PLAN_META[key]
@@ -167,47 +173,47 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
               <div
                 key={key}
                 className={cn(
-                  'relative rounded-2xl p-5 sm:p-6 flex flex-col bg-white transition-all',
+                  'relative flex flex-col rounded-xl bg-[#ffffff] p-5 transition-all sm:p-6',
                   isRecommended
-                    ? 'ring-2 ring-emerald-500 shadow-xl shadow-emerald-100 scale-[1.02]'
-                    : 'ring-1 ring-slate-200 shadow-sm hover:shadow-md hover:ring-slate-300',
+                    ? 'border-2 border-[#F5B301] shadow-[0_24px_60px_rgba(245,179,1,0.18),0_8px_24px_rgba(11,27,54,0.08)] lg:scale-[1.02]'
+                    : 'border border-[#E5EAF2] shadow-[0_1px_2px_rgba(11,27,54,0.04),0_8px_24px_rgba(11,27,54,0.06)] hover:border-[#2563EB]/35',
                 )}
               >
                 {isRecommended && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ring-2 ring-white">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#F5B301] px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#0B1B36] ring-2 ring-[#ffffff]">
                     Recomendado para ti
                   </span>
                 )}
 
                 <div
                   className={cn(
-                    'w-11 h-11 rounded-xl flex items-center justify-center mb-4',
-                    isRecommended ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700',
+                    'mb-4 flex h-11 w-11 items-center justify-center rounded-lg',
+                    isRecommended ? 'bg-[#FFF8E6] text-[#B45309]' : 'bg-[#EFF4FF] text-[#2563EB]',
                   )}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon aria-hidden className="h-5 w-5" />
                 </div>
 
-                <h3 className="text-base font-semibold text-slate-900">{plan.name}</h3>
-                <p className="text-xs text-slate-500 mt-0.5 mb-4">{meta.tagline}</p>
+                <h3 className="text-base font-extrabold tracking-[-0.01em] text-[#0B1B36]">{plan.name}</h3>
+                <p className="mb-4 mt-0.5 text-xs text-[#5A6A80]">{meta.tagline}</p>
 
                 <div className="mb-1">
-                  <span className="text-2xl font-bold tracking-tight text-slate-900">
+                  <span className="text-2xl font-extrabold tracking-[-0.02em] text-[#0B1B36]">
                     {plan.price === 0 ? 'Gratis' : formatSolesMarketing(plan.price)}
                   </span>
-                  {plan.price !== 0 && <span className="text-sm text-slate-500"> /mes</span>}
+                  {plan.price !== 0 && <span className="text-sm text-[#5A6A80]"> /mes</span>}
                 </div>
                 {!isFree && (
-                  <p className="text-[11px] text-slate-500 mb-5">
+                  <p className="mb-5 text-[11px] text-[#5A6A80]">
                     Hasta {plan.maxWorkers} trabajadores · IGV incluido
                   </p>
                 )}
-                {isFree && <p className="text-[11px] text-slate-500 mb-5">Para siempre · 5 trabajadores demo</p>}
+                {isFree && <p className="mb-5 text-[11px] text-[#5A6A80]">Para siempre · 5 trabajadores demo</p>}
 
-                <ul className="space-y-2 text-xs flex-1 mb-5">
+                <ul className="mb-5 flex-1 space-y-2 text-xs">
                   {plan.features.slice(0, 5).map((f, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-slate-700">
-                      <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <li key={i} className="flex items-start gap-1.5 text-[#475569]">
+                      <Check aria-hidden className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#2563EB]" />
                       <span>{f}</span>
                     </li>
                   ))}
@@ -218,9 +224,9 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
                   <button
                     onClick={handleStartFree}
                     disabled={isLoadingThis}
-                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl font-semibold text-sm px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-900 transition-colors disabled:opacity-50"
+                    className={cn(pub.btnSecondary, 'w-full rounded-xl px-4')}
                   >
-                    {isLoadingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                    {isLoadingThis ? <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> : null}
                     {meta.cta}
                   </button>
                 ) : (
@@ -230,16 +236,14 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
                       onClick={() => handleStartTrial(key as PaidPlan)}
                       disabled={isLoadingThis || isPayLoadingThis}
                       className={cn(
-                        'w-full inline-flex items-center justify-center gap-1.5 rounded-xl font-semibold text-sm px-4 py-2.5 transition-colors disabled:opacity-50',
-                        isRecommended
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-slate-900 hover:bg-slate-800 text-white',
+                        'w-full rounded-xl px-4',
+                        isRecommended ? pub.btnPrimary : pub.btnSecondary,
                       )}
                     >
                       {isLoadingThis ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock aria-hidden className="h-3.5 w-3.5" />
                       )}
                       {meta.cta}
                     </button>
@@ -248,13 +252,13 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
                     <button
                       onClick={() => handlePayNow(key as PaidPlan)}
                       disabled={isLoadingThis || isPayLoadingThis}
-                      className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl font-medium text-xs px-4 py-2 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                      className={cn(pub.btnTertiary, 'w-full rounded-xl')}
                       title={`Pagar ${formatSolesMarketing(Math.round(plan.price * 0.8))} ahora (20% off el primer mes)`}
                     >
                       {isPayLoadingThis ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 aria-hidden className="h-3 w-3 animate-spin" />
                       ) : (
-                        <CreditCard className="w-3 h-3" />
+                        <CreditCard aria-hidden className="h-3 w-3" />
                       )}
                       Pagar ya y ahorrar 20%
                     </button>
@@ -265,62 +269,62 @@ export function ElegirPlanClient({ orgName, sizeRange, alertEmail }: Props) {
           })}
         </div>
 
-        {/* Enterprise — card grande dedicada con CTA "Cotizar" */}
-        <div className="mt-8 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-6 sm:p-8 ring-1 ring-amber-500/30">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 ring-1 ring-amber-500/40">
-              <Sparkles className="h-6 w-6 text-amber-400" />
+        {/* Enterprise — banda navy con CTA "Cotizar" */}
+        <div className={cn(pub.band, 'mt-8 p-6 sm:p-8')}>
+          <div className="relative flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F5B301]/15 ring-1 ring-[#F5B301]/40">
+              <Sparkles aria-hidden className="h-6 w-6 text-[#F5B301]" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg sm:text-xl font-bold">Enterprise</h3>
-                <span className="rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ring-1 ring-amber-500/40">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-extrabold tracking-[-0.02em] text-[#ffffff] sm:text-xl">Enterprise</h3>
+                <span className="rounded-full bg-[#F5B301]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#F5B301] ring-1 ring-[#F5B301]/40">
                   Custom · Cotizar
                 </span>
               </div>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                Para empresas con <strong className="text-white">300+ trabajadores</strong>, holdings con
+              <p className="text-sm leading-relaxed text-[#CBD5E1]">
+                Para empresas con <strong className="text-[#ffffff]">300+ trabajadores</strong>, holdings con
                 múltiples RUCs, corporativos o cualquier organización que necesite SLA garantizado,
                 API REST, multi-tenant ilimitado y Customer Success Manager dedicado.
               </p>
-              <p className="text-xs text-slate-400 mt-2">
+              <p className="mt-2 text-xs text-[#94A3B8]">
                 Te respondemos por WhatsApp en menos de 4 horas hábiles.
               </p>
             </div>
             <Link
               href={`https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Comply360, soy ${orgName} y me interesa el plan Enterprise. Tenemos aprox ____ trabajadores.`)}`}
               target="_blank"
-              className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-semibold text-sm px-5 py-3 transition-colors w-full sm:w-auto"
+              className={cn(pub.btnSecondaryOnNavy, 'w-full shrink-0 rounded-xl border-[#F5B301] py-3 text-[#F5B301] hover:bg-[#F5B301] hover:text-[#0B1B36] sm:w-auto')}
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle aria-hidden className="h-4 w-4" />
               Solicitar cotización
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight aria-hidden className="h-4 w-4" />
             </Link>
           </div>
         </div>
 
         {/* Trust strip */}
-        <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+        <div className="mx-auto mt-12 grid max-w-3xl gap-4 sm:grid-cols-3">
           {[
             { title: 'Sin tarjeta de crédito', body: 'El trial de 14 días arranca sin pedirte tarjeta. Te avisamos 3 días antes de cobrar.' },
             { title: 'Cancela cuando quieras', body: 'Un click en tu dashboard y listo. No hay letras chicas ni penalidad.' },
             { title: 'Migración gratuita', body: '¿Vienes de Buk u Ofisis? Te importamos trabajadores y contratos en menos de 24 horas.' },
           ].map((item, i) => (
-            <div key={i} className="rounded-xl bg-white ring-1 ring-slate-200 p-4 text-center">
-              <h4 className="text-sm font-semibold text-slate-900 mb-1">{item.title}</h4>
-              <p className="text-xs text-slate-600">{item.body}</p>
+            <div key={i} className={cn(pub.card, 'p-4 text-center')}>
+              <h4 className="mb-1 text-sm font-bold text-[#0B1B36]">{item.title}</h4>
+              <p className="text-xs text-[#475569]">{item.body}</p>
             </div>
           ))}
         </div>
 
         {/* Footer note */}
-        <p className="mt-12 text-center text-xs text-slate-500">
-          Email del responsable: <strong className="text-slate-700">{alertEmail || 'sin configurar'}</strong>
+        <p className="mt-12 text-center text-xs text-[#5A6A80]">
+          Email del responsable: <strong className="text-[#0B1B36]">{alertEmail || 'sin configurar'}</strong>
           {' · '}
           Lo cambias después en{' '}
-          <Link href="/dashboard/configuracion" className="underline">Configuración</Link>.
+          <Link href="/dashboard/configuracion" className={pub.link}>Configuración</Link>.
         </p>
       </div>
-    </div>
+    </PublicShell>
   )
 }

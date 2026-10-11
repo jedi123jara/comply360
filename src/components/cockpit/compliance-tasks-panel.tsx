@@ -184,7 +184,7 @@ export function ComplianceTasksPanel({
                     <div className="flex flex-wrap items-center gap-2 mb-0.5">
                       <span
                         className={cn(
-                          'inline-flex items-center rounded-full border px-1.5 py-0 text-[9px] font-bold uppercase tracking-widest',
+                          'inline-flex items-center rounded-full border px-1.5 py-0 text-[11px] font-bold uppercase tracking-widest',
                           gravityClass(t.gravedad)
                         )}
                       >

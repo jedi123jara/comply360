@@ -13,9 +13,15 @@
 
 import { prisma } from '@/lib/prisma'
 import { calculateComplianceScore } from '@/lib/compliance/score-calculator'
+import { resolveTaskRoute } from '@/lib/compliance/task-route-resolver'
+import { computeActionRiskScore, type ActionPlanSeverity } from '@/lib/compliance/action-plan'
+import { getLimaParts } from '@/lib/time/lima'
 import type { Prisma } from '@/generated/prisma/client'
 
 const DAY_MS = 1000 * 60 * 60 * 24
+
+/** Ruta de respaldo cuando una tarea no tiene una pantalla específica donde resolverse. */
+const PLAN_ACCION_HREF = '/dashboard/plan-accion'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types públicos consumidos por componentes del cockpit
@@ -38,6 +44,11 @@ export interface CockpitStats {
   totalPlanilla: number
   workersAtRisk: number
   workersProtected: number
+  /**
+   * Días desde que se creó la cuenta. NO equivale a "días sin multa": la
+   * plataforma no sabe si la empresa fue multada. Se mantiene solo por
+   * compatibilidad con consumidores del API.
+   */
   daysSinceOrgCreated: number
   ownerFirstName: string | null
   orgName: string | null
@@ -86,7 +97,12 @@ export interface SectorRadarItem {
 export interface ComplianceTaskTeaser {
   id: string
   title: string
+  /** Clave interna del área (ej. "sst", "contratos_registro"). */
   area: string
+  /** Nombre legible del área (ej. "Seguridad y salud en el trabajo"). */
+  areaLabel: string
+  /** Pantalla donde se resuelve la tarea; si no hay una específica, el plan de acción. */
+  href: string
   gravedad: 'LEVE' | 'GRAVE' | 'MUY_GRAVE'
   priority: number
   multaEvitable: number | null
@@ -101,9 +117,50 @@ export interface ComplianceTasksSummary {
   completed: number
   dismissed: number
   overdue: number
+  /** Suma de multas de las tareas abiertas (PENDING + IN_PROGRESS). */
   multaEvitable: number
+  /** Suma de multas de las tareas completadas en el mes calendario actual (hora de Lima). */
   multaEvitada: number
+  /** Inicio del mes que cubre `multaEvitada` (ISO, 00:00 hora de Lima). */
+  multaEvitadaDesde: string
   top: ComplianceTaskTeaser[]
+}
+
+/** Último diagnóstico (o simulacro) completado por la empresa. */
+export interface CockpitDiagnosticSummary {
+  id: string
+  type: 'FULL' | 'EXPRESS' | 'SIMULATION'
+  scoreGlobal: number
+  completedAt: string
+}
+
+/** La única acción que el panel recomienda hacer hoy. */
+export interface CockpitFocusAction {
+  kind: 'task' | 'alert'
+  id: string
+  title: string
+  /** Área en palabras, lista para mostrar. */
+  areaLabel: string
+  /** Trabajador involucrado (solo para alertas). */
+  workerName: string | null
+  /** Ruta directa donde se resuelve. */
+  href: string
+  multaEvitable: number | null
+  dueDate: string | null
+  overdue: boolean
+}
+
+/** Resumen de riesgo que alimenta la cabecera del panel. */
+export interface CockpitRiskSummary {
+  latestDiagnostic: CockpitDiagnosticSummary | null
+  /** Multas estimadas de las alertas abiertas de trabajadores (todas las severidades). */
+  multaAlertasAbiertas: number
+  /**
+   * Lo que hoy te podrían multar según lo detectado: tareas abiertas del
+   * diagnóstico + alertas abiertas. Es la misma base que usa el plan de acción.
+   */
+  multaPendiente: number
+  focusAction: CockpitFocusAction | null
 }
 
 export interface RecentCriticalAlert {
@@ -549,7 +606,80 @@ export async function getSectorRadar(
 // 7. Compliance task stats (degrada con try/catch a zeros si la tabla no existe)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Instante UTC del 1.º del mes calendario actual a las 00:00 hora de Lima.
+ * Perú no tiene horario de verano: 00:00 Lima = 05:00 UTC.
+ */
+export function startOfMonthLima(now: Date = new Date()): Date {
+  const { year, month } = getLimaParts(now)
+  return new Date(Date.UTC(year, month - 1, 1, 5, 0, 0, 0))
+}
+
+/** Nombres legibles de las áreas de `ComplianceTask.area` (diagnóstico + organigrama). */
+const TASK_AREA_LABELS: Record<string, string> = {
+  contratos_registro: 'Contratos y registro',
+  remuneraciones_beneficios: 'Remuneraciones y beneficios',
+  jornada_descansos: 'Jornada y descansos',
+  sst: 'Seguridad y salud en el trabajo',
+  documentos_obligatorios: 'Documentos obligatorios',
+  relaciones_laborales: 'Relaciones laborales',
+  igualdad_nodiscriminacion: 'Igualdad y no discriminación',
+  trabajadores_especiales: 'Trabajadores con protección especial',
+  tercerizacion_intermediacion: 'Tercerización e intermediación',
+  hostigamiento_sexual_detallado: 'Prevención del hostigamiento sexual',
+  organigrama: 'Organigrama y comités',
+}
+
+function humanizeKey(raw: string): string {
+  const text = raw.replace(/[_-]+/g, ' ').trim().toLowerCase()
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : ''
+}
+
+/** Convierte la clave de área de una tarea en un nombre legible. */
+export function taskAreaLabel(area: string | null | undefined): string {
+  if (!area) return 'General'
+  return TASK_AREA_LABELS[area] ?? (humanizeKey(area) || 'General')
+}
+
+/** Área legible por tipo de alerta (`WorkerAlertType`). El orden importa: gana el primer match. */
+const ALERT_AREA_RULES: Array<{ test: (type: string) => boolean; label: string }> = [
+  { test: (t) => t.includes('CONTRATO') || t.includes('ADENDA'), label: 'Contratos' },
+  { test: (t) => t.includes('CTS') || t.includes('GRATIFICACION'), label: 'Remuneraciones y beneficios' },
+  { test: (t) => t.includes('VACACIONES'), label: 'Vacaciones' },
+  { test: (t) => t.startsWith('T_REGISTRO'), label: 'Registro en planilla electrónica' },
+  { test: (t) => t.includes('AFP'), label: 'Aportes previsionales' },
+  { test: (t) => t.includes('SCTR'), label: 'Seguros obligatorios' },
+  { test: (t) => t.includes('TARDANZA') || t.includes('AUSENTISMO'), label: 'Asistencia' },
+  { test: (t) => t.includes('LICENCIA'), label: 'Licencias y descansos médicos' },
+  { test: (t) => t.includes('DOCUMENTO') || t.includes('REGISTRO'), label: 'Legajo del trabajador' },
+  {
+    test: (t) =>
+      t.includes('EXAMEN') ||
+      t.startsWith('EMO_') ||
+      t.includes('CAPACITACION') ||
+      t.includes('IPERC') ||
+      t.startsWith('SAT_') ||
+      t.includes('COMITE') ||
+      t.includes('SIMULACRO'),
+    label: 'Seguridad y salud en el trabajo',
+  },
+]
+
+/** Convierte un tipo de alerta de trabajador en un área legible. */
+export function alertAreaLabel(type: string | null | undefined): string {
+  const t = (type ?? '').toUpperCase()
+  if (!t) return 'Alerta de trabajador'
+  return ALERT_AREA_RULES.find((rule) => rule.test(t))?.label ?? (humanizeKey(t) || 'Alerta de trabajador')
+}
+
+/** Ruta donde se resuelve una tarea; cae al plan de acción si no hay una específica. */
+export function taskHref(task: { sourceId: string | null; area: string }): string {
+  return resolveTaskRoute({ sourceId: task.sourceId, area: task.area })?.href ?? PLAN_ACCION_HREF
+}
+
 export async function getComplianceTaskStats(orgId: string): Promise<ComplianceTasksSummary> {
+  const now = new Date()
+  const monthStart = startOfMonthLima(now)
   const empty: ComplianceTasksSummary = {
     open: 0,
     pending: 0,
@@ -559,6 +689,7 @@ export async function getComplianceTaskStats(orgId: string): Promise<ComplianceT
     overdue: 0,
     multaEvitable: 0,
     multaEvitada: 0,
+    multaEvitadaDesde: monthStart.toISOString(),
     top: [],
   }
 
@@ -574,8 +705,11 @@ export async function getComplianceTaskStats(orgId: string): Promise<ComplianceT
           where: { orgId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
           _sum: { multaEvitable: true },
         }),
+        // "Multa evitada este mes": solo tareas cerradas desde el 1.º del mes
+        // (hora de Lima). `completedAt` lo setean todos los flujos que cierran
+        // tareas (PATCH /api/compliance-tasks y /api/plan-accion).
         prisma.complianceTask.aggregate({
-          where: { orgId, status: 'COMPLETED' },
+          where: { orgId, status: 'COMPLETED', completedAt: { gte: monthStart } },
           _sum: { multaEvitable: true },
         }),
         prisma.complianceTask.count({
@@ -588,11 +722,13 @@ export async function getComplianceTaskStats(orgId: string): Promise<ComplianceT
         prisma.complianceTask.findMany({
           where: { orgId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
           orderBy: [{ priority: 'asc' }, { dueDate: 'asc' }],
-          take: 3,
+          // 4 = la acción del día + las 3 siguientes que lista el panel.
+          take: 4,
           select: {
             id: true,
             title: true,
             area: true,
+            sourceId: true,
             gravedad: true,
             multaEvitable: true,
             priority: true,
@@ -615,15 +751,18 @@ export async function getComplianceTaskStats(orgId: string): Promise<ComplianceT
       overdue: overdueCount,
       multaEvitable: Number(openMultaAgg._sum.multaEvitable ?? 0),
       multaEvitada: Number(completedMultaAgg._sum.multaEvitable ?? 0),
+      multaEvitadaDesde: monthStart.toISOString(),
       top: topTasks.map((t) => ({
         id: t.id,
         title: t.title,
         area: t.area,
+        areaLabel: taskAreaLabel(t.area),
+        href: taskHref({ sourceId: t.sourceId ?? null, area: t.area }),
         gravedad: t.gravedad as 'LEVE' | 'GRAVE' | 'MUY_GRAVE',
         priority: t.priority,
         multaEvitable: t.multaEvitable ? Number(t.multaEvitable) : null,
         dueDate: t.dueDate?.toISOString() ?? null,
-        overdue: t.dueDate !== null && t.dueDate < new Date(),
+        overdue: t.dueDate !== null && t.dueDate < now,
       })),
     }
   } catch (err) {
@@ -691,7 +830,244 @@ export async function getRecentContracts(orgId: string): Promise<RecentContract[
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9. Agregadora — usada por el route handler para no romper API contract
+// 9. Resumen de riesgo para la cabecera: diagnóstico, multas pendientes y la
+//    única acción recomendada para hoy
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Último diagnóstico/simulacro completado, o null si la empresa nunca hizo uno. */
+export async function getLatestDiagnostic(orgId: string): Promise<CockpitDiagnosticSummary | null> {
+  const diagnostic = await prisma.complianceDiagnostic.findFirst({
+    where: { orgId, completedAt: { not: null } },
+    orderBy: { completedAt: 'desc' },
+    select: { id: true, type: true, scoreGlobal: true, completedAt: true },
+  })
+  if (!diagnostic?.completedAt) return null
+  return {
+    id: diagnostic.id,
+    type: diagnostic.type as CockpitDiagnosticSummary['type'],
+    scoreGlobal: diagnostic.scoreGlobal,
+    completedAt: diagnostic.completedAt.toISOString(),
+  }
+}
+
+/** Suma de `multaEstimada` de las alertas de trabajadores sin resolver. */
+export async function getOpenAlertsMulta(orgId: string): Promise<number> {
+  const agg = await prisma.workerAlert.aggregate({
+    where: { orgId, resolvedAt: null },
+    _sum: { multaEstimada: true },
+  })
+  return Number(agg._sum.multaEstimada ?? 0)
+}
+
+const GRAVEDAD_TO_SEVERITY: Record<ComplianceTaskTeaser['gravedad'], ActionPlanSeverity> = {
+  MUY_GRAVE: 'CRITICAL',
+  GRAVE: 'HIGH',
+  LEVE: 'MEDIUM',
+}
+
+function toSeverity(raw: string): ActionPlanSeverity {
+  return raw === 'CRITICAL' || raw === 'HIGH' || raw === 'MEDIUM' || raw === 'LOW' ? raw : 'MEDIUM'
+}
+
+/**
+ * Elige UNA acción para "¿Qué hago hoy?" entre las tareas abiertas y las
+ * alertas graves, con el mismo puntaje de riesgo que usa el plan de acción
+ * (gravedad + plazo + multa). En empate gana la primera candidata: las tareas
+ * llegan ordenadas por prioridad del diagnóstico.
+ */
+export function pickFocusAction(
+  tasks: ComplianceTaskTeaser[],
+  alerts: RecentCriticalAlert[],
+  now: Date = new Date(),
+): CockpitFocusAction | null {
+  const candidates: Array<{ action: CockpitFocusAction; risk: number }> = []
+
+  for (const task of tasks) {
+    candidates.push({
+      risk: computeActionRiskScore(
+        {
+          severity: GRAVEDAD_TO_SEVERITY[task.gravedad] ?? 'MEDIUM',
+          dueDate: task.dueDate,
+          multaEvitable: task.multaEvitable,
+          source: 'task',
+        },
+        now,
+      ),
+      action: {
+        kind: 'task',
+        id: task.id,
+        title: task.title,
+        areaLabel: task.areaLabel,
+        workerName: null,
+        href: task.href,
+        multaEvitable: task.multaEvitable,
+        dueDate: task.dueDate,
+        overdue: task.overdue,
+      },
+    })
+  }
+
+  for (const alert of alerts) {
+    const due = alert.dueDate ? new Date(alert.dueDate) : null
+    candidates.push({
+      risk: computeActionRiskScore(
+        {
+          severity: toSeverity(alert.severity),
+          dueDate: alert.dueDate,
+          multaEvitable: alert.multaEstimada,
+          source: 'alert',
+        },
+        now,
+      ),
+      action: {
+        kind: 'alert',
+        id: alert.id,
+        title: alert.title,
+        areaLabel: alertAreaLabel(alert.type),
+        workerName: alert.workerName.trim() || null,
+        // Las alertas se resuelven corrigiendo los datos del trabajador.
+        href: `/dashboard/trabajadores/${alert.workerId}`,
+        multaEvitable: alert.multaEstimada,
+        dueDate: alert.dueDate,
+        overdue: due !== null && !Number.isNaN(due.getTime()) && due < now,
+      },
+    })
+  }
+
+  let best: (typeof candidates)[number] | null = null
+  for (const candidate of candidates) {
+    if (!best || candidate.risk > best.risk) best = candidate
+  }
+  return best?.action ?? null
+}
+
+export function buildRiskSummary(input: {
+  latestDiagnostic: CockpitDiagnosticSummary | null
+  complianceTasks: ComplianceTasksSummary
+  recentCriticalAlerts: RecentCriticalAlert[]
+  multaAlertasAbiertas: number
+  now?: Date
+}): CockpitRiskSummary {
+  const multaTareas = Math.max(0, input.complianceTasks.multaEvitable || 0)
+  const multaAlertas = Math.max(0, input.multaAlertasAbiertas || 0)
+  return {
+    latestDiagnostic: input.latestDiagnostic,
+    multaAlertasAbiertas: multaAlertas,
+    multaPendiente: multaTareas + multaAlertas,
+    focusAction: pickFocusAction(
+      input.complianceTasks.top,
+      input.recentCriticalAlerts,
+      input.now ?? new Date(),
+    ),
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. Ruta de arranque (primeros pasos): datos reales de avance
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Lo que la ruta de arranque necesita y no viene ya en el resto del payload
+ * (trabajadores y diagnóstico salen de `stats` y `riskSummary`).
+ */
+export interface StartRouteProgress {
+  /** Datos de la empresa que faltan, en palabras ("RUC", "sector"...). Vacío = completos. */
+  orgMissingFields: string[]
+  /** Pendientes resueltos de verdad: tareas completadas + alertas marcadas como resueltas. */
+  resolvedTasks: number
+  resolvedAlerts: number
+  /** Multa estimada de lo resuelto (tareas + alertas), en soles. */
+  multaReducida: number
+  /** Alertas de trabajadores sin resolver (las tareas abiertas vienen en `complianceTasks.open`). */
+  openAlerts: number
+  /** Documentos subidos o verificados en legajos de trabajadores activos. */
+  legajoDocs: number
+  /** Trabajador con el legajo más avanzado (o el primero registrado si nadie subió nada). */
+  legajoWorker: { id: string; name: string; legajoScore: number } | null
+}
+
+const RUC_PATTERN = /^\d{11}$/
+
+/** Datos mínimos de la empresa para saber qué normas le aplican. */
+export function missingOrgFields(org: {
+  ruc: string | null
+  razonSocial: string | null
+  name: string | null
+  sector: string | null
+  regimenPrincipal: string | null
+} | null): string[] {
+  if (!org) return ['RUC', 'razón social', 'sector', 'régimen laboral']
+  const missing: string[] = []
+  if (!org.ruc || !RUC_PATTERN.test(org.ruc.trim())) missing.push('RUC')
+  if (!(org.razonSocial?.trim() || org.name?.trim())) missing.push('razón social')
+  if (!org.sector?.trim()) missing.push('sector')
+  if (!org.regimenPrincipal?.trim()) missing.push('régimen laboral')
+  return missing
+}
+
+export async function getStartRouteProgress(orgId: string): Promise<StartRouteProgress> {
+  const activeWorker = { orgId, status: { not: 'TERMINATED' as const }, deletedAt: null }
+
+  const [org, completedTasks, resolvedAlerts, openAlerts, legajoDocs, legajoWorker] =
+    await Promise.all([
+      prisma.organization
+        .findUnique({
+          where: { id: orgId },
+          select: { ruc: true, razonSocial: true, name: true, sector: true, regimenPrincipal: true },
+        })
+        .catch(() => null),
+      // La tabla de tareas puede no existir en entornos viejos: degradamos a 0.
+      prisma.complianceTask
+        .aggregate({
+          where: { orgId, status: 'COMPLETED' },
+          _count: { _all: true },
+          _sum: { multaEvitable: true },
+        })
+        .catch(() => null),
+      // Solo las resueltas a propósito: el motor de alertas BORRA (no resuelve)
+      // las que dejan de aplicar, así que esto no infla el avance.
+      prisma.workerAlert
+        .aggregate({
+          where: { orgId, resolvedAt: { not: null } },
+          _count: { _all: true },
+          _sum: { multaEstimada: true },
+        })
+        .catch(() => null),
+      prisma.workerAlert.count({ where: { orgId, resolvedAt: null } }).catch(() => 0),
+      prisma.workerDocument
+        .count({ where: { status: { in: ['UPLOADED', 'VERIFIED'] }, worker: activeWorker } })
+        .catch(() => 0),
+      prisma.worker
+        .findFirst({
+          where: activeWorker,
+          orderBy: [{ legajoScore: { sort: 'desc', nulls: 'last' } }, { createdAt: 'asc' }],
+          select: { id: true, firstName: true, lastName: true, legajoScore: true },
+        })
+        .catch(() => null),
+    ])
+
+  const multaTareas = Number(completedTasks?._sum.multaEvitable ?? 0)
+  const multaAlertas = Number(resolvedAlerts?._sum.multaEstimada ?? 0)
+
+  return {
+    orgMissingFields: missingOrgFields(org),
+    resolvedTasks: completedTasks?._count._all ?? 0,
+    resolvedAlerts: resolvedAlerts?._count._all ?? 0,
+    multaReducida: Math.max(0, multaTareas) + Math.max(0, multaAlertas),
+    openAlerts,
+    legajoDocs,
+    legajoWorker: legajoWorker
+      ? {
+          id: legajoWorker.id,
+          name: `${legajoWorker.firstName ?? ''} ${legajoWorker.lastName ?? ''}`.trim() || 'tu trabajador',
+          legajoScore: legajoWorker.legajoScore ?? 0,
+        }
+      : null,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. Agregadora — usada por el route handler para no romper API contract
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CockpitFullPayload {
@@ -707,6 +1083,9 @@ export interface CockpitFullPayload {
   topRisk: { label: string; impact: number } | null
   scoreSnapshot: ScoreSnapshot
   complianceBreakdown: Array<{ label: string; score: number; weight?: number }>
+  riskSummary: CockpitRiskSummary
+  /** Avance de la ruta de arranque. Opcional para no romper payloads de ejemplo. */
+  startRoute?: StartRouteProgress
 }
 
 export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullPayload> {
@@ -723,6 +1102,9 @@ export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullP
     complianceTasks,
     recentCriticalAlerts,
     recentContracts,
+    latestDiagnostic,
+    multaAlertasAbiertas,
+    startRoute,
   ] = await Promise.all([
     getCockpitOrgMeta(orgId),
     getCockpitStats(orgId),
@@ -733,7 +1115,17 @@ export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullP
     getComplianceTaskStats(orgId),
     getRecentCriticalAlerts(orgId),
     getRecentContracts(orgId),
+    getLatestDiagnostic(orgId),
+    getOpenAlertsMulta(orgId),
+    getStartRouteProgress(orgId),
   ])
+
+  const riskSummary = buildRiskSummary({
+    latestDiagnostic,
+    complianceTasks,
+    recentCriticalAlerts,
+    multaAlertasAbiertas,
+  })
 
   return {
     org: orgMeta,
@@ -748,6 +1140,8 @@ export async function getCockpitFullPayload(orgId: string): Promise<CockpitFullP
     topRisk: scoreSnapshot.topRisk,
     scoreSnapshot,
     complianceBreakdown: scoreSnapshot.breakdown,
+    riskSummary,
+    startRoute,
   }
 }
 

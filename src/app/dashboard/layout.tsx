@@ -23,6 +23,7 @@ import { UpgradeGateProvider } from '@/providers/upgrade-gate-provider'
 import { CalculatorDrawerProvider } from '@/components/ui/calculator-drawer'
 import { ConsentGate } from '@/components/legal/consent-modal'
 import { DashboardShell } from './_components/dashboard-shell'
+import '@/styles/dashboard-light.css'
 
 export default function DashboardLayout({
   children,

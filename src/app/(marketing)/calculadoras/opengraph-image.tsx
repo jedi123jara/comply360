@@ -82,7 +82,7 @@ export default async function Image() {
               flexWrap: 'wrap',
             }}
           >
-            Calculá CTS, gratificación y multas SUNAFIL <span style={{ color: '#1d4ed8', marginLeft: 12 }}>gratis</span>
+            Calcula CTS, gratificación y multas SUNAFIL <span style={{ color: '#1d4ed8', marginLeft: 12 }}>gratis</span>
           </div>
           <div
             style={{

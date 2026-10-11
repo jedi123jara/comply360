@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import {
   Download, FileText, Upload, Loader2, CheckCircle,
   Database, ArrowRight, FileSpreadsheet, Server,
-  Shield, Key, AlertTriangle, XCircle, CheckCircle2,
+  Shield, Key, AlertTriangle, XCircle, CheckCircle2, Webhook, Info,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatSoles } from '@/lib/format/peruvian'
@@ -55,7 +56,7 @@ export default function IntegracionesPage() {
         setResult(data)
       }
     } catch {
-      setExportError('Error al generar exportacion. Intente nuevamente.')
+      setExportError('No se pudo generar la exportación. Inténtalo de nuevo.')
     } finally {
       setGenerating(null)
     }
@@ -81,7 +82,19 @@ export default function IntegracionesPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Integraciones</h1>
         <p className="mt-1 text-gray-500">
-          Exporta datos de trabajadores en formatos compatibles con T-REGISTRO y PLAME de SUNAT.
+          Genera los archivos de T-REGISTRO y PLAME con los datos de tus trabajadores, listos para
+          subirlos en el portal de SUNAT.
+        </p>
+      </div>
+
+      {/* Cómo funciona: Comply360 no se conecta directo con SUNAT */}
+      <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+        <p className="text-xs leading-relaxed text-slate-600">
+          <strong className="text-slate-800">Cómo funciona:</strong> Comply360 no se conecta directamente
+          con SUNAT ni usa tu Clave SOL. Tú descargas el archivo aquí y lo subes en SUNAT Operaciones en
+          Línea. Tampoco hay firma digital con certificado: los contratos y boletas los firma cada
+          trabajador en su portal, con la huella o el desbloqueo de su celular, o con una aceptación simple.
         </p>
       </div>
 
@@ -105,7 +118,7 @@ export default function IntegracionesPage() {
           <div className="mt-4 space-y-2">
             <h3 className="text-xs font-semibold text-gray-400 uppercase">Datos incluidos</h3>
             <div className="flex flex-wrap gap-1">
-              {['DNI', 'Nombres', 'Regimen', 'Contrato', 'Ingreso', 'Sueldo', 'AFP/ONP', 'SCTR'].map(tag => (
+              {['DNI', 'Nombres', 'Régimen', 'Contrato', 'Ingreso', 'Sueldo', 'AFP/ONP', 'SCTR'].map(tag => (
                 <span key={tag} className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">{tag}</span>
               ))}
             </div>
@@ -181,7 +194,7 @@ export default function IntegracionesPage() {
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
           <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">!</span>
           <div className="flex-1">
-            <p className="text-sm font-medium text-red-800">Error al generar exportacion</p>
+            <p className="text-sm font-medium text-red-800">No se pudo generar la exportación</p>
             <p className="mt-0.5 text-xs text-red-700">{exportError}</p>
           </div>
           <button
@@ -200,7 +213,7 @@ export default function IntegracionesPage() {
           <div className="flex items-center gap-3">
             <CheckCircle className="h-6 w-6 text-green-500" />
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Exportacion generada exitosamente</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Exportación lista</h3>
               <p className="text-xs text-gray-500">{result.filename} — {result.workers} trabajadores</p>
             </div>
             <button
@@ -255,23 +268,26 @@ export default function IntegracionesPage() {
       {/* ─── Import T-REGISTRO ─────────────────────────────────── */}
       <TRegistroImportSection />
 
-      {/* Webhook API info */}
+      {/* Webhooks: avisos automáticos a otros sistemas (funcional en Configuración) */}
       <div className="rounded-xl border bg-white p-6">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50">
-            <ArrowRight className="h-5 w-5 text-purple-600" />
+            <Webhook className="h-5 w-5 text-purple-600" />
           </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-900">API & Webhooks</h3>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-slate-900">Avisos automáticos a otros sistemas (webhooks)</h3>
             <p className="mt-1 text-xs text-gray-500">
-              Proximamente: API REST para integracion con ERPs y sistemas de planilla. Webhooks para notificaciones en tiempo real de cambios normativos y alertas de compliance.
+              Si tu empresa usa otro sistema (por ejemplo, un ERP o un software de planillas), Comply360
+              puede avisarle al instante cuando registras un trabajador, se firma un contrato o se
+              registra un accidente de SST. Lo configura tu equipo técnico.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded bg-purple-50 px-2 py-1 text-xs text-purple-700">REST API</span>
-              <span className="rounded bg-purple-50 px-2 py-1 text-xs text-purple-700">Webhooks</span>
-              <span className="rounded bg-purple-50 px-2 py-1 text-xs text-purple-700">OAuth 2.0</span>
-              <span className="rounded bg-[color:var(--neutral-100)] px-2 py-1 text-xs text-gray-500">Proximamente</span>
-            </div>
+            <Link
+              href="/dashboard/configuracion/webhooks"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+            >
+              Configurar webhooks
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
         </div>
       </div>
@@ -588,9 +604,10 @@ function TRegistroImportSection() {
           <Upload className="h-5 w-5 text-indigo-400" />
         </div>
         <div className="flex-1">
-          <h2 className="text-base font-bold text-white">Importar T-REGISTRO</h2>
-          <p className="mt-1 text-xs text-gray-400">
-            Sube el archivo de exportacion de T-REGISTRO de SUNAT para cruzar con tus trabajadores y detectar discrepancias.
+          <h2 className="text-base font-bold text-slate-900">Comparar con T-REGISTRO</h2>
+          <p className="mt-1 text-xs text-gray-500">
+            Sube el archivo que descargas de T-REGISTRO en SUNAT y lo comparamos con tus trabajadores
+            para detectar diferencias: personas que faltan registrar o datos que no coinciden.
           </p>
         </div>
       </div>
@@ -603,9 +620,9 @@ function TRegistroImportSection() {
           className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-white/10 rounded-lg text-sm font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--neutral-50)] disabled:opacity-50"
         >
           {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          {importing ? 'Analizando...' : 'Subir Archivo T-REGISTRO (.txt)'}
+          {importing ? 'Analizando…' : 'Subir archivo de T-REGISTRO'}
         </button>
-        <p className="text-[11px] text-gray-500">Formatos: pipe-delimited (|) o CSV</p>
+        <p className="text-[11px] text-gray-500">Acepta .txt (separado por |) o .csv</p>
       </div>
 
       {importError && (

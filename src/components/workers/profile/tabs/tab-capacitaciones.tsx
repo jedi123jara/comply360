@@ -317,7 +317,7 @@ function CourseRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {item.course.isObligatory && (
-              <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-700 border border-red-200">
+              <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-red-700 border border-red-200">
                 Obligatoria
               </span>
             )}

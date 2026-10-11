@@ -92,9 +92,15 @@ describe('getMonthlyBudgetUsd', () => {
   test('mapea planes a budgets', () => {
     expect(getMonthlyBudgetUsd('FREE')).toBe(1)
     expect(getMonthlyBudgetUsd('STARTER')).toBe(5)
+    expect(getMonthlyBudgetUsd('PRO')).toBe(15)
     expect(getMonthlyBudgetUsd('EMPRESA')).toBe(25)
-    expect(getMonthlyBudgetUsd('PRO')).toBe(100)
     expect(getMonthlyBudgetUsd('ENTERPRISE')).toBe(500)
+  })
+
+  test('cada plan más caro tiene un tope igual o mayor que el anterior', () => {
+    const orden = ['FREE', 'STARTER', 'PRO', 'EMPRESA', 'ENTERPRISE']
+    const topes = orden.map(getMonthlyBudgetUsd)
+    topes.slice(1).forEach((tope, i) => expect(tope).toBeGreaterThanOrEqual(topes[i]))
   })
 
   test('plan desconocido cae a STARTER por seguridad', () => {
@@ -144,7 +150,7 @@ describe('checkAiBudget', () => {
     expect(r.allowed).toBe(true)
     if (r.allowed) {
       expect(r.spentUsd).toBe(0)
-      expect(r.remainingUsd).toBe(100)
+      expect(r.remainingUsd).toBe(15)
     }
   })
 
