@@ -10,6 +10,8 @@ import { JsonLd } from '@/components/sitio/json-ld'
 import { SectionHeader } from '@/components/sitio/section-header'
 import { cn } from '@/lib/utils'
 import {
+  PLAN_RRHH,
+  PRECIOS_RRHH_PUNTUALES,
   PLANES_IGUALA,
   PRECIOS_CAPACITACION,
   PRECIOS_DEFENSA,
@@ -187,6 +189,51 @@ export default function PlanesPage() {
           <p className={cn(pub.body, 'mt-4')}>
             El diagnóstico express es gratis. El completo se descuenta si contratas la implementación dentro de 30 días.
           </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="rrhh-precios">
+        <div className={cn(pub.containerWide, pub.section, 'grid gap-10 lg:grid-cols-[1fr_1.2fr]')}>
+          <div>
+            <SectionHeader
+              id="rrhh-precios"
+              kicker="Soporte legal a RRHH"
+              titulo="Respaldo para el día a día de tu equipo"
+              bajada="Contratos, disciplina, desvinculaciones y consultas. Plan mensual o por caso."
+            />
+            <Link href="/servicios/rrhh" className={cn(pub.linkMore, 'mt-6 text-sm')}>
+              Ver el servicio <ArrowRight aria-hidden className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className={cn(pub.card, 'p-6 sm:p-8')}>
+            <p className={pub.kicker}>{PLAN_RRHH.nombre}</p>
+            <dl className="mt-4 divide-y divide-[#E5EAF2]">
+              {PLAN_RRHH.precios.map((monto, i) => (
+                <div key={TRAMOS_TAMANO[i]} className="flex items-baseline justify-between gap-4 py-3">
+                  <dt className="text-sm font-semibold text-[#475569]">{TRAMOS_TAMANO[i]}</dt>
+                  <dd className="text-xl font-extrabold tabular-nums text-[#0B1B36]">
+                    {soles(monto)} <span className="text-sm font-semibold text-[#5A6A80]">/mes</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <ul className="mt-4 grid gap-2">
+              {PLAN_RRHH.incluye.map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-[#0B1B36]">
+                  <CheckCircle2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-[#15803D]" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-5 border-t border-[#E5EAF2] pt-4 text-sm">
+              {PRECIOS_RRHH_PUNTUALES.map((p) => (
+                <p key={p.servicio} className="flex justify-between gap-4 py-1 text-[#475569]">
+                  <span>{p.servicio}</span>
+                  <span className="shrink-0 font-bold text-[#0B1B36]">{p.precio}</span>
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

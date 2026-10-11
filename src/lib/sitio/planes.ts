@@ -103,7 +103,26 @@ export const PRECIOS_CAPACITACION: PrecioCapacitacion[] = [
   { producto: 'Práctica de brigadas presencial', precio: 'Desde S/ 900', detalle: 'Extintores y primeros auxilios.' },
   { producto: 'Curso abierto virtual', precio: 'S/ 79 a S/ 99 por persona', detalle: 'Hostigamiento sexual o comité de SST.' },
   { producto: 'Curso para gerentes: cómo atender una inspección', precio: 'S/ 149 por persona' },
+  { producto: 'Curso de procedimiento disciplinario para RRHH', precio: 'S/ 149 por persona' },
 ]
+
+/** Soporte legal a RRHH: plan mensual por tamaño (20–50, 51–100, 101–250 trabajadores). */
+export const PLAN_RRHH: { nombre: string; precios: [number, number, number]; incluye: string[] } = {
+  nombre: 'Plan de soporte legal a RRHH',
+  precios: [490, 790, 1190],
+  incluye: [
+    'Consultas de RRHH con respuesta en 24 horas hábiles',
+    'Hasta 2 procedimientos disciplinarios al mes',
+    'Una desvinculación al mes, de principio a fin',
+    'Revisión de contratos y adendas',
+    'Calendario de vencimientos de contratos y vacaciones',
+  ],
+}
+
+export const PRECIOS_RRHH_PUNTUALES = [
+  { servicio: 'Procedimiento disciplinario (por caso)', precio: 'Desde S/ 350' },
+  { servicio: 'Desvinculación: preaviso, descargos, carta de despido y liquidación', precio: 'Desde S/ 450' },
+] as const
 
 export const PRECIOS_DEFENSA = [
   { servicio: 'Atención de una inspección (requerimientos y acompañamiento)', precio: 'Desde S/ 1,500' },

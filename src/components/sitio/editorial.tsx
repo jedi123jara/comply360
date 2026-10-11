@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { pub } from '@/components/marketing/public-theme'
+import { PUBLIC_HERO_BACKGROUND, pub } from '@/components/marketing/public-theme'
+import { Breadcrumbs } from './breadcrumbs'
 
 type Tono = 'blanco' | 'claro' | 'oscuro'
 
@@ -34,6 +35,61 @@ export function EtiquetaSeccion({
       <span aria-hidden className={cn('h-px w-8', oscuro ? 'bg-[#ffffff]/20' : 'bg-[#C9D1DD]')} />
       {children}
     </p>
+  )
+}
+
+/**
+ * Encabezado de las páginas interiores: migas, etiqueta, h1 y bajada sobre azul
+ * marino. `aside` muestra una ficha a la derecha (precio, base legal, plazos).
+ */
+export function HeroPagina({
+  migas,
+  etiqueta,
+  titulo,
+  bajada,
+  children,
+  aside,
+}: {
+  migas: Array<{ nombre: string; ruta: string }>
+  etiqueta: string
+  titulo: ReactNode
+  bajada?: ReactNode
+  children?: ReactNode
+  aside?: ReactNode
+}) {
+  return (
+    <section className="relative overflow-hidden text-[#ffffff]" style={{ background: PUBLIC_HERO_BACKGROUND }}>
+      <div className={cn(pub.container, 'pb-20 pt-8 sm:pb-24 sm:pt-10')}>
+        <Breadcrumbs items={migas} className="mb-14" />
+        <div className={cn(aside && 'grid gap-12 lg:grid-cols-12 lg:items-end lg:gap-x-10')}>
+          <div className={cn(aside && 'lg:col-span-7')}>
+            <EtiquetaSeccion oscuro className="mb-6">
+              {etiqueta}
+            </EtiquetaSeccion>
+            <h1 className="max-w-[22ch] text-balance text-[2.4rem] font-extrabold leading-[1.04] tracking-[-0.035em] text-[#ffffff] sm:text-[3.4rem]">
+              {titulo}
+            </h1>
+            {bajada ? <p className="mt-6 max-w-2xl text-lg leading-8 text-[#CBD5E1]">{bajada}</p> : null}
+            {children}
+          </div>
+          {aside ? <div className="lg:col-span-5">{aside}</div> : null}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** Ficha de datos clave para el `aside` del encabezado. */
+export function FichaHero({ filas }: { filas: Array<{ etiqueta: string; valor: ReactNode }> }) {
+  return (
+    <dl className="rounded-2xl border border-[#ffffff]/12 bg-[#ffffff]/[0.04] px-6 py-2">
+      {filas.map((f) => (
+        <div key={f.etiqueta} className="grid gap-1 border-b border-[#ffffff]/10 py-4 last:border-b-0 sm:grid-cols-[9rem_1fr] sm:gap-4">
+          <dt className="text-xs font-bold uppercase tracking-[0.14em] text-[#7C8BA3]">{f.etiqueta}</dt>
+          <dd className="text-sm font-semibold text-[#ffffff]">{f.valor}</dd>
+        </div>
+      ))}
+    </dl>
   )
 }
 

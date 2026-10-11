@@ -43,12 +43,6 @@ const CIFRAS = [
   { cifra: '74%', texto: 'de las inspecciones de SUNAFIL se origina en una denuncia.', base: 'Boletines de inspección MTPE y SUNAFIL' },
 ] as const
 
-const BASE_AREA: Record<string, string> = {
-  sst: 'Ley 29783 · D.S. 005-2012-TR',
-  hostigamiento: 'Ley 27942 · D.S. 014-2019-MIMP',
-  laboral: 'Ley 30709 · D.S. 004-2006-TR',
-}
-
 const PASOS = [
   { titulo: 'Diagnóstico', texto: 'Revisamos tu empresa y te decimos qué falta y cuánto arriesgas. La versión express es gratis.' },
   { titulo: 'Implementación', texto: 'Hacemos los documentos, comités y registros que faltan. Tú revisas y firmas.' },
@@ -313,12 +307,12 @@ export default function HomePage() {
         id="areas"
         numero="03"
         etiqueta="Por dónde empezamos"
-        titulo="Las tres materias que más pesan en una inspección"
+        titulo="Cuatro áreas, empezando por lo que más se fiscaliza"
       >
-        <div className="grid gap-12 lg:grid-cols-3 lg:gap-8">
+        <div className="grid gap-x-10 gap-y-14 sm:grid-cols-2">
           {AREAS_SERVICIO.map((area) => (
             <Link key={area.slug} href={`/servicios/${area.slug}`} className="group flex flex-col border-t-2 border-[#0B1B36] pt-6">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">{BASE_AREA[area.slug]}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A97AB]">{area.baseLegal}</p>
               <h3 className="mt-3 text-xl font-extrabold leading-snug tracking-[-0.02em] text-[#0B1B36]">{area.titulo}</h3>
               <p className="mt-3 flex-1 text-[0.98rem] leading-7 text-[#475569]">{area.resumen}</p>
               <span className={cn(pub.linkMore, 'mt-6 text-sm')}>

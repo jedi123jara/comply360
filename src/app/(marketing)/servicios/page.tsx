@@ -138,7 +138,7 @@ export default function ServiciosPage() {
             titulo="Lo que hacemos en cada materia"
             bajada="Empezamos por lo que más fiscaliza SUNAFIL. Protección de datos personales, libro de reclamaciones y prevención de delitos se suman a pedido."
           />
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2">
             {AREAS_SERVICIO.map((area) => (
               <Link key={area.slug} href={`/servicios/${area.slug}`} className={cn(pub.card, pub.cardHover, 'flex flex-col p-6')}>
                 <h3 className="text-lg font-extrabold tracking-[-0.01em] text-[#0B1B36]">{area.titulo}</h3>
